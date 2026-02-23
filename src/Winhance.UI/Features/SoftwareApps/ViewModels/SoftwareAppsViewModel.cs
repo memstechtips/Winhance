@@ -13,6 +13,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly ILogService _logService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IConfigReviewService _configReviewService;
+    private bool _isSubscribed;
 
     public SoftwareAppsViewModel(
         WindowsAppsViewModel windowsAppsViewModel,
@@ -33,19 +34,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         // tab-change handlers forward it to child ViewModels)
         SearchText = string.Empty;
         IsWindowsAppsTabSelected = true;
-
-        // Load saved view mode preference (default: Card)
-        var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
-        IsCardViewMode = savedViewMode == "Card";
-
-        WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-        ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-        WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
-        ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
-        _localizationService.LanguageChanged += OnLanguageChanged;
-        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
-
-        UpdateButtonStates();
     }
 
     public WindowsAppsViewModel WindowsAppsViewModel { get; }
@@ -400,6 +388,25 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
         try
         {
+            // Subscribe to events and load preferences on first initialization
+            // (deferred from constructor to avoid side effects during construction)
+            if (!_isSubscribed)
+            {
+                _isSubscribed = true;
+
+                var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
+                IsCardViewMode = savedViewMode == "Card";
+
+                WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+                ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+                WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
+                ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
+                _localizationService.LanguageChanged += OnLanguageChanged;
+                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+
+                UpdateButtonStates();
+            }
+
             if (!WindowsAppsViewModel.IsInitialized)
             {
                 _logService.LogInformation("[SoftwareAppsViewModel] Loading WindowsAppsViewModel");

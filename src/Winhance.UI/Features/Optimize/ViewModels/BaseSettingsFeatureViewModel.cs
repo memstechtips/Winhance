@@ -4,11 +4,11 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -20,13 +20,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
     protected readonly IDispatcherService _dispatcherService;
-    protected readonly MainWindowViewModel? _mainWindowViewModel;
     protected readonly IEventBus _eventBus;
 
     private bool _settingsLoaded = false;
+    private bool _isSubscribed = false;
     private readonly object _loadingLock = new();
     private CancellationTokenSource? _searchDebounceTokenSource;
     private ISubscriptionToken? _settingAppliedSubscription;
+    private ISubscriptionToken? _filterStateChangedSubscription;
     private Dictionary<string, SettingItemViewModel> _settingsById = new();
     private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
@@ -91,8 +92,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IEventBus eventBus,
-        MainWindowViewModel? mainWindowViewModel = null)
+        IEventBus eventBus)
     {
         _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
@@ -100,7 +100,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        _mainWindowViewModel = mainWindowViewModel;
 
         // Initialize partial property defaults
         Settings = new ObservableCollection<SettingItemViewModel>();
@@ -110,16 +109,20 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
+    }
+
+    /// <summary>
+    /// Subscribes to external events. Called from <see cref="LoadSettingsAsync"/> on first load
+    /// to avoid triggering side effects during DI construction.
+    /// </summary>
+    private void SubscribeToEvents()
+    {
+        if (_isSubscribed) return;
+        _isSubscribed = true;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
-
-        // Subscribe to setting applied events for cross-module dependency updates
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
-
-        if (_mainWindowViewModel != null)
-        {
-            _mainWindowViewModel.FilterStateChanged += OnFilterStateChanged;
-        }
+        _filterStateChangedSubscription = _eventBus.Subscribe<FilterStateChangedEvent>(OnFilterStateChanged);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -168,7 +171,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         await LoadSettingsAsync();
     }
 
-    private async void OnFilterStateChanged(object? sender, FilterStateChangedEventArgs e)
+    private async void OnFilterStateChanged(FilterStateChangedEvent e)
     {
         await RefreshSettingsForFilterChangeAsync();
     }
@@ -254,6 +257,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     public virtual async Task LoadSettingsAsync()
     {
+        SubscribeToEvents();
+
         lock (_loadingLock)
         {
             if (_settingsLoaded)
@@ -449,12 +454,10 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _settingAppliedSubscription?.Dispose();
             _settingAppliedSubscription = null;
 
-            _localizationService.LanguageChanged -= OnLanguageChanged;
+            _filterStateChangedSubscription?.Dispose();
+            _filterStateChangedSubscription = null;
 
-            if (_mainWindowViewModel != null)
-            {
-                _mainWindowViewModel.FilterStateChanged -= OnFilterStateChanged;
-            }
+            _localizationService.LanguageChanged -= OnLanguageChanged;
 
             if (Settings != null)
             {

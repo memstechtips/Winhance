@@ -7,8 +7,6 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.Interfaces;
-using Winhance.UI.ViewModels;
-
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
 public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
@@ -31,9 +29,8 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         IEventBus eventBus,
-        IPowerPlanComboBoxService powerPlanComboBoxService,
-        MainWindowViewModel mainWindowViewModel)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus, mainWindowViewModel)
+        IPowerPlanComboBoxService powerPlanComboBoxService)
+        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
         _dialogService = dialogService;
         _powerPlanComboBoxService = powerPlanComboBoxService;

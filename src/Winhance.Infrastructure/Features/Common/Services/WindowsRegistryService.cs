@@ -23,8 +23,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 using var createdKey = rootKey.CreateSubKey(subKeyPath, true);
                 return createdKey != null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to create key '{keyPath}': {ex.Message}");
                 return false;
             }
         }
@@ -46,8 +47,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 targetKey.SetValue(valueName, value, valueKind);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to set value '{keyPath}\\{valueName}': {ex.Message}");
                 return false;
             }
         }
@@ -60,8 +62,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 using var key = rootKey.OpenSubKey(subKeyPath, false);
                 return key?.GetValue(valueName);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
                 return null;
             }
         }
@@ -77,8 +80,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 rootKey.DeleteSubKeyTree(subKeyPath, false);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to delete key '{keyPath}': {ex.Message}");
                 return false;
             }
         }
@@ -95,8 +99,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 key.DeleteValue(valueName, false);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to delete value '{keyPath}\\{valueName}': {ex.Message}");
                 return false;
             }
         }
@@ -109,8 +114,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 using var key = rootKey.OpenSubKey(subKeyPath, false);
                 return key != null;
             }
-            catch
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to check key existence '{keyPath}': {ex.Message}");
                 return false;
             }
         }
@@ -126,8 +132,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 return key.GetValueNames().Contains(valueName, StringComparer.OrdinalIgnoreCase);
             }
-            catch
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to check value existence '{keyPath}\\{valueName}': {ex.Message}");
                 return false;
             }
         }
@@ -140,8 +147,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 using var key = rootKey.OpenSubKey(subKeyPath, false);
                 return key?.GetSubKeyNames() ?? Array.Empty<string>();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to get subkey names for '{keyPath}': {ex.Message}");
                 return Array.Empty<string>();
             }
         }
@@ -277,8 +285,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to check if setting applied '{setting?.KeyPath}\\{setting?.ValueName}': {ex.Message}");
                 return false;
             }
         }
@@ -326,8 +335,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 return null;
             }
-            catch
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to get binary byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
                 return null;
             }
         }
@@ -377,8 +387,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 return (currentByte.Value & bitMask) == bitMask;
             }
-            catch
+            catch (Exception ex)
             {
+                logService.LogDebug($"[WindowsRegistryService] Failed to check bit in '{keyPath}\\{valueName}': {ex.Message}");
                 return false;
             }
         }
@@ -595,8 +606,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             results[resultKey] = subKey?.GetValue(valueName);
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        logService.LogDebug($"[WindowsRegistryService] Failed to get batch value for '{keyPath}\\{valueName}': {ex.Message}");
                         var resultKey = valueName == null
                             ? $"{keyPath}\\__KEY_EXISTS__"
                             : $"{keyPath}\\{valueName}";

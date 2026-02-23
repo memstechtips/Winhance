@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -23,14 +25,6 @@ internal enum UpdateInfoBarState
     Downloading
 }
 
-/// <summary>
-/// Event arguments for filter state changes.
-/// </summary>
-public class FilterStateChangedEventArgs : EventArgs
-{
-    public bool IsFilterEnabled { get; }
-    public FilterStateChangedEventArgs(bool isFilterEnabled) => IsFilterEnabled = isFilterEnabled;
-}
 
 /// <summary>
 /// ViewModel for the MainWindow, handling title bar commands and state.
@@ -51,6 +45,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IWinGetService _winGetService;
     private readonly IInternetConnectivityService _internetConnectivityService;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IEventBus _eventBus;
 
     [ObservableProperty]
     public partial string AppIconSource { get; set; }
@@ -135,10 +130,6 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     public partial string OtsInfoBarMessage { get; set; }
 
-    /// <summary>
-    /// Event raised when the Windows version filter state changes.
-    /// </summary>
-    public event EventHandler<FilterStateChangedEventArgs>? FilterStateChanged;
 
     /// <summary>
     /// Event raised when a multi-script progress update is received.
@@ -160,7 +151,8 @@ public partial class MainWindowViewModel : ObservableObject
         IConfigReviewService configReviewService,
         IWinGetService winGetService,
         IInternetConnectivityService internetConnectivityService,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IEventBus eventBus)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -176,6 +168,7 @@ public partial class MainWindowViewModel : ObservableObject
         _winGetService = winGetService;
         _internetConnectivityService = internetConnectivityService;
         _interactiveUserService = interactiveUserService;
+        _eventBus = eventBus;
 
         // Initialize partial property defaults
         AppIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -512,7 +505,7 @@ public partial class MainWindowViewModel : ObservableObject
             _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
 
             // Publish event for all subscribers (pages/viewmodels) to refresh
-            FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(IsWindowsVersionFilterEnabled));
+            _eventBus.Publish(new FilterStateChangedEvent(IsWindowsVersionFilterEnabled));
 
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
                 $"Windows version filter toggled to: {(IsWindowsVersionFilterEnabled ? "ON" : "OFF")}");
@@ -888,7 +881,7 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     IsWindowsVersionFilterEnabled = true;
                     _compatibleSettingsRegistry.SetFilterEnabled(true);
-                    FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(true));
+                    _eventBus.Publish(new FilterStateChangedEvent(true));
                 }
             }
             else
@@ -901,7 +894,7 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     IsWindowsVersionFilterEnabled = savedPreference;
                     _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
-                    FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(savedPreference));
+                    _eventBus.Publish(new FilterStateChangedEvent(savedPreference));
                 }
             }
 
