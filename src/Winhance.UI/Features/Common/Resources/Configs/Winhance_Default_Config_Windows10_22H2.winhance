@@ -1764,12 +1764,6 @@
             "InputType": 0
           },
           {
-            "Id": "privacy-lock-screen-slideshow",
-            "Name": "Lock Screen Slideshow",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "privacy-advertising-id",
             "Name": "Let apps show me personalized ads by using my advertising ID",
             "IsSelected": true,

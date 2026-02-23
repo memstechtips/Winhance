@@ -99,7 +99,7 @@ public static class StartMenuCustomizations
                     Id = "start-recommended-section",
                     Name = "Recommended section",
                     Description =
-                        "Show or hide the lower section that displays recently opened files and suggested apps",
+                        "Show or hide the lower section that displays recently opened files and suggested apps. Hiding this section also removes Windows Spotlight from the lock screen options",
                     GroupName = "Layout",
                     InputType = InputType.Selection,
                     IsWindows11Only = true,

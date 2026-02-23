@@ -310,7 +310,6 @@ public static class PrivacyAndSecurityOptimizations
                                 ["privacy-silent-installed-apps"] = true,
                                 ["privacy-rotating-lock-screen"] = true,
                                 ["privacy-lock-screen-overlay"] = true,
-                                ["privacy-lock-screen-slideshow"] = true,
                                 ["privacy-settings-content"] = true,
                                 ["privacy-timeline-suggestions"] = true,
                                 ["notifications-welcome-experience"] = true,
@@ -330,7 +329,6 @@ public static class PrivacyAndSecurityOptimizations
                                 ["privacy-silent-installed-apps"] = false,
                                 ["privacy-rotating-lock-screen"] = false,
                                 ["privacy-lock-screen-overlay"] = false,
-                                ["privacy-lock-screen-slideshow"] = false,
                                 ["privacy-settings-content"] = false,
                                 ["privacy-timeline-suggestions"] = false,
                                 ["notifications-welcome-experience"] = false,
@@ -343,7 +341,6 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
                             ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
-                            ["privacy-lock-screen-slideshow"] = "Setting_privacy-ads-promotional-master_Child_Slideshow",
                             ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
                             ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
                             ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
@@ -633,7 +630,7 @@ public static class PrivacyAndSecurityOptimizations
                 {
                     Id = "privacy-rotating-lock-screen",
                     Name = "Windows Spotlight on Lock Screen",
-                    Description = "Displays rotating Windows Spotlight images on your lock screen instead of a static background",
+                    Description = "Displays rotating Windows Spotlight images on your lock screen instead of a static background. Winhance automatically sets the Start Menu Recommended Section to Show when this setting is enabled as it is required",
                     GroupName = "Lock Screen",
                     IconPack = "Fluent",
                     Icon = "ImageCircle",
@@ -647,6 +644,13 @@ public static class PrivacyAndSecurityOptimizations
                             DependentSettingId = "privacy-rotating-lock-screen",
                             RequiredSettingId = "privacy-ads-promotional-master",
                             RequiredValue = "Custom",
+                        },
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresSpecificValue,
+                            DependentSettingId = "privacy-rotating-lock-screen",
+                            RequiredSettingId = "start-recommended-section",
+                            RequiredValue = "Show",
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -694,36 +698,14 @@ public static class PrivacyAndSecurityOptimizations
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "privacy-lock-screen-slideshow",
-                    Name = "Lock Screen Slideshow",
-                    Description = "Enables slideshow option for lock screen background",
-                    GroupName = "Lock Screen",
-                    Icon = "TelevisionPlay",
-                    InputType = InputType.Toggle,
-                    ParentSettingId = "privacy-lock-screen",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresValueBeforeAnyChange,
-                            DependentSettingId = "privacy-lock-screen-slideshow",
-                            RequiredSettingId = "privacy-ads-promotional-master",
-                            RequiredValue = "Custom",
-                        },
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
-                            ValueName = "SlideshowEnabled",
+                            ValueName = "SubscribedContent-338387Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
+                            EnabledValue = 1,
                             DisabledValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
