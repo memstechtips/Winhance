@@ -13,7 +13,6 @@ using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services
@@ -25,6 +24,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         private readonly IWinGetService _winGetService;
         private readonly ILocalizationService _localization;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IDriverCategorizer _driverCategorizer;
 
         private static readonly string[] AdkDownloadSources = new[]
         {
@@ -39,13 +39,15 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             HttpClient httpClient,
             IWinGetService winGetService,
             ILocalizationService localization,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IDriverCategorizer driverCategorizer)
         {
             _logService = logService;
             _httpClient = httpClient;
             _winGetService = winGetService;
             _localization = localization;
             _processExecutor = processExecutor;
+            _driverCategorizer = driverCategorizer;
         }
 
         public string GetOscdimgPath()
@@ -1225,11 +1227,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 _logService.LogInformation($"Searching for drivers in: {sourceDirectory}");
 
-                int copiedCount = await Task.Run(() => DriverCategorizer.CategorizeAndCopyDrivers(
+                int copiedCount = await Task.Run(() => _driverCategorizer.CategorizeAndCopyDrivers(
                     sourceDirectory,
                     winpeDriverPath,
                     oemDriverPath,
-                    _logService,
                     workingDirectory
                 ), cancellationToken).ConfigureAwait(false);
 

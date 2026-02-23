@@ -21,7 +21,6 @@ public record AppCategory(string GroupName, string DisplayName, string IconGlyph
 public partial class ExternalAppsViewModel : BaseViewModel
 {
     private readonly IExternalAppsService _externalAppsService;
-    private readonly IAppOperationService _appOperationService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
@@ -33,7 +32,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
-        IAppOperationService appOperationService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
@@ -44,7 +42,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
         IAppStatusDiscoveryService appStatusDiscoveryService)
     {
         _externalAppsService = externalAppsService;
-        _appOperationService = appOperationService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;

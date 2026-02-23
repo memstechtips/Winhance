@@ -20,7 +20,8 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 public partial class WindowsAppsViewModel : BaseViewModel
 {
     private readonly IWindowsAppsService _windowsAppsService;
-    private readonly IAppOperationService _appOperationService;
+    private readonly IAppInstallationService _appInstallationService;
+    private readonly IAppRemovalService _appRemovalService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
@@ -32,7 +33,8 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
-        IAppOperationService appOperationService,
+        IAppInstallationService appInstallationService,
+        IAppRemovalService appRemovalService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
@@ -43,7 +45,8 @@ public partial class WindowsAppsViewModel : BaseViewModel
         IAppStatusDiscoveryService appStatusDiscoveryService)
     {
         _windowsAppsService = windowsAppsService;
-        _appOperationService = appOperationService;
+        _appInstallationService = appInstallationService;
+        _appRemovalService = appRemovalService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
@@ -391,7 +394,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
                     QueueNextItemName = nextName
                 });
 
-                var result = await _appOperationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: true);
+                var result = await _appInstallationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: true);
                 if (result.Success && result.Result)
                 {
                     app.IsInstalled = true;
@@ -481,15 +484,23 @@ public partial class WindowsAppsViewModel : BaseViewModel
         try
         {
             var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _appOperationService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
+            var result = await _appRemovalService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
 
             if (result.Success)
             {
-                foreach (var item in selectedItems)
+                if (result.InfoMessage != null)
                 {
-                    item.IsInstalled = false;
+                    // Deferred: don't mark as uninstalled — they haven't been removed yet
+                    StatusText = result.InfoMessage;
                 }
-                StatusText = $"Removed {result.Result} items";
+                else
+                {
+                    foreach (var item in selectedItems)
+                    {
+                        item.IsInstalled = false;
+                    }
+                    StatusText = $"Removed {result.Result} items";
+                }
             }
             else
             {

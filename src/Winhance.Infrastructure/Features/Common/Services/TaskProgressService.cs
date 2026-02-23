@@ -11,7 +11,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     /// <summary>
     /// Service that manages task progress reporting across the application.
     /// </summary>
-    public class TaskProgressService : ITaskProgressService
+    public class TaskProgressService : ITaskProgressService, IMultiScriptProgressService
     {
         private readonly ILogService _logService;
         private int _currentProgress;

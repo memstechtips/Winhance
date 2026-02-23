@@ -6,11 +6,13 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Exceptions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
-public static class PowerShellRunner
+public class PowerShellRunner : IPowerShellRunner
 {
     private const string PowerShellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
 
@@ -19,7 +21,7 @@ public static class PowerShellRunner
     /// The script is written to a temp file, executed, and the temp file is cleaned up.
     /// Stdout is captured line-by-line for progress reporting (Write-Host output).
     /// </summary>
-    public static async Task<string> RunScriptAsync(
+    public async Task<string> RunScriptAsync(
         string script,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken ct = default)
@@ -43,8 +45,9 @@ public static class PowerShellRunner
     /// <summary>
     /// Executes a PowerShell script file via Windows PowerShell 5.1 (powershell.exe).
     /// Stdout is captured line-by-line for progress reporting (Write-Host output).
+    /// If execution policy blocks the script, retries with -EncodedCommand.
     /// </summary>
-    public static async Task<string> RunScriptFileAsync(
+    public async Task<string> RunScriptFileAsync(
         string scriptPath,
         string arguments = "",
         IProgress<TaskProgressDetail>? progress = null,
@@ -60,10 +63,59 @@ public static class PowerShellRunner
             ? $"-ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
             : $"-ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\" {arguments}";
 
+        var (output, errors, exitCode) = await LaunchPowerShellAsync(args, progress, ct).ConfigureAwait(false);
+
+        if (exitCode != 0 && errors.Length > 0)
+        {
+            var errorText = errors.ToString();
+
+            if (IsExecutionPolicyError(errorText) && string.IsNullOrEmpty(arguments))
+            {
+                // Attempt fallback: read script content and re-run as -EncodedCommand
+                var scriptContent = await File.ReadAllTextAsync(scriptPath, ct).ConfigureAwait(false);
+
+                // Guard: Base64 of Unicode doubles size; Windows command line limit ~32K
+                if (scriptContent.Length > 28_000)
+                {
+                    throw new ExecutionPolicyException(
+                        $"Execution policy blocked script and script is too large ({scriptContent.Length} chars) for -EncodedCommand fallback.\n{errorText}");
+                }
+
+                var base64 = Convert.ToBase64String(Encoding.Unicode.GetBytes(scriptContent));
+                var fallbackArgs = $"-ExecutionPolicy Bypass -NoProfile -EncodedCommand {base64}";
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    TerminalOutput = "Execution policy blocked script file. Retrying with -EncodedCommand...",
+                    IsActive = true,
+                    LogLevel = LogLevel.Warning
+                });
+
+                var (retryOutput, retryErrors, retryExitCode) =
+                    await LaunchPowerShellAsync(fallbackArgs, progress, ct).ConfigureAwait(false);
+
+                if (retryExitCode == 0 || retryErrors.Length == 0)
+                    return retryOutput.ToString();
+
+                // Both attempts failed
+                throw new ExecutionPolicyException(
+                    $"Execution policy blocked script file and -EncodedCommand fallback also failed (exit code {retryExitCode}):\n{retryErrors}");
+            }
+
+            throw new InvalidOperationException(
+                $"PowerShell execution failed (exit code {exitCode}):\n{errorText}");
+        }
+
+        return output.ToString();
+    }
+
+    private async Task<(StringBuilder Output, StringBuilder Errors, int ExitCode)> LaunchPowerShellAsync(
+        string arguments, IProgress<TaskProgressDetail>? progress, CancellationToken ct)
+    {
         var psi = new ProcessStartInfo
         {
             FileName = PowerShellPath,
-            Arguments = args,
+            Arguments = arguments,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -107,20 +159,22 @@ public static class PowerShellRunner
 
         await process.WaitForExitAsync(ct).ConfigureAwait(false);
 
-        if (process.ExitCode != 0 && errors.Length > 0)
-        {
-            throw new InvalidOperationException(
-                $"PowerShell execution failed (exit code {process.ExitCode}):\n{errors}");
-        }
+        return (output, errors, process.ExitCode);
+    }
 
-        return output.ToString();
+    private static bool IsExecutionPolicyError(string errorOutput)
+    {
+        if (string.IsNullOrEmpty(errorOutput)) return false;
+        return errorOutput.Contains("running scripts is disabled", StringComparison.OrdinalIgnoreCase)
+            || errorOutput.Contains("AuthorizationManager check failed", StringComparison.OrdinalIgnoreCase)
+            || errorOutput.Contains("is not digitally signed", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
     /// Validates a PowerShell script for syntax errors without executing it.
     /// Uses PowerShell's built-in Parser.ParseFile() API.
     /// </summary>
-    public static async Task ValidateScriptSyntaxAsync(
+    public async Task ValidateScriptSyntaxAsync(
         string scriptContent,
         CancellationToken ct = default)
     {
@@ -154,7 +208,7 @@ exit 0";
     /// Validates an XML string for well-formedness errors without writing it.
     /// Uses .NET's XmlReader via PowerShell.
     /// </summary>
-    public static async Task ValidateXmlSyntaxAsync(
+    public async Task ValidateXmlSyntaxAsync(
         string xmlContent,
         CancellationToken ct = default)
     {
@@ -186,7 +240,7 @@ try {
         }
     }
 
-    private static void ReportLine(string line, IProgress<TaskProgressDetail>? progress, LogLevel defaultLevel)
+    private void ReportLine(string line, IProgress<TaskProgressDetail>? progress, LogLevel defaultLevel)
     {
         if (progress == null || string.IsNullOrWhiteSpace(line)) return;
 

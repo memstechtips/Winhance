@@ -9,19 +9,22 @@ namespace Winhance.Core.Features.Common.Models
         public string? ErrorMessage { get; }
         public Exception? Exception { get; }
         public bool RequiresConfirmation { get; }
+        public string? InfoMessage { get; }
 
         private OperationResult(
             bool success,
             T? result = default,
             string? errorMessage = null,
             Exception? exception = null,
-            bool requiresConfirmation = false)
+            bool requiresConfirmation = false,
+            string? infoMessage = null)
         {
             Success = success;
             Result = result;
             ErrorMessage = errorMessage;
             Exception = exception;
             RequiresConfirmation = requiresConfirmation;
+            InfoMessage = infoMessage;
         }
 
         public static OperationResult<T> Succeeded(T result)
@@ -47,6 +50,11 @@ namespace Winhance.Core.Features.Common.Models
         public static OperationResult<T> ConfirmationRequired(string message)
         {
             return new OperationResult<T>(success: false, errorMessage: message, requiresConfirmation: true);
+        }
+
+        public static OperationResult<T> DeferredSuccess(T result, string infoMessage)
+        {
+            return new OperationResult<T>(success: true, result: result, infoMessage: infoMessage);
         }
     }
 }

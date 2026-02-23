@@ -27,10 +27,9 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
-    private readonly IProcessExecutor? _processExecutor;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
-    private readonly IInteractiveUserService? _interactiveUserService;
+    private readonly IRegeditLauncher? _regeditLauncher;
     private readonly IEventBus? _eventBus;
     private ISubscriptionToken? _tooltipUpdatedSubscription;
     private bool _isUpdatingFromEvent;
@@ -288,8 +287,7 @@ public partial class SettingItemViewModel : BaseViewModel
         ILocalizationService localizationService,
         IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
-        IInteractiveUserService? interactiveUserService = null,
-        IProcessExecutor? processExecutor = null)
+        IRegeditLauncher? regeditLauncher = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
@@ -298,8 +296,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _localizationService = localizationService;
         _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
-        _interactiveUserService = interactiveUserService;
-        _processExecutor = processExecutor;
+        _regeditLauncher = regeditLauncher;
 
         // Initialize partial property defaults
         SettingId = string.Empty;
@@ -930,7 +927,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 var keyExists = false;
                 try
                 {
-                    keyExists = RegeditLauncher.KeyExists(reg.KeyPath, _interactiveUserService);
+                    keyExists = _regeditLauncher?.KeyExists(reg.KeyPath) ?? false;
                 }
                 catch (Exception kex)
                 {
@@ -990,7 +987,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private void OpenRegeditAtPath(string? path)
     {
         if (!string.IsNullOrEmpty(path))
-            RegeditLauncher.OpenAtPath(path, _interactiveUserService, _processExecutor);
+            _regeditLauncher?.OpenAtPath(path);
     }
 
     protected override void Dispose(bool disposing)

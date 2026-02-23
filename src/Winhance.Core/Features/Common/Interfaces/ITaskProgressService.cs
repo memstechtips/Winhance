@@ -85,27 +85,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         event EventHandler<TaskProgressDetail>? ProgressUpdated;
 
         /// <summary>
-        /// Starts a multi-script task with the specified script names.
-        /// Each script gets its own progress slot.
-        /// </summary>
-        /// <param name="scriptNames">The names of the scripts to run in parallel.</param>
-        /// <returns>A cancellation token source for cancelling all scripts.</returns>
-        CancellationTokenSource StartMultiScriptTask(string[] scriptNames);
-
-        /// <summary>
-        /// Creates a progress reporter for a specific script slot.
-        /// Must be called on the UI thread so Progress&lt;T&gt; captures the SynchronizationContext.
-        /// </summary>
-        /// <param name="slotIndex">The zero-based slot index.</param>
-        /// <returns>A progress reporter that tags updates with the slot index.</returns>
-        IProgress<TaskProgressDetail> CreateScriptProgress(int slotIndex);
-
-        /// <summary>
-        /// Completes the multi-script task and resets slot state.
-        /// </summary>
-        void CompleteMultiScriptTask();
-
-        /// <summary>
         /// Checks and clears the skip-next flag (atomic check-and-clear).
         /// </summary>
         /// <returns>True if a skip was requested since the last call.</returns>

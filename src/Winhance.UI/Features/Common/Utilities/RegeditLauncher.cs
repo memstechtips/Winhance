@@ -8,18 +8,20 @@ namespace Winhance.UI.Features.Common.Utilities;
 /// <summary>
 /// Launches regedit.exe and navigates to a specific registry path.
 /// </summary>
-public static class RegeditLauncher
+public class RegeditLauncher(
+    IInteractiveUserService interactiveUserService,
+    IProcessExecutor processExecutor) : IRegeditLauncher
 {
     /// <summary>
     /// Checks whether the given registry key path exists.
     /// Accepts paths like "HKEY_LOCAL_MACHINE\SOFTWARE\..." or "HKLM\SOFTWARE\...".
     /// In OTS mode, HKCU paths are redirected to HKU\{interactive user SID}.
     /// </summary>
-    public static bool KeyExists(string registryPath, IInteractiveUserService? interactiveUserService = null)
+    public bool KeyExists(string registryPath)
     {
         try
         {
-            var (root, subKey) = ParsePath(registryPath, interactiveUserService);
+            var (root, subKey) = ParsePath(registryPath);
             if (root == null || subKey == null) return false;
             using var key = root.OpenSubKey(subKey);
             return key != null;
@@ -30,7 +32,7 @@ public static class RegeditLauncher
         }
     }
 
-    private static (RegistryKey? root, string? subKey) ParsePath(string path, IInteractiveUserService? interactiveUserService = null)
+    private (RegistryKey? root, string? subKey) ParsePath(string path)
     {
         var separatorIndex = path.IndexOf('\\');
         if (separatorIndex < 0) return (null, null);
@@ -40,7 +42,6 @@ public static class RegeditLauncher
 
         // OTS: redirect HKCU to HKU\{interactive user SID}
         if ((hive == "HKEY_CURRENT_USER" || hive == "HKCU")
-            && interactiveUserService != null
             && interactiveUserService.IsOtsElevation
             && interactiveUserService.InteractiveUserSid != null)
         {
@@ -60,7 +61,7 @@ public static class RegeditLauncher
         return (root, subKey);
     }
 
-    public static void OpenAtPath(string registryPath, IInteractiveUserService? interactiveUserService = null, IProcessExecutor? processExecutor = null)
+    public void OpenAtPath(string registryPath)
     {
         try
         {
@@ -77,24 +78,19 @@ public static class RegeditLauncher
                 ? navigatePath
                 : $"Computer\\{navigatePath}";
 
-            bool isOts = interactiveUserService != null
-                && interactiveUserService.IsOtsElevation
+            bool isOts = interactiveUserService.IsOtsElevation
                 && interactiveUserService.InteractiveUserSid != null
                 && interactiveUserService.HasInteractiveUserToken;
 
             if (isOts)
             {
                 // OTS: write LastKey to the interactive user's hive (HKU\{SID})
-                // so regedit launched as that user opens at the right location.
-                // The path stays as HKEY_CURRENT_USER\... because regedit will
-                // run as the standard user where HKCU is their own hive.
-                var sid = interactiveUserService!.InteractiveUserSid!;
+                var sid = interactiveUserService.InteractiveUserSid!;
                 using var key = Registry.Users.CreateSubKey(
                     $@"{sid}\Software\Microsoft\Windows\CurrentVersion\Applets\Regedit");
                 key?.SetValue("LastKey", fullPath);
 
-                // Launch regedit as the interactive user so HKCU shows the
-                // standard user's hive, not the admin's.
+                // Launch regedit as the interactive user
                 interactiveUserService.LaunchProcessAsInteractiveUser("regedit.exe");
             }
             else
@@ -104,10 +100,7 @@ public static class RegeditLauncher
                     @"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit");
                 key?.SetValue("LastKey", fullPath);
 
-                if (processExecutor != null)
-                    _ = processExecutor.ShellExecuteAsync("regedit.exe");
-                else
-                    Process.Start(new ProcessStartInfo("regedit.exe") { UseShellExecute = true });
+                _ = processExecutor.ShellExecuteAsync("regedit.exe");
             }
         }
         catch

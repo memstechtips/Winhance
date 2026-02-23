@@ -20,7 +20,8 @@ public class AppStatusDiscoveryService(
     ILogService logService,
     IWinGetService winGetService,
     IChocolateyService chocolateyService,
-    IInteractiveUserService interactiveUserService) : IAppStatusDiscoveryService
+    IInteractiveUserService interactiveUserService,
+    IPowerShellRunner powerShellRunner) : IAppStatusDiscoveryService
 {
     private HashSet<string>? _cachedWinGetPackageIds;
 
@@ -372,7 +373,7 @@ public class AppStatusDiscoveryService(
         {
             logService.LogInformation("Fetching installed AppX packages via Get-AppxPackage...");
 
-            var output = await PowerShellRunner.RunScriptAsync(
+            var output = await powerShellRunner.RunScriptAsync(
                 "Get-AppxPackage | Select-Object -ExpandProperty Name").ConfigureAwait(false);
 
             if (!string.IsNullOrWhiteSpace(output))

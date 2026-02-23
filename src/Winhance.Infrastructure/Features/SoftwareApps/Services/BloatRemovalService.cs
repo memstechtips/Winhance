@@ -5,20 +5,22 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
-using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class BloatRemovalService(
     ILogService logService,
-    IScheduledTaskService scheduledTaskService) : IBloatRemovalService
+    IScheduledTaskService scheduledTaskService,
+    IPowerShellRunner powerShellRunner) : IBloatRemovalService
 {
-    public async Task<bool> ExecuteDedicatedScriptAsync(
+    public async Task<RemovalOutcome> ExecuteDedicatedScriptAsync(
         ItemDefinition app,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken ct = default)
@@ -45,7 +47,7 @@ public class BloatRemovalService(
             progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
 
             logService.LogInformation($"Executing dedicated removal script for '{app.Name}' from {scriptPath}...");
-            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
+            await powerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
             logService.LogInformation($"Dedicated removal script for '{app.Name}' completed successfully");
 
             // Emit metadata footer
@@ -60,12 +62,29 @@ public class BloatRemovalService(
                 TerminalOutput = "Process return value: \"0\" (0x00000000)"
             });
 
-            return true;
+            return RemovalOutcome.Success;
         }
         catch (OperationCanceledException)
         {
             logService.LogInformation($"Dedicated script execution for '{app.Name}' was cancelled");
-            return false;
+            return RemovalOutcome.Failed;
+        }
+        catch (ExecutionPolicyException ex)
+        {
+            // Emit metadata footer indicating deferral
+            var endTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = "Execution policy blocked script — removal deferred to scheduled task"
+            });
+
+            logService.LogWarning($"Execution policy blocked dedicated script for '{app.Name}', deferring to scheduled task: {ex.Message}");
+            return RemovalOutcome.DeferredToScheduledTask;
         }
         catch (InvalidOperationException ex)
         {
@@ -82,16 +101,16 @@ public class BloatRemovalService(
             });
 
             logService.LogWarning($"Dedicated script for '{app.Name}' completed with warnings: {ex.Message}");
-            return true;
+            return RemovalOutcome.Success;
         }
         catch (Exception ex)
         {
             logService.LogError($"Error executing dedicated script for '{app.Name}': {ex.Message}", ex);
-            return false;
+            return RemovalOutcome.Failed;
         }
     }
 
-    public async Task<bool> ExecuteBloatRemovalAsync(
+    public async Task<RemovalOutcome> ExecuteBloatRemovalAsync(
         List<ItemDefinition> apps,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken ct = default)
@@ -104,7 +123,7 @@ public class BloatRemovalService(
             if (!hasItems)
             {
                 logService.LogInformation("No items to process in BloatRemoval");
-                return true;
+                return RemovalOutcome.Success;
             }
 
             Directory.CreateDirectory(ScriptPaths.ScriptsDirectory);
@@ -135,7 +154,7 @@ public class BloatRemovalService(
             progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
 
             logService.LogInformation($"Executing BloatRemoval script from {scriptPath} ({packages.Count} packages, {capabilities.Count} capabilities, {optionalFeatures.Count} features, {specialApps.Count} special)...");
-            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
+            await powerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
             logService.LogInformation("BloatRemoval script completed successfully");
 
             // Emit metadata footer
@@ -150,12 +169,29 @@ public class BloatRemovalService(
                 TerminalOutput = "Process return value: \"0\" (0x00000000)"
             });
 
-            return true;
+            return RemovalOutcome.Success;
         }
         catch (OperationCanceledException)
         {
             logService.LogInformation("BloatRemoval script execution was cancelled");
-            return false;
+            return RemovalOutcome.Failed;
+        }
+        catch (ExecutionPolicyException ex)
+        {
+            // Emit metadata footer indicating deferral
+            var endTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = "Execution policy blocked script — removal deferred to scheduled task"
+            });
+
+            logService.LogWarning($"Execution policy blocked BloatRemoval script, deferring to scheduled task: {ex.Message}");
+            return RemovalOutcome.DeferredToScheduledTask;
         }
         catch (InvalidOperationException ex)
         {
@@ -172,12 +208,12 @@ public class BloatRemovalService(
             });
 
             logService.LogWarning($"BloatRemoval script completed with warnings: {ex.Message}");
-            return true;
+            return RemovalOutcome.Success;
         }
         catch (Exception ex)
         {
             logService.LogError($"Error executing BloatRemoval script: {ex.Message}", ex);
-            return false;
+            return RemovalOutcome.Failed;
         }
     }
 

@@ -17,7 +17,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     {
         public string DomainName => FeatureIds.WindowsTheme;
 
-        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
+        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
             if (setting.Id == "theme-mode-windows" && value is int index)
             {

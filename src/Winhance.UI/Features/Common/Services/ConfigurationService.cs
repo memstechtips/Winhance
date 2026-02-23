@@ -37,7 +37,8 @@ public class ConfigurationService : IConfigurationService
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly ILocalizationService _localizationService;
     private readonly IConfigImportOverlayService _overlayService;
-    private readonly IConfigReviewService _configReviewService;
+    private readonly IConfigReviewModeService _configReviewModeService;
+    private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly ConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IProcessExecutor _processExecutor;
@@ -63,7 +64,8 @@ public class ConfigurationService : IConfigurationService
         IWindowsVersionService windowsVersionService,
         ILocalizationService localizationService,
         IConfigImportOverlayService overlayService,
-        IConfigReviewService configReviewService,
+        IConfigReviewModeService configReviewModeService,
+        IConfigReviewDiffService configReviewDiffService,
         ConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
         IProcessExecutor processExecutor)
@@ -81,17 +83,18 @@ public class ConfigurationService : IConfigurationService
         _windowsVersionService = windowsVersionService;
         _localizationService = localizationService;
         _overlayService = overlayService;
-        _configReviewService = configReviewService;
+        _configReviewModeService = configReviewModeService;
+        _configReviewDiffService = configReviewDiffService;
         _configMigrationService = configMigrationService;
         _interactiveUserService = interactiveUserService;
 
         // Listen for review mode exit to clear review state from all loaded settings
-        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+        _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
     }
 
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        if (_configReviewService.IsInReviewMode)
+        if (_configReviewModeService.IsInReviewMode)
         {
             // Review mode was entered - reapply diffs to any already-loaded singleton VMs
             ReapplyReviewDiffsToExistingSettings();
@@ -517,7 +520,7 @@ public class ConfigurationService : IConfigurationService
             _compatibleSettingsRegistry.SetFilterEnabled(true);
 
             // Enter review mode on the service (eagerly computes diffs and fires events)
-            await _configReviewService.EnterReviewModeAsync(config);
+            await _configReviewModeService.EnterReviewModeAsync(config);
 
             // Pre-select Windows Apps from config
             if (config.WindowsApps.Items.Count > 0)
@@ -538,7 +541,7 @@ public class ConfigurationService : IConfigurationService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
-            _configReviewService.ExitReviewMode();
+            _configReviewModeService.ExitReviewMode();
             _dialogService.ShowMessage($"Error entering review mode: {ex.Message}", "Error");
         }
     }
@@ -1857,14 +1860,14 @@ public class ConfigurationService : IConfigurationService
 
     public async Task ApplyReviewedConfigAsync()
     {
-        if (!_configReviewService.IsInReviewMode || _configReviewService.ActiveConfig == null)
+        if (!_configReviewModeService.IsInReviewMode || _configReviewModeService.ActiveConfig == null)
         {
             _logService.Log(LogLevel.Warning, "ApplyReviewedConfigAsync called but not in review mode");
             return;
         }
 
-        var config = _configReviewService.ActiveConfig;
-        var approvedDiffs = _configReviewService.GetApprovedDiffs();
+        var config = _configReviewModeService.ActiveConfig;
+        var approvedDiffs = _configReviewDiffService.GetApprovedDiffs();
 
         try
         {
@@ -2003,7 +2006,7 @@ public class ConfigurationService : IConfigurationService
             }
 
             // Exit review mode after applying
-            _configReviewService.ExitReviewMode();
+            _configReviewModeService.ExitReviewMode();
 
             // Show success message and wait for user dismissal
             await ShowImportSuccessMessage(selectedSections);
@@ -2019,14 +2022,14 @@ public class ConfigurationService : IConfigurationService
         {
             _logService.Log(LogLevel.Error, $"Error in ApplyReviewedConfigAsync: {ex.Message}");
             _overlayService.HideOverlay();
-            _configReviewService.ExitReviewMode();
+            _configReviewModeService.ExitReviewMode();
             _dialogService.ShowMessage($"Error applying configuration: {ex.Message}", "Error");
         }
     }
 
     public async Task CancelReviewModeAsync()
     {
-        if (!_configReviewService.IsInReviewMode) return;
+        if (!_configReviewModeService.IsInReviewMode) return;
 
         // Clear app selections that were set during EnterReviewModeAsync
         await ClearWindowsAppsSelectionAsync();
@@ -2038,7 +2041,7 @@ public class ConfigurationService : IConfigurationService
                 item.IsSelected = false;
         }
 
-        _configReviewService.ExitReviewMode();
+        _configReviewModeService.ExitReviewMode();
         _logService.Log(LogLevel.Info, "Review mode cancelled - all selections cleared");
     }
 

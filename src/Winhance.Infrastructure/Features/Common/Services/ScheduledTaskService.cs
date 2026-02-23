@@ -253,7 +253,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         var action = actions.Create(0); // TASK_ACTION_EXEC
         action.Path = "powershell.exe";
         action.Arguments = scriptPath != null
-            ? $"-ExecutionPolicy Bypass -File \"{scriptPath}\""
+            ? $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{scriptPath.Replace("'", "''")}'))\""
             : command;
 
         // Principal

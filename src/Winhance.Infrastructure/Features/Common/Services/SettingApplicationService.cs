@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -11,12 +9,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
-using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Infrastructure.Features.Common.Utilities;
-using System.ServiceProcess;
-
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class SettingApplicationService(
@@ -24,18 +17,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IWindowsRegistryService registryService,
         IComboBoxResolver comboBoxResolver,
         ILogService logService,
-        IDependencyManager dependencyManager,
         IGlobalSettingsRegistry globalSettingsRegistry,
         IEventBus eventBus,
-        ISystemSettingsDiscoveryService discoveryService,
-        IRecommendedSettingsService recommendedSettingsService,
-        IWindowsUIManagementService uiManagementService,
-        IPowerSettingsQueryService powerSettingsQueryService,
-        IHardwareDetectionService hardwareDetectionService,
+        IRecommendedSettingsApplier recommendedSettingsApplier,
+        IProcessRestartManager processRestartManager,
+        IPowerCfgApplier powerCfgApplier,
+        ISettingDependencyResolver dependencyResolver,
         IWindowsCompatibilityFilter compatibilityFilter,
         IScheduledTaskService scheduledTaskService,
         IInteractiveUserService interactiveUserService,
-        IProcessExecutor processExecutor) : ISettingApplicationService
+        IProcessExecutor processExecutor,
+        IPowerShellRunner powerShellRunner) : ISettingApplicationService
     {
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false)
@@ -63,20 +55,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!skipValuePrerequisites)
             {
-                await HandleValuePrerequisitesAsync(setting, settingId, allSettings).ConfigureAwait(false);
-                await HandleDependencies(settingId, allSettings, enable, value).ConfigureAwait(false);
+                await dependencyResolver.HandleValuePrerequisitesAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
+                await dependencyResolver.HandleDependenciesAsync(settingId, allSettings, enable, value, this).ConfigureAwait(false);
             }
 
-            if (await domainService.TryApplySpecialSettingAsync(setting, value!, checkboxResult).ConfigureAwait(false))
+            if (await domainService.TryApplySpecialSettingAsync(setting, value!, checkboxResult, this).ConfigureAwait(false))
             {
-                await HandleProcessAndServiceRestarts(setting).ConfigureAwait(false);
+                await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
                 eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via domain service");
 
                 if (!skipValuePrerequisites)
                 {
-                    await SyncParentToMatchingPresetAsync(setting, settingId, allSettings).ConfigureAwait(false);
+                    await dependencyResolver.SyncParentToMatchingPresetAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
                 }
 
                 return;
@@ -135,151 +127,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!skipValuePrerequisites)
             {
-                await SyncParentToMatchingPresetAsync(setting, settingId, allSettings).ConfigureAwait(false);
+                await dependencyResolver.SyncParentToMatchingPresetAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
             }
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}'");
         }
 
-        public async Task ApplyRecommendedSettingsForDomainAsync(string settingId)
-        {
-            try
-            {
-                var domainService = domainServiceRouter.GetDomainService(settingId);
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Starting to apply recommended settings for domain '{domainService.DomainName}'");
-
-                var recommendedSettings = await recommendedSettingsService.GetRecommendedSettingsAsync(settingId).ConfigureAwait(false);
-                var settingsList = recommendedSettings.ToList();
-
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
-
-                if (settingsList.Count == 0)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] No recommended settings found for domain '{domainService.DomainName}'");
-                    return;
-                }
-
-                foreach (var setting in settingsList)
-                {
-                    try
-                    {
-                        var recommendedValue = RecommendedSettingsService.GetRecommendedValueForSetting(setting);
-                        logService.Log(LogLevel.Debug, $"[SettingApplicationService] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'");
-
-                        if (setting.InputType == InputType.Toggle)
-                        {
-                            var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
-                            bool enableValue = false;
-
-                            if (registrySetting != null && recommendedValue != null)
-                            {
-                                enableValue = recommendedValue.Equals(registrySetting.EnabledValue);
-                            }
-
-                            await ApplySettingAsync(setting.Id, enableValue, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
-                        }
-                        else if (setting.InputType == InputType.Selection)
-                        {
-                            var recommendedOption = RecommendedSettingsService.GetRecommendedOptionFromSetting(setting);
-
-                            if (recommendedOption != null)
-                            {
-                                var registryValue = RecommendedSettingsService.GetRegistryValueFromOptionName(setting, recommendedOption);
-                                var comboBoxIndex = RecommendedSettingsService.GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
-                                await ApplySettingAsync(setting.Id, true, comboBoxIndex, skipValuePrerequisites: true).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
-                            }
-                        }
-                        else
-                        {
-                            await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
-                        }
-
-                        logService.Log(LogLevel.Debug, $"[SettingApplicationService] Successfully applied recommended setting '{setting.Id}'");
-                    }
-                    catch (Exception ex)
-                    {
-                        logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended setting '{setting.Id}': {ex.Message}");
-                    }
-                }
-
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Completed applying recommended settings for domain '{domainService.DomainName}'");
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Error, $"[SettingApplicationService] Error applying recommended settings: {ex.Message}");
-                throw;
-            }
-        }
-
-        private async Task HandleDependencies(string settingId, IEnumerable<SettingDefinition> allSettings, bool enable, object? value)
-        {
-            if (enable)
-            {
-                var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
-                var directionalDependencies = setting?.Dependencies?
-                    .Where(d => d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange)
-                    .ToList();
-
-                if (directionalDependencies?.Any() == true)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Handling dependencies for '{settingId}'");
-                    var dependencyResult = await dependencyManager.HandleSettingEnabledAsync(settingId, allSettings.Cast<ISettingItem>(), this, discoveryService).ConfigureAwait(false);
-                    if (!dependencyResult)
-                        throw new InvalidOperationException($"Cannot enable '{settingId}' due to unsatisfied dependencies");
-                }
-
-                // Auto-enable associated settings when this setting is enabled
-                if (setting?.AutoEnableSettingIds?.Count > 0)
-                {
-                    foreach (var autoEnableId in setting.AutoEnableSettingIds)
-                    {
-                        try
-                        {
-                            var autoEnableDef = allSettings.FirstOrDefault(s => s.Id == autoEnableId)
-                                ?? globalSettingsRegistry.GetSetting(autoEnableId) as SettingDefinition;
-                            if (autoEnableDef != null)
-                            {
-                                var states = await discoveryService.GetSettingStatesAsync(new[] { autoEnableDef }).ConfigureAwait(false);
-                                if (states.TryGetValue(autoEnableId, out var st) && st.Success && !st.IsEnabled)
-                                {
-                                    logService.Log(LogLevel.Info,
-                                        $"[SettingApplicationService] Auto-enabling '{autoEnableId}' because '{settingId}' was enabled");
-                                    await ApplySettingAsync(autoEnableId, true, skipValuePrerequisites: true).ConfigureAwait(false);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logService.Log(LogLevel.Warning,
-                                $"[SettingApplicationService] Failed to auto-enable '{autoEnableId}': {ex.Message}");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                var allRegisteredSettings = globalSettingsRegistry.GetAllSettings();
-                var hasDependentSettings = allRegisteredSettings.Any(s => s.Dependencies?.Any(d =>
-                    d.RequiredSettingId == settingId &&
-                    d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange) == true);
-                if (hasDependentSettings)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Handling dependent settings for disabled '{settingId}'");
-                    await dependencyManager.HandleSettingDisabledAsync(settingId, allRegisteredSettings, this, discoveryService).ConfigureAwait(false);
-                }
-            }
-
-            if (enable && value != null)
-            {
-                var allRegisteredSettings = globalSettingsRegistry.GetAllSettings();
-                await dependencyManager.HandleSettingValueChangedAsync(settingId, allRegisteredSettings, this, discoveryService).ConfigureAwait(false);
-            }
-        }
+        public Task ApplyRecommendedSettingsForDomainAsync(string settingId) =>
+            recommendedSettingsApplier.ApplyRecommendedSettingsForDomainAsync(settingId, this);
 
         private async Task ExecuteActionCommand(IDomainService domainService, string commandString, bool applyRecommended, string settingId)
         {
@@ -315,7 +171,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (setting != null)
             {
-                await HandleProcessAndServiceRestarts(setting).ConfigureAwait(false);
+                await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
             }
 
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully executed ActionCommand '{commandString}' for setting '{settingId}'");
@@ -438,7 +294,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     if (!string.IsNullOrEmpty(script))
                     {
-                        await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
+                        await powerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                     }
                 }
             }
@@ -513,158 +369,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (setting.PowerCfgSettings?.Count > 0)
             {
-                if (setting.InputType == InputType.Selection &&
-                    setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                    value is ValueTuple<int, int> tupleSeparate)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying PowerCfg settings for '{setting.Id}' with separate AC/DC Selection tuple");
-
-                    var acPowerCfgValue = comboBoxResolver.GetValueFromIndex(setting, tupleSeparate.Item1);
-                    var dcPowerCfgValue = comboBoxResolver.GetValueFromIndex(setting, tupleSeparate.Item2);
-
-                    var convertedDict = new Dictionary<string, object?>
-                    {
-                        ["ACValue"] = acPowerCfgValue,
-                        ["DCValue"] = dcPowerCfgValue
-                    };
-
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
-                }
-                else if (setting.InputType == InputType.Selection &&
-                    setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                    value is Dictionary<string, object?> dict)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying PowerCfg settings for '{setting.Id}' with separate AC/DC Selection values");
-
-                    var acIndex = ExtractIndexFromValue(dict.TryGetValue("ACValue", out var acVal) ? acVal : 0);
-                    var dcIndex = ExtractIndexFromValue(dict.TryGetValue("DCValue", out var dcVal) ? dcVal : 0);
-
-                    var acPowerCfgValue = comboBoxResolver.GetValueFromIndex(setting, acIndex);
-                    var dcPowerCfgValue = comboBoxResolver.GetValueFromIndex(setting, dcIndex);
-
-                    var convertedDict = new Dictionary<string, object?>
-                    {
-                        ["ACValue"] = acPowerCfgValue,
-                        ["DCValue"] = dcPowerCfgValue
-                    };
-
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
-                }
-                else if (setting.InputType == InputType.NumericRange &&
-                         setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                         value is Dictionary<string, object?> numericDict)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying PowerCfg settings for '{setting.Id}' with separate AC/DC NumericRange values");
-
-                    var acValue = numericDict.TryGetValue("ACValue", out var ac) ? ExtractSingleValue(ac) : 0;
-                    var dcValue = numericDict.TryGetValue("DCValue", out var dc) ? ExtractSingleValue(dc) : 0;
-
-                    var acSystemValue = ConvertToSystemUnits(acValue, setting.PowerCfgSettings[0].Units);
-                    var dcSystemValue = ConvertToSystemUnits(dcValue, setting.PowerCfgSettings[0].Units);
-
-                    var convertedDict = new Dictionary<string, object?>
-                    {
-                        ["ACValue"] = acSystemValue,
-                        ["DCValue"] = dcSystemValue
-                    };
-
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
-                }
-                else
-                {
-                    if (setting.InputType == InputType.NumericRange && value == null)
-                    {
-                        logService.Log(LogLevel.Debug, $"[SettingApplicationService] Skipping PowerCfg setting '{setting.Id}' - no value provided (old config format)");
-                        return;
-                    }
-
-                    int valueToApply = setting.InputType switch
-                    {
-                        InputType.Toggle => enable ? 1 : 0,
-                        InputType.Selection when value is int index => comboBoxResolver.GetValueFromIndex(setting, index),
-                        InputType.NumericRange when value != null => ConvertToSystemUnits(ConvertNumericValue(value), GetDisplayUnits(setting)),
-                        _ => throw new NotSupportedException($"Input type '{setting.InputType}' not supported for PowerCfg operations")
-                    };
-
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying {setting.PowerCfgSettings.Count} PowerCfg settings for '{setting.Id}' with value: {valueToApply}");
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, valueToApply, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
-                }
+                await powerCfgApplier.ApplyPowerCfgSettingsAsync(setting, enable, value).ConfigureAwait(false);
             }
 
-            await HandleProcessAndServiceRestarts(setting).ConfigureAwait(false);
-        }
-
-        private async Task HandleProcessAndServiceRestarts(SettingDefinition setting)
-        {
-            if (!string.IsNullOrEmpty(setting.RestartProcess))
-            {
-                if (uiManagementService.IsConfigImportMode)
-                {
-                    logService.Log(LogLevel.Debug, $"[SettingApplicationService] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
-                }
-                else
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Restarting process '{setting.RestartProcess}' for setting '{setting.Id}'");
-                    try
-                    {
-                        uiManagementService.KillProcess(setting.RestartProcess);
-                    }
-                    catch (Exception ex)
-                    {
-                        logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to restart process '{setting.RestartProcess}': {ex.Message}");
-                    }
-                }
-            }
-
-            if (!string.IsNullOrEmpty(setting.RestartService))
-            {
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Restarting service '{setting.RestartService}' for setting '{setting.Id}'");
-                try
-                {
-                    if (setting.RestartService.Contains("*"))
-                    {
-                        // Wildcard service names require enumeration
-                        var pattern = setting.RestartService.Replace("*", "");
-                        var allServices = ServiceController.GetServices();
-                        var matchingServices = allServices.Where(s =>
-                            s.ServiceName.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                        foreach (var svc in matchingServices)
-                        {
-                            using (svc)
-                            {
-                                try
-                                {
-                                    if (svc.Status == ServiceControllerStatus.Running)
-                                    {
-                                        svc.Stop();
-                                        svc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
-                                        svc.Start();
-                                    }
-                                }
-                                catch (Exception svcEx)
-                                {
-                                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        using var sc = new ServiceController(setting.RestartService);
-                        if (sc.Status == ServiceControllerStatus.Running)
-                        {
-                            sc.Stop();
-                            sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
-                            sc.Start();
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to restart service '{setting.RestartService}': {ex.Message}");
-                }
-            }
+            await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
         }
 
         private int ConvertNumericValue(object value)
@@ -679,114 +387,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
                 _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to numeric value")
             };
-        }
-
-        private int ConvertToSystemUnits(int displayValue, string? units)
-        {
-            return units?.ToLowerInvariant() switch
-            {
-                "minutes" => displayValue * 60,
-                "hours" => displayValue * 3600,
-                "milliseconds" => displayValue / 1000,
-                _ => displayValue
-            };
-        }
-
-        private string GetDisplayUnits(SettingDefinition setting)
-        {
-            if (setting.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr)
-                return unitsStr;
-            return setting.PowerCfgSettings?[0]?.Units ?? string.Empty;
-        }
-
-        private async Task ExecutePowerCfgSettings(List<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)
-        {
-            // Get active scheme GUID
-            var activeSchemeResult = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out var activeSchemePtr);
-            if (activeSchemeResult != PowerProf.ERROR_SUCCESS)
-            {
-                logService.Log(LogLevel.Error, "[SettingApplicationService] Failed to get active power scheme");
-                return;
-            }
-
-            var activeSchemeGuid = System.Runtime.InteropServices.Marshal.PtrToStructure<Guid>(activeSchemePtr);
-            PowerProf.LocalFree(activeSchemePtr);
-
-            int changeCount = 0;
-
-            foreach (var powerCfgSetting in powerCfgSettings)
-            {
-                var (currentAc, currentDc) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting).ConfigureAwait(false);
-                var subgroupGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var settingGuid = Guid.Parse(powerCfgSetting.SettingGuid);
-
-                switch (powerCfgSetting.PowerModeSupport)
-                {
-                    case PowerModeSupport.Both:
-                        var singleValue = ExtractSingleValue(valueToApply);
-
-                        if (currentAc != singleValue)
-                        {
-                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)singleValue);
-                            changeCount++;
-                        }
-
-                        if (hasBattery && currentDc != singleValue)
-                        {
-                            PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)singleValue);
-                            changeCount++;
-                        }
-                        break;
-
-                    case PowerModeSupport.Separate:
-                        var (acValue, dcValue) = ExtractACDCValues(valueToApply);
-
-                        if (currentAc != acValue)
-                        {
-                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)acValue);
-                            changeCount++;
-                        }
-
-                        if (hasBattery && currentDc != dcValue)
-                        {
-                            PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)dcValue);
-                            changeCount++;
-                        }
-                        break;
-
-                    case PowerModeSupport.ACOnly:
-                        var acOnlyValue = ExtractSingleValue(valueToApply);
-                        if (currentAc != acOnlyValue)
-                        {
-                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)acOnlyValue);
-                            changeCount++;
-                        }
-                        break;
-
-                    case PowerModeSupport.DCOnly:
-                        if (hasBattery)
-                        {
-                            var dcOnlyValue = ExtractSingleValue(valueToApply);
-                            if (currentDc != dcOnlyValue)
-                            {
-                                PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)dcOnlyValue);
-                                changeCount++;
-                            }
-                        }
-                        break;
-                }
-            }
-
-            if (changeCount == 0)
-            {
-                logService.Log(LogLevel.Info, "[SettingApplicationService] No powercfg changes needed (values already match)");
-                return;
-            }
-
-            // Activate the scheme to apply changes
-            PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref activeSchemeGuid);
-
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applied {changeCount} powercfg changes via P/Invoke");
         }
 
         private async Task RunCommandAsync(string command)
@@ -806,345 +406,5 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        private int ExtractSingleValue(object? value)
-        {
-            return value switch
-            {
-                int intVal => intVal,
-                long longVal => (int)longVal,
-                double doubleVal => (int)doubleVal,
-                float floatVal => (int)floatVal,
-                string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
-                ValueTuple<int, int> tuple => tuple.Item1,
-                System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
-                _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to single numeric value")
-            };
-        }
-
-        private (int acValue, int dcValue) ExtractACDCValues(object value)
-        {
-            if (value is ValueTuple<object, object> tuple)
-            {
-                return (ExtractSingleValue(tuple.Item1), ExtractSingleValue(tuple.Item2));
-            }
-
-            if (value is Dictionary<string, object?> dict)
-            {
-                var acValue = dict.TryGetValue("ACValue", out var ac) ? ExtractSingleValue(ac) : 0;
-                var dcValue = dict.TryGetValue("DCValue", out var dc) ? ExtractSingleValue(dc) : 0;
-                return (acValue, dcValue);
-            }
-
-            var singleValue = ExtractSingleValue(value);
-            return (singleValue, singleValue);
-        }
-
-        private int ExtractIndexFromValue(object? value)
-        {
-            if (value == null) return 0;
-
-            if (value.GetType().Name == "ComboBoxOption")
-            {
-                var valueProp = value.GetType().GetProperty("Value");
-                if (valueProp != null)
-                {
-                    var innerValue = valueProp.GetValue(value);
-                    if (innerValue is int intVal)
-                        return intVal;
-                }
-            }
-
-            if (value is int directInt)
-                return directInt;
-
-            if (value is System.Text.Json.JsonElement je)
-                return je.TryGetInt32(out int jsonInt) ? jsonInt : 0;
-
-            if (int.TryParse(value.ToString(), out int parsed))
-                return parsed;
-
-            return 0;
-        }
-
-        private async Task HandleValuePrerequisitesAsync(
-            SettingDefinition setting,
-            string settingId,
-            IEnumerable<SettingDefinition> allSettings)
-        {
-            if (setting.Dependencies?.Any() != true)
-            {
-                return;
-            }
-
-            var valuePrerequisites = setting.Dependencies
-                .Where(d => d.DependencyType == SettingDependencyType.RequiresValueBeforeAnyChange)
-                .ToList();
-
-            if (!valuePrerequisites.Any())
-            {
-                return;
-            }
-
-            foreach (var dependency in valuePrerequisites)
-            {
-                logService.Log(LogLevel.Info,
-                    $"[ValuePrereq] Processing: '{settingId}' requires '{dependency.RequiredSettingId}' = '{dependency.RequiredValue}'");
-
-                var requiredSetting = allSettings.FirstOrDefault(s => s.Id == dependency.RequiredSettingId);
-
-                if (requiredSetting == null)
-                {
-                    requiredSetting = globalSettingsRegistry.GetSetting(dependency.RequiredSettingId) as SettingDefinition;
-                }
-
-                if (requiredSetting == null)
-                {
-                    logService.Log(LogLevel.Warning,
-                        $"[ValuePrereq] Required setting '{dependency.RequiredSettingId}' not found in current module or global registry");
-                    continue;
-                }
-
-                var states = await discoveryService.GetSettingStatesAsync(new[] { requiredSetting }).ConfigureAwait(false);
-                if (!states.TryGetValue(dependency.RequiredSettingId, out var currentState) || !currentState.Success)
-                {
-                    logService.Log(LogLevel.Warning,
-                        $"[ValuePrereq] Could not get current state of '{dependency.RequiredSettingId}'");
-                    continue;
-                }
-
-                bool requirementMet = DoesCurrentValueMatchRequirement(
-                    requiredSetting,
-                    currentState,
-                    dependency.RequiredValue);
-
-                if (!requirementMet)
-                {
-                    logService.Log(LogLevel.Info,
-                        $"[ValuePrereq] Auto-fixing '{dependency.RequiredSettingId}' to '{dependency.RequiredValue}' before applying '{settingId}'");
-
-                    var valueToApply = GetValueToApplyForRequirement(requiredSetting, dependency.RequiredValue);
-
-                    await ApplySettingAsync(
-                        dependency.RequiredSettingId,
-                        enable: true,
-                        value: valueToApply,
-                        skipValuePrerequisites: true).ConfigureAwait(false);
-
-                    logService.Log(LogLevel.Info,
-                        $"[ValuePrereq] Successfully auto-fixed '{dependency.RequiredSettingId}', proceeding with '{settingId}'");
-                }
-            }
-        }
-
-        private bool DoesCurrentValueMatchRequirement(
-            SettingDefinition setting,
-            SettingStateResult currentState,
-            string? requiredValue)
-        {
-            if (string.IsNullOrEmpty(requiredValue))
-            {
-                return true;
-            }
-
-            if (setting.InputType == InputType.Selection &&
-                setting.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var namesObj) == true &&
-                namesObj is string[] displayNames)
-            {
-                int requiredIndex = -1;
-                for (int i = 0; i < displayNames.Length; i++)
-                {
-                    if (displayNames[i].Equals(requiredValue, StringComparison.OrdinalIgnoreCase))
-                    {
-                        requiredIndex = i;
-                        break;
-                    }
-                }
-
-                if (requiredIndex >= 0 && currentState.CurrentValue is int currentIndex)
-                {
-                    return currentIndex == requiredIndex;
-                }
-            }
-
-            if (setting.InputType == InputType.Toggle)
-            {
-                bool requiredBool = requiredValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-                                   requiredValue.Equals("enabled", StringComparison.OrdinalIgnoreCase);
-                bool currentBool = currentState.IsEnabled;
-                return currentBool == requiredBool;
-            }
-
-            return false;
-        }
-
-        private object? GetValueToApplyForRequirement(SettingDefinition setting, string? requiredValue)
-        {
-            if (string.IsNullOrEmpty(requiredValue))
-            {
-                return null;
-            }
-
-            if (setting.InputType == InputType.Selection &&
-                setting.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var namesObj) == true &&
-                namesObj is string[] displayNames)
-            {
-                for (int i = 0; i < displayNames.Length; i++)
-                {
-                    if (displayNames[i].Equals(requiredValue, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return i;
-                    }
-                }
-
-                logService.Log(LogLevel.Warning,
-                    $"[ValuePrereq] Could not find ComboBox option matching '{requiredValue}'");
-                return null;
-            }
-
-            if (setting.InputType == InputType.Toggle)
-            {
-                return requiredValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-                       requiredValue.Equals("enabled", StringComparison.OrdinalIgnoreCase);
-            }
-
-            return null;
-        }
-
-        private async Task SyncParentToMatchingPresetAsync(
-            SettingDefinition setting,
-            string settingId,
-            IEnumerable<SettingDefinition> allSettings)
-        {
-            var prerequisite = setting.Dependencies?
-                .FirstOrDefault(d => d.DependencyType == SettingDependencyType.RequiresValueBeforeAnyChange);
-
-            if (prerequisite == null)
-            {
-                return;
-            }
-
-            var parentSetting = allSettings.FirstOrDefault(s => s.Id == prerequisite.RequiredSettingId);
-            if (parentSetting?.CustomProperties?.ContainsKey(CustomPropertyKeys.SettingPresets) != true)
-            {
-                return;
-            }
-
-            var presets = parentSetting.CustomProperties[CustomPropertyKeys.SettingPresets]
-                as Dictionary<int, Dictionary<string, bool>>;
-
-            if (presets == null || presets.Count == 0)
-            {
-                return;
-            }
-
-            logService.Log(LogLevel.Info,
-                $"[PostChange] Checking if child settings now match a preset for parent '{prerequisite.RequiredSettingId}'");
-
-            foreach (var (presetIndex, presetChildren) in presets)
-            {
-                var allMatch = await DoAllChildrenMatchPreset(presetChildren, allSettings).ConfigureAwait(false);
-
-                if (allMatch)
-                {
-                    logService.Log(LogLevel.Info,
-                        $"[PostChange] All children match preset at index {presetIndex}, syncing parent '{prerequisite.RequiredSettingId}'");
-
-                    await ApplySettingAsync(
-                        prerequisite.RequiredSettingId,
-                        enable: true,
-                        value: presetIndex,
-                        skipValuePrerequisites: true).ConfigureAwait(false);
-
-                    return;
-                }
-            }
-
-            logService.Log(LogLevel.Debug,
-                $"[PostChange] No preset match found for parent '{prerequisite.RequiredSettingId}', leaving at current value");
-        }
-
-        private async Task<bool> DoAllChildrenMatchPreset(
-            Dictionary<string, bool> preset,
-            IEnumerable<SettingDefinition> allSettings)
-        {
-            var compatiblePresetEntries = new Dictionary<string, bool>();
-
-            foreach (var (childId, expectedValue) in preset)
-            {
-                var childSetting = globalSettingsRegistry.GetSetting(childId);
-                if (childSetting == null)
-                {
-                    logService.Log(LogLevel.Debug,
-                        $"[PostChange] Skipping preset child '{childId}' from matching - not registered (likely OS-filtered)");
-                    continue;
-                }
-
-                if (childSetting is SettingDefinition childSettingDef)
-                {
-                    var compatibleSettings = compatibilityFilter.FilterSettingsByWindowsVersion(new[] { childSettingDef });
-                    if (!compatibleSettings.Any())
-                    {
-                        logService.Log(LogLevel.Debug,
-                            $"[PostChange] Skipping preset child '{childId}' from matching - not compatible with current OS version");
-                        continue;
-                    }
-                }
-
-                compatiblePresetEntries[childId] = expectedValue;
-            }
-
-            var childSettingDefinitions = allSettings
-                .Where(s => compatiblePresetEntries.ContainsKey(s.Id))
-                .ToList();
-
-            if (childSettingDefinitions.Count != compatiblePresetEntries.Count)
-            {
-                logService.Log(LogLevel.Info,
-                    $"[PostChange] Child count mismatch - Expected: {compatiblePresetEntries.Count}, Found in allSettings: {childSettingDefinitions.Count}");
-                logService.Log(LogLevel.Info,
-                    $"[PostChange] This is likely because child settings span multiple domains. Fetching from global registry instead.");
-
-                childSettingDefinitions.Clear();
-                foreach (var childId in compatiblePresetEntries.Keys)
-                {
-                    var childSetting = globalSettingsRegistry.GetSetting(childId) as SettingDefinition;
-                    if (childSetting != null)
-                    {
-                        childSettingDefinitions.Add(childSetting);
-                    }
-                }
-
-                if (childSettingDefinitions.Count != compatiblePresetEntries.Count)
-                {
-                    logService.Log(LogLevel.Warning,
-                        $"[PostChange] Still mismatched after global registry lookup - Expected: {compatiblePresetEntries.Count}, Found: {childSettingDefinitions.Count}");
-                    return false;
-                }
-            }
-
-            var states = await discoveryService.GetSettingStatesAsync(childSettingDefinitions).ConfigureAwait(false);
-
-            foreach (var (childId, expectedValue) in compatiblePresetEntries)
-            {
-                if (!states.TryGetValue(childId, out var state) || !state.Success)
-                {
-                    logService.Log(LogLevel.Debug,
-                        $"[PostChange] Could not get state for child '{childId}'");
-                    return false;
-                }
-
-                if (state.IsEnabled != expectedValue)
-                {
-                    logService.Log(LogLevel.Info,
-                        $"[PostChange] Child '{childId}' mismatch - Expected: {expectedValue}, Actual: {state.IsEnabled}");
-                    return false;
-                }
-
-                logService.Log(LogLevel.Debug,
-                    $"[PostChange] Child '{childId}' matches - Value: {state.IsEnabled}");
-            }
-
-            return true;
-        }
     }
 }

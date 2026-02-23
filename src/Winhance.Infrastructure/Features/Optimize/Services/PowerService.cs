@@ -25,7 +25,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        Lazy<ISettingApplicationService> settingApplicationService,
         IProcessExecutor processExecutor) : IPowerService
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
@@ -43,7 +42,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// is unsupported, or the operation failed.
         /// Never throws for expected business failures; errors are logged internally.
         /// </returns>
-        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
+        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
             if (setting.Id == "power-plan-selection")
             {
@@ -55,7 +54,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     var name = planDict["Name"].ToString()!;
 
                     logService.Log(LogLevel.Info, $"[PowerService] Config import: applying power plan {name} ({guid})");
-                    return await ApplyPowerPlanByGuidAsync(setting, guid, name).ConfigureAwait(false);
+                    return await ApplyPowerPlanByGuidAsync(setting, guid, name, settingApplicationService).ConfigureAwait(false);
                 }
 
                 if (value is int index)
@@ -69,7 +68,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         return false;
                     }
 
-                    return await ApplyPowerPlanSelectionAsync(setting, resolution.Guid, index, resolution.DisplayName).ConfigureAwait(false);
+                    return await ApplyPowerPlanSelectionAsync(setting, resolution.Guid, index, resolution.DisplayName, settingApplicationService).ConfigureAwait(false);
                 }
 
                 logService.Log(LogLevel.Error, $"[PowerService] Invalid power plan value type: {value?.GetType().Name}");
@@ -263,7 +262,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <exception cref="ArgumentException">
         /// Thrown when <paramref name="powerPlanGuid"/> is null or empty (programmer error).
         /// </exception>
-        private async Task<bool> ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName)
+        private async Task<bool> ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName, ISettingApplicationService? settingApplicationService)
         {
             logService.Log(LogLevel.Info, $"[PowerService] Applying power plan: {planName} ({powerPlanGuid})");
 
@@ -356,7 +355,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 if (IsWinhancePowerPlan(powerPlanGuid))
                 {
-                    await ApplyWinhanceRecommendedSettingsAsync().ConfigureAwait(false);
+                    await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
                 }
 
                 logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan");
@@ -376,7 +375,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <exception cref="ArgumentException">
         /// Thrown when <paramref name="powerPlanGuid"/> is null or empty (programmer error).
         /// </exception>
-        private async Task<bool> ApplyPowerPlanByGuidAsync(SettingDefinition setting, string powerPlanGuid, string planName)
+        private async Task<bool> ApplyPowerPlanByGuidAsync(SettingDefinition setting, string powerPlanGuid, string planName, ISettingApplicationService? settingApplicationService)
         {
             logService.Log(LogLevel.Info, $"[PowerService] Applying power plan by GUID: {planName} ({powerPlanGuid})");
 
@@ -472,7 +471,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 if (IsWinhancePowerPlan(powerPlanGuid))
                 {
-                    await ApplyWinhanceRecommendedSettingsAsync().ConfigureAwait(false);
+                    await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
                 }
 
                 logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan '{planName}'");
@@ -860,12 +859,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         private static bool IsWinhancePowerPlan(string guid) =>
             string.Equals(guid, "57696e68-616e-6365-506f-776572000000", StringComparison.OrdinalIgnoreCase);
 
-        private async Task ApplyWinhanceRecommendedSettingsAsync()
+        private async Task ApplyWinhanceRecommendedSettingsAsync(ISettingApplicationService? settingApplicationService)
         {
             try
             {
                 logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-                await settingApplicationService.Value.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
+                await settingApplicationService!.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
                 logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
             }
             catch (Exception ex)

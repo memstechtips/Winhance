@@ -10,7 +10,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.Infrastructure.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.Utilities;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
@@ -22,19 +21,22 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private readonly ISystemSettingsDiscoveryService _discoveryService;
     private readonly ILogService _logService;
     private readonly AutounattendScriptBuilder _scriptBuilder;
+    private readonly IPowerShellRunner _powerShellRunner;
 
     public AutounattendXmlGeneratorService(
         IServiceProvider serviceProvider,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ISystemSettingsDiscoveryService discoveryService,
         ILogService logService,
-        AutounattendScriptBuilder scriptBuilder)
+        AutounattendScriptBuilder scriptBuilder,
+        IPowerShellRunner powerShellRunner)
     {
         _serviceProvider = serviceProvider;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _discoveryService = discoveryService;
         _logService = logService;
         _scriptBuilder = scriptBuilder;
+        _powerShellRunner = powerShellRunner;
     }
 
     public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath)
@@ -56,7 +58,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             // Validate the final XML is well-formed
             try
             {
-                await PowerShellRunner.ValidateXmlSyntaxAsync(finalXml);
+                await _powerShellRunner.ValidateXmlSyntaxAsync(finalXml);
                 _logService.Log(LogLevel.Info, "autounattend.xml passed XML well-formedness validation");
             }
             catch (Exception ex)

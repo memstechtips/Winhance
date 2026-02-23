@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
 {
-    public static class DriverCategorizer
+    public class DriverCategorizer(ILogService logService) : IDriverCategorizer
     {
         private static readonly HashSet<string> StorageClasses = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -28,7 +29,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             "rst"
         };
 
-        public static bool IsStorageDriver(string infPath, ILogService logService)
+        public bool IsStorageDriver(string infPath)
         {
             try
             {
@@ -80,11 +81,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             }
         }
 
-        public static int CategorizeAndCopyDrivers(
+        public int CategorizeAndCopyDrivers(
             string sourceDirectory,
             string winpeDriverPath,
             string oemDriverPath,
-            ILogService logService,
             string? workingDirectoryToExclude = null)
         {
             var infFiles = Directory.GetFiles(sourceDirectory, "*.inf", SearchOption.AllDirectories);
@@ -131,7 +131,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
 
                     processedFolders.Add(sourceDir);
 
-                    var isStorage = IsStorageDriver(infFile, logService);
+                    var isStorage = IsStorageDriver(infFile);
                     var targetBase = isStorage ? winpeDriverPath : oemDriverPath;
 
                     var folderName = Path.GetFileName(sourceDir);

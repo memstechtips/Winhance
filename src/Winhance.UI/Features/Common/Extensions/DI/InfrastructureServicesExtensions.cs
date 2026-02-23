@@ -50,8 +50,22 @@ public static class InfrastructureServicesExtensions
         // Global Settings Preloader (populates setting-to-feature mappings)
         services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();
 
+        // File System Service
+        services.AddSingleton<IFileSystemService, FileSystemService>();
+
+        // PowerShell Runner
+        services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
+
+        // Driver Categorizer
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IDriverCategorizer,
+            Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
+
         // Settings Discovery and Application
         services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
+        services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
+        services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
+        services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
+        services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
         // Domain Service Router
@@ -86,7 +100,9 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IRemovalScriptUpdateService, RemovalScriptUpdateService>();
 
         // Task Progress Service
-        services.AddSingleton<ITaskProgressService, TaskProgressService>();
+        services.AddSingleton<TaskProgressService>();
+        services.AddSingleton<ITaskProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
+        services.AddSingleton<IMultiScriptProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
 
         // Tooltip Services
         services.AddSingleton<ITooltipDataService, TooltipDataService>();

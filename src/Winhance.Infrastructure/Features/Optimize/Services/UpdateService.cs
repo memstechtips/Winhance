@@ -10,24 +10,22 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
-
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     public class UpdateService(
         ILogService logService,
         IWindowsRegistryService registryService,
-        Lazy<ISettingApplicationService> settingApplicationService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        IProcessExecutor processExecutor) : IDomainService
+        IProcessExecutor processExecutor,
+        IPowerShellRunner powerShellRunner) : IDomainService
     {
         public string DomainName => FeatureIds.Update;
 
-        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
+        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
             if (setting.Id == "updates-policy-mode" && value is int index)
             {
-                await ApplyUpdatesPolicyModeAsync(setting, index).ConfigureAwait(false);
+                await ApplyUpdatesPolicyModeAsync(setting, index, settingApplicationService).ConfigureAwait(false);
                 return true;
             }
             return false;
@@ -60,7 +58,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        public async Task ApplyUpdatesPolicyModeAsync(SettingDefinition setting, object value)
+        public async Task ApplyUpdatesPolicyModeAsync(SettingDefinition setting, object value, ISettingApplicationService? settingApplicationService = null)
         {
             if (value is not int selectionIndex)
                 throw new ArgumentException("Expected integer selection index");
@@ -76,10 +74,10 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     await ApplySecurityOnlyModeAsync(setting).ConfigureAwait(false);
                     break;
                 case 2:
-                    await ApplyPausedModeAsync(setting).ConfigureAwait(false);
+                    await ApplyPausedModeAsync(setting, settingApplicationService).ConfigureAwait(false);
                     break;
                 case 3:
-                    await ApplyDisabledModeAsync(setting).ConfigureAwait(false);
+                    await ApplyDisabledModeAsync(setting, settingApplicationService).ConfigureAwait(false);
                     break;
                 default:
                     throw new ArgumentException($"Invalid selection index: {selectionIndex}");
@@ -104,12 +102,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         }
 
         // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
-        private async Task ApplyPausedModeAsync(SettingDefinition setting)
+        private async Task ApplyPausedModeAsync(SettingDefinition setting, ISettingApplicationService? settingApplicationService)
         {
             logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
             try
             {
-                await settingApplicationService.Value.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+                await settingApplicationService!.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -122,12 +120,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         }
 
         // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
-        private async Task ApplyDisabledModeAsync(SettingDefinition setting)
+        private async Task ApplyDisabledModeAsync(SettingDefinition setting, ISettingApplicationService? settingApplicationService)
         {
             logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
             try
             {
-                await settingApplicationService.Value.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+                await settingApplicationService!.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -235,7 +233,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 try
                 {
                     var script = $"Get-ScheduledTask -TaskPath '{folderPath}' -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue";
-                    await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
+                    await powerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -257,7 +255,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 try
                 {
                     var script = $"Get-ScheduledTask -TaskPath '{folderPath}' -ErrorAction SilentlyContinue | Enable-ScheduledTask -ErrorAction SilentlyContinue";
-                    await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
+                    await powerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -350,7 +348,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             try
             {
                 var script = "Remove-Item 'C:\\Windows\\SoftwareDistribution\\*' -Recurse -Force -ErrorAction SilentlyContinue";
-                await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
+                await powerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                 logService.Log(LogLevel.Info, "Cleaned SoftwareDistribution folder");
             }
             catch (Exception ex)

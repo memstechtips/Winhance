@@ -8,8 +8,6 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
-using Winhance.Infrastructure.Features.Common.Utilities;
-
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
 public class AutounattendScriptBuilder
@@ -18,6 +16,7 @@ public class AutounattendScriptBuilder
     private readonly IHardwareDetectionService _hardwareDetectionService;
     private readonly ILogService _logService;
     private readonly IComboBoxResolver _comboBoxResolver;
+    private readonly IPowerShellRunner _powerShellRunner;
 
     private class PowerSettingData
     {
@@ -28,12 +27,13 @@ public class AutounattendScriptBuilder
         public string Description { get; set; } = string.Empty;
     }
 
-    public AutounattendScriptBuilder(IPowerSettingsQueryService powerSettingsQueryService, IHardwareDetectionService hardwareDetectionService, ILogService logService, IComboBoxResolver comboBoxResolver)
+    public AutounattendScriptBuilder(IPowerSettingsQueryService powerSettingsQueryService, IHardwareDetectionService hardwareDetectionService, ILogService logService, IComboBoxResolver comboBoxResolver, IPowerShellRunner powerShellRunner)
     {
         _powerSettingsQueryService = powerSettingsQueryService;
         _hardwareDetectionService = hardwareDetectionService;
         _logService = logService;
         _comboBoxResolver = comboBoxResolver;
+        _powerShellRunner = powerShellRunner;
     }
 
     public async Task<string> BuildWinhancementsScriptAsync(
@@ -218,7 +218,7 @@ public class AutounattendScriptBuilder
         // Validate the generated script has no PowerShell syntax errors
         try
         {
-            await PowerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
+            await _powerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
             _logService.Log(LogLevel.Info, "Winhancements.ps1 script passed PowerShell syntax validation");
         }
         catch (Exception ex)

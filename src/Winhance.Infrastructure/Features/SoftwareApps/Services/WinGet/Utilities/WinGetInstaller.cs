@@ -8,7 +8,6 @@ using System.Text;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
@@ -17,6 +16,7 @@ public class WinGetInstaller
     private readonly ILogService? _logService;
     private readonly ILocalizationService? _localization;
     private readonly ITaskProgressService? _taskProgressService;
+    private readonly IPowerShellRunner _powerShellRunner;
     private readonly HttpClient _httpClient;
 
     private const string GitHubBaseUrl = "https://github.com/microsoft/winget-cli/releases/latest/download";
@@ -24,8 +24,9 @@ public class WinGetInstaller
     private const string InstallerFileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle";
     private const string LicenseFileName = "e53e159d00e04f729cc2180cffd1c02e_License1.xml";
 
-    public WinGetInstaller(ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null)
+    public WinGetInstaller(IPowerShellRunner powerShellRunner, ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null)
     {
+        _powerShellRunner = powerShellRunner;
         _logService = logService;
         _localization = localization;
         _taskProgressService = taskProgressService;
@@ -462,7 +463,7 @@ public class WinGetInstaller
 
         _logService?.LogInformation($"Provisioning via PowerShell: {packagePath}");
 
-        await PowerShellRunner.RunScriptAsync(script.ToString(), ct: cancellationToken).ConfigureAwait(false);
+        await _powerShellRunner.RunScriptAsync(script.ToString(), ct: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

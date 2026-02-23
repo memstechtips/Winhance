@@ -13,7 +13,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         {
         }
 
-        Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
+        Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
             return Task.FromResult(false);
         }

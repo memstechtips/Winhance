@@ -25,10 +25,10 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
-    private readonly IConfigReviewService _configReviewService;
+    private readonly IConfigReviewModeService _configReviewModeService;
+    private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly IHardwareDetectionService _hardwareDetectionService;
-    private readonly IInteractiveUserService _interactiveUserService;
-    private readonly IProcessExecutor _processExecutor;
+    private readonly IRegeditLauncher _regeditLauncher;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -45,10 +45,10 @@ public class SettingsLoadingService : ISettingsLoadingService
         ILocalizationService localizationService,
         IDialogService dialogService,
         IUserPreferencesService userPreferencesService,
-        IConfigReviewService configReviewService,
+        IConfigReviewModeService configReviewModeService,
+        IConfigReviewDiffService configReviewDiffService,
         IHardwareDetectionService hardwareDetectionService,
-        IInteractiveUserService interactiveUserService,
-        IProcessExecutor processExecutor)
+        IRegeditLauncher regeditLauncher)
     {
         _discoveryService = discoveryService;
         _settingApplicationService = settingApplicationService;
@@ -64,10 +64,10 @@ public class SettingsLoadingService : ISettingsLoadingService
         _localizationService = localizationService;
         _dialogService = dialogService;
         _userPreferencesService = userPreferencesService;
-        _configReviewService = configReviewService;
+        _configReviewModeService = configReviewModeService;
+        _configReviewDiffService = configReviewDiffService;
         _hardwareDetectionService = hardwareDetectionService;
-        _interactiveUserService = interactiveUserService;
-        _processExecutor = processExecutor;
+        _regeditLauncher = regeditLauncher;
     }
 
     public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -156,8 +156,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _localizationService,
             _eventBus,
             _userPreferencesService,
-            _interactiveUserService,
-            _processExecutor)
+            _regeditLauncher)
         {
             SettingDefinition = setting,
             ParentFeatureViewModel = parentViewModel,
@@ -279,7 +278,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         }
 
         // If in review mode, check for diffs and apply review state
-        if (_configReviewService.IsInReviewMode)
+        if (_configReviewModeService.IsInReviewMode)
         {
             ApplyReviewDiffToViewModel(viewModel, currentState);
         }
@@ -293,13 +292,13 @@ public class SettingsLoadingService : ISettingsLoadingService
     /// </summary>
     public void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
-        var config = _configReviewService.ActiveConfig;
+        var config = _configReviewModeService.ActiveConfig;
         if (config == null) return;
 
         viewModel.IsInReviewMode = true;
 
         // Check if an eager diff already exists from ConfigReviewService
-        var existingDiff = _configReviewService.GetDiffForSetting(viewModel.SettingId);
+        var existingDiff = _configReviewDiffService.GetDiffForSetting(viewModel.SettingId);
         if (existingDiff != null)
         {
             // Use the pre-computed diff
@@ -328,7 +327,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             // Subscribe to approval changes from this ViewModel
             viewModel.ReviewApprovalChanged += (sender, approved) =>
             {
-                _configReviewService.SetSettingApproval(viewModel.SettingId, approved);
+                _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
             };
             return;
         }
@@ -364,12 +363,12 @@ public class SettingsLoadingService : ISettingsLoadingService
                 IsApproved = false,
                 InputType = viewModel.InputType
             };
-            _configReviewService.RegisterDiff(diff);
+            _configReviewDiffService.RegisterDiff(diff);
 
             // Subscribe to approval changes from this ViewModel
             viewModel.ReviewApprovalChanged += (sender, approved) =>
             {
-                _configReviewService.SetSettingApproval(viewModel.SettingId, approved);
+                _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
             };
         }
     }

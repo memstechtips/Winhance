@@ -12,7 +12,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
     private readonly IUserPreferencesService _userPreferencesService;
-    private readonly IConfigReviewService _configReviewService;
+    private readonly IConfigReviewModeService _configReviewModeService;
+    private readonly IConfigReviewBadgeService _configReviewBadgeService;
     private bool _isSubscribed;
 
     public SoftwareAppsViewModel(
@@ -21,14 +22,16 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ILocalizationService localizationService,
         ILogService logService,
         IUserPreferencesService userPreferencesService,
-        IConfigReviewService configReviewService)
+        IConfigReviewModeService configReviewModeService,
+        IConfigReviewBadgeService configReviewBadgeService)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
         _localizationService = localizationService;
         _logService = logService;
         _userPreferencesService = userPreferencesService;
-        _configReviewService = configReviewService;
+        _configReviewModeService = configReviewModeService;
+        _configReviewBadgeService = configReviewBadgeService;
 
         // Initialize partial property defaults (SearchText first since
         // tab-change handlers forward it to child ViewModels)
@@ -82,9 +85,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public bool IsWindowsAppsActionChosen => IsWindowsAppsInstallAction || IsWindowsAppsRemoveAction;
     public bool IsExternalAppsActionChosen => IsExternalAppsInstallAction || IsExternalAppsRemoveAction;
 
-    public bool HasWindowsAppsInConfig => _configReviewService.IsFeatureInConfig(
+    public bool HasWindowsAppsInConfig => _configReviewBadgeService.IsFeatureInConfig(
         FeatureIds.WindowsApps);
-    public bool HasExternalAppsInConfig => _configReviewService.IsFeatureInConfig(
+    public bool HasExternalAppsInConfig => _configReviewBadgeService.IsFeatureInConfig(
         FeatureIds.ExternalApps);
 
     /// <summary>
@@ -151,8 +154,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     private void SyncSoftwareAppsReviewedState()
     {
-        _configReviewService.IsSoftwareAppsReviewed = IsSoftwareAppsReviewed;
-        _configReviewService.NotifyBadgeStateChanged();
+        _configReviewBadgeService.IsSoftwareAppsReviewed = IsSoftwareAppsReviewed;
+        _configReviewBadgeService.NotifyBadgeStateChanged();
     }
 
     /// <summary>
@@ -318,7 +321,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        IsInReviewMode = _configReviewService.IsInReviewMode;
+        IsInReviewMode = _configReviewModeService.IsInReviewMode;
 
         if (!IsInReviewMode)
         {
@@ -402,7 +405,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
                 WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
                 ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
                 _localizationService.LanguageChanged += OnLanguageChanged;
-                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+                _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
                 UpdateButtonStates();
             }
@@ -485,7 +488,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
-            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+            _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
             WindowsAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             WindowsAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;

@@ -41,7 +41,9 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDispatcherService _dispatcherService;
-    private readonly IConfigReviewService _configReviewService;
+    private readonly IConfigReviewModeService _configReviewModeService;
+    private readonly IConfigReviewDiffService _configReviewDiffService;
+    private readonly IConfigReviewBadgeService _configReviewBadgeService;
     private readonly IWinGetService _winGetService;
     private readonly IInternetConnectivityService _internetConnectivityService;
     private readonly IInteractiveUserService _interactiveUserService;
@@ -148,7 +150,9 @@ public partial class MainWindowViewModel : ObservableObject
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ITaskProgressService taskProgressService,
         IDispatcherService dispatcherService,
-        IConfigReviewService configReviewService,
+        IConfigReviewModeService configReviewModeService,
+        IConfigReviewDiffService configReviewDiffService,
+        IConfigReviewBadgeService configReviewBadgeService,
         IWinGetService winGetService,
         IInternetConnectivityService internetConnectivityService,
         IInteractiveUserService interactiveUserService,
@@ -164,7 +168,9 @@ public partial class MainWindowViewModel : ObservableObject
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _taskProgressService = taskProgressService;
         _dispatcherService = dispatcherService;
-        _configReviewService = configReviewService;
+        _configReviewModeService = configReviewModeService;
+        _configReviewDiffService = configReviewDiffService;
+        _configReviewBadgeService = configReviewBadgeService;
         _winGetService = winGetService;
         _internetConnectivityService = internetConnectivityService;
         _interactiveUserService = interactiveUserService;
@@ -194,9 +200,9 @@ public partial class MainWindowViewModel : ObservableObject
         _taskProgressService.ProgressUpdated += OnProgressUpdated;
 
         // Subscribe to review mode changes
-        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
-        _configReviewService.ApprovalCountChanged += OnApprovalCountChanged;
-        _configReviewService.BadgeStateChanged += OnBadgeStateChangedForApplyButton;
+        _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+        _configReviewDiffService.ApprovalCountChanged += OnApprovalCountChanged;
+        _configReviewBadgeService.BadgeStateChanged += OnBadgeStateChangedForApplyButton;
 
         // Set initial icon based on current theme
         UpdateAppIconForTheme();
@@ -871,7 +877,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         _ = _dispatcherService.RunOnUIThreadAsync(async () =>
         {
-            var entering = _configReviewService.IsInReviewMode;
+            var entering = _configReviewModeService.IsInReviewMode;
             IsInReviewMode = entering;
 
             if (entering)
@@ -926,43 +932,43 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         // All Optimize/Customize settings must be explicitly reviewed (accept or reject)
-        bool allSettingsReviewed = _configReviewService.TotalChanges == 0
-            || _configReviewService.ReviewedChanges >= _configReviewService.TotalChanges;
+        bool allSettingsReviewed = _configReviewDiffService.TotalChanges == 0
+            || _configReviewDiffService.ReviewedChanges >= _configReviewDiffService.TotalChanges;
 
         // SoftwareApps action choices must be made for sections that have items
-        bool softwareAppsReviewed = _configReviewService.IsSoftwareAppsReviewed
-            || (!_configReviewService.IsFeatureInConfig(FeatureIds.WindowsApps)
-                && !_configReviewService.IsFeatureInConfig(FeatureIds.ExternalApps));
+        bool softwareAppsReviewed = _configReviewBadgeService.IsSoftwareAppsReviewed
+            || (!_configReviewBadgeService.IsFeatureInConfig(FeatureIds.WindowsApps)
+                && !_configReviewBadgeService.IsFeatureInConfig(FeatureIds.ExternalApps));
 
         // All Optimize features must be fully reviewed
-        bool optimizeReviewed = _configReviewService.IsSectionFullyReviewed("Optimize")
-            || !FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f));
+        bool optimizeReviewed = _configReviewBadgeService.IsSectionFullyReviewed("Optimize")
+            || !FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
 
         // All Customize features must be fully reviewed
-        bool customizeReviewed = _configReviewService.IsSectionFullyReviewed("Customize")
-            || !FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f));
+        bool customizeReviewed = _configReviewBadgeService.IsSectionFullyReviewed("Customize")
+            || !FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
 
         CanApplyReviewedConfig = allSettingsReviewed && softwareAppsReviewed && optimizeReviewed && customizeReviewed;
     }
 
     private void UpdateReviewModeStatus()
     {
-        if (!_configReviewService.IsInReviewMode)
+        if (!_configReviewModeService.IsInReviewMode)
         {
             ReviewModeStatusText = string.Empty;
             return;
         }
 
-        if (_configReviewService.TotalChanges > 0)
+        if (_configReviewDiffService.TotalChanges > 0)
         {
             // Show reviewed/total count and how many will be applied
             var format = _localizationService.GetString("Review_Mode_Status_Format") ?? "{0} of {1} reviewed ({2} will be applied)";
             ReviewModeStatusText = string.Format(format,
-                _configReviewService.ReviewedChanges,
-                _configReviewService.TotalChanges,
-                _configReviewService.ApprovedChanges);
+                _configReviewDiffService.ReviewedChanges,
+                _configReviewDiffService.TotalChanges,
+                _configReviewDiffService.ApprovedChanges);
         }
-        else if (_configReviewService.TotalConfigItems > 0)
+        else if (_configReviewDiffService.TotalConfigItems > 0)
         {
             // Config has items but all match current state
             ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_AllMatch")

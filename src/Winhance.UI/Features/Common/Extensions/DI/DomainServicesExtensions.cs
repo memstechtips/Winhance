@@ -83,15 +83,13 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddOptimizationDomainServices(this IServiceCollection services)
     {
-        // Register PowerService (Lazy<ISettingApplicationService> breaks circular dependency:
-        // DomainServiceRouter → IDomainService(PowerService) → ISettingApplicationService → DomainServiceRouter)
+        // Register PowerService
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
-            new Lazy<ISettingApplicationService>(() => sp.GetRequiredService<ISettingApplicationService>()),
             sp.GetRequiredService<IProcessExecutor>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
@@ -126,14 +124,13 @@ public static class DomainServicesExtensions
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SoundService>());
 
-        // Register UpdateService (Lazy<ISettingApplicationService> breaks circular dependency:
-        // DomainServiceRouter → IDomainService(UpdateService) → ISettingApplicationService → DomainServiceRouter)
+        // Register UpdateService
         services.AddSingleton<UpdateService>(sp => new UpdateService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IWindowsRegistryService>(),
-            new Lazy<ISettingApplicationService>(() => sp.GetRequiredService<ISettingApplicationService>()),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-            sp.GetRequiredService<IProcessExecutor>()
+            sp.GetRequiredService<IProcessExecutor>(),
+            sp.GetRequiredService<IPowerShellRunner>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 
@@ -148,7 +145,8 @@ public static class DomainServicesExtensions
         // New Domain Services (Scoped - Business logic)
         services.AddScoped<IWindowsAppsService, WindowsAppsService>();
         services.AddScoped<IExternalAppsService, ExternalAppsService>();
-        services.AddScoped<IAppOperationService, AppOperationService>();
+        services.AddScoped<IAppInstallationService, AppInstallationService>();
+        services.AddScoped<IAppRemovalService, AppRemovalService>();
 
         // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();

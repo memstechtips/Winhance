@@ -16,7 +16,7 @@ namespace Winhance.UI.Features.Common.Services;
 /// Eagerly computes diffs when entering review mode so badge counts
 /// reflect actual changes from current system state.
 /// </summary>
-public class ConfigReviewService : IConfigReviewService
+public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService
 {
     private readonly ILogService _logService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;

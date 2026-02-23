@@ -54,6 +54,15 @@ public static class UIServicesExtensions
 
         // Config Review Mode Service (Singleton - state persists across page navigation)
         services.AddSingleton<IConfigReviewService, ConfigReviewService>();
+        services.AddSingleton<IConfigReviewModeService>(sp => (IConfigReviewModeService)sp.GetRequiredService<IConfigReviewService>());
+        services.AddSingleton<IConfigReviewDiffService>(sp => (IConfigReviewDiffService)sp.GetRequiredService<IConfigReviewService>());
+        services.AddSingleton<IConfigReviewBadgeService>(sp => (IConfigReviewBadgeService)sp.GetRequiredService<IConfigReviewService>());
+
+        // Nav Badge Service (Singleton - Computes nav badge state during review mode)
+        services.AddSingleton<INavBadgeService, NavBadgeService>();
+
+        // Regedit Launcher (Singleton - Opens regedit at registry paths)
+        services.AddSingleton<IRegeditLauncher, Winhance.UI.Features.Common.Utilities.RegeditLauncher>();
 
         // Setting Localization Service (Singleton - Localizes setting definitions)
         services.AddSingleton<ISettingLocalizationService, SettingLocalizationService>();

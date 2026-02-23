@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Input;
@@ -21,7 +20,6 @@ using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.ViewModels;
 using System;
@@ -42,10 +40,10 @@ public sealed partial class MainWindow : Window
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
     private IConfigReviewService? _configReviewService;
+    private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
     private BackupResult? _backupResult;
     private bool _isStartupLoading = true;
-    private bool _softwareAppsBadgeSubscribed;
 
     public MainWindow()
     {
@@ -310,120 +308,32 @@ public sealed partial class MainWindow : Window
         {
             if (_configReviewService?.IsInReviewMode == true)
             {
-                SubscribeToSoftwareAppsChanges();
-                UpdateNavBadges();
+                _navBadgeService?.SubscribeToSoftwareAppsChanges(() =>
+                    DispatcherQueue.TryEnqueue(ApplyNavBadges));
+                ApplyNavBadges();
             }
             else
             {
                 NavSidebar.ClearAllBadges();
-                UnsubscribeFromSoftwareAppsChanges();
+                _navBadgeService?.UnsubscribeFromSoftwareAppsChanges();
             }
         });
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateNavBadges);
+        DispatcherQueue.TryEnqueue(ApplyNavBadges);
     }
 
-    private void UpdateNavBadges()
+    private void ApplyNavBadges()
     {
-        if (_configReviewService == null || !_configReviewService.IsInReviewMode) return;
+        if (_navBadgeService == null) return;
 
-        foreach (var tag in new[] { "SoftwareApps", "Optimize", "Customize" })
+        var badges = _navBadgeService.ComputeNavBadges();
+        foreach (var badge in badges)
         {
-            // For SoftwareApps in review mode, use actual VM selections for reactive badge
-            var count = tag == "SoftwareApps" && _softwareAppsBadgeSubscribed
-                ? GetSoftwareAppsSelectedCount()
-                : _configReviewService.GetNavBadgeCount(tag);
-
-            if (count > 0)
-            {
-                if (_configReviewService.IsSectionFullyReviewed(tag))
-                {
-                    // Fully reviewed: show checkmark only (no count number)
-                    NavSidebar.SetButtonBadge(tag, -1, "SuccessIcon");
-                }
-                else
-                {
-                    // Not fully reviewed: show attention badge with count
-                    NavSidebar.SetButtonBadge(tag, count, "Attention");
-                }
-            }
-            else
-            {
-                // Check if this section has any features in the config (0 diffs = all match)
-                bool sectionInConfig = tag switch
-                {
-                    "SoftwareApps" => _configReviewService.IsFeatureInConfig(FeatureIds.WindowsApps)
-                                   || _configReviewService.IsFeatureInConfig(FeatureIds.ExternalApps),
-                    "Optimize" => FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f)),
-                    "Customize" => FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f)),
-                    _ => false
-                };
-
-                if (sectionInConfig)
-                {
-                    // Show success checkmark badge only (no count number)
-                    NavSidebar.SetButtonBadge(tag, -1, "SuccessIcon");
-                }
-                else
-                {
-                    NavSidebar.SetButtonBadge(tag, -1, string.Empty);
-                }
-            }
+            NavSidebar.SetButtonBadge(badge.Tag, badge.Count, badge.Style);
         }
-    }
-
-    private void SubscribeToSoftwareAppsChanges()
-    {
-        if (_softwareAppsBadgeSubscribed) return;
-
-        var windowsAppsVm = App.Services.GetService<WindowsAppsViewModel>();
-        var externalAppsVm = App.Services.GetService<ExternalAppsViewModel>();
-
-        if (windowsAppsVm != null)
-            windowsAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
-        if (externalAppsVm != null)
-            externalAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
-
-        _softwareAppsBadgeSubscribed = true;
-    }
-
-    private void UnsubscribeFromSoftwareAppsChanges()
-    {
-        if (!_softwareAppsBadgeSubscribed) return;
-
-        var windowsAppsVm = App.Services.GetService<WindowsAppsViewModel>();
-        var externalAppsVm = App.Services.GetService<ExternalAppsViewModel>();
-
-        if (windowsAppsVm != null)
-            windowsAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
-        if (externalAppsVm != null)
-            externalAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
-
-        _softwareAppsBadgeSubscribed = false;
-    }
-
-    private void OnSoftwareAppsPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if ((e.PropertyName == "HasSelectedItems" || e.PropertyName == "IsSelected") && _configReviewService?.IsInReviewMode == true)
-        {
-            DispatcherQueue.TryEnqueue(UpdateNavBadges);
-        }
-    }
-
-    private int GetSoftwareAppsSelectedCount()
-    {
-        var windowsAppsVm = App.Services.GetService<WindowsAppsViewModel>();
-        var externalAppsVm = App.Services.GetService<ExternalAppsViewModel>();
-
-        int count = 0;
-        if (windowsAppsVm?.Items != null)
-            count += windowsAppsVm.Items.Count(a => a.IsSelected);
-        if (externalAppsVm?.Items != null)
-            count += externalAppsVm.Items.Count(a => a.IsSelected);
-        return count;
     }
 
     #endregion
@@ -486,7 +396,8 @@ public sealed partial class MainWindow : Window
                 {
                     _configReviewService.MarkFeatureVisited(FeatureIds.WindowsApps);
                     _configReviewService.MarkFeatureVisited(FeatureIds.ExternalApps);
-                    SubscribeToSoftwareAppsChanges();
+                    _navBadgeService?.SubscribeToSoftwareAppsChanges(() =>
+                        DispatcherQueue.TryEnqueue(ApplyNavBadges));
                 }
             }
             catch (Exception ex)
@@ -1025,6 +936,7 @@ public sealed partial class MainWindow : Window
 
                 // Subscribe to review mode badge events
                 _configReviewService = App.Services.GetService<IConfigReviewService>();
+                _navBadgeService = App.Services.GetService<INavBadgeService>();
                 if (_configReviewService != null)
                 {
                     _configReviewService.ReviewModeChanged += OnReviewModeBadgeChanged;
