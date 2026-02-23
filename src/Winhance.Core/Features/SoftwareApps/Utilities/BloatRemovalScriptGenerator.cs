@@ -5,7 +5,7 @@ namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
-    public const string ScriptVersion = "2.0";
+    public const string ScriptVersion = "2.1";
 
     public static string GenerateScript(
         List<string> packages,
@@ -226,14 +226,22 @@ if ($hasXboxPackages) {
 
             if ($loggedInUser -and $loggedInUser -ne ""NT AUTHORITY\SYSTEM"") {
                 $username = $loggedInUser.Split('\\')[1]
-                try {
-                    $sid = (New-Object System.Security.Principal.NTAccount($username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+                $sid = $null
+                $profListPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
+                foreach ($profKey in Get-ChildItem $profListPath -ErrorAction SilentlyContinue) {
+                    $profPath = (Get-ItemProperty $profKey.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
+                    if ($profPath -and $profPath.EndsWith(""\$username"")) {
+                        $sid = $profKey.PSChildName
+                        break
+                    }
+                }
+                if ($sid) {
                     Write-Log ""Applying settings for user: $username (SID: $sid)""
                     reg add ""HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
                     reg add ""HKU\$sid\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
                     Write-Log ""Xbox Game DVR registry settings applied successfully""
-                } catch {
-                    Write-Log ""Warning: Could not apply Xbox Game DVR registry settings: $($_.Exception.Message)""
+                } else {
+                    Write-Log ""Warning: Could not resolve SID for user: $username""
                 }
             } else {
                 Write-Log ""Warning: Could not detect logged-in user for registry settings""

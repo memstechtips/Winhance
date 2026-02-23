@@ -1049,8 +1049,14 @@ function Get-TargetUser {
 function Get-UserSID {
     param($Username)
     try {
-        $user = New-Object System.Security.Principal.NTAccount($Username)
-        return $user.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        $profListPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
+        foreach ($key in Get-ChildItem $profListPath -ErrorAction SilentlyContinue) {
+            $profPath = (Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
+            if ($profPath -and $profPath.EndsWith(""\$Username"")) {
+                return $key.PSChildName
+            }
+        }
+        return $null
     } catch {
         return $null
     }

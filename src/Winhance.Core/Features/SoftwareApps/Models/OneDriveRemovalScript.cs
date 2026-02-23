@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class OneDriveRemovalScript
 {
-    public const string ScriptVersion = "1.1";
+    public const string ScriptVersion = "1.2";
 
     public static string GetScript()
     {
@@ -125,12 +125,19 @@ function Get-TargetUser {
     return $null
 }
 
-# Get the user's SID for registry access 
+# Get the user's SID for registry access
 function Get-UserSID {
     param($Username)
     try {
-        $user = New-Object System.Security.Principal.NTAccount($Username)
-        return $user.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        $profListPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
+        foreach ($key in Get-ChildItem $profListPath -ErrorAction SilentlyContinue) {
+            $profPath = (Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
+            if ($profPath -and $profPath.EndsWith(""\$Username"")) {
+                return $key.PSChildName
+            }
+        }
+        Write-Log ""Get-UserSID: No profile found for user '$Username'""
+        return $null
     }
     catch {
         Write-Log ""Get-UserSID: Failed for user '$Username': $($_.Exception.Message)""
