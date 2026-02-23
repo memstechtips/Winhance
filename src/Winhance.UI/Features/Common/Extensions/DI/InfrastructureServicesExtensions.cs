@@ -45,7 +45,6 @@ public static class InfrastructureServicesExtensions
 
         // Settings Registry
         services.AddSingleton<IGlobalSettingsRegistry, Winhance.Core.Features.Common.Services.GlobalSettingsRegistry>();
-        services.AddSingleton<ISettingsRegistry, Winhance.Core.Features.Common.Services.SettingsRegistry>();
 
         // Global Settings Preloader (populates setting-to-feature mappings)
         services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();

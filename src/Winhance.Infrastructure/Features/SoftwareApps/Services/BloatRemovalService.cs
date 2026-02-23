@@ -300,7 +300,7 @@ public class BloatRemovalService(
         }
     }
 
-    public async Task CleanupBloatRemovalArtifactsAsync()
+    private async Task CleanupBloatRemovalArtifactsAsync()
     {
         var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, "BloatRemoval.ps1");
         await CleanupExistingScheduledTaskAsync("BloatRemoval", scriptPath);

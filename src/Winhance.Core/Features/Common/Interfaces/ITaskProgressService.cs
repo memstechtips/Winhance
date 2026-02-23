@@ -63,12 +63,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         void CompleteTask();
 
         /// <summary>
-        /// Adds a log message to the task progress.
-        /// </summary>
-        /// <param name="message">The log message.</param>
-        void AddLogMessage(string message);
-
-        /// <summary>
         /// Cancels the current task.
         /// </summary>
         void CancelCurrentTask();
@@ -89,16 +83,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Event raised when progress is updated.
         /// </summary>
         event EventHandler<TaskProgressDetail>? ProgressUpdated;
-
-        /// <summary>
-        /// Event raised when progress is updated (legacy compatibility).
-        /// </summary>
-        event EventHandler<TaskProgressEventArgs>? ProgressChanged;
-
-        /// <summary>
-        /// Gets the number of active script slots in multi-script mode.
-        /// </summary>
-        int ActiveScriptSlotCount { get; }
 
         /// <summary>
         /// Starts a multi-script task with the specified script names.
@@ -122,20 +106,10 @@ namespace Winhance.Core.Features.Common.Interfaces
         void CompleteMultiScriptTask();
 
         /// <summary>
-        /// Requests that the next queued item be skipped.
-        /// </summary>
-        void RequestSkipNext();
-
-        /// <summary>
         /// Checks and clears the skip-next flag (atomic check-and-clear).
         /// </summary>
         /// <returns>True if a skip was requested since the last call.</returns>
         bool ConsumeSkipNextRequest();
-
-        /// <summary>
-        /// Gets a snapshot of all log messages accumulated during the current (or last) task.
-        /// </summary>
-        IReadOnlyList<string> GetLogMessages();
 
         /// <summary>
         /// Gets a snapshot of all terminal output lines accumulated during the current (or last) task.
@@ -143,9 +117,5 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         IReadOnlyList<string> GetTerminalOutputLines();
 
-        /// <summary>
-        /// Event raised when a log message is added.
-        /// </summary>
-        event EventHandler<string>? LogMessageAdded;
     }
 }

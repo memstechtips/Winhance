@@ -50,79 +50,7 @@ public class AppLoadingService(
         return windowsApps.Concat(externalApps).FirstOrDefault(app => app.Id == appId);
     }
 
-    public async Task<IEnumerable<ItemDefinition>> LoadCapabilitiesAsync()
-    {
-        try
-        {
-            var windowsApps = await windowsAppsService.GetAppsAsync();
-            return windowsApps.Where(app => !string.IsNullOrEmpty(app.CapabilityName));
-        }
-        catch (Exception ex)
-        {
-            logService.LogError("Failed to load capabilities", ex);
-            return Enumerable.Empty<ItemDefinition>();
-        }
-    }
-
-    public async Task<bool> GetItemInstallStatusAsync(ItemDefinition item)
-    {
-        ValidationHelper.NotNull(item, nameof(item));
-
-        if (_statusCache.TryGetValue(item.Id, out var cachedStatus))
-        {
-            return cachedStatus;
-        }
-
-        var statusResults = await statusDiscoveryService.GetInstallationStatusBatchAsync([item]);
-        var isInstalled = statusResults.GetValueOrDefault(item.Id, false);
-        _statusCache[item.Id] = isInstalled;
-        return isInstalled;
-    }
-
-    public async Task<OperationResult<InstallStatus>> GetInstallStatusAsync(string appId)
-    {
-        try
-        {
-            ValidationHelper.NotNullOrEmpty(appId, nameof(appId));
-
-            if (_statusCache.TryGetValue(appId, out var cachedStatus))
-            {
-                return OperationResult<InstallStatus>.Succeeded(
-                    cachedStatus ? InstallStatus.Success : InstallStatus.NotFound
-                );
-            }
-
-            var statusResults = await statusDiscoveryService.GetInstallationStatusByIdAsync([appId]);
-            var isInstalled = statusResults.GetValueOrDefault(appId, false);
-            _statusCache[appId] = isInstalled;
-            return OperationResult<InstallStatus>.Succeeded(
-                isInstalled ? InstallStatus.Success : InstallStatus.NotFound
-            );
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Failed to get installation status for app {appId}", ex);
-            return OperationResult<InstallStatus>.Failed($"Failed to get installation status: {ex.Message}", ex);
-        }
-    }
-
-    public Task<OperationResult<bool>> SetInstallStatusAsync(string appId, InstallStatus status)
-    {
-        try
-        {
-            ValidationHelper.NotNullOrEmpty(appId, nameof(appId));
-            _statusCache[appId] = (status == InstallStatus.Success);
-            return Task.FromResult(OperationResult<bool>.Succeeded(true));
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Failed to set installation status for app {appId}", ex);
-            return Task.FromResult(OperationResult<bool>.Failed($"Failed to set installation status: {ex.Message}", ex));
-        }
-    }
-
-
-    public async Task<Dictionary<string, bool>> GetBatchInstallStatusAsync(IEnumerable<ItemDefinition> definitions)
+    private async Task<Dictionary<string, bool>> GetBatchInstallStatusAsync(IEnumerable<ItemDefinition> definitions)
     {
         ValidationHelper.NotNull(definitions, nameof(definitions));
 
@@ -173,8 +101,4 @@ public class AppLoadingService(
         }
     }
 
-    public void ClearStatusCache()
-    {
-        _statusCache.Clear();
-    }
 }

@@ -95,7 +95,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                           : DateTime.MinValue;
 
                     VersionInfo latestVersion = VersionInfo.FromTag(tagName);
-                    latestVersion.DownloadUrl = _latestReleaseDownloadUrl;
 
                     // Compare with current version
                     VersionInfo currentVersion = GetCurrentVersion();

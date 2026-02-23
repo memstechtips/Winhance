@@ -4,8 +4,5 @@ namespace Winhance.Core.Features.Common.Interfaces
     {
         Func<Task>? BeforeShutdown { get; set; }
         Task<bool> CheckOperationsAndCloseAsync();
-        Task CloseApplicationWithSupportDialogAsync();
-        Task SaveDontShowSupportPreferenceAsync(bool dontShow);
-        Task<bool> ShouldShowSupportDialogAsync();
     }
 }

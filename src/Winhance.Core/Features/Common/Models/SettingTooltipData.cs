@@ -6,7 +6,6 @@ namespace Winhance.Core.Features.Common.Models
     {
         public string SettingId { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public RegistrySetting? RegistrySetting { get; set; }
         public string DisplayValue { get; set; } = string.Empty;
         public Dictionary<RegistrySetting, string?> IndividualRegistryValues { get; set; } = new Dictionary<RegistrySetting, string?>();
         public List<ScheduledTaskSetting> ScheduledTaskSettings { get; set; } = new List<ScheduledTaskSetting>();

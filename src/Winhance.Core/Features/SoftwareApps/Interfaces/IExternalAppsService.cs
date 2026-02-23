@@ -9,6 +9,5 @@ public interface IExternalAppsService : IAppDomainService
 {
     Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null);
     Task<OperationResult<bool>> UninstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null);
-    Task<bool> CheckIfInstalledAsync(string winGetPackageId);
     Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions);
 }

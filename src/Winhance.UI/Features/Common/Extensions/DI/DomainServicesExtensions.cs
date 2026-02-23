@@ -26,8 +26,7 @@ public static class DomainServicesExtensions
         return services
             .AddCustomizationDomainServices()
             .AddOptimizationDomainServices()
-            .AddSoftwareAppServices()
-            .AddDomainServiceRouter();
+            .AddSoftwareAppServices();
     }
 
     /// <summary>
@@ -177,27 +176,10 @@ public static class DomainServicesExtensions
             provider.GetRequiredService<IWindowsAppsService>()
         ));
 
-        // Script Detection Service (Singleton - Expensive operation)
-        services.AddSingleton<
-            IScriptDetectionService,
-            Infrastructure.Features.SoftwareApps.Services.ScriptDetectionService
-        >();
-
         // App Removal Service (Singleton - Simplified removal logic)
         services.AddSingleton<IBloatRemovalService, BloatRemovalService>();
 
         return services;
     }
 
-    /// <summary>
-    /// Registers the domain service registry for service discovery.
-    /// Note: IDomainServiceRouter and IInitializationService are registered in InfrastructureServicesExtensions.
-    /// </summary>
-    public static IServiceCollection AddDomainServiceRouter(this IServiceCollection services)
-    {
-        // Domain Dependency Service (Singleton - Clean Architecture enforcement)
-        services.AddSingleton<IDomainDependencyService, DomainDependencyService>();
-
-        return services;
-    }
 }

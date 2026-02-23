@@ -51,11 +51,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         IReadOnlyList<ConfigReviewDiff> GetApprovedDiffs();
 
         /// <summary>
-        /// Gets all computed diffs (both approved and rejected).
-        /// </summary>
-        IReadOnlyDictionary<string, ConfigReviewDiff> GetAllDiffs();
-
-        /// <summary>
         /// Registers a diff for a setting (called during lazy loading when settings are loaded).
         /// </summary>
         void RegisterDiff(ConfigReviewDiff diff);
@@ -105,11 +100,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Gets the number of config items for a nav section (SoftwareApps, Optimize, Customize).
         /// </summary>
         int GetNavBadgeCount(string sectionTag);
-
-        /// <summary>
-        /// Gets the number of config items for a specific feature.
-        /// </summary>
-        int GetFeatureConfigItemCount(string featureId);
 
         /// <summary>
         /// Gets the number of actual diffs (changes from current state) for a specific feature.

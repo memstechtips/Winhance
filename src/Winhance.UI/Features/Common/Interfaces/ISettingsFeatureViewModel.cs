@@ -64,25 +64,4 @@ public interface ISettingsFeatureViewModel : IDisposable
     /// </summary>
     void ApplySearchFilter(string searchText);
 
-    /// <summary>
-    /// Handles a domain-specific setting context change.
-    /// </summary>
-    Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false);
-}
-
-/// <summary>
-/// Event args for when a feature's visibility changes due to search.
-/// </summary>
-public class FeatureVisibilityChangedEventArgs : EventArgs
-{
-    public string FeatureId { get; }
-    public bool IsVisible { get; }
-    public string SearchText { get; }
-
-    public FeatureVisibilityChangedEventArgs(string featureId, bool isVisible, string searchText)
-    {
-        FeatureId = featureId;
-        IsVisible = isVisible;
-        SearchText = searchText;
-    }
 }

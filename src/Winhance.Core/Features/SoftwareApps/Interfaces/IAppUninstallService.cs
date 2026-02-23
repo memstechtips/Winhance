@@ -12,8 +12,6 @@ public interface IAppUninstallService
         ItemDefinition item,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
-
-    Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item);
 }
 
 public enum UninstallMethod
@@ -21,6 +19,5 @@ public enum UninstallMethod
     None,
     WinGet,
     Chocolatey,
-    Registry,
-    CustomScript
+    Registry
 }

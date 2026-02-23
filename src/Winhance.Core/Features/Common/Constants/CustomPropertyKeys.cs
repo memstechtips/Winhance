@@ -8,13 +8,6 @@ namespace Winhance.Core.Features.Common.Constants
         public const string SupportsCustomState = "SupportsCustomState";
         public const string CustomStateDisplayName = "CustomStateDisplayName";
 
-        // Configuration properties
-        public const string Id = "Id";
-        public const string GroupName = "GroupName";
-        public const string Description = "Description";
-        public const string SliderValue = "SliderValue";
-        public const string SliderLabels = "SliderLabels";
-
         // Power Plan properties
         public const string PowerPlanOptions = "PowerPlanOptions";
 

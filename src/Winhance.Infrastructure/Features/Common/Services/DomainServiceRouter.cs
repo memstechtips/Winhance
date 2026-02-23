@@ -5,8 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class DomainServiceRouter(
-        IEnumerable<IDomainService> domainServices,
-        ILogService logService) : IDomainServiceRouter
+        IEnumerable<IDomainService> domainServices) : IDomainServiceRouter
     {
         private readonly Dictionary<string, IDomainService> _serviceMap = InitializeServiceMap(domainServices);
         private readonly Dictionary<string, string> _settingToFeatureMap = new();
@@ -41,14 +40,5 @@ namespace Winhance.Infrastructure.Features.Common.Services
             throw new ArgumentException($"No domain service found for '{featureIdOrSettingId}'");
         }
 
-        public void ClearAllSettingsCaches()
-        {
-            logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Clearing all domain service settings caches");
-
-            foreach (var service in _serviceMap.Values)
-            {
-                service.ClearSettingsCache();
-            }
-        }
     }
 }

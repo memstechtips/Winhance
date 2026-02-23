@@ -22,7 +22,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private bool _isInitialized;
         private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<string, IEnumerable<SettingDefinition>> _preFilteredSettings = new();
-        private readonly Dictionary<string, IEnumerable<SettingDefinition>> _rawSettings = new();
         private readonly Dictionary<string, IEnumerable<SettingDefinition>> _windowsFilterBypassedSettings = new();
         private bool _filterEnabled = true;
 
@@ -126,9 +125,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     _logService.Log(LogLevel.Info, $"Loading raw settings for {featureId}");
-                    var rawSettings = provider();
-                    _rawSettings[featureId] = rawSettings.ToList();
-                    _logService.Log(LogLevel.Info, $"Loaded {rawSettings.Count()} raw settings for {featureId}");
+                    var rawSettings = provider().ToList();
+                    _logService.Log(LogLevel.Info, $"Loaded {rawSettings.Count} raw settings for {featureId}");
 
                     var filteredSettings = _windowsFilter.FilterSettingsByWindowsVersion(rawSettings);
 
@@ -140,7 +138,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     _preFilteredSettings[featureId] = filteredSettings;
 
-                    var bypassedSettings = rawSettings;
+                    IEnumerable<SettingDefinition> bypassedSettings = rawSettings;
                     if (featureId == FeatureIds.Power)
                     {
                         bypassedSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(bypassedSettings);
@@ -156,7 +154,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Error,
                         $"Error loading settings for {featureId}: {ex.Message}");
                     _preFilteredSettings[featureId] = Enumerable.Empty<SettingDefinition>();
-                    _rawSettings[featureId] = Enumerable.Empty<SettingDefinition>();
                     _windowsFilterBypassedSettings[featureId] = Enumerable.Empty<SettingDefinition>();
                 }
             }
@@ -252,20 +249,5 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-
-        private IEnumerable<SettingDefinition> FilterSettingsForFeature(string featureId, IEnumerable<SettingDefinition> rawSettings)
-        {
-            var filtered = rawSettings.AsEnumerable();
-
-            filtered = _windowsFilter.FilterSettingsByWindowsVersion(filtered);
-
-            if (featureId == FeatureIds.Power)
-            {
-                filtered = _hardwareFilter.FilterSettingsByHardwareAsync(filtered).GetAwaiter().GetResult();
-                filtered = _powerValidation.FilterSettingsByExistenceAsync(filtered).GetAwaiter().GetResult();
-            }
-
-            return filtered;
-        }
     }
 }

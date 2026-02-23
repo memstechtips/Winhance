@@ -6,8 +6,6 @@ namespace Winhance.Core.Features.AdvancedTools.Models
         public ImageFormatInfo? EsdInfo { get; set; }
 
         public bool BothExist => WimInfo != null && EsdInfo != null;
-        public bool HasWimOnly => WimInfo != null && EsdInfo == null;
-        public bool HasEsdOnly => EsdInfo != null && WimInfo == null;
         public bool NeitherExists => WimInfo == null && EsdInfo == null;
         public bool HasAnyFormat => WimInfo != null || EsdInfo != null;
 

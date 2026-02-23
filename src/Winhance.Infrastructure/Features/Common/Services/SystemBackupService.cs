@@ -19,7 +19,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public SystemBackupService(
             ILogService logService,
-            IUserPreferencesService prefsService,
             ILocalizationService localization)
         {
             _logService = logService;
@@ -47,10 +46,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (existingPoint != null)
                 {
                     _logService.Log(LogLevel.Info, $"Restore point '{RestorePointName}' already exists (created: {existingPoint.Value}). Skipping creation.");
-                    result.RestorePointExisted = true;
                     result.RestorePointDate = existingPoint.Value;
                     result.Success = true;
-                    result.SystemRestoreEnabled = true;
                     return result;
                 }
 
@@ -80,20 +77,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var enabled = await EnableSystemRestoreAsync();
                     if (!enabled)
                     {
-                        result.Warnings.Add("Failed to enable System Restore");
                         _logService.Log(LogLevel.Error, "Failed to enable System Restore - cannot create restore point");
                         result.Success = true;
-                        result.SystemRestoreEnabled = false;
                         return result;
                     }
 
                     _logService.Log(LogLevel.Info, "System Restore enabled successfully");
-                    result.SystemRestoreEnabled = true;
                 }
                 else
                 {
                     _logService.Log(LogLevel.Info, "System Restore is already enabled");
-                    result.SystemRestoreEnabled = true;
                 }
 
                 // Report: Creating restore point
@@ -130,26 +123,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             return result;
-        }
-
-        public async Task<BackupStatus> GetBackupStatusAsync()
-        {
-            var status = new BackupStatus();
-
-            try
-            {
-                status.SystemRestoreEnabled = await CheckSystemRestoreEnabledAsync();
-
-                var existingPoint = await FindRestorePointAsync(RestorePointName);
-                status.RestorePointExists = existingPoint.HasValue;
-                status.RestorePointDate = existingPoint;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error getting backup status: {ex.Message}");
-            }
-
-            return status;
         }
 
         private async Task<bool> CheckSystemRestoreEnabledAsync()

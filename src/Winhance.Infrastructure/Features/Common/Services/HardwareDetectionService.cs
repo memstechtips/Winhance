@@ -39,64 +39,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             });
         }
 
-        public Task<int?> GetBatteryPercentageAsync()
-        {
-            return Task.Run<int?>(() =>
-            {
-                try
-                {
-                    using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
-                    using var collection = searcher.Get();
-
-                    if (collection.Count == 0)
-                        return null;
-
-                    foreach (ManagementObject mo in collection)
-                    {
-                        return Convert.ToInt32(mo["EstimatedChargeRemaining"]);
-                    }
-
-                    return null;
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Error, $"Error getting battery percentage: {ex.Message}");
-                    return null;
-                }
-            });
-        }
-
-        public Task<bool> IsRunningOnBatteryAsync()
-        {
-            return Task.Run(() =>
-            {
-                try
-                {
-                    using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
-                    using var collection = searcher.Get();
-
-                    if (collection.Count == 0)
-                        return false;
-
-                    foreach (ManagementObject battery in collection)
-                    {
-                        if (battery["BatteryStatus"] != null)
-                        {
-                            int status = Convert.ToInt32(battery["BatteryStatus"]);
-                            return status == 1;
-                        }
-                    }
-
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Error, $"Error checking power source: {ex.Message}");
-                    return false;
-                }
-            });
-        }
-
         public async Task<bool> HasLidAsync()
         {
             return await Task.Run(() =>

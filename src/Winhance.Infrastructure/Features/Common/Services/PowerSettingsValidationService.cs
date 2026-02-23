@@ -99,23 +99,4 @@ public class PowerSettingsValidationService(
 
         return validatedSettings;
     }
-
-    public Task<bool> IsHibernationEnabledAsync()
-    {
-        try
-        {
-            if (PowerProf.GetPwrCapabilities(out var caps))
-            {
-                return Task.FromResult(caps.SystemS4 && caps.HiberFilePresent);
-            }
-
-            logService.Log(LogLevel.Warning, "GetPwrCapabilities failed, falling back to hiberfil.sys check");
-            return Task.FromResult(System.IO.File.Exists(@"C:\hiberfil.sys"));
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error checking hibernation: {ex.Message}");
-            return Task.FromResult(false);
-        }
-    }
 }

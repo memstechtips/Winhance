@@ -158,74 +158,6 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
-    public async Task<PowerPlan?> GetPowerPlanByGuidAsync(string guid)
-    {
-        try
-        {
-            var availablePlans = await GetAvailablePowerPlansAsync();
-            return availablePlans.FirstOrDefault(p => string.Equals(p.Guid, guid, StringComparison.OrdinalIgnoreCase));
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"Error getting power plan by GUID: {ex.Message}");
-            return null;
-        }
-    }
-
-    public async Task<int> GetPowerPlanIndexAsync(string guid, List<string> options)
-    {
-        try
-        {
-            var availablePlans = await GetAvailablePowerPlansAsync();
-            var activePlanData = availablePlans.FirstOrDefault(p => p.IsActive);
-
-            if (activePlanData == null)
-                return 0;
-
-            for (int i = 0; i < options.Count; i++)
-            {
-                var optionName = options[i].Trim();
-                var matchingPlan = availablePlans.FirstOrDefault(p =>
-                    p.Name.Trim().Equals(optionName, StringComparison.OrdinalIgnoreCase));
-
-                if (matchingPlan != null && matchingPlan.Guid.Equals(activePlanData.Guid, StringComparison.OrdinalIgnoreCase))
-                    return i;
-            }
-
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"Error resolving power plan index: {ex.Message}");
-            return 0;
-        }
-    }
-
-    public async Task<int?> GetPowerSettingValueAsync(PowerCfgSetting powerCfgSetting)
-    {
-        try
-        {
-            return await Task.Run(() =>
-            {
-                var schemeGuid = GetActivePowerSchemeGuid();
-                if (schemeGuid == Guid.Empty) return (int?)null;
-
-                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
-
-                if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out uint acIndex) == PowerProf.ERROR_SUCCESS)
-                    return (int?)acIndex;
-
-                return null;
-            });
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error getting power setting value: {ex.Message}");
-            return null;
-        }
-    }
-
     public async Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting)
     {
         try
@@ -353,7 +285,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
-    public async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
+    private async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
     {
         var cacheKey = powerCfgSetting.SettingGuid;
 

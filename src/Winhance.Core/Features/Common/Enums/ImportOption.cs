@@ -6,11 +6,6 @@ namespace Winhance.Core.Features.Common.Enums
     public enum ImportOption
     {
         /// <summary>
-        /// No option selected.
-        /// </summary>
-        None,
-
-        /// <summary>
         /// Import own configuration.
         /// </summary>
         ImportOwn,

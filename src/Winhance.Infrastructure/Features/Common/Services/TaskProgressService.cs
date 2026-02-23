@@ -61,24 +61,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public CancellationTokenSource? CurrentTaskCancellationSource => _cancellationSource;
 
         /// <summary>
-        /// Gets the number of active script slots in multi-script mode.
-        /// </summary>
-        public int ActiveScriptSlotCount => _activeScriptSlotCount;
-
-        /// <summary>
         /// Event raised when progress changes.
         /// </summary>
         public event EventHandler<TaskProgressDetail>? ProgressUpdated;
-
-        /// <summary>
-        /// Event raised when progress changes (compatibility with App.xaml.cs).
-        /// </summary>
-        public event EventHandler<TaskProgressEventArgs>? ProgressChanged;
-
-        /// <summary>
-        /// Event raised when a log message is added.
-        /// </summary>
-        public event EventHandler<string>? LogMessageAdded;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TaskProgressService"/> class.
@@ -295,19 +280,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// Adds a log message.
         /// </summary>
         /// <param name="message">The message content.</param>
-        public void AddLogMessage(string message)
+        private void AddLogMessage(string message)
         {
             if (string.IsNullOrEmpty(message))
                 return;
 
             _logMessages.Add(message);
-            LogMessageAdded?.Invoke(this, message);
         }
-
-        /// <summary>
-        /// Gets a snapshot of all log messages accumulated during the current (or last) task.
-        /// </summary>
-        public IReadOnlyList<string> GetLogMessages() => _logMessages.AsReadOnly();
 
         /// <summary>
         /// Gets a snapshot of all terminal output lines accumulated during the current (or last) task.
@@ -343,55 +322,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public IProgress<TaskProgressDetail> CreatePowerShellProgress()
         {
             return new Progress<TaskProgressDetail>(UpdateDetailedProgress);
-        }
-
-        /// <summary>
-        /// Creates a progress adapter for PowerShell progress data.
-        /// </summary>
-        /// <returns>A progress adapter for PowerShell progress data.</returns>
-        public IProgress<PowerShellProgressData> CreatePowerShellProgressAdapter()
-        {
-            return new Progress<PowerShellProgressData>(data =>
-            {
-                var detail = new TaskProgressDetail();
-
-                // Map PowerShell progress data to task progress detail
-                if (data.PercentComplete.HasValue)
-                {
-                    detail.Progress = data.PercentComplete.Value;
-                }
-
-                if (!string.IsNullOrEmpty(data.Activity))
-                {
-                    detail.StatusText = data.Activity;
-                    if (!string.IsNullOrEmpty(data.StatusDescription))
-                    {
-                        detail.StatusText += $": {data.StatusDescription}";
-                    }
-                }
-
-                detail.DetailedMessage = data.Message ?? data.CurrentOperation;
-
-                // Map stream type to log level
-                switch (data.StreamType)
-                {
-                    case PowerShellStreamType.Error:
-                        detail.LogLevel = LogLevel.Error;
-                        break;
-                    case PowerShellStreamType.Warning:
-                        detail.LogLevel = LogLevel.Warning;
-                        break;
-                    case PowerShellStreamType.Verbose:
-                    case PowerShellStreamType.Debug:
-                        detail.LogLevel = LogLevel.Debug;
-                        break;
-                    default:
-                        detail.LogLevel = LogLevel.Info;
-                        break;
-                }
-
-                UpdateDetailedProgress(detail);
-            });
         }
 
         /// <summary>
@@ -509,14 +439,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         /// <summary>
-        /// Requests that the next queued item be skipped.
-        /// </summary>
-        public void RequestSkipNext()
-        {
-            _skipNextRequested = true;
-        }
-
-        /// <summary>
         /// Checks and clears the skip-next flag (atomic check-and-clear).
         /// </summary>
         /// <returns>True if a skip was requested since the last call.</returns>
@@ -557,10 +479,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             ProgressUpdated?.Invoke(this, detail);
-            ProgressChanged?.Invoke(
-                this,
-                TaskProgressEventArgs.FromTaskProgressDetail(detail, _isTaskRunning)
-            );
         }
 
         /// <summary>

@@ -86,7 +86,7 @@ public class ApplicationCloseService : IApplicationCloseService
         }
     }
 
-    public async Task CloseApplicationWithSupportDialogAsync()
+    private async Task CloseApplicationWithSupportDialogAsync()
     {
         try
         {
@@ -151,7 +151,7 @@ public class ApplicationCloseService : IApplicationCloseService
         }
     }
 
-    public async Task<bool> ShouldShowSupportDialogAsync()
+    private async Task<bool> ShouldShowSupportDialogAsync()
     {
         try
         {
@@ -174,7 +174,7 @@ public class ApplicationCloseService : IApplicationCloseService
         }
     }
 
-    public async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
+    private async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
     {
         try
         {

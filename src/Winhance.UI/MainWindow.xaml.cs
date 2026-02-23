@@ -769,32 +769,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Shows the loading overlay.
-    /// </summary>
-    public void ShowLoadingOverlay()
-    {
-        LoadingOverlay.Visibility = Visibility.Visible;
-    }
-
-    /// <summary>
-    /// Hides the loading overlay.
-    /// </summary>
-    public void HideLoadingOverlay()
-    {
-        LoadingOverlay.Visibility = Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// Sets the loading state for a specific navigation button.
-    /// </summary>
-    /// <param name="tag">The navigation tag of the button.</param>
-    /// <param name="isLoading">Whether the button should show loading state.</param>
-    public void SetNavButtonLoading(string tag, bool isLoading)
-    {
-        NavSidebar.SetButtonLoading(tag, isLoading);
-    }
-
     #region Keyboard Accelerators
 
     /// <summary>

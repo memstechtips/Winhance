@@ -164,36 +164,5 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             return copiedCount;
         }
 
-        public static void MergeDriverDirectory(string sourceDirectory, string targetDirectory, ILogService logService)
-        {
-            if (!Directory.Exists(sourceDirectory))
-            {
-                logService.LogWarning($"Source directory does not exist: {sourceDirectory}");
-                return;
-            }
-
-            Directory.CreateDirectory(targetDirectory);
-
-            foreach (var file in Directory.GetFiles(sourceDirectory))
-            {
-                var fileName = Path.GetFileName(file);
-                var targetFile = Path.Combine(targetDirectory, fileName);
-
-                if (File.Exists(targetFile))
-                {
-                    logService.LogInformation($"File already exists, skipping: {fileName}");
-                    continue;
-                }
-
-                File.Copy(file, targetFile, overwrite: false);
-            }
-
-            foreach (var dir in Directory.GetDirectories(sourceDirectory))
-            {
-                var dirName = Path.GetFileName(dir);
-                var targetSubDir = Path.Combine(targetDirectory, dirName);
-                MergeDriverDirectory(dir, targetSubDir, logService);
-            }
-        }
     }
 }

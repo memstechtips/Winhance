@@ -19,5 +19,4 @@ public interface IBloatRemovalService
     Task CleanupAllRemovalArtifactsAsync();
 
     Task<bool> RemoveItemsFromScriptAsync(List<ItemDefinition> itemsToRemove);
-    Task CleanupBloatRemovalArtifactsAsync();
 }

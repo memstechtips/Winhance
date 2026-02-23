@@ -136,28 +136,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        public async Task ApplyAdvancedPowerSettingAsync(string powerPlanGuid, string subgroupGuid, string settingGuid, int acValue, int dcValue)
-        {
-            try
-            {
-                var schemeGuid = Guid.Parse(powerPlanGuid);
-                var subGroupGuid = Guid.Parse(subgroupGuid);
-                var settGuid = Guid.Parse(settingGuid);
-
-                PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, (uint)acValue);
-                PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, (uint)dcValue);
-                PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref schemeGuid);
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Error, $"Error applying advanced power setting: {ex.Message}");
-                throw;
-            }
-
-            await Task.CompletedTask;
-        }
-
-
         public async Task<IEnumerable<object>> GetAvailablePowerPlansAsync()
         {
             try
@@ -173,7 +151,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         }
 
 
-        public async Task<bool> SetActivePowerPlanAsync(string powerPlanGuid)
+        private async Task<bool> SetActivePowerPlanAsync(string powerPlanGuid)
         {
             try
             {
@@ -200,27 +178,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 logService.Log(LogLevel.Warning, $"Error setting active power plan: {ex.Message}");
                 return false;
-            }
-        }
-
-        public async Task<(int acValue, int dcValue)> GetSettingValueAsync(string powerPlanGuid, string subgroupGuid, string settingGuid)
-        {
-            try
-            {
-                var schemeGuid = Guid.Parse(powerPlanGuid);
-                var subGroupGuid = Guid.Parse(subgroupGuid);
-                var settGuid = Guid.Parse(settingGuid);
-
-                var acResult = PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, out uint acValue);
-                var dcResult = PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, out uint dcValue);
-
-                return ((int)(acResult == PowerProf.ERROR_SUCCESS ? acValue : 0),
-                        (int)(dcResult == PowerProf.ERROR_SUCCESS ? dcValue : 0));
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"Error getting setting value: {ex.Message}");
-                return (0, 0);
             }
         }
 
@@ -462,38 +419,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        public async Task<Dictionary<string, int?>> RefreshCompatiblePowerSettingsAsync()
-        {
-            try
-            {
-                await GetSettingsAsync();
-
-                var powerSettings = _cachedSettings?.Where(s => s.PowerCfgSettings?.Any() == true) ?? Enumerable.Empty<SettingDefinition>();
-                if (!powerSettings.Any())
-                    return new Dictionary<string, int?>();
-
-                var allSettings = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
-
-                var results = new Dictionary<string, int?>();
-                foreach (var setting in powerSettings)
-                {
-                    var powerCfgSetting = setting.PowerCfgSettings![0];
-                    var key = powerCfgSetting.SettingGuid;
-                    if (allSettings.TryGetValue(key, out var value))
-                    {
-                        results[key] = value.acValue;
-                    }
-                }
-
-                return results;
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Error, $"Error refreshing compatible power settings: {ex.Message}");
-                return new Dictionary<string, int?>();
-            }
-        }
-
         public async Task<PowerPlanImportResult> ImportPowerPlanAsync(PredefinedPowerPlan predefinedPlan)
         {
             try
@@ -681,25 +606,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             var invalid = Path.GetInvalidFileNameChars();
             return string.Join("_", filename.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
-        }
-
-        private async Task<string> FindNewlyCreatedPlanGuidAsync(string targetPlanName, HashSet<string> existingPlanNames)
-        {
-            await Task.Delay(500);
-
-            var plansAfter = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
-
-            var newPlans = plansAfter.Where(p => !existingPlanNames.Contains(CleanPlanName(p.Name))).ToList();
-            if (newPlans.Count > 0)
-            {
-                logService.Log(LogLevel.Info, $"Found newly created power plan with GUID: {newPlans[0].Guid}");
-                return newPlans[0].Guid;
-            }
-
-            var matchingPlan = plansAfter.FirstOrDefault(p =>
-                string.Equals(CleanPlanName(p.Name), targetPlanName, StringComparison.OrdinalIgnoreCase));
-
-            return matchingPlan?.Guid ?? string.Empty;
         }
 
         private bool IsUltimatePerformancePlan(string planName)

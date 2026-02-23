@@ -25,7 +25,6 @@ public class StoreDownloadService : IStoreDownloadService
     private readonly HttpClient _httpClient;
 
     private const string StoreApiUrl = "https://store.rg-adguard.net/api/GetFiles";
-    private static readonly string[] SupportedArchitectures = { "x64", "x86", "arm64", "neutral" };
 
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
@@ -59,13 +58,6 @@ public class StoreDownloadService : IStoreDownloadService
             _taskProgressService?.UpdateProgress(5, _localization.GetString("Progress_Store_FetchingLinks", displayName));
             var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken);
 
-            if (string.IsNullOrEmpty(packagePath))
-            {
-                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedDownload", displayName));
-                return false;
-            }
-
-            // packagePath is null if download failed, or contains the path if installation with dependencies already succeeded
             if (string.IsNullOrEmpty(packagePath))
             {
                 _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedDownload", displayName));
@@ -115,7 +107,7 @@ public class StoreDownloadService : IStoreDownloadService
         }
     }
 
-    public async Task<string?> DownloadPackageAsync(
+    private async Task<string?> DownloadPackageAsync(
         string productId,
         string downloadPath,
         string? displayName = null,

@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -19,7 +18,6 @@ public class AppOperationService(
     ILegacyCapabilityService capabilityService,
     IOptionalFeatureService featureService,
     ILogService logService,
-    IEventBus eventBus,
     IWindowsAppsService windowsAppsService,
     IExternalAppsService externalAppsService,
     IBloatRemovalService bloatRemovalService,
@@ -65,7 +63,6 @@ public class AppOperationService(
                 var launched = await capabilityService.EnableCapabilityAsync(app.CapabilityName, app.Name);
                 if (launched)
                 {
-                    eventBus.Publish(new AppInstalledEvent(app.Id));
                     logService.Log(LogLevel.Info, $"PowerShell launched for capability '{app.Id}'");
                     return OperationResult<bool>.Succeeded(true);
                 }
@@ -77,7 +74,6 @@ public class AppOperationService(
                 var launched = await featureService.EnableFeatureAsync(app.OptionalFeatureName, app.Name);
                 if (launched)
                 {
-                    eventBus.Publish(new AppInstalledEvent(app.Id));
                     logService.Log(LogLevel.Info, $"PowerShell launched for feature '{app.Id}'");
                     return OperationResult<bool>.Succeeded(true);
                 }
@@ -97,7 +93,6 @@ public class AppOperationService(
                     var result = await windowsAppsService.InstallAppAsync(app, progress);
                     if (result.Success)
                     {
-                        eventBus.Publish(new AppInstalledEvent(app.Id));
                         logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
                     }
                     return result;
@@ -108,7 +103,6 @@ public class AppOperationService(
                     var result = await externalAppsService.InstallAppAsync(app, progress);
                     if (result.Success)
                     {
-                        eventBus.Publish(new AppInstalledEvent(app.Id));
                         logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
                     }
                     return result;
@@ -162,7 +156,6 @@ public class AppOperationService(
 
             if (success)
             {
-                eventBus.Publish(new AppRemovedEvent(appId));
                 logService.Log(LogLevel.Success, $"Successfully removed '{appId}'");
             }
 
@@ -269,13 +262,6 @@ public class AppOperationService(
             }
             logService.LogInformation("[UninstallApps] Step 4 DONE");
 
-            // Step 5: Publish events for all removed apps
-            logService.LogInformation($"[UninstallApps] Publishing AppRemovedEvent for {apps.Count} apps...");
-            foreach (var app in apps)
-            {
-                eventBus.Publish(new AppRemovedEvent(app.Id));
-            }
-
             logService.Log(LogLevel.Success, $"[UninstallApps] DONE: Successfully removed {apps.Count} apps");
             return OperationResult<int>.Succeeded(apps.Count);
         }
@@ -287,111 +273,6 @@ public class AppOperationService(
         catch (Exception ex)
         {
             logService.LogError($"Failed to remove apps: {ex.Message}");
-            return OperationResult<int>.Failed(ex.Message);
-        }
-    }
-
-    public async Task<OperationResult<bool>> UninstallExternalAppAsync(string packageId, string displayName, IProgress<TaskProgressDetail>? progress = null)
-    {
-        var cancellationToken = GetCurrentCancellationToken();
-
-        try
-        {
-            if (string.IsNullOrWhiteSpace(packageId))
-                return OperationResult<bool>.Failed("Package ID cannot be null or empty");
-
-            var item = new ItemDefinition
-            {
-                Id = packageId,
-                Name = displayName,
-                Description = string.Empty,
-                WinGetPackageId = [packageId]
-            };
-            var result = await externalAppsService.UninstallAppAsync(item, progress);
-
-            if (result.Success)
-            {
-                eventBus.Publish(new AppRemovedEvent(packageId));
-                logService.Log(LogLevel.Success, $"Successfully uninstalled '{displayName}'");
-            }
-
-            return result;
-        }
-        catch (OperationCanceledException)
-        {
-            logService.Log(LogLevel.Info, $"Uninstallation of '{displayName}' was cancelled");
-            return OperationResult<bool>.Cancelled("Operation was cancelled");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Failed to uninstall '{displayName}': {ex.Message}");
-            return OperationResult<bool>.Failed(ex.Message);
-        }
-    }
-
-    public async Task<OperationResult<int>> UninstallExternalAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null)
-    {
-        var cancellationToken = GetCurrentCancellationToken();
-
-        try
-        {
-            if (apps == null || !apps.Any())
-                return OperationResult<int>.Failed("No apps provided");
-
-            int successCount = 0;
-            int totalCount = apps.Count;
-
-            foreach (var app in apps)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    logService.Log(LogLevel.Info, "Bulk uninstallation was cancelled");
-                    return OperationResult<int>.Cancelled($"Cancelled after {successCount} of {totalCount} apps");
-                }
-
-                try
-                {
-                    var result = await externalAppsService.UninstallAppAsync(app, progress);
-
-                    if (result.Success)
-                    {
-                        successCount++;
-                        eventBus.Publish(new AppRemovedEvent(app.Id));
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    return OperationResult<int>.Cancelled($"Cancelled after {successCount} of {totalCount} apps");
-                }
-                catch (Exception ex)
-                {
-                    logService.LogError($"Failed to uninstall {app.Name}: {ex.Message}");
-                }
-            }
-
-            if (successCount == totalCount)
-            {
-                logService.Log(LogLevel.Success, $"Successfully uninstalled all {totalCount} apps");
-                return OperationResult<int>.Succeeded(successCount);
-            }
-            else if (successCount > 0)
-            {
-                logService.Log(LogLevel.Warning, $"Partially completed: {successCount} of {totalCount} apps uninstalled");
-                return OperationResult<int>.Succeeded(successCount);
-            }
-            else
-            {
-                return OperationResult<int>.Failed("Failed to uninstall any apps");
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            logService.Log(LogLevel.Info, "Bulk uninstallation was cancelled");
-            return OperationResult<int>.Cancelled("Operation was cancelled");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Failed to uninstall apps: {ex.Message}");
             return OperationResult<int>.Failed(ex.Message);
         }
     }
@@ -474,10 +355,6 @@ public class AppOperationService(
                     logService.LogInformation("[UninstallAppsParallel] Cleaning up all removal artifacts...");
                     await bloatRemovalService.CleanupAllRemovalArtifactsAsync();
                 }
-
-                // Step 8: Publish events
-                foreach (var app in apps)
-                    eventBus.Publish(new AppRemovedEvent(app.Id));
 
                 logService.Log(LogLevel.Success, $"[UninstallAppsParallel] DONE: Successfully removed {apps.Count} apps");
                 return OperationResult<int>.Succeeded(apps.Count);
@@ -611,18 +488,4 @@ public class AppOperationService(
             logService.LogError($"Error cleaning up OpenWebSearch registry: {ex.Message}");
         }
     }
-}
-
-public class AppInstalledEvent(string appId) : IDomainEvent
-{
-    public string AppId { get; } = appId;
-    public Guid EventId { get; } = Guid.NewGuid();
-    public DateTime Timestamp { get; } = DateTime.UtcNow;
-}
-
-public class AppRemovedEvent(string appId) : IDomainEvent
-{
-    public string AppId { get; } = appId;
-    public Guid EventId { get; } = Guid.NewGuid();
-    public DateTime Timestamp { get; } = DateTime.UtcNow;
 }

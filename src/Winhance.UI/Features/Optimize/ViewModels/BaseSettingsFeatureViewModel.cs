@@ -82,8 +82,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    public event EventHandler<FeatureVisibilityChangedEventArgs>? VisibilityChanged;
-
     public IRelayCommand LoadSettingsCommand { get; }
     public IRelayCommand ToggleExpandCommand { get; }
 
@@ -246,7 +244,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
                     OnPropertyChanged(nameof(HasVisibleSettings));
                     OnPropertyChanged(nameof(IsVisibleInSearch));
-                    VisibilityChanged?.Invoke(this, new FeatureVisibilityChangedEventArgs(ModuleId, IsVisibleInSearch, value));
                 });
             }
             catch (OperationCanceledException)
@@ -389,11 +386,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    public virtual Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
-    {
-        return Task.FromResult(false);
-    }
-
     private void UpdateParentChildRelationships()
     {
         foreach (var setting in Settings)
@@ -476,7 +468,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _settingsById.Clear();
             _childrenByParentId.Clear();
             _settingsLoaded = false;
-            VisibilityChanged = null;
         }
 
         base.Dispose(disposing);

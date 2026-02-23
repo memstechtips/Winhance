@@ -6,7 +6,6 @@ namespace Winhance.Core.Features.Common.Models
     {
         public string Version { get; set; } = string.Empty;
         public DateTime ReleaseDate { get; set; }
-        public string DownloadUrl { get; set; } = string.Empty;
         public bool IsUpdateAvailable { get; set; }
         public bool IsBeta { get; set; }
 

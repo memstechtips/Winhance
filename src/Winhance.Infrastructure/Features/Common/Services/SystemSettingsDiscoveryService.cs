@@ -280,20 +280,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                     }
 
-                    bool isRegistryNotSet = false;
-                    if (DebugFlags.ShowRegistryStateDebugging &&
-                        setting.RegistrySettings?.Count > 0)
-                    {
-                        isRegistryNotSet = !registryService.RegistryValueExists(setting.RegistrySettings[0]);
-                    }
-
                     results[setting.Id] = new SettingStateResult
                     {
                         Success = true,
                         IsEnabled = isEnabled,
                         CurrentValue = currentValue,
-                        RawValues = settingRawValues,
-                        IsRegistryValueNotSet = isRegistryNotSet
+                        RawValues = settingRawValues
                     };
                 }
                 catch (Exception ex)

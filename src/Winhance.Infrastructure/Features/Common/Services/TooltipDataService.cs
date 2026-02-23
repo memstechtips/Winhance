@@ -168,7 +168,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                     }
 
-                    tooltipData.RegistrySetting = primaryRegistrySetting;
                     tooltipData.DisplayValue = primaryDisplayValue;
                     tooltipData.IndividualRegistryValues = individualValues;
                 }

@@ -16,17 +16,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        private const uint SPI_SETUIEFFECTS = 0x103F;
-        private const uint SPI_SETMENUANIMATION = 0x1003;
-        private const uint SPI_SETCOMBOBOXANIMATION = 0x1005;
-        private const uint SPI_SETLISTBOXSMOOTHSCROLLING = 0x1007;
         private const uint SPI_SETDESKWALLPAPER = 0x0014;
-
-        private const int HWND_BROADCAST = 0xFFFF;
-        private const uint WM_SETTINGCHANGE = 0x001A;
 
         private const uint SPIF_UPDATEINIFILE = 0x01;
         private const uint SPIF_SENDCHANGE = 0x02;
@@ -34,25 +24,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public WindowsUIManagementService(ILogService logService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        }
-
-        public void RestartExplorer()
-        {
-            try
-            {
-                var explorerProcesses = Process.GetProcessesByName("explorer");
-                foreach (var process in explorerProcesses)
-                {
-                    process.Kill();
-                }
-
-                Thread.Sleep(1000);
-                Process.Start("explorer.exe");
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError("Failed to restart Explorer", ex);
-            }
         }
 
         public bool IsProcessRunning(string processName)
@@ -81,18 +52,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Failed to kill process {processName}", ex);
-            }
-        }
-
-        public void RefreshDesktop()
-        {
-            try
-            {
-                SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, IntPtr.Zero, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError("Failed to refresh desktop", ex);
             }
         }
 

@@ -24,23 +24,10 @@ namespace Winhance.Core.Features.Common.Interfaces
         ISettingItem? GetSetting(string settingId, string? moduleName = null);
 
         /// <summary>
-        /// Gets all settings from a specific module.
-        /// </summary>
-        /// <param name="moduleName">The name of the module</param>
-        /// <returns>All settings from the module</returns>
-        IEnumerable<ISettingItem> GetModuleSettings(string moduleName);
-
-        /// <summary>
         /// Gets all settings from all modules.
         /// </summary>
         /// <returns>All registered settings</returns>
         IEnumerable<ISettingItem> GetAllSettings();
-
-        /// <summary>
-        /// Unregisters all settings from a module.
-        /// </summary>
-        /// <param name="moduleName">The name of the module</param>
-        void UnregisterModule(string moduleName);
 
         /// <summary>
         /// Registers a single setting from a module, preserving existing settings.
@@ -50,9 +37,5 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="setting">The setting to register</param>
         void RegisterSetting(string moduleName, ISettingItem setting);
 
-        /// <summary>
-        /// Clears all registered settings.
-        /// </summary>
-        void Clear();
     }
 }

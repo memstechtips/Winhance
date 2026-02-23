@@ -36,7 +36,7 @@ public class AppUninstallService(
         };
     }
 
-    public async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
+    private async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
     {
         // Use the detection source to pick the most appropriate uninstall method.
         // If the app was detected via Chocolatey, prefer Chocolatey uninstall

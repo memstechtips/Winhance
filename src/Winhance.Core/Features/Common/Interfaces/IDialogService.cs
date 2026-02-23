@@ -17,14 +17,6 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK");
 
-        Task<string?> ShowInputAsync(string message, string title = "", string defaultValue = "");
-
-        Task<bool?> ShowYesNoCancelAsync(string message, string title = "");
-
-        Task<Dictionary<string, bool>> ShowUnifiedConfigurationSaveDialogAsync(string title, string description, Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections);
-
-        Task<(Dictionary<string, bool> sections, ImportOptions options)?> ShowUnifiedConfigurationImportDialogAsync(string title, string description, Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections);
-
         Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string? title = null, string? supportMessage = null);
 
         Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
@@ -36,22 +28,6 @@ namespace Winhance.Core.Features.Common.Interfaces
             string continueButtonText = "Continue",
             string cancelButtonText = "Cancel",
             string? titleBarIcon = null);
-
-        void ShowOperationResult(
-            string operationType,
-            int successCount,
-            int totalCount,
-            IEnumerable<string> successItems,
-            IEnumerable<string>? failedItems = null,
-            IEnumerable<string>? skippedItems = null,
-            bool hasConnectivityIssues = false,
-            bool isUserCancelled = false);
-
-        Task ShowInformationAsync(
-            string title,
-            string headerText,
-            IEnumerable<string> apps,
-            string footerText);
 
         Task<(bool Confirmed, bool CheckboxChecked)> ShowAppOperationConfirmationAsync(
             string operationType,
@@ -66,18 +42,5 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
-        void ShowLocalizedDialog(
-            string titleKey,
-            string messageKey,
-            DialogType dialogType,
-            string iconName,
-            params object[] messageParams);
-
-        bool ShowLocalizedConfirmationDialog(
-            string titleKey,
-            string messageKey,
-            DialogType dialogType,
-            string iconName,
-            params object[] messageParams);
     }
 }

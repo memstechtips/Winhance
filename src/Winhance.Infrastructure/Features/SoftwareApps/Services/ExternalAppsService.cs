@@ -364,30 +364,6 @@ $Shortcut.Save()
         }
     }
 
-    public async Task<bool> CheckIfInstalledAsync(string winGetPackageId)
-    {
-        if (string.IsNullOrWhiteSpace(winGetPackageId))
-            return false;
-
-        try
-        {
-            var tempDef = new ItemDefinition
-            {
-                Id = winGetPackageId,
-                Name = winGetPackageId,
-                Description = "",
-                WinGetPackageId = [winGetPackageId]
-            };
-            var batch = await CheckBatchInstalledAsync(new[] { tempDef });
-            return batch.GetValueOrDefault(winGetPackageId, false);
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Error checking if {winGetPackageId} is installed: {ex.Message}");
-            return false;
-        }
-    }
-
     public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
         return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions);

@@ -267,9 +267,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
         {
             var viewModel = new AppItemViewModel(
                 definition,
-                _appOperationService,
-                _dialogService,
-                _logService,
                 _localizationService,
                 _dispatcherService);
             viewModel.PropertyChanged += Item_PropertyChanged;

@@ -10,7 +10,6 @@ namespace Winhance.Core.Features.Common.Models
         public string? DetailedMessage { get; set; }
         public LogLevel LogLevel { get; set; } = LogLevel.Info;
         public bool IsIndeterminate { get; set; }
-        public Dictionary<string, string> AdditionalInfo { get; set; } = new Dictionary<string, string>();
         public string? TerminalOutput { get; set; }
         public bool IsActive { get; set; }
         public int QueueTotal { get; set; }

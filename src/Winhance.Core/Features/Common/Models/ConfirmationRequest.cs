@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Models
 {
     /// <summary>
@@ -22,10 +20,5 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets or sets the optional checkbox text. If null, no checkbox is shown.
         /// </summary>
         public string? CheckboxText { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional context data that may be needed for the operation.
-        /// </summary>
-        public Dictionary<string, object>? Context { get; set; }
     }
 }

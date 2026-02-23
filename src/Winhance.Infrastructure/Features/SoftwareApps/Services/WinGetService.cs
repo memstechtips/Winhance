@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Principal;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,13 +46,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             _logService = logService;
             _localization = localization;
             _interactiveUserService = interactiveUserService;
-        }
-
-        private bool IsRunningAsAdministrator()
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
         #region COM Initialization (for detection)
@@ -748,39 +740,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
-        public async Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                _logService?.LogInformation("Checking bundled WinGet CLI...");
-                progress?.Report(new TaskProgressDetail
-                {
-                    Progress = 10,
-                    StatusText = _localization.GetString("Progress_WinGet_CheckingUpdates")
-                });
-
-                var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
-                if (exePath == null || !File.Exists(exePath))
-                {
-                    _logService?.LogError("Bundled WinGet CLI not found");
-                    return false;
-                }
-
-                // Bundled CLI is always "the right version" — updates ship with Winhance releases
-                progress?.Report(new TaskProgressDetail
-                {
-                    Progress = 100,
-                    StatusText = _localization.GetString("Progress_WinGet_Ready")
-                });
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService?.LogError($"Error checking WinGet: {ex.Message}");
-                return false;
-            }
-        }
-
         public async Task<bool> UpgradeAppInstallerAsync(CancellationToken cancellationToken = default)
         {
             try
@@ -849,29 +808,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         #endregion
 
         #region Detection (COM with CLI fallback)
-
-        public async Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(packageId))
-                return false;
-
-            try
-            {
-                // Try COM first (fast)
-                if (EnsureComInitialized())
-                {
-                    var package = await FindInstalledPackageAsync(packageId, cancellationToken);
-                    return package != null;
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService?.LogError($"Error checking if package {packageId} is installed: {ex.Message}");
-                return false;
-            }
-        }
 
         public async Task<HashSet<string>> GetInstalledPackageIdsAsync(CancellationToken cancellationToken = default)
         {
@@ -1184,61 +1120,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 catch (Exception ex)
                 {
                     _logService?.LogError($"Error finding package {packageId}: {ex.Message}");
-                    return null;
-                }
-            }, cancellationToken);
-        }
-
-        private async Task<CatalogPackage?> FindInstalledPackageAsync(string packageId, CancellationToken cancellationToken)
-        {
-            if (!EnsureComInitialized() || _packageManager == null || _winGetFactory == null)
-                return null;
-
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    var catalogs = _packageManager.GetPackageCatalogs().ToArray();
-                    var wingetCatalog = catalogs.FirstOrDefault(c =>
-                        c.Info.Name.Equals("winget", StringComparison.OrdinalIgnoreCase));
-
-                    if (wingetCatalog == null && catalogs.Length > 0)
-                        wingetCatalog = catalogs[0];
-
-                    if (wingetCatalog == null)
-                    {
-                        _logService?.LogWarning("No package catalogs available");
-                        return null;
-                    }
-
-                    var compositeOptions = _winGetFactory.CreateCreateCompositePackageCatalogOptions();
-                    compositeOptions.Catalogs.Add(wingetCatalog);
-                    compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
-
-                    var compositeCatalogRef = _packageManager.CreateCompositePackageCatalog(compositeOptions);
-                    var connectResult = compositeCatalogRef.Connect();
-
-                    if (connectResult.Status != ConnectResultStatus.Ok)
-                    {
-                        _logService?.LogError($"Failed to connect to composite catalog: {connectResult.Status}");
-                        return null;
-                    }
-
-                    var findOptions = _winGetFactory.CreateFindPackagesOptions();
-                    var filter = _winGetFactory.CreatePackageMatchFilter();
-                    filter.Field = PackageMatchField.Id;
-                    filter.Option = PackageFieldMatchOption.EqualsCaseInsensitive;
-                    filter.Value = packageId;
-                    findOptions.Filters.Add(filter);
-
-                    var findResult = connectResult.PackageCatalog.FindPackages(findOptions);
-
-                    var match = findResult.Matches.ToArray().FirstOrDefault();
-                    return match?.CatalogPackage;
-                }
-                catch (Exception ex)
-                {
-                    _logService?.LogError($"Error finding installed package {packageId}: {ex.Message}");
                     return null;
                 }
             }, cancellationToken);

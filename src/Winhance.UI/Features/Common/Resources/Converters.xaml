@@ -24,7 +24,6 @@
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- SoftwareApps Converters -->
-    <softwareConverters:BoolToColorConverter x:Key="BoolToColorConverter"/>
     <softwareConverters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>
     <softwareConverters:BoolToReinstallBrushConverter x:Key="BoolToReinstallBrushConverter"/>
     <softwareConverters:BoolToStatusBrushConverter x:Key="BoolToStatusBrushConverter"/>

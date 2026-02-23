@@ -42,13 +42,6 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> SetDefaultWallpaperAsync(bool isWindows11, bool isDarkMode)
-        {
-            string wallpaperPath = GetDefaultWallpaperPath(isWindows11, isDarkMode);
-            return await SetWallpaperAsync(wallpaperPath);
-        }
-
-        /// <inheritdoc/>
         public async Task<bool> SetWallpaperAsync(string wallpaperPath)
         {
             try

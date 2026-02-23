@@ -140,11 +140,6 @@ public class ConfigReviewService : IConfigReviewService
         return _diffs.Values.Where(d => d.IsReviewed && d.IsApproved).ToList().AsReadOnly();
     }
 
-    public IReadOnlyDictionary<string, ConfigReviewDiff> GetAllDiffs()
-    {
-        return _diffs;
-    }
-
     public void RegisterDiff(ConfigReviewDiff diff)
     {
         _diffs[diff.SettingId] = diff;
@@ -187,7 +182,7 @@ public class ConfigReviewService : IConfigReviewService
         };
     }
 
-    public int GetFeatureConfigItemCount(string featureId)
+    private int GetFeatureConfigItemCount(string featureId)
     {
         return _configItemCounts.TryGetValue(featureId, out var count) ? count : 0;
     }

@@ -132,45 +132,6 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         });
     }
 
-    public async Task<bool> WaitForTaskCompletionAsync(string taskName, TimeSpan timeout, CancellationToken ct = default)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            ct.ThrowIfCancellationRequested();
-            try
-            {
-                var state = await Task.Run(() =>
-                {
-                    var taskService = CreateTaskService();
-                    var folder = GetWinhanceFolder(taskService);
-                    if (folder == null) return -1;
-                    var task = folder.GetTask(taskName);
-                    if (task == null) return -1;
-                    return (int)task.State;
-                });
-
-                // State 4 = TASK_STATE_RUNNING → keep waiting
-                // State 3 = TASK_STATE_READY → done
-                // State 1 = TASK_STATE_DISABLED, -1 = not found → done (abnormal)
-                if (state != 4)
-                {
-                    logService.LogInformation($"Task '{taskName}' finished with state: {state}");
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                logService.LogWarning($"Error polling task '{taskName}': {ex.Message}");
-            }
-
-            await Task.Delay(500, ct);
-        }
-
-        logService.LogWarning($"Timed out waiting for task '{taskName}' after {timeout.TotalSeconds}s");
-        return false;
-    }
-
     public async Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
     {
         return await Task.Run(() =>
@@ -347,16 +308,6 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         });
     }
 
-    public async Task<bool> EnableTasksByFolderAsync(string folderPath)
-    {
-        return await Task.Run(() => SetFolderTasksEnabled(folderPath, true));
-    }
-
-    public async Task<bool> DisableTasksByFolderAsync(string folderPath)
-    {
-        return await Task.Run(() => SetFolderTasksEnabled(folderPath, false));
-    }
-
     private bool SetTaskEnabled(string taskPath, bool enabled)
     {
         try
@@ -373,43 +324,6 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
                 $"Failed to {(enabled ? "enable" : "disable")} task {taskPath}: {ex.Message}");
-            return false;
-        }
-    }
-
-    private bool SetFolderTasksEnabled(string folderPath, bool enabled)
-    {
-        try
-        {
-            var taskService = CreateTaskService();
-            // Remove trailing backslash/wildcard for folder navigation
-            var cleanPath = folderPath.TrimEnd('\\', '*');
-            dynamic folder = taskService.GetFolder(cleanPath);
-            dynamic tasks = folder.GetTasks(0); // 0 = include hidden tasks
-
-            int count = 0;
-            foreach (dynamic task in tasks)
-            {
-                try
-                {
-                    task.Enabled = enabled;
-                    logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")}: {cleanPath}\\{task.Name}");
-                    count++;
-                }
-                catch (Exception ex)
-                {
-                    logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                        $"Skipped: {cleanPath}\\{task.Name} - {ex.Message}");
-                }
-            }
-
-            logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")} {count} tasks in {cleanPath}");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                $"Failed to process tasks in {folderPath}: {ex.Message}");
             return false;
         }
     }

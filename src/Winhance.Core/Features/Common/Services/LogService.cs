@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Services
 {
@@ -12,10 +11,7 @@ namespace Winhance.Core.Features.Common.Services
         private string _logPath;
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
-        private IWindowsVersionService? _versionService;
         private IInteractiveUserService? _interactiveUserService;
-
-        public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
         public LogService()
         {
@@ -25,11 +21,6 @@ namespace Winhance.Core.Features.Common.Services
                 "Logs",
                 $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
             );
-        }
-
-        public void Initialize(IWindowsVersionService versionService)
-        {
-            _versionService = versionService;
         }
 
         public void SetInteractiveUserService(IInteractiveUserService interactiveUserService)
@@ -61,8 +52,6 @@ namespace Winhance.Core.Features.Common.Services
                     break;
             }
 
-            // Raise event for subscribers
-            LogMessageGenerated?.Invoke(this, new LogMessageEventArgs(level, message, exception));
         }
 
         public void StartLog()
@@ -100,15 +89,7 @@ namespace Winhance.Core.Features.Common.Services
                 }
                 LogInformation($"Machine: {Environment.MachineName}");
 
-                if (_versionService != null)
-                {
-                    LogInformation($"OS Version: {_versionService.GetOsVersionString()}");
-                    LogInformation($"OS Build: {_versionService.GetOsBuildString()}");
-                }
-                else
-                {
-                    LogInformation($"OS Version: {Environment.OSVersion}");
-                }
+                LogInformation($"OS Version: {Environment.OSVersion}");
                 LogInformation("===========================");
             }
             catch (Exception ex)
@@ -118,7 +99,7 @@ namespace Winhance.Core.Features.Common.Services
             }
         }
 
-        public void StopLog()
+        private void StopLog()
         {
             lock (_lockObject)
             {
@@ -158,7 +139,7 @@ namespace Winhance.Core.Features.Common.Services
             WriteLog(message, "DEBUG");
         }
 
-        public void LogSuccess(string message)
+        private void LogSuccess(string message)
         {
             WriteLog(message, "SUCCESS");
         }

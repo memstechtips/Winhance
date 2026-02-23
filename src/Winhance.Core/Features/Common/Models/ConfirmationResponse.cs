@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Models
 {
     /// <summary>
@@ -18,10 +16,5 @@ namespace Winhance.Core.Features.Common.Models
         /// Only relevant if the ConfirmationRequest had CheckboxText.
         /// </summary>
         public bool CheckboxChecked { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional context data that may be passed back from the UI.
-        /// </summary>
-        public Dictionary<string, object>? Context { get; set; }
     }
 }

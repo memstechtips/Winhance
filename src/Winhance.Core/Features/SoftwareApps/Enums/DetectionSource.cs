@@ -6,7 +6,6 @@ namespace Winhance.Core.Features.SoftwareApps.Enums;
 /// </summary>
 public enum DetectionSource
 {
-    None,
     WinGet,
     Chocolatey,
     Registry

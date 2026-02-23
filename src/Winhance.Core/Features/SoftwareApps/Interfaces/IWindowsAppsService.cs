@@ -14,29 +14,11 @@ public interface IWindowsAppsService : IAppDomainService
     Task<OperationResult<bool>> UninstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null);
     Task<OperationResult<bool>> EnableCapabilityAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null);
     Task<OperationResult<bool>> DisableCapabilityAsync(ItemDefinition item);
-    Task<OperationResult<bool>> EnableOptionalFeatureAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null);
-    Task<OperationResult<bool>> DisableOptionalFeatureAsync(ItemDefinition item);
-
-    Task<OperationResult<int>> RemoveAppxPackagesAsync(
-        List<ItemDefinition> packages,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken ct = default);
-
     Task<OperationResult<bool>> RemoveCapabilityAsync(
         ItemDefinition item, CancellationToken ct = default);
 
-    Task<OperationResult<int>> RemoveCapabilitiesBatchAsync(
-        List<ItemDefinition> capabilities,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken ct = default);
-
     Task<OperationResult<bool>> DisableOptionalFeatureNativeAsync(
         ItemDefinition item, CancellationToken ct = default);
-
-    Task<OperationResult<int>> DisableOptionalFeaturesBatchAsync(
-        List<ItemDefinition> features,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken ct = default);
 
     Task<OperationResult<bool>> UninstallViaRegistryAsync(
         ItemDefinition item, IProgress<TaskProgressDetail>? progress = null,

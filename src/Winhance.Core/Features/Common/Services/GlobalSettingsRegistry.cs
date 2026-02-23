@@ -88,53 +88,9 @@ namespace Winhance.Core.Features.Common.Services
             return null;
         }
 
-        public IEnumerable<ISettingItem> GetModuleSettings(string moduleName)
-        {
-            if (string.IsNullOrEmpty(moduleName))
-            {
-                _logService.Log(
-                    LogLevel.Warning,
-                    "Cannot get settings for null or empty module name"
-                );
-                return Enumerable.Empty<ISettingItem>();
-            }
-
-            if (_moduleSettings.TryGetValue(moduleName, out var settings))
-            {
-                return settings;
-            }
-
-            return Enumerable.Empty<ISettingItem>();
-        }
-
         public IEnumerable<ISettingItem> GetAllSettings()
         {
             return _moduleSettings.Values.SelectMany(settings => settings);
-        }
-
-        /// <summary>
-        /// Unregisters all settings from a module.
-        /// </summary>
-        /// <param name="moduleName">The name of the module</param>
-        public void UnregisterModule(string moduleName)
-        {
-            if (string.IsNullOrEmpty(moduleName))
-            {
-                _logService.Log(LogLevel.Warning, "Cannot unregister null or empty module name");
-                return;
-            }
-
-            if (_moduleSettings.TryRemove(moduleName, out var removedSettings))
-            {
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Unregistered {removedSettings.Count} settings from module '{moduleName}'"
-                );
-            }
-            else
-            {
-                _logService.Log(LogLevel.Debug, $"Module '{moduleName}' was not registered");
-            }
         }
 
         public void RegisterSetting(string moduleName, ISettingItem setting)
@@ -185,11 +141,5 @@ namespace Winhance.Core.Features.Common.Services
             );
         }
 
-        public void Clear()
-        {
-            var moduleCount = _moduleSettings.Count;
-            _moduleSettings.Clear();
-            _logService.Log(LogLevel.Info, $"Cleared all settings from {moduleCount} modules");
-        }
     }
 }

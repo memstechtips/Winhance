@@ -22,20 +22,6 @@ public class SettingLocalizationService : ISettingLocalizationService
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
     }
 
-    public SettingGroup LocalizeSettingGroup(SettingGroup group)
-    {
-        var localizedSettings = group.Settings
-            .Select(LocalizeSetting)
-            .ToList();
-
-        return new SettingGroup
-        {
-            Name = GetLocalizedGroupName(group.Name),
-            FeatureId = group.FeatureId,
-            Settings = localizedSettings
-        };
-    }
-
     public SettingDefinition LocalizeSetting(SettingDefinition setting)
     {
         var localized = setting with

@@ -8,12 +8,6 @@ namespace Winhance.UI.Features.Common.ViewModels;
 public abstract class BaseViewModel : ObservableObject, IDisposable
 {
     private bool _isDisposed;
-    protected CancellationTokenSource? _disposalCancellationTokenSource;
-
-    protected BaseViewModel()
-    {
-        _disposalCancellationTokenSource = new CancellationTokenSource();
-    }
 
     public void Dispose()
     {
@@ -25,9 +19,6 @@ public abstract class BaseViewModel : ObservableObject, IDisposable
     {
         if (!_isDisposed && disposing)
         {
-            _disposalCancellationTokenSource?.Cancel();
-            _disposalCancellationTokenSource?.Dispose();
-            _disposalCancellationTokenSource = null;
             _isDisposed = true;
         }
     }

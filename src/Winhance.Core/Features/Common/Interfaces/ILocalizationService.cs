@@ -15,8 +15,6 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         bool SetLanguage(string languageCode);
 
-        IEnumerable<string> GetAvailableLanguages();
-
         event EventHandler? LanguageChanged;
     }
 }

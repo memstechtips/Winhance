@@ -1,6 +1,5 @@
 using System;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {
@@ -13,11 +12,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Starts logging to a file.
         /// </summary>
         void StartLog();
-
-        /// <summary>
-        /// Stops logging to a file.
-        /// </summary>
-        void StopLog();
 
         /// <summary>
         /// Logs an informational message.
@@ -45,12 +39,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         void LogDebug(string message);
 
         /// <summary>
-        /// Logs a success message.
-        /// </summary>
-        /// <param name="message">The message to log.</param>
-        void LogSuccess(string message);
-
-        /// <summary>
         /// Gets the path to the current log file.
         /// </summary>
         /// <returns>The path to the log file.</returns>
@@ -63,10 +51,5 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="message">The message to log.</param>
         /// <param name="exception">The exception associated with the message, if any.</param>
         void Log(LogLevel level, string message, Exception? exception = null);
-
-        /// <summary>
-        /// Event raised when a log message is generated.
-        /// </summary>
-        event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
     }
 }

@@ -86,9 +86,5 @@ namespace Winhance.UI.Features.Common.Services
             }
         }
 
-        public void ShowMigrationNotification(ScriptMigrationResult result)
-        {
-            _logService.Log(LogLevel.Info, "ShowMigrationNotification called (not implemented in WinUI3)");
-        }
     }
 }

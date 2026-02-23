@@ -5,7 +5,6 @@ namespace Winhance.Core.Features.Common.Interfaces
 {
     public interface IWindowsRegistryService
     {
-        bool CreateKey(string keyPath);
         bool SetValue(string keyPath, string valueName, object value, RegistryValueKind kind);
         object? GetValue(string keyPath, string valueName);
         bool DeleteKey(string keyPath);

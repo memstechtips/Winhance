@@ -310,20 +310,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Sets all buttons to loading or not loading state.
-    /// </summary>
-    /// <param name="isLoading">Whether all buttons should show loading state.</param>
-    public void SetAllButtonsLoading(bool isLoading)
-    {
-        if (_navButtons == null) return;
-
-        foreach (var button in _navButtons.Values)
-        {
-            button.IsLoading = isLoading;
-        }
-    }
-
-    /// <summary>
     /// Gets a NavButton by its tag.
     /// </summary>
     /// <param name="tag">The navigation tag of the button to get.</param>

@@ -212,9 +212,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
 
-    public string ReviewWindowsAppsBanner => ReviewWindowsAppsBannerText;
-    public string ReviewExternalAppsBanner => ReviewExternalAppsBannerText;
-
     public string ReviewWindowsAppsBannerText
     {
         get

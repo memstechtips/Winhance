@@ -99,7 +99,7 @@ public class LocalizationService : ILocalizationService
         return "en";
     }
 
-    public IEnumerable<string> GetAvailableLanguages()
+    private IEnumerable<string> GetAvailableLanguages()
     {
         try
         {

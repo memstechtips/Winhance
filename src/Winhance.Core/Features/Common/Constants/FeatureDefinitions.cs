@@ -9,22 +9,22 @@ namespace Winhance.Core.Features.Common.Constants
         public static readonly List<FeatureDefinition> All = new()
         {
             // Customize
-            new(FeatureIds.WindowsTheme, "Windows Theme", "Brush", "Customize", 1),
-            new(FeatureIds.Taskbar, "Taskbar", "DockBottom", "Customize", 2),
-            new(FeatureIds.StartMenu, "Start Menu", "FileTableBoxOutline", "Customize", 3),
-            new(FeatureIds.ExplorerCustomization, "Explorer", "Folder", "Customize", 4),
+            new(FeatureIds.WindowsTheme, "Windows Theme", "Customize"),
+            new(FeatureIds.Taskbar, "Taskbar", "Customize"),
+            new(FeatureIds.StartMenu, "Start Menu", "Customize"),
+            new(FeatureIds.ExplorerCustomization, "Explorer", "Customize"),
 
             // Optimize
-            new(FeatureIds.Privacy, "Privacy & Security", "Lock", "Optimize", 1),
-            new(FeatureIds.Power, "Power", "Power", "Optimize", 2),
-            new(FeatureIds.GamingPerformance, "Gaming & Performance", "Controller", "Optimize", 3),
-            new(FeatureIds.Update, "Windows Update", "Sync", "Optimize", 4),
-            new(FeatureIds.Notifications, "Notifications", "BellRing", "Optimize", 5),
-            new(FeatureIds.Sound, "Sound", "VolumeHigh", "Optimize", 6),
+            new(FeatureIds.Privacy, "Privacy & Security", "Optimize"),
+            new(FeatureIds.Power, "Power", "Optimize"),
+            new(FeatureIds.GamingPerformance, "Gaming & Performance", "Optimize"),
+            new(FeatureIds.Update, "Windows Update", "Optimize"),
+            new(FeatureIds.Notifications, "Notifications", "Optimize"),
+            new(FeatureIds.Sound, "Sound", "Optimize"),
 
             // SoftwareApps
-            new(FeatureIds.WindowsApps, "Windows Apps", "MicrosoftWindows", "SoftwareApps", 1),
-            new(FeatureIds.ExternalApps, "External Apps", "PackageDown", "SoftwareApps", 2)
+            new(FeatureIds.WindowsApps, "Windows Apps", "SoftwareApps"),
+            new(FeatureIds.ExternalApps, "External Apps", "SoftwareApps")
         };
 
         public static readonly HashSet<string> OptimizeFeatures = All
