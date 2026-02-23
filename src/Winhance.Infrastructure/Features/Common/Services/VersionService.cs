@@ -14,14 +14,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class VersionService : IVersionService
     {
         private readonly ILogService _logService;
+        private readonly IProcessExecutor _processExecutor;
         private readonly HttpClient _httpClient;
         private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
         private readonly string _latestReleaseDownloadUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
         private readonly string _userAgent = "Winhance-Update-Checker";
 
-        public VersionService(ILogService logService)
+        public VersionService(ILogService logService, IProcessExecutor processExecutor)
         {
             _logService = logService;
+            _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", _userAgent);
         }
@@ -132,33 +134,21 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public async Task DownloadAndInstallUpdateAsync()
         {
-            try
-            {
-                _logService.Log(LogLevel.Info, "Downloading update...");
+            _logService.Log(LogLevel.Info, "Downloading update...");
 
-                // Create a temporary file to download the installer
-                string tempPath = Path.Combine(Path.GetTempPath(), "Winhance.Installer.exe");
+            // Create a temporary file to download the installer
+            string tempPath = Path.Combine(Path.GetTempPath(), "Winhance.Installer.exe");
 
-                // Download the installer
-                byte[] installerBytes = await _httpClient.GetByteArrayAsync(_latestReleaseDownloadUrl).ConfigureAwait(false);
-                await File.WriteAllBytesAsync(tempPath, installerBytes).ConfigureAwait(false);
+            // Download the installer
+            byte[] installerBytes = await _httpClient.GetByteArrayAsync(_latestReleaseDownloadUrl).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(tempPath, installerBytes).ConfigureAwait(false);
 
-                _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}, launching installer...");
+            _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}, launching installer...");
 
-                // Launch the installer
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = tempPath,
-                    UseShellExecute = true
-                });
+            // Launch the installer
+            await _processExecutor.ShellExecuteAsync(tempPath).ConfigureAwait(false);
 
-                _logService.Log(LogLevel.Info, "Installer launched successfully");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error downloading or installing update: {ex.Message}", ex);
-                throw;
-            }
+            _logService.Log(LogLevel.Info, "Installer launched successfully");
         }
 
         private VersionInfo CreateDefaultVersion()

@@ -34,7 +34,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IHardwareDetectionService hardwareDetectionService,
         IWindowsCompatibilityFilter compatibilityFilter,
         IScheduledTaskService scheduledTaskService,
-        IInteractiveUserService interactiveUserService) : ISettingApplicationService
+        IInteractiveUserService interactiveUserService,
+        IProcessExecutor processExecutor) : ISettingApplicationService
     {
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false)
@@ -792,27 +793,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var startInfo = new ProcessStartInfo
+                var result = await processExecutor.ExecuteAsync("cmd.exe", $"/c {command}").ConfigureAwait(false);
+
+                if (result.ExitCode != 0)
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c {command}",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
-
-                using var process = Process.Start(startInfo);
-                if (process == null) return;
-
-                await process.WaitForExitAsync().ConfigureAwait(false);
-
-                if (process.ExitCode != 0)
-                {
-                    var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] Command failed: {command} - {error}");
+                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] Command failed: {command} - {result.StandardError}");
                 }
             }
             catch (Exception ex)

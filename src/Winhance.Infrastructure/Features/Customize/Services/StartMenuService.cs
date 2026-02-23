@@ -19,7 +19,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         IScheduledTaskService scheduledTaskService,
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        IInteractiveUserService interactiveUserService) : IDomainService
+        IInteractiveUserService interactiveUserService,
+        IProcessExecutor processExecutor) : IDomainService
     {
         // Caching fields
         private IEnumerable<SettingDefinition>? _cachedSettings;
@@ -110,30 +111,14 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             try
             {
                 // Step 1: Add registry entry to configure empty pinned list
-                using (var process = new Process())
+                var regArgs = "add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{\\\"pinnedList\\\":[]}\" /f";
+                var result = processExecutor.ExecuteAsync("reg.exe", regArgs).GetAwaiter().GetResult();
+
+                if (result.ExitCode != 0)
                 {
-                    process.StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "reg.exe",
-                        Arguments =
-                            "add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{\\\"pinnedList\\\":[]}\" /f",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                        Verb = "runas", // Run as administrator
-                    };
-
-                    process.Start();
-                    process.WaitForExit();
-
-                    if (process.ExitCode != 0)
-                    {
-                        string error = process.StandardError.ReadToEnd();
-                        throw new Exception(
-                            $"Failed to add registry entry. Exit code: {process.ExitCode}. Error: {error}"
-                        );
-                    }
+                    throw new Exception(
+                        $"Failed to add registry entry. Exit code: {result.ExitCode}. Error: {result.StandardError}"
+                    );
                 }
 
                 // Step 2: Delete start.bin and start2.bin files from LocalState directory

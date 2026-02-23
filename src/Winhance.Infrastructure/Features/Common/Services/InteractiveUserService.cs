@@ -22,6 +22,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         private readonly ILogService _logService;
+        private readonly IProcessExecutor _processExecutor;
 
         private readonly bool _isOtsElevation;
         private readonly string? _interactiveUserSid;
@@ -36,9 +37,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public string InteractiveUserProfilePath => _interactiveUserProfilePath;
         public bool HasInteractiveUserToken => _interactiveUserToken != IntPtr.Zero;
 
-        public InteractiveUserService(ILogService logService)
+        public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
 
             // Detect OTS elevation
             var currentSid = WindowsIdentity.GetCurrent().User?.Value;
@@ -149,53 +151,41 @@ namespace Winhance.Infrastructure.Features.Common.Services
             int timeoutMs,
             Action<string>? onProgressLine = null)
         {
-            var stdoutBuilder = new StringBuilder();
-            var stderrBuilder = new StringBuilder();
-
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-            };
-
-            process.Start();
-
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-            using var registration = linkedCts.Token.Register(() =>
-            {
-                try { process.Kill(entireProcessTree: true); } catch (Exception ex) { _logService.LogDebug($"Best-effort process kill on cancellation/timeout: {ex.Message}"); }
-            });
 
-            var readStdout = Task.Run(async () =>
-            {
-                await WinGetCliRunner.ReadStdoutCharByCharAsync(
-                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine).ConfigureAwait(false);
-            }, CancellationToken.None);
+            var result = await _processExecutor.ExecuteAsync(fileName, arguments, linkedCts.Token).ConfigureAwait(false);
 
-            var readStderr = Task.Run(async () =>
+            // Forward output/error lines to callbacks if provided
+            if (onOutputLine != null || onProgressLine != null)
             {
-                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
+                foreach (var line in result.StandardOutput.Split('\n', StringSplitOptions.None))
                 {
-                    stderrBuilder.AppendLine(line);
-                    onErrorLine?.Invoke(line);
+                    var trimmedLine = line.TrimEnd('\r');
+                    if (trimmedLine.Length > 0)
+                    {
+                        onOutputLine?.Invoke(trimmedLine);
+                        onProgressLine?.Invoke(trimmedLine);
+                    }
                 }
-            }, CancellationToken.None);
+            }
 
-            await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
-            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+            if (onErrorLine != null)
+            {
+                foreach (var line in result.StandardError.Split('\n', StringSplitOptions.None))
+                {
+                    var trimmedLine = line.TrimEnd('\r');
+                    if (trimmedLine.Length > 0)
+                    {
+                        onErrorLine.Invoke(trimmedLine);
+                    }
+                }
+            }
 
             return new InteractiveProcessResult(
-                process.ExitCode,
-                stdoutBuilder.ToString(),
-                stderrBuilder.ToString());
+                result.ExitCode,
+                result.StandardOutput,
+                result.StandardError);
         }
 
         /// <summary>
@@ -384,8 +374,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
             {
-                // Not OTS or no token — fall back to normal Process.Start
-                Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = true });
+                // Not OTS or no token — fall back to shell execution
+                _ = _processExecutor.ShellExecuteAsync(fileName, arguments);
                 return;
             }
 
@@ -419,8 +409,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     var error = Marshal.GetLastWin32Error();
                     _logService.Log(LogLevel.Warning,
-                        $"LaunchProcessAsInteractiveUser: CreateProcessWithTokenW failed (error {error}), falling back to Process.Start");
-                    Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = true });
+                        $"LaunchProcessAsInteractiveUser: CreateProcessWithTokenW failed (error {error}), falling back to ShellExecuteAsync");
+                    _ = _processExecutor.ShellExecuteAsync(fileName, arguments);
                     return;
                 }
 

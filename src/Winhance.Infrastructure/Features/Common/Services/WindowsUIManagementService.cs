@@ -10,6 +10,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class WindowsUIManagementService : IWindowsUIManagementService
     {
         private readonly ILogService _logService;
+        private readonly IProcessExecutor _processExecutor;
 
         public bool IsConfigImportMode { get; set; }
 
@@ -21,9 +22,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private const uint SPIF_UPDATEINIFILE = 0x01;
         private const uint SPIF_SENDCHANGE = 0x02;
 
-        public WindowsUIManagementService(ILogService logService)
+        public WindowsUIManagementService(ILogService logService, IProcessExecutor processExecutor)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
         }
 
         public bool IsProcessRunning(string processName)
@@ -108,7 +110,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         {
                             try
                             {
-                                Process.Start("explorer.exe");
+                                await _processExecutor.ShellExecuteAsync("explorer.exe").ConfigureAwait(false);
                                 await Task.Delay(2000).ConfigureAwait(false);
                             }
                             catch (Exception ex)

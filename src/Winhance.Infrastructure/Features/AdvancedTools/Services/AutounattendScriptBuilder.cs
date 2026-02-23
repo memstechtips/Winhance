@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Text;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -15,7 +14,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
 public class AutounattendScriptBuilder
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IPowerSettingsQueryService _powerSettingsQueryService;
+    private readonly IHardwareDetectionService _hardwareDetectionService;
     private readonly ILogService _logService;
     private readonly IComboBoxResolver _comboBoxResolver;
 
@@ -28,9 +28,10 @@ public class AutounattendScriptBuilder
         public string Description { get; set; } = string.Empty;
     }
 
-    public AutounattendScriptBuilder(IServiceProvider serviceProvider, ILogService logService, IComboBoxResolver comboBoxResolver)
+    public AutounattendScriptBuilder(IPowerSettingsQueryService powerSettingsQueryService, IHardwareDetectionService hardwareDetectionService, ILogService logService, IComboBoxResolver comboBoxResolver)
     {
-        _serviceProvider = serviceProvider;
+        _powerSettingsQueryService = powerSettingsQueryService;
+        _hardwareDetectionService = hardwareDetectionService;
         _logService = logService;
         _comboBoxResolver = comboBoxResolver;
     }
@@ -62,8 +63,7 @@ public class AutounattendScriptBuilder
 
         // 2b. Power settings
         var powerPlanSetting = FindPowerPlanSetting(config, allSettings);
-        var powerSettingsQueryService = _serviceProvider.GetRequiredService<IPowerSettingsQueryService>();
-        var activePowerPlan = await powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
+        var activePowerPlan = await _powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
         var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings).ConfigureAwait(false);
         if (powerPlanSetting != null || powerSettings.Any())
         {
@@ -250,12 +250,9 @@ public class AutounattendScriptBuilder
         if (!allSettings.TryGetValue(FeatureIds.Power, out var settingDefinitions))
             return powerSettings;
 
-        var hardwareService = _serviceProvider.GetRequiredService<IHardwareDetectionService>();
-        var powerSettingsQueryService = _serviceProvider.GetRequiredService<IPowerSettingsQueryService>();
+        bool hasBattery = await _hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
 
-        bool hasBattery = await hardwareService.HasBatteryAsync().ConfigureAwait(false);
-
-        var bulkQueryResults = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
+        var bulkQueryResults = await _powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
 
         foreach (var settingDef in settingDefinitions)
         {

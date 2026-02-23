@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -33,15 +32,18 @@ public class DirectDownloadService : IDirectDownloadService
     private readonly HttpClient _httpClient;
     private readonly ILocalizationService _localization;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IProcessExecutor _processExecutor;
 
     public DirectDownloadService(
         ILogService logService,
         ILocalizationService localization,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IProcessExecutor processExecutor)
     {
         _logService = logService;
         _localization = localization;
         _interactiveUserService = interactiveUserService;
+        _processExecutor = processExecutor;
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(30)
@@ -435,21 +437,10 @@ public class DirectDownloadService : IDirectDownloadService
         }
     }
 
-    private static async Task<int> RunMsiExecAsync(string arguments, CancellationToken cancellationToken)
+    private async Task<int> RunMsiExecAsync(string arguments, CancellationToken cancellationToken)
     {
-        var process = Process.Start(new ProcessStartInfo
-        {
-            FileName = "msiexec.exe",
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        });
-
-        if (process == null)
-            return -1;
-
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-        return process.ExitCode;
+        var result = await _processExecutor.ExecuteAsync("msiexec.exe", arguments, cancellationToken).ConfigureAwait(false);
+        return result.ExitCode;
     }
 
     /// <summary>
@@ -495,28 +486,18 @@ public class DirectDownloadService : IDirectDownloadService
                 {
                     _logService?.LogInformation($"Trying silent install with args: {args}");
 
-                    var process = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = exePath,
-                        Arguments = args,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    });
+                    var result = await _processExecutor.ExecuteAsync(exePath, args, cancellationToken).ConfigureAwait(false);
 
-                    if (process != null)
+                    if (result.ExitCode == 0)
                     {
-                        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-                        if (process.ExitCode == 0)
+                        progress?.Report(new TaskProgressDetail
                         {
-                            progress?.Report(new TaskProgressDetail
-                            {
-                                Progress = 95,
-                                StatusText = _localization.GetString("Progress_Installing", displayName),
-                                TerminalOutput = "EXE installation completed",
-                                IsActive = true
-                            });
-                            return true;
-                        }
+                            Progress = 95,
+                            StatusText = _localization.GetString("Progress_Installing", displayName),
+                            TerminalOutput = "EXE installation completed",
+                            IsActive = true
+                        });
+                        return true;
                     }
                 }
                 catch (Exception ex)
@@ -536,11 +517,7 @@ public class DirectDownloadService : IDirectDownloadService
                 IsActive = true
             });
 
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exePath,
-                UseShellExecute = true
-            });
+            await _processExecutor.ShellExecuteAsync(exePath).ConfigureAwait(false);
 
             return true;
         }

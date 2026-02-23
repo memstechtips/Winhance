@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
@@ -54,7 +55,8 @@ public static class DomainServicesExtensions
             sp.GetRequiredService<IScheduledTaskService>(),
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-            sp.GetRequiredService<IInteractiveUserService>()
+            sp.GetRequiredService<IInteractiveUserService>(),
+            sp.GetRequiredService<IProcessExecutor>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<StartMenuService>());
 
@@ -81,14 +83,16 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddOptimizationDomainServices(this IServiceCollection services)
     {
-        // Register PowerService
+        // Register PowerService (Lazy<ISettingApplicationService> breaks circular dependency:
+        // DomainServiceRouter → IDomainService(PowerService) → ISettingApplicationService → DomainServiceRouter)
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
-            sp.GetRequiredService<IServiceProvider>()
+            new Lazy<ISettingApplicationService>(() => sp.GetRequiredService<ISettingApplicationService>()),
+            sp.GetRequiredService<IProcessExecutor>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
         // Register as IPowerService for ViewModels that still use direct injection
@@ -122,12 +126,14 @@ public static class DomainServicesExtensions
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SoundService>());
 
-        // Register UpdateService
+        // Register UpdateService (Lazy<ISettingApplicationService> breaks circular dependency:
+        // DomainServiceRouter → IDomainService(UpdateService) → ISettingApplicationService → DomainServiceRouter)
         services.AddSingleton<UpdateService>(sp => new UpdateService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IWindowsRegistryService>(),
-            sp.GetRequiredService<IServiceProvider>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
+            new Lazy<ISettingApplicationService>(() => sp.GetRequiredService<ISettingApplicationService>()),
+            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
+            sp.GetRequiredService<IProcessExecutor>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 

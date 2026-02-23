@@ -28,6 +28,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly IConfigReviewService _configReviewService;
     private readonly IHardwareDetectionService _hardwareDetectionService;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IProcessExecutor _processExecutor;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -46,7 +47,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         IUserPreferencesService userPreferencesService,
         IConfigReviewService configReviewService,
         IHardwareDetectionService hardwareDetectionService,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IProcessExecutor processExecutor)
     {
         _discoveryService = discoveryService;
         _settingApplicationService = settingApplicationService;
@@ -65,6 +67,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _configReviewService = configReviewService;
         _hardwareDetectionService = hardwareDetectionService;
         _interactiveUserService = interactiveUserService;
+        _processExecutor = processExecutor;
     }
 
     public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -153,7 +156,8 @@ public class SettingsLoadingService : ISettingsLoadingService
             _localizationService,
             _eventBus,
             _userPreferencesService,
-            _interactiveUserService)
+            _interactiveUserService,
+            _processExecutor)
         {
             SettingDefinition = setting,
             ParentFeatureViewModel = parentViewModel,

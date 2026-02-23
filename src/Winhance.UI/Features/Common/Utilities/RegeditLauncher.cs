@@ -60,7 +60,7 @@ public static class RegeditLauncher
         return (root, subKey);
     }
 
-    public static void OpenAtPath(string registryPath, IInteractiveUserService? interactiveUserService = null)
+    public static void OpenAtPath(string registryPath, IInteractiveUserService? interactiveUserService = null, IProcessExecutor? processExecutor = null)
     {
         try
         {
@@ -104,7 +104,10 @@ public static class RegeditLauncher
                     @"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit");
                 key?.SetValue("LastKey", fullPath);
 
-                Process.Start(new ProcessStartInfo("regedit.exe") { UseShellExecute = true });
+                if (processExecutor != null)
+                    _ = processExecutor.ShellExecuteAsync("regedit.exe");
+                else
+                    Process.Start(new ProcessStartInfo("regedit.exe") { UseShellExecute = true });
             }
         }
         catch

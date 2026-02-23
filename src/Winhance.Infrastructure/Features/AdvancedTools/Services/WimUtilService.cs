@@ -24,6 +24,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         private readonly HttpClient _httpClient;
         private readonly IWinGetService _winGetService;
         private readonly ILocalizationService _localization;
+        private readonly IProcessExecutor _processExecutor;
 
         private static readonly string[] AdkDownloadSources = new[]
         {
@@ -37,12 +38,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             ILogService logService,
             HttpClient httpClient,
             IWinGetService winGetService,
-            ILocalizationService localization)
+            ILocalizationService localization,
+            IProcessExecutor processExecutor)
         {
             _logService = logService;
             _httpClient = httpClient;
             _winGetService = winGetService;
             _localization = localization;
+            _processExecutor = processExecutor;
         }
 
         public string GetOscdimgPath()
@@ -244,24 +247,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 var arguments = $"/Get-ImageInfo /ImageFile:\"{imagePath}\"";
                 _logService.LogInformation($"Running: dism.exe {arguments}");
 
-                using var process = new Process();
-                process.StartInfo = new ProcessStartInfo
-                {
-                    FileName = "dism.exe",
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
+                var result = await _processExecutor.ExecuteAsync("dism.exe", arguments).ConfigureAwait(false);
+                var stdout = result.StandardOutput;
 
-                process.Start();
-                var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-                await process.WaitForExitAsync().ConfigureAwait(false);
-
-                if (process.ExitCode != 0)
+                if (!result.Succeeded)
                 {
-                    _logService.LogWarning($"dism.exe /Get-ImageInfo exited with code {process.ExitCode}");
+                    _logService.LogWarning($"dism.exe /Get-ImageInfo exited with code {result.ExitCode}");
                     info.ImageCount = 1;
                     return info;
                 }
@@ -309,27 +300,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             var output = new StringBuilder();
 
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            process.Start();
-
-            using var registration = cancellationToken.Register(() =>
-            {
-                try { process.Kill(); } catch (Exception ex) { _logService.LogDebug($"Best-effort process kill on cancellation: {ex.Message}"); }
-            });
-
-            var readOutput = Task.Run(async () =>
-            {
-                while (await process.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
+            var result = await _processExecutor.ExecuteWithStreamingAsync(
+                fileName,
+                arguments,
+                onOutputLine: line =>
                 {
                     output.AppendLine(line);
                     var match = ProgressRegex.Match(line);
@@ -345,22 +319,15 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     {
                         progress?.Report(new TaskProgressDetail { TerminalOutput = line });
                     }
-                }
-            }, CancellationToken.None);
-
-            var readError = Task.Run(async () =>
-            {
-                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
+                },
+                onErrorLine: line =>
                 {
                     output.AppendLine(line);
                     progress?.Report(new TaskProgressDetail { TerminalOutput = line });
-                }
-            }, CancellationToken.None);
+                },
+                ct: cancellationToken).ConfigureAwait(false);
 
-            await Task.WhenAll(readOutput, readError).ConfigureAwait(false);
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-            return (process.ExitCode, output.ToString());
+            return (result.ExitCode, output.ToString());
         }
 
         private void KillDismProcesses()
@@ -926,22 +893,11 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                             Remove-Item -Path '{workingDirectory}' -Recurse -Force -ErrorAction Stop
                         ";
 
-                        var removeProcess = new System.Diagnostics.Process
-                        {
-                            StartInfo = new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "powershell.exe",
-                                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            }
-                        };
-
-                        removeProcess.Start();
-                        var errorOutput = await removeProcess.StandardError.ReadToEndAsync().ConfigureAwait(false);
-                        await removeProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                        var removeResult = await _processExecutor.ExecuteAsync(
+                            "powershell.exe",
+                            $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                            cancellationToken).ConfigureAwait(false);
+                        var errorOutput = removeResult.StandardError;
 
                         if (Directory.Exists(workingDirectory))
                         {
@@ -980,27 +936,16 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 _logService.LogInformation($"Mounting ISO: {isoPath}");
 
-                var mountProcess = new System.Diagnostics.Process
-                {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "powershell.exe",
-                        Arguments = $"-NoProfile -Command \"(Mount-DiskImage -ImagePath '{isoPath}' -PassThru | Get-Volume).DriveLetter\"",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-
-                mountProcess.Start();
-                var rawOutput = await mountProcess.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-                await mountProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                var mountResult = await _processExecutor.ExecuteAsync(
+                    "powershell.exe",
+                    $"-NoProfile -Command \"(Mount-DiskImage -ImagePath '{isoPath}' -PassThru | Get-Volume).DriveLetter\"",
+                    cancellationToken).ConfigureAwait(false);
+                var rawOutput = mountResult.StandardOutput;
 
                 var driveLetterMatch = System.Text.RegularExpressions.Regex.Match(rawOutput, @"\b[A-Z]\b");
                 var driveLetter = driveLetterMatch.Success ? driveLetterMatch.Value : string.Empty;
 
-                if (string.IsNullOrEmpty(driveLetter) || mountProcess.ExitCode != 0)
+                if (string.IsNullOrEmpty(driveLetter) || !mountResult.Succeeded)
                 {
                     _logService.LogError("Failed to mount ISO or get drive letter");
                     return false;
@@ -1026,21 +971,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 _logService.LogInformation("Dismounting ISO");
 
-                var dismountProcess = new System.Diagnostics.Process
-                {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "powershell.exe",
-                        Arguments = $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-
-                dismountProcess.Start();
-                await dismountProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                await _processExecutor.ExecuteAsync(
+                    "powershell.exe",
+                    $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
+                    cancellationToken).ConfigureAwait(false);
                 isoMounted = false;
 
                 var extractedDirs = Directory.GetDirectories(workingDirectory);
@@ -1077,20 +1011,9 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     try
                     {
                         _logService.LogInformation("Dismounting ISO due to cancellation");
-                        var dismountProcess = new System.Diagnostics.Process
-                        {
-                            StartInfo = new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "powershell.exe",
-                                Arguments = $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            }
-                        };
-                        dismountProcess.Start();
-                        await dismountProcess.WaitForExitAsync().ConfigureAwait(false);
+                        await _processExecutor.ExecuteAsync(
+                            "powershell.exe",
+                            $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"").ConfigureAwait(false);
                         _logService.LogInformation("ISO dismounted successfully");
                     }
                     catch (Exception dismountEx)
@@ -1114,20 +1037,9 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     try
                     {
                         _logService.LogInformation("Dismounting ISO due to error");
-                        var dismountProcess = new System.Diagnostics.Process
-                        {
-                            StartInfo = new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "powershell.exe",
-                                Arguments = $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            }
-                        };
-                        dismountProcess.Start();
-                        await dismountProcess.WaitForExitAsync().ConfigureAwait(false);
+                        await _processExecutor.ExecuteAsync(
+                            "powershell.exe",
+                            $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"").ConfigureAwait(false);
                     }
                     catch (Exception dismountEx)
                     {

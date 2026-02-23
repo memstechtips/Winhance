@@ -15,7 +15,6 @@ using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Common.Utils;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
@@ -26,13 +25,24 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        IServiceProvider serviceProvider) : IPowerService
+        Lazy<ISettingApplicationService> settingApplicationService,
+        IProcessExecutor processExecutor) : IPowerService
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
 
         public string DomainName => FeatureIds.Power;
 
+        /// <summary>
+        /// Attempts to apply a special (non-registry) setting. For power-plan-selection,
+        /// delegates to plan import/activation logic.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if the setting was handled and applied successfully;
+        /// <see langword="false"/> if the setting is not a special setting, the value type
+        /// is unsupported, or the operation failed.
+        /// Never throws for expected business failures; errors are logged internally.
+        /// </returns>
         public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
         {
             if (setting.Id == "power-plan-selection")
@@ -45,8 +55,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     var name = planDict["Name"].ToString()!;
 
                     logService.Log(LogLevel.Info, $"[PowerService] Config import: applying power plan {name} ({guid})");
-                    await ApplyPowerPlanByGuidAsync(setting, guid, name).ConfigureAwait(false);
-                    return true;
+                    return await ApplyPowerPlanByGuidAsync(setting, guid, name).ConfigureAwait(false);
                 }
 
                 if (value is int index)
@@ -60,8 +69,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         return false;
                     }
 
-                    await ApplyPowerPlanSelectionAsync(setting, resolution.Guid, index, resolution.DisplayName).ConfigureAwait(false);
-                    return true;
+                    return await ApplyPowerPlanSelectionAsync(setting, resolution.Guid, index, resolution.DisplayName).ConfigureAwait(false);
                 }
 
                 logService.Log(LogLevel.Error, $"[PowerService] Invalid power plan value type: {value?.GetType().Name}");
@@ -90,6 +98,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             return results;
         }
 
+        /// <summary>
+        /// Returns the cached power settings, loading them on first call.
+        /// </summary>
+        /// <returns>
+        /// The filtered settings for the power domain, or an empty enumerable
+        /// if loading fails (failure is logged, never thrown).
+        /// </returns>
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             if (_cachedSettings != null)
@@ -123,6 +138,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         }
 
 
+        /// <summary>
+        /// Gets the currently active power plan.
+        /// </summary>
+        /// <returns>
+        /// The active <see cref="PowerPlan"/>, or <see langword="null"/> if the
+        /// query fails (failure is logged as a warning, never thrown).
+        /// </returns>
         public async Task<PowerPlan?> GetActivePowerPlanAsync()
         {
             try
@@ -136,6 +158,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
+        /// <summary>
+        /// Gets all power plans available on the system.
+        /// </summary>
+        /// <returns>
+        /// A list of power plan objects, or an empty enumerable if the query
+        /// fails (failure is logged as a warning, never thrown).
+        /// </returns>
         public async Task<IEnumerable<object>> GetAvailablePowerPlansAsync()
         {
             try
@@ -181,6 +210,14 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
+        /// <summary>
+        /// Deletes a power plan by its GUID.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if the plan was deleted;
+        /// <see langword="false"/> if the plan is active, deletion failed, or an
+        /// error occurred (all failures are logged, never thrown).
+        /// </returns>
         public async Task<bool> DeletePowerPlanAsync(string powerPlanGuid)
         {
             try
@@ -216,7 +253,17 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        private async Task ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName)
+        /// <summary>
+        /// Applies a power plan selected via the UI combo box.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if the plan was activated successfully;
+        /// <see langword="false"/> if the plan could not be imported, found, or activated.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="powerPlanGuid"/> is null or empty (programmer error).
+        /// </exception>
+        private async Task<bool> ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName)
         {
             logService.Log(LogLevel.Info, $"[PowerService] Applying power plan: {planName} ({powerPlanGuid})");
 
@@ -281,13 +328,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     else
                     {
                         logService.Log(LogLevel.Error, $"[PowerService] Failed to import plan: {importResult.ErrorMessage}");
-                        throw new InvalidOperationException($"Failed to import power plan: {importResult.ErrorMessage}");
+                        return false;
                     }
                 }
                 else
                 {
                     logService.Log(LogLevel.Error, $"[PowerService] Unknown power plan GUID: {powerPlanGuid}");
-                    throw new InvalidOperationException($"Unknown power plan GUID: {powerPlanGuid}");
+                    return false;
                 }
             }
             else
@@ -314,9 +361,22 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan");
             }
+
+            return success;
         }
 
-        private async Task ApplyPowerPlanByGuidAsync(SettingDefinition setting, string powerPlanGuid, string planName)
+        /// <summary>
+        /// Applies a power plan identified by its GUID (used during config import).
+        /// Creates the plan by duplicating Balanced if not found as a predefined or existing plan.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if the plan was activated successfully;
+        /// <see langword="false"/> if the plan could not be imported, created, or activated.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="powerPlanGuid"/> is null or empty (programmer error).
+        /// </exception>
+        private async Task<bool> ApplyPowerPlanByGuidAsync(SettingDefinition setting, string powerPlanGuid, string planName)
         {
             logService.Log(LogLevel.Info, $"[PowerService] Applying power plan by GUID: {planName} ({powerPlanGuid})");
 
@@ -354,7 +414,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     else
                     {
                         logService.Log(LogLevel.Error, $"[PowerService] Failed to import plan: {importResult.ErrorMessage}");
-                        throw new InvalidOperationException($"Failed to import power plan: {importResult.ErrorMessage}");
+                        return false;
                     }
                 }
                 else
@@ -387,7 +447,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     else
                     {
                         logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan. Error code: {dupResult}");
-                        throw new InvalidOperationException($"Failed to create custom power plan '{planName}'. Error code: {dupResult}");
+                        return false;
                     }
                 }
             }
@@ -417,8 +477,19 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan '{planName}'");
             }
+
+            return success;
         }
 
+        /// <summary>
+        /// Imports a predefined power plan onto the system. Uses duplication for built-in
+        /// plans and falls back to backup/restore when duplication fails.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="PowerPlanImportResult"/> indicating success or failure with an
+        /// error message. Never throws; all exceptions are caught and returned as a
+        /// failed result.
+        /// </returns>
         public async Task<PowerPlanImportResult> ImportPowerPlanAsync(PredefinedPowerPlan predefinedPlan)
         {
             try
@@ -793,17 +864,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var settingApplicationService = serviceProvider.GetService<ISettingApplicationService>();
-                if (settingApplicationService != null)
-                {
-                    logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
-                    logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
-                }
-                else
-                {
-                    logService.Log(LogLevel.Warning, "[PowerService] Could not resolve ISettingApplicationService to apply recommended settings");
-                }
+                logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
+                await settingApplicationService.Value.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
+                logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
             }
             catch (Exception ex)
             {
@@ -829,45 +892,26 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        private static async Task<(bool Success, string Output)> RunPowercfgAsync(string arguments, bool useCmd = false)
+        private async Task<(bool Success, string Output)> RunPowercfgAsync(string arguments, bool useCmd = false)
         {
             try
             {
-                ProcessStartInfo startInfo;
+                string fileName;
+                string args;
+
                 if (useCmd)
                 {
-                    startInfo = new ProcessStartInfo
-                    {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c {arguments}",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        StandardOutputEncoding = Encoding.UTF8
-                    };
+                    fileName = "cmd.exe";
+                    args = $"/c {arguments}";
                 }
                 else
                 {
-                    startInfo = new ProcessStartInfo
-                    {
-                        FileName = "powercfg",
-                        Arguments = arguments,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        StandardOutputEncoding = Encoding.UTF8
-                    };
+                    fileName = "powercfg";
+                    args = arguments;
                 }
 
-                using var process = Process.Start(startInfo);
-                if (process == null) return (false, string.Empty);
-
-                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-                await process.WaitForExitAsync().ConfigureAwait(false);
-
-                return (process.ExitCode == 0, output.TrimEnd());
+                var result = await processExecutor.ExecuteAsync(fileName, args).ConfigureAwait(false);
+                return (result.Succeeded, result.StandardOutput.TrimEnd());
             }
             catch
             {

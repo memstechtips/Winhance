@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -16,16 +15,19 @@ public class ChocolateyService : IChocolateyService
     private readonly ILogService _logService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILocalizationService _localization;
+    private readonly IProcessExecutor _processExecutor;
     private bool? _isInstalled;
 
     public ChocolateyService(
         ILogService logService,
         ITaskProgressService taskProgressService,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        IProcessExecutor processExecutor)
     {
         _logService = logService;
         _taskProgressService = taskProgressService;
         _localization = localization;
+        _processExecutor = processExecutor;
     }
 
     public Task<bool> IsChocolateyInstalledAsync(CancellationToken cancellationToken = default)
@@ -47,27 +49,13 @@ public class ChocolateyService : IChocolateyService
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Choco_Installing"));
             _logService.LogInformation("Installing Chocolatey package manager...");
 
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"" +
-                    "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; " +
-                    "iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+            var arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"" +
+                "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; " +
+                "iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))\"";
 
-            using var process = new Process { StartInfo = startInfo };
-            process.Start();
+            var result = await _processExecutor.ExecuteAsync("powershell.exe", arguments, cancellationToken).ConfigureAwait(false);
 
-            var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-            if (process.ExitCode == 0)
+            if (result.ExitCode == 0)
             {
                 _isInstalled = true;
                 _logService.LogInformation("Chocolatey installed successfully");
@@ -75,7 +63,7 @@ public class ChocolateyService : IChocolateyService
                 return true;
             }
 
-            _logService.LogError($"Chocolatey installation failed (exit code {process.ExitCode}): {stderr}");
+            _logService.LogError($"Chocolatey installation failed (exit code {result.ExitCode}): {result.StandardError}");
             return false;
         }
         catch (Exception ex)
@@ -101,45 +89,29 @@ public class ChocolateyService : IChocolateyService
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Choco_InstallingPackage", displayName));
             _logService.LogInformation($"Installing '{chocoPackageId}' via Chocolatey...");
 
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = chocoPath,
-                Arguments = $"install {chocoPackageId} -y --no-progress --ignore-checksums",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            using var process = new Process { StartInfo = startInfo };
-
-            process.OutputDataReceived += (_, e) =>
-            {
-                if (string.IsNullOrEmpty(e.Data)) return;
-                _logService.LogInformation($"[choco] {e.Data}");
-
-                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+            var result = await _processExecutor.ExecuteWithStreamingAsync(
+                chocoPath,
+                $"install {chocoPackageId} -y --no-progress --ignore-checksums",
+                onOutputLine: line =>
                 {
-                    Progress = 50,
-                    StatusText = _localization.GetString("Progress_Choco_InstallingPackage", displayName),
-                    TerminalOutput = e.Data
-                });
-            };
+                    _logService.LogInformation($"[choco] {line}");
+                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                    {
+                        Progress = 50,
+                        StatusText = _localization.GetString("Progress_Choco_InstallingPackage", displayName),
+                        TerminalOutput = line
+                    });
+                },
+                ct: cancellationToken).ConfigureAwait(false);
 
-            process.Start();
-            process.BeginOutputReadLine();
-
-            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-            if (process.ExitCode == 0)
+            if (result.ExitCode == 0)
             {
                 _logService.LogInformation($"Chocolatey successfully installed '{chocoPackageId}'");
                 _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_InstalledSuccess", displayName));
                 return true;
             }
 
-            _logService.LogError($"Chocolatey install of '{chocoPackageId}' failed (exit code {process.ExitCode}): {stderr}");
+            _logService.LogError($"Chocolatey install of '{chocoPackageId}' failed (exit code {result.ExitCode}): {result.StandardError}");
             return false;
         }
         catch (OperationCanceledException)
@@ -170,45 +142,29 @@ public class ChocolateyService : IChocolateyService
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Choco_UninstallingPackage", displayName));
             _logService.LogInformation($"Uninstalling '{chocoPackageId}' via Chocolatey...");
 
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = chocoPath,
-                Arguments = $"uninstall {chocoPackageId} -y --no-progress",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            using var process = new Process { StartInfo = startInfo };
-
-            process.OutputDataReceived += (_, e) =>
-            {
-                if (string.IsNullOrEmpty(e.Data)) return;
-                _logService.LogInformation($"[choco] {e.Data}");
-
-                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+            var result = await _processExecutor.ExecuteWithStreamingAsync(
+                chocoPath,
+                $"uninstall {chocoPackageId} -y --no-progress",
+                onOutputLine: line =>
                 {
-                    Progress = 50,
-                    StatusText = _localization.GetString("Progress_Choco_UninstallingPackage", displayName),
-                    TerminalOutput = e.Data
-                });
-            };
+                    _logService.LogInformation($"[choco] {line}");
+                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                    {
+                        Progress = 50,
+                        StatusText = _localization.GetString("Progress_Choco_UninstallingPackage", displayName),
+                        TerminalOutput = line
+                    });
+                },
+                ct: cancellationToken).ConfigureAwait(false);
 
-            process.Start();
-            process.BeginOutputReadLine();
-
-            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-            if (process.ExitCode == 0)
+            if (result.ExitCode == 0)
             {
                 _logService.LogInformation($"Chocolatey successfully uninstalled '{chocoPackageId}'");
                 _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_UninstalledSuccess", displayName));
                 return true;
             }
 
-            _logService.LogError($"Chocolatey uninstall of '{chocoPackageId}' failed (exit code {process.ExitCode}): {stderr}");
+            _logService.LogError($"Chocolatey uninstall of '{chocoPackageId}' failed (exit code {result.ExitCode}): {result.StandardError}");
             return false;
         }
         catch (OperationCanceledException)
@@ -233,26 +189,12 @@ public class ChocolateyService : IChocolateyService
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = chocoPath,
-                Arguments = "list -r",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            using var process = new Process { StartInfo = startInfo };
-            process.Start();
-
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(15));
 
-            var stdout = await process.StandardOutput.ReadToEndAsync(cts.Token).ConfigureAwait(false);
-            await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+            var execResult = await _processExecutor.ExecuteAsync(chocoPath, "list -r", cts.Token).ConfigureAwait(false);
 
-            foreach (var line in stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var line in execResult.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 var parts = line.Split('|');
                 if (parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[0]))

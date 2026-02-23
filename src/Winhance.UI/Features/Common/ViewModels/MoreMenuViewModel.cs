@@ -28,6 +28,7 @@ public partial class MoreMenuViewModel : ObservableObject
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
     private readonly IApplicationCloseService _applicationCloseService;
+    private readonly IProcessExecutor _processExecutor;
 
     [ObservableProperty]
     public partial string VersionInfo { get; set; }
@@ -36,12 +37,14 @@ public partial class MoreMenuViewModel : ObservableObject
         ILocalizationService localizationService,
         IVersionService versionService,
         ILogService logService,
-        IApplicationCloseService applicationCloseService)
+        IApplicationCloseService applicationCloseService,
+        IProcessExecutor processExecutor)
     {
         _localizationService = localizationService;
         _versionService = versionService;
         _logService = logService;
         _applicationCloseService = applicationCloseService;
+        _processExecutor = processExecutor;
         VersionInfo = "Winhance";
 
         // Subscribe to language changes
@@ -221,12 +224,7 @@ public partial class MoreMenuViewModel : ObservableObject
             _logService.LogWarning($"Error checking for existing Explorer windows: {ex.Message}");
         }
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "explorer.exe",
-            Arguments = folderPath,
-            UseShellExecute = true
-        });
+        _ = _processExecutor.ShellExecuteAsync("explorer.exe", folderPath);
     }
 
     [RelayCommand]

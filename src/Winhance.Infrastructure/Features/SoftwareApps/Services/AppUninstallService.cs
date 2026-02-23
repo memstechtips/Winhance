@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -18,7 +17,8 @@ public class AppUninstallService(
     IChocolateyService chocolateyService,
     ILogService logService,
     IInteractiveUserService interactiveUserService,
-    ITaskProgressService taskProgressService) : IAppUninstallService
+    ITaskProgressService taskProgressService,
+    IProcessExecutor processExecutor) : IAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
@@ -169,17 +169,7 @@ public class AppUninstallService(
 
             var (fileName, arguments) = ParseUninstallString(uninstallString);
 
-            var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = true
-            });
-
-            if (process != null)
-            {
-                await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            }
+            await processExecutor.ShellExecuteAsync(fileName, arguments, waitForExit: true, cancellationToken).ConfigureAwait(false);
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
             taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");

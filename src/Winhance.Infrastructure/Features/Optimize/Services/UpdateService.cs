@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -18,8 +17,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     public class UpdateService(
         ILogService logService,
         IWindowsRegistryService registryService,
-        IServiceProvider serviceProvider,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
+        Lazy<ISettingApplicationService> settingApplicationService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        IProcessExecutor processExecutor) : IDomainService
     {
         public string DomainName => FeatureIds.Update;
 
@@ -106,18 +106,14 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
         private async Task ApplyPausedModeAsync(SettingDefinition setting)
         {
-            var settingApplicationService = serviceProvider.GetService<ISettingApplicationService>();
-            if (settingApplicationService != null)
+            logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
+            try
             {
-                logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
-                try
-                {
-                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
-                }
+                await settingApplicationService.Value.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
             }
 
             await RestoreCriticalDllsAsync().ConfigureAwait(false);
@@ -128,18 +124,14 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
         private async Task ApplyDisabledModeAsync(SettingDefinition setting)
         {
-            var settingApplicationService = serviceProvider.GetService<ISettingApplicationService>();
-            if (settingApplicationService != null)
+            logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
+            try
             {
-                logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
-                try
-                {
-                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
-                }
+                await settingApplicationService.Value.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
             }
 
             await DisableUpdateServicesAsync().ConfigureAwait(false);
@@ -153,24 +145,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c chcp 65001 && {command}",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
+                var result = await processExecutor.ExecuteAsync(
+                    "cmd.exe",
+                    $"/c chcp 65001 && {command}").ConfigureAwait(false);
 
-                using var process = Process.Start(psi)!;
-                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-                await process.WaitForExitAsync().ConfigureAwait(false);
-
-                return (process.ExitCode == 0, output, error);
+                return (result.Succeeded, result.StandardOutput, result.StandardError);
             }
             catch (Exception ex)
             {

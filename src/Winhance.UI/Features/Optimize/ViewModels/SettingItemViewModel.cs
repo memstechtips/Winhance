@@ -27,6 +27,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
+    private readonly IProcessExecutor? _processExecutor;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
     private readonly IInteractiveUserService? _interactiveUserService;
@@ -287,7 +288,8 @@ public partial class SettingItemViewModel : BaseViewModel
         ILocalizationService localizationService,
         IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
-        IInteractiveUserService? interactiveUserService = null)
+        IInteractiveUserService? interactiveUserService = null,
+        IProcessExecutor? processExecutor = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
@@ -297,6 +299,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
         _interactiveUserService = interactiveUserService;
+        _processExecutor = processExecutor;
 
         // Initialize partial property defaults
         SettingId = string.Empty;
@@ -987,7 +990,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private void OpenRegeditAtPath(string? path)
     {
         if (!string.IsNullOrEmpty(path))
-            RegeditLauncher.OpenAtPath(path, _interactiveUserService);
+            RegeditLauncher.OpenAtPath(path, _interactiveUserService, _processExecutor);
     }
 
     protected override void Dispose(bool disposing)

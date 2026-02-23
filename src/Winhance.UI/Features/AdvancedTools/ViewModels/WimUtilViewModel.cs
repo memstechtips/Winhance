@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
@@ -32,9 +31,10 @@ public partial class WimUtilViewModel : ObservableObject
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDialogService _dialogService;
     private readonly ILogService _logService;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IProcessExecutor _processExecutor;
     private CancellationTokenSource? _cancellationTokenSource;
 
     private Window? _mainWindow;
@@ -156,15 +156,17 @@ public partial class WimUtilViewModel : ObservableObject
         ITaskProgressService taskProgressService,
         IDialogService dialogService,
         ILogService logService,
-        IServiceProvider serviceProvider,
+        IAutounattendXmlGeneratorService xmlGeneratorService,
         ILocalizationService localizationService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IProcessExecutor processExecutor)
     {
         _wimUtilService = wimUtilService;
         _taskProgressService = taskProgressService;
         _dialogService = dialogService;
         _logService = logService;
-        _serviceProvider = serviceProvider;
+        _xmlGeneratorService = xmlGeneratorService;
+        _processExecutor = processExecutor;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
 
@@ -525,9 +527,8 @@ public partial class WimUtilViewModel : ObservableObject
             if (!confirmed) return;
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
-            var xmlGeneratorService = _serviceProvider.GetRequiredService<IAutounattendXmlGeneratorService>();
             var outputPath = Path.Combine(WorkingDirectory, "autounattend.xml");
-            var generatedPath = await xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
+            var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
 
             SelectedXmlPath = generatedPath;
             IsXmlAdded = true;
@@ -909,7 +910,7 @@ public partial class WimUtilViewModel : ObservableObject
                     _localizationService.GetString("Button_Close"));
                 if (openFolder)
                 {
-                    Process.Start("explorer.exe", $"/select,\"{OutputIsoPath}\"");
+                    _ = _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"");
                 }
             }
             else

@@ -21,6 +21,7 @@ public static class InfrastructureServicesExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         // Core Infrastructure Services (Singleton - Cross-cutting concerns)
+        services.AddSingleton<IProcessExecutor, ProcessExecutor>();
         services.AddSingleton<ILogService, Winhance.Core.Features.Common.Services.LogService>();
         services.AddSingleton<IInteractiveUserService, InteractiveUserService>();
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();

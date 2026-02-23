@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,6 +11,7 @@ public class ApplicationCloseService : IApplicationCloseService
     private readonly ITaskProgressService _taskProgressService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IDialogService _dialogService;
+    private readonly IProcessExecutor _processExecutor;
 
     public Func<Task>? BeforeShutdown { get; set; }
 
@@ -19,12 +19,14 @@ public class ApplicationCloseService : IApplicationCloseService
         ILogService logService,
         ITaskProgressService taskProgressService,
         IUserPreferencesService userPreferencesService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IProcessExecutor processExecutor)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
         _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     }
 
     public async Task<bool> CheckOperationsAndCloseAsync()
@@ -113,12 +115,7 @@ public class ApplicationCloseService : IApplicationCloseService
                     _logService.LogInformation("User clicked Yes, opening donation page");
                     try
                     {
-                        var psi = new ProcessStartInfo
-                        {
-                            FileName = "https://ko-fi.com/memstechtips",
-                            UseShellExecute = true,
-                        };
-                        Process.Start(psi);
+                        await _processExecutor.ShellExecuteAsync("https://ko-fi.com/memstechtips");
                         _logService.LogInformation("Donation page opened successfully");
                     }
                     catch (Exception openEx)

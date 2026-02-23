@@ -40,6 +40,7 @@ public class ConfigurationService : IConfigurationService
     private readonly IConfigReviewService _configReviewService;
     private readonly ConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IProcessExecutor _processExecutor;
     private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -64,9 +65,11 @@ public class ConfigurationService : IConfigurationService
         IConfigImportOverlayService overlayService,
         IConfigReviewService configReviewService,
         ConfigMigrationService configMigrationService,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IProcessExecutor processExecutor)
     {
         _serviceProvider = serviceProvider;
+        _processExecutor = processExecutor;
         _logService = logService;
         _dialogService = dialogService;
         _globalSettingsRegistry = globalSettingsRegistry;
@@ -1666,17 +1669,7 @@ public class ConfigurationService : IConfigurationService
 
             _logService.Log(LogLevel.Warning, "Explorer did not auto-restart, starting manually");
 
-            await Task.Run(() =>
-            {
-                var startInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
-                };
-                System.Diagnostics.Process.Start(startInfo);
-            });
+            await _processExecutor.ShellExecuteAsync("explorer.exe").ConfigureAwait(false);
 
             // Verify explorer actually started
             retryCount = 0;
