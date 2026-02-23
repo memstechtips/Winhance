@@ -46,7 +46,12 @@ public static class UIServicesExtensions
         // Startup Notification Service (Singleton - Shows backup notification after startup)
         services.AddSingleton<IStartupNotificationService, StartupNotificationService>();
 
-        // Configuration Service (Singleton - Import/Export configuration files)
+        // Configuration Services (Singleton - Import/Export/Review)
+        services.AddSingleton<IConfigExportService, ConfigExportService>();
+        services.AddSingleton<IConfigLoadService, ConfigLoadService>();
+        services.AddSingleton<IConfigAppSelectionService, ConfigAppSelectionService>();
+        services.AddSingleton<IConfigApplicationExecutionService, ConfigApplicationExecutionService>();
+        services.AddSingleton<IConfigReviewOrchestrationService, ConfigReviewOrchestrationService>();
         services.AddSingleton<IConfigurationService, ConfigurationService>();
 
         // Config Import Overlay Service
@@ -67,8 +72,19 @@ public static class UIServicesExtensions
         // Setting Localization Service (Singleton - Localizes setting definitions)
         services.AddSingleton<ISettingLocalizationService, SettingLocalizationService>();
 
-        // Settings Loading Service (Singleton - Creates setting ViewModels)
+        // Setting Review Diff Applier (Singleton - Applies review diffs to ViewModels)
+        services.AddSingleton<ISettingReviewDiffApplier, SettingReviewDiffApplier>();
+
+        // Setting ViewModel Factory (Singleton - Creates fully-configured setting ViewModels)
+        services.AddSingleton<SettingViewModelFactory>();
+
+        // Settings Loading Service (Singleton - Orchestrates setting loading and refresh)
         services.AddSingleton<Features.Common.Interfaces.ISettingsLoadingService, SettingsLoadingService>();
+
+        // MainWindow child ViewModels (Singleton - composed into MainWindowViewModel)
+        services.AddSingleton<TaskProgressViewModel>();
+        services.AddSingleton<UpdateCheckViewModel>();
+        services.AddSingleton<ReviewModeBarViewModel>();
 
         // MainWindow ViewModel (Singleton - one main window)
         services.AddSingleton<MainWindowViewModel>();

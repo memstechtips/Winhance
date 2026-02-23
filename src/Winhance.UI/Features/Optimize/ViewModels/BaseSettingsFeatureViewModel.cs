@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -28,6 +29,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private CancellationTokenSource? _searchDebounceTokenSource;
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
+    private ISubscriptionToken? _reviewModeExitedSubscription;
     private Dictionary<string, SettingItemViewModel> _settingsById = new();
     private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
@@ -107,7 +109,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         IsExpanded = true;
         SearchText = string.Empty;
 
-        LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
+        LoadSettingsCommand = new RelayCommand(() => LoadSettingsAsync().FireAndForget(_logService));
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
@@ -122,7 +124,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
-        _filterStateChangedSubscription = _eventBus.Subscribe<FilterStateChangedEvent>(OnFilterStateChanged);
+        _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
+        _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -162,18 +165,36 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private async void OnLanguageChanged(object? sender, EventArgs e)
     {
-        lock (_loadingLock)
+        try
         {
-            _settingsLoaded = false;
-        }
+            lock (_loadingLock)
+            {
+                _settingsLoaded = false;
+            }
 
-        OnPropertyChanged(nameof(DisplayName));
-        await LoadSettingsAsync();
+            OnPropertyChanged(nameof(DisplayName));
+            await LoadSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogDebug($"[{DisplayName}] Error handling language change: {ex.Message}");
+        }
     }
 
-    private async void OnFilterStateChanged(FilterStateChangedEvent e)
+    private async Task OnFilterStateChangedAsync(FilterStateChangedEvent e)
     {
         await RefreshSettingsForFilterChangeAsync();
+    }
+
+    private void OnReviewModeExited(ReviewModeExitedEvent e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            foreach (var setting in Settings)
+            {
+                setting.ClearReviewState();
+            }
+        });
     }
 
     private async Task RefreshSettingsForFilterChangeAsync()
@@ -219,7 +240,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _searchDebounceTokenSource = new CancellationTokenSource();
         var token = _searchDebounceTokenSource.Token;
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -456,6 +477,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             _filterStateChangedSubscription?.Dispose();
             _filterStateChangedSubscription = null;
+
+            _reviewModeExitedSubscription?.Dispose();
+            _reviewModeExitedSubscription = null;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
 

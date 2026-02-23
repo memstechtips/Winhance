@@ -32,11 +32,11 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
             _settingsRegistry = settingsRegistry ?? throw new ArgumentNullException(nameof(settingsRegistry));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
 
-            _settingAppliedSubscriptionToken = eventBus.Subscribe<SettingAppliedEvent>(HandleSettingApplied);
-            _featureComposedSubscriptionToken = eventBus.Subscribe<FeatureComposedEvent>(HandleFeatureComposed);
+            _settingAppliedSubscriptionToken = eventBus.SubscribeAsync<SettingAppliedEvent>(HandleSettingAppliedAsync);
+            _featureComposedSubscriptionToken = eventBus.SubscribeAsync<FeatureComposedEvent>(HandleFeatureComposedAsync);
         }
 
-        private async void HandleSettingApplied(SettingAppliedEvent settingAppliedEvent)
+        private async Task HandleSettingAppliedAsync(SettingAppliedEvent settingAppliedEvent)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
             }
         }
 
-        private async void HandleFeatureComposed(FeatureComposedEvent featureComposedEvent)
+        private async Task HandleFeatureComposedAsync(FeatureComposedEvent featureComposedEvent)
         {
             try
             {

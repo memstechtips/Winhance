@@ -1,12 +1,11 @@
 using System.Collections.ObjectModel;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Interfaces;
 
 /// <summary>
-/// Service for loading and creating setting ViewModels.
+/// Service for loading setting ViewModels and refreshing their states.
 /// </summary>
 public interface ISettingsLoadingService
 {
@@ -19,20 +18,6 @@ public interface ISettingsLoadingService
         string progressMessage,
         ISettingsFeatureViewModel? parentViewModel = null)
         where TDomainService : class, IDomainService;
-
-    /// <summary>
-    /// Creates a SettingItemViewModel for a given setting definition.
-    /// </summary>
-    Task<SettingItemViewModel> CreateSettingViewModelAsync(
-        SettingDefinition setting,
-        Dictionary<string, SettingStateResult> batchStates,
-        ISettingsFeatureViewModel? parentViewModel);
-
-    /// <summary>
-    /// Applies review diff state to an existing ViewModel.
-    /// Used when re-entering review mode with already-loaded singleton VMs.
-    /// </summary>
-    void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState);
 
     /// <summary>
     /// Performs a lightweight refresh of setting states by re-reading from the system.

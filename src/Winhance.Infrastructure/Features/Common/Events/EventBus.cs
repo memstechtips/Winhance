@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
@@ -47,8 +48,23 @@ namespace Winhance.Infrastructure.Features.Common.Events
             {
                 try
                 {
-                    // Cast the handler to the correct type and invoke it
-                    ((Action<TEvent>)subscription.Handler)(domainEvent);
+                    if (subscription.IsAsync)
+                    {
+                        // Fire the async handler and observe the Task for errors
+                        var task = ((Func<TEvent, Task>)subscription.Handler)(domainEvent);
+                        task.ContinueWith(t =>
+                        {
+                            if (t.Exception != null)
+                            {
+                                _logService.Log(LogLevel.Error,
+                                    $"Error in async handler for event {eventType.Name}: {t.Exception.InnerException?.Message ?? t.Exception.Message}");
+                            }
+                        }, TaskContinuationOptions.OnlyOnFaulted);
+                    }
+                    else
+                    {
+                        ((Action<TEvent>)subscription.Handler)(domainEvent);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -63,21 +79,16 @@ namespace Winhance.Infrastructure.Features.Common.Events
             if (handler == null)
                 throw new ArgumentNullException(nameof(handler));
 
-            var eventType = typeof(TEvent);
-            var subscription = new Subscription(eventType, handler);
+            return AddSubscription(typeof(TEvent), handler, isAsync: false);
+        }
 
-            lock (_lock)
-            {
-                if (!_subscriptions.TryGetValue(eventType, out var subscriptions))
-                {
-                    subscriptions = new List<Subscription>();
-                    _subscriptions[eventType] = subscriptions;
-                }
+        /// <inheritdoc />
+        public ISubscriptionToken SubscribeAsync<TEvent>(Func<TEvent, Task> handler) where TEvent : IDomainEvent
+        {
+            if (handler == null)
+                throw new ArgumentNullException(nameof(handler));
 
-                subscriptions.Add(subscription);
-            }
-
-            return new SubscriptionToken(subscription.Id, eventType, token => Unsubscribe(token));
+            return AddSubscription(typeof(TEvent), handler, isAsync: true);
         }
 
         /// <inheritdoc />
@@ -99,36 +110,40 @@ namespace Winhance.Infrastructure.Features.Common.Events
             }
         }
 
+        private ISubscriptionToken AddSubscription(Type eventType, Delegate handler, bool isAsync)
+        {
+            var subscription = new Subscription(eventType, handler, isAsync);
+
+            lock (_lock)
+            {
+                if (!_subscriptions.TryGetValue(eventType, out var subscriptions))
+                {
+                    subscriptions = new List<Subscription>();
+                    _subscriptions[eventType] = subscriptions;
+                }
+
+                subscriptions.Add(subscription);
+            }
+
+            return new SubscriptionToken(subscription.Id, eventType, token => Unsubscribe(token));
+        }
+
         /// <summary>
         /// Represents a subscription to an event
         /// </summary>
         private class Subscription
         {
-            /// <summary>
-            /// Gets the unique identifier for this subscription
-            /// </summary>
             public Guid Id { get; }
-
-            /// <summary>
-            /// Gets the type of event this subscription is for
-            /// </summary>
             public Type EventType { get; }
-
-            /// <summary>
-            /// Gets the handler for this subscription
-            /// </summary>
             public Delegate Handler { get; }
+            public bool IsAsync { get; }
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Subscription"/> class
-            /// </summary>
-            /// <param name="eventType">The type of event</param>
-            /// <param name="handler">The handler</param>
-            public Subscription(Type eventType, Delegate handler)
+            public Subscription(Type eventType, Delegate handler, bool isAsync)
             {
                 Id = Guid.NewGuid();
                 EventType = eventType;
                 Handler = handler;
+                IsAsync = isAsync;
             }
         }
 
@@ -140,18 +155,9 @@ namespace Winhance.Infrastructure.Features.Common.Events
             private readonly Action<ISubscriptionToken> _unsubscribeAction;
             private bool _isDisposed;
 
-            /// <inheritdoc />
             public Guid SubscriptionId { get; }
-
-            /// <inheritdoc />
             public Type EventType { get; }
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="SubscriptionToken"/> class
-            /// </summary>
-            /// <param name="subscriptionId">The subscription ID</param>
-            /// <param name="eventType">The event type</param>
-            /// <param name="unsubscribeAction">The action to unsubscribe</param>
             public SubscriptionToken(Guid subscriptionId, Type eventType, Action<ISubscriptionToken> unsubscribeAction)
             {
                 SubscriptionId = subscriptionId;
@@ -159,7 +165,6 @@ namespace Winhance.Infrastructure.Features.Common.Events
                 _unsubscribeAction = unsubscribeAction ?? throw new ArgumentNullException(nameof(unsubscribeAction));
             }
 
-            /// <inheritdoc />
             public void Dispose()
             {
                 if (!_isDisposed)

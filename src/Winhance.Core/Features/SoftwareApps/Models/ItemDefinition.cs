@@ -7,6 +7,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public record ItemDefinition : BaseDefinition
 {
+    // Immutable definition properties
     public new InputType InputType { get; init; } = InputType.CheckBox;
     public string? AppxPackageName { get; init; }
     public string[]? WinGetPackageId { get; init; }
@@ -21,9 +22,9 @@ public record ItemDefinition : BaseDefinition
     public string? RegistryUninstallSearchPattern { get; init; }
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
+
+    // Mutable runtime state — set by AppLoadingService/AppStatusDiscoveryService,
+    // proxied through AppItemViewModel for UI binding
     public bool IsInstalled { get; set; }
     public DetectionSource DetectedVia { get; set; }
-    public bool IsSelected { get; set; }
-    public string Version { get; set; } = string.Empty;
-    public string? LastOperationError { get; set; }
 }

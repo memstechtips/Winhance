@@ -43,10 +43,10 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         await base.LoadSettingsAsync();
 
         _powerPlanChangedSubscription?.Dispose();
-        _powerPlanChangedSubscription = _eventBus.Subscribe<PowerPlanChangedEvent>(HandlePowerPlanChanged);
+        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<PowerPlanChangedEvent>(HandlePowerPlanChangedAsync);
     }
 
-    private async void HandlePowerPlanChanged(PowerPlanChangedEvent evt)
+    private async Task HandlePowerPlanChangedAsync(PowerPlanChangedEvent evt)
     {
         try
         {
