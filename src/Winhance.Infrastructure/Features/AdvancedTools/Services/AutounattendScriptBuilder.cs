@@ -105,107 +105,135 @@ public class AutounattendScriptBuilder
         // 3. Build if ($UserCustomizations) block
         sb.AppendLine("if ($UserCustomizations) {");
         sb.AppendLine();
-        sb.AppendLine("    $runningAsSystem = ($env:USERNAME -eq \"SYSTEM\" -or $env:USERPROFILE -like \"*\\system32\\config\\systemprofile\")");
-        sb.AppendLine("    $targetUserSID = $null");
+        sb.AppendLine("    $runningAsSystem = ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')");
         sb.AppendLine();
         sb.AppendLine("    if ($runningAsSystem) {");
+        sb.AppendLine("        # ================================================================");
+        sb.AppendLine("        # SYSTEM path: detect user, check marker, launch child as user");
+        sb.AppendLine("        # ================================================================");
         sb.AppendLine("        Write-Log \"UserCustomizations running as SYSTEM, detecting logged-in user...\" \"INFO\"");
         sb.AppendLine();
         sb.AppendLine("        if (-not (Test-Path \"HKU:\\\")) {");
         sb.AppendLine("            New-PSDrive -PSProvider Registry -Name HKU -Root HKEY_USERS -ErrorAction SilentlyContinue | Out-Null");
         sb.AppendLine("        }");
         sb.AppendLine();
-        sb.AppendLine("        $targetUser = Get-TargetUser");
-        sb.AppendLine("        if ($targetUser) {");
-        sb.AppendLine("            $targetUserSID = Get-UserSID -Username $targetUser");
-        sb.AppendLine("            if ($targetUserSID) {");
-        sb.AppendLine("                Write-Log \"Target user: $targetUser (SID: $targetUserSID)\" \"INFO\"");
-        sb.AppendLine();
-        sb.AppendLine("                Remove-PSDrive -Name HKCU -ErrorAction SilentlyContinue");
-        sb.AppendLine("                New-PSDrive -PSProvider Registry -Name HKCU -Root \"HKEY_USERS\\$targetUserSID\" -ErrorAction Stop | Out-Null");
-        sb.AppendLine("                Write-Log \"Remapped HKCU to target user's registry hive\" \"INFO\"");
-        sb.AppendLine("            } else {");
-        sb.AppendLine("                Write-Log \"Failed to get SID for user: $targetUser\" \"ERROR\"");
-        sb.AppendLine("                exit 1");
-        sb.AppendLine("            }");
-        sb.AppendLine("        } else {");
-        sb.AppendLine("            Write-Log \"No logged-in user detected, UserCustomizations cannot proceed\" \"WARNING\"");
+        sb.AppendLine("        $targetUser = $null");
+        sb.AppendLine("        for ($attempt = 1; $attempt -le 12; $attempt++) {");
+        sb.AppendLine("            $targetUser = Get-TargetUser");
+        sb.AppendLine("            if ($targetUser) { break }");
+        sb.AppendLine("            Write-Log \"Waiting for user login (attempt $attempt/12)...\" \"INFO\"");
+        sb.AppendLine("            Start-Sleep -Seconds 10");
+        sb.AppendLine("        }");
+        sb.AppendLine("        if (-not $targetUser) {");
+        sb.AppendLine("            Write-Log \"No logged-in user detected after 2 minutes, will retry at next logon\" \"WARNING\"");
         sb.AppendLine("            exit 1");
         sb.AppendLine("        }");
-        sb.AppendLine("    } else {");
-        sb.AppendLine("        Write-Log \"UserCustomizations running as user\" \"INFO\"");
-        sb.AppendLine("    }");
         sb.AppendLine();
-        sb.AppendLine("    $markerPath = \"HKCU:\\Software\\Winhance\"");
-        sb.AppendLine("    $markerName = \"UserCustomizationsApplied\"");
-        sb.AppendLine("    $alreadyApplied = $false");
+        sb.AppendLine("        $targetUserSID = Get-UserSID -Username $targetUser");
+        sb.AppendLine("        if (-not $targetUserSID) {");
+        sb.AppendLine("            Write-Log \"Failed to get SID for user: $targetUser\" \"ERROR\"");
+        sb.AppendLine("            exit 1");
+        sb.AppendLine("        }");
         sb.AppendLine();
-        sb.AppendLine("    try {");
-        sb.AppendLine("        if (Test-Path $markerPath) {");
-        sb.AppendLine("            $value = Get-ItemProperty -Path $markerPath -Name $markerName -ErrorAction SilentlyContinue");
-        sb.AppendLine("            if ($value.$markerName -eq 1) {");
-        sb.AppendLine("                $alreadyApplied = $true");
+        sb.AppendLine("        Write-Log \"Target user: $targetUser (SID: $targetUserSID)\" \"INFO\"");
+        sb.AppendLine();
+        sb.AppendLine("        # Check completion marker via HKU (no PSDrive remap needed)");
+        sb.AppendLine("        $markerPath = \"HKU:\\$targetUserSID\\Software\\Winhance\"");
+        sb.AppendLine("        $markerName = \"UserCustomizationsApplied\"");
+        sb.AppendLine("        $alreadyApplied = $false");
+        sb.AppendLine();
+        sb.AppendLine("        try {");
+        sb.AppendLine("            if (Test-Path $markerPath) {");
+        sb.AppendLine("                $value = Get-ItemProperty -Path $markerPath -Name $markerName -ErrorAction SilentlyContinue");
+        sb.AppendLine("                if ($value.$markerName -eq 1) {");
+        sb.AppendLine("                    $alreadyApplied = $true");
+        sb.AppendLine("                }");
+        sb.AppendLine("            }");
+        sb.AppendLine("        } catch { }");
+        sb.AppendLine();
+        sb.AppendLine("        if ($alreadyApplied) {");
+        sb.AppendLine("            Write-Log \"User customizations have already been applied for this user\" \"INFO\"");
+        sb.AppendLine("            Write-Log \"To re-apply, delete: HKCU\\Software\\Winhance\\$markerName\" \"INFO\"");
+        sb.AppendLine("            Write-Log \"No restart needed - customizations were already applied\" \"INFO\"");
+        sb.AppendLine("        } else {");
+        sb.AppendLine("            Write-Log \"Launching child process as interactive user to apply customizations...\" \"INFO\"");
+        sb.AppendLine("            # Grant user write access to log file so child process can log");
+        sb.AppendLine("            icacls $LogPath /grant \"${targetUser}:(M)\" 2>&1 | Out-Null");
+        sb.AppendLine("            $scriptPath = $MyInvocation.MyCommand.Path");
+        sb.AppendLine("            $cmdLine = \"powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File `\"$scriptPath`\" -UserCustomizations\"");
+        sb.AppendLine("            $success = Start-ProcessAsUser -CommandLine $cmdLine");
+        sb.AppendLine();
+        sb.AppendLine("            if ($success) {");
+        sb.AppendLine("                Write-Log \"Child process completed successfully\" \"SUCCESS\"");
+        sb.AppendLine("                Write-Log \"Rebooting system to apply user customizations...\" \"INFO\"");
+        sb.AppendLine("                # Wait 20 seconds to give the FirstLogon phase some more time before restarting");
+        sb.AppendLine("                shutdown.exe /r /t 20");
+        sb.AppendLine("            } else {");
+        sb.AppendLine("                Write-Log \"Child process failed or timed out - will retry at next logon\" \"ERROR\"");
+        sb.AppendLine("                exit 1");
         sb.AppendLine("            }");
         sb.AppendLine("        }");
-        sb.AppendLine("    } catch { }");
-        sb.AppendLine();
-        sb.AppendLine("    if ($alreadyApplied) {");
-        sb.AppendLine("        Write-Log \"User customizations have already been applied for this user\" \"INFO\"");
-        sb.AppendLine("        Write-Log \"To re-apply these settings, delete the registry value: $markerPath\\$markerName\" \"INFO\"");
         sb.AppendLine("    } else {");
-        sb.AppendLine("        Write-Log \"Applying user customizations for the first time...\" \"INFO\"");
+        sb.AppendLine("        # ================================================================");
+        sb.AppendLine("        # User path: apply HKCU entries (natural resolution, no remap)");
+        sb.AppendLine("        # ================================================================");
+        sb.AppendLine("        Write-Log \"UserCustomizations running as user\" \"INFO\"");
+        sb.AppendLine();
+        sb.AppendLine("        $markerPath = \"HKCU:\\Software\\Winhance\"");
+        sb.AppendLine("        $markerName = \"UserCustomizationsApplied\"");
+        sb.AppendLine("        $alreadyApplied = $false");
+        sb.AppendLine();
+        sb.AppendLine("        try {");
+        sb.AppendLine("            if (Test-Path $markerPath) {");
+        sb.AppendLine("                $value = Get-ItemProperty -Path $markerPath -Name $markerName -ErrorAction SilentlyContinue");
+        sb.AppendLine("                if ($value.$markerName -eq 1) {");
+        sb.AppendLine("                    $alreadyApplied = $true");
+        sb.AppendLine("                }");
+        sb.AppendLine("            }");
+        sb.AppendLine("        } catch { }");
+        sb.AppendLine();
+        sb.AppendLine("        if ($alreadyApplied) {");
+        sb.AppendLine("            Write-Log \"User customizations have already been applied for this user\" \"INFO\"");
+        sb.AppendLine("            Write-Log \"To re-apply, delete: $markerPath\\$markerName\" \"INFO\"");
+        sb.AppendLine("        } else {");
+        sb.AppendLine("            Write-Log \"Applying user customizations for the first time...\" \"INFO\"");
         sb.AppendLine();
 
         // 3a. HKCU registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "        ");
+            AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ");
         }
 
         // 3b. HKCU registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "        ");
+            AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ");
         }
 
         // 3c. User-specific custom script placeholder
         sb.AppendLine();
-        sb.AppendLine("        # ============================================================================");
-        sb.AppendLine("        # ADD YOUR USER SPECIFIC POWERSHELL SCRIPT CONTENTS BELOW");
-        sb.AppendLine("        # ============================================================================");
+        sb.AppendLine("            # ============================================================================");
+        sb.AppendLine("            # ADD YOUR USER SPECIFIC POWERSHELL SCRIPT CONTENTS BELOW");
+        sb.AppendLine("            # ============================================================================");
         sb.AppendLine();
-        sb.AppendLine("        # Start here");
+        sb.AppendLine("            # Start here");
         sb.AppendLine();
-        sb.AppendLine("        # End here");
+        sb.AppendLine("            # End here");
         sb.AppendLine();
 
         sb.AppendLine();
-        sb.AppendLine("        try {");
-        sb.AppendLine("            if (-not (Test-Path $markerPath)) {");
-        sb.AppendLine("                New-Item -Path $markerPath -Force | Out-Null");
+        sb.AppendLine("            try {");
+        sb.AppendLine("                if (-not (Test-Path $markerPath)) {");
+        sb.AppendLine("                    New-Item -Path $markerPath -Force | Out-Null");
+        sb.AppendLine("                }");
+        sb.AppendLine("                Set-ItemProperty -Path $markerPath -Name $markerName -Value 1 -Type DWord -Force");
+        sb.AppendLine("                Write-Log \"User customizations completed and marked as applied\" \"SUCCESS\"");
+        sb.AppendLine("                Write-Log \"Note: User customizations will not run again unless $markerPath\\$markerName is deleted\" \"INFO\"");
+        sb.AppendLine("            } catch {");
+        sb.AppendLine("                Write-Log \"Failed to create completion marker: $($_.Exception.Message)\" \"WARNING\"");
         sb.AppendLine("            }");
-        sb.AppendLine("            Set-ItemProperty -Path $markerPath -Name $markerName -Value 1 -Type DWord -Force");
-        sb.AppendLine("            Write-Log \"User customizations completed and marked as applied\" \"SUCCESS\"");
-        sb.AppendLine("            Write-Log \"Note: User customizations will not run again unless $markerPath\\$markerName is deleted\" \"INFO\"");
-        sb.AppendLine("        } catch {");
-        sb.AppendLine("            Write-Log \"Failed to create completion marker: $($_.Exception.Message)\" \"WARNING\"");
         sb.AppendLine("        }");
-        sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine("    if ($runningAsSystem -and $targetUserSID) {");
-        sb.AppendLine("        try {");
-        sb.AppendLine("            Remove-PSDrive -Name HKCU -ErrorAction SilentlyContinue");
-        sb.AppendLine("            New-PSDrive -PSProvider Registry -Name HKCU -Root HKEY_CURRENT_USER -ErrorAction SilentlyContinue | Out-Null");
-        sb.AppendLine("            Write-Log \"Restored HKCU PSDrive\" \"INFO\"");
-        sb.AppendLine("        } catch { }");
-        sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine("    if (-not $alreadyApplied) {");
-        sb.AppendLine("        Write-Log \"Rebooting system to apply user customizations...\" \"INFO\"");
-        sb.AppendLine("        # Wait 20 seconds to give the FirstLogon phase some more time before restarting");
-        sb.AppendLine("        shutdown.exe /r /t 20");
-        sb.AppendLine("    } else {");
-        sb.AppendLine("        Write-Log \"No restart needed - customizations were already applied\" \"INFO\"");
         sb.AppendLine("    }");
         sb.AppendLine("}");
         sb.AppendLine();
@@ -1211,6 +1239,106 @@ function Set-BinaryByte {
     }
     catch {
         Write-Log ""Failed to modify binary byte $Path\$Name : $($_.Exception.Message)"" ""ERROR""
+    }
+}
+");
+        AppendStartProcessAsUser(sb);
+    }
+
+    private void AppendStartProcessAsUser(StringBuilder sb)
+    {
+        sb.AppendLine(@"
+function Start-ProcessAsUser {
+    param([string]$CommandLine)
+
+    if (-not ([System.Management.Automation.PSTypeName]'Winhance.TL'.Type)) {
+        Add-Type -MemberDefinition @'
+[DllImport(""advapi32.dll"",SetLastError=true)]public static extern bool OpenProcessToken(IntPtr h,uint a,out IntPtr t);
+[DllImport(""advapi32.dll"",SetLastError=true)]public static extern bool GetTokenInformation(IntPtr t,int c,IntPtr i,int l,out int r);
+[DllImport(""advapi32.dll"",SetLastError=true)]public static extern bool DuplicateTokenEx(IntPtr t,uint a,IntPtr s,int il,int tt,out IntPtr n);
+[DllImport(""advapi32.dll"",SetLastError=true,CharSet=CharSet.Unicode)]public static extern bool CreateProcessAsUserW(IntPtr t,string app,string cmd,IntPtr pa,IntPtr ta,bool ih,int cf,IntPtr env,string dir,ref SI si,out PI pi);
+[DllImport(""kernel32.dll"",SetLastError=true)]public static extern bool CloseHandle(IntPtr h);
+[DllImport(""kernel32.dll"")]public static extern uint WTSGetActiveConsoleSessionId();
+[DllImport(""kernel32.dll"",SetLastError=true)]public static extern bool ProcessIdToSessionId(uint p,out uint s);
+[DllImport(""kernel32.dll"",SetLastError=true)]public static extern uint WaitForSingleObject(IntPtr h,uint ms);
+[DllImport(""kernel32.dll"",SetLastError=true)]public static extern bool GetExitCodeProcess(IntPtr h,out uint c);
+[DllImport(""userenv.dll"",SetLastError=true)]public static extern bool CreateEnvironmentBlock(out IntPtr env,IntPtr token,bool inherit);
+[DllImport(""userenv.dll"",SetLastError=true)]public static extern bool DestroyEnvironmentBlock(IntPtr env);
+[StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)]public struct SI{public int cb;public string r1,d,t;public int x,y,w,h,cc,cr,fa,fl;public short sw,r2;public IntPtr r3,i,o,e;}
+[StructLayout(LayoutKind.Sequential)]public struct PI{public IntPtr hp,ht;public int pid,tid;}
+'@ -Name TL -Namespace Winhance -ErrorAction Stop
+    }
+
+    $T = [Winhance.TL]
+    $tok = $dup = $envBlock = [IntPtr]::Zero
+    $pi = New-Object Winhance.TL+PI
+    $launched = $false
+
+    try {
+        $cs = $T::WTSGetActiveConsoleSessionId()
+        if ($cs -eq 0xFFFFFFFF) { Write-Log ""No active console session"" ""ERROR""; return $false }
+
+        $ep = $null
+        foreach ($p in (Get-Process explorer -ErrorAction SilentlyContinue)) {
+            $s = [uint32]0
+            if ($T::ProcessIdToSessionId([uint32]$p.Id, [ref]$s) -and $s -eq $cs) { $ep = $p; break }
+        }
+        if (-not $ep) { Write-Log ""No explorer.exe in session $cs"" ""ERROR""; return $false }
+
+        if (-not $T::OpenProcessToken($ep.Handle, 0x000A, [ref]$tok)) {
+            Write-Log ""OpenProcessToken failed (err $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))"" ""ERROR""; return $false
+        }
+
+        # If user is admin with UAC, get the linked elevated token (TokenElevationType=18, TokenLinkedToken=19)
+        $dupSrc = $tok; $linked = [IntPtr]::Zero
+        $eb = [Runtime.InteropServices.Marshal]::AllocHGlobal(4); $rl = 0
+        if ($T::GetTokenInformation($tok, 18, $eb, 4, [ref]$rl) -and [Runtime.InteropServices.Marshal]::ReadInt32($eb) -eq 3) {
+            $lb = [Runtime.InteropServices.Marshal]::AllocHGlobal([IntPtr]::Size)
+            if ($T::GetTokenInformation($tok, 19, $lb, [IntPtr]::Size, [ref]$rl)) {
+                $linked = [Runtime.InteropServices.Marshal]::ReadIntPtr($lb)
+                $dupSrc = $linked
+                Write-Log ""Using elevated linked token for admin user"" ""INFO""
+            }
+            [Runtime.InteropServices.Marshal]::FreeHGlobal($lb)
+        }
+        [Runtime.InteropServices.Marshal]::FreeHGlobal($eb)
+
+        if (-not $T::DuplicateTokenEx($dupSrc, 0xF01FF, [IntPtr]::Zero, 2, 1, [ref]$dup)) {
+            Write-Log ""DuplicateTokenEx failed (err $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))"" ""ERROR""; return $false
+        }
+        if ($linked -ne [IntPtr]::Zero) { $null = $T::CloseHandle($linked) }
+
+        $null = $T::CreateEnvironmentBlock([ref]$envBlock, $dup, $false)
+
+        $si = New-Object Winhance.TL+SI
+        $si.cb = [Runtime.InteropServices.Marshal]::SizeOf($si)
+        $si.d = ""winsta0\default""
+        $psExe = ""$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe""
+
+        if (-not $T::CreateProcessAsUserW($dup, $psExe, $CommandLine, [IntPtr]::Zero, [IntPtr]::Zero, $false, 0x08000400, $envBlock, $env:SystemRoot, [ref]$si, [ref]$pi)) {
+            Write-Log ""CreateProcessAsUserW failed (err $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))"" ""ERROR""; return $false
+        }
+
+        $launched = $true
+        Write-Log ""Launched child process as user (PID $($pi.pid))"" ""INFO""
+
+        $wait = $T::WaitForSingleObject($pi.hp, 600000)
+        if ($wait -ne 0) { Write-Log ""Child process timed out"" ""ERROR""; return $false }
+
+        $ec = [uint32]0
+        $null = $T::GetExitCodeProcess($pi.hp, [ref]$ec)
+        Write-Log ""Child process exited with code $ec"" ""INFO""
+        return ($ec -eq 0)
+    }
+    catch { Write-Log ""Start-ProcessAsUser: $($_.Exception.Message)"" ""ERROR""; return $false }
+    finally {
+        if ($launched) {
+            if ($pi.ht -ne [IntPtr]::Zero) { $null = $T::CloseHandle($pi.ht) }
+            if ($pi.hp -ne [IntPtr]::Zero) { $null = $T::CloseHandle($pi.hp) }
+        }
+        if ($envBlock -ne [IntPtr]::Zero) { $null = $T::DestroyEnvironmentBlock($envBlock) }
+        if ($dup -ne [IntPtr]::Zero) { $null = $T::CloseHandle($dup) }
+        if ($tok -ne [IntPtr]::Zero) { $null = $T::CloseHandle($tok) }
     }
 }
 ");
