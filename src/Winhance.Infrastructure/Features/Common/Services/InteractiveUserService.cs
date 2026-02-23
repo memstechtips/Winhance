@@ -131,10 +131,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
             if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
             {
                 // No OTS or no token — fall back to normal process execution
-                return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine);
+                return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
             }
 
-            return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine);
+            return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -171,26 +171,26 @@ namespace Winhance.Infrastructure.Features.Common.Services
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
             using var registration = linkedCts.Token.Register(() =>
             {
-                try { process.Kill(entireProcessTree: true); } catch { }
+                try { process.Kill(entireProcessTree: true); } catch (Exception ex) { _logService.LogDebug($"Best-effort process kill on cancellation/timeout: {ex.Message}"); }
             });
 
             var readStdout = Task.Run(async () =>
             {
                 await WinGetCliRunner.ReadStdoutCharByCharAsync(
-                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine);
+                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine).ConfigureAwait(false);
             }, CancellationToken.None);
 
             var readStderr = Task.Run(async () =>
             {
-                while (await process.StandardError.ReadLineAsync() is { } line)
+                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
                     stderrBuilder.AppendLine(line);
                     onErrorLine?.Invoke(line);
                 }
             }, CancellationToken.None);
 
-            await Task.WhenAll(readStdout, readStderr);
-            await process.WaitForExitAsync(linkedCts.Token);
+            await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
+            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
 
             return new InteractiveProcessResult(
                 process.ExitCode,
@@ -279,7 +279,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         _logService.Log(LogLevel.Warning,
                             $"CreateProcessWithTokenW failed (error {error}), falling back to normal process execution");
                         // Fall back to normal execution
-                        return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs);
+                        return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs).ConfigureAwait(false);
                     }
 
                     // Close the thread handle immediately — we only need the process handle
@@ -319,7 +319,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             using var proc = Process.GetProcessById(pi.dwProcessId);
                             proc.Kill(entireProcessTree: true);
                         }
-                        catch { }
+                        catch (Exception ex) { _logService.LogDebug($"Best-effort process kill on cancellation/timeout: {ex.Message}"); }
                     });
 
                     var readStdout = Task.Run(async () =>
@@ -327,27 +327,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         using var stream = new FileStream(stdoutSafeHandle, FileAccess.Read, bufferSize: 4096, isAsync: false);
                         using var reader = new StreamReader(stream, Encoding.UTF8);
                         await WinGetCliRunner.ReadStdoutCharByCharAsync(
-                            reader, stdoutBuilder, onOutputLine, onProgressLine);
+                            reader, stdoutBuilder, onOutputLine, onProgressLine).ConfigureAwait(false);
                     }, CancellationToken.None);
 
                     var readStderr = Task.Run(async () =>
                     {
                         using var stream = new FileStream(stderrSafeHandle, FileAccess.Read, bufferSize: 4096, isAsync: false);
                         using var reader = new StreamReader(stream, Encoding.UTF8);
-                        while (await reader.ReadLineAsync() is { } line)
+                        while (await reader.ReadLineAsync().ConfigureAwait(false) is { } line)
                         {
                             stderrBuilder.AppendLine(line);
                             onErrorLine?.Invoke(line);
                         }
                     }, CancellationToken.None);
 
-                    await Task.WhenAll(readStdout, readStderr);
+                    await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
 
                     // Wait for process exit and get exit code
                     await Task.Run(() =>
                     {
                         UserTokenApi.WaitForSingleObject(processHandle, (uint)timeoutMs);
-                    });
+                    }).ConfigureAwait(false);
 
                     UserTokenApi.GetExitCodeProcess(processHandle, out uint exitCode);
                     UserTokenApi.CloseHandle(processHandle);

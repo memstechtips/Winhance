@@ -37,14 +37,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (powerCfgSetting.PowerModeSupport == PowerModeSupport.Separate)
                 {
-                    var (acValue, dcValue) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                    var (acValue, dcValue) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting).ConfigureAwait(false);
                     rawValues["ACValue"] = acValue;
                     rawValues["DCValue"] = dcValue;
                     rawValues["PowerCfgValue"] = acValue;
                 }
                 else
                 {
-                    var (acValue, dcValue) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                    var (acValue, dcValue) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting).ConfigureAwait(false);
                     rawValues["PowerCfgValue"] = acValue;
                     rawValues["ACValue"] = acValue;
                     rawValues["DCValue"] = dcValue;
@@ -54,11 +54,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             else if (powerCfgSettings.Count > 1 || powerPlanSettings.Any())
             {
-                var allPowerSettingsACDC = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+                var allPowerSettingsACDC = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT").ConfigureAwait(false);
 
                 if (powerPlanSettings.Any())
                 {
-                    availablePlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
+                    availablePlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
                 }
 
                 foreach (var setting in powerCfgSettings)
@@ -184,7 +184,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     var rawValues = new Dictionary<string, object?>();
-                    var isEnabled = await scheduledTaskService.IsTaskEnabledAsync(setting.ScheduledTaskSettings[0].TaskPath);
+                    var isEnabled = await scheduledTaskService.IsTaskEnabledAsync(setting.ScheduledTaskSettings[0].TaskPath).ConfigureAwait(false);
                     rawValues["ScheduledTaskEnabled"] = isEnabled;
                     rawValues["ScheduledTaskExists"] = isEnabled != null;
                     results[setting.Id] = rawValues;
@@ -205,7 +205,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     var domainService = domainServiceRouter.GetDomainService(group.First().Id);
-                    var discoveredValues = await domainService.DiscoverSpecialSettingsAsync(group);
+                    var discoveredValues = await domainService.DiscoverSpecialSettingsAsync(group).ConfigureAwait(false);
 
                     foreach (var (settingId, values) in discoveredValues)
                     {
@@ -231,7 +231,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var settingsList = settings.ToList();
             logService.Log(LogLevel.Info, $"[SystemSettingsDiscoveryService] Getting interpreted states for {settingsList.Count} settings");
             
-            var allRawValues = await GetRawSettingsValuesAsync(settingsList);
+            var allRawValues = await GetRawSettingsValuesAsync(settingsList).ConfigureAwait(false);
             var results = new Dictionary<string, SettingStateResult>();
 
             foreach (var setting in settingsList)

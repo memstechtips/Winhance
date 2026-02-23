@@ -420,7 +420,7 @@ public partial class WimUtilViewModel : ObservableObject
                 await File.WriteAllTextAsync(testFile, "test");
                 File.Delete(testFile);
             }
-            catch { return false; }
+            catch (Exception ex) { _logService.LogDebug($"Write test failed for directory '{path}': {ex.Message}"); return false; }
 
             var extractedDirs = Directory.GetDirectories(path);
             var hasSourcesDir = extractedDirs.Any(d => Path.GetFileName(d)?.Equals("sources", StringComparison.OrdinalIgnoreCase) == true);
@@ -428,7 +428,7 @@ public partial class WimUtilViewModel : ObservableObject
 
             return hasSourcesDir && hasBootDir;
         }
-        catch { return false; }
+        catch (Exception ex) { _logService.LogDebug($"ISO directory validation failed for '{path}': {ex.Message}"); return false; }
     }
 
     [RelayCommand]
@@ -655,7 +655,7 @@ public partial class WimUtilViewModel : ObservableObject
             await Task.Run(() => XDocument.Load(xmlPath));
             return true;
         }
-        catch { return false; }
+        catch (Exception ex) { _logService.LogDebug($"XML validation failed for '{xmlPath}': {ex.Message}"); return false; }
     }
 
     private void ClearOtherXmlCardCompletions(string exceptCard)
@@ -925,7 +925,7 @@ public partial class WimUtilViewModel : ObservableObject
         {
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
-            try { if (File.Exists(OutputIsoPath)) File.Delete(OutputIsoPath); } catch { }
+            try { if (File.Exists(OutputIsoPath)) File.Delete(OutputIsoPath); } catch (Exception ex) { _logService.LogDebug($"Best-effort incomplete ISO cleanup failed: {ex.Message}"); }
             SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateCancelled");
         }
         catch (InsufficientDiskSpaceException spaceEx)
@@ -1057,14 +1057,14 @@ public partial class WimUtilViewModel : ObservableObject
     private async Task OpenWindows10Download()
     {
         try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows10")); }
-        catch { }
+        catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 10 download URL: {ex.Message}"); }
     }
 
     [RelayCommand]
     private async Task OpenWindows11Download()
     {
         try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows11")); }
-        catch { }
+        catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 11 download URL: {ex.Message}"); }
     }
 
     [RelayCommand]

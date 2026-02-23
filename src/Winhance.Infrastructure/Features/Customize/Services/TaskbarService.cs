@@ -49,7 +49,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        public void ClearSettingsCache()
+        public void InvalidateCache()
         {
             lock (_cacheLock)
             {
@@ -58,7 +58,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        public async Task CleanTaskbarAsync()
+        public Task CleanTaskbarAsync()
         {
             try
             {
@@ -70,7 +70,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 if (!windowsRegistryService.KeyExists(taskbandKey))
                 {
                     logService.Log(LogLevel.Warning, "Taskband key does not exist - nothing to clean");
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 bool success = windowsRegistryService.SetValue(
@@ -89,7 +89,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     logService.Log(LogLevel.Warning, "Failed to clear Favorites data");
                 }
 
-                await Task.CompletedTask;
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {

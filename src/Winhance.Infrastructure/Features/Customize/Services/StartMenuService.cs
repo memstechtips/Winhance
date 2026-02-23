@@ -54,7 +54,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        public void ClearSettingsCache()
+        public void InvalidateCache()
         {
             lock (_cacheLock)
             {
@@ -71,7 +71,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
 
                 await Task.Run(() =>
                     CleanWindows10StartMenu(scheduledTaskService, logService)
-                );
+                ).ConfigureAwait(false);
 
                 logService.Log(LogLevel.Info, "Windows 10 Start Menu cleaned successfully");
             }
@@ -91,7 +91,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             {
                 logService.Log(LogLevel.Info, "Starting Windows 11 Start Menu cleaning process");
 
-                await Task.Run(() => CleanWindows11StartMenu(logService));
+                await Task.Run(() => CleanWindows11StartMenu(logService)).ConfigureAwait(false);
 
                 logService.Log(LogLevel.Info, "Windows 11 Start Menu cleaned successfully");
             }
@@ -303,7 +303,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                                     command,
                                     username,
                                     false
-                                );
+                                ).ConfigureAwait(false);
                                 logService?.LogInformation(
                                     $"Successfully created scheduled task '{taskName}' for user '{username}'"
                                 );

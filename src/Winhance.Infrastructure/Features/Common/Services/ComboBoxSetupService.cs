@@ -35,7 +35,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (setting.Id == "power-plan-selection")
                 {
-                    return await powerPlanComboBoxService.SetupPowerPlanComboBoxAsync(setting, currentValue);
+                    return await powerPlanComboBoxService.SetupPowerPlanComboBoxAsync(setting, currentValue).ConfigureAwait(false);
                 }
 
                 int currentIndex = 0;
@@ -45,7 +45,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 else
                 {
-                    var rawValues = await systemSettingsDiscoveryService.GetRawSettingsValuesAsync(new[] { setting });
+                    var rawValues = await systemSettingsDiscoveryService.GetRawSettingsValuesAsync(new[] { setting }).ConfigureAwait(false);
                     var rawSettingValues = rawValues.TryGetValue(setting.Id, out var values) ? values : new Dictionary<string, object?>();
                     currentIndex = comboBoxResolver.ResolveRawValuesToIndex(setting, rawSettingValues);
                 }

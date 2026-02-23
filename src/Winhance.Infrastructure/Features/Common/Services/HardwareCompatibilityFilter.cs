@@ -25,9 +25,9 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
         var settingsList = settings.ToList();
         var originalCount = settingsList.Count;
 
-        var hasBattery = await GetHasBatteryAsync();
-        var hasLid = await GetHasLidAsync();
-        var supportsBrightness = await GetSupportsBrightnessAsync();
+        var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
+        var hasLid = await GetHasLidAsync().ConfigureAwait(false);
+        var supportsBrightness = await GetSupportsBrightnessAsync().ConfigureAwait(false);
 
         var filteredSettings = settingsList.Where(setting =>
         {
@@ -69,7 +69,7 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
         {
             try
             {
-                _hasBattery = await _hardwareDetectionService.HasBatteryAsync();
+                _hasBattery = await _hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -86,7 +86,7 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
         {
             try
             {
-                _hasLid = await _hardwareDetectionService.HasLidAsync();
+                _hasLid = await _hardwareDetectionService.HasLidAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -103,7 +103,7 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
         {
             try
             {
-                _supportsBrightness = await _hardwareDetectionService.SupportsBrightnessControlAsync();
+                _supportsBrightness = await _hardwareDetectionService.SupportsBrightnessControlAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {

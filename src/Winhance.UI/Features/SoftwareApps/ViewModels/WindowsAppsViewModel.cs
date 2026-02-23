@@ -215,7 +215,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
             var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
             var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 
-            await LoadAppsIntoItemsAsync(apps.Concat(capabilities).Concat(features));
+            LoadAppsIntoItems(apps.Concat(capabilities).Concat(features));
         }
         catch (Exception ex)
         {
@@ -250,7 +250,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadAppsIntoItemsAsync(IEnumerable<ItemDefinition> definitions)
+    private void LoadAppsIntoItems(IEnumerable<ItemDefinition> definitions)
     {
         foreach (var definition in definitions)
         {
@@ -261,8 +261,6 @@ public partial class WindowsAppsViewModel : BaseViewModel
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }
-
-        await Task.CompletedTask;
     }
 
     private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -315,7 +313,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
         try
         {
-            _appStatusDiscoveryService.InvalidateWinGetCache();
+            _appStatusDiscoveryService.InvalidateCache();
             await CheckInstallationStatusAsync();
             NotifyCardViewProperties();
             StatusText = $"Refreshed status for {Items.Count} items";
@@ -338,7 +336,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
             if (IsInitialized)
             {
                 _logService.LogInformation("WinGet installed — refreshing Windows Apps installation status");
-                _appStatusDiscoveryService.InvalidateWinGetCache();
+                _appStatusDiscoveryService.InvalidateCache();
                 await CheckInstallationStatusAsync();
                 NotifyCardViewProperties();
             }
@@ -513,7 +511,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
     private async Task RefreshAfterOperationAsync()
     {
-        _appStatusDiscoveryService.InvalidateWinGetCache();
+        _appStatusDiscoveryService.InvalidateCache();
         await CheckInstallationStatusAsync();
         NotifyCardViewProperties();
         ClearSelections();

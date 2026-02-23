@@ -17,7 +17,7 @@ internal static class DismSessionManager
     {
         var sw = Stopwatch.StartNew();
         log?.Invoke("[DismSession] Waiting for semaphore...");
-        await _lock.WaitAsync(ct);
+        await _lock.WaitAsync(ct).ConfigureAwait(false);
         log?.Invoke($"[DismSession] Semaphore acquired ({sw.ElapsedMilliseconds}ms). Thread={Environment.CurrentManagedThreadId}");
         try
         {
@@ -60,7 +60,7 @@ internal static class DismSessionManager
                     DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
-            }, ct);
+            }, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ internal static class DismSessionManager
     {
         var sw = Stopwatch.StartNew();
         log?.Invoke("[DismSession] Waiting for semaphore...");
-        await _lock.WaitAsync(ct);
+        await _lock.WaitAsync(ct).ConfigureAwait(false);
         log?.Invoke($"[DismSession] Semaphore acquired ({sw.ElapsedMilliseconds}ms). Thread={Environment.CurrentManagedThreadId}");
         try
         {
@@ -123,7 +123,7 @@ internal static class DismSessionManager
                     DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
-            }, ct);
+            }, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

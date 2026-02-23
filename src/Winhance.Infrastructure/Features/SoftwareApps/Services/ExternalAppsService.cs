@@ -46,7 +46,7 @@ public class ExternalAppsService(
                 && requiresDownload is bool isDirect && isDirect)
             {
                 logService.LogInformation($"Installing {item.Name} via direct download");
-                var success = await directDownloadService.DownloadAndInstallAsync(item, progress, cancellationToken);
+                var success = await directDownloadService.DownloadAndInstallAsync(item, progress, cancellationToken).ConfigureAwait(false);
                 return success
                     ? OperationResult<bool>.Succeeded(true)
                     : OperationResult<bool>.Failed("Direct download installation failed");
@@ -71,15 +71,15 @@ public class ExternalAppsService(
                 return OperationResult<bool>.Failed("No WinGet package ID or Store ID specified");
             }
 
-            var installerType = await winGetService.GetInstallerTypeAsync(packageId, cancellationToken);
+            var installerType = await winGetService.GetInstallerTypeAsync(packageId, cancellationToken).ConfigureAwait(false);
             var isPortable = IsPortableInstallerType(installerType);
 
-            var wingetResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken);
+            var wingetResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken).ConfigureAwait(false);
 
             if (wingetResult.Success)
             {
                 if (isPortable)
-                    await CreateStartMenuShortcutForPortableAppAsync(item);
+                    await CreateStartMenuShortcutForPortableAppAsync(item).ConfigureAwait(false);
 
                 return OperationResult<bool>.Succeeded(true);
             }
@@ -89,23 +89,23 @@ public class ExternalAppsService(
             {
                 logService.LogInformation($"WinGet install failed for '{item.Name}' ({wingetResult.FailureReason}), attempting Chocolatey fallback with '{item.ChocoPackageId}'");
 
-                var consented = await chocolateyConsentService.RequestConsentAsync();
+                var consented = await chocolateyConsentService.RequestConsentAsync().ConfigureAwait(false);
                 if (consented)
                 {
-                    if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken))
+                    if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        if (!await chocolateyService.InstallChocolateyAsync(cancellationToken))
+                        if (!await chocolateyService.InstallChocolateyAsync(cancellationToken).ConfigureAwait(false))
                         {
                             logService.LogError("Failed to install Chocolatey, cannot proceed with fallback");
                             return OperationResult<bool>.Failed(wingetResult.ErrorMessage ?? "Installation failed");
                         }
                     }
 
-                    var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken);
+                    var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken).ConfigureAwait(false);
                     if (chocoSuccess)
                     {
                         if (IsChocoPortablePackage(item.ChocoPackageId))
-                            await CreateStartMenuShortcutForChocoPortableAppAsync(item);
+                            await CreateStartMenuShortcutForChocoPortableAppAsync(item).ConfigureAwait(false);
 
                         return OperationResult<bool>.Succeeded(true);
                     }
@@ -166,7 +166,7 @@ public class ExternalAppsService(
                 var exeName = Path.GetFileNameWithoutExtension(exePath);
                 var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
 
-                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name);
+                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
             }
 
             logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name}");
@@ -214,7 +214,7 @@ public class ExternalAppsService(
             {
                 var exeName = Path.GetFileNameWithoutExtension(exePath);
                 var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
-                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name);
+                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
             }
 
             logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name} (Chocolatey portable)");
@@ -310,11 +310,11 @@ $Shortcut.Save()
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync().ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
-            var error = await process.StandardError.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
             logService.LogWarning($"Failed to create shortcut at {shortcutPath}: {error}");
         }
     }
@@ -323,7 +323,7 @@ $Shortcut.Save()
     {
         try
         {
-            var result = await appUninstallService.UninstallAsync(item, progress, CancellationToken.None);
+            var result = await appUninstallService.UninstallAsync(item, progress, CancellationToken.None).ConfigureAwait(false);
 
             if (result.Success)
             {
@@ -366,6 +366,6 @@ $Shortcut.Save()
 
     public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
-        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions);
+        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions).ConfigureAwait(false);
     }
 }

@@ -36,7 +36,7 @@ public class WinGetInstaller
         CancellationToken cancellationToken = default)
     {
         // Option 1: Use bundled winget to install Microsoft.AppInstaller (fastest, no download needed)
-        var bundledResult = await TryInstallViaBundledWinGetAsync(cancellationToken);
+        var bundledResult = await TryInstallViaBundledWinGetAsync(cancellationToken).ConfigureAwait(false);
         if (bundledResult.Success)
         {
             return bundledResult;
@@ -44,7 +44,7 @@ public class WinGetInstaller
 
         // Option 2a: Try to provision the existing staged App Installer package
         ReportProgress(0, GetString("Progress_WinGet_CheckingExisting"));
-        var existingResult = await TryProvisionExistingPackageAsync(cancellationToken);
+        var existingResult = await TryProvisionExistingPackageAsync(cancellationToken).ConfigureAwait(false);
         if (existingResult.Success)
         {
             return existingResult;
@@ -72,16 +72,16 @@ public class WinGetInstaller
                 DownloadFileAsync($"{GitHubBaseUrl}/{DependenciesFileName}", dependenciesPath, "Dependencies", false, 0, 0, cancellationToken),
                 DownloadFileAsync($"{GitHubBaseUrl}/{InstallerFileName}", installerPath, "WinGet Installer", true, 0, 45, cancellationToken),
                 DownloadFileAsync($"{GitHubBaseUrl}/{LicenseFileName}", licensePath, "License", false, 0, 0, cancellationToken)
-            );
+            ).ConfigureAwait(false);
 
             // Extract dependencies (45-55%)
             ReportProgress(45, GetString("Progress_WinGet_ExtractingDependencies"));
             var extractPath = Path.Combine(tempDir, "Dependencies");
-            await ExtractDependenciesAsync(dependenciesPath, extractPath);
+            await ExtractDependenciesAsync(dependenciesPath, extractPath).ConfigureAwait(false);
 
             // Provision for all users (55-100%)
             ReportProgress(55, GetString("Progress_WinGet_InstallingMachineWide"));
-            await InstallProvisionedAsync(installerPath, extractPath, licensePath, cancellationToken);
+            await InstallProvisionedAsync(installerPath, extractPath, licensePath, cancellationToken).ConfigureAwait(false);
 
             ReportProgress(100, GetString("Progress_WinGet_InstalledSuccessfully"));
             _logService?.LogInformation("WinGet installation completed successfully");
@@ -104,7 +104,7 @@ public class WinGetInstaller
                 if (Directory.Exists(tempDir))
                     Directory.Delete(tempDir, true);
             }
-            catch { }
+            catch (Exception ex) { _logService?.LogDebug($"Best-effort temp directory cleanup failed: {ex.Message}"); }
         }
     }
 
@@ -205,7 +205,7 @@ public class WinGetInstaller
                     {
                         _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
                     }
-                });
+                }).ConfigureAwait(false);
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {
@@ -267,7 +267,7 @@ public class WinGetInstaller
 
             _logService?.LogInformation($"Provisioning existing package: {existingPackagePath}");
 
-            await ProvisionWithPowerShellAsync(existingPackagePath, null, null, cancellationToken);
+            await ProvisionWithPowerShellAsync(existingPackagePath, null, null, cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation("Existing App Installer package provisioned successfully");
 
@@ -343,22 +343,22 @@ public class WinGetInstaller
     {
         _logService?.LogInformation($"Downloading {displayName} from {url}");
 
-        using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         var totalBytes = response.Content.Headers.ContentLength ?? -1;
         var downloadedBytes = 0L;
         var lastReportTime = DateTime.UtcNow;
 
-        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         await using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
 
         var buffer = new byte[81920];
         int bytesRead;
 
-        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
+        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
         {
-            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
             downloadedBytes += bytesRead;
 
             if (reportProgress && totalBytes > 0 && (DateTime.UtcNow - lastReportTime).TotalMilliseconds > 200)
@@ -415,14 +415,14 @@ public class WinGetInstaller
         try
         {
             ReportProgress(60, GetString("Progress_WinGet_Provisioning"));
-            await ProvisionWithPowerShellAsync(installerPath, dependencyPackages, licensePaths, cancellationToken);
+            await ProvisionWithPowerShellAsync(installerPath, dependencyPackages, licensePaths, cancellationToken).ConfigureAwait(false);
             _logService?.LogInformation("WinGet provisioned successfully for all users");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logService?.LogWarning($"PowerShell provisioning failed ({ex.Message}), falling back to PackageManager");
             ReportProgress(70, GetString("Progress_WinGet_Provisioning"));
-            await InstallWithPackageManagerAsync(installerPath, dependencyPackages, cancellationToken);
+            await InstallWithPackageManagerAsync(installerPath, dependencyPackages, cancellationToken).ConfigureAwait(false);
             _logService?.LogInformation("WinGet installed successfully via PackageManager");
         }
 
@@ -462,7 +462,7 @@ public class WinGetInstaller
 
         _logService?.LogInformation($"Provisioning via PowerShell: {packagePath}");
 
-        await PowerShellRunner.RunScriptAsync(script.ToString(), ct: cancellationToken);
+        await PowerShellRunner.RunScriptAsync(script.ToString(), ct: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -490,7 +490,7 @@ public class WinGetInstaller
                     _logService?.LogInformation($"Installing dependency: {depUri.LocalPath}");
                     await packageManager.AddPackageAsync(
                         depUri, null,
-                        DeploymentOptions.ForceApplicationShutdown);
+                        DeploymentOptions.ForceApplicationShutdown).AsTask().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -502,7 +502,7 @@ public class WinGetInstaller
         _logService?.LogInformation($"Installing package via PackageManager: {packagePath}");
         await packageManager.AddPackageAsync(
             packageUri, dependencyUris,
-            DeploymentOptions.ForceApplicationShutdown);
+            DeploymentOptions.ForceApplicationShutdown).AsTask().ConfigureAwait(false);
     }
 
     private static string GetCurrentArchitecture()

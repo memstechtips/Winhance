@@ -73,7 +73,7 @@ public class DirectDownloadService : IDirectDownloadService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var downloadUrl = await ResolveDownloadUrlAsync(item, cancellationToken);
+            var downloadUrl = await ResolveDownloadUrlAsync(item, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(downloadUrl))
             {
                 progress?.Report(new TaskProgressDetail
@@ -97,7 +97,7 @@ public class DirectDownloadService : IDirectDownloadService
                 IsActive = true
             });
 
-            var downloadedFile = await DownloadFileAsync(downloadUrl, tempPath, item.Name, progress, cancellationToken);
+            var downloadedFile = await DownloadFileAsync(downloadUrl, tempPath, item.Name, progress, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(downloadedFile))
             {
                 progress?.Report(new TaskProgressDetail
@@ -121,7 +121,7 @@ public class DirectDownloadService : IDirectDownloadService
                 IsActive = true
             });
 
-            var installSuccess = await InstallDownloadedFileAsync(downloadedFile, item.Name, progress, cancellationToken);
+            var installSuccess = await InstallDownloadedFileAsync(downloadedFile, item.Name, progress, cancellationToken).ConfigureAwait(false);
 
             if (installSuccess)
             {
@@ -186,7 +186,7 @@ public class DirectDownloadService : IDirectDownloadService
                 return await ResolveGitHubReleaseUrlAsync(
                     githubUrl.ToString()!,
                     pattern.ToString()!,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -225,10 +225,10 @@ public class DirectDownloadService : IDirectDownloadService
             .Replace("github.com", "api.github.com/repos")
             .Replace("/releases/latest", "/releases/latest");
 
-        var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
+        var response = await _httpClient.GetAsync(apiUrl, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(json);
 
         var assets = doc.RootElement.GetProperty("assets").EnumerateArray();
@@ -273,13 +273,13 @@ public class DirectDownloadService : IDirectDownloadService
         {
             _logService?.LogInformation($"Downloading {fileName} from {url}...");
 
-            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
             var totalMB = totalBytes / (1024.0 * 1024.0);
 
-            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             var buffer = new byte[8192];
@@ -287,9 +287,9 @@ public class DirectDownloadService : IDirectDownloadService
             int bytesRead;
             int lastProgress = 0;
 
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (totalBytes > 0)
@@ -345,9 +345,9 @@ public class DirectDownloadService : IDirectDownloadService
 
         return extension switch
         {
-            ".msi" => await InstallMsiAsync(filePath, displayName, progress, cancellationToken),
-            ".exe" => await InstallExeAsync(filePath, displayName, progress, cancellationToken),
-            ".zip" => await InstallZipAsync(filePath, displayName, progress, cancellationToken),
+            ".msi" => await InstallMsiAsync(filePath, displayName, progress, cancellationToken).ConfigureAwait(false),
+            ".exe" => await InstallExeAsync(filePath, displayName, progress, cancellationToken).ConfigureAwait(false),
+            ".zip" => await InstallZipAsync(filePath, displayName, progress, cancellationToken).ConfigureAwait(false),
             _ => throw new NotSupportedException($"File type {extension} is not supported for installation")
         };
     }
@@ -365,7 +365,7 @@ public class DirectDownloadService : IDirectDownloadService
 
             var exitCode = await RunMsiExecAsync(
                 $"/i \"{msiPath}\" /qn /norestart /l*v \"{logPath}\"",
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             // 1612 = "Installation source not available" — stale registration from a previous
             // install whose temp directory was cleaned up. Uninstall the stale entry using
@@ -387,18 +387,18 @@ public class DirectDownloadService : IDirectDownloadService
                 if (!string.IsNullOrEmpty(productCode))
                 {
                     _logService?.LogInformation($"Found ProductCode {productCode}, uninstalling stale registration by GUID...");
-                    await RunMsiExecAsync($"/x {productCode} /qn /norestart", cancellationToken);
+                    await RunMsiExecAsync($"/x {productCode} /qn /norestart", cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
                     _logService?.LogWarning("Could not read ProductCode from MSI, falling back to file-based uninstall");
-                    await RunMsiExecAsync($"/x \"{msiPath}\" /qn /norestart", cancellationToken);
+                    await RunMsiExecAsync($"/x \"{msiPath}\" /qn /norestart", cancellationToken).ConfigureAwait(false);
                 }
 
                 logPath = Path.Combine(Path.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
                 exitCode = await RunMsiExecAsync(
                     $"/i \"{msiPath}\" /qn /norestart /l*v \"{logPath}\"",
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             // Exit code 0 = success, 3010 = success but reboot required
@@ -448,7 +448,7 @@ public class DirectDownloadService : IDirectDownloadService
         if (process == null)
             return -1;
 
-        await process.WaitForExitAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         return process.ExitCode;
     }
 
@@ -505,7 +505,7 @@ public class DirectDownloadService : IDirectDownloadService
 
                     if (process != null)
                     {
-                        await process.WaitForExitAsync(cancellationToken);
+                        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
                         if (process.ExitCode == 0)
                         {
                             progress?.Report(new TaskProgressDetail
@@ -580,7 +580,7 @@ public class DirectDownloadService : IDirectDownloadService
 
                 Directory.CreateDirectory(extractPath);
                 ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
 
             progress?.Report(new TaskProgressDetail
             {

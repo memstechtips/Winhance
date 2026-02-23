@@ -115,7 +115,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                     if (!string.IsNullOrEmpty(filename))
                         return $"Downloading {filename}...";
                 }
-                catch { }
+                catch { /* URL parsing failed — fall through to generic message */ }
                 return "Downloading...";
             }
 

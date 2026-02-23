@@ -50,7 +50,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        public void ClearSettingsCache()
+        public void InvalidateCache()
         {
             lock (_cacheLock)
             {

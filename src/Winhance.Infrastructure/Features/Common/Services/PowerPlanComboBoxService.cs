@@ -18,8 +18,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             try
             {
-                var options = await GetPowerPlanOptionsAsync();
-                var currentIndex = await GetCurrentPowerPlanIndexAsync(options);
+                var options = await GetPowerPlanOptionsAsync().ConfigureAwait(false);
+                var currentIndex = await GetCurrentPowerPlanIndexAsync(options).ConfigureAwait(false);
 
                 foreach (var option in options)
                 {
@@ -50,7 +50,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             logService.Log(LogLevel.Info, "[PowerPlanComboBoxService] Starting power plan options discovery");
             
-            var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
+            var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
             var options = new List<PowerPlanComboBoxOption>();
             var processedGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var processedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -154,7 +154,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var activePlan = await powerSettingsQueryService.GetActivePowerPlanAsync();
+                var activePlan = await powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
                 if (activePlan == null) return 0;
 
                 for (int i = 0; i < options.Count; i++)
@@ -274,7 +274,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService] Resolving power plan index {index} to GUID");
 
-                var options = await GetPowerPlanOptionsAsync();
+                var options = await GetPowerPlanOptionsAsync().ConfigureAwait(false);
 
                 if (index < 0 || index >= options.Count)
                 {

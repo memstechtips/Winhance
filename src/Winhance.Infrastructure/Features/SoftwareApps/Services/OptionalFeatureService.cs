@@ -87,7 +87,7 @@ public class OptionalFeatureService(
                 OptionalFeatureName = featureName
             };
 
-            var result = await windowsAppsService.DisableOptionalFeatureNativeAsync(item, cancellationToken);
+            var result = await windowsAppsService.DisableOptionalFeatureNativeAsync(item, cancellationToken).ConfigureAwait(false);
 
             if (result.Success)
             {

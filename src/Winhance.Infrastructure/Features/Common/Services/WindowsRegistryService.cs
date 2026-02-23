@@ -283,7 +283,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
+        private bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
         {
             try
             {
@@ -315,7 +315,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public byte? GetBinaryByte(string keyPath, string valueName, int byteIndex)
+        private byte? GetBinaryByte(string keyPath, string valueName, int byteIndex)
         {
             try
             {
@@ -332,7 +332,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
+        private bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
         {
             try
             {
@@ -367,7 +367,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public bool IsBitSet(string keyPath, string valueName, int byteIndex, byte bitMask)
+        private bool IsBitSet(string keyPath, string valueName, int byteIndex, byte bitMask)
         {
             try
             {

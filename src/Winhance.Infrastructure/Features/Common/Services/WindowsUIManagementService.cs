@@ -78,14 +78,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (killExplorer)
                 {
-                    await Task.Delay(500);
+                    await Task.Delay(500).ConfigureAwait(false);
 
                     bool explorerWasRunning = IsProcessRunning("explorer");
 
                     if (explorerWasRunning)
                     {
                         KillProcess("explorer");
-                        await Task.Delay(1000);
+                        await Task.Delay(1000).ConfigureAwait(false);
 
                         int retryCount = 0;
                         const int maxRetries = 5;
@@ -100,7 +100,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             else
                             {
                                 retryCount++;
-                                await Task.Delay(1000);
+                                await Task.Delay(1000).ConfigureAwait(false);
                             }
                         }
 
@@ -109,7 +109,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             try
                             {
                                 Process.Start("explorer.exe");
-                                await Task.Delay(2000);
+                                await Task.Delay(2000).ConfigureAwait(false);
                             }
                             catch (Exception ex)
                             {

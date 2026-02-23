@@ -102,7 +102,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                     using var proc = System.Diagnostics.Process.GetProcessById(pi.dwProcessId);
                     proc.Kill(entireProcessTree: true);
                 }
-                catch { }
+                catch { /* Best-effort process kill — process may have already exited */ }
             });
 
             var readTask = Task.Run(() =>

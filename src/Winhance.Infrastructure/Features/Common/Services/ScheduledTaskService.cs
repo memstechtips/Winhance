@@ -38,7 +38,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
                 logService.LogError($"Error registering scheduled task for {script?.Name}", ex);
                 return false;
             }
-        });
+        }).ConfigureAwait(false);
     }
 
 
@@ -74,7 +74,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
                 logService.LogError($"Error unregistering task: {taskName}", ex);
                 return false;
             }
-        });
+        }).ConfigureAwait(false);
     }
 
     public async Task<bool> IsTaskRegisteredAsync(string taskName)
@@ -95,7 +95,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
             {
                 return false;
             }
-        });
+        }).ConfigureAwait(false);
     }
 
     public async Task<bool> RunScheduledTaskAsync(string taskName)
@@ -129,7 +129,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
                 logService.LogError($"Error running task: {taskName}", ex);
                 return false;
             }
-        });
+        }).ConfigureAwait(false);
     }
 
     public async Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
@@ -145,7 +145,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
                 logService.LogError($"Error creating user logon task: {taskName}", ex);
                 return false;
             }
-        });
+        }).ConfigureAwait(false);
     }
 
     private bool RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
@@ -277,12 +277,12 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
 
     public async Task<bool> EnableTaskAsync(string taskPath)
     {
-        return await Task.Run(() => SetTaskEnabled(taskPath, true));
+        return await Task.Run(() => SetTaskEnabled(taskPath, true)).ConfigureAwait(false);
     }
 
     public async Task<bool> DisableTaskAsync(string taskPath)
     {
-        return await Task.Run(() => SetTaskEnabled(taskPath, false));
+        return await Task.Run(() => SetTaskEnabled(taskPath, false)).ConfigureAwait(false);
     }
 
     public async Task<bool?> IsTaskEnabledAsync(string taskPath)
@@ -305,7 +305,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
                     $"Failed to query task state for {taskPath}: {ex.Message}");
                 return null;
             }
-        });
+        }).ConfigureAwait(false);
     }
 
     private bool SetTaskEnabled(string taskPath, bool enabled)

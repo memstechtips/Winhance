@@ -23,11 +23,11 @@ public class AppLoadingService(
     {
         try
         {
-            var windowsApps = await windowsAppsService.GetAppsAsync();
-            var externalApps = await externalAppsService.GetAppsAsync();
+            var windowsApps = await windowsAppsService.GetAppsAsync().ConfigureAwait(false);
+            var externalApps = await externalAppsService.GetAppsAsync().ConfigureAwait(false);
             var allApps = windowsApps.Concat(externalApps).ToList();
 
-            var installStates = await statusDiscoveryService.GetInstallationStatusBatchAsync(allApps);
+            var installStates = await statusDiscoveryService.GetInstallationStatusBatchAsync(allApps).ConfigureAwait(false);
 
             foreach (var app in allApps)
             {
@@ -45,8 +45,8 @@ public class AppLoadingService(
 
     public async Task<ItemDefinition?> GetAppByIdAsync(string appId)
     {
-        var windowsApps = await windowsAppsService.GetAppsAsync();
-        var externalApps = await externalAppsService.GetAppsAsync();
+        var windowsApps = await windowsAppsService.GetAppsAsync().ConfigureAwait(false);
+        var externalApps = await externalAppsService.GetAppsAsync().ConfigureAwait(false);
         return windowsApps.Concat(externalApps).FirstOrDefault(app => app.Id == appId);
     }
 
@@ -59,7 +59,7 @@ public class AppLoadingService(
         if (definitionList.Count == 0)
             throw new ArgumentException("Must provide at least one valid definition", nameof(definitions));
 
-        return await statusDiscoveryService.GetInstallationStatusBatchAsync(definitionList);
+        return await statusDiscoveryService.GetInstallationStatusBatchAsync(definitionList).ConfigureAwait(false);
     }
 
     private static string GetKeyForDefinition(ItemDefinition definition)
@@ -80,7 +80,7 @@ public class AppLoadingService(
                 return OperationResult<bool>.Succeeded(true);
             }
 
-            var statuses = await GetBatchInstallStatusAsync(appsList);
+            var statuses = await GetBatchInstallStatusAsync(appsList).ConfigureAwait(false);
 
             foreach (var app in appsList)
             {

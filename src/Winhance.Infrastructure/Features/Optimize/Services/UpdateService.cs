@@ -27,7 +27,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             if (setting.Id == "updates-policy-mode" && value is int index)
             {
-                await ApplyUpdatesPolicyModeAsync(setting, index);
+                await ApplyUpdatesPolicyModeAsync(setting, index).ConfigureAwait(false);
                 return true;
             }
             return false;
@@ -40,7 +40,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             var updatesSetting = settings.FirstOrDefault(s => s.Id == "updates-policy-mode");
             if (updatesSetting != null)
             {
-                var currentIndex = await GetCurrentUpdatePolicyIndexAsync();
+                var currentIndex = await GetCurrentUpdatePolicyIndexAsync().ConfigureAwait(false);
                 results["updates-policy-mode"] = new Dictionary<string, object?> { ["CurrentPolicyIndex"] = currentIndex };
             }
 
@@ -70,16 +70,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             switch (selectionIndex)
             {
                 case 0:
-                    await ApplyNormalModeAsync(setting);
+                    await ApplyNormalModeAsync(setting).ConfigureAwait(false);
                     break;
                 case 1:
-                    await ApplySecurityOnlyModeAsync(setting);
+                    await ApplySecurityOnlyModeAsync(setting).ConfigureAwait(false);
                     break;
                 case 2:
-                    await ApplyPausedModeAsync(setting);
+                    await ApplyPausedModeAsync(setting).ConfigureAwait(false);
                     break;
                 case 3:
-                    await ApplyDisabledModeAsync(setting);
+                    await ApplyDisabledModeAsync(setting).ConfigureAwait(false);
                     break;
                 default:
                     throw new ArgumentException($"Invalid selection index: {selectionIndex}");
@@ -90,16 +90,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         private async Task ApplyNormalModeAsync(SettingDefinition setting)
         {
-            await RestoreCriticalDllsAsync();
-            await EnableUpdateServicesAsync();
-            await EnableUpdateTasksAsync();
+            await RestoreCriticalDllsAsync().ConfigureAwait(false);
+            await EnableUpdateServicesAsync().ConfigureAwait(false);
+            await EnableUpdateTasksAsync().ConfigureAwait(false);
             ApplyRegistrySettingsForIndex(setting, 0);
         }
 
         private async Task ApplySecurityOnlyModeAsync(SettingDefinition setting)
         {
-            await RestoreCriticalDllsAsync();
-            await EnableUpdateServicesAsync();
+            await RestoreCriticalDllsAsync().ConfigureAwait(false);
+            await EnableUpdateServicesAsync().ConfigureAwait(false);
             ApplyRegistrySettingsForIndex(setting, 1);
         }
 
@@ -112,7 +112,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
                 try
                 {
-                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id);
+                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -120,8 +120,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 }
             }
 
-            await RestoreCriticalDllsAsync();
-            await SetUpdateServicesManualAsync();
+            await RestoreCriticalDllsAsync().ConfigureAwait(false);
+            await SetUpdateServicesManualAsync().ConfigureAwait(false);
             ApplyRegistrySettingsForIndex(setting, 2);
         }
 
@@ -134,7 +134,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
                 try
                 {
-                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id);
+                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -142,10 +142,10 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 }
             }
 
-            await DisableUpdateServicesAsync();
-            await DisableUpdateTasksAsync();
-            await RenameCriticalDllsAsync();
-            await CleanupUpdateFilesAsync();
+            await DisableUpdateServicesAsync().ConfigureAwait(false);
+            await DisableUpdateTasksAsync().ConfigureAwait(false);
+            await RenameCriticalDllsAsync().ConfigureAwait(false);
+            await CleanupUpdateFilesAsync().ConfigureAwait(false);
             ApplyRegistrySettingsForIndex(setting, 3);
         }
 
@@ -166,9 +166,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 };
 
                 using var process = Process.Start(psi)!;
-                var output = await process.StandardOutput.ReadToEndAsync();
-                var error = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 return (process.ExitCode == 0, output, error);
             }
@@ -186,9 +186,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await RunCommandAsync($"net stop {service}");
-                    await RunCommandAsync($"sc config {service} start= disabled");
-                    await RunCommandAsync($"sc failure {service} reset= 0 actions= \"\"");
+                    await RunCommandAsync($"net stop {service}").ConfigureAwait(false);
+                    await RunCommandAsync($"sc config {service} start= disabled").ConfigureAwait(false);
+                    await RunCommandAsync($"sc failure {service} reset= 0 actions= \"\"").ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"Disabled service: {service}");
                 }
                 catch (Exception ex)
@@ -211,8 +211,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await RunCommandAsync($"sc config {service} start= {startType}");
-                    await RunCommandAsync($"net start {service}");
+                    await RunCommandAsync($"sc config {service} start= {startType}").ConfigureAwait(false);
+                    await RunCommandAsync($"net start {service}").ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"Enabled service: {service}");
                 }
                 catch (Exception ex)
@@ -230,7 +230,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await RunCommandAsync($"sc config {service} start= demand");
+                    await RunCommandAsync($"sc config {service} start= demand").ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"Set {service} to manual");
                 }
                 catch (Exception ex)
@@ -256,7 +256,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 try
                 {
                     var script = $"Get-ScheduledTask -TaskPath '{folderPath}' -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue";
-                    await PowerShellRunner.RunScriptAsync(script);
+                    await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -278,7 +278,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 try
                 {
                     var script = $"Get-ScheduledTask -TaskPath '{folderPath}' -ErrorAction SilentlyContinue | Enable-ScheduledTask -ErrorAction SilentlyContinue";
-                    await PowerShellRunner.RunScriptAsync(script);
+                    await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -303,8 +303,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         if (File.Exists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"Conflict detected for {dll}. Deleting stale backup.");
-                            await RunCommandAsync($"takeown /f \"{backupPath}\"");
-                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            await RunCommandAsync($"takeown /f \"{backupPath}\"").ConfigureAwait(false);
+                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
                             File.Delete(backupPath);
                         }
                         else
@@ -316,8 +316,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     if (!File.Exists(dllPath) || File.Exists(backupPath))
                         continue;
 
-                    await RunCommandAsync($"takeown /f \"{dllPath}\"");
-                    await RunCommandAsync($"icacls \"{dllPath}\" /grant *S-1-1-0:F");
+                    await RunCommandAsync($"takeown /f \"{dllPath}\"").ConfigureAwait(false);
+                    await RunCommandAsync($"icacls \"{dllPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
 
                     File.Move(dllPath, backupPath);
                     logService.Log(LogLevel.Info, $"Renamed {dll} to backup");
@@ -345,14 +345,14 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         if (File.Exists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"System already restored {dll}. Removing backup.");
-                            await RunCommandAsync($"takeown /f \"{backupPath}\"");
-                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            await RunCommandAsync($"takeown /f \"{backupPath}\"").ConfigureAwait(false);
+                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
                             File.Delete(backupPath);
                         }
                         else
                         {
-                            await RunCommandAsync($"takeown /f \"{backupPath}\"");
-                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            await RunCommandAsync($"takeown /f \"{backupPath}\"").ConfigureAwait(false);
+                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
 
                             File.Move(backupPath, dllPath);
                             logService.Log(LogLevel.Info, $"Restored {dll} from backup");
@@ -371,7 +371,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             try
             {
                 var script = "Remove-Item 'C:\\Windows\\SoftwareDistribution\\*' -Recurse -Force -ErrorAction SilentlyContinue";
-                await PowerShellRunner.RunScriptAsync(script);
+                await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                 logService.Log(LogLevel.Info, "Cleaned SoftwareDistribution folder");
             }
             catch (Exception ex)

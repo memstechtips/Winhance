@@ -35,7 +35,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             try
             {
-                var alreadyMigrated = await _prefsService.GetPreferenceAsync("ScriptMigrationCompleted", false);
+                var alreadyMigrated = await _prefsService.GetPreferenceAsync("ScriptMigrationCompleted", false).ConfigureAwait(false);
                 if (alreadyMigrated)
                 {
                     _logService.Log(LogLevel.Info, "Script migration already completed previously");
@@ -47,17 +47,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (!Directory.Exists(oldScriptsPath))
                 {
                     _logService.Log(LogLevel.Info, "No old script directory found - migration not needed");
-                    await _prefsService.SetPreferenceAsync("ScriptMigrationCompleted", true);
+                    await _prefsService.SetPreferenceAsync("ScriptMigrationCompleted", true).ConfigureAwait(false);
                     return result;
                 }
 
                 _logService.Log(LogLevel.Info, $"Found old script directory: {oldScriptsPath}");
                 result.MigrationPerformed = true;
 
-                result.TasksDeleted = await DeleteOldScheduledTasksAsync();
+                result.TasksDeleted = await DeleteOldScheduledTasksAsync().ConfigureAwait(false);
                 result.ScriptsRenamed = RenameOldScripts(oldScriptsPath);
 
-                await _prefsService.SetPreferenceAsync("ScriptMigrationCompleted", true);
+                await _prefsService.SetPreferenceAsync("ScriptMigrationCompleted", true).ConfigureAwait(false);
 
                 _logService.Log(LogLevel.Info,
                     $"Migration completed: {result.TasksDeleted} tasks deleted, {result.ScriptsRenamed} scripts renamed");
@@ -86,10 +86,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 try
                 {
-                    var exists = await _scheduledTaskService.IsTaskRegisteredAsync(taskName);
+                    var exists = await _scheduledTaskService.IsTaskRegisteredAsync(taskName).ConfigureAwait(false);
                     if (exists)
                     {
-                        var deleted = await _scheduledTaskService.UnregisterScheduledTaskAsync(taskName);
+                        var deleted = await _scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
                         if (deleted)
                         {
                             deletedCount++;

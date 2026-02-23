@@ -154,7 +154,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 && interactiveUserService.HasInteractiveUserToken)
             {
                 var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
-                    exePath, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine);
+                    exePath, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
                 return new WinGetCliResult(result.ExitCode, result.StandardOutput, result.StandardError);
             }
 
@@ -169,7 +169,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                     return await conPty.RunAsync(
                         exePath, arguments,
                         onOutputLine, onErrorLine, onProgressLine,
-                        cancellationToken, timeoutMs);
+                        cancellationToken, timeoutMs).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (
                     ex is InvalidOperationException or
@@ -205,7 +205,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
             // Kill process tree on cancellation
             using var registration = linkedCts.Token.Register(() =>
             {
-                try { process.Kill(entireProcessTree: true); } catch { }
+                try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
             });
 
             // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
@@ -214,20 +214,20 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
             var readStdout = Task.Run(async () =>
             {
                 await ReadStdoutCharByCharAsync(
-                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine);
+                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine).ConfigureAwait(false);
             }, CancellationToken.None);
 
             var readStderr = Task.Run(async () =>
             {
-                while (await process.StandardError.ReadLineAsync() is { } line)
+                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
                     stderrBuilder.AppendLine(line);
                     onErrorLine?.Invoke(line);
                 }
             }, CancellationToken.None);
 
-            await Task.WhenAll(readStdout, readStderr);
-            await process.WaitForExitAsync(linkedCts.Token);
+            await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
+            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
 
             return new WinGetCliResult(
                 process.ExitCode,
@@ -251,7 +251,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
             var buffer = new char[1];
             string? lastStringBeforeLF = null;
 
-            while (await reader.ReadBlockAsync(buffer, 0, 1) > 0)
+            while (await reader.ReadBlockAsync(buffer, 0, 1).ConfigureAwait(false) > 0)
             {
                 char c = buffer[0];
 

@@ -33,7 +33,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             foreach (var script in Scripts)
             {
-                await CheckAndUpdateScriptAsync(script);
+                await CheckAndUpdateScriptAsync(script).ConfigureAwait(false);
             }
         }
 
@@ -72,7 +72,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (script.RunAfterUpdate)
                 {
-                    await _scheduledTaskService.RunScheduledTaskAsync(script.Name);
+                    await _scheduledTaskService.RunScheduledTaskAsync(script.Name).ConfigureAwait(false);
                     _logService.LogInformation($"{script.Name} scheduled task executed");
                 }
             }

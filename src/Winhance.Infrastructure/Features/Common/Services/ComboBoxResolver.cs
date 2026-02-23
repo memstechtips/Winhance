@@ -16,7 +16,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public async Task<object?> ResolveCurrentValueAsync(SettingDefinition setting, Dictionary<string, object?>? existingRawValues = null)
         {
-            var rawValues = await GetRawValues(setting, existingRawValues);
+            var rawValues = await GetRawValues(setting, existingRawValues).ConfigureAwait(false);
             
             if (setting.InputType == InputType.Selection && setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true)
             {
@@ -41,7 +41,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return existingRawValues;
             }
 
-            var rawValues = await discoveryService.GetRawSettingsValuesAsync(new[] { setting });
+            var rawValues = await discoveryService.GetRawSettingsValuesAsync(new[] { setting }).ConfigureAwait(false);
             return rawValues.TryGetValue(setting.Id, out var values) ? values : new Dictionary<string, object?>();
         }
 

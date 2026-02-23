@@ -56,7 +56,7 @@ public class StoreDownloadService : IStoreDownloadService
 
             // Download the package
             _taskProgressService?.UpdateProgress(5, _localization.GetString("Progress_Store_FetchingLinks", displayName));
-            var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken);
+            var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken).ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(packagePath))
             {
@@ -67,7 +67,7 @@ public class StoreDownloadService : IStoreDownloadService
             // If we reach here, the package was downloaded but not installed yet (no dependencies found)
             // This shouldn't happen with the new flow, but handle it just in case
             _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
-            var installSuccess = await InstallPackageAsync(packagePath, displayName, cancellationToken);
+            var installSuccess = await InstallPackageAsync(packagePath, displayName, cancellationToken).ConfigureAwait(false);
 
             if (installSuccess)
             {
@@ -119,7 +119,7 @@ public class StoreDownloadService : IStoreDownloadService
         {
             // Step 1: Get download links from store.rg-adguard.net API
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Store_RequestingInfo", displayName));
-            var downloadLinks = await GetDownloadLinksAsync(productId, cancellationToken);
+            var downloadLinks = await GetDownloadLinksAsync(productId, cancellationToken).ConfigureAwait(false);
 
             // Check for cancellation after API call
             cancellationToken.ThrowIfCancellationRequested();
@@ -155,7 +155,7 @@ public class StoreDownloadService : IStoreDownloadService
                 downloadPath,
                 mainPackage.FileName,
                 displayName,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(downloadedFile))
             {
@@ -168,7 +168,7 @@ public class StoreDownloadService : IStoreDownloadService
             _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
             _logService?.LogInformation("Attempting installation without dependencies first...");
 
-            var (success, errorMessage) = await TryInstallPackageAsync(downloadedFile, displayName, cancellationToken);
+            var (success, errorMessage) = await TryInstallPackageAsync(downloadedFile, displayName, cancellationToken).ConfigureAwait(false);
 
             if (success)
             {
@@ -274,7 +274,7 @@ public class StoreDownloadService : IStoreDownloadService
                         downloadPath,
                         matchingDep.FileName,
                         displayName,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     if (!string.IsNullOrEmpty(depPath))
                     {
@@ -294,7 +294,7 @@ public class StoreDownloadService : IStoreDownloadService
                 // Try installing with all dependencies collected so far
                 _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_InstallingWithDependencies", displayName, allDownloadedDependencies.Count));
                 var (retrySuccess, retryError) = await TryInstallPackageWithDependenciesAsync(
-                    downloadedFile, allDownloadedDependencies, displayName, cancellationToken);
+                    downloadedFile, allDownloadedDependencies, displayName, cancellationToken).ConfigureAwait(false);
 
                 if (retrySuccess)
                 {
@@ -330,10 +330,10 @@ public class StoreDownloadService : IStoreDownloadService
 
         _logService?.LogInformation($"Requesting download links from store.rg-adguard.net API for {productId}");
 
-        var response = await _httpClient.PostAsync(StoreApiUrl, requestContent, cancellationToken);
+        var response = await _httpClient.PostAsync(StoreApiUrl, requestContent, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var htmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        var htmlContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         // Parse HTML for download links
         // Pattern: <a href="URL">FILENAME</a>
@@ -410,13 +410,13 @@ public class StoreDownloadService : IStoreDownloadService
         {
             _logService?.LogInformation($"Downloading {fileName} from Microsoft CDN...");
 
-            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
             var totalMB = totalBytes / (1024.0 * 1024.0);
 
-            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             var buffer = new byte[8192];
@@ -424,9 +424,9 @@ public class StoreDownloadService : IStoreDownloadService
             int bytesRead;
             var lastProgress = 0;
 
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (totalBytes > 0)
@@ -471,7 +471,7 @@ public class StoreDownloadService : IStoreDownloadService
 
             var packageManager = new Windows.Management.Deployment.PackageManager();
             var packageUri = new Uri(packagePath);
-            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None);
+            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None).AsTask().ConfigureAwait(false);
 
             _logService?.LogInformation($"Successfully installed {displayName}");
             return (true, string.Empty);
@@ -485,7 +485,7 @@ public class StoreDownloadService : IStoreDownloadService
 
     private async Task<bool> InstallPackageAsync(string packagePath, string displayName, CancellationToken cancellationToken)
     {
-        var (success, _) = await TryInstallPackageAsync(packagePath, displayName, cancellationToken);
+        var (success, _) = await TryInstallPackageAsync(packagePath, displayName, cancellationToken).ConfigureAwait(false);
         return success;
     }
 
@@ -503,7 +503,7 @@ public class StoreDownloadService : IStoreDownloadService
             var packageUri = new Uri(packagePath);
             var dependencyUris = dependencyPaths.Select(p => new Uri(p)).ToList();
 
-            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None);
+            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None).AsTask().ConfigureAwait(false);
 
             _logService?.LogInformation($"Successfully installed {displayName} with dependencies");
             return (true, string.Empty);

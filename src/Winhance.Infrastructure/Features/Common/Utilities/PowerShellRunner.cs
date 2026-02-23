@@ -30,8 +30,8 @@ public static class PowerShellRunner
         var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_{Guid.NewGuid()}.ps1");
         try
         {
-            await File.WriteAllTextAsync(tempFile, script, ct);
-            return await RunScriptFileAsync(tempFile, "", progress, ct);
+            await File.WriteAllTextAsync(tempFile, script, ct).ConfigureAwait(false);
+            return await RunScriptFileAsync(tempFile, "", progress, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -105,7 +105,7 @@ public static class PowerShellRunner
             catch { /* process may have already exited */ }
         });
 
-        await process.WaitForExitAsync(ct);
+        await process.WaitForExitAsync(ct).ConfigureAwait(false);
 
         if (process.ExitCode != 0 && errors.Length > 0)
         {
@@ -128,7 +128,7 @@ public static class PowerShellRunner
         var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
         try
         {
-            await File.WriteAllTextAsync(tempFile, scriptContent, ct);
+            await File.WriteAllTextAsync(tempFile, scriptContent, ct).ConfigureAwait(false);
 
             // Use PowerShell's parser to check for syntax errors
             var parseScript = @"
@@ -141,7 +141,7 @@ if ($errors.Count -gt 0) {
 Write-Host 'Script validation passed - no parse errors found'
 exit 0";
 
-            await RunScriptAsync(parseScript, ct: ct);
+            await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
         }
         finally
         {
@@ -161,7 +161,7 @@ exit 0";
         var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.xml");
         try
         {
-            await File.WriteAllTextAsync(tempFile, xmlContent, ct);
+            await File.WriteAllTextAsync(tempFile, xmlContent, ct).ConfigureAwait(false);
 
             var parseScript = @"
 try {
@@ -177,7 +177,7 @@ try {
     exit 1
 }";
 
-            await RunScriptAsync(parseScript, ct: ct);
+            await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
         }
         finally
         {

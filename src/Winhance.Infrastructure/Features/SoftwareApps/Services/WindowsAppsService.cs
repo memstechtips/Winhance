@@ -49,13 +49,13 @@ public class WindowsAppsService(
 
     public async Task<ItemDefinition?> GetAppByIdAsync(string appId)
     {
-        var apps = await GetAppsAsync();
+        var apps = await GetAppsAsync().ConfigureAwait(false);
         return apps.FirstOrDefault(app => app.Id == appId);
     }
 
     public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
-        return await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions);
+        return await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions).ConfigureAwait(false);
     }
 
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
@@ -86,7 +86,7 @@ public class WindowsAppsService(
                 // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = GetCurrentCancellationToken();
-                var installResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken);
+                var installResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
 
                 if (installResult.Success)
                 {
@@ -94,7 +94,7 @@ public class WindowsAppsService(
                 }
 
                 // If WinGet failed, check if Windows Update policy is blocking installations
-                if (await IsUpdatePolicyDisabledAsync() && dialogService != null && settingApplicationService != null)
+                if (await IsUpdatePolicyDisabledAsync().ConfigureAwait(false) && dialogService != null && settingApplicationService != null)
                 {
                     logService?.LogWarning($"Windows Update DLLs appear to be renamed (Disabled mode). Offering to fix for {item.Name}...");
 
@@ -111,18 +111,18 @@ public class WindowsAppsService(
                         title: updateTitle,
                         okButtonText: yesButton,
                         cancelButtonText: noButton
-                    );
+                    ).ConfigureAwait(false);
 
                     if (userAccepted)
                     {
                         logService?.LogInformation("User accepted update policy change. Switching to 'Paused for a long time'...");
                         try
                         {
-                            await settingApplicationService.ApplySettingAsync("updates-policy-mode", true, 2);
+                            await settingApplicationService.ApplySettingAsync("updates-policy-mode", true, 2).ConfigureAwait(false);
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = GetCurrentCancellationToken();
-                            var retryResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken2);
+                            var retryResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken2).ConfigureAwait(false);
                             if (retryResult.Success)
                             {
                                 return OperationResult<bool>.Succeeded(true);
@@ -150,7 +150,7 @@ public class WindowsAppsService(
                     bool skipConfirmation = false;
                     if (userPreferencesService != null)
                     {
-                        skipConfirmation = await userPreferencesService.GetPreferenceAsync(FallbackConfirmationPreferenceKey, false);
+                        skipConfirmation = await userPreferencesService.GetPreferenceAsync(FallbackConfirmationPreferenceKey, false).ConfigureAwait(false);
                     }
 
                     bool userConsent = skipConfirmation;
@@ -177,14 +177,14 @@ public class WindowsAppsService(
                             continueButtonText: downloadButton,
                             cancelButtonText: cancelButton,
                             titleBarIcon: "Download"
-                        );
+                        ).ConfigureAwait(false);
 
                         userConsent = confirmed;
 
                         // Save preference if user checked "don't show again"
                         if (dontShowAgain && userPreferencesService != null)
                         {
-                            await userPreferencesService.SetPreferenceAsync(FallbackConfirmationPreferenceKey, true);
+                            await userPreferencesService.SetPreferenceAsync(FallbackConfirmationPreferenceKey, true).ConfigureAwait(false);
                             logService?.LogInformation("User opted to skip fallback confirmation in future");
                         }
                     }
@@ -203,7 +203,7 @@ public class WindowsAppsService(
                         var fallbackSuccess = await storeDownloadService.DownloadAndInstallPackageAsync(
                             fallbackPackageId,
                             item.Name,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
 
                         if (fallbackSuccess)
                         {
@@ -260,7 +260,7 @@ public class WindowsAppsService(
 
                 foreach (var package in packages)
                 {
-                    await packageManager.RemovePackageAsync(package.Id.FullName);
+                    await packageManager.RemovePackageAsync(package.Id.FullName).AsTask().ConfigureAwait(false);
                 }
 
                 return OperationResult<bool>.Succeeded(true);
@@ -323,7 +323,7 @@ public class WindowsAppsService(
             if (string.IsNullOrEmpty(item.CapabilityName))
                 return OperationResult<bool>.Failed("No capability name specified");
 
-            var result = await RemoveCapabilityAsync(item);
+            var result = await RemoveCapabilityAsync(item).ConfigureAwait(false);
             return result;
         }
         catch (OperationCanceledException)
@@ -395,7 +395,7 @@ public class WindowsAppsService(
                 {
                     DismApi.DismDelete(capPtr);
                 }
-            }, ct, log: msg => logService?.LogInformation(msg));
+            }, ct, log: msg => logService?.LogInformation(msg)).ConfigureAwait(false);
 
             logService?.LogInformation($"[DISM-Remove] RemoveCapabilityAsync DONE: '{item.CapabilityName}'");
             return OperationResult<bool>.Succeeded(true);
@@ -429,7 +429,7 @@ public class WindowsAppsService(
                 logService?.LogInformation($"[DISM-Disable] <<< DismDisableFeature returned 0x{hr:X8} ({sw.ElapsedMilliseconds}ms)");
                 DismApi.ThrowIfFailed(hr, "DisableFeature");
                 logService?.LogInformation($"[DISM-Disable] Feature '{item.OptionalFeatureName}' disabled successfully");
-            }, ct, log: msg => logService?.LogInformation(msg));
+            }, ct, log: msg => logService?.LogInformation(msg)).ConfigureAwait(false);
 
             logService?.LogInformation($"[DISM-Disable] DisableOptionalFeatureNativeAsync DONE: '{item.OptionalFeatureName}'");
             return OperationResult<bool>.Succeeded(true);
@@ -464,7 +464,7 @@ public class WindowsAppsService(
                         {
                             logService?.LogInformation($"Stopping process: {processName} (PID {proc.Id})");
                             proc.Kill();
-                            await proc.WaitForExitAsync(ct);
+                            await proc.WaitForExitAsync(ct).ConfigureAwait(false);
                             proc.Dispose();
                         }
                     }
@@ -508,7 +508,7 @@ public class WindowsAppsService(
 
                         logService?.LogInformation($"Found uninstall string: {uninstallString}");
 
-                        await ExecuteUninstallStringAsync(uninstallString, ct);
+                        await ExecuteUninstallStringAsync(uninstallString, ct).ConfigureAwait(false);
                         uninstallExecuted = true;
                     }
                 }
@@ -536,7 +536,7 @@ public class WindowsAppsService(
 
                         logService?.LogInformation($"Found HKCU uninstall string: {uninstallString}");
 
-                        await ExecuteUninstallStringAsync(uninstallString, ct);
+                        await ExecuteUninstallStringAsync(uninstallString, ct).ConfigureAwait(false);
                         uninstallExecuted = true;
                     }
                 }
@@ -626,7 +626,7 @@ public class WindowsAppsService(
         };
 
         process.Start();
-        await process.WaitForExitAsync(ct);
+        await process.WaitForExitAsync(ct).ConfigureAwait(false);
         logService?.LogInformation($"Uninstall process exited with code: {process.ExitCode}");
         process.Dispose();
     }
@@ -643,7 +643,7 @@ public class WindowsAppsService(
             if (policySetting == null)
                 return false;
 
-            var states = await systemSettingsDiscoveryService.GetSettingStatesAsync(new[] { policySetting });
+            var states = await systemSettingsDiscoveryService.GetSettingStatesAsync(new[] { policySetting }).ConfigureAwait(false);
             if (states.TryGetValue("updates-policy-mode", out var state) && state.Success)
             {
                 return state.CurrentValue is int index && index == 3;

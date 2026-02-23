@@ -21,7 +21,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             if (setting.Id == "theme-mode-windows" && value is int index)
             {
-                await ApplyThemeModeWindowsAsync(setting, index, applyWallpaper: additionalContext);
+                await ApplyThemeModeWindowsAsync(setting, index, applyWallpaper: additionalContext).ConfigureAwait(false);
                 return true;
             }
             return false;
@@ -61,11 +61,11 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             if (applyWallpaper)
             {
                 logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying wallpaper for {(selectionIndex == 1 ? "Dark" : "Light")} theme");
-                await ApplyWallpaperForTheme(selectionIndex);
+                await ApplyWallpaperForTheme(selectionIndex).ConfigureAwait(false);
             }
 
             logService.Log(LogLevel.Info, $"[WindowsThemeService] Refreshing Windows UI");
-            await RefreshWindowsUI();
+            await RefreshWindowsUI().ConfigureAwait(false);
 
             logService.Log(LogLevel.Info, $"[WindowsThemeService] Successfully applied theme mode");
         }
@@ -80,7 +80,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
 
                 if (System.IO.File.Exists(wallpaperPath))
                 {
-                    await wallpaperService.SetWallpaperAsync(wallpaperPath);
+                    await wallpaperService.SetWallpaperAsync(wallpaperPath).ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"Wallpaper changed to: {wallpaperPath}");
                 }
             }
@@ -98,7 +98,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 // So just send the theme change messages without killing explorer
                 bool shouldKillExplorer = !uiManagementService.IsConfigImportMode;
 
-                await uiManagementService.RefreshWindowsGUI(killExplorer: shouldKillExplorer);
+                await uiManagementService.RefreshWindowsGUI(killExplorer: shouldKillExplorer).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

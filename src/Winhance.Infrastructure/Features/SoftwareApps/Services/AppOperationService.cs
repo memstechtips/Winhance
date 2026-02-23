@@ -35,10 +35,10 @@ public class AppOperationService(
         {
             if (shouldRemoveFromBloatScript)
             {
-                await bloatRemovalService.RemoveItemsFromScriptAsync(new List<ItemDefinition> { app });
-                await CleanupDedicatedRemovalArtifactsAsync(app);
+                await bloatRemovalService.RemoveItemsFromScriptAsync(new List<ItemDefinition> { app }).ConfigureAwait(false);
+                await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
             }
-            return await InstallSingleAppAsync(app, progress);
+            return await InstallSingleAppAsync(app, progress).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -60,7 +60,7 @@ public class AppOperationService(
         {
             if (!string.IsNullOrEmpty(app?.CapabilityName))
             {
-                var launched = await capabilityService.EnableCapabilityAsync(app.CapabilityName, app.Name);
+                var launched = await capabilityService.EnableCapabilityAsync(app.CapabilityName, app.Name).ConfigureAwait(false);
                 if (launched)
                 {
                     logService.Log(LogLevel.Info, $"PowerShell launched for capability '{app.Id}'");
@@ -71,7 +71,7 @@ public class AppOperationService(
 
             if (!string.IsNullOrEmpty(app?.OptionalFeatureName))
             {
-                var launched = await featureService.EnableFeatureAsync(app.OptionalFeatureName, app.Name);
+                var launched = await featureService.EnableFeatureAsync(app.OptionalFeatureName, app.Name).ConfigureAwait(false);
                 if (launched)
                 {
                     logService.Log(LogLevel.Info, $"PowerShell launched for feature '{app.Id}'");
@@ -90,7 +90,7 @@ public class AppOperationService(
                 if (isWindowsStoreApp)
                 {
                     // Use WindowsAppsService which has fallback logic for market-restricted Microsoft Store apps
-                    var result = await windowsAppsService.InstallAppAsync(app, progress);
+                    var result = await windowsAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
                     if (result.Success)
                     {
                         logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
@@ -100,7 +100,7 @@ public class AppOperationService(
                 else
                 {
                     // External apps - route through ExternalAppsService which handles both WinGet and direct downloads
-                    var result = await externalAppsService.InstallAppAsync(app, progress);
+                    var result = await externalAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
                     if (result.Success)
                     {
                         logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
@@ -130,7 +130,7 @@ public class AppOperationService(
         try
         {
             logService.LogInformation($"[UninstallApp] START: appId='{appId}'");
-            var app = await windowsAppsService.GetAppByIdAsync(appId);
+            var app = await windowsAppsService.GetAppByIdAsync(appId).ConfigureAwait(false);
             if (app == null)
             {
                 logService.LogInformation($"[UninstallApp] App '{appId}' not found in definitions");
@@ -145,13 +145,13 @@ public class AppOperationService(
             {
                 // Edge/OneDrive: use dedicated script execution via PowerShellRunner
                 logService.LogInformation($"[UninstallApp] Routing to ExecuteDedicatedScriptAsync for '{app.Name}'");
-                success = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken);
+                success = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken).ConfigureAwait(false);
             }
             else
             {
                 // Everything else (AppX, capability, feature, OneNote): use BloatRemoval script
                 logService.LogInformation($"[UninstallApp] Routing to ExecuteBloatRemovalAsync for '{app.Name}'");
-                success = await bloatRemovalService.ExecuteBloatRemovalAsync([app], progress, cancellationToken);
+                success = await bloatRemovalService.ExecuteBloatRemovalAsync([app], progress, cancellationToken).ConfigureAwait(false);
             }
 
             if (success)
@@ -182,18 +182,18 @@ public class AppOperationService(
 
             if (shouldRemoveFromBloatScript)
             {
-                await bloatRemovalService.RemoveItemsFromScriptAsync(apps);
+                await bloatRemovalService.RemoveItemsFromScriptAsync(apps).ConfigureAwait(false);
 
                 foreach (var app in apps)
                 {
-                    await CleanupDedicatedRemovalArtifactsAsync(app);
+                    await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
                 }
             }
 
             int successCount = 0;
             foreach (var app in apps)
             {
-                var result = await InstallSingleAppAsync(app, progress);
+                var result = await InstallSingleAppAsync(app, progress).ConfigureAwait(false);
                 if (result.Success) successCount++;
             }
 
@@ -236,7 +236,7 @@ public class AppOperationService(
                 logService.LogInformation($"[UninstallApps] Step 2: Executing {scriptApps.Count} dedicated scripts...");
                 foreach (var app in scriptApps)
                 {
-                    await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken);
+                    await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken).ConfigureAwait(false);
                 }
                 logService.LogInformation("[UninstallApps] Step 2 DONE");
             }
@@ -245,7 +245,7 @@ public class AppOperationService(
             if (regularApps.Count > 0)
             {
                 logService.LogInformation($"[UninstallApps] Step 3: Executing BloatRemoval for {regularApps.Count} regular apps...");
-                await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken);
+                await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken).ConfigureAwait(false);
                 logService.LogInformation("[UninstallApps] Step 3 DONE");
             }
 
@@ -253,12 +253,12 @@ public class AppOperationService(
             if (saveRemovalScripts)
             {
                 logService.LogInformation("[UninstallApps] Step 4: Persisting removal scripts...");
-                await bloatRemovalService.PersistRemovalScriptsAsync(apps);
+                await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
             }
             else
             {
                 logService.LogInformation("[UninstallApps] Step 4: Cleaning up all removal artifacts...");
-                await bloatRemovalService.CleanupAllRemovalArtifactsAsync();
+                await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
             }
             logService.LogInformation("[UninstallApps] Step 4 DONE");
 
@@ -322,7 +322,7 @@ public class AppOperationService(
                     var appName = app.Name;
                     tasks.Add(Task.Run(async () =>
                     {
-                        var result = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, ct);
+                        var result = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, ct).ConfigureAwait(false);
                         progress.Report(new TaskProgressDetail { Progress = 100, StatusText = appName, IsCompletion = true });
                         return result;
                     }, ct));
@@ -335,25 +335,25 @@ public class AppOperationService(
                     var ct = cancellationToken;
                     tasks.Add(Task.Run(async () =>
                     {
-                        var result = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, ct);
+                        var result = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, ct).ConfigureAwait(false);
                         progress.Report(new TaskProgressDetail { Progress = 100, StatusText = "Removing Apps", IsCompletion = true });
                         return result;
                     }, ct));
                 }
 
                 // Step 6: Wait for all
-                var results = await Task.WhenAll(tasks);
+                var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
                 // Step 7: Save or cleanup (sequential)
                 if (saveRemovalScripts)
                 {
                     logService.LogInformation("[UninstallAppsParallel] Persisting removal scripts...");
-                    await bloatRemovalService.PersistRemovalScriptsAsync(apps);
+                    await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
                 }
                 else
                 {
                     logService.LogInformation("[UninstallAppsParallel] Cleaning up all removal artifacts...");
-                    await bloatRemovalService.CleanupAllRemovalArtifactsAsync();
+                    await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
                 }
 
                 logService.Log(LogLevel.Success, $"[UninstallAppsParallel] DONE: Successfully removed {apps.Count} apps");
@@ -396,12 +396,12 @@ public class AppOperationService(
                 logService.LogInformation($"Deleted obsolete script: {scriptPath}");
             }
 
-            await scheduledTaskService.UnregisterScheduledTaskAsync(taskName);
+            await scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
             logService.LogInformation($"Cleaned up artifacts for reinstalled app: {app.Id}");
 
             if (app.Id == "windows-app-edge")
             {
-                await CleanupOpenWebSearchAsync();
+                await CleanupOpenWebSearchAsync().ConfigureAwait(false);
             }
         }
     }
@@ -429,7 +429,7 @@ public class AppOperationService(
         {
             logService.LogInformation("Cleaning up OpenWebSearch installation...");
 
-            await scheduledTaskService.UnregisterScheduledTaskAsync("OpenWebSearchRepair");
+            await scheduledTaskService.UnregisterScheduledTaskAsync("OpenWebSearchRepair").ConfigureAwait(false);
             logService.LogInformation("Removed OpenWebSearchRepair scheduled task");
 
             var openWebSearchDir = @"C:\ProgramData\Winhance\OpenWebSearch";

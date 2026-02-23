@@ -43,14 +43,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (_isInitialized) return;
 
-            await _initializationLock.WaitAsync();
+            await _initializationLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_isInitialized) return;
 
                 _logService.Log(LogLevel.Info, "Initializing compatible settings registry with auto-discovery");
                 
-                await PreFilterAllFeatureSettingsAsync();
+                await PreFilterAllFeatureSettingsAsync().ConfigureAwait(false);
                 
                 _isInitialized = true;
                 _logService.Log(LogLevel.Info, $"Compatible settings registry initialized with {_preFilteredSettings.Count} pre-filtered features");
@@ -132,8 +132,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     if (featureId == FeatureIds.Power)
                     {
-                        filteredSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(filteredSettings);
-                        filteredSettings = await _powerValidation.FilterSettingsByExistenceAsync(filteredSettings);
+                        filteredSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(filteredSettings).ConfigureAwait(false);
+                        filteredSettings = await _powerValidation.FilterSettingsByExistenceAsync(filteredSettings).ConfigureAwait(false);
                     }
 
                     _preFilteredSettings[featureId] = filteredSettings;
@@ -141,8 +141,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     IEnumerable<SettingDefinition> bypassedSettings = rawSettings;
                     if (featureId == FeatureIds.Power)
                     {
-                        bypassedSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(bypassedSettings);
-                        bypassedSettings = await _powerValidation.FilterSettingsByExistenceAsync(bypassedSettings);
+                        bypassedSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(bypassedSettings).ConfigureAwait(false);
+                        bypassedSettings = await _powerValidation.FilterSettingsByExistenceAsync(bypassedSettings).ConfigureAwait(false);
                     }
                     var decorated = _windowsFilter.FilterSettingsByWindowsVersion(bypassedSettings, applyFilter: false);
                     _windowsFilterBypassedSettings[featureId] = decorated;

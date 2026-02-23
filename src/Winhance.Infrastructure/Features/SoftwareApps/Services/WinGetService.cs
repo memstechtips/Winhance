@@ -122,7 +122,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken, timeoutCts.Token);
 
-                return await Task.Run(() => EnsureComInitialized(), linkedCts.Token);
+                return await Task.Run(() => EnsureComInitialized(), linkedCts.Token).ConfigureAwait(false);
             }
             catch
             {
@@ -139,7 +139,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_WinGet_CheckingPrerequisites", displayName));
 
-            if (!await IsWinGetInstalledAsync(cancellationToken))
+            if (!await IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false))
             {
                 _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_FailedInstallManager", displayName));
                 return PackageInstallResult.Failed(InstallFailureReason.WinGetNotAvailable, "WinGet CLI not found");
@@ -273,7 +273,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         {
                             _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
                         }
-                    });
+                    }).ConfigureAwait(false);
 
                 // Emit metadata footer for the task output dialog
                 var endTime = DateTime.Now;
@@ -331,7 +331,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_WinGet_CheckingPrerequisitesUninstall", displayName));
 
-            if (!await IsWinGetInstalledAsync(cancellationToken))
+            if (!await IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false))
             {
                 _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_NotInstalled"));
                 return false;
@@ -457,7 +457,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         {
                             _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
                         }
-                    });
+                    }).ConfigureAwait(false);
 
                 // Emit metadata footer for the task output dialog
                 var endTime = DateTime.Now;
@@ -480,7 +480,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     // and WinGet reports success as soon as it launches them.
                     _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_VerifyingUninstall", displayName));
 
-                    bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken);
+                    bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false);
 
                     if (stillInstalled)
                     {
@@ -494,10 +494,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         while (elapsed < maxWaitMs)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            await Task.Delay(pollIntervalMs, cancellationToken);
+                            await Task.Delay(pollIntervalMs, cancellationToken).ConfigureAwait(false);
                             elapsed += pollIntervalMs;
 
-                            if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken))
+                            if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false))
                             {
                                 stillInstalled = false;
                                 _logService?.LogInformation($"[winget] {packageId} confirmed uninstalled after {elapsed / 1000}s");
@@ -527,7 +527,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     _logService?.LogInformation($"[winget] {packageId} returned 0x{result.ExitCode:X8} — verifying whether package was actually removed");
                     _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_VerifyingUninstall", displayName));
 
-                    bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken);
+                    bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false);
 
                     if (stillInstalled)
                     {
@@ -541,10 +541,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         while (elapsed < maxWaitMs)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            await Task.Delay(pollIntervalMs, cancellationToken);
+                            await Task.Delay(pollIntervalMs, cancellationToken).ConfigureAwait(false);
                             elapsed += pollIntervalMs;
 
-                            if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken))
+                            if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false))
                             {
                                 stillInstalled = false;
                                 _logService?.LogInformation($"[winget] {packageId} confirmed uninstalled after {elapsed / 1000}s (despite exit code 0x{result.ExitCode:X8})");
@@ -599,7 +599,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     arguments,
                     cancellationToken: cancellationToken,
                     timeoutMs: 10_000,
-                    interactiveUserService: _interactiveUserService);
+                    interactiveUserService: _interactiveUserService).ConfigureAwait(false);
 
                 // Exit code 0 = found (still installed), non-zero = not found
                 return result.ExitCode == 0;
@@ -622,7 +622,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 _logService?.LogInformation("Starting AppInstaller installation...");
 
                 var installer = new WinGetInstaller(_logService, _localization, _taskProgressService);
-                var (success, message) = await installer.InstallAsync(cancellationToken);
+                var (success, message) = await installer.InstallAsync(cancellationToken).ConfigureAwait(false);
 
                 if (!success)
                 {
@@ -636,10 +636,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 for (int i = 0; i < 10; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Delay(3000, cancellationToken);
+                    await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
 
                     ResetFactory();
-                    if (await Task.Run(() => EnsureComInitialized(), cancellationToken))
+                    if (await Task.Run(() => EnsureComInitialized(), cancellationToken).ConfigureAwait(false))
                     {
                         _logService?.LogInformation($"COM API ready after {i + 1} attempt(s)");
                         _systemWinGetAvailable = true;
@@ -702,7 +702,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         {
                             var initTask = Task.Run(() => EnsureComInitialized(), cancellationToken);
                             var completed = await Task.WhenAny(
-                                initTask, Task.Delay(TimeSpan.FromSeconds(ComInitTimeoutSeconds), cancellationToken));
+                                initTask, Task.Delay(TimeSpan.FromSeconds(ComInitTimeoutSeconds), cancellationToken)).ConfigureAwait(false);
 
                             if (completed != initTask)
                             {
@@ -765,7 +765,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     onErrorLine: line => _logService?.LogWarning($"[winget-upgrade-err] {line}"),
                     cancellationToken: cancellationToken,
                     timeoutMs: 120_000,
-                    exePathOverride: bundledPath);
+                    exePathOverride: bundledPath).ConfigureAwait(false);
 
                 if (WinGetExitCodes.IsSuccess(result.ExitCode))
                 {
@@ -818,7 +818,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 // Only try COM if system winget is available (COM requires DesktopAppInstaller MSIX)
                 if (_systemWinGetAvailable && EnsureComInitialized() && _packageManager != null && _winGetFactory != null)
                 {
-                    var comResult = await GetInstalledPackageIdsViaCom(cancellationToken);
+                    var comResult = await GetInstalledPackageIdsViaCom(cancellationToken).ConfigureAwait(false);
                     if (comResult != null)
                         return comResult;
                     _logService?.LogInformation("COM detection failed/timed out, falling back to CLI");
@@ -826,7 +826,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 // CLI fallback (uses winget export → JSON)
                 _logService?.LogInformation("COM not available, falling back to CLI for installed package detection");
-                return await GetInstalledPackageIdsViaCli(cancellationToken);
+                return await GetInstalledPackageIdsViaCli(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -896,7 +896,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                     _logService?.LogInformation($"WinGet COM API: Found {installedPackageIds.Count} installed packages");
                     return installedPackageIds;
-                }, timeoutCts.Token);
+                }, timeoutCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -940,7 +940,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         cancellationToken: cancellationToken,
                         timeoutMs: timeoutMs,
                         exePathOverride: WinGetCliRunner.GetBundledWinGetExePath(),
-                        interactiveUserService: _interactiveUserService);
+                        interactiveUserService: _interactiveUserService).ConfigureAwait(false);
 
                     if (result.ExitCode != 0)
                     {
@@ -956,7 +956,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                         if (attempt < maxRetries)
                         {
-                            await Task.Delay(retryDelayMs, cancellationToken);
+                            await Task.Delay(retryDelayMs, cancellationToken).ConfigureAwait(false);
                             continue;
                         }
                         return installedPackageIds;
@@ -967,14 +967,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         _logService?.LogWarning($"winget export succeeded but file not found (attempt {attempt}/{maxRetries})");
                         if (attempt < maxRetries)
                         {
-                            await Task.Delay(retryDelayMs, cancellationToken);
+                            await Task.Delay(retryDelayMs, cancellationToken).ConfigureAwait(false);
                             continue;
                         }
                         return installedPackageIds;
                     }
 
                     // Parse JSON: root.Sources[].Packages[].PackageIdentifier
-                    var jsonBytes = await File.ReadAllBytesAsync(exportPath, cancellationToken);
+                    var jsonBytes = await File.ReadAllBytesAsync(exportPath, cancellationToken).ConfigureAwait(false);
                     using var doc = JsonDocument.Parse(jsonBytes);
 
                     if (doc.RootElement.TryGetProperty("Sources", out var sourcesElement))
@@ -1008,7 +1008,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     _logService?.LogError($"Error getting installed packages via winget export (attempt {attempt}/{maxRetries}): {ex.Message}");
                     if (attempt < maxRetries)
                     {
-                        await Task.Delay(retryDelayMs, cancellationToken);
+                        await Task.Delay(retryDelayMs, cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -1019,7 +1019,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 if (File.Exists(exportPath))
                     File.Delete(exportPath);
             }
-            catch { }
+            catch (Exception ex) { _logService?.LogDebug($"Best-effort export file cleanup failed: {ex.Message}"); }
 
             return installedPackageIds;
         }
@@ -1034,7 +1034,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 // Try COM first
                 if (EnsureComInitialized())
                 {
-                    var package = await FindPackageAsync(packageId, cancellationToken);
+                    var package = await FindPackageAsync(packageId, cancellationToken).ConfigureAwait(false);
                     if (package?.DefaultInstallVersion != null)
                     {
                         var catalogInfo = package.DefaultInstallVersion.PackageCatalog?.Info;
@@ -1050,7 +1050,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     $"show --id {packageId} --accept-source-agreements --disable-interactivity",
                     cancellationToken: cancellationToken,
                     timeoutMs: 60_000,
-                    interactiveUserService: _interactiveUserService);
+                    interactiveUserService: _interactiveUserService).ConfigureAwait(false);
 
                 if (result.ExitCode == 0)
                 {
@@ -1122,7 +1122,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     _logService?.LogError($"Error finding package {packageId}: {ex.Message}");
                     return null;
                 }
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion

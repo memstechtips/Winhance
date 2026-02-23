@@ -46,7 +46,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
 
             var domainService = domainServiceRouter.GetDomainService(settingId);
-            var allSettings = await domainService.GetSettingsAsync();
+            var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
             var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
 
             if (setting == null)
@@ -56,32 +56,32 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!string.IsNullOrEmpty(commandString))
             {
-                await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId);
+                await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId).ConfigureAwait(false);
                 return;
             }
 
             if (!skipValuePrerequisites)
             {
-                await HandleValuePrerequisitesAsync(setting, settingId, allSettings);
-                await HandleDependencies(settingId, allSettings, enable, value);
+                await HandleValuePrerequisitesAsync(setting, settingId, allSettings).ConfigureAwait(false);
+                await HandleDependencies(settingId, allSettings, enable, value).ConfigureAwait(false);
             }
 
-            if (await domainService.TryApplySpecialSettingAsync(setting, value!, checkboxResult))
+            if (await domainService.TryApplySpecialSettingAsync(setting, value!, checkboxResult).ConfigureAwait(false))
             {
-                await HandleProcessAndServiceRestarts(setting);
+                await HandleProcessAndServiceRestarts(setting).ConfigureAwait(false);
 
                 eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via domain service");
 
                 if (!skipValuePrerequisites)
                 {
-                    await SyncParentToMatchingPresetAsync(setting, settingId, allSettings);
+                    await SyncParentToMatchingPresetAsync(setting, settingId, allSettings).ConfigureAwait(false);
                 }
 
                 return;
             }
 
-            await ApplySettingOperations(setting, enable, value);
+            await ApplySettingOperations(setting, enable, value).ConfigureAwait(false);
 
             if (setting.CustomProperties?.ContainsKey(CustomPropertyKeys.SettingPresets) == true &&
                 setting.InputType == InputType.Selection &&
@@ -119,7 +119,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 }
                             }
 
-                            await ApplySettingAsync(childSettingId, childValue, skipValuePrerequisites: true);
+                            await ApplySettingAsync(childSettingId, childValue, skipValuePrerequisites: true).ConfigureAwait(false);
                             logService.Log(LogLevel.Info,
                                 $"[SettingApplicationService] Applied preset setting '{childSettingId}' = {childValue}");
                         }
@@ -134,7 +134,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!skipValuePrerequisites)
             {
-                await SyncParentToMatchingPresetAsync(setting, settingId, allSettings);
+                await SyncParentToMatchingPresetAsync(setting, settingId, allSettings).ConfigureAwait(false);
             }
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
@@ -148,7 +148,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var domainService = domainServiceRouter.GetDomainService(settingId);
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Starting to apply recommended settings for domain '{domainService.DomainName}'");
 
-                var recommendedSettings = await recommendedSettingsService.GetRecommendedSettingsAsync(settingId);
+                var recommendedSettings = await recommendedSettingsService.GetRecommendedSettingsAsync(settingId).ConfigureAwait(false);
                 var settingsList = recommendedSettings.ToList();
 
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
@@ -176,7 +176,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 enableValue = recommendedValue.Equals(registrySetting.EnabledValue);
                             }
 
-                            await ApplySettingAsync(setting.Id, enableValue, recommendedValue, skipValuePrerequisites: true);
+                            await ApplySettingAsync(setting.Id, enableValue, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
                         }
                         else if (setting.InputType == InputType.Selection)
                         {
@@ -186,16 +186,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             {
                                 var registryValue = RecommendedSettingsService.GetRegistryValueFromOptionName(setting, recommendedOption);
                                 var comboBoxIndex = RecommendedSettingsService.GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
-                                await ApplySettingAsync(setting.Id, true, comboBoxIndex, skipValuePrerequisites: true);
+                                await ApplySettingAsync(setting.Id, true, comboBoxIndex, skipValuePrerequisites: true).ConfigureAwait(false);
                             }
                             else
                             {
-                                await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true);
+                                await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
                             }
                         }
                         else
                         {
-                            await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true);
+                            await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
                         }
 
                         logService.Log(LogLevel.Debug, $"[SettingApplicationService] Successfully applied recommended setting '{setting.Id}'");
@@ -227,7 +227,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (directionalDependencies?.Any() == true)
                 {
                     logService.Log(LogLevel.Info, $"[SettingApplicationService] Handling dependencies for '{settingId}'");
-                    var dependencyResult = await dependencyManager.HandleSettingEnabledAsync(settingId, allSettings.Cast<ISettingItem>(), this, discoveryService);
+                    var dependencyResult = await dependencyManager.HandleSettingEnabledAsync(settingId, allSettings.Cast<ISettingItem>(), this, discoveryService).ConfigureAwait(false);
                     if (!dependencyResult)
                         throw new InvalidOperationException($"Cannot enable '{settingId}' due to unsatisfied dependencies");
                 }
@@ -243,12 +243,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 ?? globalSettingsRegistry.GetSetting(autoEnableId) as SettingDefinition;
                             if (autoEnableDef != null)
                             {
-                                var states = await discoveryService.GetSettingStatesAsync(new[] { autoEnableDef });
+                                var states = await discoveryService.GetSettingStatesAsync(new[] { autoEnableDef }).ConfigureAwait(false);
                                 if (states.TryGetValue(autoEnableId, out var st) && st.Success && !st.IsEnabled)
                                 {
                                     logService.Log(LogLevel.Info,
                                         $"[SettingApplicationService] Auto-enabling '{autoEnableId}' because '{settingId}' was enabled");
-                                    await ApplySettingAsync(autoEnableId, true, skipValuePrerequisites: true);
+                                    await ApplySettingAsync(autoEnableId, true, skipValuePrerequisites: true).ConfigureAwait(false);
                                 }
                             }
                         }
@@ -269,14 +269,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (hasDependentSettings)
                 {
                     logService.Log(LogLevel.Info, $"[SettingApplicationService] Handling dependent settings for disabled '{settingId}'");
-                    await dependencyManager.HandleSettingDisabledAsync(settingId, allRegisteredSettings, this, discoveryService);
+                    await dependencyManager.HandleSettingDisabledAsync(settingId, allRegisteredSettings, this, discoveryService).ConfigureAwait(false);
                 }
             }
 
             if (enable && value != null)
             {
                 var allRegisteredSettings = globalSettingsRegistry.GetAllSettings();
-                await dependencyManager.HandleSettingValueChangedAsync(settingId, allRegisteredSettings, this, discoveryService);
+                await dependencyManager.HandleSettingValueChangedAsync(settingId, allRegisteredSettings, this, discoveryService).ConfigureAwait(false);
             }
         }
 
@@ -284,7 +284,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Executing ActionCommand '{commandString}' for setting '{settingId}'");
 
-            var allSettings = await domainService.GetSettingsAsync();
+            var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
             var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
 
             var method = domainService.GetType().GetMethod(commandString);
@@ -296,14 +296,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             var result = method.Invoke(domainService, null);
             if (result is Task task)
-                await task;
+                await task.ConfigureAwait(false);
 
             if (applyRecommended)
             {
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for domain containing '{settingId}'");
                 try
                 {
-                    await ApplyRecommendedSettingsForDomainAsync(settingId);
+                    await ApplyRecommendedSettingsForDomainAsync(settingId).ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
                 }
                 catch (Exception ex)
@@ -314,7 +314,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (setting != null)
             {
-                await HandleProcessAndServiceRestarts(setting);
+                await HandleProcessAndServiceRestarts(setting).ConfigureAwait(false);
             }
 
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully executed ActionCommand '{commandString}' for setting '{settingId}'");
@@ -408,9 +408,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 foreach (var taskSetting in setting.ScheduledTaskSettings)
                 {
                     if (enable)
-                        await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath);
+                        await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath).ConfigureAwait(false);
                     else
-                        await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath);
+                        await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath).ConfigureAwait(false);
                 }
             }
 
@@ -437,7 +437,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     if (!string.IsNullOrEmpty(script))
                     {
-                        await PowerShellRunner.RunScriptAsync(script);
+                        await PowerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
                     }
                 }
             }
@@ -470,7 +470,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         var tempFile = Path.Combine(tempDir, $"winhance_{Guid.NewGuid()}.reg");
                         try
                         {
-                            await File.WriteAllTextAsync(tempFile, regContent);
+                            await File.WriteAllTextAsync(tempFile, regContent).ConfigureAwait(false);
                             logService.Log(LogLevel.Debug, $"[SettingApplicationService] Wrote registry content to temp file: {tempFile}");
 
                             // OTS: run reg import as the interactive user so HKCU
@@ -480,7 +480,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             {
                                 logService.Log(LogLevel.Debug, "[SettingApplicationService] OTS mode — running reg import as interactive user");
                                 var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
-                                    "reg.exe", $"import \"{tempFile}\"");
+                                    "reg.exe", $"import \"{tempFile}\"").ConfigureAwait(false);
 
                                 if (result.ExitCode != 0)
                                 {
@@ -489,7 +489,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             }
                             else
                             {
-                                await RunCommandAsync($"reg import \"{tempFile}\"");
+                                await RunCommandAsync($"reg import \"{tempFile}\"").ConfigureAwait(false);
                             }
 
                             logService.Log(LogLevel.Info, $"[SettingApplicationService] Registry import completed for '{setting.Id}'");
@@ -527,7 +527,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         ["DCValue"] = dcPowerCfgValue
                     };
 
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync());
+                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
                 }
                 else if (setting.InputType == InputType.Selection &&
                     setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
@@ -547,7 +547,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         ["DCValue"] = dcPowerCfgValue
                     };
 
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync());
+                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
                 }
                 else if (setting.InputType == InputType.NumericRange &&
                          setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
@@ -567,7 +567,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         ["DCValue"] = dcSystemValue
                     };
 
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync());
+                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
                 }
                 else
                 {
@@ -586,11 +586,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     };
 
                     logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying {setting.PowerCfgSettings.Count} PowerCfg settings for '{setting.Id}' with value: {valueToApply}");
-                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, valueToApply, await hardwareDetectionService.HasBatteryAsync());
+                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, valueToApply, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
                 }
             }
 
-            await HandleProcessAndServiceRestarts(setting);
+            await HandleProcessAndServiceRestarts(setting).ConfigureAwait(false);
         }
 
         private async Task HandleProcessAndServiceRestarts(SettingDefinition setting)
@@ -715,7 +715,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             foreach (var powerCfgSetting in powerCfgSettings)
             {
-                var (currentAc, currentDc) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                var (currentAc, currentDc) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting).ConfigureAwait(false);
                 var subgroupGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
                 var settingGuid = Guid.Parse(powerCfgSetting.SettingGuid);
 
@@ -807,11 +807,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 using var process = Process.Start(startInfo);
                 if (process == null) return;
 
-                await process.WaitForExitAsync();
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode != 0)
                 {
-                    var error = await process.StandardError.ReadToEndAsync();
+                    var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
                     logService.Log(LogLevel.Warning, $"[SettingApplicationService] Command failed: {command} - {error}");
                 }
             }
@@ -919,7 +919,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     continue;
                 }
 
-                var states = await discoveryService.GetSettingStatesAsync(new[] { requiredSetting });
+                var states = await discoveryService.GetSettingStatesAsync(new[] { requiredSetting }).ConfigureAwait(false);
                 if (!states.TryGetValue(dependency.RequiredSettingId, out var currentState) || !currentState.Success)
                 {
                     logService.Log(LogLevel.Warning,
@@ -943,7 +943,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         dependency.RequiredSettingId,
                         enable: true,
                         value: valueToApply,
-                        skipValuePrerequisites: true);
+                        skipValuePrerequisites: true).ConfigureAwait(false);
 
                     logService.Log(LogLevel.Info,
                         $"[ValuePrereq] Successfully auto-fixed '{dependency.RequiredSettingId}', proceeding with '{settingId}'");
@@ -1057,7 +1057,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             foreach (var (presetIndex, presetChildren) in presets)
             {
-                var allMatch = await DoAllChildrenMatchPreset(presetChildren, allSettings);
+                var allMatch = await DoAllChildrenMatchPreset(presetChildren, allSettings).ConfigureAwait(false);
 
                 if (allMatch)
                 {
@@ -1068,7 +1068,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         prerequisite.RequiredSettingId,
                         enable: true,
                         value: presetIndex,
-                        skipValuePrerequisites: true);
+                        skipValuePrerequisites: true).ConfigureAwait(false);
 
                     return;
                 }
@@ -1137,7 +1137,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
 
-            var states = await discoveryService.GetSettingStatesAsync(childSettingDefinitions);
+            var states = await discoveryService.GetSettingStatesAsync(childSettingDefinitions).ConfigureAwait(false);
 
             foreach (var (childId, expectedValue) in compatiblePresetEntries)
             {

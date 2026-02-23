@@ -9,7 +9,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task<IEnumerable<SettingDefinition>> GetSettingsAsync();
         string DomainName { get; }
 
-        void ClearSettingsCache()
+        void InvalidateCache()
         {
         }
 

@@ -87,7 +87,7 @@ public class LegacyCapabilityService(
                 CapabilityName = capabilityName
             };
 
-            var result = await windowsAppsService.RemoveCapabilityAsync(item, cancellationToken);
+            var result = await windowsAppsService.RemoveCapabilityAsync(item, cancellationToken).ConfigureAwait(false);
 
             if (result.Success)
             {

@@ -29,7 +29,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var domainService = domainServiceRouter.GetDomainService(settingId);
                 logService.Log(LogLevel.Debug, $"[RecommendedSettings] Getting recommended settings for domain '{domainService.DomainName}'");
 
-                var allSettings = await domainService.GetSettingsAsync();
+                var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
 
                 var osInfo = new OSInfo
                 {
@@ -122,9 +122,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return true;
         }
 
-        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+        public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
-            return await Task.FromResult(Enumerable.Empty<SettingDefinition>());
+            return Task.FromResult(Enumerable.Empty<SettingDefinition>());
         }
     }
 }

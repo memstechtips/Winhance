@@ -85,7 +85,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Error, $"Error detecting if device has a lid: {ex.Message}");
                     return true;
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         public async Task<bool> SupportsBrightnessControlAsync()
@@ -94,9 +94,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 try
                 {
-                    var hasBattery = await HasBatteryAsync();
-                    var hasLid = await HasLidAsync();
-                    
+                    var hasBattery = await HasBatteryAsync().ConfigureAwait(false);
+                    var hasLid = await HasLidAsync().ConfigureAwait(false);
+
                     if (hasBattery && hasLid)
                         return true;
 
@@ -109,7 +109,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     // Don't log the expected error, it means brightness is not supported
                     return false;
                 }
-            });
+            }).ConfigureAwait(false);
         }
     }
 }

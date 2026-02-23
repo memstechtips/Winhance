@@ -55,7 +55,7 @@ public class AutounattendScriptBuilder
 
         if (config.WindowsApps.Items.Any())
         {
-            await AppendBloatRemovalScriptAsync(sb, config.WindowsApps.Items, "    ");
+            await AppendBloatRemovalScriptAsync(sb, config.WindowsApps.Items, "    ").ConfigureAwait(false);
         }
 
         AppendWinhanceInstallerScriptContent(sb, "    ");
@@ -63,8 +63,8 @@ public class AutounattendScriptBuilder
         // 2b. Power settings
         var powerPlanSetting = FindPowerPlanSetting(config, allSettings);
         var powerSettingsQueryService = _serviceProvider.GetRequiredService<IPowerSettingsQueryService>();
-        var activePowerPlan = await powerSettingsQueryService.GetActivePowerPlanAsync();
-        var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings);
+        var activePowerPlan = await powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
+        var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings).ConfigureAwait(false);
         if (powerPlanSetting != null || powerSettings.Any())
         {
             AppendPowerSettingsSection(sb, powerPlanSetting, powerSettings, "    ");
@@ -218,7 +218,7 @@ public class AutounattendScriptBuilder
         // Validate the generated script has no PowerShell syntax errors
         try
         {
-            await PowerShellRunner.ValidateScriptSyntaxAsync(scriptContent);
+            await PowerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
             _logService.Log(LogLevel.Info, "Winhancements.ps1 script passed PowerShell syntax validation");
         }
         catch (Exception ex)
@@ -253,9 +253,9 @@ public class AutounattendScriptBuilder
         var hardwareService = _serviceProvider.GetRequiredService<IHardwareDetectionService>();
         var powerSettingsQueryService = _serviceProvider.GetRequiredService<IPowerSettingsQueryService>();
 
-        bool hasBattery = await hardwareService.HasBatteryAsync();
+        bool hasBattery = await hardwareService.HasBatteryAsync().ConfigureAwait(false);
 
-        var bulkQueryResults = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid);
+        var bulkQueryResults = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
 
         foreach (var settingDef in settingDefinitions)
         {

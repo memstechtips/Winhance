@@ -30,7 +30,7 @@ public class BloatRemovalService(
             var scriptContent = app.RemovalScript!();
 
             Directory.CreateDirectory(ScriptPaths.ScriptsDirectory);
-            await File.WriteAllTextAsync(scriptPath, scriptContent, ct);
+            await File.WriteAllTextAsync(scriptPath, scriptContent, ct).ConfigureAwait(false);
 
             // Emit metadata header for the task output dialog
             var startTime = DateTime.Now;
@@ -45,7 +45,7 @@ public class BloatRemovalService(
             progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
 
             logService.LogInformation($"Executing dedicated removal script for '{app.Name}' from {scriptPath}...");
-            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct);
+            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
             logService.LogInformation($"Dedicated removal script for '{app.Name}' completed successfully");
 
             // Emit metadata footer
@@ -113,14 +113,14 @@ public class BloatRemovalService(
             string scriptContent;
             if (File.Exists(scriptPath))
             {
-                scriptContent = await MergeWithExistingScript(scriptPath, packages, capabilities, optionalFeatures, specialApps);
+                scriptContent = await MergeWithExistingScript(scriptPath, packages, capabilities, optionalFeatures, specialApps).ConfigureAwait(false);
             }
             else
             {
                 scriptContent = GenerateScriptContent(packages, capabilities, optionalFeatures, specialApps);
             }
 
-            await File.WriteAllTextAsync(scriptPath, scriptContent, ct);
+            await File.WriteAllTextAsync(scriptPath, scriptContent, ct).ConfigureAwait(false);
 
             // Emit metadata header for the task output dialog
             var startTime = DateTime.Now;
@@ -135,7 +135,7 @@ public class BloatRemovalService(
             progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
 
             logService.LogInformation($"Executing BloatRemoval script from {scriptPath} ({packages.Count} packages, {capabilities.Count} capabilities, {optionalFeatures.Count} features, {specialApps.Count} special)...");
-            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct);
+            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
             logService.LogInformation("BloatRemoval script completed successfully");
 
             // Emit metadata footer
@@ -200,7 +200,7 @@ public class BloatRemovalService(
                 continue;
             }
 
-            var scriptContent = await File.ReadAllTextAsync(scriptPath);
+            var scriptContent = await File.ReadAllTextAsync(scriptPath).ConfigureAwait(false);
             var runOnStartup = scriptName.Equals("EdgeRemoval.ps1", StringComparison.OrdinalIgnoreCase);
             var script = new RemovalScript
             {
@@ -210,7 +210,7 @@ public class BloatRemovalService(
                 RunOnStartup = runOnStartup,
                 ActualScriptPath = scriptPath
             };
-            await scheduledTaskService.RegisterScheduledTaskAsync(script);
+            await scheduledTaskService.RegisterScheduledTaskAsync(script).ConfigureAwait(false);
             logService.LogInformation($"Registered scheduled task for: {taskName}");
         }
 
@@ -218,7 +218,7 @@ public class BloatRemovalService(
         var bloatScriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, "BloatRemoval.ps1");
         if (File.Exists(bloatScriptPath))
         {
-            var bloatContent = await File.ReadAllTextAsync(bloatScriptPath);
+            var bloatContent = await File.ReadAllTextAsync(bloatScriptPath).ConfigureAwait(false);
             var bloatScript = new RemovalScript
             {
                 Name = "BloatRemoval",
@@ -227,7 +227,7 @@ public class BloatRemovalService(
                 RunOnStartup = false,
                 ActualScriptPath = bloatScriptPath
             };
-            await scheduledTaskService.RegisterScheduledTaskAsync(bloatScript);
+            await scheduledTaskService.RegisterScheduledTaskAsync(bloatScript).ConfigureAwait(false);
             logService.LogInformation("Registered scheduled task for: BloatRemoval");
         }
     }
@@ -236,14 +236,14 @@ public class BloatRemovalService(
     {
         // Clean up EdgeRemoval
         var edgePath = Path.Combine(ScriptPaths.ScriptsDirectory, "EdgeRemoval.ps1");
-        await CleanupExistingScheduledTaskAsync("EdgeRemoval", edgePath);
+        await CleanupExistingScheduledTaskAsync("EdgeRemoval", edgePath).ConfigureAwait(false);
 
         // Clean up OneDriveRemoval
         var oneDrivePath = Path.Combine(ScriptPaths.ScriptsDirectory, "OneDriveRemoval.ps1");
-        await CleanupExistingScheduledTaskAsync("OneDriveRemoval", oneDrivePath);
+        await CleanupExistingScheduledTaskAsync("OneDriveRemoval", oneDrivePath).ConfigureAwait(false);
 
         // Clean up BloatRemoval
-        await CleanupBloatRemovalArtifactsAsync();
+        await CleanupBloatRemovalArtifactsAsync().ConfigureAwait(false);
     }
 
     public async Task<bool> RemoveItemsFromScriptAsync(List<ItemDefinition> itemsToRemove)
@@ -258,7 +258,7 @@ public class BloatRemovalService(
                 return true;
             }
 
-            var existingContent = await File.ReadAllTextAsync(scriptPath);
+            var existingContent = await File.ReadAllTextAsync(scriptPath).ConfigureAwait(false);
             var itemsToRemoveNames = GetItemNames(itemsToRemove);
 
             var updatedContent = RemoveItemsFromScriptContent(existingContent, itemsToRemoveNames);
@@ -270,11 +270,11 @@ public class BloatRemovalService(
                 if (IsScriptEmpty(updatedContent))
                 {
                     logService.LogInformation("BloatRemoval script has no remaining items, cleaning up artifacts");
-                    await CleanupBloatRemovalArtifactsAsync();
+                    await CleanupBloatRemovalArtifactsAsync().ConfigureAwait(false);
                 }
                 else
                 {
-                    await File.WriteAllTextAsync(scriptPath, updatedContent);
+                    await File.WriteAllTextAsync(scriptPath, updatedContent).ConfigureAwait(false);
 
                     // Re-register the scheduled task with updated content
                     var script = new RemovalScript
@@ -285,7 +285,7 @@ public class BloatRemovalService(
                         RunOnStartup = false,
                         ActualScriptPath = scriptPath
                     };
-                    await scheduledTaskService.RegisterScheduledTaskAsync(script);
+                    await scheduledTaskService.RegisterScheduledTaskAsync(script).ConfigureAwait(false);
                 }
 
                 return true;
@@ -303,7 +303,7 @@ public class BloatRemovalService(
     private async Task CleanupBloatRemovalArtifactsAsync()
     {
         var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, "BloatRemoval.ps1");
-        await CleanupExistingScheduledTaskAsync("BloatRemoval", scriptPath);
+        await CleanupExistingScheduledTaskAsync("BloatRemoval", scriptPath).ConfigureAwait(false);
     }
 
     // --- Private helpers ---
@@ -342,9 +342,9 @@ public class BloatRemovalService(
     {
         try
         {
-            if (await scheduledTaskService.IsTaskRegisteredAsync(taskName))
+            if (await scheduledTaskService.IsTaskRegisteredAsync(taskName).ConfigureAwait(false))
             {
-                await scheduledTaskService.UnregisterScheduledTaskAsync(taskName);
+                await scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
                 logService.LogInformation($"Unregistered existing scheduled task: {taskName}");
             }
 
@@ -362,7 +362,7 @@ public class BloatRemovalService(
 
     private async Task<string> MergeWithExistingScript(string scriptPath, List<string> packages, List<string> capabilities, List<string> optionalFeatures, List<string> specialApps)
     {
-        var existingContent = await File.ReadAllTextAsync(scriptPath);
+        var existingContent = await File.ReadAllTextAsync(scriptPath).ConfigureAwait(false);
 
         var existingPackages = ExtractArrayFromScript(existingContent, "packages");
         var existingCapabilities = ExtractArrayFromScript(existingContent, "capabilities");

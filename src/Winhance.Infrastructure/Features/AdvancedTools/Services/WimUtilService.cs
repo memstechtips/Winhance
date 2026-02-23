@@ -79,13 +79,13 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 var wimPath = Path.Combine(sourcesPath, "install.wim");
                 if (File.Exists(wimPath))
                 {
-                    return await GetImageInfoAsync(wimPath, ImageFormat.Wim);
+                    return await GetImageInfoAsync(wimPath, ImageFormat.Wim).ConfigureAwait(false);
                 }
 
                 var esdPath = Path.Combine(sourcesPath, "install.esd");
                 if (File.Exists(esdPath))
                 {
-                    return await GetImageInfoAsync(esdPath, ImageFormat.Esd);
+                    return await GetImageInfoAsync(esdPath, ImageFormat.Esd).ConfigureAwait(false);
                 }
 
                 _logService.LogWarning("No install.wim or install.esd found");
@@ -114,13 +114,13 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 var wimPath = Path.Combine(sourcesPath, "install.wim");
                 if (File.Exists(wimPath))
                 {
-                    result.WimInfo = await GetImageInfoAsync(wimPath, ImageFormat.Wim);
+                    result.WimInfo = await GetImageInfoAsync(wimPath, ImageFormat.Wim).ConfigureAwait(false);
                 }
 
                 var esdPath = Path.Combine(sourcesPath, "install.esd");
                 if (File.Exists(esdPath))
                 {
-                    result.EsdInfo = await GetImageInfoAsync(esdPath, ImageFormat.Esd);
+                    result.EsdInfo = await GetImageInfoAsync(esdPath, ImageFormat.Esd).ConfigureAwait(false);
                 }
 
                 if (result.BothExist)
@@ -201,7 +201,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         _logService.LogWarning($"Attempt {attempt}/5 to delete {fileName} failed: {ex.Message}");
                         if (attempt < 5)
                         {
-                            await Task.Delay(2000, cancellationToken);
+                            await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -256,8 +256,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 };
 
                 process.Start();
-                var stdout = await process.StandardOutput.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode != 0)
                 {
@@ -324,12 +324,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
             using var registration = cancellationToken.Register(() =>
             {
-                try { process.Kill(); } catch { }
+                try { process.Kill(); } catch (Exception ex) { _logService.LogDebug($"Best-effort process kill on cancellation: {ex.Message}"); }
             });
 
             var readOutput = Task.Run(async () =>
             {
-                while (await process.StandardOutput.ReadLineAsync() is { } line)
+                while (await process.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
                     output.AppendLine(line);
                     var match = ProgressRegex.Match(line);
@@ -350,15 +350,15 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
             var readError = Task.Run(async () =>
             {
-                while (await process.StandardError.ReadLineAsync() is { } line)
+                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
                     output.AppendLine(line);
                     progress?.Report(new TaskProgressDetail { TerminalOutput = line });
                 }
             }, CancellationToken.None);
 
-            await Task.WhenAll(readOutput, readError);
-            await process.WaitForExitAsync(cancellationToken);
+            await Task.WhenAll(readOutput, readError).ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             return (process.ExitCode, output.ToString());
         }
@@ -409,7 +409,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
             try
             {
-                var currentInfo = await DetectImageFormatAsync(workingDirectory);
+                var currentInfo = await DetectImageFormatAsync(workingDirectory).ConfigureAwait(false);
                 if (currentInfo == null)
                 {
                     _logService.LogError("Could not detect current image format");
@@ -429,7 +429,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     : Path.Combine(sourcesPath, "install.esd");
 
                 var requiredSpace = currentInfo.FileSizeBytes * 2;
-                await CheckDiskSpace(workingDirectory, requiredSpace, "Image conversion");
+                await CheckDiskSpace(workingDirectory, requiredSpace, "Image conversion").ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -458,14 +458,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                     _logService.LogInformation($"Exporting index {i}: dism.exe {arguments}");
 
-                    var (exitCode, _) = await RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken);
+                    var (exitCode, _) = await RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new Exception($"DISM failed with exit code: {exitCode}");
                     }
                 }
 
-                await Task.Delay(2000, cancellationToken);
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 if (!File.Exists(targetFile))
                 {
@@ -504,7 +504,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         _logService.LogWarning($"Attempt {attempt}/5 to delete source file failed: {ex.Message}");
                         if (attempt < 5)
                         {
-                            await Task.Delay(2000, cancellationToken);
+                            await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -591,24 +591,24 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             }
         }
 
-        public async Task<bool> IsOscdimgAvailableAsync()
+        public Task<bool> IsOscdimgAvailableAsync()
         {
             var oscdimgPath = GetOscdimgPath();
             if (string.IsNullOrEmpty(oscdimgPath))
             {
                 _logService.LogInformation("oscdimg.exe not found in Windows Kits directories");
-                return false;
+                return Task.FromResult(false);
             }
 
             _logService.LogInformation($"oscdimg.exe found at: {oscdimgPath}");
-            return await Task.FromResult(true);
+            return Task.FromResult(true);
         }
 
         public async Task<bool> EnsureOscdimgAvailableAsync(
             IProgress<TaskProgressDetail>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (await IsOscdimgAvailableAsync())
+            if (await IsOscdimgAvailableAsync().ConfigureAwait(false))
             {
                 _logService.LogInformation("oscdimg.exe already available");
                 return true;
@@ -620,13 +620,13 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 TerminalOutput = "Checking installation methods"
             });
 
-            if (await InstallAdkDeploymentToolsAsync(progress, cancellationToken))
+            if (await InstallAdkDeploymentToolsAsync(progress, cancellationToken).ConfigureAwait(false))
             {
                 return true;
             }
 
             _logService.LogWarning("Standard ADK installation failed, trying winget...");
-            if (await InstallAdkViaWingetAsync(progress, cancellationToken))
+            if (await InstallAdkViaWingetAsync(progress, cancellationToken).ConfigureAwait(false))
             {
                 return true;
             }
@@ -653,11 +653,11 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     });
 
                     _httpClient.Timeout = TimeSpan.FromMinutes(30);
-                    var response = await _httpClient.GetAsync(sourceUrl, cancellationToken);
+                    var response = await _httpClient.GetAsync(sourceUrl, cancellationToken).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
-                    var setupBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-                    await File.WriteAllBytesAsync(adkSetupPath, setupBytes, cancellationToken);
+                    var setupBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+                    await File.WriteAllBytesAsync(adkSetupPath, setupBytes, cancellationToken).ConfigureAwait(false);
 
                     _logService.LogInformation($"ADK installer downloaded successfully from: {sourceUrl}");
                     return adkSetupPath;
@@ -677,7 +677,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                var adkSetupPath = await DownloadAdkSetupAsync(progress, cancellationToken);
+                var adkSetupPath = await DownloadAdkSetupAsync(progress, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(adkSetupPath))
                 {
                     _logService.LogError("Failed to download ADK installer from all sources");
@@ -698,13 +698,13 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "Starting ADK Deployment Tools installation..."
                 });
 
-                var (exitCode, _) = await RunProcessWithProgressAsync(adkSetupPath, arguments, progress, cancellationToken);
+                var (exitCode, _) = await RunProcessWithProgressAsync(adkSetupPath, arguments, progress, cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new Exception($"ADK installation failed with exit code: {exitCode}");
                 }
 
-                if (await IsOscdimgAvailableAsync())
+                if (await IsOscdimgAvailableAsync().ConfigureAwait(false))
                 {
                     _logService.LogInformation("ADK installed and oscdimg.exe found");
                     return true;
@@ -728,7 +728,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         File.Delete(adkSetupPath);
                     }
                 }
-                catch { }
+                catch (Exception ex) { _logService.LogDebug($"Best-effort ADK setup file cleanup failed: {ex.Message}"); }
             }
         }
 
@@ -744,7 +744,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "Verifying winget availability"
                 });
 
-                var wingetInstalled = await _winGetService.IsWinGetInstalledAsync(cancellationToken);
+                var wingetInstalled = await _winGetService.IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false);
 
                 if (!wingetInstalled)
                 {
@@ -754,7 +754,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         TerminalOutput = "winget is required for this installation method"
                     });
 
-                    var wingetInstallSuccess = await _winGetService.InstallWinGetAsync(cancellationToken);
+                    var wingetInstallSuccess = await _winGetService.InstallWinGetAsync(cancellationToken).ConfigureAwait(false);
                     if (!wingetInstallSuccess)
                     {
                         _logService.LogError("Failed to install winget");
@@ -795,13 +795,13 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     _logService.LogInformation($"No system winget — using bundled CLI for ADK install: {wingetExe}");
                 }
 
-                var (exitCode, _) = await RunProcessWithProgressAsync(wingetExe, arguments, progress, cancellationToken);
+                var (exitCode, _) = await RunProcessWithProgressAsync(wingetExe, arguments, progress, cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new Exception($"winget install failed with exit code: {exitCode}");
                 }
 
-                if (await IsOscdimgAvailableAsync())
+                if (await IsOscdimgAvailableAsync().ConfigureAwait(false))
                 {
                     _logService.LogInformation("ADK installed via winget and oscdimg.exe found");
                     return true;
@@ -905,7 +905,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
             try
             {
-                if (!await ValidateIsoFileAsync(isoPath))
+                if (!await ValidateIsoFileAsync(isoPath).ConfigureAwait(false))
                 {
                     return false;
                 }
@@ -913,7 +913,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 var isoFileInfo = new FileInfo(isoPath);
                 var requiredSpace = isoFileInfo.Length + (2L * 1024 * 1024 * 1024);
 
-                await CheckDiskSpace(workingDirectory, requiredSpace, "ISO extraction");
+                await CheckDiskSpace(workingDirectory, requiredSpace, "ISO extraction").ConfigureAwait(false);
 
                 if (Directory.Exists(workingDirectory))
                 {
@@ -940,8 +940,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         };
 
                         removeProcess.Start();
-                        var errorOutput = await removeProcess.StandardError.ReadToEndAsync();
-                        await removeProcess.WaitForExitAsync(cancellationToken);
+                        var errorOutput = await removeProcess.StandardError.ReadToEndAsync().ConfigureAwait(false);
+                        await removeProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
                         if (Directory.Exists(workingDirectory))
                         {
@@ -994,8 +994,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 };
 
                 mountProcess.Start();
-                var rawOutput = await mountProcess.StandardOutput.ReadToEndAsync();
-                await mountProcess.WaitForExitAsync(cancellationToken);
+                var rawOutput = await mountProcess.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                await mountProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
                 var driveLetterMatch = System.Text.RegularExpressions.Regex.Match(rawOutput, @"\b[A-Z]\b");
                 var driveLetter = driveLetterMatch.Success ? driveLetterMatch.Value : string.Empty;
@@ -1016,7 +1016,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = $"Source: {mountedPath}"
                 });
 
-                await Task.Run(() => CopyDirectory(mountedPath, workingDirectory, progress, cancellationToken), cancellationToken);
+                await Task.Run(() => CopyDirectory(mountedPath, workingDirectory, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -1040,7 +1040,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 };
 
                 dismountProcess.Start();
-                await dismountProcess.WaitForExitAsync(cancellationToken);
+                await dismountProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
                 isoMounted = false;
 
                 var extractedDirs = Directory.GetDirectories(workingDirectory);
@@ -1090,7 +1090,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                             }
                         };
                         dismountProcess.Start();
-                        await dismountProcess.WaitForExitAsync();
+                        await dismountProcess.WaitForExitAsync().ConfigureAwait(false);
                         _logService.LogInformation("ISO dismounted successfully");
                     }
                     catch (Exception dismountEx)
@@ -1127,7 +1127,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                             }
                         };
                         dismountProcess.Start();
-                        await dismountProcess.WaitForExitAsync();
+                        await dismountProcess.WaitForExitAsync().ConfigureAwait(false);
                     }
                     catch (Exception dismountEx)
                     {
@@ -1193,8 +1193,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 var destPath = Path.Combine(workingDirectory, "autounattend.xml");
 
-                var xmlContent = await File.ReadAllTextAsync(xmlPath);
-                await File.WriteAllTextAsync(destPath, xmlContent);
+                var xmlContent = await File.ReadAllTextAsync(xmlPath).ConfigureAwait(false);
+                await File.WriteAllTextAsync(destPath, xmlContent).ConfigureAwait(false);
 
                 _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
                 return true;
@@ -1219,10 +1219,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = UnattendedWinstallXmlUrl
                 });
 
-                var xmlContent = await _httpClient.GetStringAsync(UnattendedWinstallXmlUrl, cancellationToken);
+                var xmlContent = await _httpClient.GetStringAsync(UnattendedWinstallXmlUrl, cancellationToken).ConfigureAwait(false);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-                await File.WriteAllTextAsync(destinationPath, xmlContent, cancellationToken);
+                await File.WriteAllTextAsync(destinationPath, xmlContent, cancellationToken).ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -1270,7 +1270,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                             TerminalOutput = "Exporting drivers from current system..."
                         });
 
-                        var (exitCode, _) = await RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken);
+                        var (exitCode, _) = await RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken).ConfigureAwait(false);
                         if (exitCode != 0)
                         {
                             throw new Exception($"DISM Export-Driver failed with exit code: {exitCode}");
@@ -1280,7 +1280,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     }
                     catch (Exception ex)
                     {
-                        try { Directory.Delete(tempDriverPath, recursive: true); } catch { }
+                        try { Directory.Delete(tempDriverPath, recursive: true); } catch (Exception cleanupEx) { _logService.LogDebug($"Best-effort temp driver directory cleanup failed: {cleanupEx.Message}"); }
                         _logService.LogError($"Failed to export system drivers: {ex.Message}", ex);
                         return false;
                     }
@@ -1319,7 +1319,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     oemDriverPath,
                     _logService,
                     workingDirectory
-                ), cancellationToken);
+                ), cancellationToken).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(driverSourcePath))
                 {
@@ -1412,7 +1412,7 @@ exit
             {
                 var oscdimgPath = GetOscdimgPath();
 
-                if (!await IsOscdimgAvailableAsync())
+                if (!await IsOscdimgAvailableAsync().ConfigureAwait(false))
                 {
                     _logService.LogError("oscdimg.exe is not available. Please download it first.");
                     return false;
@@ -1424,7 +1424,7 @@ exit
 
                 var requiredSpace = workingDirSize + (2L * 1024 * 1024 * 1024);
 
-                await CheckDiskSpace(outputPath, requiredSpace, "ISO creation");
+                await CheckDiskSpace(outputPath, requiredSpace, "ISO creation").ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -1458,7 +1458,7 @@ exit
                     TerminalOutput = "Running oscdimg.exe...\nThis may take several minutes..."
                 });
 
-                var (exitCode, _) = await RunProcessWithProgressAsync(oscdimgPath, arguments, progress, cancellationToken);
+                var (exitCode, _) = await RunProcessWithProgressAsync(oscdimgPath, arguments, progress, cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new Exception($"oscdimg.exe failed with exit code: {exitCode}");
@@ -1517,7 +1517,7 @@ exit
                 await Task.Run(() =>
                 {
                     Directory.Delete(workingDirectory, recursive: true);
-                });
+                }).ConfigureAwait(false);
 
                 _logService.LogInformation("Working directory cleaned up successfully");
                 return true;

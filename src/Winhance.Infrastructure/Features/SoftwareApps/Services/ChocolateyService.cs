@@ -39,7 +39,7 @@ public class ChocolateyService : IChocolateyService
 
     public async Task<bool> InstallChocolateyAsync(CancellationToken cancellationToken = default)
     {
-        if (await IsChocolateyInstalledAsync(cancellationToken))
+        if (await IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false))
             return true;
 
         try
@@ -62,10 +62,10 @@ public class ChocolateyService : IChocolateyService
             using var process = new Process { StartInfo = startInfo };
             process.Start();
 
-            var stdout = await process.StandardOutput.ReadToEndAsync();
-            var stderr = await process.StandardError.ReadToEndAsync();
+            var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
 
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode == 0)
             {
@@ -129,8 +129,8 @@ public class ChocolateyService : IChocolateyService
             process.Start();
             process.BeginOutputReadLine();
 
-            var stderr = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync(cancellationToken);
+            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode == 0)
             {
@@ -198,8 +198,8 @@ public class ChocolateyService : IChocolateyService
             process.Start();
             process.BeginOutputReadLine();
 
-            var stderr = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync(cancellationToken);
+            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode == 0)
             {
@@ -249,8 +249,8 @@ public class ChocolateyService : IChocolateyService
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(15));
 
-            var stdout = await process.StandardOutput.ReadToEndAsync(cts.Token);
-            await process.WaitForExitAsync(cts.Token);
+            var stdout = await process.StandardOutput.ReadToEndAsync(cts.Token).ConfigureAwait(false);
+            await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
 
             foreach (var line in stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {

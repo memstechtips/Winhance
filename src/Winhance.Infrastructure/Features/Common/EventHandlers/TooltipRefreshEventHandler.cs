@@ -44,13 +44,13 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
                 
                 if (settingItem == null)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(100).ConfigureAwait(false);
                     settingItem = _settingsRegistry.GetSetting(settingAppliedEvent.SettingId);
                 }
                 
                 if (settingItem is SettingDefinition settingDefinition)
                 {
-                    var tooltipData = await _tooltipDataService.RefreshTooltipDataAsync(settingAppliedEvent.SettingId, settingDefinition);
+                    var tooltipData = await _tooltipDataService.RefreshTooltipDataAsync(settingAppliedEvent.SettingId, settingDefinition).ConfigureAwait(false);
                     if (tooltipData != null)
                     {
                         _eventBus.Publish(new TooltipUpdatedEvent(settingAppliedEvent.SettingId, tooltipData));
@@ -62,7 +62,7 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
                     {
                         try
                         {
-                            var siblingTooltip = await _tooltipDataService.RefreshTooltipDataAsync(sibling.Id, sibling);
+                            var siblingTooltip = await _tooltipDataService.RefreshTooltipDataAsync(sibling.Id, sibling).ConfigureAwait(false);
                             if (siblingTooltip != null)
                             {
                                 _eventBus.Publish(new TooltipUpdatedEvent(sibling.Id, siblingTooltip));
@@ -89,7 +89,7 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
                 var settingsList = featureComposedEvent.Settings.ToList();
                 if (settingsList.Count == 0) return;
 
-                var tooltipDataCollection = await _tooltipDataService.GetTooltipDataAsync(settingsList);
+                var tooltipDataCollection = await _tooltipDataService.GetTooltipDataAsync(settingsList).ConfigureAwait(false);
 
                 foreach (var kvp in tooltipDataCollection)
                 {

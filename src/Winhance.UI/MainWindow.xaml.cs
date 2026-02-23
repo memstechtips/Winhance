@@ -519,7 +519,7 @@ public sealed partial class MainWindow : Window
                 LoadingStatusText.Text = localizationService.GetString("Loading_PreparingApp");
             }
         }
-        catch { }
+        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to set loading overlay text: {ex.Message}"); }
 
         _ = RunStartupSequenceAsync();
     }
@@ -613,7 +613,7 @@ public sealed partial class MainWindow : Window
                         {
                             DispatcherQueue.TryEnqueue(() =>
                             {
-                                try { LoadingStatusText.Text = detail.StatusText; } catch { }
+                                try { LoadingStatusText.Text = detail.StatusText; } catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update loading status text: {ex.Message}"); }
                             });
                         }
                     });

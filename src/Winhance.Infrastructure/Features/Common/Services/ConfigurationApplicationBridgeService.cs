@@ -46,7 +46,7 @@ public class ConfigurationApplicationBridgeService
         foreach (var wave in waves)
         {
             var tasks = wave.Select(tuple => ApplySettingItemAsync(tuple.item, tuple.setting, confirmationHandler));
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
             foreach (var result in results)
             {
@@ -259,7 +259,7 @@ public class ConfigurationApplicationBridgeService
                     ? (object)ResolveSelectionValue(setting, item)
                     : (object)(item.IsSelected ?? false);
 
-                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting);
+                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting).ConfigureAwait(false);
 
                 if (!confirmed)
                 {
@@ -291,7 +291,7 @@ public class ConfigurationApplicationBridgeService
                         null,
                         false,
                         setting.ActionCommand,
-                        skipValuePrerequisites: true);
+                        skipValuePrerequisites: true).ConfigureAwait(false);
                 }
             }
             else
@@ -301,7 +301,7 @@ public class ConfigurationApplicationBridgeService
                     item.IsSelected ?? false,
                     valueToApply,
                     checkboxResult,
-                    skipValuePrerequisites: true);
+                    skipValuePrerequisites: true).ConfigureAwait(false);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");

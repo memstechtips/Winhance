@@ -42,7 +42,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> SetWallpaperAsync(string wallpaperPath)
+        public Task<bool> SetWallpaperAsync(string wallpaperPath)
         {
             try
             {
@@ -76,13 +76,12 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     _logService.Log(LogLevel.Error, $"Failed to set wallpaper: {Marshal.GetLastWin32Error()}");
                 }
 
-                await Task.CompletedTask;
-                return success;
+                return Task.FromResult(success);
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error setting wallpaper: {ex.Message}");
-                return false;
+                return Task.FromResult(false);
             }
         }
     }

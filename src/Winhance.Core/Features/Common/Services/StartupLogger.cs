@@ -37,7 +37,7 @@ namespace Winhance.Core.Features.Common.Services
                         File.AppendAllText(LogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
                     }
                 }
-                catch { }
+                catch { /* Static pre-DI logger — nowhere to log the failure, and throwing would crash startup */ }
             }
         }
 

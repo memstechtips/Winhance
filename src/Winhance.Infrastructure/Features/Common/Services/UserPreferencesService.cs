@@ -73,7 +73,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return new Dictionary<string, object>();
                 }
 
-                string json = await File.ReadAllTextAsync(filePath);
+                string json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(json))
                 {
@@ -135,7 +135,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     Directory.CreateDirectory(directory);
                 }
 
-                await File.WriteAllTextAsync(filePath, json);
+                await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
 
                 if (File.Exists(filePath))
                 {
@@ -161,7 +161,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public async Task<T> GetPreferenceAsync<T>(string key, T defaultValue)
         {
-            var preferences = await GetPreferencesAsync();
+            var preferences = await GetPreferencesAsync().ConfigureAwait(false);
 
             if (preferences.TryGetValue(key, out var value))
             {
@@ -247,11 +247,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var preferences = await GetPreferencesAsync();
+                var preferences = await GetPreferencesAsync().ConfigureAwait(false);
 
                 preferences[key] = value!;
 
-                bool result = await SavePreferencesAsync(preferences);
+                bool result = await SavePreferencesAsync(preferences).ConfigureAwait(false);
 
                 if (result)
                 {

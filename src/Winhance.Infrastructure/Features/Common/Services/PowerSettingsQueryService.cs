@@ -180,7 +180,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                     dc = (int)dcIndex;
 
                 return (ac, dc);
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -196,7 +196,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
             return await Task.Run(() =>
             {
                 var results = new Dictionary<string, (int? acValue, int? dcValue)>();
-                
+
                 Guid schemeGuid;
                 if (string.Equals(powerPlanGuid, "SCHEME_CURRENT", StringComparison.OrdinalIgnoreCase))
                 {
@@ -276,7 +276,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                 }
 
                 return results;
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -311,7 +311,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                     max = (int)maxVal;
 
                 return (min, max);
-            });
+            }).ConfigureAwait(false);
 
             _capabilityCache[cacheKey] = capabilities;
 
@@ -330,7 +330,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
     public async Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting)
     {
-        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting);
+        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting).ConfigureAwait(false);
 
         bool isHardwareControlled = minValue == 0 && maxValue == 0;
 

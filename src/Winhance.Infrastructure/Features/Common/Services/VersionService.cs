@@ -80,10 +80,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         : $"Checking for updates (attempt {attempt}/{maxRetries})...");
 
                     // Get the latest release information from GitHub API
-                    HttpResponseMessage response = await _httpClient.GetAsync(_latestReleaseApiUrl);
+                    HttpResponseMessage response = await _httpClient.GetAsync(_latestReleaseApiUrl).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
-                    string responseBody = await response.Content.ReadAsStringAsync();
+                    string responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     using JsonDocument doc = JsonDocument.Parse(responseBody);
 
                     // Extract the tag name (version) from the response
@@ -107,7 +107,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 catch (Exception ex) when (attempt < maxRetries && IsTransientError(ex))
                 {
                     _logService.Log(LogLevel.Warning, $"Update check attempt {attempt}/{maxRetries} failed: {ex.Message}. Retrying in {delayMs / 1000}s...");
-                    await Task.Delay(delayMs);
+                    await Task.Delay(delayMs).ConfigureAwait(false);
                     delayMs *= 2;
                 }
                 catch (Exception ex)
@@ -140,8 +140,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 string tempPath = Path.Combine(Path.GetTempPath(), "Winhance.Installer.exe");
 
                 // Download the installer
-                byte[] installerBytes = await _httpClient.GetByteArrayAsync(_latestReleaseDownloadUrl);
-                await File.WriteAllBytesAsync(tempPath, installerBytes);
+                byte[] installerBytes = await _httpClient.GetByteArrayAsync(_latestReleaseDownloadUrl).ConfigureAwait(false);
+                await File.WriteAllBytesAsync(tempPath, installerBytes).ConfigureAwait(false);
 
                 _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}, launching installer...");
 

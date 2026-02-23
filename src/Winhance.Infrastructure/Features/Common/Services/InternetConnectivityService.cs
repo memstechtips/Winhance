@@ -156,7 +156,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                         // Make a HEAD request to minimize data transfer
                         var request = new HttpRequestMessage(HttpMethod.Head, url);
-                        var response = await _httpClient.SendAsync(request, cancellationToken);
+                        var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
                         if (response.IsSuccessStatusCode)
                         {

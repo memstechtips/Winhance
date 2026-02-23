@@ -48,7 +48,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 foreach (var setting in settings)
                 {
-                    var data = await GetTooltipDataForSettingAsync(setting);
+                    var data = await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
                     if (data != null)
                     {
                         tooltipData[setting.Id] = data;
@@ -67,7 +67,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                return await GetTooltipDataForSettingAsync(setting);
+                return await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
             }
             catch
             {
@@ -83,7 +83,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 foreach (var setting in settings)
                 {
-                    var data = await GetTooltipDataForSettingAsync(setting);
+                    var data = await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
                     if (data != null)
                     {
                         tooltipData[setting.Id] = data;

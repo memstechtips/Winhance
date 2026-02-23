@@ -226,7 +226,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
             Items.Clear();
 
             var allItems = await _externalAppsService.GetAppsAsync();
-            await LoadAppsIntoItemsAsync(allItems);
+            LoadAppsIntoItems(allItems);
         }
         catch (Exception ex)
         {
@@ -261,7 +261,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadAppsIntoItemsAsync(IEnumerable<ItemDefinition> definitions)
+    private void LoadAppsIntoItems(IEnumerable<ItemDefinition> definitions)
     {
         foreach (var definition in definitions)
         {
@@ -272,8 +272,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }
-
-        await Task.CompletedTask;
     }
 
     private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -326,7 +324,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
-            _appStatusDiscoveryService.InvalidateWinGetCache();
+            _appStatusDiscoveryService.InvalidateCache();
             await CheckInstallationStatusAsync();
             StatusText = $"Refreshed status for {Items.Count} items";
         }
@@ -348,7 +346,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
             if (IsInitialized)
             {
                 _logService.LogInformation("WinGet installed — refreshing External Apps installation status");
-                _appStatusDiscoveryService.InvalidateWinGetCache();
+                _appStatusDiscoveryService.InvalidateCache();
                 await CheckInstallationStatusAsync();
             }
         });
@@ -533,7 +531,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     private async Task RefreshAfterOperationAsync()
     {
-        _appStatusDiscoveryService.InvalidateWinGetCache();
+        _appStatusDiscoveryService.InvalidateCache();
         await CheckInstallationStatusAsync();
         ClearSelections();
     }

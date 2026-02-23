@@ -40,7 +40,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     IsIndeterminate = true
                 });
 
-                var existingPoint = await FindRestorePointAsync(RestorePointName);
+                var existingPoint = await FindRestorePointAsync(RestorePointName).ConfigureAwait(false);
                 if (existingPoint != null)
                 {
                     _logService.Log(LogLevel.Info, $"Restore point '{RestorePointName}' already exists (created: {existingPoint.Value}). Skipping creation.");
@@ -57,7 +57,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 });
 
                 bool systemRestoreWasDisabled = false;
-                var isEnabled = await CheckSystemRestoreEnabledAsync();
+                var isEnabled = await CheckSystemRestoreEnabledAsync().ConfigureAwait(false);
                 if (!isEnabled)
                 {
                     _logService.Log(LogLevel.Warning, "System Restore is currently disabled");
@@ -71,7 +71,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     });
 
                     _logService.Log(LogLevel.Info, "Attempting to enable System Restore...");
-                    var enabled = await EnableSystemRestoreAsync();
+                    var enabled = await EnableSystemRestoreAsync().ConfigureAwait(false);
                     if (!enabled)
                     {
                         _logService.Log(LogLevel.Error, "Failed to enable System Restore - cannot create restore point");
@@ -94,7 +94,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 _logService.Log(LogLevel.Info, $"Creating new restore point with name '{RestorePointName}'...");
 
-                var created = await CreateRestorePointAsync(RestorePointName);
+                var created = await CreateRestorePointAsync(RestorePointName).ConfigureAwait(false);
 
                 if (created)
                 {
@@ -135,7 +135,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     return false;
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         private async Task<DateTime?> FindRestorePointAsync(string description)
@@ -166,7 +166,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Error, $"Error querying restore point: {ex.Message}");
                     return (DateTime?)null;
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         [DllImport("SrClient.dll", CharSet = CharSet.Unicode)]
@@ -220,7 +220,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Error, $"Failed to create restore point: {ex.Message}");
                     return false;
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         private async Task<bool> EnableSystemRestoreAsync()
@@ -264,7 +264,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
                     return false;
                 }
-            });
+            }).ConfigureAwait(false);
         }
     }
 }

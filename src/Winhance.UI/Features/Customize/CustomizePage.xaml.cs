@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using ILogService = Winhance.Core.Features.Common.Interfaces.ILogService;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -463,7 +464,7 @@ public sealed partial class CustomizePage : Page
                 stateText,
                 "TechnicalDetailsToggle");
         }
-        catch { }
+        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update technical details toggle visual: {ex.Message}"); }
     }
 
     // Search handlers

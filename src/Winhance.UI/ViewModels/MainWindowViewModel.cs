@@ -1063,7 +1063,7 @@ public partial class MainWindowViewModel : ObservableObject
                         if (!string.IsNullOrEmpty(detail.StatusText))
                             AppName = detail.StatusText;
                         LastTerminalLine = detail.TerminalOutput ?? string.Empty;
-                        ScheduleHideProgressAsync();
+                        _ = ScheduleHideProgressAsync();
                     }
                 }
 
@@ -1089,7 +1089,7 @@ public partial class MainWindowViewModel : ObservableObject
     /// <summary>
     /// Hides the TaskProgressControl after a 2-second delay, unless a new task starts.
     /// </summary>
-    private async void ScheduleHideProgressAsync()
+    private async Task ScheduleHideProgressAsync()
     {
         _hideDelayCts?.Cancel();
         var cts = new CancellationTokenSource();
