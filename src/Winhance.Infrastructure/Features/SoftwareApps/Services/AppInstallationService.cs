@@ -21,7 +21,8 @@ public class AppInstallationService(
     IExternalAppsService externalAppsService,
     IBloatRemovalService bloatRemovalService,
     IScheduledTaskService scheduledTaskService,
-    ITaskProgressService taskProgressService) : IAppInstallationService
+    ITaskProgressService taskProgressService,
+    IFileSystemService fileSystemService) : IAppInstallationService
 {
     private CancellationToken GetCurrentCancellationToken()
     {
@@ -162,12 +163,12 @@ public class AppInstallationService(
         if (app.Id == "windows-app-edge" || app.Id == "windows-app-onedrive")
         {
             var scriptName = CreateScriptName(app.Id);
-            var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, scriptName);
+            var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
             var taskName = scriptName.Replace(".ps1", "");
 
-            if (File.Exists(scriptPath))
+            if (fileSystemService.FileExists(scriptPath))
             {
-                File.Delete(scriptPath);
+                fileSystemService.DeleteFile(scriptPath);
                 logService.LogInformation($"Deleted obsolete script: {scriptPath}");
             }
 
@@ -201,17 +202,17 @@ public class AppInstallationService(
             logService.LogInformation("Removed OpenWebSearchRepair scheduled task");
 
             var openWebSearchDir = @"C:\ProgramData\Winhance\OpenWebSearch";
-            if (Directory.Exists(openWebSearchDir))
+            if (fileSystemService.DirectoryExists(openWebSearchDir))
             {
-                Directory.Delete(openWebSearchDir, recursive: true);
+                fileSystemService.DeleteDirectory(openWebSearchDir, recursive: true);
                 logService.LogInformation($"Deleted directory: {openWebSearchDir}");
             }
 
             var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-            var edgeHardlink = Path.Combine(programFilesX86, @"Microsoft\Edge\Application\edge.exe");
-            if (File.Exists(edgeHardlink))
+            var edgeHardlink = fileSystemService.CombinePath(programFilesX86, @"Microsoft\Edge\Application\edge.exe");
+            if (fileSystemService.FileExists(edgeHardlink))
             {
-                File.Delete(edgeHardlink);
+                fileSystemService.DeleteFile(edgeHardlink);
                 logService.LogInformation($"Deleted Edge hardlink: {edgeHardlink}");
             }
 

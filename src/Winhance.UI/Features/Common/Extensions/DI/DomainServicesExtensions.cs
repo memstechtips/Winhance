@@ -39,41 +39,19 @@ public static class DomainServicesExtensions
         services.AddSingleton<IWallpaperService, WallpaperService>();
 
         // Register WindowsThemeService
-        services.AddSingleton<WindowsThemeService>(sp => new WindowsThemeService(
-            sp.GetRequiredService<IWallpaperService>(),
-            sp.GetRequiredService<IWindowsVersionService>(),
-            sp.GetRequiredService<IWindowsUIManagementService>(),
-            sp.GetRequiredService<IWindowsRegistryService>(),
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-            sp.GetRequiredService<IConfigImportState>()
-        ));
-        // Register as IDomainService for registry
+        services.AddSingleton<WindowsThemeService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<WindowsThemeService>());
 
         // Register StartMenuService
-        services.AddSingleton<StartMenuService>(sp => new StartMenuService(
-            sp.GetRequiredService<IScheduledTaskService>(),
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-            sp.GetRequiredService<IInteractiveUserService>(),
-            sp.GetRequiredService<IProcessExecutor>()
-        ));
+        services.AddSingleton<StartMenuService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<StartMenuService>());
 
         // Register TaskbarService
-        services.AddSingleton<TaskbarService>(sp => new TaskbarService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<IWindowsRegistryService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
-        ));
+        services.AddSingleton<TaskbarService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<TaskbarService>());
 
         // Register ExplorerCustomizationService
-        services.AddSingleton<ExplorerCustomizationService>(sp => new ExplorerCustomizationService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
-        ));
+        services.AddSingleton<ExplorerCustomizationService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<ExplorerCustomizationService>());
 
         return services;
@@ -84,55 +62,37 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddOptimizationDomainServices(this IServiceCollection services)
     {
-        // Register PowerService
+        // Register PowerService (keeps factory — 3 registrations with IPowerService forwarding)
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
-            sp.GetRequiredService<IProcessExecutor>()
+            sp.GetRequiredService<IProcessExecutor>(),
+            sp.GetRequiredService<IFileSystemService>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
-        // Register as IPowerService for ViewModels that still use direct injection
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 
         // Register PrivacyAndSecurityService
-        services.AddSingleton<PrivacyAndSecurityService>(sp => new PrivacyAndSecurityService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
-        ));
+        services.AddSingleton<PrivacyAndSecurityService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PrivacyAndSecurityService>());
 
         // Register GamingPerformanceService
-        services.AddSingleton<GamingPerformanceService>(sp => new GamingPerformanceService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
-        ));
+        services.AddSingleton<GamingPerformanceService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<GamingPerformanceService>());
 
         // Register NotificationService
-        services.AddSingleton<NotificationService>(sp => new NotificationService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
-        ));
+        services.AddSingleton<NotificationService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<NotificationService>());
 
         // Register SoundService
-        services.AddSingleton<SoundService>(sp => new SoundService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
-        ));
+        services.AddSingleton<SoundService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SoundService>());
 
         // Register UpdateService
-        services.AddSingleton<UpdateService>(sp => new UpdateService(
-            sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<IWindowsRegistryService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-            sp.GetRequiredService<IProcessExecutor>(),
-            sp.GetRequiredService<IPowerShellRunner>()
-        ));
+        services.AddSingleton<UpdateService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 
         return services;
@@ -147,7 +107,7 @@ public static class DomainServicesExtensions
         services.AddScoped<IWindowsAppsService, WindowsAppsService>();
         services.AddScoped<IExternalAppsService, ExternalAppsService>();
         services.AddScoped<IAppInstallationService, AppInstallationService>();
-        services.AddScoped<IAppRemovalService, AppRemovalService>();
+        services.AddScoped<IAppUninstallationService, AppUninstallationService>();
 
         // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();

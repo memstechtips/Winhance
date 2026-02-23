@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -224,7 +225,7 @@ public partial class MoreMenuViewModel : ObservableObject
             _logService.LogWarning($"Error checking for existing Explorer windows: {ex.Message}");
         }
 
-        _ = _processExecutor.ShellExecuteAsync("explorer.exe", folderPath);
+        _processExecutor.ShellExecuteAsync("explorer.exe", folderPath).FireAndForget(_logService);
     }
 
     [RelayCommand]

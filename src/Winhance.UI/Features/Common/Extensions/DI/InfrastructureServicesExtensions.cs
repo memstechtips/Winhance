@@ -110,10 +110,10 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<TooltipRefreshEventHandler>();
 
         // Configuration Application Bridge (for config import/export)
-        services.AddSingleton<ConfigurationApplicationBridgeService>();
+        services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
 
         // Configuration Migration (for backward-compatible config imports)
-        services.AddSingleton<ConfigMigrationService>();
+        services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
 
         // Recommended Settings Service
         services.AddSingleton<IRecommendedSettingsService>(provider =>

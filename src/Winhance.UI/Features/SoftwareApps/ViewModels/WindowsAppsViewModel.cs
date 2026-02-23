@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Utils;
@@ -21,7 +22,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 {
     private readonly IWindowsAppsService _windowsAppsService;
     private readonly IAppInstallationService _appInstallationService;
-    private readonly IAppRemovalService _appRemovalService;
+    private readonly IAppUninstallationService _appUninstallationService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
@@ -34,7 +35,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
         IAppInstallationService appInstallationService,
-        IAppRemovalService appRemovalService,
+        IAppUninstallationService appUninstallationService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
@@ -46,7 +47,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
     {
         _windowsAppsService = windowsAppsService;
         _appInstallationService = appInstallationService;
-        _appRemovalService = appRemovalService;
+        _appUninstallationService = appUninstallationService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
@@ -334,7 +335,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
     private void OnWinGetInstalled(object? sender, EventArgs e)
     {
-        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
+        _dispatcherService.RunOnUIThreadAsync(async () =>
         {
             if (IsInitialized)
             {
@@ -343,7 +344,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
                 await CheckInstallationStatusAsync();
                 NotifyCardViewProperties();
             }
-        });
+        }).FireAndForget(_logService);
     }
 
     [RelayCommand]
@@ -484,7 +485,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         try
         {
             var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _appRemovalService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
+            var result = await _appUninstallationService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
 
             if (result.Success)
             {

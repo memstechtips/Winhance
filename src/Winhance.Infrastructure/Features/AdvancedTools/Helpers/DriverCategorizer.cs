@@ -8,7 +8,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
 {
-    public class DriverCategorizer(ILogService logService) : IDriverCategorizer
+    public class DriverCategorizer(ILogService logService, IFileSystemService fileSystemService) : IDriverCategorizer
     {
         private static readonly HashSet<string> StorageClasses = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -33,22 +33,22 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
         {
             try
             {
-                var fileName = Path.GetFileName(infPath).ToLowerInvariant();
+                var fileName = fileSystemService.GetFileName(infPath).ToLowerInvariant();
 
                 if (StorageFileNameKeywords.Any(keyword => fileName.Contains(keyword)))
                 {
-                    logService.LogInformation($"Storage driver detected (filename): {Path.GetFileName(infPath)}");
+                    logService.LogInformation($"Storage driver detected (filename): {fileSystemService.GetFileName(infPath)}");
                     return true;
                 }
 
                 string fileContent;
                 try
                 {
-                    fileContent = File.ReadAllText(infPath, Encoding.Unicode);
+                    fileContent = fileSystemService.ReadAllText(infPath, Encoding.Unicode);
                 }
                 catch
                 {
-                    fileContent = File.ReadAllText(infPath, Encoding.UTF8);
+                    fileContent = fileSystemService.ReadAllText(infPath, Encoding.UTF8);
                 }
 
                 using var reader = new StringReader(fileContent);
@@ -65,7 +65,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
                             var className = parts[1].Trim();
                             if (StorageClasses.Contains(className))
                             {
-                                logService.LogInformation($"Storage driver detected (class={className}): {Path.GetFileName(infPath)}");
+                                logService.LogInformation($"Storage driver detected (class={className}): {fileSystemService.GetFileName(infPath)}");
                                 return true;
                             }
                         }
@@ -76,7 +76,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             }
             catch (Exception ex)
             {
-                logService.LogWarning($"Could not categorize driver {Path.GetFileName(infPath)}: {ex.Message}");
+                logService.LogWarning($"Could not categorize driver {fileSystemService.GetFileName(infPath)}: {ex.Message}");
                 return false;
             }
         }
@@ -87,7 +87,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             string oemDriverPath,
             string? workingDirectoryToExclude = null)
         {
-            var infFiles = Directory.GetFiles(sourceDirectory, "*.inf", SearchOption.AllDirectories);
+            var infFiles = fileSystemService.GetFiles(sourceDirectory, "*.inf", SearchOption.AllDirectories);
 
             if (infFiles.Length == 0)
             {
@@ -124,7 +124,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             {
                 try
                 {
-                    var sourceDir = Path.GetDirectoryName(infFile)!;
+                    var sourceDir = fileSystemService.GetDirectoryName(infFile)!;
 
                     if (processedFolders.Contains(sourceDir))
                         continue;
@@ -134,22 +134,22 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
                     var isStorage = IsStorageDriver(infFile);
                     var targetBase = isStorage ? winpeDriverPath : oemDriverPath;
 
-                    var folderName = Path.GetFileName(sourceDir);
-                    var targetDirectory = Path.Combine(targetBase, folderName);
+                    var folderName = fileSystemService.GetFileName(sourceDir);
+                    var targetDirectory = fileSystemService.CombinePath(targetBase, folderName);
 
                     int counter = 1;
-                    while (Directory.Exists(targetDirectory) && counter < 100)
+                    while (fileSystemService.DirectoryExists(targetDirectory) && counter < 100)
                     {
-                        targetDirectory = Path.Combine(targetBase, $"{folderName}_{counter}");
+                        targetDirectory = fileSystemService.CombinePath(targetBase, $"{folderName}_{counter}");
                         counter++;
                     }
 
-                    Directory.CreateDirectory(targetDirectory);
+                    fileSystemService.CreateDirectory(targetDirectory);
 
-                    foreach (var file in Directory.GetFiles(sourceDir))
+                    foreach (var file in fileSystemService.GetFiles(sourceDir))
                     {
-                        var targetFile = Path.Combine(targetDirectory, Path.GetFileName(file));
-                        File.Copy(file, targetFile, overwrite: true);
+                        var targetFile = fileSystemService.CombinePath(targetDirectory, fileSystemService.GetFileName(file));
+                        fileSystemService.CopyFile(file, targetFile, overwrite: true);
                     }
 
                     copiedCount++;
@@ -157,7 +157,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
                 }
                 catch (Exception ex)
                 {
-                    logService.LogError($"Failed to copy driver {Path.GetFileName(infFile)}: {ex.Message}", ex);
+                    logService.LogError($"Failed to copy driver {fileSystemService.GetFileName(infFile)}: {ex.Message}", ex);
                 }
             }
 

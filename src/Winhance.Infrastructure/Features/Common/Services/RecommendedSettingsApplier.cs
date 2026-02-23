@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -46,7 +47,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 enableValue = recommendedValue.Equals(registrySetting.EnabledValue);
                             }
 
-                            await settingApplicationService.ApplySettingAsync(setting.Id, enableValue, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
+                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            {
+                                SettingId = setting.Id,
+                                Enable = enableValue,
+                                Value = recommendedValue,
+                                SkipValuePrerequisites = true
+                            }).ConfigureAwait(false);
                         }
                         else if (setting.InputType == InputType.Selection)
                         {
@@ -56,16 +63,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             {
                                 var registryValue = RecommendedSettingsService.GetRegistryValueFromOptionName(setting, recommendedOption);
                                 var comboBoxIndex = RecommendedSettingsService.GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
-                                await settingApplicationService.ApplySettingAsync(setting.Id, true, comboBoxIndex, skipValuePrerequisites: true).ConfigureAwait(false);
+                                await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                                {
+                                    SettingId = setting.Id,
+                                    Enable = true,
+                                    Value = comboBoxIndex,
+                                    SkipValuePrerequisites = true
+                                }).ConfigureAwait(false);
                             }
                             else
                             {
-                                await settingApplicationService.ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
+                                await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                                {
+                                    SettingId = setting.Id,
+                                    Enable = true,
+                                    Value = recommendedValue,
+                                    SkipValuePrerequisites = true
+                                }).ConfigureAwait(false);
                             }
                         }
                         else
                         {
-                            await settingApplicationService.ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true).ConfigureAwait(false);
+                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            {
+                                SettingId = setting.Id,
+                                Enable = true,
+                                Value = recommendedValue,
+                                SkipValuePrerequisites = true
+                            }).ConfigureAwait(false);
                         }
 
                         logService.Log(LogLevel.Debug, $"[RecommendedSettingsApplier] Successfully applied recommended setting '{setting.Id}'");

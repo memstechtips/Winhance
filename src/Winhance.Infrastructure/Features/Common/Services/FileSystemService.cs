@@ -21,6 +21,10 @@ public class FileSystemService : IFileSystemService
     public void DeleteFile(string path) => File.Delete(path);
     public void CopyFile(string source, string destination, bool overwrite = false) => File.Copy(source, destination, overwrite);
     public void MoveFile(string source, string destination) => File.Move(source, destination);
+    public string ReadAllText(string path, System.Text.Encoding encoding) => File.ReadAllText(path, encoding);
+    public long GetFileSize(string path) => new FileInfo(path).Length;
+    public void SetFileAttributes(string path, FileAttributes attributes) => new FileInfo(path).Attributes = attributes;
+    public DateTime GetLastWriteTime(string path) => File.GetLastWriteTime(path);
 
     // Directory operations
     public bool DirectoryExists(string path) => Directory.Exists(path);
@@ -34,4 +38,9 @@ public class FileSystemService : IFileSystemService
     // Path operations
     public string GetTempPath() => Path.GetTempPath();
     public string CombinePath(params string[] paths) => Path.Combine(paths);
+    public string GetFileName(string path) => Path.GetFileName(path);
+    public string? GetDirectoryName(string path) => Path.GetDirectoryName(path);
+    public string GetExtension(string path) => Path.GetExtension(path);
+    public string GetFileNameWithoutExtension(string path) => Path.GetFileNameWithoutExtension(path);
+    public string GetPathRoot(string path) => Path.GetPathRoot(path)!;
 }

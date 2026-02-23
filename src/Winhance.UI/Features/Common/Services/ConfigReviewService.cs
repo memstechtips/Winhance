@@ -128,8 +128,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         if (_diffs.TryGetValue(settingId, out var diff))
         {
-            diff.IsReviewed = true;
-            diff.IsApproved = approved;
+            _diffs[settingId] = diff with { IsReviewed = true, IsApproved = approved };
             ApprovalCountChanged?.Invoke(this, EventArgs.Empty);
             BadgeStateChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -387,7 +386,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                     if (isActionSetting)
                     {
-                        diff.ActionConfirmationMessage = GetActionConfirmationMessage(configItem.Id);
+                        diff = diff with { ActionConfirmationMessage = GetActionConfirmationMessage(configItem.Id) };
                     }
 
                     _diffs[configItem.Id] = diff;
@@ -626,14 +625,17 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// </summary>
     private void RelocalizeDisplayStrings()
     {
-        foreach (var diff in _diffs.Values)
+        foreach (var key in _diffs.Keys.ToList())
         {
+            var diff = _diffs[key];
+            var updated = diff;
             if (diff.CurrentDisplayKey != null)
-                diff.CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey);
+                updated = updated with { CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey) };
             if (diff.ConfigDisplayKey != null)
-                diff.ConfigValueDisplay = LocalizeComboBoxDisplayText(diff.ConfigDisplayKey);
+                updated = updated with { ConfigValueDisplay = LocalizeComboBoxDisplayText(diff.ConfigDisplayKey) };
             if (diff.IsActionSetting)
-                diff.ActionConfirmationMessage = GetActionConfirmationMessage(diff.SettingId);
+                updated = updated with { ActionConfirmationMessage = GetActionConfirmationMessage(diff.SettingId) };
+            _diffs[key] = updated;
         }
     }
 

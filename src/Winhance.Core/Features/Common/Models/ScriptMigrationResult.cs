@@ -1,10 +1,10 @@
 namespace Winhance.Core.Features.Common.Models
 {
-    public class ScriptMigrationResult
+    public record ScriptMigrationResult
     {
-        public bool MigrationPerformed { get; set; }
-        public int ScriptsRenamed { get; set; }
-        public int TasksDeleted { get; set; }
-        public bool Success { get; set; }
+        public bool MigrationPerformed { get; init; }
+        public int ScriptsRenamed { get; init; }
+        public int TasksDeleted { get; init; }
+        public bool Success { get; init; }
     }
 }

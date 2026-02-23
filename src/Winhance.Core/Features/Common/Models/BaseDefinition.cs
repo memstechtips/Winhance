@@ -15,8 +15,8 @@ public abstract record BaseDefinition
     public bool IsWindows10Only { get; init; }
     public int? MinimumBuildNumber { get; init; }
     public int? MaximumBuildNumber { get; init; }
-    public List<RegistrySetting> RegistrySettings { get; init; } = new();
-    public Dictionary<string, object> CustomProperties { get; init; } = new();
+    public IReadOnlyList<RegistrySetting> RegistrySettings { get; init; } = new List<RegistrySetting>();
+    public IReadOnlyDictionary<string, object> CustomProperties { get; init; } = new Dictionary<string, object>();
     public string? RestartProcess { get; init; }
     public string? RestartService { get; init; }
     public bool RequiresRestart { get; init; }

@@ -20,6 +20,10 @@ namespace Winhance.Core.Features.Common.Interfaces
         void DeleteFile(string path);
         void CopyFile(string source, string destination, bool overwrite = false);
         void MoveFile(string source, string destination);
+        string ReadAllText(string path, System.Text.Encoding encoding);
+        long GetFileSize(string path);
+        void SetFileAttributes(string path, System.IO.FileAttributes attributes);
+        DateTime GetLastWriteTime(string path);
 
         // Directory operations
         bool DirectoryExists(string path);
@@ -31,5 +35,10 @@ namespace Winhance.Core.Features.Common.Interfaces
         // Path operations
         string GetTempPath();
         string CombinePath(params string[] paths);
+        string GetFileName(string path);
+        string? GetDirectoryName(string path);
+        string GetExtension(string path);
+        string GetFileNameWithoutExtension(string path);
+        string GetPathRoot(string path);
     }
 }

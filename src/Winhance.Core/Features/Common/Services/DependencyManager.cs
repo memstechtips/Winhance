@@ -58,8 +58,16 @@ namespace Winhance.Core.Features.Common.Services
                 var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService);
                 if (currentState.Success && currentState.IsEnabled)
                 {
-                    await settingApplicationService.ApplySettingAsync(dependentSetting.Id, false);
-                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                    try
+                    {
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false });
+                        await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                    }
+                    catch (ArgumentException ex) when (ex.Message.Contains("not found"))
+                    {
+                        _logService.Log(LogLevel.Warning,
+                            $"Cannot disable dependent setting '{dependentSetting.Id}' - likely filtered due to OS/hardware compatibility. Skipping.");
+                    }
                 }
             }
         }
@@ -83,8 +91,16 @@ namespace Winhance.Core.Features.Common.Services
 
                 if (!await IsDependencySatisfiedAsync(dependency, discoveryService))
                 {
-                    await settingApplicationService.ApplySettingAsync(dependentSetting.Id, false);
-                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                    try
+                    {
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false });
+                        await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                    }
+                    catch (ArgumentException ex) when (ex.Message.Contains("not found"))
+                    {
+                        _logService.Log(LogLevel.Warning,
+                            $"Cannot disable dependent setting '{dependentSetting.Id}' - likely filtered due to OS/hardware compatibility. Skipping.");
+                    }
                 }
             }
         }
@@ -132,17 +148,17 @@ namespace Winhance.Core.Features.Common.Services
                 {
                     if (requiredSetting.InputType == InputType.Selection && !string.IsNullOrEmpty(dependency.RequiredValue))
                     {
-                        await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true, dependency.RequiredValue);
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = true, Value = dependency.RequiredValue });
                     }
                     else
                     {
-                        await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true);
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = true });
                     }
                 }
                 else
                 {
                     bool enableValue = dependency.DependencyType == SettingDependencyType.RequiresEnabled;
-                    await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, enableValue);
+                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = enableValue });
                 }
             }
             catch (ArgumentException ex) when (ex.Message.Contains("not found"))

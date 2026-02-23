@@ -15,15 +15,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly ILogService _logService;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IFileSystemService _fileSystemService;
         private readonly HttpClient _httpClient;
         private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
         private readonly string _latestReleaseDownloadUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
         private readonly string _userAgent = "Winhance-Update-Checker";
 
-        public VersionService(ILogService logService, IProcessExecutor processExecutor)
+        public VersionService(ILogService logService, IProcessExecutor processExecutor, IFileSystemService fileSystemService)
         {
             _logService = logService;
             _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
+            _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", _userAgent);
         }
@@ -137,11 +139,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _logService.Log(LogLevel.Info, "Downloading update...");
 
             // Create a temporary file to download the installer
-            string tempPath = Path.Combine(Path.GetTempPath(), "Winhance.Installer.exe");
+            string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance.Installer.exe");
 
             // Download the installer
             byte[] installerBytes = await _httpClient.GetByteArrayAsync(_latestReleaseDownloadUrl).ConfigureAwait(false);
-            await File.WriteAllBytesAsync(tempPath, installerBytes).ConfigureAwait(false);
+            await _fileSystemService.WriteAllBytesAsync(tempPath, installerBytes).ConfigureAwait(false);
 
             _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}, launching installer...");
 

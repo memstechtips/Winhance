@@ -54,7 +54,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 {
                                     logService.Log(LogLevel.Info,
                                         $"[SettingDependencyResolver] Auto-enabling '{autoEnableId}' because '{settingId}' was enabled");
-                                    await settingApplicationService.ApplySettingAsync(autoEnableId, true, skipValuePrerequisites: true).ConfigureAwait(false);
+                                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                                    {
+                                        SettingId = autoEnableId,
+                                        Enable = true,
+                                        SkipValuePrerequisites = true
+                                    }).ConfigureAwait(false);
                                 }
                             }
                         }
@@ -145,11 +150,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     var valueToApply = GetValueToApplyForRequirement(requiredSetting, dependency.RequiredValue);
 
-                    await settingApplicationService.ApplySettingAsync(
-                        dependency.RequiredSettingId,
-                        enable: true,
-                        value: valueToApply,
-                        skipValuePrerequisites: true).ConfigureAwait(false);
+                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                    {
+                        SettingId = dependency.RequiredSettingId,
+                        Enable = true,
+                        Value = valueToApply,
+                        SkipValuePrerequisites = true
+                    }).ConfigureAwait(false);
 
                     logService.Log(LogLevel.Info,
                         $"[ValuePrereq] Successfully auto-fixed '{dependency.RequiredSettingId}', proceeding with '{settingId}'");
@@ -197,11 +204,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     logService.Log(LogLevel.Info,
                         $"[PostChange] All children match preset at index {presetIndex}, syncing parent '{prerequisite.RequiredSettingId}'");
 
-                    await settingApplicationService.ApplySettingAsync(
-                        prerequisite.RequiredSettingId,
-                        enable: true,
-                        value: presetIndex,
-                        skipValuePrerequisites: true).ConfigureAwait(false);
+                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                    {
+                        SettingId = prerequisite.RequiredSettingId,
+                        Enable = true,
+                        Value = presetIndex,
+                        SkipValuePrerequisites = true
+                    }).ConfigureAwait(false);
 
                     return;
                 }

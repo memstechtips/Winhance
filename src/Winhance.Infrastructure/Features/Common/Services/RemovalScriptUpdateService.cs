@@ -13,6 +13,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly ILogService _logService;
         private readonly IScheduledTaskService _scheduledTaskService;
+        private readonly IFileSystemService _fileSystemService;
 
         private static readonly ScriptInfo[] Scripts =
         {
@@ -23,10 +24,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 RunAfterUpdate: false)
         };
 
-        public RemovalScriptUpdateService(ILogService logService, IScheduledTaskService scheduledTaskService)
+        public RemovalScriptUpdateService(ILogService logService, IScheduledTaskService scheduledTaskService, IFileSystemService fileSystemService)
         {
             _logService = logService;
             _scheduledTaskService = scheduledTaskService;
+            _fileSystemService = fileSystemService;
         }
 
         public async Task CheckAndUpdateScriptsAsync()
@@ -39,9 +41,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task CheckAndUpdateScriptAsync(ScriptInfo script)
         {
-            var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, $"{script.Name}.ps1");
+            var scriptPath = _fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, $"{script.Name}.ps1");
 
-            if (!File.Exists(scriptPath))
+            if (!_fileSystemService.FileExists(scriptPath))
             {
                 return;
             }
@@ -60,12 +62,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 if (script.UpdateContent != null)
                 {
-                    var existingContent = File.ReadAllText(scriptPath);
-                    File.WriteAllText(scriptPath, script.UpdateContent(existingContent));
+                    var existingContent = _fileSystemService.ReadAllText(scriptPath);
+                    _fileSystemService.WriteAllText(scriptPath, script.UpdateContent(existingContent));
                 }
                 else
                 {
-                    File.WriteAllText(scriptPath, script.GetContent!());
+                    _fileSystemService.WriteAllText(scriptPath, script.GetContent!());
                 }
 
                 _logService.LogInformation($"{script.Name} script file updated");
@@ -82,11 +84,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        private static string? ExtractVersionFromFile(string filePath)
+        private string? ExtractVersionFromFile(string filePath)
         {
             try
             {
-                var content = File.ReadAllText(filePath);
+                var content = _fileSystemService.ReadAllText(filePath);
                 var match = Regex.Match(content, @"Script Version:\s*(\d+\.\d+)");
                 return match.Success ? match.Groups[1].Value : null;
             }

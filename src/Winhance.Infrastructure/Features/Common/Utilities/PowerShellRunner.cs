@@ -15,6 +15,12 @@ namespace Winhance.Infrastructure.Features.Common.Utilities;
 public class PowerShellRunner : IPowerShellRunner
 {
     private const string PowerShellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+    private readonly IFileSystemService _fileSystemService;
+
+    public PowerShellRunner(IFileSystemService fileSystemService)
+    {
+        _fileSystemService = fileSystemService;
+    }
 
     /// <summary>
     /// Executes a PowerShell script string via Windows PowerShell 5.1 (powershell.exe).
@@ -29,15 +35,15 @@ public class PowerShellRunner : IPowerShellRunner
         if (string.IsNullOrEmpty(script))
             throw new ArgumentException("Script cannot be null or empty.", nameof(script));
 
-        var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_{Guid.NewGuid()}.ps1");
+        var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_{Guid.NewGuid()}.ps1");
         try
         {
-            await File.WriteAllTextAsync(tempFile, script, ct).ConfigureAwait(false);
+            await _fileSystemService.WriteAllTextAsync(tempFile, script, ct).ConfigureAwait(false);
             return await RunScriptFileAsync(tempFile, "", progress, ct).ConfigureAwait(false);
         }
         finally
         {
-            try { File.Delete(tempFile); }
+            try { _fileSystemService.DeleteFile(tempFile); }
             catch { /* best effort cleanup */ }
         }
     }
@@ -56,7 +62,7 @@ public class PowerShellRunner : IPowerShellRunner
         if (string.IsNullOrEmpty(scriptPath))
             throw new ArgumentException("Script path cannot be null or empty.", nameof(scriptPath));
 
-        if (!File.Exists(scriptPath))
+        if (!_fileSystemService.FileExists(scriptPath))
             throw new FileNotFoundException($"PowerShell script file not found: {scriptPath}");
 
         var args = string.IsNullOrEmpty(arguments)
@@ -72,7 +78,7 @@ public class PowerShellRunner : IPowerShellRunner
             if (IsExecutionPolicyError(errorText) && string.IsNullOrEmpty(arguments))
             {
                 // Attempt fallback: read script content and re-run as -EncodedCommand
-                var scriptContent = await File.ReadAllTextAsync(scriptPath, ct).ConfigureAwait(false);
+                var scriptContent = await _fileSystemService.ReadAllTextAsync(scriptPath, ct).ConfigureAwait(false);
 
                 // Guard: Base64 of Unicode doubles size; Windows command line limit ~32K
                 if (scriptContent.Length > 28_000)
@@ -179,10 +185,10 @@ public class PowerShellRunner : IPowerShellRunner
         CancellationToken ct = default)
     {
         // Write script to temp file for parsing
-        var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
+        var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
         try
         {
-            await File.WriteAllTextAsync(tempFile, scriptContent, ct).ConfigureAwait(false);
+            await _fileSystemService.WriteAllTextAsync(tempFile, scriptContent, ct).ConfigureAwait(false);
 
             // Use PowerShell's parser to check for syntax errors
             var parseScript = @"
@@ -199,7 +205,7 @@ exit 0";
         }
         finally
         {
-            try { File.Delete(tempFile); }
+            try { _fileSystemService.DeleteFile(tempFile); }
             catch { /* best effort cleanup */ }
         }
     }
@@ -212,10 +218,10 @@ exit 0";
         string xmlContent,
         CancellationToken ct = default)
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.xml");
+        var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.xml");
         try
         {
-            await File.WriteAllTextAsync(tempFile, xmlContent, ct).ConfigureAwait(false);
+            await _fileSystemService.WriteAllTextAsync(tempFile, xmlContent, ct).ConfigureAwait(false);
 
             var parseScript = @"
 try {
@@ -235,7 +241,7 @@ try {
         }
         finally
         {
-            try { File.Delete(tempFile); }
+            try { _fileSystemService.DeleteFile(tempFile); }
             catch { /* best effort cleanup */ }
         }
     }

@@ -20,7 +20,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IInteractiveUserService interactiveUserService,
-        IProcessExecutor processExecutor) : IDomainService
+        IProcessExecutor processExecutor,
+        IFileSystemService fileSystemService) : IDomainService
     {
         // Caching fields
         private IEnumerable<SettingDefinition>? _cachedSettings;
@@ -125,27 +126,27 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 string localAppData = interactiveUserService.GetInteractiveUserFolderPath(
                     Environment.SpecialFolder.LocalApplicationData
                 );
-                string startMenuLocalStatePath = Path.Combine(
+                string startMenuLocalStatePath = fileSystemService.CombinePath(
                     localAppData,
                     "Packages",
                     "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy",
                     "LocalState"
                 );
 
-                if (Directory.Exists(startMenuLocalStatePath))
+                if (fileSystemService.DirectoryExists(startMenuLocalStatePath))
                 {
                     // Delete start.bin if it exists
-                    string startBinPath = Path.Combine(startMenuLocalStatePath, "start.bin");
-                    if (File.Exists(startBinPath))
+                    string startBinPath = fileSystemService.CombinePath(startMenuLocalStatePath, "start.bin");
+                    if (fileSystemService.FileExists(startBinPath))
                     {
-                        File.Delete(startBinPath);
+                        fileSystemService.DeleteFile(startBinPath);
                     }
 
                     // Delete start2.bin if it exists
-                    string start2BinPath = Path.Combine(startMenuLocalStatePath, "start2.bin");
-                    if (File.Exists(start2BinPath))
+                    string start2BinPath = fileSystemService.CombinePath(startMenuLocalStatePath, "start2.bin");
+                    if (fileSystemService.FileExists(start2BinPath))
                     {
-                        File.Delete(start2BinPath);
+                        fileSystemService.DeleteFile(start2BinPath);
                     }
                 }
 
@@ -169,20 +170,20 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             try
             {
                 // Delete existing layout file if it exists
-                if (File.Exists(StartMenuLayouts.Win10StartLayoutPath))
+                if (fileSystemService.FileExists(StartMenuLayouts.Win10StartLayoutPath))
                 {
-                    File.Delete(StartMenuLayouts.Win10StartLayoutPath);
+                    fileSystemService.DeleteFile(StartMenuLayouts.Win10StartLayoutPath);
                 }
 
                 // Create new layout file with clean layout
-                File.WriteAllText(
+                fileSystemService.WriteAllText(
                     StartMenuLayouts.Win10StartLayoutPath,
                     StartMenuLayouts.Windows10Layout
                 );
 
                 // Ensure the directory exists for the layout file
-                Directory.CreateDirectory(
-                    Path.GetDirectoryName(StartMenuLayouts.Win10StartLayoutPath)!
+                fileSystemService.CreateDirectory(
+                    fileSystemService.GetDirectoryName(StartMenuLayouts.Win10StartLayoutPath)!
                 );
 
                 // Always setup scheduled tasks for all existing users
@@ -365,7 +366,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     {
                         // Construct path to user's start2.bin file
                         string userProfilePath = $"C:\\Users\\{username}";
-                        string start2BinPath = Path.Combine(
+                        string start2BinPath = fileSystemService.CombinePath(
                             userProfilePath,
                             "AppData",
                             "Local",
@@ -381,9 +382,9 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                         );
 
                         // Delete start2.bin file if it exists
-                        if (File.Exists(start2BinPath))
+                        if (fileSystemService.FileExists(start2BinPath))
                         {
-                            File.Delete(start2BinPath);
+                            fileSystemService.DeleteFile(start2BinPath);
                             logService?.Log(
                                 LogLevel.Info,
                                 $"Successfully deleted start2.bin for user: {username}"
@@ -398,7 +399,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                         }
 
                         // Also delete start.bin if it exists
-                        string startBinPath = Path.Combine(
+                        string startBinPath = fileSystemService.CombinePath(
                             userProfilePath,
                             "AppData",
                             "Local",
@@ -408,9 +409,9 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                             "start.bin"
                         );
 
-                        if (File.Exists(startBinPath))
+                        if (fileSystemService.FileExists(startBinPath))
                         {
-                            File.Delete(startBinPath);
+                            fileSystemService.DeleteFile(startBinPath);
                             logService?.Log(
                                 LogLevel.Info,
                                 $"Successfully deleted start.bin for user: {username}"
@@ -469,7 +470,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                                         ?.ToString();
                                     if (!string.IsNullOrEmpty(profilePath))
                                     {
-                                        string username = Path.GetFileName(profilePath);
+                                        string username = fileSystemService.GetFileName(profilePath);
                                         // Skip current user and system accounts
                                         if (
                                             username != currentUsername

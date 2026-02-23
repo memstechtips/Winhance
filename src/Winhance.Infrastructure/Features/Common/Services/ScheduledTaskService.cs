@@ -7,7 +7,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ScheduledTaskService(ILogService logService) : IScheduledTaskService
+public class ScheduledTaskService(ILogService logService, IFileSystemService fileSystemService) : IScheduledTaskService
 {
     private enum TaskTriggerType
     {
@@ -339,15 +339,15 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
 
     private void EnsureScriptFileExists(RemovalScript script)
     {
-        if (!File.Exists(script.ActualScriptPath) && !string.IsNullOrEmpty(script.Content))
+        if (!fileSystemService.FileExists(script.ActualScriptPath) && !string.IsNullOrEmpty(script.Content))
         {
-            string? directoryPath = Path.GetDirectoryName(script.ActualScriptPath);
-            if (directoryPath != null && !Directory.Exists(directoryPath))
+            string? directoryPath = fileSystemService.GetDirectoryName(script.ActualScriptPath);
+            if (directoryPath != null && !fileSystemService.DirectoryExists(directoryPath))
             {
-                Directory.CreateDirectory(directoryPath);
+                fileSystemService.CreateDirectory(directoryPath);
             }
 
-            File.WriteAllText(script.ActualScriptPath!, script.Content);
+            fileSystemService.WriteAllText(script.ActualScriptPath!, script.Content);
         }
     }
 

@@ -1,9 +1,9 @@
 namespace Winhance.Core.Features.AdvancedTools.Models
 {
-    public class ImageDetectionResult
+    public record ImageDetectionResult
     {
-        public ImageFormatInfo? WimInfo { get; set; }
-        public ImageFormatInfo? EsdInfo { get; set; }
+        public ImageFormatInfo? WimInfo { get; init; }
+        public ImageFormatInfo? EsdInfo { get; init; }
 
         public bool BothExist => WimInfo != null && EsdInfo != null;
         public bool NeitherExists => WimInfo == null && EsdInfo == null;

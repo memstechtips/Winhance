@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Utils;
@@ -338,7 +339,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     private void OnWinGetInstalled(object? sender, EventArgs e)
     {
-        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
+        _dispatcherService.RunOnUIThreadAsync(async () =>
         {
             if (IsInitialized)
             {
@@ -346,7 +347,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
                 _appStatusDiscoveryService.InvalidateCache();
                 await CheckInstallationStatusAsync();
             }
-        });
+        }).FireAndForget(_logService);
     }
 
     /// <summary>

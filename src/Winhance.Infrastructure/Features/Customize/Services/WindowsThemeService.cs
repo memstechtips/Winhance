@@ -14,7 +14,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         IWindowsRegistryService registryService,
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        IConfigImportState configImportState) : IDomainService
+        IConfigImportState configImportState,
+        IFileSystemService fileSystemService) : IDomainService
     {
         public string DomainName => FeatureIds.WindowsTheme;
 
@@ -79,7 +80,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 var isWindows11 = versionService.IsWindows11();
                 var wallpaperPath = WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
 
-                if (System.IO.File.Exists(wallpaperPath))
+                if (fileSystemService.FileExists(wallpaperPath))
                 {
                     await wallpaperService.SetWallpaperAsync(wallpaperPath).ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"Wallpaper changed to: {wallpaperPath}");

@@ -1,10 +1,13 @@
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
@@ -17,6 +20,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
+    private readonly WindowsAppsViewModel _windowsAppsViewModel;
     private Window? _mainWindow;
 
     /// <summary>
@@ -44,12 +48,14 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
         IAutounattendXmlGeneratorService xmlGeneratorService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        ILogService logService)
+        ILogService logService,
+        WindowsAppsViewModel windowsAppsViewModel)
     {
         _xmlGeneratorService = xmlGeneratorService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _logService = logService;
+        _windowsAppsViewModel = windowsAppsViewModel;
     }
 
     public void SetMainWindow(Window window)
@@ -98,7 +104,8 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             IsGenerating = true;
             try
             {
-                await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
+                var selectedApps = await ExtractSelectedWindowsAppsAsync();
+                await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps);
             }
             finally
             {
@@ -128,5 +135,37 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             var errorTitle = _localizationService.GetString("Dialog_XmlGenError") ?? "Generation Error";
             await _dialogService.ShowErrorAsync(errorMsg, errorTitle);
         }
+    }
+
+    private async Task<System.Collections.Generic.IReadOnlyList<ConfigurationItem>> ExtractSelectedWindowsAppsAsync()
+    {
+        if (!_windowsAppsViewModel.IsInitialized)
+            await _windowsAppsViewModel.LoadItemsAsync();
+
+        return _windowsAppsViewModel.Items
+            .Where(item => item.IsSelected)
+            .Select(item =>
+            {
+                var configItem = new ConfigurationItem
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    IsSelected = true,
+                    InputType = InputType.Toggle
+                };
+
+                if (!string.IsNullOrEmpty(item.Definition.AppxPackageName))
+                {
+                    configItem.AppxPackageName = item.Definition.AppxPackageName;
+                    if (item.Definition.SubPackages?.Length > 0)
+                        configItem.SubPackages = item.Definition.SubPackages;
+                }
+                else if (!string.IsNullOrEmpty(item.Definition.CapabilityName))
+                    configItem.CapabilityName = item.Definition.CapabilityName;
+                else if (!string.IsNullOrEmpty(item.Definition.OptionalFeatureName))
+                    configItem.OptionalFeatureName = item.Definition.OptionalFeatureName;
+
+                return configItem;
+            }).ToList();
     }
 }

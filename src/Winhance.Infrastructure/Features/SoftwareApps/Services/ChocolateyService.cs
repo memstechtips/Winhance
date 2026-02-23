@@ -16,18 +16,21 @@ public class ChocolateyService : IChocolateyService
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
+    private readonly IFileSystemService _fileSystemService;
     private bool? _isInstalled;
 
     public ChocolateyService(
         ILogService logService,
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
-        IProcessExecutor processExecutor)
+        IProcessExecutor processExecutor,
+        IFileSystemService fileSystemService)
     {
         _logService = logService;
         _taskProgressService = taskProgressService;
         _localization = localization;
         _processExecutor = processExecutor;
+        _fileSystemService = fileSystemService;
     }
 
     public Task<bool> IsChocolateyInstalledAsync(CancellationToken cancellationToken = default)
@@ -217,11 +220,11 @@ public class ChocolateyService : IChocolateyService
         return result;
     }
 
-    private static string? FindChocoExecutable()
+    private string? FindChocoExecutable()
     {
         // Check the standard installation path first
         var standardPath = @"C:\ProgramData\chocolatey\bin\choco.exe";
-        if (File.Exists(standardPath))
+        if (_fileSystemService.FileExists(standardPath))
             return standardPath;
 
         // Scan PATH
@@ -231,7 +234,7 @@ public class ChocolateyService : IChocolateyService
 
         return pathEnv
             .Split(Path.PathSeparator)
-            .Select(dir => Path.Combine(dir, "choco.exe"))
-            .FirstOrDefault(File.Exists);
+            .Select(dir => _fileSystemService.CombinePath(dir, "choco.exe"))
+            .FirstOrDefault(_fileSystemService.FileExists);
     }
 }

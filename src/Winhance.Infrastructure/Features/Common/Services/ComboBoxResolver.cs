@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class ComboBoxResolver(
         ISystemSettingsDiscoveryService discoveryService) : IComboBoxResolver
     {
-        public const int CUSTOM_STATE_INDEX = -1;
+
 
         public async Task<object?> ResolveCurrentValueAsync(SettingDefinition setting, Dictionary<string, object?>? existingRawValues = null)
         {
@@ -47,7 +47,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public int GetValueFromIndex(SettingDefinition setting, int index)
         {
-            if (index == CUSTOM_STATE_INDEX)
+            if (index == ComboBoxConstants.CustomStateIndex)
             {
                 return 0;
             }
@@ -135,7 +135,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
             if (supportsCustomState)
             {
-                return CUSTOM_STATE_INDEX;
+                return ComboBoxConstants.CustomStateIndex;
             }
 
             return 0;

@@ -12,12 +12,12 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppRemovalService(
+public class AppUninstallationService(
     ILogService logService,
     IWindowsAppsService windowsAppsService,
     IBloatRemovalService bloatRemovalService,
     ITaskProgressService taskProgressService,
-    IMultiScriptProgressService multiScriptProgressService) : IAppRemovalService
+    IMultiScriptProgressService multiScriptProgressService) : IAppUninstallationService
 {
     private CancellationToken GetCurrentCancellationToken()
     {

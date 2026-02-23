@@ -97,7 +97,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
-            var isCustomState = currentIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
+            var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
             string[] finalDisplayNames = displayNames;
 
@@ -119,12 +119,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 result.Options.Add(new ComboBoxOption
                 {
                     DisplayText = finalDisplayNames[i],
-                    Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX,
+                    Value = i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
                     Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
                 });
             }
 
-            result.SelectedValue = isCustomState ? ComboBoxResolver.CUSTOM_STATE_INDEX : currentIndex;
+            result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
             return true;
         }
 
@@ -133,7 +133,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
-                var isCustomState = currentIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
+                var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
                 
                 string[] finalDisplayNames = displayNames;
                 
@@ -155,12 +155,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     result.Options.Add(new ComboBoxOption
                     {
                         DisplayText = finalDisplayNames[i],
-                        Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX,
+                        Value = i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
                         Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
                     });
                 }
 
-                result.SelectedValue = isCustomState ? ComboBoxResolver.CUSTOM_STATE_INDEX : currentIndex;
+                result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
                 return true;
             }
             catch
@@ -174,7 +174,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
-                var isCustomState = currentIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
+                var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
                 string[] finalDisplayNames = displayNames;
 
@@ -196,12 +196,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     result.Options.Add(new ComboBoxOption
                     {
                         DisplayText = finalDisplayNames[i],
-                        Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX,
+                        Value = i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
                         Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
                     });
                 }
 
-                result.SelectedValue = isCustomState ? ComboBoxResolver.CUSTOM_STATE_INDEX : currentIndex;
+                result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
                 return true;
             }
             catch

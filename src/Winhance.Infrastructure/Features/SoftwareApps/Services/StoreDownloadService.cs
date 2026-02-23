@@ -22,6 +22,7 @@ public class StoreDownloadService : IStoreDownloadService
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILogService? _logService;
     private readonly ILocalizationService _localization;
+    private readonly IFileSystemService _fileSystemService;
     private readonly HttpClient _httpClient;
 
     private const string StoreApiUrl = "https://store.rg-adguard.net/api/GetFiles";
@@ -29,10 +30,12 @@ public class StoreDownloadService : IStoreDownloadService
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
+        IFileSystemService fileSystemService,
         ILogService? logService = null)
     {
         _taskProgressService = taskProgressService;
         _localization = localization;
+        _fileSystemService = fileSystemService;
         _logService = logService;
         _httpClient = new HttpClient
         {
@@ -46,12 +49,12 @@ public class StoreDownloadService : IStoreDownloadService
         CancellationToken cancellationToken = default)
     {
         displayName ??= productId;
-        var tempPath = Path.Combine(Path.GetTempPath(), $"Winhance_{productId}_{Guid.NewGuid():N}");
+        var tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"Winhance_{productId}_{Guid.NewGuid():N}");
 
         try
         {
             // Create temporary directory
-            Directory.CreateDirectory(tempPath);
+            _fileSystemService.CreateDirectory(tempPath);
             _logService?.LogInformation($"Created temporary directory: {tempPath}");
 
             // Download the package
@@ -94,9 +97,9 @@ public class StoreDownloadService : IStoreDownloadService
             // Cleanup temporary directory
             try
             {
-                if (Directory.Exists(tempPath))
+                if (_fileSystemService.DirectoryExists(tempPath))
                 {
-                    Directory.Delete(tempPath, true);
+                    _fileSystemService.DeleteDirectory(tempPath, true);
                     _logService?.LogInformation($"Cleaned up temporary directory: {tempPath}");
                 }
             }
@@ -404,7 +407,7 @@ public class StoreDownloadService : IStoreDownloadService
         string displayName,
         CancellationToken cancellationToken)
     {
-        var filePath = Path.Combine(downloadPath, fileName);
+        var filePath = _fileSystemService.CombinePath(downloadPath, fileName);
 
         try
         {

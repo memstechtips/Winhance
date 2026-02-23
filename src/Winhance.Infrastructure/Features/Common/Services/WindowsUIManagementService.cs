@@ -22,7 +22,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                return Process.GetProcessesByName(processName).Length > 0;
+                var processes = Process.GetProcessesByName(processName);
+                var isRunning = processes.Length > 0;
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+                return isRunning;
             }
             catch (Exception ex)
             {
@@ -38,7 +44,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var processes = Process.GetProcessesByName(processName);
                 foreach (var process in processes)
                 {
-                    process.Kill();
+                    try
+                    {
+                        process.Kill();
+                    }
+                    finally
+                    {
+                        process.Dispose();
+                    }
                 }
             }
             catch (Exception ex)

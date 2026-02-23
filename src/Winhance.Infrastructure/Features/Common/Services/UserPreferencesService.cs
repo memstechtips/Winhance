@@ -16,11 +16,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private const string PreferencesFileName = "UserPreferences.json";
         private readonly ILogService _logService;
         private readonly IInteractiveUserService _interactiveUserService;
+        private readonly IFileSystemService _fileSystemService;
 
-        public UserPreferencesService(ILogService logService, IInteractiveUserService interactiveUserService)
+        public UserPreferencesService(ILogService logService, IInteractiveUserService interactiveUserService, IFileSystemService fileSystemService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _interactiveUserService = interactiveUserService ?? throw new ArgumentNullException(nameof(interactiveUserService));
+            _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
         }
 
         private string GetPreferencesFilePath()
@@ -32,19 +34,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (string.IsNullOrEmpty(localAppData))
                 {
                     _logService.Log(LogLevel.Error, "LocalApplicationData folder path is empty");
-                    localAppData = Path.Combine(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local");
+                    localAppData = _fileSystemService.CombinePath(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local");
                     _logService.Log(LogLevel.Info, $"Using fallback path: {localAppData}");
                 }
 
-                string appDataPath = Path.Combine(localAppData, "Winhance", "Config");
+                string appDataPath = _fileSystemService.CombinePath(localAppData, "Winhance", "Config");
 
-                if (!Directory.Exists(appDataPath))
+                if (!_fileSystemService.DirectoryExists(appDataPath))
                 {
-                    Directory.CreateDirectory(appDataPath);
+                    _fileSystemService.CreateDirectory(appDataPath);
                     _logService.Log(LogLevel.Info, $"Created preferences directory: {appDataPath}");
                 }
 
-                string filePath = Path.Combine(appDataPath, PreferencesFileName);
+                string filePath = _fileSystemService.CombinePath(appDataPath, PreferencesFileName);
 
                 return filePath;
             }
@@ -52,9 +54,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 _logService.Log(LogLevel.Error, $"Error getting preferences file path: {ex.Message}");
 
-                string tempPath = Path.Combine(Path.GetTempPath(), "Winhance", "Config");
-                Directory.CreateDirectory(tempPath);
-                string tempFilePath = Path.Combine(tempPath, PreferencesFileName);
+                string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance", "Config");
+                _fileSystemService.CreateDirectory(tempPath);
+                string tempFilePath = _fileSystemService.CombinePath(tempPath, PreferencesFileName);
 
                 _logService.Log(LogLevel.Warning, $"Using fallback temporary path: {tempFilePath}");
                 return tempFilePath;
@@ -67,13 +69,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 string filePath = GetPreferencesFilePath();
 
-                if (!File.Exists(filePath))
+                if (!_fileSystemService.FileExists(filePath))
                 {
                     _logService.Log(LogLevel.Info, $"User preferences file does not exist at '{filePath}', returning empty preferences");
                     return new Dictionary<string, object>();
                 }
 
-                string json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+                string json = await _fileSystemService.ReadAllTextAsync(filePath).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(json))
                 {
@@ -129,15 +131,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 string json = JsonConvert.SerializeObject(preferences, settings);
 
-                string? directory = Path.GetDirectoryName(filePath);
-                if (directory != null && !Directory.Exists(directory))
+                string? directory = _fileSystemService.GetDirectoryName(filePath);
+                if (directory != null && !_fileSystemService.DirectoryExists(directory))
                 {
-                    Directory.CreateDirectory(directory);
+                    _fileSystemService.CreateDirectory(directory);
                 }
 
-                await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
+                await _fileSystemService.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
 
-                if (File.Exists(filePath))
+                if (_fileSystemService.FileExists(filePath))
                 {
                     _logService.Log(LogLevel.Info, $"User preferences saved successfully to '{filePath}'");
                     return true;
@@ -280,12 +282,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 string filePath = GetPreferencesFilePath();
 
-                if (!File.Exists(filePath))
+                if (!_fileSystemService.FileExists(filePath))
                 {
                     return defaultValue;
                 }
 
-                string json = File.ReadAllText(filePath);
+                string json = _fileSystemService.ReadAllText(filePath);
 
                 if (string.IsNullOrEmpty(json))
                 {

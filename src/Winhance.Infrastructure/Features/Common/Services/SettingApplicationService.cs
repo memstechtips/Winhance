@@ -27,11 +27,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IScheduledTaskService scheduledTaskService,
         IInteractiveUserService interactiveUserService,
         IProcessExecutor processExecutor,
-        IPowerShellRunner powerShellRunner) : ISettingApplicationService
+        IPowerShellRunner powerShellRunner,
+        IFileSystemService fileSystemService) : ISettingApplicationService
     {
 
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false)
+        public async Task ApplySettingAsync(ApplySettingRequest request)
         {
+            var settingId = request.SettingId;
+            var enable = request.Enable;
+            var value = request.Value;
+            var checkboxResult = request.CheckboxResult;
+            var commandString = request.CommandString;
+            var applyRecommended = request.ApplyRecommended;
+            var skipValuePrerequisites = request.SkipValuePrerequisites;
+
             var valueDisplay = value is Dictionary<string, object?> dict
                 ? $"Dictionary[AC:{dict.GetValueOrDefault("ACValue")}, DC:{dict.GetValueOrDefault("DCValue")}]"
                 : value?.ToString() ?? "null";
@@ -112,7 +121,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 }
                             }
 
-                            await ApplySettingAsync(childSettingId, childValue, skipValuePrerequisites: true).ConfigureAwait(false);
+                            await ApplySettingAsync(new ApplySettingRequest { SettingId = childSettingId, Enable = childValue, SkipValuePrerequisites = true }).ConfigureAwait(false);
                             logService.Log(LogLevel.Info,
                                 $"[SettingApplicationService] Applied preset setting '{childSettingId}' = {childValue}");
                         }
@@ -316,18 +325,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         {
                             var userLocalAppData = interactiveUserService.GetInteractiveUserFolderPath(
                                 Environment.SpecialFolder.LocalApplicationData);
-                            tempDir = Path.Combine(userLocalAppData, "Temp");
-                            Directory.CreateDirectory(tempDir);
+                            tempDir = fileSystemService.CombinePath(userLocalAppData, "Temp");
+                            fileSystemService.CreateDirectory(tempDir);
                         }
                         else
                         {
-                            tempDir = Path.GetTempPath();
+                            tempDir = fileSystemService.GetTempPath();
                         }
 
-                        var tempFile = Path.Combine(tempDir, $"winhance_{Guid.NewGuid()}.reg");
+                        var tempFile = fileSystemService.CombinePath(tempDir, $"winhance_{Guid.NewGuid()}.reg");
                         try
                         {
-                            await File.WriteAllTextAsync(tempFile, regContent).ConfigureAwait(false);
+                            await fileSystemService.WriteAllTextAsync(tempFile, regContent).ConfigureAwait(false);
                             logService.Log(LogLevel.Debug, $"[SettingApplicationService] Wrote registry content to temp file: {tempFile}");
 
                             // OTS: run reg import as the interactive user so HKCU
@@ -358,9 +367,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                         finally
                         {
-                            if (File.Exists(tempFile))
+                            if (fileSystemService.FileExists(tempFile))
                             {
-                                File.Delete(tempFile);
+                                fileSystemService.DeleteFile(tempFile);
                             }
                         }
                     }

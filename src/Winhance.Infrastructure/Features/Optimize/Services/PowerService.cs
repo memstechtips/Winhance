@@ -25,7 +25,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        IProcessExecutor processExecutor) : IPowerService
+        IProcessExecutor processExecutor,
+        IFileSystemService fileSystemService) : IPowerService
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
@@ -597,9 +598,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 powerSettingsQueryService.InvalidateCache();
 
-                if (Directory.Exists(backupDir))
+                if (fileSystemService.DirectoryExists(backupDir))
                 {
-                    Directory.Delete(backupDir, true);
+                    fileSystemService.DeleteDirectory(backupDir, true);
                 }
 
                 var plans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
@@ -620,7 +621,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         private async Task BackupCustomPlansAsync(string backupFolder)
         {
-            Directory.CreateDirectory(backupFolder);
+            fileSystemService.CreateDirectory(backupFolder);
 
             var allPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
             var customPlans = IdentifyCustomPlans(allPlans);
@@ -629,7 +630,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 var filename = $"{SanitizeFilename(plan.Name)}_{timestamp}.pow";
-                var filepath = Path.Combine(backupFolder, filename);
+                var filepath = fileSystemService.CombinePath(backupFolder, filename);
 
                 // PowerExportPowerScheme is not available as P/Invoke, use Process.Start
                 await RunPowercfgAsync($"/export \"{filepath}\" {plan.Guid}").ConfigureAwait(false);
@@ -638,9 +639,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         private async Task RestoreCustomPlansAsync(string backupFolder)
         {
-            if (!Directory.Exists(backupFolder)) return;
+            if (!fileSystemService.DirectoryExists(backupFolder)) return;
 
-            var backupFiles = Directory.GetFiles(backupFolder, "*.pow");
+            var backupFiles = fileSystemService.GetFiles(backupFolder, "*.pow");
             foreach (var file in backupFiles)
             {
                 var importResult = PowerProf.PowerImportPowerScheme(IntPtr.Zero, file, out var importedPtr);

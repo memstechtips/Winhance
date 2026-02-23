@@ -40,9 +40,9 @@ namespace Winhance.Core.Features.Common.Models
             {
                 releaseDate = new DateTime(2000 + year, month, day);
             }
-            catch
+            catch (ArgumentOutOfRangeException)
             {
-                // Invalid date components
+                // Invalid date components (e.g., month 13, day 32)
                 return new VersionInfo();
             }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Utilities;
@@ -100,7 +101,7 @@ public class RegeditLauncher(
                     @"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit");
                 key?.SetValue("LastKey", fullPath);
 
-                _ = processExecutor.ShellExecuteAsync("regedit.exe");
+                processExecutor.ShellExecuteAsync("regedit.exe").FireAndForget();
             }
         }
         catch

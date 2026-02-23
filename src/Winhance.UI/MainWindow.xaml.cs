@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.EventHandlers;
@@ -132,7 +133,7 @@ public sealed partial class MainWindow : Window
             _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, _logService);
 
             // Initialize async (restore saved position/size or set defaults)
-            _ = _windowSizeManager.InitializeAsync();
+            _windowSizeManager.InitializeAsync().FireAndForget(_logService);
 
             // Wire up ApplicationCloseService: saves window state, shows donation dialog, then exits
             var applicationCloseService = App.Services.GetRequiredService<IApplicationCloseService>();
@@ -458,7 +459,7 @@ public sealed partial class MainWindow : Window
                 App.Services.GetRequiredService<TooltipRefreshEventHandler>();
 
                 // Pre-cache regedit icon for Technical Details panel
-                _ = RegeditIconProvider.GetIconAsync();
+                RegeditIconProvider.GetIconAsync().FireAndForget(_logService);
             }
             catch (Exception ex)
             {
@@ -656,7 +657,7 @@ public sealed partial class MainWindow : Window
         // Ensure WinGet is ready (shows task progress if installation/update needed)
         if (_viewModel != null)
         {
-            _ = _viewModel.CheckForUpdatesOnStartupAsync();
+            _ = _viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync();
             _ = _viewModel.EnsureWinGetReadyOnStartupAsync();
         }
     }
@@ -893,8 +894,11 @@ public sealed partial class MainWindow : Window
                 ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip);
                 AutomationProperties.SetName(DocsButton, _viewModel.DocsTooltip);
 
-                // Subscribe to icon changes
+                // Subscribe to property changes — split across parent + child VMs
                 _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+                _viewModel.TaskProgress.PropertyChanged += TaskProgress_PropertyChanged;
+                _viewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
+                _viewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
 
                 // Set initial icon
                 UpdateAppIcon();
@@ -913,15 +917,15 @@ public sealed partial class MainWindow : Window
                 // Pass ViewModel to NavSidebar for localized nav button text
                 NavSidebar.ViewModel = _viewModel;
 
-                // Wire up Task Progress Control
-                TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
-                TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
-                TaskProgressControl.ShowDetailsCommand = _viewModel.ShowDetailsCommand;
-                TaskProgressControl2.ShowDetailsCommand = _viewModel.ShowDetailsCommand;
-                TaskProgressControl3.ShowDetailsCommand = _viewModel.ShowDetailsCommand;
+                // Wire up Task Progress Control (commands now on child VM)
+                TaskProgressControl.CancelCommand = _viewModel.TaskProgress.CancelCommand;
+                TaskProgressControl.CancelText = _viewModel.TaskProgress.CancelButtonLabel;
+                TaskProgressControl.ShowDetailsCommand = _viewModel.TaskProgress.ShowDetailsCommand;
+                TaskProgressControl2.ShowDetailsCommand = _viewModel.TaskProgress.ShowDetailsCommand;
+                TaskProgressControl3.ShowDetailsCommand = _viewModel.TaskProgress.ShowDetailsCommand;
 
                 // Subscribe to multi-script progress updates
-                _viewModel.ScriptProgressReceived += OnScriptProgressReceived;
+                _viewModel.TaskProgress.ScriptProgressReceived += OnScriptProgressReceived;
 
                 // Load filter preference asynchronously
                 _ = _viewModel.LoadFilterPreferenceAsync();
@@ -951,7 +955,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Handles ViewModel property changes.
+    /// Handles MainWindowViewModel property changes (title bar, tooltips, filter, OTS InfoBar).
     /// </summary>
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
@@ -1037,98 +1041,6 @@ public sealed partial class MainWindow : Window
         {
             DispatcherQueue.TryEnqueue(UpdateFilterButtonIcon);
         }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsLoading) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                // Skip single-task IsLoading updates when multi-script mode is active
-                if (_viewModel.ActiveScriptCount > 0) return;
-
-                var taskProgressService = App.Services.GetService<ITaskProgressService>();
-                var isActuallyRunning = taskProgressService?.IsTaskRunning == true;
-
-                if (_viewModel.IsLoading)
-                {
-                    TaskProgressControl.IsProgressVisible = Visibility.Visible;
-                    if (isActuallyRunning)
-                    {
-                        TaskProgressControl.CanCancel = Visibility.Visible;
-                        TaskProgressControl.IsTaskRunning = true;
-                        TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
-                        TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
-                    }
-                    else if (_viewModel.IsTaskFailed)
-                    {
-                        // Failure state: show Close button to dismiss the bar
-                        TaskProgressControl.CanCancel = Visibility.Visible;
-                        TaskProgressControl.IsTaskRunning = true;
-                        TaskProgressControl.CancelCommand = _viewModel.CloseFailedTaskCommand;
-                        TaskProgressControl.CancelText = _viewModel.CloseButtonLabel;
-                    }
-                    else
-                    {
-                        TaskProgressControl.CanCancel = Visibility.Collapsed;
-                        TaskProgressControl.IsTaskRunning = false;
-                    }
-                }
-                else
-                {
-                    TaskProgressControl.IsProgressVisible = Visibility.Collapsed;
-                    TaskProgressControl.CanCancel = Visibility.Collapsed;
-                    TaskProgressControl.IsTaskRunning = false;
-                }
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.AppName) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.AppName = _viewModel.AppName);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.LastTerminalLine) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.LastTerminalLine = _viewModel.LastTerminalLine);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.CancelButtonLabel) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.CancelText = _viewModel.CancelButtonLabel);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.QueueStatusText) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueStatusText = _viewModel.QueueStatusText);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.QueueNextItemName) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueNextItemName = _viewModel.QueueNextItemName);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsQueueVisible) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-                TaskProgressControl.IsQueueInfoVisible = _viewModel.IsQueueVisible ? Visibility.Visible : Visibility.Collapsed);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.ActiveScriptCount) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateMultiScriptControls(_viewModel.ActiveScriptCount));
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsUpdateInfoBarOpen) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.IsOpen = _viewModel.IsUpdateInfoBarOpen);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.UpdateInfoBarTitle) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Title = _viewModel.UpdateInfoBarTitle);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.UpdateInfoBarMessage) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Message = _viewModel.UpdateInfoBarMessage);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.UpdateInfoBarSeverity) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Severity = _viewModel.UpdateInfoBarSeverity);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsUpdateActionButtonVisible) && _viewModel != null
-              || e.PropertyName == nameof(MainWindowViewModel.InstallNowButtonText) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
-        }
         else if (e.PropertyName == nameof(MainWindowViewModel.IsOtsInfoBarOpen) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.IsOpen = _viewModel.IsOtsInfoBarOpen);
@@ -1149,25 +1061,147 @@ public sealed partial class MainWindow : Window
                 WindowsFilterIcon.Opacity = _viewModel.IsWindowsFilterButtonEnabled ? 1.0 : 0.4;
             });
         }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsInReviewMode) && _viewModel != null)
+    }
+
+    /// <summary>
+    /// Handles TaskProgressViewModel property changes.
+    /// </summary>
+    private void TaskProgress_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        var tp = _viewModel.TaskProgress;
+
+        if (e.PropertyName == nameof(TaskProgressViewModel.IsLoading))
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                ReviewModeBar.Visibility = _viewModel.IsInReviewMode ? Visibility.Visible : Visibility.Collapsed;
-                if (_viewModel.IsInReviewMode)
+                // Skip single-task IsLoading updates when multi-script mode is active
+                if (tp.ActiveScriptCount > 0) return;
+
+                var taskProgressService = App.Services.GetService<ITaskProgressService>();
+                var isActuallyRunning = taskProgressService?.IsTaskRunning == true;
+
+                if (tp.IsLoading)
                 {
-                    ReviewModeTitleText.Text = _viewModel.ReviewModeTitleText;
-                    ReviewModeDescriptionText.Text = _viewModel.ReviewModeDescriptionText;
-                    ReviewModeApplyButtonText.Text = _viewModel.ReviewModeApplyButtonText;
-                    ReviewModeCancelButtonText.Text = _viewModel.ReviewModeCancelButtonText;
-                    ReviewModeApplyButton.IsEnabled = _viewModel.CanApplyReviewedConfig;
+                    TaskProgressControl.IsProgressVisible = Visibility.Visible;
+                    if (isActuallyRunning)
+                    {
+                        TaskProgressControl.CanCancel = Visibility.Visible;
+                        TaskProgressControl.IsTaskRunning = true;
+                        TaskProgressControl.CancelCommand = tp.CancelCommand;
+                        TaskProgressControl.CancelText = tp.CancelButtonLabel;
+                    }
+                    else if (tp.IsTaskFailed)
+                    {
+                        // Failure state: show Close button to dismiss the bar
+                        TaskProgressControl.CanCancel = Visibility.Visible;
+                        TaskProgressControl.IsTaskRunning = true;
+                        TaskProgressControl.CancelCommand = tp.CloseFailedTaskCommand;
+                        TaskProgressControl.CancelText = tp.CloseButtonLabel;
+                    }
+                    else
+                    {
+                        TaskProgressControl.CanCancel = Visibility.Collapsed;
+                        TaskProgressControl.IsTaskRunning = false;
+                    }
+                }
+                else
+                {
+                    TaskProgressControl.IsProgressVisible = Visibility.Collapsed;
+                    TaskProgressControl.CanCancel = Visibility.Collapsed;
+                    TaskProgressControl.IsTaskRunning = false;
+                }
+            });
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.AppName))
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.AppName = tp.AppName);
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.LastTerminalLine))
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.LastTerminalLine = tp.LastTerminalLine);
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.CancelButtonLabel))
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.CancelText = tp.CancelButtonLabel);
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.QueueStatusText))
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueStatusText = tp.QueueStatusText);
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.QueueNextItemName))
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueNextItemName = tp.QueueNextItemName);
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.IsQueueVisible))
+        {
+            DispatcherQueue.TryEnqueue(() =>
+                TaskProgressControl.IsQueueInfoVisible = tp.IsQueueVisible ? Visibility.Visible : Visibility.Collapsed);
+        }
+        else if (e.PropertyName == nameof(TaskProgressViewModel.ActiveScriptCount))
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateMultiScriptControls(tp.ActiveScriptCount));
+        }
+    }
+
+    /// <summary>
+    /// Handles UpdateCheckViewModel property changes.
+    /// </summary>
+    private void UpdateCheck_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        var uc = _viewModel.UpdateCheck;
+
+        if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateInfoBarOpen))
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.IsOpen = uc.IsUpdateInfoBarOpen);
+        }
+        else if (e.PropertyName == nameof(UpdateCheckViewModel.UpdateInfoBarTitle))
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Title = uc.UpdateInfoBarTitle);
+        }
+        else if (e.PropertyName == nameof(UpdateCheckViewModel.UpdateInfoBarMessage))
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Message = uc.UpdateInfoBarMessage);
+        }
+        else if (e.PropertyName == nameof(UpdateCheckViewModel.UpdateInfoBarSeverity))
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Severity = uc.UpdateInfoBarSeverity);
+        }
+        else if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateActionButtonVisible)
+              || e.PropertyName == nameof(UpdateCheckViewModel.InstallNowButtonText))
+        {
+            DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
+        }
+    }
+
+    /// <summary>
+    /// Handles ReviewModeBarViewModel property changes.
+    /// </summary>
+    private void ReviewModeBar_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        var rm = _viewModel.ReviewModeBar;
+
+        if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ReviewModeBar.Visibility = rm.IsInReviewMode ? Visibility.Visible : Visibility.Collapsed;
+                if (rm.IsInReviewMode)
+                {
+                    ReviewModeTitleText.Text = rm.ReviewModeTitleText;
+                    ReviewModeDescriptionText.Text = rm.ReviewModeDescriptionText;
+                    ReviewModeApplyButtonText.Text = rm.ReviewModeApplyButtonText;
+                    ReviewModeCancelButtonText.Text = rm.ReviewModeCancelButtonText;
+                    ReviewModeApplyButton.IsEnabled = rm.CanApplyReviewedConfig;
 
                     // Update accessible names on review mode buttons from localized text
-                    AutomationProperties.SetName(ReviewModeApplyButton, _viewModel.ReviewModeApplyButtonText);
-                    AutomationProperties.SetName(ReviewModeCancelButton, _viewModel.ReviewModeCancelButtonText);
+                    AutomationProperties.SetName(ReviewModeApplyButton, rm.ReviewModeApplyButtonText);
+                    AutomationProperties.SetName(ReviewModeCancelButton, rm.ReviewModeCancelButtonText);
 
                     // Announce review mode entry to Narrator
-                    var announcement = $"{_viewModel.ReviewModeTitleText}. {_viewModel.ReviewModeDescriptionText}";
+                    var announcement = $"{rm.ReviewModeTitleText}. {rm.ReviewModeDescriptionText}";
                     var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(ReviewModeBar)
                                ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ReviewModeBar);
                     peer?.RaiseNotificationEvent(
@@ -1189,27 +1223,27 @@ public sealed partial class MainWindow : Window
                 }
             });
         }
-        else if ((e.PropertyName == nameof(MainWindowViewModel.ReviewModeTitleText)
-              || e.PropertyName == nameof(MainWindowViewModel.ReviewModeDescriptionText)
-              || e.PropertyName == nameof(MainWindowViewModel.ReviewModeApplyButtonText)
-              || e.PropertyName == nameof(MainWindowViewModel.ReviewModeCancelButtonText))
-             && _viewModel?.IsInReviewMode == true)
+        else if ((e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeTitleText)
+              || e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeDescriptionText)
+              || e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeApplyButtonText)
+              || e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeCancelButtonText))
+             && rm.IsInReviewMode)
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                ReviewModeTitleText.Text = _viewModel.ReviewModeTitleText;
-                ReviewModeDescriptionText.Text = _viewModel.ReviewModeDescriptionText;
-                ReviewModeApplyButtonText.Text = _viewModel.ReviewModeApplyButtonText;
-                ReviewModeCancelButtonText.Text = _viewModel.ReviewModeCancelButtonText;
+                ReviewModeTitleText.Text = rm.ReviewModeTitleText;
+                ReviewModeDescriptionText.Text = rm.ReviewModeDescriptionText;
+                ReviewModeApplyButtonText.Text = rm.ReviewModeApplyButtonText;
+                ReviewModeCancelButtonText.Text = rm.ReviewModeCancelButtonText;
             });
         }
-        else if (e.PropertyName == nameof(MainWindowViewModel.ReviewModeStatusText) && _viewModel != null)
+        else if (e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeStatusText))
         {
-            DispatcherQueue.TryEnqueue(() => ReviewModeStatusText.Text = _viewModel.ReviewModeStatusText);
+            DispatcherQueue.TryEnqueue(() => ReviewModeStatusText.Text = rm.ReviewModeStatusText);
         }
-        else if (e.PropertyName == nameof(MainWindowViewModel.CanApplyReviewedConfig) && _viewModel != null)
+        else if (e.PropertyName == nameof(ReviewModeBarViewModel.CanApplyReviewedConfig))
         {
-            DispatcherQueue.TryEnqueue(() => ReviewModeApplyButton.IsEnabled = _viewModel.CanApplyReviewedConfig);
+            DispatcherQueue.TryEnqueue(() => ReviewModeApplyButton.IsEnabled = rm.CanApplyReviewedConfig);
         }
     }
 
@@ -1233,7 +1267,7 @@ public sealed partial class MainWindow : Window
         {
             control.IsTaskRunning = false;
             control.CanCancel = Visibility.Collapsed;
-            _ = HideControlAfterDelayAsync(control, 2000);
+            HideControlAfterDelayAsync(control, 2000).FireAndForget(_logService);
             return;
         }
 
@@ -1310,13 +1344,14 @@ public sealed partial class MainWindow : Window
     private void UpdateInfoBarActionButton()
     {
         if (_viewModel == null) return;
+        var uc = _viewModel.UpdateCheck;
 
-        if (_viewModel.IsUpdateActionButtonVisible)
+        if (uc.IsUpdateActionButtonVisible)
         {
             var button = new Button
             {
-                Content = _viewModel.InstallNowButtonText,
-                Command = _viewModel.InstallUpdateCommand,
+                Content = uc.InstallNowButtonText,
+                Command = uc.InstallUpdateCommand,
                 Style = (Style)Application.Current.Resources["AccentButtonStyle"],
             };
             UpdateInfoBar.ActionButton = button;
@@ -1340,7 +1375,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void UpdateInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
     {
-        _viewModel?.DismissUpdateInfoBar();
+        _viewModel?.UpdateCheck.DismissUpdateInfoBar();
     }
 
     /// <summary>
@@ -1348,8 +1383,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void ReviewModeApplyButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_viewModel?.ApplyReviewedConfigCommand.CanExecute(null) == true)
-            _viewModel.ApplyReviewedConfigCommand.Execute(null);
+        if (_viewModel?.ReviewModeBar.ApplyReviewedConfigCommand.CanExecute(null) == true)
+            _viewModel.ReviewModeBar.ApplyReviewedConfigCommand.Execute(null);
     }
 
     /// <summary>
@@ -1357,8 +1392,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void ReviewModeCancelButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_viewModel?.CancelReviewModeCommand.CanExecute(null) == true)
-            _viewModel.CancelReviewModeCommand.Execute(null);
+        if (_viewModel?.ReviewModeBar.CancelReviewModeCommand.CanExecute(null) == true)
+            _viewModel.ReviewModeBar.CancelReviewModeCommand.Execute(null);
     }
 
     /// <summary>

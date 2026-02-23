@@ -25,6 +25,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         private readonly ILocalizationService _localization;
         private readonly IProcessExecutor _processExecutor;
         private readonly IDriverCategorizer _driverCategorizer;
+        private readonly IFileSystemService _fileSystemService;
 
         private static readonly string[] AdkDownloadSources = new[]
         {
@@ -40,7 +41,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             IWinGetService winGetService,
             ILocalizationService localization,
             IProcessExecutor processExecutor,
-            IDriverCategorizer driverCategorizer)
+            IDriverCategorizer driverCategorizer,
+            IFileSystemService fileSystemService)
         {
             _logService = logService;
             _httpClient = httpClient;
@@ -48,6 +50,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             _localization = localization;
             _processExecutor = processExecutor;
             _driverCategorizer = driverCategorizer;
+            _fileSystemService = fileSystemService;
         }
 
         public string GetOscdimgPath()
@@ -61,7 +64,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
             foreach (var adkPath in adkPaths)
             {
-                if (File.Exists(adkPath))
+                if (_fileSystemService.FileExists(adkPath))
                 {
                     return adkPath;
                 }
@@ -74,21 +77,21 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                var sourcesPath = Path.Combine(workingDirectory, "sources");
-                if (!Directory.Exists(sourcesPath))
+                var sourcesPath = _fileSystemService.CombinePath(workingDirectory, "sources");
+                if (!_fileSystemService.DirectoryExists(sourcesPath))
                 {
                     _logService.LogWarning($"Sources directory not found: {sourcesPath}");
                     return null;
                 }
 
-                var wimPath = Path.Combine(sourcesPath, "install.wim");
-                if (File.Exists(wimPath))
+                var wimPath = _fileSystemService.CombinePath(sourcesPath, "install.wim");
+                if (_fileSystemService.FileExists(wimPath))
                 {
                     return await GetImageInfoAsync(wimPath, ImageFormat.Wim).ConfigureAwait(false);
                 }
 
-                var esdPath = Path.Combine(sourcesPath, "install.esd");
-                if (File.Exists(esdPath))
+                var esdPath = _fileSystemService.CombinePath(sourcesPath, "install.esd");
+                if (_fileSystemService.FileExists(esdPath))
                 {
                     return await GetImageInfoAsync(esdPath, ImageFormat.Esd).ConfigureAwait(false);
                 }
@@ -105,28 +108,31 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
         public async Task<ImageDetectionResult> DetectAllImageFormatsAsync(string workingDirectory)
         {
-            var result = new ImageDetectionResult();
+            ImageFormatInfo? wimInfo = null;
+            ImageFormatInfo? esdInfo = null;
 
             try
             {
-                var sourcesPath = Path.Combine(workingDirectory, "sources");
-                if (!Directory.Exists(sourcesPath))
+                var sourcesPath = _fileSystemService.CombinePath(workingDirectory, "sources");
+                if (!_fileSystemService.DirectoryExists(sourcesPath))
                 {
                     _logService.LogWarning($"Sources directory not found: {sourcesPath}");
-                    return result;
+                    return new ImageDetectionResult();
                 }
 
-                var wimPath = Path.Combine(sourcesPath, "install.wim");
-                if (File.Exists(wimPath))
+                var wimPath = _fileSystemService.CombinePath(sourcesPath, "install.wim");
+                if (_fileSystemService.FileExists(wimPath))
                 {
-                    result.WimInfo = await GetImageInfoAsync(wimPath, ImageFormat.Wim).ConfigureAwait(false);
+                    wimInfo = await GetImageInfoAsync(wimPath, ImageFormat.Wim).ConfigureAwait(false);
                 }
 
-                var esdPath = Path.Combine(sourcesPath, "install.esd");
-                if (File.Exists(esdPath))
+                var esdPath = _fileSystemService.CombinePath(sourcesPath, "install.esd");
+                if (_fileSystemService.FileExists(esdPath))
                 {
-                    result.EsdInfo = await GetImageInfoAsync(esdPath, ImageFormat.Esd).ConfigureAwait(false);
+                    esdInfo = await GetImageInfoAsync(esdPath, ImageFormat.Esd).ConfigureAwait(false);
                 }
+
+                var result = new ImageDetectionResult { WimInfo = wimInfo, EsdInfo = esdInfo };
 
                 if (result.BothExist)
                 {
@@ -141,13 +147,15 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     var format = result.WimInfo != null ? "WIM" : "ESD";
                     _logService.LogInformation($"Found {format} format");
                 }
+
+                return result;
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error detecting image formats: {ex.Message}", ex);
             }
 
-            return result;
+            return new ImageDetectionResult { WimInfo = wimInfo, EsdInfo = esdInfo };
         }
 
         public async Task<bool> DeleteImageFileAsync(
@@ -158,18 +166,17 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                var sourcesPath = Path.Combine(workingDirectory, "sources");
+                var sourcesPath = _fileSystemService.CombinePath(workingDirectory, "sources");
                 var fileName = format == ImageFormat.Wim ? "install.wim" : "install.esd";
-                var filePath = Path.Combine(sourcesPath, fileName);
+                var filePath = _fileSystemService.CombinePath(sourcesPath, fileName);
 
-                if (!File.Exists(filePath))
+                if (!_fileSystemService.FileExists(filePath))
                 {
                     _logService.LogWarning($"File not found for deletion: {filePath}");
                     return false;
                 }
 
-                var fileInfo = new FileInfo(filePath);
-                var fileSizeGB = fileInfo.Length / (1024.0 * 1024 * 1024);
+                var fileSizeGB = _fileSystemService.GetFileSize(filePath) / (1024.0 * 1024 * 1024);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -184,11 +191,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 {
                     try
                     {
-                        var file = new FileInfo(filePath);
-                        if (file.Exists)
+                        if (_fileSystemService.FileExists(filePath))
                         {
-                            file.Attributes = FileAttributes.Normal;
-                            file.Delete();
+                            _fileSystemService.SetFileAttributes(filePath, FileAttributes.Normal);
+                            _fileSystemService.DeleteFile(filePath);
                             _logService.LogInformation($"Successfully deleted {fileName}");
                             deleted = true;
 
@@ -236,12 +242,11 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
         private async Task<ImageFormatInfo> GetImageInfoAsync(string imagePath, ImageFormat format)
         {
-            var fileInfo = new FileInfo(imagePath);
             var info = new ImageFormatInfo
             {
                 Format = format,
                 FilePath = imagePath,
-                FileSizeBytes = fileInfo.Length
+                FileSizeBytes = _fileSystemService.GetFileSize(imagePath)
             };
 
             try
@@ -391,11 +396,11 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     return true;
                 }
 
-                var sourcesPath = Path.Combine(workingDirectory, "sources");
+                var sourcesPath = _fileSystemService.CombinePath(workingDirectory, "sources");
                 var sourceFile = currentInfo.FilePath;
                 targetFile = targetFormat == ImageFormat.Wim
-                    ? Path.Combine(sourcesPath, "install.wim")
-                    : Path.Combine(sourcesPath, "install.esd");
+                    ? _fileSystemService.CombinePath(sourcesPath, "install.wim")
+                    : _fileSystemService.CombinePath(sourcesPath, "install.esd");
 
                 var requiredSpace = currentInfo.FileSizeBytes * 2;
                 await CheckDiskSpace(workingDirectory, requiredSpace, "Image conversion").ConfigureAwait(false);
@@ -436,7 +441,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
-                if (!File.Exists(targetFile))
+                if (!_fileSystemService.FileExists(targetFile))
                 {
                     _logService.LogError($"Target file not found: {targetFile}");
                     return false;
@@ -445,7 +450,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 progress?.Report(new TaskProgressDetail
                 {
                     StatusText = _localization.GetString("Progress_RemovingOldFile"),
-                    TerminalOutput = $"Deleting {Path.GetFileName(sourceFile)}"
+                    TerminalOutput = $"Deleting {_fileSystemService.GetFileName(sourceFile)}"
                 });
 
                 var deleted = false;
@@ -453,11 +458,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 {
                     try
                     {
-                        if (File.Exists(sourceFile))
+                        if (_fileSystemService.FileExists(sourceFile))
                         {
-                            var file = new FileInfo(sourceFile);
-                            file.Attributes = FileAttributes.Normal;
-                            file.Delete();
+                            _fileSystemService.SetFileAttributes(sourceFile, FileAttributes.Normal);
+                            _fileSystemService.DeleteFile(sourceFile);
                             _logService.LogInformation($"Deleted source file: {sourceFile}");
                             deleted = true;
                             break;
@@ -478,16 +482,16 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     }
                 }
 
-                var targetFileInfo = new FileInfo(targetFile);
+                var targetFileSize = _fileSystemService.GetFileSize(targetFile);
 
-                if (!deleted && File.Exists(sourceFile))
+                if (!deleted && _fileSystemService.FileExists(sourceFile))
                 {
                     _logService.LogWarning($"Could not delete source file after multiple attempts: {sourceFile}");
 
                     progress?.Report(new TaskProgressDetail
                     {
                         StatusText = _localization.GetString("Progress_ConversionCompleted"),
-                        TerminalOutput = $"Conversion succeeded! New size: {targetFileInfo.Length / (1024.0 * 1024 * 1024):F2} GB\n\n" +
+                        TerminalOutput = $"Conversion succeeded! New size: {targetFileSize / (1024.0 * 1024 * 1024):F2} GB\n\n" +
                                        $"However, the source file is still in use and could not be deleted automatically.\n\n" +
                                        $"Please manually delete:\n{sourceFile}"
                     });
@@ -495,7 +499,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     return true;
                 }
 
-                var sizeDiff = currentInfo.FileSizeBytes - targetFileInfo.Length;
+                var sizeDiff = currentInfo.FileSizeBytes - targetFileSize;
                 var savedSpace = sizeDiff > 0
                     ? $"Saved {sizeDiff / (1024.0 * 1024 * 1024):F2} GB"
                     : $"Used {Math.Abs(sizeDiff) / (1024.0 * 1024 * 1024):F2} GB more";
@@ -503,7 +507,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 progress?.Report(new TaskProgressDetail
                 {
                     StatusText = _localization.GetString("Progress_ConversionCompleted"),
-                    TerminalOutput = $"New size: {targetFileInfo.Length / (1024.0 * 1024 * 1024):F2} GB\n{savedSpace}"
+                    TerminalOutput = $"New size: {targetFileSize / (1024.0 * 1024 * 1024):F2} GB\n{savedSpace}"
                 });
 
                 _logService.LogInformation($"Conversion successful: {currentInfo.Format} → {targetFormat}");
@@ -513,12 +517,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             {
                 _logService.LogInformation("Image conversion was cancelled");
 
-                if (File.Exists(targetFile))
+                if (_fileSystemService.FileExists(targetFile))
                 {
                     try
                     {
                         _logService.LogInformation($"Cleaning up incomplete target file: {targetFile}");
-                        File.Delete(targetFile);
+                        _fileSystemService.DeleteFile(targetFile);
                         _logService.LogInformation("Incomplete target file deleted successfully");
                     }
                     catch (Exception cleanupEx)
@@ -537,12 +541,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             {
                 _logService.LogError($"Error converting image: {ex.Message}", ex);
 
-                if (File.Exists(targetFile))
+                if (_fileSystemService.FileExists(targetFile))
                 {
                     try
                     {
                         _logService.LogInformation($"Cleaning up incomplete target file: {targetFile}");
-                        File.Delete(targetFile);
+                        _fileSystemService.DeleteFile(targetFile);
                         _logService.LogInformation("Incomplete target file deleted successfully");
                     }
                     catch (Exception cleanupEx)
@@ -608,8 +612,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             IProgress<TaskProgressDetail>? progress,
             CancellationToken cancellationToken)
         {
-            var tempPath = Path.GetTempPath();
-            var adkSetupPath = Path.Combine(tempPath, "adksetup.exe");
+            var tempPath = _fileSystemService.GetTempPath();
+            var adkSetupPath = _fileSystemService.CombinePath(tempPath, "adksetup.exe");
 
             foreach (var sourceUrl in AdkDownloadSources)
             {
@@ -626,7 +630,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     response.EnsureSuccessStatusCode();
 
                     var setupBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-                    await File.WriteAllBytesAsync(adkSetupPath, setupBytes, cancellationToken).ConfigureAwait(false);
+                    await _fileSystemService.WriteAllBytesAsync(adkSetupPath, setupBytes, cancellationToken).ConfigureAwait(false);
 
                     _logService.LogInformation($"ADK installer downloaded successfully from: {sourceUrl}");
                     return adkSetupPath;
@@ -659,7 +663,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "This may take several minutes"
                 });
 
-                var logPath = Path.Combine(Path.GetTempPath(), "adk_install.log");
+                var logPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "adk_install.log");
                 var arguments = $"/quiet /norestart /features OptionId.DeploymentTools /ceip off /log \"{logPath}\"";
 
                 progress?.Report(new TaskProgressDetail
@@ -691,10 +695,10 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             {
                 try
                 {
-                    var adkSetupPath = Path.Combine(Path.GetTempPath(), "adksetup.exe");
-                    if (File.Exists(adkSetupPath))
+                    var adkSetupPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "adksetup.exe");
+                    if (_fileSystemService.FileExists(adkSetupPath))
                     {
-                        File.Delete(adkSetupPath);
+                        _fileSystemService.DeleteFile(adkSetupPath);
                     }
                 }
                 catch (Exception ex) { _logService.LogDebug($"Best-effort ADK setup file cleanup failed: {ex.Message}"); }
@@ -737,7 +741,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "This may take several minutes"
                 });
 
-                var logPath = Path.Combine(Path.GetTempPath(), "adk_winget_install.log");
+                var logPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "adk_winget_install.log");
                 var arguments = $"install Microsoft.WindowsADK --exact --silent --accept-package-agreements --accept-source-agreements --override \"/quiet /norestart /features OptionId.DeploymentTools /ceip off\" --log \"{logPath}\"";
 
                 progress?.Report(new TaskProgressDetail
@@ -790,7 +794,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                var drive = new DriveInfo(Path.GetPathRoot(path)!);
+                var drive = new DriveInfo(_fileSystemService.GetPathRoot(path)!);
                 var availableBytes = drive.AvailableFreeSpace;
 
                 var availableGB = availableBytes / (1024.0 * 1024 * 1024);
@@ -831,13 +835,13 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
         public async Task<bool> ValidateIsoFileAsync(string isoPath)
         {
-            if (!File.Exists(isoPath))
+            if (!_fileSystemService.FileExists(isoPath))
             {
                 _logService.LogError($"ISO file not found: {isoPath}");
                 return false;
             }
 
-            var extension = Path.GetExtension(isoPath).ToLowerInvariant();
+            var extension = _fileSystemService.GetExtension(isoPath).ToLowerInvariant();
             if (extension != ".iso")
             {
                 _logService.LogError($"Invalid file extension: {extension}. Expected .iso");
@@ -847,14 +851,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             // Check if it's a valid ISO by attempting to read it
             try
             {
-                var fileInfo = new FileInfo(isoPath);
-                if (fileInfo.Length < 1024 * 1024) // Less than 1MB
+                var fileSize = _fileSystemService.GetFileSize(isoPath);
+                if (fileSize < 1024 * 1024) // Less than 1MB
                 {
                     _logService.LogError("ISO file is too small to be valid");
                     return false;
                 }
 
-                _logService.LogInformation($"ISO file validated: {isoPath} ({fileInfo.Length:N0} bytes)");
+                _logService.LogInformation($"ISO file validated: {isoPath} ({fileSize:N0} bytes)");
                 return true;
             }
             catch (Exception ex)
@@ -879,12 +883,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     return false;
                 }
 
-                var isoFileInfo = new FileInfo(isoPath);
-                var requiredSpace = isoFileInfo.Length + (2L * 1024 * 1024 * 1024);
+                var isoFileSize = _fileSystemService.GetFileSize(isoPath);
+                var requiredSpace = isoFileSize + (2L * 1024 * 1024 * 1024);
 
                 await CheckDiskSpace(workingDirectory, requiredSpace, "ISO extraction").ConfigureAwait(false);
 
-                if (Directory.Exists(workingDirectory))
+                if (_fileSystemService.DirectoryExists(workingDirectory))
                 {
                     _logService.LogInformation($"Clearing existing working directory: {workingDirectory}");
 
@@ -901,7 +905,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                             cancellationToken).ConfigureAwait(false);
                         var errorOutput = removeResult.StandardError;
 
-                        if (Directory.Exists(workingDirectory))
+                        if (_fileSystemService.DirectoryExists(workingDirectory))
                         {
                             _logService.LogError($"Failed to delete working directory. It may be in use by another process: {errorOutput}");
                             throw new InvalidOperationException(
@@ -928,7 +932,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     }
                 }
 
-                Directory.CreateDirectory(workingDirectory);
+                _fileSystemService.CreateDirectory(workingDirectory);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -979,14 +983,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     cancellationToken).ConfigureAwait(false);
                 isoMounted = false;
 
-                var extractedDirs = Directory.GetDirectories(workingDirectory);
-                var dirNames = extractedDirs.Select(d => Path.GetFileName(d)).ToList();
+                var extractedDirs = _fileSystemService.GetDirectories(workingDirectory);
+                var dirNames = extractedDirs.Select(d => _fileSystemService.GetFileName(d)).ToList();
                 _logService.LogInformation($"Found {extractedDirs.Length} directories: {string.Join(", ", dirNames)}");
 
                 var hasSourcesDir = extractedDirs.Any(d =>
-                    Path.GetFileName(d).Equals("sources", StringComparison.OrdinalIgnoreCase));
+                    _fileSystemService.GetFileName(d).Equals("sources", StringComparison.OrdinalIgnoreCase));
                 var hasBootDir = extractedDirs.Any(d =>
-                    Path.GetFileName(d).Equals("boot", StringComparison.OrdinalIgnoreCase));
+                    _fileSystemService.GetFileName(d).Equals("boot", StringComparison.OrdinalIgnoreCase));
 
                 if (!hasSourcesDir || !hasBootDir)
                 {
@@ -1062,30 +1066,31 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var dir = new DirectoryInfo(sourceDir);
-            var dirs = dir.GetDirectories();
+            var dirs = _fileSystemService.GetDirectories(sourceDir);
 
-            Directory.CreateDirectory(destDir);
+            _fileSystemService.CreateDirectory(destDir);
 
-            foreach (var file in dir.GetFiles())
+            foreach (var file in _fileSystemService.GetFiles(sourceDir))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var targetFilePath = Path.Combine(destDir, file.Name);
+                var fileName = _fileSystemService.GetFileName(file);
+                var targetFilePath = _fileSystemService.CombinePath(destDir, fileName);
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = _localization.GetString("Progress_CopyingFile", file.Name),
-                    TerminalOutput = file.Name
+                    StatusText = _localization.GetString("Progress_CopyingFile", fileName),
+                    TerminalOutput = fileName
                 });
-                file.CopyTo(targetFilePath, overwrite: true);
+                _fileSystemService.CopyFile(file, targetFilePath, true);
             }
 
             foreach (var subDir in dirs)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var newDestDir = Path.Combine(destDir, subDir.Name);
-                CopyDirectory(subDir.FullName, newDestDir, progress, cancellationToken);
+                var subDirName = _fileSystemService.GetFileName(subDir);
+                var newDestDir = _fileSystemService.CombinePath(destDir, subDirName);
+                CopyDirectory(subDir, newDestDir, progress, cancellationToken);
             }
         }
 
@@ -1093,22 +1098,22 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                if (!File.Exists(xmlPath))
+                if (!_fileSystemService.FileExists(xmlPath))
                 {
                     _logService.LogError($"XML file not found: {xmlPath}");
                     return false;
                 }
 
-                if (!Directory.Exists(workingDirectory))
+                if (!_fileSystemService.DirectoryExists(workingDirectory))
                 {
                     _logService.LogError($"Working directory not found: {workingDirectory}");
                     return false;
                 }
 
-                var destPath = Path.Combine(workingDirectory, "autounattend.xml");
+                var destPath = _fileSystemService.CombinePath(workingDirectory, "autounattend.xml");
 
-                var xmlContent = await File.ReadAllTextAsync(xmlPath).ConfigureAwait(false);
-                await File.WriteAllTextAsync(destPath, xmlContent).ConfigureAwait(false);
+                var xmlContent = await _fileSystemService.ReadAllTextAsync(xmlPath).ConfigureAwait(false);
+                await _fileSystemService.WriteAllTextAsync(destPath, xmlContent).ConfigureAwait(false);
 
                 _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
                 return true;
@@ -1135,8 +1140,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 var xmlContent = await _httpClient.GetStringAsync(UnattendedWinstallXmlUrl, cancellationToken).ConfigureAwait(false);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-                await File.WriteAllTextAsync(destinationPath, xmlContent, cancellationToken).ConfigureAwait(false);
+                _fileSystemService.CreateDirectory(_fileSystemService.GetDirectoryName(destinationPath)!);
+                await _fileSystemService.WriteAllTextAsync(destinationPath, xmlContent, cancellationToken).ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -1172,8 +1177,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         TerminalOutput = "This may take several minutes"
                     });
 
-                    var tempDriverPath = Path.Combine(Path.GetTempPath(), $"WinhanceDrivers_{Guid.NewGuid()}");
-                    Directory.CreateDirectory(tempDriverPath);
+                    var tempDriverPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"WinhanceDrivers_{Guid.NewGuid()}");
+                    _fileSystemService.CreateDirectory(tempDriverPath);
 
                     try
                     {
@@ -1194,7 +1199,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     }
                     catch (Exception ex)
                     {
-                        try { Directory.Delete(tempDriverPath, recursive: true); } catch (Exception cleanupEx) { _logService.LogDebug($"Best-effort temp driver directory cleanup failed: {cleanupEx.Message}"); }
+                        try { _fileSystemService.DeleteDirectory(tempDriverPath, recursive: true); } catch (Exception cleanupEx) { _logService.LogDebug($"Best-effort temp driver directory cleanup failed: {cleanupEx.Message}"); }
                         _logService.LogError($"Failed to export system drivers: {ex.Message}", ex);
                         return false;
                     }
@@ -1207,7 +1212,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         TerminalOutput = driverSourcePath
                     });
 
-                    if (!Directory.Exists(driverSourcePath))
+                    if (!_fileSystemService.DirectoryExists(driverSourcePath))
                     {
                         _logService.LogError($"Driver source path does not exist: {driverSourcePath}");
                         return false;
@@ -1222,8 +1227,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "Separating storage and post-install drivers"
                 });
 
-                var winpeDriverPath = Path.Combine(workingDirectory, "sources", "$WinpeDriver$");
-                var oemDriverPath = Path.Combine(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
+                var winpeDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$WinpeDriver$");
+                var oemDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
 
                 _logService.LogInformation($"Searching for drivers in: {sourceDirectory}");
 
@@ -1238,7 +1243,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 {
                     try
                     {
-                        Directory.Delete(sourceDirectory, recursive: true);
+                        _fileSystemService.DeleteDirectory(sourceDirectory, recursive: true);
                     }
                     catch (Exception ex)
                     {
@@ -1279,8 +1284,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                var scriptsPath = Path.Combine(workingDirectory, "sources", "$OEM$", "$$", "Setup", "Scripts");
-                Directory.CreateDirectory(scriptsPath);
+                var scriptsPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Setup", "Scripts");
+                _fileSystemService.CreateDirectory(scriptsPath);
 
                 var setupCompleteScript = @"@echo off
 REM Winhance Automatic Driver Installation Script
@@ -1304,8 +1309,8 @@ echo Exit Code: %ERRORLEVEL% >> %LOGFILE%
 exit
 ";
 
-                var scriptPath = Path.Combine(scriptsPath, "SetupComplete.cmd");
-                File.WriteAllText(scriptPath, setupCompleteScript);
+                var scriptPath = _fileSystemService.CombinePath(scriptsPath, "SetupComplete.cmd");
+                _fileSystemService.WriteAllText(scriptPath, setupCompleteScript);
 
                 _logService.LogInformation($"Created SetupComplete.cmd at: {scriptPath}");
             }
@@ -1331,9 +1336,8 @@ exit
                     return false;
                 }
 
-                var workingDirInfo = new DirectoryInfo(workingDirectory);
-                var workingDirSize = workingDirInfo.EnumerateFiles("*", SearchOption.AllDirectories)
-                    .Sum(file => file.Length);
+                var workingDirSize = _fileSystemService.GetFiles(workingDirectory, "*", SearchOption.AllDirectories)
+                    .Sum(f => _fileSystemService.GetFileSize(f));
 
                 var requiredSpace = workingDirSize + (2L * 1024 * 1024 * 1024);
 
@@ -1345,22 +1349,22 @@ exit
                     TerminalOutput = $"Output: {outputPath}"
                 });
 
-                var efisysPath = Path.Combine(workingDirectory, "efi", "microsoft", "boot", "efisys.bin");
-                var etfsbootPath = Path.Combine(workingDirectory, "boot", "etfsboot.com");
+                var efisysPath = _fileSystemService.CombinePath(workingDirectory, "efi", "microsoft", "boot", "efisys.bin");
+                var etfsbootPath = _fileSystemService.CombinePath(workingDirectory, "boot", "etfsboot.com");
 
-                if (!File.Exists(etfsbootPath))
+                if (!_fileSystemService.FileExists(etfsbootPath))
                     throw new FileNotFoundException($"Boot file not found: {etfsbootPath}");
 
-                if (!File.Exists(efisysPath))
+                if (!_fileSystemService.FileExists(efisysPath))
                     throw new FileNotFoundException($"UEFI boot file not found: {efisysPath}");
 
-                var outputDir = Path.GetDirectoryName(outputPath);
-                if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
-                    Directory.CreateDirectory(outputDir);
+                var outputDir = _fileSystemService.GetDirectoryName(outputPath);
+                if (!string.IsNullOrEmpty(outputDir) && !_fileSystemService.DirectoryExists(outputDir))
+                    _fileSystemService.CreateDirectory(outputDir);
 
-                if (File.Exists(outputPath))
+                if (_fileSystemService.FileExists(outputPath))
                 {
-                    File.Delete(outputPath);
+                    _fileSystemService.DeleteFile(outputPath);
                     _logService.LogInformation("Removed existing ISO file");
                 }
 
@@ -1378,19 +1382,19 @@ exit
                 }
 
                 // Verify ISO was created
-                if (!File.Exists(outputPath))
+                if (!_fileSystemService.FileExists(outputPath))
                 {
                     _logService.LogError("ISO file was not created");
                     return false;
                 }
 
-                var isoFileInfo = new FileInfo(outputPath);
-                _logService.LogInformation($"ISO created successfully: {outputPath} ({isoFileInfo.Length:N0} bytes)");
+                var isoFileSize = _fileSystemService.GetFileSize(outputPath);
+                _logService.LogInformation($"ISO created successfully: {outputPath} ({isoFileSize:N0} bytes)");
 
                 progress?.Report(new TaskProgressDetail
                 {
                     StatusText = _localization.GetString("Progress_IsoCreatedSuccess"),
-                    TerminalOutput = $"Location: {outputPath}\nSize: {isoFileInfo.Length / (1024 * 1024):F2} MB"
+                    TerminalOutput = $"Location: {outputPath}\nSize: {isoFileSize / (1024 * 1024):F2} MB"
                 });
 
                 return true;
@@ -1420,7 +1424,7 @@ exit
         {
             try
             {
-                if (!Directory.Exists(workingDirectory))
+                if (!_fileSystemService.DirectoryExists(workingDirectory))
                 {
                     return true;
                 }
@@ -1429,7 +1433,7 @@ exit
 
                 await Task.Run(() =>
                 {
-                    Directory.Delete(workingDirectory, recursive: true);
+                    _fileSystemService.DeleteDirectory(workingDirectory, recursive: true);
                 }).ConfigureAwait(false);
 
                 _logService.LogInformation("Working directory cleaned up successfully");

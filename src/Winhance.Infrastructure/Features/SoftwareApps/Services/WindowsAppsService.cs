@@ -118,7 +118,12 @@ public class WindowsAppsService(
                         logService?.LogInformation("User accepted update policy change. Switching to 'Paused for a long time'...");
                         try
                         {
-                            await settingApplicationService.ApplySettingAsync("updates-policy-mode", true, 2).ConfigureAwait(false);
+                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            {
+                                SettingId = "updates-policy-mode",
+                                Enable = true,
+                                Value = 2
+                            }).ConfigureAwait(false);
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = GetCurrentCancellationToken();

@@ -14,7 +14,7 @@ public record RegistrySetting
     public object? DisabledValue { get; init; }
     public required RegistryValueKind ValueType { get; init; }
     public bool IsPrimary { get; init; } = false;
-    public Dictionary<string, object>? CustomProperties { get; set; }
+    public Dictionary<string, object>? CustomProperties { get; init; }
     public int? BinaryByteIndex { get; init; }
     public bool ModifyByteOnly { get; init; } = false;
     public byte? BitMask { get; init; }

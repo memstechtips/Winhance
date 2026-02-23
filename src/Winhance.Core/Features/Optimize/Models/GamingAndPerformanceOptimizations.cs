@@ -5,9 +5,9 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
-public static class GamingandPerformanceOptimizations
+public static class GamingAndPerformanceOptimizations
 {
-    public static SettingGroup GetGamingandPerformanceOptimizations()
+    public static SettingGroup GetGamingAndPerformanceOptimizations()
     {
         return new SettingGroup
         {

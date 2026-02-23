@@ -133,7 +133,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             var sortedOptions = options.OrderBy(o => o.DisplayName)
-                                     .Select((o, index) => { o.Index = index; return o; })
+                                     .Select((o, index) => o with { Index = index })
                                      .ToList();
 
             logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService] Completed: {matchedPredefinedCount}/{PowerPlanDefinitions.BuiltInPowerPlans.Count} predefined matched, {unmatchedSystemPlans.Count} additional system plans, {sortedOptions.Count} total options");

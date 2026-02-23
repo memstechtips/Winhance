@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     /// Migrates legacy configuration items to their current format.
     /// Each migration is registered by setting ID and transforms a ConfigurationItem in-place.
     /// </summary>
-    public class ConfigMigrationService
+    public class ConfigMigrationService : IConfigMigrationService
     {
         private readonly ILogService _logService;
 

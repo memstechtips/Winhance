@@ -6,17 +6,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
-using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -29,9 +25,8 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
-    private readonly IRegeditLauncher? _regeditLauncher;
-    private readonly IEventBus? _eventBus;
-    private ISubscriptionToken? _tooltipUpdatedSubscription;
+    private readonly SettingStatusBannerManager _statusBannerManager;
+    private readonly TechnicalDetailsManager _technicalDetailsManager;
     private bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
 
@@ -294,9 +289,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
-        _regeditLauncher = regeditLauncher;
 
         // Initialize partial property defaults
         SettingId = string.Empty;
@@ -316,12 +309,17 @@ public partial class SettingItemViewModel : BaseViewModel
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
-        OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
 
-        if (_eventBus != null)
-        {
-            _tooltipUpdatedSubscription = _eventBus.Subscribe<TooltipUpdatedEvent>(OnTooltipUpdated);
-        }
+        _statusBannerManager = new SettingStatusBannerManager(localizationService);
+        _technicalDetailsManager = new TechnicalDetailsManager(
+            () => SettingId,
+            TechnicalDetails,
+            () => { OnPropertyChanged(nameof(HasTechnicalDetails)); OnPropertyChanged(nameof(ShowTechnicalDetailsBar)); },
+            logService,
+            dispatcherService,
+            regeditLauncher,
+            eventBus);
+        OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
     }
 
     public void UpdateVisibility(string searchText)
@@ -548,7 +546,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
-            await _settingApplicationService.ApplySettingAsync(SettingId, newValue, checkboxResult: checkboxChecked);
+            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, CheckboxResult = checkboxChecked });
 
             IsSelected = newValue;
             _hasChangedThisSession = true;
@@ -597,7 +595,7 @@ public partial class SettingItemViewModel : BaseViewModel
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
             _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
 
-            await _settingApplicationService.ApplySettingAsync(SettingId, true, value, checkboxResult: checkboxChecked);
+            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, CheckboxResult = checkboxChecked });
 
             _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
 
@@ -634,7 +632,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
-            await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
+            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
         }
@@ -657,7 +655,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
-            await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
+            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
         }
@@ -684,13 +682,14 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Executing action for setting: {SettingId}");
 
-            await _settingApplicationService.ApplySettingAsync(
-                SettingId,
-                true,
-                value: null,
-                checkboxResult: checkboxChecked,
-                commandString: SettingDefinition.ActionCommand,
-                applyRecommended: checkboxChecked);
+            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+                CheckboxResult = checkboxChecked,
+                CommandString = SettingDefinition.ActionCommand,
+                ApplyRecommended = checkboxChecked
+            });
 
             _logService.Log(LogLevel.Info, $"Successfully executed action for setting {SettingId}");
 
@@ -786,120 +785,30 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #endregion
 
-    #region Status Banner Messages
+    #region Status Banner
 
-    // Initializes the compatibility banner from SettingDefinition (called once during loading)
     public void InitializeCompatibilityBanner()
     {
-        if (SettingDefinition?.CustomProperties?.TryGetValue(
-            CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
-            compatMessage is string messageText)
-        {
-            StatusBannerMessage = messageText;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
+        var banner = _statusBannerManager.GetCompatibilityBanner(SettingDefinition);
+        if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    // Updates status banner based on selected value, option warnings, or cross-group settings
     public void UpdateStatusBanner(object? value)
     {
-        if (SettingDefinition == null || value is not int selectedIndex)
-        {
-            // Keep existing compatibility banner if present, otherwise clear
-            if (SettingDefinition?.CustomProperties?.ContainsKey(CustomPropertyKeys.VersionCompatibilityMessage) != true)
-            {
-                ClearStatusBanner();
-            }
-            return;
-        }
-
-        // Check for option-specific warnings (e.g., update policy security warnings)
-        if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionWarnings, out var warnings) == true &&
-            warnings is Dictionary<int, string> warningDict &&
-            warningDict.TryGetValue(selectedIndex, out var warning))
-        {
-            StatusBannerMessage = warning;
-            StatusBannerSeverity = InfoBarSeverity.Error;
-            return;
-        }
-
-        // Check for cross-group child settings info (privacy promotional banner)
-        if (SettingDefinition.CustomProperties?.ContainsKey(CustomPropertyKeys.CrossGroupChildSettings) == true)
-        {
-            UpdateCrossGroupInfoMessage(selectedIndex);
-            return;
-        }
-
-        // No option-specific warning - check if we should keep compatibility message
-        if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
-            compatMessage is string messageText)
-        {
-            StatusBannerMessage = messageText;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
-        else
-        {
-            ClearStatusBanner();
-        }
+        var banner = _statusBannerManager.ComputeBannerForValue(SettingDefinition, value, CrossGroupInfoMessage);
+        if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    // Shows informational message for cross-group child settings when "Custom" is selected
-    private void UpdateCrossGroupInfoMessage(int selectedIndex)
-    {
-        var displayNames = SettingDefinition?.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var names) == true
-            ? names as string[]
-            : null;
-
-        if (displayNames == null)
-        {
-            ClearStatusBanner();
-            return;
-        }
-
-        // Check if "Custom" option is selected (last index or special custom state index)
-        var customOptionIndex = displayNames.Length - 1;
-        bool isCustomState = selectedIndex == customOptionIndex || selectedIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
-
-        if (!isCustomState)
-        {
-            ClearStatusBanner();
-            return;
-        }
-
-        // Use the pre-built message if available (built during initialization with full grouping)
-        if (!string.IsNullOrEmpty(CrossGroupInfoMessage))
-        {
-            StatusBannerMessage = CrossGroupInfoMessage;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-            return;
-        }
-
-        // Fallback: just show the header if pre-built message not available
-        var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
-        if (!string.IsNullOrEmpty(header))
-        {
-            StatusBannerMessage = header;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
-    }
-
-    // Shows restart required banner after a setting that requires restart is changed
     private void ShowRestartBannerIfNeeded()
     {
-        if (!_hasChangedThisSession)
-            return;
-
-        if (SettingDefinition?.RequiresRestart == true)
-        {
-            StatusBannerMessage = _localizationService.GetString("Common_RestartRequired");
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
+        var banner = _statusBannerManager.GetRestartBanner(SettingDefinition, _hasChangedThisSession);
+        if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    private void ClearStatusBanner()
+    private void ApplyBanner(SettingStatusBannerManager.BannerState state)
     {
-        StatusBannerMessage = null;
-        StatusBannerSeverity = InfoBarSeverity.Informational;
+        StatusBannerMessage = state.Message;
+        StatusBannerSeverity = state.Severity;
     }
 
     #endregion
@@ -908,94 +817,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
 
-    private void OnTooltipUpdated(TooltipUpdatedEvent evt)
-    {
-        if (evt.SettingId != SettingId) return;
-        _dispatcherService.RunOnUIThread(() => UpdateTechnicalDetails(evt.TooltipData));
-    }
-
-    private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
-    {
-        try
-        {
-            TechnicalDetails.Clear();
-
-            // Registry rows
-            foreach (var kvp in tooltipData.IndividualRegistryValues)
-            {
-                var reg = kvp.Key;
-                var keyExists = false;
-                try
-                {
-                    keyExists = _regeditLauncher?.KeyExists(reg.KeyPath) ?? false;
-                }
-                catch (Exception kex)
-                {
-                    _logService.Log(LogLevel.Warning, $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
-                }
-
-                TechnicalDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.Registry,
-                    RegistryPath = reg.KeyPath,
-                    ValueName = reg.ValueName ?? "(Default)",
-                    ValueType = reg.ValueType.ToString(),
-                    CurrentValue = kvp.Value ?? "(not set)",
-                    RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
-                    OpenRegeditCommand = OpenRegeditCommand,
-                    RegeditIconSource = RegeditIconProvider.CachedIcon,
-                    CanOpenRegedit = keyExists
-                });
-            }
-
-            // Scheduled task rows
-            foreach (var task in tooltipData.ScheduledTaskSettings)
-            {
-                TechnicalDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.ScheduledTask,
-                    TaskPath = task.TaskPath,
-                    RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
-                });
-            }
-
-            // Power config rows
-            foreach (var pcfg in tooltipData.PowerCfgSettings)
-            {
-                TechnicalDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.PowerConfig,
-                    SubgroupGuid = pcfg.SubgroupGuid,
-                    SettingGuid = pcfg.SettingGuid,
-                    SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
-                    SettingAlias = pcfg.SettingGUIDAlias,
-                    PowerUnits = pcfg.Units ?? "",
-                    RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
-                    RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
-                });
-            }
-
-            OnPropertyChanged(nameof(HasTechnicalDetails));
-            OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"[TechnicalDetails] UpdateTechnicalDetails failed for '{SettingId}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-        }
-    }
-
-    private void OpenRegeditAtPath(string? path)
-    {
-        if (!string.IsNullOrEmpty(path))
-            _regeditLauncher?.OpenAtPath(path);
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _tooltipUpdatedSubscription?.Dispose();
-            _tooltipUpdatedSubscription = null;
+            _technicalDetailsManager.Dispose();
         }
         base.Dispose(disposing);
     }

@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ConfigurationApplicationBridgeService
+public class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
 {
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
@@ -285,23 +285,25 @@ public class ConfigurationApplicationBridgeService
             {
                 if (item.IsSelected ?? false)
                 {
-                    await _settingApplicationService.ApplySettingAsync(
-                        item.Id,
-                        false,
-                        null,
-                        false,
-                        setting.ActionCommand,
-                        skipValuePrerequisites: true).ConfigureAwait(false);
+                    await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                    {
+                        SettingId = item.Id,
+                        Enable = false,
+                        CommandString = setting.ActionCommand,
+                        SkipValuePrerequisites = true
+                    }).ConfigureAwait(false);
                 }
             }
             else
             {
-                await _settingApplicationService.ApplySettingAsync(
-                    item.Id,
-                    item.IsSelected ?? false,
-                    valueToApply,
-                    checkboxResult,
-                    skipValuePrerequisites: true).ConfigureAwait(false);
+                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                {
+                    SettingId = item.Id,
+                    Enable = item.IsSelected ?? false,
+                    Value = valueToApply,
+                    CheckboxResult = checkboxResult,
+                    SkipValuePrerequisites = true
+                }).ConfigureAwait(false);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");

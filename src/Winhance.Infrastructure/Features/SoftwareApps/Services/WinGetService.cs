@@ -22,6 +22,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private readonly ILocalizationService _localization;
         private readonly IInteractiveUserService _interactiveUserService;
         private readonly IPowerShellRunner _powerShellRunner;
+        private readonly IFileSystemService _fileSystemService;
 
         private WindowsPackageManagerFactory? _winGetFactory;
         private PackageManager? _packageManager;
@@ -42,13 +43,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             ILogService logService,
             ILocalizationService localization,
             IInteractiveUserService interactiveUserService,
-            IPowerShellRunner powerShellRunner)
+            IPowerShellRunner powerShellRunner,
+            IFileSystemService fileSystemService)
         {
             _taskProgressService = taskProgressService;
             _logService = logService;
             _localization = localization;
             _interactiveUserService = interactiveUserService;
             _powerShellRunner = powerShellRunner;
+            _fileSystemService = fileSystemService;
         }
 
         #region COM Initialization (for detection)
@@ -115,7 +118,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             // Bundled CLI is always available if the app is correctly installed
             var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
-            if (exePath != null && File.Exists(exePath))
+            if (exePath != null && _fileSystemService.FileExists(exePath))
                 return true;
 
             // Fallback: try COM init (covers edge cases)
@@ -624,7 +627,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _logService?.LogInformation("Starting AppInstaller installation...");
 
-                var installer = new WinGetInstaller(_powerShellRunner, _logService, _localization, _taskProgressService);
+                var installer = new WinGetInstaller(_powerShellRunner, _logService, _localization, _taskProgressService, _fileSystemService);
                 var (success, message) = await installer.InstallAsync(cancellationToken).ConfigureAwait(false);
 
                 if (!success)
@@ -727,7 +730,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 // Return true as long as bundled or system winget exists
                 var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
-                if (exePath == null || !File.Exists(exePath))
+                if (exePath == null || !_fileSystemService.FileExists(exePath))
                 {
                     _logService?.LogWarning("WinGet CLI not found — install/uninstall will fail");
                     return false;
@@ -917,11 +920,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            var cacheDir = Path.Combine(
+            var cacheDir = _fileSystemService.CombinePath(
                 _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Cache");
-            Directory.CreateDirectory(cacheDir);
-            var exportPath = Path.Combine(cacheDir, "winget-packages.json");
+            _fileSystemService.CreateDirectory(cacheDir);
+            var exportPath = _fileSystemService.CombinePath(cacheDir, "winget-packages.json");
 
             const int maxRetries = 3;
             const int retryDelayMs = 2000;
@@ -932,8 +935,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 try
                 {
                     // Clean up any previous export file
-                    if (File.Exists(exportPath))
-                        File.Delete(exportPath);
+                    if (_fileSystemService.FileExists(exportPath))
+                        _fileSystemService.DeleteFile(exportPath);
 
                     var arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity";
                     _logService?.LogInformation($"[winget-bundled] Running: winget {arguments} (attempt {attempt}/{maxRetries})");
@@ -965,7 +968,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         return installedPackageIds;
                     }
 
-                    if (!File.Exists(exportPath))
+                    if (!_fileSystemService.FileExists(exportPath))
                     {
                         _logService?.LogWarning($"winget export succeeded but file not found (attempt {attempt}/{maxRetries})");
                         if (attempt < maxRetries)
@@ -977,7 +980,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     }
 
                     // Parse JSON: root.Sources[].Packages[].PackageIdentifier
-                    var jsonBytes = await File.ReadAllBytesAsync(exportPath, cancellationToken).ConfigureAwait(false);
+                    var jsonBytes = await _fileSystemService.ReadAllBytesAsync(exportPath, cancellationToken).ConfigureAwait(false);
                     using var doc = JsonDocument.Parse(jsonBytes);
 
                     if (doc.RootElement.TryGetProperty("Sources", out var sourcesElement))
@@ -1019,8 +1022,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             // Clean up export file
             try
             {
-                if (File.Exists(exportPath))
-                    File.Delete(exportPath);
+                if (_fileSystemService.FileExists(exportPath))
+                    _fileSystemService.DeleteFile(exportPath);
             }
             catch (Exception ex) { _logService?.LogDebug($"Best-effort export file cleanup failed: {ex.Message}"); }
 

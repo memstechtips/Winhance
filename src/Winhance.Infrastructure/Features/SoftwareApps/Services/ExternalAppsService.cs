@@ -22,7 +22,8 @@ public class ExternalAppsService(
     ITaskProgressService taskProgressService,
     IChocolateyService chocolateyService,
     IChocolateyConsentService chocolateyConsentService,
-    IInteractiveUserService interactiveUserService) : IExternalAppsService
+    IInteractiveUserService interactiveUserService,
+    IFileSystemService fileSystemService) : IExternalAppsService
 {
     public string DomainName => FeatureIds.ExternalApps;
 
@@ -148,25 +149,25 @@ public class ExternalAppsService(
                 return;
             }
 
-            var exeFiles = Directory.GetFiles(installDir, "*.exe", SearchOption.AllDirectories).ToList();
+            var exeFiles = fileSystemService.GetFiles(installDir, "*.exe", SearchOption.AllDirectories).ToList();
             if (!exeFiles.Any())
             {
                 logService.LogWarning($"No executables found for {item.Name}");
                 return;
             }
 
-            var startMenuFolder = Path.Combine(
+            var startMenuFolder = fileSystemService.CombinePath(
                 interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 item.Name);
 
-            Directory.CreateDirectory(startMenuFolder);
+            fileSystemService.CreateDirectory(startMenuFolder);
 
             foreach (var exePath in exeFiles)
             {
-                var exeName = Path.GetFileNameWithoutExtension(exePath);
-                var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
+                var exeName = fileSystemService.GetFileNameWithoutExtension(exePath);
+                var shortcutPath = fileSystemService.CombinePath(startMenuFolder, $"{exeName}.lnk");
 
-                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
+                await CreateShortcutAsync(shortcutPath, exePath, fileSystemService.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
             }
 
             logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name}");
@@ -194,8 +195,8 @@ public class ExternalAppsService(
                 return;
             }
 
-            var exeFiles = Directory.GetFiles(installDir, "*.exe", SearchOption.AllDirectories)
-                .Where(f => !Path.GetFileName(f).Equals("ChocolateyInstall.ps1", StringComparison.OrdinalIgnoreCase))
+            var exeFiles = fileSystemService.GetFiles(installDir, "*.exe", SearchOption.AllDirectories)
+                .Where(f => !fileSystemService.GetFileName(f).Equals("ChocolateyInstall.ps1", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             if (!exeFiles.Any())
@@ -204,17 +205,17 @@ public class ExternalAppsService(
                 return;
             }
 
-            var startMenuFolder = Path.Combine(
+            var startMenuFolder = fileSystemService.CombinePath(
                 interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 item.Name);
 
-            Directory.CreateDirectory(startMenuFolder);
+            fileSystemService.CreateDirectory(startMenuFolder);
 
             foreach (var exePath in exeFiles)
             {
-                var exeName = Path.GetFileNameWithoutExtension(exePath);
-                var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
-                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
+                var exeName = fileSystemService.GetFileNameWithoutExtension(exePath);
+                var shortcutPath = fileSystemService.CombinePath(startMenuFolder, $"{exeName}.lnk");
+                await CreateShortcutAsync(shortcutPath, exePath, fileSystemService.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
             }
 
             logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name} (Chocolatey portable)");
@@ -230,22 +231,22 @@ public class ExternalAppsService(
         var searchPaths = new[]
         {
             @"C:\ProgramData\chocolatey\lib",
-            Path.Combine(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            fileSystemService.CombinePath(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "UniGetUI", "Chocolatey", "lib")
         };
 
         foreach (var basePath in searchPaths)
         {
-            if (!Directory.Exists(basePath))
+            if (!fileSystemService.DirectoryExists(basePath))
                 continue;
 
-            var packageDir = Path.Combine(basePath, chocoPackageId, "tools");
-            if (Directory.Exists(packageDir))
+            var packageDir = fileSystemService.CombinePath(basePath, chocoPackageId, "tools");
+            if (fileSystemService.DirectoryExists(packageDir))
                 return packageDir;
 
             // Also check without "tools" subfolder
-            packageDir = Path.Combine(basePath, chocoPackageId);
-            if (Directory.Exists(packageDir))
+            packageDir = fileSystemService.CombinePath(basePath, chocoPackageId);
+            if (fileSystemService.DirectoryExists(packageDir))
                 return packageDir;
         }
 
@@ -256,7 +257,7 @@ public class ExternalAppsService(
     {
         var searchPaths = new List<string>
         {
-            Path.Combine(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            fileSystemService.CombinePath(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Microsoft", "WinGet", "Packages"),
             @"C:\Program Files\WinGet\Packages",
             @"C:\Program Files (x86)\WinGet\Packages"
@@ -265,18 +266,18 @@ public class ExternalAppsService(
         // Under OTS, also search the process user's (admin) AppData since WinGet runs as admin
         if (interactiveUserService.IsOtsElevation)
         {
-            searchPaths.Add(Path.Combine(
+            searchPaths.Add(fileSystemService.CombinePath(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Microsoft", "WinGet", "Packages"));
         }
 
         foreach (var basePath in searchPaths)
         {
-            if (!Directory.Exists(basePath))
+            if (!fileSystemService.DirectoryExists(basePath))
                 continue;
 
             var matchingDir = item.WinGetPackageId!
-                .SelectMany(pkgId => Directory.GetDirectories(basePath, $"{pkgId}*"))
+                .SelectMany(pkgId => fileSystemService.GetDirectories(basePath, $"{pkgId}*"))
                 .Distinct()
                 .FirstOrDefault();
 
@@ -348,13 +349,13 @@ $Shortcut.Save()
     {
         try
         {
-            var startMenuFolder = Path.Combine(
+            var startMenuFolder = fileSystemService.CombinePath(
                 interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 appName);
 
-            if (Directory.Exists(startMenuFolder))
+            if (fileSystemService.DirectoryExists(startMenuFolder))
             {
-                Directory.Delete(startMenuFolder, true);
+                fileSystemService.DeleteDirectory(startMenuFolder, true);
                 logService.LogInformation($"Removed Start Menu folder for {appName}");
             }
         }

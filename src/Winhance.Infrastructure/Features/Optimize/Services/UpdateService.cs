@@ -17,7 +17,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         IWindowsRegistryService registryService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IProcessExecutor processExecutor,
-        IPowerShellRunner powerShellRunner) : IDomainService
+        IPowerShellRunner powerShellRunner,
+        IFileSystemService fileSystemService) : IDomainService
     {
         public string DomainName => FeatureIds.Update;
 
@@ -273,16 +274,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 try
                 {
                     var dllPath = $@"C:\Windows\System32\{dll}";
-                    var backupPath = $@"C:\Windows\System32\{Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
+                    var backupPath = $@"C:\Windows\System32\{fileSystemService.GetFileNameWithoutExtension(dll)}_BAK.dll";
 
-                    if (File.Exists(backupPath))
+                    if (fileSystemService.FileExists(backupPath))
                     {
-                        if (File.Exists(dllPath))
+                        if (fileSystemService.FileExists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"Conflict detected for {dll}. Deleting stale backup.");
                             await RunCommandAsync($"takeown /f \"{backupPath}\"").ConfigureAwait(false);
                             await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
-                            File.Delete(backupPath);
+                            fileSystemService.DeleteFile(backupPath);
                         }
                         else
                         {
@@ -290,13 +291,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         }
                     }
 
-                    if (!File.Exists(dllPath) || File.Exists(backupPath))
+                    if (!fileSystemService.FileExists(dllPath) || fileSystemService.FileExists(backupPath))
                         continue;
 
                     await RunCommandAsync($"takeown /f \"{dllPath}\"").ConfigureAwait(false);
                     await RunCommandAsync($"icacls \"{dllPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
 
-                    File.Move(dllPath, backupPath);
+                    fileSystemService.MoveFile(dllPath, backupPath);
                     logService.Log(LogLevel.Info, $"Renamed {dll} to backup");
                 }
                 catch (Exception ex)
@@ -315,23 +316,23 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 try
                 {
                     var dllPath = $@"C:\Windows\System32\{dll}";
-                    var backupPath = $@"C:\Windows\System32\{Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
+                    var backupPath = $@"C:\Windows\System32\{fileSystemService.GetFileNameWithoutExtension(dll)}_BAK.dll";
 
-                    if (File.Exists(backupPath))
+                    if (fileSystemService.FileExists(backupPath))
                     {
-                        if (File.Exists(dllPath))
+                        if (fileSystemService.FileExists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"System already restored {dll}. Removing backup.");
                             await RunCommandAsync($"takeown /f \"{backupPath}\"").ConfigureAwait(false);
                             await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
-                            File.Delete(backupPath);
+                            fileSystemService.DeleteFile(backupPath);
                         }
                         else
                         {
                             await RunCommandAsync($"takeown /f \"{backupPath}\"").ConfigureAwait(false);
                             await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F").ConfigureAwait(false);
 
-                            File.Move(backupPath, dllPath);
+                            fileSystemService.MoveFile(backupPath, dllPath);
                             logService.Log(LogLevel.Info, $"Restored {dll} from backup");
                         }
                     }
@@ -414,9 +415,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             foreach (var dll in dlls)
             {
                 var dllPath = $@"C:\Windows\System32\{dll}";
-                var backupPath = $@"C:\Windows\System32\{Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
+                var backupPath = $@"C:\Windows\System32\{fileSystemService.GetFileNameWithoutExtension(dll)}_BAK.dll";
 
-                if (File.Exists(backupPath) && !File.Exists(dllPath))
+                if (fileSystemService.FileExists(backupPath) && !fileSystemService.FileExists(dllPath))
                     return true;
             }
 

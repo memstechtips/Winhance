@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 
@@ -235,7 +236,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     partial void OnIsCardViewModeChanged(bool value)
     {
-        _ = _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table");
+        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table").FireAndForget(_logService);
     }
 
     partial void OnSearchTextChanged(string value)

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
@@ -199,7 +200,7 @@ public partial class SettingsViewModel : ObservableObject
 
         if (_localizationService.SetLanguage(value))
         {
-            _ = _preferencesService.SetPreferenceAsync("Language", value);
+            _preferencesService.SetPreferenceAsync("Language", value).FireAndForget();
         }
     }
 

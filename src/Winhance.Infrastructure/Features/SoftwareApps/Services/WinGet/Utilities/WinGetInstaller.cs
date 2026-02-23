@@ -17,6 +17,7 @@ public class WinGetInstaller
     private readonly ILocalizationService? _localization;
     private readonly ITaskProgressService? _taskProgressService;
     private readonly IPowerShellRunner _powerShellRunner;
+    private readonly IFileSystemService _fileSystemService;
     private readonly HttpClient _httpClient;
 
     private const string GitHubBaseUrl = "https://github.com/microsoft/winget-cli/releases/latest/download";
@@ -24,12 +25,13 @@ public class WinGetInstaller
     private const string InstallerFileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle";
     private const string LicenseFileName = "e53e159d00e04f729cc2180cffd1c02e_License1.xml";
 
-    public WinGetInstaller(IPowerShellRunner powerShellRunner, ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null)
+    public WinGetInstaller(IPowerShellRunner powerShellRunner, ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null, IFileSystemService? fileSystemService = null)
     {
         _powerShellRunner = powerShellRunner;
         _logService = logService;
         _localization = localization;
         _taskProgressService = taskProgressService;
+        _fileSystemService = fileSystemService!;
         _httpClient = new HttpClient();
     }
 
@@ -54,17 +56,17 @@ public class WinGetInstaller
         // Option 2b: Download from GitHub and provision
         _logService?.LogInformation("No existing App Installer package found, downloading from GitHub...");
 
-        var tempDir = Path.Combine(Path.GetTempPath(), "WinGetInstall");
+        var tempDir = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinGetInstall");
 
         try
         {
-            if (Directory.Exists(tempDir))
-                Directory.Delete(tempDir, true);
-            Directory.CreateDirectory(tempDir);
+            if (_fileSystemService.DirectoryExists(tempDir))
+                _fileSystemService.DeleteDirectory(tempDir, true);
+            _fileSystemService.CreateDirectory(tempDir);
 
-            var dependenciesPath = Path.Combine(tempDir, DependenciesFileName);
-            var installerPath = Path.Combine(tempDir, InstallerFileName);
-            var licensePath = Path.Combine(tempDir, LicenseFileName);
+            var dependenciesPath = _fileSystemService.CombinePath(tempDir, DependenciesFileName);
+            var installerPath = _fileSystemService.CombinePath(tempDir, InstallerFileName);
+            var licensePath = _fileSystemService.CombinePath(tempDir, LicenseFileName);
 
             // Download all files in parallel (0-45%)
             // Only the installer (largest file) drives the progress bar; deps & license download silently alongside it.
@@ -77,7 +79,7 @@ public class WinGetInstaller
 
             // Extract dependencies (45-55%)
             ReportProgress(45, GetString("Progress_WinGet_ExtractingDependencies"));
-            var extractPath = Path.Combine(tempDir, "Dependencies");
+            var extractPath = _fileSystemService.CombinePath(tempDir, "Dependencies");
             await ExtractDependenciesAsync(dependenciesPath, extractPath).ConfigureAwait(false);
 
             // Provision for all users (55-100%)
@@ -102,8 +104,8 @@ public class WinGetInstaller
         {
             try
             {
-                if (Directory.Exists(tempDir))
-                    Directory.Delete(tempDir, true);
+                if (_fileSystemService.DirectoryExists(tempDir))
+                    _fileSystemService.DeleteDirectory(tempDir, true);
             }
             catch (Exception ex) { _logService?.LogDebug($"Best-effort temp directory cleanup failed: {ex.Message}"); }
         }
@@ -305,18 +307,18 @@ public class WinGetInstaller
 
         foreach (var basePath in searchPaths)
         {
-            if (!Directory.Exists(basePath))
+            if (!_fileSystemService.DirectoryExists(basePath))
                 continue;
 
             foreach (var pattern in packagePatterns)
             {
                 try
                 {
-                    var files = Directory.GetFiles(basePath, pattern, SearchOption.AllDirectories);
+                    var files = _fileSystemService.GetFiles(basePath, pattern, SearchOption.AllDirectories);
                     if (files.Length > 0)
                     {
                         // Return the most recently modified file
-                        return files.OrderByDescending(File.GetLastWriteTime).First();
+                        return files.OrderByDescending(f => _fileSystemService.GetLastWriteTime(f)).First();
                     }
                 }
                 catch (UnauthorizedAccessException)
@@ -383,8 +385,8 @@ public class WinGetInstaller
     {
         return Task.Run(() =>
         {
-            if (Directory.Exists(extractPath))
-                Directory.Delete(extractPath, true);
+            if (_fileSystemService.DirectoryExists(extractPath))
+                _fileSystemService.DeleteDirectory(extractPath, true);
 
             ZipFile.ExtractToDirectory(zipPath, extractPath);
             _logService?.LogInformation($"Extracted dependencies to {extractPath}");
@@ -401,7 +403,7 @@ public class WinGetInstaller
 
         // Get architecture-specific dependencies
         var arch = GetCurrentArchitecture();
-        var allAppxFiles = Directory.GetFiles(dependenciesPath, "*.appx", SearchOption.AllDirectories);
+        var allAppxFiles = _fileSystemService.GetFiles(dependenciesPath, "*.appx", SearchOption.AllDirectories);
         var dependencyPackages = allAppxFiles
             .Where(f => IsRelevantForArchitecture(f, arch))
             .ToArray();
@@ -517,9 +519,9 @@ public class WinGetInstaller
         };
     }
 
-    private static bool IsRelevantForArchitecture(string filePath, string targetArch)
+    private bool IsRelevantForArchitecture(string filePath, string targetArch)
     {
-        var fileName = Path.GetFileName(filePath).ToLowerInvariant();
+        var fileName = _fileSystemService.GetFileName(filePath).ToLowerInvariant();
 
         if (fileName.Contains(targetArch))
             return true;

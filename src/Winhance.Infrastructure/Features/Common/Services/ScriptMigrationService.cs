@@ -13,6 +13,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly IScheduledTaskService _scheduledTaskService;
         private readonly IUserPreferencesService _prefsService;
         private readonly IInteractiveUserService _interactiveUserService;
+        private readonly IFileSystemService _fileSystemService;
 
         private static readonly string[] TaskNames = { "BloatRemoval", "EdgeRemoval", "OneDriveRemoval" };
         private static readonly string[] ScriptNames = { "BloatRemoval.ps1", "EdgeRemoval.ps1", "OneDriveRemoval.ps1" };
@@ -21,61 +22,65 @@ namespace Winhance.Infrastructure.Features.Common.Services
             ILogService logService,
             IScheduledTaskService scheduledTaskService,
             IUserPreferencesService prefsService,
-            IInteractiveUserService interactiveUserService)
+            IInteractiveUserService interactiveUserService,
+            IFileSystemService fileSystemService)
         {
             _logService = logService;
             _scheduledTaskService = scheduledTaskService;
             _prefsService = prefsService;
             _interactiveUserService = interactiveUserService;
+            _fileSystemService = fileSystemService;
         }
 
         public async Task<ScriptMigrationResult> MigrateFromOldPathsAsync()
         {
-            var result = new ScriptMigrationResult { Success = true };
-
             try
             {
                 var alreadyMigrated = await _prefsService.GetPreferenceAsync("ScriptMigrationCompleted", false).ConfigureAwait(false);
                 if (alreadyMigrated)
                 {
                     _logService.Log(LogLevel.Info, "Script migration already completed previously");
-                    return result;
+                    return new ScriptMigrationResult { Success = true };
                 }
 
                 var oldScriptsPath = GetOldScriptsPath();
 
-                if (!Directory.Exists(oldScriptsPath))
+                if (!_fileSystemService.DirectoryExists(oldScriptsPath))
                 {
                     _logService.Log(LogLevel.Info, "No old script directory found - migration not needed");
                     await _prefsService.SetPreferenceAsync("ScriptMigrationCompleted", true).ConfigureAwait(false);
-                    return result;
+                    return new ScriptMigrationResult { Success = true };
                 }
 
                 _logService.Log(LogLevel.Info, $"Found old script directory: {oldScriptsPath}");
-                result.MigrationPerformed = true;
 
-                result.TasksDeleted = await DeleteOldScheduledTasksAsync().ConfigureAwait(false);
-                result.ScriptsRenamed = RenameOldScripts(oldScriptsPath);
+                var tasksDeleted = await DeleteOldScheduledTasksAsync().ConfigureAwait(false);
+                var scriptsRenamed = RenameOldScripts(oldScriptsPath);
 
                 await _prefsService.SetPreferenceAsync("ScriptMigrationCompleted", true).ConfigureAwait(false);
 
                 _logService.Log(LogLevel.Info,
-                    $"Migration completed: {result.TasksDeleted} tasks deleted, {result.ScriptsRenamed} scripts renamed");
+                    $"Migration completed: {tasksDeleted} tasks deleted, {scriptsRenamed} scripts renamed");
 
-                return result;
+                return new ScriptMigrationResult
+                {
+                    Success = true,
+                    MigrationPerformed = true,
+                    TasksDeleted = tasksDeleted,
+                    ScriptsRenamed = scriptsRenamed
+                };
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error during script migration: {ex.Message}");
-                result.Success = false;
-                return result;
+                return new ScriptMigrationResult { Success = false };
             }
         }
 
         private string GetOldScriptsPath()
         {
             var localAppData = _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return Path.Combine(localAppData, "Winhance", "Scripts");
+            return _fileSystemService.CombinePath(localAppData, "Winhance", "Scripts");
         }
 
         private async Task<int> DeleteOldScheduledTasksAsync()
@@ -114,17 +119,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 try
                 {
-                    var oldScriptPath = Path.Combine(oldScriptsPath, scriptName);
-                    if (File.Exists(oldScriptPath))
+                    var oldScriptPath = _fileSystemService.CombinePath(oldScriptsPath, scriptName);
+                    if (_fileSystemService.FileExists(oldScriptPath))
                     {
                         var newPath = oldScriptPath + ".old";
 
-                        if (File.Exists(newPath))
+                        if (_fileSystemService.FileExists(newPath))
                         {
-                            File.Delete(newPath);
+                            _fileSystemService.DeleteFile(newPath);
                         }
 
-                        File.Move(oldScriptPath, newPath);
+                        _fileSystemService.MoveFile(oldScriptPath, newPath);
                         renamedCount++;
                         _logService.Log(LogLevel.Info, $"Renamed old script: {scriptName} -> {scriptName}.old");
                     }

@@ -1,33 +1,20 @@
-using System.Linq;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
 
 /// <summary>
-/// Tracks the current state of the update InfoBar for language-change re-rendering.
-/// </summary>
-internal enum UpdateInfoBarState
-{
-    None,
-    UpdateAvailable,
-    NoUpdates,
-    CheckError,
-    Downloading
-}
-
-
-/// <summary>
 /// ViewModel for the MainWindow, handling title bar commands and state.
+/// Child ViewModels handle task progress, update checking, and review mode.
 /// </summary>
 public partial class MainWindowViewModel : ObservableObject
 {
@@ -40,14 +27,19 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IUserPreferencesService _preferencesService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ITaskProgressService _taskProgressService;
-    private readonly IDispatcherService _dispatcherService;
-    private readonly IConfigReviewModeService _configReviewModeService;
-    private readonly IConfigReviewDiffService _configReviewDiffService;
-    private readonly IConfigReviewBadgeService _configReviewBadgeService;
     private readonly IWinGetService _winGetService;
     private readonly IInternetConnectivityService _internetConnectivityService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IEventBus _eventBus;
+
+    /// <summary>Child ViewModel for task progress display.</summary>
+    public TaskProgressViewModel TaskProgress { get; }
+
+    /// <summary>Child ViewModel for update checking.</summary>
+    public UpdateCheckViewModel UpdateCheck { get; }
+
+    /// <summary>Child ViewModel for review mode bar.</summary>
+    public ReviewModeBarViewModel ReviewModeBar { get; }
 
     [ObservableProperty]
     public partial string AppIconSource { get; set; }
@@ -60,68 +52,6 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(WindowsFilterIcon))]
     public partial bool IsWindowsVersionFilterEnabled { get; set; }
 
-    [ObservableProperty]
-    public partial bool IsLoading { get; set; }
-
-    // Tracks whether the last single-task ended in failure (progress was set to 0 with an error).
-    // Used to keep the TaskProgressControl visible so the user can click to see details.
-    [ObservableProperty]
-    public partial bool IsTaskFailed { get; set; }
-    private CancellationTokenSource? _hideDelayCts;
-
-    [ObservableProperty]
-    public partial string AppName { get; set; }
-
-    [ObservableProperty]
-    public partial string LastTerminalLine { get; set; }
-
-    [ObservableProperty]
-    public partial string QueueStatusText { get; set; }
-
-    [ObservableProperty]
-    public partial string QueueNextItemName { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsQueueVisible { get; set; }
-
-    [ObservableProperty]
-    public partial int ActiveScriptCount { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsUpdateInfoBarOpen { get; set; }
-
-    [ObservableProperty]
-    public partial string UpdateInfoBarTitle { get; set; }
-
-    [ObservableProperty]
-    public partial string UpdateInfoBarMessage { get; set; }
-
-    // Tracks InfoBar state for re-rendering on language change
-    private UpdateInfoBarState _updateInfoBarState = UpdateInfoBarState.None;
-    private string _cachedCurrentVersion = string.Empty;
-    private string _cachedLatestVersion = string.Empty;
-    private string _cachedErrorMessage = string.Empty;
-
-    [ObservableProperty]
-    public partial InfoBarSeverity UpdateInfoBarSeverity { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsUpdateActionButtonVisible { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsUpdateCheckInProgress { get; set; }
-
-    // Review mode properties
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsWindowsFilterButtonEnabled))]
-    public partial bool IsInReviewMode { get; set; }
-
-    [ObservableProperty]
-    public partial string ReviewModeStatusText { get; set; }
-
-    [ObservableProperty]
-    public partial bool CanApplyReviewedConfig { get; set; }
-
     // OTS Elevation InfoBar properties
     [ObservableProperty]
     public partial bool IsOtsInfoBarOpen { get; set; }
@@ -131,13 +61,6 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string OtsInfoBarMessage { get; set; }
-
-
-    /// <summary>
-    /// Event raised when a multi-script progress update is received.
-    /// Parameters: (slotIndex, detail).
-    /// </summary>
-    public event Action<int, TaskProgressDetail>? ScriptProgressReceived;
 
     public MainWindowViewModel(
         IThemeService themeService,
@@ -149,14 +72,13 @@ public partial class MainWindowViewModel : ObservableObject
         IUserPreferencesService preferencesService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ITaskProgressService taskProgressService,
-        IDispatcherService dispatcherService,
-        IConfigReviewModeService configReviewModeService,
-        IConfigReviewDiffService configReviewDiffService,
-        IConfigReviewBadgeService configReviewBadgeService,
         IWinGetService winGetService,
         IInternetConnectivityService internetConnectivityService,
         IInteractiveUserService interactiveUserService,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        TaskProgressViewModel taskProgress,
+        UpdateCheckViewModel updateCheck,
+        ReviewModeBarViewModel reviewModeBar)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -167,26 +89,19 @@ public partial class MainWindowViewModel : ObservableObject
         _preferencesService = preferencesService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _taskProgressService = taskProgressService;
-        _dispatcherService = dispatcherService;
-        _configReviewModeService = configReviewModeService;
-        _configReviewDiffService = configReviewDiffService;
-        _configReviewBadgeService = configReviewBadgeService;
         _winGetService = winGetService;
         _internetConnectivityService = internetConnectivityService;
         _interactiveUserService = interactiveUserService;
         _eventBus = eventBus;
 
+        TaskProgress = taskProgress;
+        UpdateCheck = updateCheck;
+        ReviewModeBar = reviewModeBar;
+
         // Initialize partial property defaults
         AppIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
         VersionInfo = "Winhance";
         IsWindowsVersionFilterEnabled = true;
-        AppName = string.Empty;
-        LastTerminalLine = string.Empty;
-        QueueStatusText = string.Empty;
-        QueueNextItemName = string.Empty;
-        UpdateInfoBarTitle = string.Empty;
-        UpdateInfoBarMessage = string.Empty;
-        ReviewModeStatusText = string.Empty;
         OtsInfoBarTitle = string.Empty;
         OtsInfoBarMessage = string.Empty;
 
@@ -196,13 +111,8 @@ public partial class MainWindowViewModel : ObservableObject
         // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
 
-        // Subscribe to task progress updates
-        _taskProgressService.ProgressUpdated += OnProgressUpdated;
-
-        // Subscribe to review mode changes
-        _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
-        _configReviewDiffService.ApprovalCountChanged += OnApprovalCountChanged;
-        _configReviewBadgeService.BadgeStateChanged += OnBadgeStateChangedForApplyButton;
+        // Subscribe to review mode filter cross-cutting
+        ReviewModeBar.PropertyChanged += OnReviewModeBarPropertyChanged;
 
         // Set initial icon based on current theme
         UpdateAppIconForTheme();
@@ -238,31 +148,10 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(NavSettingsText));
         OnPropertyChanged(nameof(NavMoreText));
 
-        // Task progress
-        OnPropertyChanged(nameof(CancelButtonLabel));
-        OnPropertyChanged(nameof(CloseButtonLabel));
-
-        // Update InfoBar
-        OnPropertyChanged(nameof(InstallNowButtonText));
-        if (IsUpdateInfoBarOpen)
-        {
-            RefreshUpdateInfoBarText();
-        }
-
         // OTS InfoBar
         if (IsOtsInfoBarOpen)
         {
             RefreshOtsInfoBarText();
-        }
-
-        // Review Mode bar
-        if (IsInReviewMode)
-        {
-            OnPropertyChanged(nameof(ReviewModeTitleText));
-            OnPropertyChanged(nameof(ReviewModeDescriptionText));
-            OnPropertyChanged(nameof(ReviewModeApplyButtonText));
-            OnPropertyChanged(nameof(ReviewModeCancelButtonText));
-            UpdateReviewModeStatus();
         }
     }
 
@@ -399,29 +288,8 @@ public partial class MainWindowViewModel : ObservableObject
     public string NavMoreText =>
         _localizationService.GetString("Nav_More") ?? "More";
 
-    // Task progress
-    public string CancelButtonLabel =>
-        _localizationService.GetString("Button_Cancel") ?? "Cancel";
-
-    public string CloseButtonLabel =>
-        _localizationService.GetString("Button_Close") ?? "Close";
-
-    // Update InfoBar
-    public string InstallNowButtonText =>
-        _localizationService.GetString("Dialog_Update_Button_InstallNow") ?? "Install Now";
-
     // Filter button enabled state
-    public bool IsWindowsFilterButtonEnabled => !IsInReviewMode;
-
-    // Review Mode
-    public string ReviewModeTitleText =>
-        _localizationService.GetString("Review_Mode_Title") ?? "Config Review Mode";
-    public string ReviewModeApplyButtonText =>
-        _localizationService.GetString("Review_Mode_Apply_Button") ?? "Apply Config";
-    public string ReviewModeCancelButtonText =>
-        _localizationService.GetString("Review_Mode_Cancel_Button") ?? "Cancel";
-    public string ReviewModeDescriptionText =>
-        _localizationService.GetString("Review_Mode_Description") ?? "Review the changes below across all sections, then click Apply Config when ready.";
+    public bool IsWindowsFilterButtonEnabled => !ReviewModeBar.IsInReviewMode;
 
     #endregion
 
@@ -466,7 +334,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ToggleWindowsFilterAsync()
     {
         // Don't allow toggling during review mode
-        if (IsInReviewMode) return;
+        if (ReviewModeBar.IsInReviewMode) return;
 
         try
         {
@@ -597,152 +465,6 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void Cancel() => _taskProgressService.CancelCurrentTask();
-
-    [RelayCommand]
-    private void CloseFailedTask()
-    {
-        IsTaskFailed = false;
-        IsLoading = false;
-    }
-
-    [RelayCommand]
-    private async Task ShowDetailsAsync()
-    {
-        var terminalLines = _taskProgressService.GetTerminalOutputLines();
-        var title = _localizationService.GetString("Dialog_TerminalOutput_Title");
-        await _dialogService.ShowTaskOutputDialogAsync(title, terminalLines);
-
-        // After the dialog is closed, dismiss the progress control if the task is no longer running
-        if (!_taskProgressService.IsTaskRunning)
-        {
-            IsTaskFailed = false;
-            IsLoading = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task CheckForUpdatesAsync()
-    {
-        if (IsUpdateCheckInProgress) return;
-
-        try
-        {
-            IsUpdateCheckInProgress = true;
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Checking for updates...");
-
-            var latestVersion = await _versionService.CheckForUpdateAsync();
-            var currentVersion = _versionService.GetCurrentVersion();
-
-            if (latestVersion != null && latestVersion.IsUpdateAvailable)
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Update available: {latestVersion.Version}");
-
-                _cachedCurrentVersion = currentVersion.Version;
-                _cachedLatestVersion = latestVersion.Version;
-                _updateInfoBarState = UpdateInfoBarState.UpdateAvailable;
-                RefreshUpdateInfoBarText();
-                UpdateInfoBarSeverity = InfoBarSeverity.Success;
-                IsUpdateActionButtonVisible = true;
-                IsUpdateInfoBarOpen = true;
-            }
-            else
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "No updates available");
-
-                _updateInfoBarState = UpdateInfoBarState.NoUpdates;
-                RefreshUpdateInfoBarText();
-                UpdateInfoBarSeverity = InfoBarSeverity.Success;
-                IsUpdateActionButtonVisible = false;
-                IsUpdateInfoBarOpen = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error checking for updates: {ex.Message}");
-
-            _cachedErrorMessage = ex.Message;
-            _updateInfoBarState = UpdateInfoBarState.CheckError;
-            RefreshUpdateInfoBarText();
-            UpdateInfoBarSeverity = InfoBarSeverity.Error;
-            IsUpdateActionButtonVisible = false;
-            IsUpdateInfoBarOpen = true;
-        }
-        finally
-        {
-            IsUpdateCheckInProgress = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task InstallUpdateAsync()
-    {
-        try
-        {
-            _updateInfoBarState = UpdateInfoBarState.Downloading;
-            RefreshUpdateInfoBarText();
-            IsUpdateActionButtonVisible = false;
-
-            await _versionService.DownloadAndInstallUpdateAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error installing update: {ex.Message}");
-
-            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_Status_Error") ?? "Error downloading update: {0}";
-            var errorMessage = string.Format(errorMessageTemplate, ex.Message);
-
-            UpdateInfoBarMessage = errorMessage;
-            UpdateInfoBarSeverity = InfoBarSeverity.Error;
-            IsUpdateActionButtonVisible = false;
-        }
-    }
-
-    /// <summary>
-    /// Silently checks for updates on startup. Only shows the InfoBar if an update is available.
-    /// No-update and error scenarios are logged but not shown to the user.
-    /// </summary>
-    public async Task CheckForUpdatesOnStartupAsync()
-    {
-        try
-        {
-            var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
-            if (!hasInternet)
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                    "Startup: No internet connection — skipping update check");
-                return;
-            }
-
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking for updates...");
-
-            var latestVersion = await _versionService.CheckForUpdateAsync();
-            var currentVersion = _versionService.GetCurrentVersion();
-
-            if (latestVersion != null && latestVersion.IsUpdateAvailable)
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Startup: Update available: {latestVersion.Version}");
-
-                _cachedCurrentVersion = currentVersion.Version;
-                _cachedLatestVersion = latestVersion.Version;
-                _updateInfoBarState = UpdateInfoBarState.UpdateAvailable;
-                RefreshUpdateInfoBarText();
-                UpdateInfoBarSeverity = InfoBarSeverity.Success;
-                IsUpdateActionButtonVisible = true;
-                IsUpdateInfoBarOpen = true;
-            }
-            else
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: No updates available");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Startup: Error checking for updates: {ex.Message}");
-        }
-    }
-
     /// <summary>
     /// Post-UI startup flow for WinGet / AppInstaller.
     /// If system winget was already found (EnsureWinGetReadyAsync set it), silently attempts an upgrade.
@@ -754,7 +476,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             if (_winGetService.IsSystemWinGetAvailable)
             {
-                // System winget already present — silently attempt upgrade
+                // System winget already present -- silently attempt upgrade
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
                     "Startup: System winget available, attempting silent AppInstaller upgrade...");
 
@@ -775,13 +497,13 @@ public partial class MainWindowViewModel : ObservableObject
             }
             else
             {
-                // Only bundled winget — need to install AppInstaller
-                // Check internet FIRST — all install paths require connectivity
+                // Only bundled winget -- need to install AppInstaller
+                // Check internet FIRST -- all install paths require connectivity
                 var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
                 if (!hasInternet)
                 {
                     _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                        "Startup: No internet connection — skipping AppInstaller installation");
+                        "Startup: No internet connection -- skipping AppInstaller installation");
                     return;
                 }
 
@@ -805,7 +527,7 @@ public partial class MainWindowViewModel : ObservableObject
                     else
                     {
                         _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                            "Startup: AppInstaller installation failed — continuing with bundled CLI");
+                            "Startup: AppInstaller installation failed -- continuing with bundled CLI");
                         _taskProgressService.UpdateProgress(0,
                             _localizationService.GetString("Error_WinGetInstallFailed")
                             ?? "Failed to install WinGet. Please check your internet connection.");
@@ -827,285 +549,45 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Dismisses the update InfoBar (called from code-behind on InfoBar.Closed).
-    /// </summary>
-    public void DismissUpdateInfoBar()
-    {
-        IsUpdateInfoBarOpen = false;
-        _updateInfoBarState = UpdateInfoBarState.None;
-    }
-
-    /// <summary>
-    /// Re-resolves InfoBar title/message from localization based on the current state.
-    /// Called when the InfoBar state is first set and on language change.
-    /// </summary>
-    private void RefreshUpdateInfoBarText()
-    {
-        switch (_updateInfoBarState)
-        {
-            case UpdateInfoBarState.UpdateAvailable:
-                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
-                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
-                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
-                UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {_cachedCurrentVersion}  →  {latestVersionLabel} {_cachedLatestVersion}";
-                break;
-
-            case UpdateInfoBarState.NoUpdates:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
-                break;
-
-            case UpdateInfoBarState.CheckError:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
-                var errorTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
-                UpdateInfoBarMessage = string.Format(errorTemplate, _cachedErrorMessage);
-                break;
-
-            case UpdateInfoBarState.Downloading:
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
-                break;
-        }
-    }
-
     #endregion
 
-    #region Review Mode
+    #region Review Mode / Filter Cross-Cutting
 
-    private void OnReviewModeChanged(object? sender, EventArgs e)
+    private void OnReviewModeBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
+        if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
         {
-            var entering = _configReviewModeService.IsInReviewMode;
-            IsInReviewMode = entering;
+            OnPropertyChanged(nameof(IsWindowsFilterButtonEnabled));
+            HandleReviewModeFilterChange(ReviewModeBar.IsInReviewMode);
+        }
+    }
 
-            if (entering)
+    private void HandleReviewModeFilterChange(bool entering)
+    {
+        if (entering)
+        {
+            if (!IsWindowsVersionFilterEnabled)
             {
-                // Force filter ON during review mode
-                if (!IsWindowsVersionFilterEnabled)
-                {
-                    IsWindowsVersionFilterEnabled = true;
-                    _compatibleSettingsRegistry.SetFilterEnabled(true);
-                    _eventBus.Publish(new FilterStateChangedEvent(true));
-                }
+                IsWindowsVersionFilterEnabled = true;
+                _compatibleSettingsRegistry.SetFilterEnabled(true);
+                _eventBus.Publish(new FilterStateChangedEvent(true));
             }
-            else
-            {
-                // Restore filter state from persisted user preference (default ON)
-                var savedPreference = await _preferencesService.GetPreferenceAsync(
-                    UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
-
-                if (IsWindowsVersionFilterEnabled != savedPreference)
-                {
-                    IsWindowsVersionFilterEnabled = savedPreference;
-                    _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
-                    _eventBus.Publish(new FilterStateChangedEvent(savedPreference));
-                }
-            }
-
-            UpdateReviewModeStatus();
-            UpdateCanApplyReviewedConfig();
-        });
-    }
-
-    private void OnApprovalCountChanged(object? sender, EventArgs e)
-    {
-        _dispatcherService.RunOnUIThread(() =>
-        {
-            UpdateReviewModeStatus();
-            UpdateCanApplyReviewedConfig();
-        });
-    }
-
-    private void OnBadgeStateChangedForApplyButton(object? sender, EventArgs e)
-    {
-        _dispatcherService.RunOnUIThread(UpdateCanApplyReviewedConfig);
-    }
-
-    private void UpdateCanApplyReviewedConfig()
-    {
-        if (!IsInReviewMode)
-        {
-            CanApplyReviewedConfig = false;
-            return;
-        }
-
-        // All Optimize/Customize settings must be explicitly reviewed (accept or reject)
-        bool allSettingsReviewed = _configReviewDiffService.TotalChanges == 0
-            || _configReviewDiffService.ReviewedChanges >= _configReviewDiffService.TotalChanges;
-
-        // SoftwareApps action choices must be made for sections that have items
-        bool softwareAppsReviewed = _configReviewBadgeService.IsSoftwareAppsReviewed
-            || (!_configReviewBadgeService.IsFeatureInConfig(FeatureIds.WindowsApps)
-                && !_configReviewBadgeService.IsFeatureInConfig(FeatureIds.ExternalApps));
-
-        // All Optimize features must be fully reviewed
-        bool optimizeReviewed = _configReviewBadgeService.IsSectionFullyReviewed("Optimize")
-            || !FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
-
-        // All Customize features must be fully reviewed
-        bool customizeReviewed = _configReviewBadgeService.IsSectionFullyReviewed("Customize")
-            || !FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
-
-        CanApplyReviewedConfig = allSettingsReviewed && softwareAppsReviewed && optimizeReviewed && customizeReviewed;
-    }
-
-    private void UpdateReviewModeStatus()
-    {
-        if (!_configReviewModeService.IsInReviewMode)
-        {
-            ReviewModeStatusText = string.Empty;
-            return;
-        }
-
-        if (_configReviewDiffService.TotalChanges > 0)
-        {
-            // Show reviewed/total count and how many will be applied
-            var format = _localizationService.GetString("Review_Mode_Status_Format") ?? "{0} of {1} reviewed ({2} will be applied)";
-            ReviewModeStatusText = string.Format(format,
-                _configReviewDiffService.ReviewedChanges,
-                _configReviewDiffService.TotalChanges,
-                _configReviewDiffService.ApprovedChanges);
-        }
-        else if (_configReviewDiffService.TotalConfigItems > 0)
-        {
-            // Config has items but all match current state
-            ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_AllMatch")
-                ?? "All settings already match config";
         }
         else
         {
-            ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_NoItems")
-                ?? "No configuration items to apply";
+            _ = RestoreFilterPreferenceAsync();
         }
     }
 
-    [RelayCommand]
-    private async Task ApplyReviewedConfigAsync()
+    private async Task RestoreFilterPreferenceAsync()
     {
-        try
+        var savedPreference = await _preferencesService.GetPreferenceAsync(
+            UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
+        if (IsWindowsVersionFilterEnabled != savedPreference)
         {
-            await _configurationService.ApplyReviewedConfigAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Failed to apply reviewed config: {ex.Message}");
-        }
-    }
-
-    [RelayCommand]
-    private async Task CancelReviewModeAsync()
-    {
-        var title = _localizationService.GetString("Review_Mode_Cancel_Confirmation_Title") ?? "Cancel Config Review";
-        var message = _localizationService.GetString("Review_Mode_Cancel_Confirmation") ?? "Are you sure you want to cancel? No changes will be applied.";
-
-        var confirmed = await _dialogService.ShowConfirmationAsync(message, title);
-        if (confirmed)
-        {
-            await _configurationService.CancelReviewModeAsync();
-        }
-    }
-
-    #endregion
-
-    #region Task Progress
-
-    private void OnProgressUpdated(object? sender, TaskProgressDetail detail)
-    {
-        _dispatcherService.RunOnUIThread(() =>
-        {
-            if (detail.ScriptSlotCount > 0)
-            {
-                // Multi-script mode: update slot count and raise per-slot event
-                ActiveScriptCount = detail.ScriptSlotCount;
-                ScriptProgressReceived?.Invoke(detail.ScriptSlotIndex, detail);
-            }
-            else if (ActiveScriptCount > 0 && detail.ScriptSlotIndex == -1)
-            {
-                // Multi-script task completed (ScriptSlotCount went to 0)
-                ActiveScriptCount = 0;
-            }
-            else
-            {
-                var wasRunning = IsLoading;
-                var isNowRunning = _taskProgressService.IsTaskRunning;
-
-                if (isNowRunning)
-                {
-                    // Cancel any pending hide-delay from a previous task
-                    _hideDelayCts?.Cancel();
-                    _hideDelayCts = null;
-                    IsTaskFailed = false;
-
-                    IsLoading = true;
-                    if (!string.IsNullOrEmpty(detail.StatusText))
-                        AppName = detail.StatusText;
-                    LastTerminalLine = detail.TerminalOutput ?? string.Empty;
-
-                    // Track failure: progress == 0 with a status text means an error was reported
-                    if (detail.Progress.HasValue && detail.Progress.Value == 0 && !string.IsNullOrEmpty(detail.StatusText))
-                        IsTaskFailed = true;
-                }
-                else if (wasRunning)
-                {
-                    // Task just stopped running — handle completion
-                    if (IsTaskFailed)
-                    {
-                        // Failed: keep the control visible with "click to see details"
-                        IsLoading = true;
-                        LastTerminalLine = _localizationService.GetString("Progress_ClickToSeeDetails");
-                    }
-                    else
-                    {
-                        // Success: show the completion state briefly, then hide after 2 seconds
-                        if (!string.IsNullOrEmpty(detail.StatusText))
-                            AppName = detail.StatusText;
-                        LastTerminalLine = detail.TerminalOutput ?? string.Empty;
-                        _ = ScheduleHideProgressAsync();
-                    }
-                }
-
-                // Queue display
-                if (detail.QueueTotal > 1)
-                {
-                    IsQueueVisible = true;
-                    QueueStatusText = $"{detail.QueueCurrent} / {detail.QueueTotal}";
-                    QueueNextItemName = !string.IsNullOrEmpty(detail.QueueNextItemName)
-                        ? $"Next: {detail.QueueNextItemName}"
-                        : string.Empty;
-                }
-                else
-                {
-                    IsQueueVisible = false;
-                    QueueStatusText = string.Empty;
-                    QueueNextItemName = string.Empty;
-                }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Hides the TaskProgressControl after a 2-second delay, unless a new task starts.
-    /// </summary>
-    private async Task ScheduleHideProgressAsync()
-    {
-        _hideDelayCts?.Cancel();
-        var cts = new CancellationTokenSource();
-        _hideDelayCts = cts;
-
-        try
-        {
-            await Task.Delay(2000, cts.Token);
-            _dispatcherService.RunOnUIThread(() =>
-            {
-                if (!_taskProgressService.IsTaskRunning)
-                    IsLoading = false;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // A new task started before the delay expired — do nothing
+            IsWindowsVersionFilterEnabled = savedPreference;
+            _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
+            _eventBus.Publish(new FilterStateChangedEvent(savedPreference));
         }
     }
 

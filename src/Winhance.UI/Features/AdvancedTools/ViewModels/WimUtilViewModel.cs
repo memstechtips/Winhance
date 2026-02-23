@@ -12,7 +12,10 @@ using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.AdvancedTools.Models;
+using System.Collections.Generic;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Exceptions;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
@@ -35,6 +38,7 @@ public partial class WimUtilViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IProcessExecutor _processExecutor;
+    private readonly Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel _windowsAppsViewModel;
     private CancellationTokenSource? _cancellationTokenSource;
 
     private Window? _mainWindow;
@@ -159,7 +163,8 @@ public partial class WimUtilViewModel : ObservableObject
         IAutounattendXmlGeneratorService xmlGeneratorService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IProcessExecutor processExecutor)
+        IProcessExecutor processExecutor,
+        Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel windowsAppsViewModel)
     {
         _wimUtilService = wimUtilService;
         _taskProgressService = taskProgressService;
@@ -167,6 +172,7 @@ public partial class WimUtilViewModel : ObservableObject
         _logService = logService;
         _xmlGeneratorService = xmlGeneratorService;
         _processExecutor = processExecutor;
+        _windowsAppsViewModel = windowsAppsViewModel;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
 
@@ -528,7 +534,8 @@ public partial class WimUtilViewModel : ObservableObject
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
             var outputPath = Path.Combine(WorkingDirectory, "autounattend.xml");
-            var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
+            var selectedApps = await ExtractSelectedWindowsAppsAsync();
+            var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps);
 
             SelectedXmlPath = generatedPath;
             IsXmlAdded = true;
@@ -546,6 +553,38 @@ public partial class WimUtilViewModel : ObservableObject
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlGenError"), ex.Message),
                 "Error");
         }
+    }
+
+    private async Task<IReadOnlyList<ConfigurationItem>> ExtractSelectedWindowsAppsAsync()
+    {
+        if (!_windowsAppsViewModel.IsInitialized)
+            await _windowsAppsViewModel.LoadItemsAsync();
+
+        return _windowsAppsViewModel.Items
+            .Where(item => item.IsSelected)
+            .Select(item =>
+            {
+                var configItem = new ConfigurationItem
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    IsSelected = true,
+                    InputType = InputType.Toggle
+                };
+
+                if (!string.IsNullOrEmpty(item.Definition.AppxPackageName))
+                {
+                    configItem.AppxPackageName = item.Definition.AppxPackageName;
+                    if (item.Definition.SubPackages?.Length > 0)
+                        configItem.SubPackages = item.Definition.SubPackages;
+                }
+                else if (!string.IsNullOrEmpty(item.Definition.CapabilityName))
+                    configItem.CapabilityName = item.Definition.CapabilityName;
+                else if (!string.IsNullOrEmpty(item.Definition.OptionalFeatureName))
+                    configItem.OptionalFeatureName = item.Definition.OptionalFeatureName;
+
+                return configItem;
+            }).ToList();
     }
 
     [RelayCommand]
@@ -910,7 +949,7 @@ public partial class WimUtilViewModel : ObservableObject
                     _localizationService.GetString("Button_Close"));
                 if (openFolder)
                 {
-                    _ = _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"");
+                    _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"").FireAndForget(_logService);
                 }
             }
             else

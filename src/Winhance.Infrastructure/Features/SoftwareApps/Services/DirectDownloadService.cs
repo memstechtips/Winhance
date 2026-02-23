@@ -33,17 +33,20 @@ public class DirectDownloadService : IDirectDownloadService
     private readonly ILocalizationService _localization;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IProcessExecutor _processExecutor;
+    private readonly IFileSystemService _fileSystemService;
 
     public DirectDownloadService(
         ILogService logService,
         ILocalizationService localization,
         IInteractiveUserService interactiveUserService,
-        IProcessExecutor processExecutor)
+        IProcessExecutor processExecutor,
+        IFileSystemService fileSystemService)
     {
         _logService = logService;
         _localization = localization;
         _interactiveUserService = interactiveUserService;
         _processExecutor = processExecutor;
+        _fileSystemService = fileSystemService;
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(30)
@@ -56,13 +59,13 @@ public class DirectDownloadService : IDirectDownloadService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"Winhance_{item.Id}_{Guid.NewGuid():N}");
+        var tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"Winhance_{item.Id}_{Guid.NewGuid():N}");
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            Directory.CreateDirectory(tempPath);
+            _fileSystemService.CreateDirectory(tempPath);
             _logService?.LogInformation($"Created temporary directory: {tempPath}");
 
             progress?.Report(new TaskProgressDetail
@@ -268,8 +271,8 @@ public class DirectDownloadService : IDirectDownloadService
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
-        var fileName = Path.GetFileName(new Uri(url).LocalPath);
-        var filePath = Path.Combine(downloadPath, fileName);
+        var fileName = _fileSystemService.GetFileName(new Uri(url).LocalPath);
+        var filePath = _fileSystemService.CombinePath(downloadPath, fileName);
 
         try
         {
@@ -335,7 +338,7 @@ public class DirectDownloadService : IDirectDownloadService
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
-        var extension = Path.GetExtension(filePath).ToLowerInvariant();
+        var extension = _fileSystemService.GetExtension(filePath).ToLowerInvariant();
 
         progress?.Report(new TaskProgressDetail
         {
@@ -362,7 +365,7 @@ public class DirectDownloadService : IDirectDownloadService
     {
         try
         {
-            var logPath = Path.Combine(Path.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
+            var logPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
             _logService?.LogInformation($"Installing MSI: {msiPath} (log: {logPath})");
 
             var exitCode = await RunMsiExecAsync(
@@ -397,7 +400,7 @@ public class DirectDownloadService : IDirectDownloadService
                     await RunMsiExecAsync($"/x \"{msiPath}\" /qn /norestart", cancellationToken).ConfigureAwait(false);
                 }
 
-                logPath = Path.Combine(Path.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
+                logPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
                 exitCode = await RunMsiExecAsync(
                     $"/i \"{msiPath}\" /qn /norestart /l*v \"{logPath}\"",
                     cancellationToken).ConfigureAwait(false);
@@ -543,7 +546,7 @@ public class DirectDownloadService : IDirectDownloadService
         {
             _logService?.LogInformation($"Extracting ZIP: {zipPath}");
 
-            var extractPath = Path.Combine(
+            var extractPath = _fileSystemService.CombinePath(
                 _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance",
                 "Apps",
@@ -552,10 +555,10 @@ public class DirectDownloadService : IDirectDownloadService
 
             await Task.Run(() =>
             {
-                if (Directory.Exists(extractPath))
-                    Directory.Delete(extractPath, true);
+                if (_fileSystemService.DirectoryExists(extractPath))
+                    _fileSystemService.DeleteDirectory(extractPath, true);
 
-                Directory.CreateDirectory(extractPath);
+                _fileSystemService.CreateDirectory(extractPath);
                 ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
             }, cancellationToken).ConfigureAwait(false);
 
