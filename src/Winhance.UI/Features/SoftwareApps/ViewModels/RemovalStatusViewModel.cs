@@ -97,7 +97,7 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
 
             var minDelayTask = Task.Delay(500, cancellationToken);
 
-            await Task.WhenAll(scriptTask, taskTask, minDelayTask).ConfigureAwait(false);
+            await Task.WhenAll(scriptTask, taskTask, minDelayTask);
 
             IsActive = await scriptTask || await taskTask;
         }

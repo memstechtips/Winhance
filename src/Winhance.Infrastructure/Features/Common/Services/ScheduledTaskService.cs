@@ -94,7 +94,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             }
             catch (Exception ex)
             {
-                logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Error checking task registration for '{taskName}': {ex.Message}");
+                logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Task '{taskName}' not registered: {ex.Message}");
                 return false;
             }
         }).ConfigureAwait(false);
