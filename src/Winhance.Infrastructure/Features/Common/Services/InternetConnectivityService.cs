@@ -89,8 +89,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return false;
                 }
 
-                // Second check: Ping network interfaces
-                bool hasInternetAccess = false;
+                // Second check: Look for known network interface types as a quick-pass
+                // optimization. If found, skip straight to HTTP check. If not found
+                // (e.g. PPPoE, VPN, cellular), still fall through to the HTTP check
+                // instead of returning false — the HTTP check is the real arbiter.
+                bool hasKnownInterface = false;
                 try
                 {
                     // Check for cancellation before network interface check
@@ -112,20 +115,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             && ni.GetIPProperties().GatewayAddresses.Count > 0
                         )
                         {
-                            hasInternetAccess = true;
+                            hasKnownInterface = true;
                             break;
                         }
                     }
 
-                    if (!hasInternetAccess)
+                    if (!hasKnownInterface)
                     {
                         _logService.LogInformation(
-                            "No active network interfaces with gateway addresses found"
+                            "No standard network interfaces (Wi-Fi/Ethernet) with gateway found, "
+                            + "falling through to HTTP connectivity check"
                         );
-                        _cachedInternetStatus = false;
-                        _lastInternetCheckTime = DateTime.Now;
-
-                        return false;
                     }
                 }
                 catch (OperationCanceledException)
