@@ -12,6 +12,7 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
     private bool? _hasBattery;
     private bool? _hasLid;
     private bool? _supportsBrightness;
+    private bool? _supportsHybridSleep;
 
     public HardwareCompatibilityFilter(IHardwareDetectionService hardwareDetectionService, ILogService logService)
     {
@@ -28,6 +29,7 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
         var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
         var hasLid = await GetHasLidAsync().ConfigureAwait(false);
         var supportsBrightness = await GetSupportsBrightnessAsync().ConfigureAwait(false);
+        var supportsHybridSleep = await GetSupportsHybridSleepAsync().ConfigureAwait(false);
 
         var filteredSettings = settingsList.Where(setting =>
         {
@@ -47,6 +49,11 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
             }
 
             if (setting.RequiresBrightnessSupport && !supportsBrightness)
+            {
+                return false;
+            }
+
+            if (setting.RequiresHybridSleepCapable && !supportsHybridSleep)
             {
                 return false;
             }
@@ -112,5 +119,22 @@ public class HardwareCompatibilityFilter : IHardwareCompatibilityFilter
             }
         }
         return _supportsBrightness.Value;
+    }
+
+    private async Task<bool> GetSupportsHybridSleepAsync()
+    {
+        if (!_supportsHybridSleep.HasValue)
+        {
+            try
+            {
+                _supportsHybridSleep = await _hardwareDetectionService.SupportsHybridSleepAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"Failed to detect hybrid sleep support: {ex.Message}");
+                _supportsHybridSleep = false;
+            }
+        }
+        return _supportsHybridSleep.Value;
     }
 }

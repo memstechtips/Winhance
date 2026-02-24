@@ -4,6 +4,7 @@ using System.Management;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -110,6 +111,30 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return false;
                 }
             }).ConfigureAwait(false);
+        }
+
+        public Task<bool> SupportsHybridSleepAsync()
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    if (!PowerProf.GetPwrCapabilities(out var caps))
+                    {
+                        _logService.Log(LogLevel.Warning, "GetPwrCapabilities call failed");
+                        return false;
+                    }
+
+                    bool supported = caps.FastSystemS4;
+                    _logService.Log(LogLevel.Info, $"Hybrid sleep supported (FastSystemS4): {supported}");
+                    return supported;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Error, $"Error detecting hybrid sleep support: {ex.Message}");
+                    return false;
+                }
+            });
         }
     }
 }

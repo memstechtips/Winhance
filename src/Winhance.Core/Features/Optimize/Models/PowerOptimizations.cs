@@ -278,6 +278,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         GroupName = "Sleep",
                         Icon = "WeatherNight",
                         ParentSettingId = "power-hibernation-enable",
+                        RequiresHybridSleepCapable = true,
                         InputType = InputType.Selection,
                         Dependencies = new List<SettingDependency>
                         {

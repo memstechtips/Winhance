@@ -20,6 +20,7 @@ public record SettingDefinition : BaseDefinition, ISettingItem
     public bool RequiresLid { get; init; }
     public bool RequiresDesktop { get; init; }
     public bool RequiresBrightnessSupport { get; init; }
+    public bool RequiresHybridSleepCapable { get; init; }
     public bool ValidateExistence { get; init; } = true;
     public string? ParentSettingId { get; init; }
     public bool RequiresAdvancedUnlock { get; init; } = false;

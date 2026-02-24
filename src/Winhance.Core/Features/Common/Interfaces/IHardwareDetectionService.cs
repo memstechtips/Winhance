@@ -7,5 +7,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task<bool> HasBatteryAsync();
         Task<bool> HasLidAsync();
         Task<bool> SupportsBrightnessControlAsync();
+        Task<bool> SupportsHybridSleepAsync();
     }
 }
