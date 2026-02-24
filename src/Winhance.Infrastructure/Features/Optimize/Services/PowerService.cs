@@ -26,7 +26,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
         IProcessExecutor processExecutor,
-        IFileSystemService fileSystemService) : IPowerService
+        IFileSystemService fileSystemService) : IPowerService, ISpecialSettingHandler
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();

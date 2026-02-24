@@ -2,16 +2,16 @@ using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Common.Models
 {
-    public class ImportOptions
+    public record ImportOptions
     {
-        public bool ProcessWindowsAppsRemoval { get; set; }
-        public bool ProcessWindowsAppsInstallation { get; set; }
-        public bool ProcessExternalAppsInstallation { get; set; }
-        public bool ProcessExternalAppsRemoval { get; set; }
-        public bool ApplyThemeWallpaper { get; set; }
-        public bool ApplyCleanTaskbar { get; set; }
-        public bool ApplyCleanStartMenu { get; set; }
-        public bool ReviewBeforeApplying { get; set; }
-        public IReadOnlyCollection<string> ActionOnlySubsections { get; set; } = new HashSet<string>();
+        public bool ProcessWindowsAppsRemoval { get; init; }
+        public bool ProcessWindowsAppsInstallation { get; init; }
+        public bool ProcessExternalAppsInstallation { get; init; }
+        public bool ProcessExternalAppsRemoval { get; init; }
+        public bool ApplyThemeWallpaper { get; init; }
+        public bool ApplyCleanTaskbar { get; init; }
+        public bool ApplyCleanStartMenu { get; init; }
+        public bool ReviewBeforeApplying { get; init; }
+        public IReadOnlyCollection<string> ActionOnlySubsections { get; init; } = new HashSet<string>();
     }
 }

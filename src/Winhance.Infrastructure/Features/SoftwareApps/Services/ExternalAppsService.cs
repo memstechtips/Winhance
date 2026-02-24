@@ -27,6 +27,14 @@ public class ExternalAppsService(
 {
     public string DomainName => FeatureIds.ExternalApps;
 
+    public event EventHandler? WinGetReady
+    {
+        add => winGetService.WinGetInstalled += value;
+        remove => winGetService.WinGetInstalled -= value;
+    }
+
+    public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
+
     private CancellationToken GetCurrentCancellationToken()
     {
         return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;

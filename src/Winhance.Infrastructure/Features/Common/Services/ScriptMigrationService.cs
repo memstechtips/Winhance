@@ -94,8 +94,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var exists = await _scheduledTaskService.IsTaskRegisteredAsync(taskName).ConfigureAwait(false);
                     if (exists)
                     {
-                        var deleted = await _scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
-                        if (deleted)
+                        var deleteResult = await _scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
+                        if (deleteResult.Success)
                         {
                             deletedCount++;
                             _logService.Log(LogLevel.Info, $"Deleted old scheduled task: {taskName}");

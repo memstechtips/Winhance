@@ -263,7 +263,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
                 actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
             }
-            importOptions.ActionOnlySubsections = actionOnlySubsections;
+            importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
             if (!selectedSections.Any())
             {

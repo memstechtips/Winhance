@@ -27,6 +27,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     private Dictionary<string, NavButton>? _navButtons;
     private MoreMenuViewModel? _moreMenuViewModel;
+    private ILogService? _logService;
 
     #region Dependency Properties
 
@@ -112,6 +113,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     {
         // Get MoreMenuViewModel for flyout commands and text
         _moreMenuViewModel = App.Services.GetService<MoreMenuViewModel>();
+        _logService = App.Services.GetService<ILogService>();
 
         // Apply localized text to More menu flyout items
         ApplyMoreMenuLocalizedText();
@@ -192,7 +194,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            try { App.Services.GetService<ILogService>()?.LogDebug($"Error showing More menu flyout: {ex.Message}"); } catch { }
+            _logService?.LogDebug($"Error showing More menu flyout: {ex.Message}");
         }
     }
 

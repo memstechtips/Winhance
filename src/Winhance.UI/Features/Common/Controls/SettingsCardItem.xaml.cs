@@ -1,12 +1,10 @@
 using System.ComponentModel;
-using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -155,25 +153,16 @@ public sealed partial class SettingsCardItem : UserControl
             // Use default values if localization service is unavailable
         }
 
-        LogDebug($"[SettingsCardItem] Wiring up PowerPlanComboBox events for setting {settingVm.SettingId}");
-
         // Wire up the DeleteRequested event to the parent ViewModel's command
         comboBox.DeleteRequested += (s, plan) =>
         {
-            LogDebug($"[SettingsCardItem] DeleteRequested fired for plan {plan?.DisplayName}");
             powerViewModel?.DeletePowerPlanCommand.Execute(plan);
         };
 
         // Wire up the DropDownClosed event to handle selection changes
         comboBox.DropDownClosed += (s, value) =>
         {
-            LogDebug($"[SettingsCardItem] DropDownClosed received, value={value}, calling ApplySelectionValue");
             settingVm.ApplySelectionValue(value);
         };
-    }
-
-    private static void LogDebug(string message)
-    {
-        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
     }
 }

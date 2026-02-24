@@ -16,10 +16,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IComboBoxResolver comboBoxResolver,
         ILogService logService) : IPowerCfgApplier
     {
-        public async Task ApplyPowerCfgSettingsAsync(SettingDefinition setting, bool enable, object? value)
+        public async Task<OperationResult> ApplyPowerCfgSettingsAsync(SettingDefinition setting, bool enable, object? value)
         {
             if (setting.PowerCfgSettings == null || setting.PowerCfgSettings.Count == 0)
-                return;
+                return OperationResult.Succeeded();
 
             if (setting.InputType == InputType.Selection &&
                 setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
@@ -83,7 +83,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (setting.InputType == InputType.NumericRange && value == null)
                 {
                     logService.Log(LogLevel.Debug, $"[PowerCfgApplier] Skipping PowerCfg setting '{setting.Id}' - no value provided (old config format)");
-                    return;
+                    return OperationResult.Succeeded();
                 }
 
                 int valueToApply = setting.InputType switch
@@ -97,6 +97,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 logService.Log(LogLevel.Info, $"[PowerCfgApplier] Applying {setting.PowerCfgSettings.Count} PowerCfg settings for '{setting.Id}' with value: {valueToApply}");
                 await ExecutePowerCfgSettings(setting.PowerCfgSettings, valueToApply, await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false)).ConfigureAwait(false);
             }
+
+            return OperationResult.Succeeded();
         }
 
         private async Task ExecutePowerCfgSettings(List<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)

@@ -2,6 +2,35 @@ using System;
 
 namespace Winhance.Core.Features.Common.Models
 {
+    public class OperationResult
+    {
+        public bool Success { get; }
+        public string? ErrorMessage { get; }
+        public Exception? Exception { get; }
+
+        private OperationResult(bool success, string? errorMessage = null, Exception? exception = null)
+        {
+            Success = success;
+            ErrorMessage = errorMessage;
+            Exception = exception;
+        }
+
+        public static OperationResult Succeeded()
+        {
+            return new OperationResult(success: true);
+        }
+
+        public static OperationResult Failed(string message)
+        {
+            return new OperationResult(success: false, errorMessage: message);
+        }
+
+        public static OperationResult Failed(string message, Exception exception)
+        {
+            return new OperationResult(success: false, errorMessage: message, exception: exception);
+        }
+    }
+
     public class OperationResult<T>
     {
         public bool Success { get; }

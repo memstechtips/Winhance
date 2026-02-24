@@ -13,12 +13,20 @@ namespace Winhance.Core.Features.Common.Models
         public FeatureGroupSection Optimize { get; set; } = new FeatureGroupSection();
     }
 
+    /// <summary>
+    /// Mutable by design: IsIncluded is toggled after construction (e.g., AutounattendXmlGeneratorService)
+    /// and Features is assigned from deserialized JSON. These cannot use init-only setters.
+    /// </summary>
     public class FeatureGroupSection
     {
         public bool IsIncluded { get; set; } = false;
         public IReadOnlyDictionary<string, ConfigSection> Features { get; set; } = new Dictionary<string, ConfigSection>();
     }
 
+    /// <summary>
+    /// Mutable by design: IsIncluded is set during config construction/deserialization,
+    /// and Items is assigned from deserialized JSON.
+    /// </summary>
     public class ConfigSection
     {
         public bool IsIncluded { get; set; } = false;

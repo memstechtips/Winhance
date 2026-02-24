@@ -96,7 +96,7 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
 
             var minDelayTask = Task.Delay(500, cancellationToken);
 
-            await Task.WhenAll(scriptTask, taskTask, minDelayTask);
+            await Task.WhenAll(scriptTask, taskTask, minDelayTask).ConfigureAwait(false);
 
             IsActive = await scriptTask || await taskTask;
         }
@@ -127,8 +127,8 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
                 var isRegistered = await _scheduledTaskService.IsTaskRegisteredAsync(ScheduledTaskName);
                 if (isRegistered)
                 {
-                    var unregistered = await _scheduledTaskService.UnregisterScheduledTaskAsync(ScheduledTaskName);
-                    if (unregistered)
+                    var unregisterResult = await _scheduledTaskService.UnregisterScheduledTaskAsync(ScheduledTaskName);
+                    if (unregisterResult.Success)
                     {
                         _logService.LogInformation($"Unregistered scheduled task: {ScheduledTaskName}");
                     }

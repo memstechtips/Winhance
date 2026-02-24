@@ -116,12 +116,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             try
             {
-                var tooltipData = new SettingTooltipData
-                {
-                    SettingId = setting.Id,
-                    ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
-                    PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
-                };
+                string displayValue = string.Empty;
+                IReadOnlyDictionary<RegistrySetting, string?> individualRegistryValues = new Dictionary<RegistrySetting, string?>();
 
                 if (hasRegistrySettings)
                 {
@@ -168,11 +164,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                     }
 
-                    tooltipData.DisplayValue = primaryDisplayValue;
-                    tooltipData.IndividualRegistryValues = individualValues;
+                    displayValue = primaryDisplayValue;
+                    individualRegistryValues = individualValues;
                 }
 
-                return tooltipData;
+                return new SettingTooltipData
+                {
+                    SettingId = setting.Id,
+                    DisplayValue = displayValue,
+                    IndividualRegistryValues = individualRegistryValues,
+                    ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
+                    PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
+                };
             }
             catch
             {

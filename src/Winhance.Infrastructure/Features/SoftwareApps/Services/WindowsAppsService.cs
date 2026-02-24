@@ -33,6 +33,14 @@ public class WindowsAppsService(
     public string DomainName => FeatureIds.WindowsApps;
     private const string FallbackConfirmationPreferenceKey = "StoreDownloadFallback_DontShowAgain";
 
+    public event EventHandler? WinGetReady
+    {
+        add => winGetService.WinGetInstalled += value;
+        remove => winGetService.WinGetInstalled -= value;
+    }
+
+    public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
+
     private CancellationToken GetCurrentCancellationToken()
     {
         return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;

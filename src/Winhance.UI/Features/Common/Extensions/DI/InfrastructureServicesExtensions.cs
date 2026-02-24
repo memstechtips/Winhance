@@ -67,6 +67,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
         services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
+        services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
         // Domain Service Router

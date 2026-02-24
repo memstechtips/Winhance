@@ -242,12 +242,9 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
         private async Task<ImageFormatInfo> GetImageInfoAsync(string imagePath, ImageFormat format)
         {
-            var info = new ImageFormatInfo
-            {
-                Format = format,
-                FilePath = imagePath,
-                FileSizeBytes = _fileSystemService.GetFileSize(imagePath)
-            };
+            long fileSizeBytes = _fileSystemService.GetFileSize(imagePath);
+            int imageCount = 1;
+            IReadOnlyList<string> editionNames = new List<string>();
 
             try
             {
@@ -257,43 +254,49 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 var result = await _processExecutor.ExecuteAsync("dism.exe", arguments).ConfigureAwait(false);
                 var stdout = result.StandardOutput;
 
-                if (!result.Succeeded)
+                if (result.Succeeded)
+                {
+                    int parsedCount = 0;
+                    var parsedNames = new List<string>();
+                    foreach (var line in stdout.Split('\n'))
+                    {
+                        var trimmed = line.Trim();
+                        if (trimmed.StartsWith("Index :", StringComparison.OrdinalIgnoreCase) ||
+                            trimmed.StartsWith("Index:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            parsedCount++;
+                        }
+                        else if (trimmed.StartsWith("Name :", StringComparison.OrdinalIgnoreCase) ||
+                                 trimmed.StartsWith("Name:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var name = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                            if (!string.IsNullOrEmpty(name))
+                                parsedNames.Add(name);
+                        }
+                    }
+
+                    editionNames = parsedNames;
+                    imageCount = parsedCount > 0 ? parsedCount : 1;
+                    _logService.LogInformation($"Image: {format}, {imageCount} editions, {fileSizeBytes:N0} bytes");
+                }
+                else
                 {
                     _logService.LogWarning($"dism.exe /Get-ImageInfo exited with code {result.ExitCode}");
-                    info.ImageCount = 1;
-                    return info;
                 }
-
-                int imageCount = 0;
-                var editionNames = new List<string>();
-                foreach (var line in stdout.Split('\n'))
-                {
-                    var trimmed = line.Trim();
-                    if (trimmed.StartsWith("Index :", StringComparison.OrdinalIgnoreCase) ||
-                        trimmed.StartsWith("Index:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        imageCount++;
-                    }
-                    else if (trimmed.StartsWith("Name :", StringComparison.OrdinalIgnoreCase) ||
-                             trimmed.StartsWith("Name:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var name = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
-                        if (!string.IsNullOrEmpty(name))
-                            editionNames.Add(name);
-                    }
-                }
-
-                info.EditionNames = editionNames;
-                info.ImageCount = imageCount > 0 ? imageCount : 1;
-                _logService.LogInformation($"Image: {format}, {info.ImageCount} editions, {info.FileSizeBytes:N0} bytes");
             }
             catch (Exception ex)
             {
                 _logService.LogWarning($"Could not get detailed image info: {ex.Message}");
-                info.ImageCount = 1;
             }
 
-            return info;
+            return new ImageFormatInfo
+            {
+                Format = format,
+                FilePath = imagePath,
+                FileSizeBytes = fileSizeBytes,
+                ImageCount = imageCount,
+                EditionNames = editionNames
+            };
         }
 
         private static readonly System.Text.RegularExpressions.Regex ProgressRegex =

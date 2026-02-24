@@ -104,8 +104,6 @@ public sealed partial class SettingsListView : UserControl
         var currentIndex = SettingsListViewControl.IndexFromContainer(currentItem);
         if (currentIndex < 0) return;
 
-        LogDebug($"[A11yNav] LosingFocus: idx={currentIndex}, dir={e.Direction}, fwd={isForward}, old={DescribeElement(e.OldFocusedElement as UIElement)}, new={DescribeElement(e.NewFocusedElement as UIElement)}");
-
         // Search for the next/previous item that has a focusable control
         var itemCount = SettingsListViewControl.Items.Count;
         var step = isForward ? 1 : -1;
@@ -117,33 +115,23 @@ public sealed partial class SettingsListView : UserControl
             // If container isn't realized yet, scroll it into view to force realization
             if (nextContainer == null)
             {
-                LogDebug($"[A11yNav] Container at idx={i} not realized, scrolling into view");
                 SettingsListViewControl.ScrollIntoView(SettingsListViewControl.Items[i]);
                 SettingsListViewControl.UpdateLayout();
                 nextContainer = SettingsListViewControl.ContainerFromIndex(i) as ListViewItem;
             }
 
-            if (nextContainer == null)
-            {
-                LogDebug($"[A11yNav] Container at idx={i} still null after ScrollIntoView");
-                continue;
-            }
+            if (nextContainer == null) continue;
 
             var nextFocusable = isForward
                 ? FocusManager.FindFirstFocusableElement(nextContainer)
                 : FocusManager.FindLastFocusableElement(nextContainer);
 
-            LogDebug($"[A11yNav] idx={i}: focusable={DescribeElement(nextFocusable as UIElement)}");
-
             if (nextFocusable is DependencyObject nextTarget)
             {
-                var result = e.TrySetNewFocusedElement(nextTarget);
-                LogDebug($"[A11yNav] TrySetNewFocusedElement result={result}");
-                if (result) return;
+                if (e.TrySetNewFocusedElement(nextTarget)) return;
             }
         }
 
-        LogDebug($"[A11yNav] No focusable element found, letting focus leave naturally");
         // At the boundary (first or last item) — let focus leave the list naturally
     }
 
@@ -237,18 +225,5 @@ public sealed partial class SettingsListView : UserControl
                 SettingsListViewControl.Focus(FocusState.Programmatic);
             }
         });
-    }
-
-    private static string DescribeElement(UIElement? element)
-    {
-        if (element == null) return "(null)";
-        var type = element.GetType().Name;
-        var name = (element as FrameworkElement)?.Name;
-        return string.IsNullOrEmpty(name) ? type : $"{type}[{name}]";
-    }
-
-    private static void LogDebug(string message)
-    {
-        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
     }
 }

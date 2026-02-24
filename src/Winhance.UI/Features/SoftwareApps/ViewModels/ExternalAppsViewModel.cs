@@ -28,8 +28,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
-    private readonly IWinGetService _winGetService;
-    private readonly IAppStatusDiscoveryService _appStatusDiscoveryService;
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
@@ -38,9 +36,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         IDialogService dialogService,
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService,
-        IWinGetService winGetService,
-        IAppStatusDiscoveryService appStatusDiscoveryService)
+        IDispatcherService dispatcherService)
     {
         _externalAppsService = externalAppsService;
         _progressService = progressService;
@@ -49,11 +45,9 @@ public partial class ExternalAppsViewModel : BaseViewModel
         _localizationService = localizationService;
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
-        _winGetService = winGetService;
-        _appStatusDiscoveryService = appStatusDiscoveryService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
-        _winGetService.WinGetInstalled += OnWinGetInstalled;
+        _externalAppsService.WinGetReady += OnWinGetInstalled;
 
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
@@ -322,7 +316,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
-            _appStatusDiscoveryService.InvalidateCache();
+            _externalAppsService.InvalidateStatusCache();
             await CheckInstallationStatusAsync();
             StatusText = $"Refreshed status for {Items.Count} items";
         }
@@ -344,7 +338,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
             if (IsInitialized)
             {
                 _logService.LogInformation("WinGet installed — refreshing External Apps installation status");
-                _appStatusDiscoveryService.InvalidateCache();
+                _externalAppsService.InvalidateStatusCache();
                 await CheckInstallationStatusAsync();
             }
         }).FireAndForget(_logService);
@@ -529,7 +523,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     private async Task RefreshAfterOperationAsync()
     {
-        _appStatusDiscoveryService.InvalidateCache();
+        _externalAppsService.InvalidateStatusCache();
         await CheckInstallationStatusAsync();
         ClearSelections();
     }

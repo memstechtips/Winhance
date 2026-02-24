@@ -900,6 +900,10 @@ public sealed partial class MainWindow : Window
                 _viewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
                 _viewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
 
+                // Deferred initialization: subscribes to events and sets initial state.
+                // Called after PropertyChanged is wired so changes are observed by the UI.
+                _viewModel.Initialize();
+
                 // Set initial icon
                 UpdateAppIcon();
 
@@ -929,14 +933,6 @@ public sealed partial class MainWindow : Window
 
                 // Load filter preference asynchronously
                 _ = _viewModel.LoadFilterPreferenceAsync();
-
-                // Apply initial OTS InfoBar state (set during ViewModel ctor, before PropertyChanged was subscribed)
-                if (_viewModel.IsOtsInfoBarOpen)
-                {
-                    OtsElevationInfoBar.Title = _viewModel.OtsInfoBarTitle;
-                    OtsElevationInfoBar.Message = _viewModel.OtsInfoBarMessage;
-                    OtsElevationInfoBar.IsOpen = true;
-                }
 
                 // Subscribe to review mode badge events
                 _configReviewService = App.Services.GetService<IConfigReviewService>();
@@ -1288,7 +1284,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task HideControlAfterDelayAsync(Features.Common.Controls.TaskProgressControl control, int delayMs)
     {
-        await Task.Delay(delayMs);
+        await Task.Delay(delayMs).ConfigureAwait(false);
         DispatcherQueue.TryEnqueue(() =>
         {
             control.IsProgressVisible = Visibility.Collapsed;

@@ -155,7 +155,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
                 actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
             }
-            importOptions.ActionOnlySubsections = actionOnlySubsections;
+            importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
             // Show overlay during config application
             var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
@@ -255,7 +255,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             {
                 _logService.Log(LogLevel.Info, "Killing explorer to apply changes");
                 _windowsUIManagementService.KillProcess("explorer");
-                await Task.Delay(1000);
+                await Task.Delay(1000).ConfigureAwait(false);
             }
             else
             {
@@ -578,12 +578,12 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 if (isRunning)
                 {
                     _logService.Log(LogLevel.Info, "Explorer.exe has auto-restarted");
-                    await Task.Delay(1000);
+                    await Task.Delay(1000).ConfigureAwait(false);
                     return;
                 }
 
                 retryCount++;
-                await Task.Delay(250);
+                await Task.Delay(250).ConfigureAwait(false);
             }
 
             _logService.Log(LogLevel.Warning, "Explorer did not auto-restart, starting manually");
@@ -596,7 +596,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
             while (retryCount < verifyMaxRetries)
             {
-                await Task.Delay(500);
+                await Task.Delay(500).ConfigureAwait(false);
 
                 bool isRunning = await Task.Run(() =>
                     _windowsUIManagementService.IsProcessRunning("explorer"));
@@ -604,7 +604,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 if (isRunning)
                 {
                     _logService.Log(LogLevel.Info, "Explorer.exe started successfully");
-                    await Task.Delay(1000);
+                    await Task.Delay(1000).ConfigureAwait(false);
                     return;
                 }
 

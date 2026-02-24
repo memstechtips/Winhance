@@ -2,12 +2,12 @@ using System;
 
 namespace Winhance.Core.Features.Common.Models
 {
-    public class VersionInfo
+    public record VersionInfo
     {
-        public string Version { get; set; } = string.Empty;
-        public DateTime ReleaseDate { get; set; }
-        public bool IsUpdateAvailable { get; set; }
-        public bool IsBeta { get; set; }
+        public string Version { get; init; } = string.Empty;
+        public DateTime ReleaseDate { get; init; }
+        public bool IsUpdateAvailable { get; init; }
+        public bool IsBeta { get; init; }
 
         public static VersionInfo FromTag(string tag)
         {

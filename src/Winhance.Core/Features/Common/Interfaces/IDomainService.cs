@@ -12,15 +12,5 @@ namespace Winhance.Core.Features.Common.Interfaces
         void InvalidateCache()
         {
         }
-
-        Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
-        {
-            return Task.FromResult(false);
-        }
-
-        Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(IEnumerable<SettingDefinition> settings)
-        {
-            return Task.FromResult(new Dictionary<string, Dictionary<string, object?>>());
-        }
     }
 }

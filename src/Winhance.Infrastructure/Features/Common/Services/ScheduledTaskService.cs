@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -15,7 +16,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         Logon = 9
     }
 
-    public async Task<bool> RegisterScheduledTaskAsync(RemovalScript script)
+    public async Task<OperationResult> RegisterScheduledTaskAsync(RemovalScript script)
     {
         return await Task.Run(() =>
         {
@@ -24,7 +25,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 if (script?.ActualScriptPath == null)
                 {
                     logService.LogError("Script or script path is null");
-                    return false;
+                    return OperationResult.Failed("Script or script path is null");
                 }
 
                 EnsureScriptFileExists(script);
@@ -36,13 +37,13 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             catch (Exception ex)
             {
                 logService.LogError($"Error registering scheduled task for {script?.Name}", ex);
-                return false;
+                return OperationResult.Failed(ex.Message, ex);
             }
         }).ConfigureAwait(false);
     }
 
 
-    public async Task<bool> UnregisterScheduledTaskAsync(string taskName)
+    public async Task<OperationResult> UnregisterScheduledTaskAsync(string taskName)
     {
         return await Task.Run(() =>
         {
@@ -51,7 +52,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 var taskService = CreateTaskService();
                 var folder = GetWinhanceFolder(taskService);
 
-                if (folder == null) return true;
+                if (folder == null) return OperationResult.Succeeded();
 
                 try
                 {
@@ -67,12 +68,12 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                     // Task doesn't exist
                 }
 
-                return true;
+                return OperationResult.Succeeded();
             }
             catch (Exception ex)
             {
                 logService.LogError($"Error unregistering task: {taskName}", ex);
-                return false;
+                return OperationResult.Failed(ex.Message, ex);
             }
         }).ConfigureAwait(false);
     }
@@ -98,7 +99,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }).ConfigureAwait(false);
     }
 
-    public async Task<bool> RunScheduledTaskAsync(string taskName)
+    public async Task<OperationResult> RunScheduledTaskAsync(string taskName)
     {
         return await Task.Run(() =>
         {
@@ -110,29 +111,29 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 if (folder == null)
                 {
                     logService.LogError($"Winhance task folder not found when trying to run: {taskName}");
-                    return false;
+                    return OperationResult.Failed("Winhance task folder not found");
                 }
 
                 var task = folder.GetTask(taskName);
                 if (task == null)
                 {
                     logService.LogError($"Task not found: {taskName}");
-                    return false;
+                    return OperationResult.Failed($"Task not found: {taskName}");
                 }
 
                 task.Run(null);
                 logService.LogInformation($"Started task: {taskName}");
-                return true;
+                return OperationResult.Succeeded();
             }
             catch (Exception ex)
             {
                 logService.LogError($"Error running task: {taskName}", ex);
-                return false;
+                return OperationResult.Failed(ex.Message, ex);
             }
         }).ConfigureAwait(false);
     }
 
-    public async Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
+    public async Task<OperationResult> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
     {
         return await Task.Run(() =>
         {
@@ -143,12 +144,12 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             catch (Exception ex)
             {
                 logService.LogError($"Error creating user logon task: {taskName}", ex);
-                return false;
+                return OperationResult.Failed(ex.Message, ex);
             }
         }).ConfigureAwait(false);
     }
 
-    private bool RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
+    private OperationResult RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
     {
         var taskService = CreateTaskService();
         var folder = GetOrCreateWinhanceFolder(taskService);
@@ -168,7 +169,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         );
 
         logService.LogInformation($"Registered task: {taskName} as {username ?? "SYSTEM"}");
-        return true;
+        return OperationResult.Succeeded();
     }
 
     private dynamic CreateTaskService()
@@ -275,12 +276,12 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     }
 
 
-    public async Task<bool> EnableTaskAsync(string taskPath)
+    public async Task<OperationResult> EnableTaskAsync(string taskPath)
     {
         return await Task.Run(() => SetTaskEnabled(taskPath, true)).ConfigureAwait(false);
     }
 
-    public async Task<bool> DisableTaskAsync(string taskPath)
+    public async Task<OperationResult> DisableTaskAsync(string taskPath)
     {
         return await Task.Run(() => SetTaskEnabled(taskPath, false)).ConfigureAwait(false);
     }
@@ -308,7 +309,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }).ConfigureAwait(false);
     }
 
-    private bool SetTaskEnabled(string taskPath, bool enabled)
+    private OperationResult SetTaskEnabled(string taskPath, bool enabled)
     {
         try
         {
@@ -318,13 +319,13 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             dynamic task = folder.GetTask(taskName);
             task.Enabled = enabled;
             logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")} task: {taskPath}");
-            return true;
+            return OperationResult.Succeeded();
         }
         catch (Exception ex)
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
                 $"Failed to {(enabled ? "enable" : "disable")} task {taskPath}: {ex.Message}");
-            return false;
+            return OperationResult.Failed(ex.Message, ex);
         }
     }
 

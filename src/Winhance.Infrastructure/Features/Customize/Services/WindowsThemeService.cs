@@ -15,7 +15,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IConfigImportState configImportState,
-        IFileSystemService fileSystemService) : IDomainService
+        IFileSystemService fileSystemService) : IDomainService, ISpecialSettingHandler
     {
         public string DomainName => FeatureIds.WindowsTheme;
 

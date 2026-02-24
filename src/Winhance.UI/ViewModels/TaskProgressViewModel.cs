@@ -194,7 +194,7 @@ public partial class TaskProgressViewModel : ObservableObject
 
         try
         {
-            await Task.Delay(2000, cts.Token);
+            await Task.Delay(2000, cts.Token).ConfigureAwait(false);
             _dispatcherService.RunOnUIThread(() =>
             {
                 if (!_taskProgressService.IsTaskRunning)

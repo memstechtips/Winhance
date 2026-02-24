@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -60,26 +62,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public async Task<bool> RefreshWindowsGUI(bool killExplorer = true)
+        public async Task<OperationResult> RefreshWindowsGUI(bool killExplorer = true)
         {
             try
             {
-                const int HWND_BROADCAST = 0xffff;
-                const uint WM_SYSCOLORCHANGE = 0x0015;
-                const uint WM_SETTINGCHANGE = 0x001A;
-                const uint WM_THEMECHANGE = 0x031A;
-
-                [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-                static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam,
-                    uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
-
-                const uint SMTO_ABORTIFHUNG = 0x0002;
-
                 IntPtr result;
-                SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero,
-                    SMTO_ABORTIFHUNG, 1000, out result);
-                SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero,
-                    SMTO_ABORTIFHUNG, 1000, out result);
+                User32Api.SendMessageTimeout(
+                    (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SYSCOLORCHANGE,
+                    IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+                User32Api.SendMessageTimeout(
+                    (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_THEMECHANGE,
+                    IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
 
                 if (killExplorer)
                 {
@@ -119,7 +112,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             catch (Exception ex)
                             {
                                 _logService.LogError("Failed to start Explorer manually", ex);
-                                return false;
+                                return OperationResult.Failed("Failed to start Explorer manually", ex);
                             }
                         }
                     }
@@ -130,23 +123,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 try
                 {
-                    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, themeChangedPtr,
-                        SMTO_ABORTIFHUNG, 1000, out result);
+                    User32Api.SendMessageTimeout(
+                        (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
+                        IntPtr.Zero, themeChangedPtr, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
 
-                    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero,
-                        SMTO_ABORTIFHUNG, 1000, out result);
+                    User32Api.SendMessageTimeout(
+                        (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
+                        IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
                 }
                 finally
                 {
                     Marshal.FreeHGlobal(themeChangedPtr);
                 }
 
-                return true;
+                return OperationResult.Succeeded();
             }
             catch (Exception ex)
             {
                 _logService.LogError("Error refreshing Windows GUI", ex);
-                return false;
+                return OperationResult.Failed("Error refreshing Windows GUI", ex);
             }
         }
     }

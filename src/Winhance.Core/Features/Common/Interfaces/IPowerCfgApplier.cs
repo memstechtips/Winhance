@@ -5,6 +5,6 @@ namespace Winhance.Core.Features.Common.Interfaces
 {
     public interface IPowerCfgApplier
     {
-        Task ApplyPowerCfgSettingsAsync(SettingDefinition setting, bool enable, object? value);
+        Task<OperationResult> ApplyPowerCfgSettingsAsync(SettingDefinition setting, bool enable, object? value);
     }
 }

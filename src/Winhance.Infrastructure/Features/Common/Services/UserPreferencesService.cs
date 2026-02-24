@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -115,7 +116,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public async Task<bool> SavePreferencesAsync(Dictionary<string, object> preferences)
+        public async Task<OperationResult> SavePreferencesAsync(Dictionary<string, object> preferences)
         {
             try
             {
@@ -142,12 +143,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (_fileSystemService.FileExists(filePath))
                 {
                     _logService.Log(LogLevel.Info, $"User preferences saved successfully to '{filePath}'");
-                    return true;
+                    return OperationResult.Succeeded();
                 }
                 else
                 {
                     _logService.Log(LogLevel.Error, $"File not found after writing: '{filePath}'");
-                    return false;
+                    return OperationResult.Failed($"File not found after writing: '{filePath}'");
                 }
             }
             catch (Exception ex)
@@ -157,7 +158,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Error, $"Inner exception: {ex.InnerException.Message}");
                 }
-                return false;
+                return OperationResult.Failed(ex.Message, ex);
             }
         }
 
@@ -245,7 +246,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return defaultValue;
         }
 
-        public async Task<bool> SetPreferenceAsync<T>(string key, T value)
+        public async Task<OperationResult> SetPreferenceAsync<T>(string key, T value)
         {
             try
             {
@@ -253,9 +254,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 preferences[key] = value!;
 
-                bool result = await SavePreferencesAsync(preferences).ConfigureAwait(false);
+                var result = await SavePreferencesAsync(preferences).ConfigureAwait(false);
 
-                if (result)
+                if (result.Success)
                 {
                     _logService.Log(LogLevel.Info, $"Successfully saved preference '{key}'");
                 }
@@ -269,7 +270,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error setting preference '{key}': {ex.Message}");
-                return false;
+                return OperationResult.Failed(ex.Message, ex);
             }
         }
 

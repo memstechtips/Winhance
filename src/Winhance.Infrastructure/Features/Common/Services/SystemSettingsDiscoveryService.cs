@@ -205,7 +205,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     var domainService = domainServiceRouter.GetDomainService(group.First().Id);
-                    var discoveredValues = await domainService.DiscoverSpecialSettingsAsync(group).ConfigureAwait(false);
+                    if (domainService is not ISpecialSettingHandler specialHandler)
+                        continue;
+
+                    var discoveredValues = await specialHandler.DiscoverSpecialSettingsAsync(group).ConfigureAwait(false);
 
                     foreach (var (settingId, values) in discoveredValues)
                     {

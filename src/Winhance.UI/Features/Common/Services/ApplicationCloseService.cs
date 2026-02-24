@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -29,7 +30,7 @@ public class ApplicationCloseService : IApplicationCloseService
         _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     }
 
-    public async Task<bool> CheckOperationsAndCloseAsync()
+    public async Task<OperationResult> CheckOperationsAndCloseAsync()
     {
         try
         {
@@ -62,7 +63,7 @@ public class ApplicationCloseService : IApplicationCloseService
                 if (!confirmed)
                 {
                     _logService.LogInformation("User cancelled application close due to running operation");
-                    return false;
+                    return OperationResult.Failed("User cancelled application close");
                 }
 
                 _logService.LogInformation("User confirmed close, cancelling operation...");
@@ -70,7 +71,7 @@ public class ApplicationCloseService : IApplicationCloseService
             }
 
             await CloseApplicationWithSupportDialogAsync();
-            return true;
+            return OperationResult.Succeeded();
         }
         catch (Exception ex)
         {
@@ -84,7 +85,7 @@ public class ApplicationCloseService : IApplicationCloseService
             {
                 Application.Current.Exit();
             }
-            return true;
+            return OperationResult.Succeeded();
         }
     }
 
@@ -177,9 +178,9 @@ public class ApplicationCloseService : IApplicationCloseService
         {
             _logService.LogInformation($"Saving DontShowSupport preference: {dontShow}");
 
-            bool success = await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
+            var result = await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
 
-            if (success)
+            if (result.Success)
             {
                 _logService.LogInformation("Successfully saved DontShowSupport preference");
             }

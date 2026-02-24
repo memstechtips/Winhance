@@ -104,7 +104,15 @@ public partial class MainWindowViewModel : ObservableObject
         IsWindowsVersionFilterEnabled = true;
         OtsInfoBarTitle = string.Empty;
         OtsInfoBarMessage = string.Empty;
+    }
 
+    /// <summary>
+    /// Performs deferred initialization: subscribes to events and sets initial state.
+    /// Must be called after construction, typically after the caller has subscribed
+    /// to PropertyChanged so that initial state changes are observed.
+    /// </summary>
+    public void Initialize()
+    {
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
 
@@ -531,7 +539,7 @@ public partial class MainWindowViewModel : ObservableObject
                         _taskProgressService.UpdateProgress(0,
                             _localizationService.GetString("Error_WinGetInstallFailed")
                             ?? "Failed to install WinGet. Please check your internet connection.");
-                        await Task.Delay(5000);
+                        await Task.Delay(5000).ConfigureAwait(false);
                         _taskProgressService.CompleteTask();
                     }
                 }

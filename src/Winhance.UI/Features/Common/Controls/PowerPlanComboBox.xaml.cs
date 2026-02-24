@@ -1,14 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -45,8 +44,6 @@ public sealed partial class PowerPlanComboBox : UserControl
 
         if (e.NewValue is ObservableCollection<ComboBoxOption> newCollection)
         {
-            LogDebug($"[PowerPlanComboBox] ItemsSourceProperty changed, count={newCollection.Count}");
-
             // Debounced handler: only re-apply SelectedValue once after all items are added,
             // instead of on every individual Add (which caused redundant deferred tasks during refresh)
             DispatcherQueueTimer? debounceTimer = null;
@@ -64,7 +61,6 @@ public sealed partial class PowerPlanComboBox : UserControl
                         debounceTimer.Stop();
                         if (control.SelectedValue != null && control.PowerPlanSelector != null)
                         {
-                            LogDebug($"[PowerPlanComboBox] Debounced: Re-applying SelectedValue={control.SelectedValue}");
                             control.PowerPlanSelector.SelectedValue = control.SelectedValue;
                         }
                     };
@@ -87,17 +83,13 @@ public sealed partial class PowerPlanComboBox : UserControl
     {
         if (d is PowerPlanComboBox control)
         {
-            LogDebug($"[PowerPlanComboBox] SelectedValueProperty changed: old={e.OldValue}, new={e.NewValue}");
             // Sync the inner ComboBox - defer to allow ItemsSource binding to update first
             if (control.PowerPlanSelector != null)
             {
                 var newValue = e.NewValue;
-                LogDebug($"[PowerPlanComboBox] Deferring PowerPlanSelector.SelectedValue to {newValue}");
                 control.DispatcherQueue.TryEnqueue(() =>
                 {
-                    LogDebug($"[PowerPlanComboBox] Deferred: Setting PowerPlanSelector.SelectedValue to {newValue}");
                     control.PowerPlanSelector.SelectedValue = newValue;
-                    LogDebug($"[PowerPlanComboBox] Deferred: PowerPlanSelector.SelectedValue is now {control.PowerPlanSelector.SelectedValue}");
                 });
             }
         }
@@ -275,21 +267,10 @@ public sealed partial class PowerPlanComboBox : UserControl
     /// </summary>
     private void OnDropDownClosed(object sender, object e)
     {
-        LogDebug($"[PowerPlanComboBox] OnDropDownClosed fired, SelectedValue={PowerPlanSelector.SelectedValue}");
         if (PowerPlanSelector.SelectedValue is { } value)
         {
-            LogDebug($"[PowerPlanComboBox] Invoking DropDownClosed event with value={value}");
             DropDownClosed?.Invoke(this, value);
         }
-        else
-        {
-            LogDebug($"[PowerPlanComboBox] SelectedValue is null, not invoking event");
-        }
-    }
-
-    private static void LogDebug(string message)
-    {
-        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
     }
 
     /// <summary>

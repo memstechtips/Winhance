@@ -18,7 +18,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IProcessExecutor processExecutor,
         IPowerShellRunner powerShellRunner,
-        IFileSystemService fileSystemService) : IDomainService
+        IFileSystemService fileSystemService) : IDomainService, ISpecialSettingHandler
     {
         public string DomainName => FeatureIds.Update;
 

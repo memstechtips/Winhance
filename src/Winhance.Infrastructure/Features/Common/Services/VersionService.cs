@@ -102,7 +102,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     // Compare with current version
                     VersionInfo currentVersion = GetCurrentVersion();
-                    latestVersion.IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion);
+                    latestVersion = latestVersion with { IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion) };
 
                     _logService.Log(LogLevel.Info, $"Current version: {currentVersion.Version}, Latest version: {latestVersion.Version}, Update available: {latestVersion.IsUpdateAvailable}");
 
