@@ -194,8 +194,9 @@ public sealed partial class SoftwareAppsPage : Page
             dialog.Title = localization.GetString("Help_WindowsApps_Title");
             var scheduledTaskService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.IScheduledTaskService>();
             var logService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.ILogService>();
+            var fileSystemService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.IFileSystemService>();
 
-            var vm = new RemovalStatusContainerViewModel(scheduledTaskService, logService);
+            var vm = new RemovalStatusContainerViewModel(scheduledTaskService, logService, fileSystemService);
             var content = new WindowsAppsHelpContent(localization);
             content.DataContext = vm;
             dialog.Content = content;
