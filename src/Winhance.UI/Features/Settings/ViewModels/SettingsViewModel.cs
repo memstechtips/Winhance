@@ -20,6 +20,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IUserPreferencesService _preferencesService;
     private readonly IDialogService _dialogService;
     private readonly IConfigurationService _configurationService;
+    private readonly ILogService _logService;
 
     private ObservableCollection<ComboBoxOption> _languages = new();
     public ObservableCollection<ComboBoxOption> Languages
@@ -82,13 +83,15 @@ public partial class SettingsViewModel : ObservableObject
         IThemeService themeService,
         IUserPreferencesService preferencesService,
         IDialogService dialogService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        ILogService logService)
     {
         _localizationService = localizationService;
         _themeService = themeService;
         _preferencesService = preferencesService;
         _dialogService = dialogService;
         _configurationService = configurationService;
+        _logService = logService;
 
         // Initialize languages from StringKeys
         InitializeLanguages();
@@ -200,7 +203,7 @@ public partial class SettingsViewModel : ObservableObject
 
         if (_localizationService.SetLanguage(value))
         {
-            _preferencesService.SetPreferenceAsync("Language", value).FireAndForget();
+            _preferencesService.SetPreferenceAsync("Language", value).FireAndForget(_logService);
         }
     }
 

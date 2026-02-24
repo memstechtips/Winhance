@@ -19,7 +19,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly IUserPreferencesService _userPreferencesService;
-    private readonly SettingViewModelFactory _viewModelFactory;
+    private readonly ISettingViewModelFactory _viewModelFactory;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -30,7 +30,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ISettingLocalizationService settingLocalizationService,
         IUserPreferencesService userPreferencesService,
-        SettingViewModelFactory viewModelFactory)
+        ISettingViewModelFactory viewModelFactory)
     {
         _discoveryService = discoveryService;
         _eventBus = eventBus;

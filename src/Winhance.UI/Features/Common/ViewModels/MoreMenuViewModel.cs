@@ -1,10 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -14,22 +10,12 @@ namespace Winhance.UI.Features.Common.ViewModels;
 /// </summary>
 public partial class MoreMenuViewModel : ObservableObject
 {
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [DllImport("user32.dll")]
-    private static extern bool IsIconic(IntPtr hWnd);
-
-    private const int SW_RESTORE = 9;
-
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
     private readonly IApplicationCloseService _applicationCloseService;
-    private readonly IProcessExecutor _processExecutor;
+    private readonly IFileSystemService _fileSystemService;
+    private readonly IExplorerWindowManager _explorerWindowManager;
 
     [ObservableProperty]
     public partial string VersionInfo { get; set; }
@@ -39,13 +25,15 @@ public partial class MoreMenuViewModel : ObservableObject
         IVersionService versionService,
         ILogService logService,
         IApplicationCloseService applicationCloseService,
-        IProcessExecutor processExecutor)
+        IFileSystemService fileSystemService,
+        IExplorerWindowManager explorerWindowManager)
     {
         _localizationService = localizationService;
         _versionService = versionService;
         _logService = logService;
         _applicationCloseService = applicationCloseService;
-        _processExecutor = processExecutor;
+        _fileSystemService = fileSystemService;
+        _explorerWindowManager = explorerWindowManager;
         VersionInfo = "Winhance";
 
         // Subscribe to language changes
@@ -74,8 +62,9 @@ public partial class MoreMenuViewModel : ObservableObject
             var versionInfo = _versionService.GetCurrentVersion();
             VersionInfo = $"Winhance {versionInfo.Version}";
         }
-        catch
+        catch (Exception ex)
         {
+            _logService.LogDebug($"[MoreMenuViewModel] Failed to get version info: {ex.Message}");
             VersionInfo = "Winhance";
         }
     }
@@ -133,7 +122,7 @@ public partial class MoreMenuViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenLogs()
+    private async Task OpenLogsAsync()
     {
         try
         {
@@ -142,12 +131,12 @@ public partial class MoreMenuViewModel : ObservableObject
                 "Winhance",
                 "Logs");
 
-            if (!Directory.Exists(logsFolder))
+            if (!_fileSystemService.DirectoryExists(logsFolder))
             {
-                Directory.CreateDirectory(logsFolder);
+                _fileSystemService.CreateDirectory(logsFolder);
             }
 
-            OpenFolderOrBringToForeground(logsFolder);
+            await _explorerWindowManager.OpenFolderAsync(logsFolder);
         }
         catch (Exception ex)
         {
@@ -156,76 +145,23 @@ public partial class MoreMenuViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenScripts()
+    private async Task OpenScriptsAsync()
     {
         try
         {
             string scriptsFolder = ScriptPaths.ScriptsDirectory;
 
-            if (!Directory.Exists(scriptsFolder))
+            if (!_fileSystemService.DirectoryExists(scriptsFolder))
             {
-                Directory.CreateDirectory(scriptsFolder);
+                _fileSystemService.CreateDirectory(scriptsFolder);
             }
 
-            OpenFolderOrBringToForeground(scriptsFolder);
+            await _explorerWindowManager.OpenFolderAsync(scriptsFolder);
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
         }
-    }
-
-    private void OpenFolderOrBringToForeground(string folderPath)
-    {
-        string normalizedPath = Path.GetFullPath(folderPath)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-            .ToLowerInvariant();
-
-        try
-        {
-            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
-            if (shellType != null)
-            {
-                dynamic shell = Activator.CreateInstance(shellType)!;
-                dynamic windows = shell.Windows();
-
-                foreach (dynamic window in windows)
-                {
-                    try
-                    {
-                        string? locationUrl = window.LocationURL;
-                        if (string.IsNullOrEmpty(locationUrl))
-                            continue;
-
-                        Uri uri = new Uri(locationUrl);
-                        string windowPath = Path.GetFullPath(uri.LocalPath)
-                            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                            .ToLowerInvariant();
-
-                        if (windowPath == normalizedPath)
-                        {
-                            IntPtr handle = new IntPtr(window.HWND);
-                            if (IsIconic(handle))
-                            {
-                                ShowWindow(handle, SW_RESTORE);
-                            }
-                            SetForegroundWindow(handle);
-                            return;
-                        }
-                    }
-                    catch
-                    {
-                        // Skip windows that can't be inspected
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"Error checking for existing Explorer windows: {ex.Message}");
-        }
-
-        _processExecutor.ShellExecuteAsync("explorer.exe", folderPath).FireAndForget(_logService);
     }
 
     [RelayCommand]

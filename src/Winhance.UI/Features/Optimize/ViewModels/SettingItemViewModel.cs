@@ -9,10 +9,12 @@ using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -426,14 +428,7 @@ public partial class SettingItemViewModel : BaseViewModel
         var displayUnits = SettingDefinition?.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
             ? unitsStr
             : null;
-
-        return displayUnits?.ToLowerInvariant() switch
-        {
-            "minutes" => systemValue / 60,
-            "hours" => systemValue / 3600,
-            "milliseconds" => systemValue * 1000,
-            _ => systemValue
-        };
+        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
     #region UI Event Handlers
@@ -441,13 +436,13 @@ public partial class SettingItemViewModel : BaseViewModel
     public void OnToggleSwitchToggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         if (sender is ToggleSwitch toggle)
-            _ = HandleToggleAsync(toggle.IsOn);
+            HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
     }
 
     public void OnCheckBoxClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         if (sender is CheckBox checkBox)
-            _ = HandleToggleAsync(checkBox.IsChecked == true);
+            HandleToggleAsync(checkBox.IsChecked == true).FireAndForget(_logService);
     }
 
     // Announce ComboBox option changes for screen readers (arrow key navigation on closed ComboBox)
@@ -473,19 +468,19 @@ public partial class SettingItemViewModel : BaseViewModel
     public void OnComboBoxDropDownClosed(object sender, object e)
     {
         if (sender is ComboBox comboBox && comboBox.SelectedValue is { } value)
-            _ = HandleValueChangedAsync(value);
+            HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
     public void ApplySelectionValue(object value)
     {
         _logService.LogDebug($"[SettingItemViewModel] ApplySelectionValue called with value={value}, SettingId={SettingId}");
-        _ = HandleValueChangedAsync(value);
+        HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
     public void OnNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
-            _ = HandleValueChangedAsync((int)e.NewValue);
+            HandleValueChangedAsync((int)e.NewValue).FireAndForget(_logService);
     }
 
     public void OnACComboBoxDropDownClosed(object sender, object e)
@@ -493,7 +488,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
             AcValue = cb.SelectedIndex;
-            _ = HandleACDCSelectionChangedAsync();
+            HandleACDCSelectionChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -502,7 +497,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
             DcValue = cb.SelectedIndex;
-            _ = HandleACDCSelectionChangedAsync();
+            HandleACDCSelectionChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -511,7 +506,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (!double.IsNaN(e.NewValue))
         {
             AcNumericValue = (int)e.NewValue;
-            _ = HandleACDCNumericChangedAsync();
+            HandleACDCNumericChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -520,7 +515,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (!double.IsNaN(e.NewValue))
         {
             DcNumericValue = (int)e.NewValue;
-            _ = HandleACDCNumericChangedAsync();
+            HandleACDCNumericChangedAsync().FireAndForget(_logService);
         }
     }
 

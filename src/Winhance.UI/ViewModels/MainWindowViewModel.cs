@@ -173,8 +173,9 @@ public partial class MainWindowViewModel : ObservableObject
             var versionInfo = _versionService.GetCurrentVersion();
             VersionInfo = $"Winhance {versionInfo.Version}";
         }
-        catch
+        catch (Exception ex)
         {
+            _logService.LogDebug($"[MainWindowViewModel] Failed to get version info: {ex.Message}");
             VersionInfo = "Winhance";
         }
     }

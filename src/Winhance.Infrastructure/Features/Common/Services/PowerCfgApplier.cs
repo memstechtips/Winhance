@@ -68,8 +68,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var acValue = numericDict.TryGetValue("ACValue", out var ac) ? ExtractSingleValue(ac) : 0;
                 var dcValue = numericDict.TryGetValue("DCValue", out var dc) ? ExtractSingleValue(dc) : 0;
 
-                var acSystemValue = ConvertToSystemUnits(acValue, setting.PowerCfgSettings[0].Units);
-                var dcSystemValue = ConvertToSystemUnits(dcValue, setting.PowerCfgSettings[0].Units);
+                var displayUnits = GetDisplayUnits(setting);
+                var acSystemValue = ConvertToSystemUnits(acValue, displayUnits);
+                var dcSystemValue = ConvertToSystemUnits(dcValue, displayUnits);
 
                 var convertedDict = new Dictionary<string, object?>
                 {

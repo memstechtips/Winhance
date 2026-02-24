@@ -33,6 +33,9 @@ public static class UIServicesExtensions
         // Requires late initialization in MainWindow.xaml.cs after window creation
         services.AddSingleton<IDispatcherService, DispatcherService>();
 
+        // Main Window Provider (Singleton - Abstracts static App.MainWindow access)
+        services.AddSingleton<IMainWindowProvider, MainWindowProvider>();
+
         // Theme Service (Singleton - Application-wide theme management)
         services.AddSingleton<IThemeService, ThemeService>();
 
@@ -79,7 +82,7 @@ public static class UIServicesExtensions
         services.AddSingleton<IReviewModeViewModelCoordinator, ReviewModeViewModelCoordinator>();
 
         // Setting ViewModel Factory (Singleton - Creates fully-configured setting ViewModels)
-        services.AddSingleton<SettingViewModelFactory>();
+        services.AddSingleton<ISettingViewModelFactory, SettingViewModelFactory>();
 
         // Settings Loading Service (Singleton - Orchestrates setting loading and refresh)
         services.AddSingleton<Features.Common.Interfaces.ISettingsLoadingService, SettingsLoadingService>();

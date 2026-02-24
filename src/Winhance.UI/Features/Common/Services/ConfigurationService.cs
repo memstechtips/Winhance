@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -42,20 +43,8 @@ public class ConfigurationService : IConfigurationService
         _localizationService = localizationService;
     }
 
-    private async Task EnsureRegistryInitializedAsync()
-    {
-        if (!_compatibleSettingsRegistry.IsInitialized)
-        {
-            _logService.Log(LogLevel.Info, "Initializing compatible settings registry for configuration service");
-            await _compatibleSettingsRegistry.InitializeAsync();
-        }
-
-        if (!_settingsPreloader.IsPreloaded)
-        {
-            _logService.Log(LogLevel.Info, "Preloading settings for configuration service");
-            await _settingsPreloader.PreloadAllSettingsAsync();
-        }
-    }
+    private Task EnsureRegistryInitializedAsync()
+        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _settingsPreloader, _logService);
 
     public async Task ExportConfigurationAsync()
     {

@@ -133,7 +133,7 @@ public sealed partial class MainWindow : Window
             _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, _logService);
 
             // Initialize async (restore saved position/size or set defaults)
-            _windowSizeManager.InitializeAsync().FireAndForget(_logService);
+            _windowSizeManager.InitializeAsync().FireAndForget(_logService!);
 
             // Wire up ApplicationCloseService: saves window state, shows donation dialog, then exits
             var applicationCloseService = App.Services.GetRequiredService<IApplicationCloseService>();
@@ -459,7 +459,7 @@ public sealed partial class MainWindow : Window
                 App.Services.GetRequiredService<TooltipRefreshEventHandler>();
 
                 // Pre-cache regedit icon for Technical Details panel
-                RegeditIconProvider.GetIconAsync().FireAndForget(_logService);
+                RegeditIconProvider.GetIconAsync().FireAndForget(_logService!);
             }
             catch (Exception ex)
             {
@@ -1263,7 +1263,7 @@ public sealed partial class MainWindow : Window
         {
             control.IsTaskRunning = false;
             control.CanCancel = Visibility.Collapsed;
-            HideControlAfterDelayAsync(control, 2000).FireAndForget(_logService);
+            HideControlAfterDelayAsync(control, 2000).FireAndForget(_logService!);
             return;
         }
 

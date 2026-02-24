@@ -11,7 +11,8 @@ namespace Winhance.UI.Features.Common.Utilities;
 /// </summary>
 public class RegeditLauncher(
     IInteractiveUserService interactiveUserService,
-    IProcessExecutor processExecutor) : IRegeditLauncher
+    IProcessExecutor processExecutor,
+    ILogService logService) : IRegeditLauncher
 {
     /// <summary>
     /// Checks whether the given registry key path exists.
@@ -101,7 +102,7 @@ public class RegeditLauncher(
                     @"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit");
                 key?.SetValue("LastKey", fullPath);
 
-                processExecutor.ShellExecuteAsync("regedit.exe").FireAndForget();
+                processExecutor.ShellExecuteAsync("regedit.exe").FireAndForget(logService);
             }
         }
         catch

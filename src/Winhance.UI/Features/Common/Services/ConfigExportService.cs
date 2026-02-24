@@ -1,11 +1,12 @@
 using System.Text.Json;
-using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -22,6 +23,7 @@ public class ConfigExportService : IConfigExportService
     private readonly WindowsAppsViewModel _windowsAppsVM;
     private readonly ExternalAppsViewModel _externalAppsVM;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IMainWindowProvider _mainWindowProvider;
 
     public ConfigExportService(
         ILogService logService,
@@ -33,7 +35,8 @@ public class ConfigExportService : IConfigExportService
         IInteractiveUserService interactiveUserService,
         WindowsAppsViewModel windowsAppsVM,
         ExternalAppsViewModel externalAppsVM,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        IMainWindowProvider mainWindowProvider)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -45,24 +48,13 @@ public class ConfigExportService : IConfigExportService
         _windowsAppsVM = windowsAppsVM;
         _externalAppsVM = externalAppsVM;
         _fileSystemService = fileSystemService;
+        _mainWindowProvider = mainWindowProvider;
     }
 
-    private async Task EnsureRegistryInitializedAsync()
-    {
-        if (!_compatibleSettingsRegistry.IsInitialized)
-        {
-            _logService.Log(LogLevel.Info, "Initializing compatible settings registry for configuration service");
-            await _compatibleSettingsRegistry.InitializeAsync();
-        }
+    private Task EnsureRegistryInitializedAsync()
+        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _settingsPreloader, _logService);
 
-        if (!_settingsPreloader.IsPreloaded)
-        {
-            _logService.Log(LogLevel.Info, "Preloading settings for configuration service");
-            await _settingsPreloader.PreloadAllSettingsAsync();
-        }
-    }
-
-    private Window? GetMainWindow() => App.MainWindow;
+    private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
     public async Task ExportConfigurationAsync()
     {

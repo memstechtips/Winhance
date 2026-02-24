@@ -54,6 +54,9 @@ public static class InfrastructureServicesExtensions
         // File System Service
         services.AddSingleton<IFileSystemService, FileSystemService>();
 
+        // Explorer Window Manager (open/focus folders in Explorer)
+        services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();
+
         // PowerShell Runner
         services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
 

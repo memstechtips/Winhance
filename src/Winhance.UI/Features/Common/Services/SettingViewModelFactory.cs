@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -11,7 +12,7 @@ namespace Winhance.UI.Features.Common.Services;
 /// <summary>
 /// Creates fully-configured SettingItemViewModel instances from setting definitions.
 /// </summary>
-public class SettingViewModelFactory
+public class SettingViewModelFactory : ISettingViewModelFactory
 {
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ILogService _logService;
@@ -200,22 +201,11 @@ public class SettingViewModelFactory
         return viewModel;
     }
 
-    /// <summary>
-    /// Converts a raw powercfg API value to display units based on the setting's CustomProperties.
-    /// For example, converts 1200 seconds to 20 minutes when display units are "Minutes".
-    /// </summary>
     private static int ConvertFromSystemUnits(int systemValue, SettingDefinition setting)
     {
         var displayUnits = setting.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
             ? unitsStr
             : null;
-
-        return displayUnits?.ToLowerInvariant() switch
-        {
-            "minutes" => systemValue / 60,
-            "hours" => systemValue / 3600,
-            "milliseconds" => systemValue * 1000,
-            _ => systemValue
-        };
+        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 }

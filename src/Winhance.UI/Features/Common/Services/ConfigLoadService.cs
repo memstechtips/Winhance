@@ -1,10 +1,10 @@
 using System.Text.Json;
-using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -18,6 +18,7 @@ public class ConfigLoadService : IConfigLoadService
     private readonly IConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IMainWindowProvider _mainWindowProvider;
 
     public ConfigLoadService(
         ILogService logService,
@@ -27,7 +28,8 @@ public class ConfigLoadService : IConfigLoadService
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        IMainWindowProvider mainWindowProvider)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -37,9 +39,10 @@ public class ConfigLoadService : IConfigLoadService
         _configMigrationService = configMigrationService;
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
+        _mainWindowProvider = mainWindowProvider;
     }
 
-    private Window? GetMainWindow() => App.MainWindow;
+    private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
     public async Task<UnifiedConfigurationFile?> LoadAndValidateConfigurationFromFileAsync()
     {
