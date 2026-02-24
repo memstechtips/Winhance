@@ -116,12 +116,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             for (int i = 0; i < finalDisplayNames.Length; i++)
             {
-                result.Options.Add(new ComboBoxOption
-                {
-                    DisplayText = finalDisplayNames[i],
-                    Value = i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
-                    Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
-                });
+                result.Options.Add(new ComboBoxOption(
+                    finalDisplayNames[i],
+                    i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
+                    optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null));
             }
 
             result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
@@ -152,12 +150,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 for (int i = 0; i < finalDisplayNames.Length; i++)
                 {
-                    result.Options.Add(new ComboBoxOption
-                    {
-                        DisplayText = finalDisplayNames[i],
-                        Value = i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
-                        Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
-                    });
+                    result.Options.Add(new ComboBoxOption(
+                        finalDisplayNames[i],
+                        i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
+                        optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null));
                 }
 
                 result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
@@ -193,12 +189,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 for (int i = 0; i < finalDisplayNames.Length; i++)
                 {
-                    result.Options.Add(new ComboBoxOption
-                    {
-                        DisplayText = finalDisplayNames[i],
-                        Value = i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
-                        Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
-                    });
+                    result.Options.Add(new ComboBoxOption(
+                        finalDisplayNames[i],
+                        i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
+                        optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null));
                 }
 
                 result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;

@@ -116,7 +116,7 @@ public partial class SettingsViewModel : ObservableObject
         Languages.Clear();
         foreach (var lang in StringKeys.Languages.SupportedLanguages)
         {
-            Languages.Add(new ComboBoxOption { DisplayText = lang.Value, Value = lang.Key });
+            Languages.Add(new ComboBoxOption(lang.Value, lang.Key));
         }
     }
 

@@ -43,7 +43,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _viewModelFactory = viewModelFactory;
     }
 
-    public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
+    public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync<TDomainService>(
         TDomainService domainService,
         string featureModuleId,
         string progressMessage,
@@ -59,7 +59,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             var localizedSettings = settingDefinitions.Select(s => _settingLocalizationService.LocalizeSetting(s));
             var settingsList = localizedSettings.ToList();
 
-            var settingViewModels = new ObservableCollection<object>();
+            var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
             // Read technical details preference once for all settings
             var showTechnicalDetails = await _userPreferencesService.GetPreferenceAsync(

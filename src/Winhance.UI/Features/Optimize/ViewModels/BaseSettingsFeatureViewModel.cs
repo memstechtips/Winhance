@@ -307,8 +307,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 this
             );
 
-            var settingViewModels = loadedSettings.Cast<SettingItemViewModel>().ToList();
-            Settings = new ObservableCollection<SettingItemViewModel>(settingViewModels);
+            Settings = loadedSettings;
 
             // Build dictionaries for O(1) lookups
             _settingsById.Clear();

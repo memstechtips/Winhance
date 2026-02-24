@@ -23,13 +23,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 foreach (var option in options)
                 {
-                    result.Options.Add(new ComboBoxOption
-                    {
-                        DisplayText = option.DisplayName,
-                        Value = option.Index,
-                        Description = option.ExistsOnSystem ? "Installed on system" : "Not installed",
-                        Tag = option
-                    });
+                    result.Options.Add(new ComboBoxOption(
+                        option.DisplayName,
+                        option.Index,
+                        option.ExistsOnSystem ? "Installed on system" : "Not installed",
+                        option));
                 }
 
                 result.SelectedValue = currentIndex;

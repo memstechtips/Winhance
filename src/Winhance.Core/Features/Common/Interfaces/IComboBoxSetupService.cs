@@ -21,7 +21,15 @@ namespace Winhance.Core.Features.Common.Interfaces
 
     public class ComboBoxOption : INotifyPropertyChanged
     {
-        private string _displayText = string.Empty;
+        private string _displayText;
+
+        public ComboBoxOption(string displayText, object value, string? description = null, object? tag = null)
+        {
+            _displayText = displayText;
+            Value = value;
+            Description = description;
+            Tag = tag;
+        }
 
         public string DisplayText
         {
@@ -36,9 +44,9 @@ namespace Winhance.Core.Features.Common.Interfaces
             }
         }
 
-        public object Value { get; set; } = new();
-        public string? Description { get; set; }
-        public object? Tag { get; set; }
+        public object Value { get; }
+        public string? Description { get; }
+        public object? Tag { get; }
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public override string ToString()

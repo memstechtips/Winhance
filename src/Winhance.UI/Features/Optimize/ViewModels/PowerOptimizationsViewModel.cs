@@ -104,13 +104,11 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                     displayName = _localizationService.GetString(displayName);
                 }
 
-                newItems.Add(new ComboBoxOption
-                {
-                    DisplayText = displayName,
-                    Value = options[i].Index,
-                    Description = options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
-                    Tag = options[i]
-                });
+                newItems.Add(new ComboBoxOption(
+                    displayName,
+                    options[i].Index,
+                    options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
+                    options[i]));
             }
 
             // Await the UI update to ensure it completes before returning

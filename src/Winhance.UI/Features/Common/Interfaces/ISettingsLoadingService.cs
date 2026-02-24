@@ -13,7 +13,7 @@ public interface ISettingsLoadingService
     /// <summary>
     /// Loads settings for a feature and creates ViewModels for each.
     /// </summary>
-    Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
+    Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync<TDomainService>(
         TDomainService domainService,
         string featureModuleId,
         string progressMessage,

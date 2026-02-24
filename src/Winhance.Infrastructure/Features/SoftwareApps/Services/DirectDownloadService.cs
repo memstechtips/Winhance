@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.IO.Compression;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
@@ -18,16 +19,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class DirectDownloadService : IDirectDownloadService
 {
-    // P/Invoke for reading ProductCode from MSI files (msi.dll is always present on Windows)
-    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
-    private static extern uint MsiOpenPackageEx(string szPackagePath, uint dwOptions, out IntPtr hProduct);
-
-    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
-    private static extern uint MsiGetProductProperty(IntPtr hProduct, string szProperty, StringBuilder lpValueBuf, ref uint pcchValueBuf);
-
-    [DllImport("msi.dll")]
-    private static extern uint MsiCloseHandle(IntPtr hAny);
-
     private readonly ILogService _logService;
     private readonly HttpClient _httpClient;
     private readonly ILocalizationService _localization;
@@ -452,7 +443,7 @@ public class DirectDownloadService : IDirectDownloadService
     {
         const uint MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE = 1;
 
-        uint result = MsiOpenPackageEx(msiPath, MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE, out var hProduct);
+        uint result = MsiApi.MsiOpenPackageEx(msiPath, MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE, out var hProduct);
         if (result != 0)
             return null;
 
@@ -460,12 +451,12 @@ public class DirectDownloadService : IDirectDownloadService
         {
             var buffer = new StringBuilder(39); // GUID format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} = 38 chars + null
             uint bufferSize = 39;
-            result = MsiGetProductProperty(hProduct, "ProductCode", buffer, ref bufferSize);
+            result = MsiApi.MsiGetProductProperty(hProduct, "ProductCode", buffer, ref bufferSize);
             return result == 0 ? buffer.ToString() : null;
         }
         finally
         {
-            MsiCloseHandle(hProduct);
+            MsiApi.MsiCloseHandle(hProduct);
         }
     }
 

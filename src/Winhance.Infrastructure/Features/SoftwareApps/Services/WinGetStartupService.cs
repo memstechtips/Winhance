@@ -42,14 +42,14 @@ public class WinGetStartupService : IWinGetStartupService
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
                     "Startup: System winget available, attempting silent AppInstaller upgrade...");
 
-                bool upgraded = await _winGetBootstrapper.UpgradeAppInstallerAsync();
+                bool upgraded = await _winGetBootstrapper.UpgradeAppInstallerAsync().ConfigureAwait(false);
                 if (upgraded)
                 {
                     _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
                         "Startup: AppInstaller upgraded successfully");
 
                     // Re-init COM in case the upgrade changed the COM server
-                    await _winGetBootstrapper.EnsureWinGetReadyAsync();
+                    await _winGetBootstrapper.EnsureWinGetReadyAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -61,7 +61,7 @@ public class WinGetStartupService : IWinGetStartupService
             {
                 // Only bundled winget -- need to install AppInstaller
                 // Check internet FIRST -- all install paths require connectivity
-                var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
+                var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true).ConfigureAwait(false);
                 if (!hasInternet)
                 {
                     _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
@@ -78,7 +78,7 @@ public class WinGetStartupService : IWinGetStartupService
 
                 try
                 {
-                    bool installed = await _winGetBootstrapper.InstallWinGetAsync();
+                    bool installed = await _winGetBootstrapper.InstallWinGetAsync().ConfigureAwait(false);
 
                     if (installed)
                     {

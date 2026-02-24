@@ -36,9 +36,9 @@ namespace Winhance.Core.Features.Common.Services
                     continue;
                 }
 
-                if (!await IsDependencySatisfiedAsync(dependency, discoveryService))
+                if (!await IsDependencySatisfiedAsync(dependency, discoveryService).ConfigureAwait(false))
                 {
-                    await ApplyDependencyAsync(dependency, requiredSetting, settingApplicationService);
+                    await ApplyDependencyAsync(dependency, requiredSetting, settingApplicationService).ConfigureAwait(false);
                 }
             }
 
@@ -55,13 +55,13 @@ namespace Winhance.Core.Features.Common.Services
 
             foreach (var dependentSetting in dependentSettings)
             {
-                var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService);
+                var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService).ConfigureAwait(false);
                 if (currentState.Success && currentState.IsEnabled)
                 {
                     try
                     {
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false });
-                        await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false }).ConfigureAwait(false);
+                        await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
                     }
                     catch (ArgumentException ex) when (ex.Message.Contains("not found"))
                     {
@@ -81,7 +81,7 @@ namespace Winhance.Core.Features.Common.Services
 
             foreach (var dependentSetting in dependentSettings)
             {
-                var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService);
+                var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService).ConfigureAwait(false);
                 if (!currentState.Success || !currentState.IsEnabled)
                     continue;
 
@@ -89,12 +89,12 @@ namespace Winhance.Core.Features.Common.Services
                     d.RequiredSettingId == settingId &&
                     d.DependencyType == SettingDependencyType.RequiresSpecificValue);
 
-                if (!await IsDependencySatisfiedAsync(dependency, discoveryService))
+                if (!await IsDependencySatisfiedAsync(dependency, discoveryService).ConfigureAwait(false))
                 {
                     try
                     {
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false });
-                        await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false }).ConfigureAwait(false);
+                        await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
                     }
                     catch (ArgumentException ex) when (ex.Message.Contains("not found"))
                     {
@@ -120,13 +120,13 @@ namespace Winhance.Core.Features.Common.Services
             if (setting is not SettingDefinition settingDefinition)
                 return new SettingStateResult { Success = false, ErrorMessage = $"Setting '{settingId}' is not a SettingDefinition" };
 
-            var results = await discoveryService.GetSettingStatesAsync(new[] { settingDefinition });
+            var results = await discoveryService.GetSettingStatesAsync(new[] { settingDefinition }).ConfigureAwait(false);
             return results.TryGetValue(settingId, out var result) ? result : new SettingStateResult { Success = false };
         }
 
         private async Task<bool> IsDependencySatisfiedAsync(SettingDependency dependency, ISystemSettingsDiscoveryService discoveryService)
         {
-            var currentState = await GetSettingStateAsync(dependency.RequiredSettingId, discoveryService);
+            var currentState = await GetSettingStateAsync(dependency.RequiredSettingId, discoveryService).ConfigureAwait(false);
             if (!currentState.Success)
                 return false;
 
@@ -148,17 +148,17 @@ namespace Winhance.Core.Features.Common.Services
                 {
                     if (requiredSetting.InputType == InputType.Selection && !string.IsNullOrEmpty(dependency.RequiredValue))
                     {
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = true, Value = dependency.RequiredValue });
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = true, Value = dependency.RequiredValue }).ConfigureAwait(false);
                     }
                     else
                     {
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = true });
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = true }).ConfigureAwait(false);
                     }
                 }
                 else
                 {
                     bool enableValue = dependency.DependencyType == SettingDependencyType.RequiresEnabled;
-                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = enableValue });
+                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependency.RequiredSettingId, Enable = enableValue }).ConfigureAwait(false);
                 }
             }
             catch (ArgumentException ex) when (ex.Message.Contains("not found"))
