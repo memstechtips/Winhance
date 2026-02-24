@@ -20,7 +20,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class WindowsAppsService(
     ILogService logService,
-    IWinGetService winGetService,
+    IWinGetPackageInstaller winGetPackageInstaller,
+    IWinGetBootstrapper winGetBootstrapper,
     IAppStatusDiscoveryService appStatusDiscoveryService,
     IStoreDownloadService storeDownloadService,
     IDialogService dialogService,
@@ -35,8 +36,8 @@ public class WindowsAppsService(
 
     public event EventHandler? WinGetReady
     {
-        add => winGetService.WinGetInstalled += value;
-        remove => winGetService.WinGetInstalled -= value;
+        add => winGetBootstrapper.WinGetInstalled += value;
+        remove => winGetBootstrapper.WinGetInstalled -= value;
     }
 
     public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
@@ -94,7 +95,7 @@ public class WindowsAppsService(
                 // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = GetCurrentCancellationToken();
-                var installResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
+                var installResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
 
                 if (installResult.Success)
                 {
@@ -135,7 +136,7 @@ public class WindowsAppsService(
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = GetCurrentCancellationToken();
-                            var retryResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken2).ConfigureAwait(false);
+                            var retryResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken2).ConfigureAwait(false);
                             if (retryResult.Success)
                             {
                                 return OperationResult<bool>.Succeeded(true);

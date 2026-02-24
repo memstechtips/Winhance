@@ -2,9 +2,13 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Views;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
@@ -15,6 +19,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewBadgeService _configReviewBadgeService;
+    private readonly IScheduledTaskService _scheduledTaskService;
+    private readonly IFileSystemService _fileSystemService;
     private bool _isSubscribed;
 
     public SoftwareAppsViewModel(
@@ -24,7 +30,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ILogService logService,
         IUserPreferencesService userPreferencesService,
         IConfigReviewModeService configReviewModeService,
-        IConfigReviewBadgeService configReviewBadgeService)
+        IConfigReviewBadgeService configReviewBadgeService,
+        IScheduledTaskService scheduledTaskService,
+        IFileSystemService fileSystemService)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
@@ -33,6 +41,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _userPreferencesService = userPreferencesService;
         _configReviewModeService = configReviewModeService;
         _configReviewBadgeService = configReviewBadgeService;
+        _scheduledTaskService = scheduledTaskService;
+        _fileSystemService = fileSystemService;
 
         // Initialize partial property defaults (SearchText first since
         // tab-change handlers forward it to child ViewModels)
@@ -469,6 +479,55 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         else
         {
             await ExternalAppsViewModel.RefreshInstallationStatusAsync();
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowHelpAsync(XamlRoot xamlRoot)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = xamlRoot,
+            CloseButtonText = _localizationService.GetString("Help_CloseHelp"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+
+        // Set theme and semi-transparent background so Mica/Acrylic backdrop shows through
+        if (xamlRoot?.Content is FrameworkElement rootElement)
+        {
+            dialog.RequestedTheme = rootElement.ActualTheme == ElementTheme.Dark
+                ? ElementTheme.Dark
+                : ElementTheme.Light;
+        }
+        var baseColor = dialog.RequestedTheme == ElementTheme.Dark
+            ? Windows.UI.Color.FromArgb(255, 44, 44, 44)
+            : Windows.UI.Color.FromArgb(255, 243, 243, 243);
+        dialog.Background = new AcrylicBrush
+        {
+            TintColor = baseColor,
+            TintOpacity = 0.65,
+            TintLuminosityOpacity = 0.75,
+            FallbackColor = baseColor
+        };
+
+        if (IsWindowsAppsTabSelected)
+        {
+            dialog.Title = _localizationService.GetString("Help_WindowsApps_Title");
+
+            var vm = new RemovalStatusContainerViewModel(_scheduledTaskService, _logService, _fileSystemService);
+            var content = new WindowsAppsHelpContent(_localizationService);
+            content.DataContext = vm;
+            dialog.Content = content;
+
+            _ = vm.RefreshAllStatusesAsync();
+            await dialog.ShowAsync();
+            vm.Dispose();
+        }
+        else
+        {
+            dialog.Title = _localizationService.GetString("Help_ExternalApps_Title");
+            dialog.Content = new ExternalAppsHelpContent(_localizationService);
+            await dialog.ShowAsync();
         }
     }
 

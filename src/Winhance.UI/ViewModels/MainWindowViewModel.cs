@@ -2,10 +2,6 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Extensions;
-using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
@@ -23,14 +19,9 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
-    private readonly IDialogService _dialogService;
-    private readonly IUserPreferencesService _preferencesService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly ITaskProgressService _taskProgressService;
-    private readonly IWinGetService _winGetService;
-    private readonly IInternetConnectivityService _internetConnectivityService;
     private readonly IInteractiveUserService _interactiveUserService;
-    private readonly IEventBus _eventBus;
+    private readonly IWinGetStartupService _winGetStartupService;
+    private readonly IWindowsVersionFilterService _windowsVersionFilterService;
 
     /// <summary>Child ViewModel for task progress display.</summary>
     public TaskProgressViewModel TaskProgress { get; }
@@ -68,14 +59,9 @@ public partial class MainWindowViewModel : ObservableObject
         ILocalizationService localizationService,
         IVersionService versionService,
         ILogService logService,
-        IDialogService dialogService,
-        IUserPreferencesService preferencesService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ITaskProgressService taskProgressService,
-        IWinGetService winGetService,
-        IInternetConnectivityService internetConnectivityService,
         IInteractiveUserService interactiveUserService,
-        IEventBus eventBus,
+        IWinGetStartupService winGetStartupService,
+        IWindowsVersionFilterService windowsVersionFilterService,
         TaskProgressViewModel taskProgress,
         UpdateCheckViewModel updateCheck,
         ReviewModeBarViewModel reviewModeBar)
@@ -85,14 +71,9 @@ public partial class MainWindowViewModel : ObservableObject
         _localizationService = localizationService;
         _versionService = versionService;
         _logService = logService;
-        _dialogService = dialogService;
-        _preferencesService = preferencesService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _taskProgressService = taskProgressService;
-        _winGetService = winGetService;
-        _internetConnectivityService = internetConnectivityService;
         _interactiveUserService = interactiveUserService;
-        _eventBus = eventBus;
+        _winGetStartupService = winGetStartupService;
+        _windowsVersionFilterService = windowsVersionFilterService;
 
         TaskProgress = taskProgress;
         UpdateCheck = updateCheck;
@@ -121,6 +102,9 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Subscribe to review mode filter cross-cutting
         ReviewModeBar.PropertyChanged += OnReviewModeBarPropertyChanged;
+
+        // Subscribe to filter state changes from the service
+        _windowsVersionFilterService.FilterStateChanged += OnFilterStateChanged;
 
         // Set initial icon based on current theme
         UpdateAppIconForTheme();
@@ -342,62 +326,7 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleWindowsFilterAsync()
     {
-        // Don't allow toggling during review mode
-        if (ReviewModeBar.IsInReviewMode) return;
-
-        try
-        {
-            // Check if we should show explanation dialog
-            var dontShowAgain = await _preferencesService.GetPreferenceAsync(
-                UserPreferenceKeys.DontShowFilterExplanation, defaultValue: false);
-
-            if (!dontShowAgain)
-            {
-                var message = _localizationService.GetString("Filter_Dialog_Message") ??
-                    "The Windows Version Filter controls which settings are shown based on your Windows version.\n\nWhen ON: Only settings compatible with your Windows version are shown.\nWhen OFF: All settings are shown, with incompatible ones marked.";
-                var checkboxText = _localizationService.GetString("Filter_Dialog_Checkbox") ?? "Don't show this message again";
-                var title = _localizationService.GetString("Filter_Dialog_Title") ?? "Windows Version Filter";
-                var continueText = _localizationService.GetString("Filter_Dialog_Button_Toggle") ?? "Toggle Filter";
-                var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
-
-                var result = await _dialogService.ShowConfirmationWithCheckboxAsync(
-                    message,
-                    checkboxText: checkboxText,
-                    title: title,
-                    continueButtonText: continueText,
-                    cancelButtonText: cancelText);
-
-                if (result.CheckboxChecked)
-                {
-                    await _preferencesService.SetPreferenceAsync(
-                        UserPreferenceKeys.DontShowFilterExplanation, true);
-                }
-
-                if (!result.Confirmed) return;
-            }
-
-            // Toggle state
-            IsWindowsVersionFilterEnabled = !IsWindowsVersionFilterEnabled;
-
-            // Persist preference
-            await _preferencesService.SetPreferenceAsync(
-                UserPreferenceKeys.EnableWindowsVersionFilter,
-                IsWindowsVersionFilterEnabled);
-
-            // Update registry filter state
-            _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
-
-            // Publish event for all subscribers (pages/viewmodels) to refresh
-            _eventBus.Publish(new FilterStateChangedEvent(IsWindowsVersionFilterEnabled));
-
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                $"Windows version filter toggled to: {(IsWindowsVersionFilterEnabled ? "ON" : "OFF")}");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
-                $"Failed to toggle Windows version filter: {ex.Message}");
-        }
+        await _windowsVersionFilterService.ToggleFilterAsync(ReviewModeBar.IsInReviewMode);
     }
 
     /// <summary>
@@ -406,21 +335,7 @@ public partial class MainWindowViewModel : ObservableObject
     /// </summary>
     public async Task LoadFilterPreferenceAsync()
     {
-        try
-        {
-            IsWindowsVersionFilterEnabled = await _preferencesService.GetPreferenceAsync(
-                UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
-
-            _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
-
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                $"Loaded Windows version filter preference: {(IsWindowsVersionFilterEnabled ? "ON" : "OFF")}");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
-                $"Failed to load filter preference: {ex.Message}");
-        }
+        await _windowsVersionFilterService.LoadFilterPreferenceAsync();
     }
 
     /// <summary>
@@ -475,87 +390,11 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Post-UI startup flow for WinGet / AppInstaller.
-    /// If system winget was already found (EnsureWinGetReadyAsync set it), silently attempts an upgrade.
-    /// If only the bundled winget is available, shows progress and installs AppInstaller.
+    /// Post-UI startup flow for WinGet / AppInstaller. Delegates to IWinGetStartupService.
     /// </summary>
-    public async Task EnsureWinGetReadyOnStartupAsync()
+    public Task EnsureWinGetReadyOnStartupAsync()
     {
-        try
-        {
-            if (_winGetService.IsSystemWinGetAvailable)
-            {
-                // System winget already present -- silently attempt upgrade
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                    "Startup: System winget available, attempting silent AppInstaller upgrade...");
-
-                bool upgraded = await _winGetService.UpgradeAppInstallerAsync();
-                if (upgraded)
-                {
-                    _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                        "Startup: AppInstaller upgraded successfully");
-
-                    // Re-init COM in case the upgrade changed the COM server
-                    await _winGetService.EnsureWinGetReadyAsync();
-                }
-                else
-                {
-                    _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                        "Startup: AppInstaller upgrade not needed or not applicable");
-                }
-            }
-            else
-            {
-                // Only bundled winget -- need to install AppInstaller
-                // Check internet FIRST -- all install paths require connectivity
-                var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
-                if (!hasInternet)
-                {
-                    _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                        "Startup: No internet connection -- skipping AppInstaller installation");
-                    return;
-                }
-
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                    "Startup: No system winget, attempting to install AppInstaller...");
-
-                _taskProgressService.StartTask(
-                    _localizationService.GetString("Progress_WinGet_Installing") ?? "Installing WinGet...",
-                    isIndeterminate: false);
-
-                try
-                {
-                    bool installed = await _winGetService.InstallWinGetAsync();
-
-                    if (installed)
-                    {
-                        _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                            "Startup: AppInstaller installed successfully");
-                        _taskProgressService.CompleteTask();
-                    }
-                    else
-                    {
-                        _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                            "Startup: AppInstaller installation failed -- continuing with bundled CLI");
-                        _taskProgressService.UpdateProgress(0,
-                            _localizationService.GetString("Error_WinGetInstallFailed")
-                            ?? "Failed to install WinGet. Please check your internet connection.");
-                        await Task.Delay(5000).ConfigureAwait(false);
-                        _taskProgressService.CompleteTask();
-                    }
-                }
-                catch
-                {
-                    _taskProgressService.CompleteTask();
-                    throw;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
-                $"Startup: Error in WinGet readiness flow: {ex.Message}");
-        }
+        return _winGetStartupService.EnsureWinGetReadyOnStartupAsync();
     }
 
     #endregion
@@ -575,29 +414,20 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (entering)
         {
-            if (!IsWindowsVersionFilterEnabled)
-            {
-                IsWindowsVersionFilterEnabled = true;
-                _compatibleSettingsRegistry.SetFilterEnabled(true);
-                _eventBus.Publish(new FilterStateChangedEvent(true));
-            }
+            _windowsVersionFilterService.ForceFilterOn();
         }
         else
         {
-            _ = RestoreFilterPreferenceAsync();
+            _ = _windowsVersionFilterService.RestoreFilterPreferenceAsync();
         }
     }
 
-    private async Task RestoreFilterPreferenceAsync()
+    /// <summary>
+    /// Syncs the ViewModel's IsWindowsVersionFilterEnabled property when the service state changes.
+    /// </summary>
+    private void OnFilterStateChanged(object? sender, bool isEnabled)
     {
-        var savedPreference = await _preferencesService.GetPreferenceAsync(
-            UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
-        if (IsWindowsVersionFilterEnabled != savedPreference)
-        {
-            IsWindowsVersionFilterEnabled = savedPreference;
-            _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
-            _eventBus.Publish(new FilterStateChangedEvent(savedPreference));
-        }
+        IsWindowsVersionFilterEnabled = isEnabled;
     }
 
     #endregion

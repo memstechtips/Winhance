@@ -13,7 +13,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppUninstallService(
-    IWinGetService winGetService,
+    IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,
     IInteractiveUserService interactiveUserService,
@@ -89,7 +89,7 @@ public class AppUninstallService(
                 source = "winget";
             }
 
-            var success = await winGetService.UninstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
+            var success = await winGetPackageInstaller.UninstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
 
             if (!success)
             {

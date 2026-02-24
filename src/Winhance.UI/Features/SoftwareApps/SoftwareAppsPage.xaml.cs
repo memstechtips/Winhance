@@ -6,9 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
-using Winhance.UI.Features.SoftwareApps.Views;
 
 namespace Winhance.UI.Features.SoftwareApps;
 
@@ -160,56 +158,4 @@ public sealed partial class SoftwareAppsPage : Page
         e.Column.SortDirection = newDirection;
     }
 
-    private async void HelpButton_Click(object sender, RoutedEventArgs e)
-    {
-        var localization = App.Services.GetRequiredService<Core.Features.Common.Interfaces.ILocalizationService>();
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            CloseButtonText = localization.GetString("Help_CloseHelp"),
-            DefaultButton = ContentDialogButton.Close,
-        };
-
-        // Set theme and semi-transparent background so Mica/Acrylic backdrop shows through
-        if (this.XamlRoot?.Content is FrameworkElement rootElement)
-        {
-            dialog.RequestedTheme = rootElement.ActualTheme == ElementTheme.Dark
-                ? ElementTheme.Dark
-                : ElementTheme.Light;
-        }
-        var baseColor = dialog.RequestedTheme == ElementTheme.Dark
-            ? Windows.UI.Color.FromArgb(255, 44, 44, 44)
-            : Windows.UI.Color.FromArgb(255, 243, 243, 243);
-        dialog.Background = new AcrylicBrush
-        {
-            TintColor = baseColor,
-            TintOpacity = 0.65,
-            TintLuminosityOpacity = 0.75,
-            FallbackColor = baseColor
-        };
-
-        if (ViewModel.IsWindowsAppsTabSelected)
-        {
-            dialog.Title = localization.GetString("Help_WindowsApps_Title");
-            var scheduledTaskService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.IScheduledTaskService>();
-            var logService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.ILogService>();
-            var fileSystemService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.IFileSystemService>();
-
-            var vm = new RemovalStatusContainerViewModel(scheduledTaskService, logService, fileSystemService);
-            var content = new WindowsAppsHelpContent(localization);
-            content.DataContext = vm;
-            dialog.Content = content;
-
-            _ = vm.RefreshAllStatusesAsync();
-            await dialog.ShowAsync();
-            vm.Dispose();
-        }
-        else
-        {
-            dialog.Title = localization.GetString("Help_ExternalApps_Title");
-            dialog.Content = new ExternalAppsHelpContent(localization);
-            await dialog.ShowAsync();
-        }
-    }
 }

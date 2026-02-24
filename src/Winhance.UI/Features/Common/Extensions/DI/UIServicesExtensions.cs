@@ -49,6 +49,12 @@ public static class UIServicesExtensions
         // Startup Notification Service (Singleton - Shows backup notification after startup)
         services.AddSingleton<IStartupNotificationService, StartupNotificationService>();
 
+        // Startup Orchestrator (Singleton - Orchestrates startup phases for testability)
+        services.AddSingleton<IStartupOrchestrator, StartupOrchestrator>();
+
+        // Windows Version Filter Service (Singleton - Filter state, persistence, review mode)
+        services.AddSingleton<IWindowsVersionFilterService, WindowsVersionFilterService>();
+
         // Configuration Services (Singleton - Import/Export/Review)
         services.AddSingleton<IConfigExportService, ConfigExportService>();
         services.AddSingleton<IConfigLoadService, ConfigLoadService>();

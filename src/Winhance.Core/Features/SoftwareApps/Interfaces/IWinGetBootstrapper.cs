@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
-public interface IWinGetService
+/// <summary>
+/// Handles WinGet/AppInstaller bootstrapping, upgrade, and readiness checks.
+/// </summary>
+public interface IWinGetBootstrapper
 {
     /// <summary>
     /// Raised after WinGet is successfully installed and the COM API is verified ready.
@@ -21,12 +21,7 @@ public interface IWinGetService
     /// </summary>
     bool IsSystemWinGetAvailable { get; }
 
-    Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default);
-    Task<bool> UninstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default);
     Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default);
-    Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default);
-    Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default);
-    Task<HashSet<string>> GetInstalledPackageIdsAsync(CancellationToken cancellationToken = default);
     Task<bool> UpgradeAppInstallerAsync(CancellationToken cancellationToken = default);
 }

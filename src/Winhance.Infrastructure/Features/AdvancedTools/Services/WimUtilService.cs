@@ -21,7 +21,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
     {
         private readonly ILogService _logService;
         private readonly HttpClient _httpClient;
-        private readonly IWinGetService _winGetService;
+        private readonly IWinGetPackageInstaller _winGetPackageInstaller;
+        private readonly IWinGetBootstrapper _winGetBootstrapper;
         private readonly ILocalizationService _localization;
         private readonly IProcessExecutor _processExecutor;
         private readonly IDriverCategorizer _driverCategorizer;
@@ -38,7 +39,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         public WimUtilService(
             ILogService logService,
             HttpClient httpClient,
-            IWinGetService winGetService,
+            IWinGetPackageInstaller winGetPackageInstaller,
+            IWinGetBootstrapper winGetBootstrapper,
             ILocalizationService localization,
             IProcessExecutor processExecutor,
             IDriverCategorizer driverCategorizer,
@@ -46,7 +48,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             _logService = logService;
             _httpClient = httpClient;
-            _winGetService = winGetService;
+            _winGetPackageInstaller = winGetPackageInstaller;
+            _winGetBootstrapper = winGetBootstrapper;
             _localization = localization;
             _processExecutor = processExecutor;
             _driverCategorizer = driverCategorizer;
@@ -720,7 +723,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "Verifying winget availability"
                 });
 
-                var wingetInstalled = await _winGetService.IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false);
+                var wingetInstalled = await _winGetPackageInstaller.IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false);
 
                 if (!wingetInstalled)
                 {
@@ -730,7 +733,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         TerminalOutput = "winget is required for this installation method"
                     });
 
-                    var wingetInstallSuccess = await _winGetService.InstallWinGetAsync(cancellationToken).ConfigureAwait(false);
+                    var wingetInstallSuccess = await _winGetBootstrapper.InstallWinGetAsync(cancellationToken).ConfigureAwait(false);
                     if (!wingetInstallSuccess)
                     {
                         _logService.LogError("Failed to install winget");
@@ -753,7 +756,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 });
 
                 // Prefer system winget (kept up-to-date via Store) over bundled CLI
-                var systemAvailable = _winGetService.IsSystemWinGetAvailable
+                var systemAvailable = _winGetBootstrapper.IsSystemWinGetAvailable
                     || WinGetCliRunner.IsSystemWinGetAvailable();
 
                 string wingetExe;

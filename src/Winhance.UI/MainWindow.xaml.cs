@@ -12,7 +12,6 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.UI.Features.AdvancedTools;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
@@ -433,176 +432,56 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to set loading overlay text: {ex.Message}"); }
 
-        _ = RunStartupSequenceAsync();
+        _ = RunStartupAndCompleteAsync();
     }
 
     /// <summary>
-    /// Orchestrates all startup operations asynchronously while updating the loading overlay.
+    /// Delegates startup to the orchestrator, then dispatches CompleteStartupAsync on the UI thread.
     /// </summary>
-    private async Task RunStartupSequenceAsync()
+    private async Task RunStartupAndCompleteAsync()
     {
         try
         {
-            // 1. Initialize settings registry (was blocking in App.xaml.cs before)
-            UpdateLoadingStatus("Loading_InitializingSettings");
-            StartupLogger.Log("MainWindow", "Startup: Initializing settings registry...");
-            try
+            var orchestrator = App.Services.GetRequiredService<IStartupOrchestrator>();
+
+            var statusProgress = new Progress<string>(localizationKey =>
             {
-                var settingsRegistry = App.Services.GetRequiredService<ICompatibleSettingsRegistry>();
-                await settingsRegistry.InitializeAsync().ConfigureAwait(false);
-
-                var settingsPreloader = App.Services.GetRequiredService<IGlobalSettingsPreloader>();
-                await settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
-                StartupLogger.Log("MainWindow", "Startup: Settings registry initialized");
-
-                // Initialize tooltip event handler (constructor subscribes to EventBus)
-                App.Services.GetRequiredService<TooltipRefreshEventHandler>();
-
-                // Pre-cache regedit icon for Technical Details panel
-                RegeditIconProvider.GetIconAsync().FireAndForget(_logService!);
-            }
-            catch (Exception ex)
-            {
-                StartupLogger.Log("MainWindow", $"Startup: Settings registry FAILED: {ex.Message}");
-                _logService?.LogWarning($"Failed to initialize settings registry: {ex.Message}");
-            }
-
-            // 2. User backup config (first-run only)
-            try
-            {
-                var preferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
-                var backupCompleted = preferencesService.GetPreference(
-                    UserPreferenceKeys.InitialConfigBackupCompleted, "false");
-                if (!string.Equals(backupCompleted, "true", StringComparison.OrdinalIgnoreCase))
+                DispatcherQueue.TryEnqueue(() =>
                 {
-                    UpdateLoadingStatus("Loading_CreatingConfigBackup");
-                    StartupLogger.Log("MainWindow", "Startup: Creating user backup config...");
-                    var configService = App.Services.GetRequiredService<IConfigurationService>();
-
-                    var backupTask = configService.CreateUserBackupConfigAsync();
-                    var completed = await Task.WhenAny(
-                        backupTask, Task.Delay(TimeSpan.FromSeconds(90))).ConfigureAwait(false);
-
-                    if (completed == backupTask)
+                    try
                     {
-                        await backupTask; // observe exceptions
-                        await preferencesService.SetPreferenceAsync(
-                            UserPreferenceKeys.InitialConfigBackupCompleted, "true");
-                        StartupLogger.Log("MainWindow", "Startup: User backup config done");
+                        var localizationService = App.Services.GetService<ILocalizationService>();
+                        LoadingStatusText.Text = localizationService?.GetString(localizationKey) ?? localizationKey;
                     }
-                    else
+                    catch
                     {
-                        StartupLogger.Log("MainWindow",
-                            "Startup: User backup config TIMED OUT (will retry next launch)");
-                        _logService?.LogWarning(
-                            "User backup config timed out after 90s — will retry next launch");
+                        LoadingStatusText.Text = localizationKey;
                     }
-                }
-                else
-                {
-                    StartupLogger.Log("MainWindow", "Startup: User backup config already completed");
-                }
-            }
-            catch (Exception ex)
-            {
-                StartupLogger.Log("MainWindow", $"Startup: User backup config FAILED: {ex.Message}");
-                _logService?.LogWarning($"User backup config failed: {ex.Message}");
-            }
+                });
+            });
 
-            // 3. System restore point (respects SkipSystemBackup preference)
-            try
+            var detailedProgress = new Progress<Core.Features.Common.Models.TaskProgressDetail>(detail =>
             {
-                var preferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
-                var skipBackup = preferencesService.GetPreference(UserPreferenceKeys.SkipSystemBackup, "false");
-                if (!string.Equals(skipBackup, "true", StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(detail.StatusText))
                 {
-                    UpdateLoadingStatus("Loading_CheckingSystemProtection");
-                    StartupLogger.Log("MainWindow", "Startup: Checking system protection...");
-                    var backupService = App.Services.GetRequiredService<ISystemBackupService>();
-                    var backupProgress = new Progress<Core.Features.Common.Models.TaskProgressDetail>(detail =>
+                    DispatcherQueue.TryEnqueue(() =>
                     {
-                        if (!string.IsNullOrEmpty(detail.StatusText))
-                        {
-                            DispatcherQueue.TryEnqueue(() =>
-                            {
-                                try { LoadingStatusText.Text = detail.StatusText; } catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update loading status text: {ex.Message}"); }
-                            });
-                        }
+                        try { LoadingStatusText.Text = detail.StatusText; }
+                        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update loading status text: {ex.Message}"); }
                     });
-                    _backupResult = await backupService.EnsureInitialBackupsAsync(backupProgress).ConfigureAwait(false);
-                    StartupLogger.Log("MainWindow", "Startup: System protection check done");
                 }
-                else
-                {
-                    StartupLogger.Log("MainWindow", "Startup: System backup skipped (user preference)");
-                }
-            }
-            catch (Exception ex)
-            {
-                StartupLogger.Log("MainWindow", $"Startup: System backup FAILED: {ex.Message}");
-                _logService?.LogWarning($"System backup failed: {ex.Message}");
-            }
+            });
 
-            // 4. Script migration
-            try
-            {
-                UpdateLoadingStatus("Loading_MigratingScripts");
-                StartupLogger.Log("MainWindow", "Startup: Migrating scripts...");
-                var migrationService = App.Services.GetRequiredService<IScriptMigrationService>();
-                await migrationService.MigrateFromOldPathsAsync().ConfigureAwait(false);
-                StartupLogger.Log("MainWindow", "Startup: Script migration done");
-            }
-            catch (Exception ex)
-            {
-                StartupLogger.Log("MainWindow", $"Startup: Script migration FAILED: {ex.Message}");
-                _logService?.LogWarning($"Script migration failed: {ex.Message}");
-            }
-
-            // 5. Script updates
-            try
-            {
-                UpdateLoadingStatus("Loading_CheckingScripts");
-                StartupLogger.Log("MainWindow", "Startup: Checking for script updates...");
-                var updateService = App.Services.GetRequiredService<IRemovalScriptUpdateService>();
-                await updateService.CheckAndUpdateScriptsAsync().ConfigureAwait(false);
-                StartupLogger.Log("MainWindow", "Startup: Script update check done");
-            }
-            catch (Exception ex)
-            {
-                StartupLogger.Log("MainWindow", $"Startup: Script update check FAILED: {ex.Message}");
-                _logService?.LogWarning($"Script update check failed: {ex.Message}");
-            }
-
-            // 6. Complete startup — navigate to SoftwareApps and wait for it to finish loading
-            UpdateLoadingStatus("Loading_PreparingApp");
-            StartupLogger.Log("MainWindow", "Startup: Completing startup...");
-            DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
+            var result = await orchestrator.RunStartupSequenceAsync(statusProgress, detailedProgress).ConfigureAwait(false);
+            _backupResult = result.BackupResult;
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("MainWindow", $"Startup: RunStartupSequenceAsync EXCEPTION: {ex}");
-            // Even on failure, try to complete startup so the app is usable
-            DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
+            StartupLogger.Log("MainWindow", $"Startup: RunStartupAndCompleteAsync EXCEPTION: {ex}");
         }
-    }
 
-    /// <summary>
-    /// Updates the loading status text on the UI thread.
-    /// </summary>
-    private void UpdateLoadingStatus(string localizationKey)
-    {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            try
-            {
-                var localizationService = App.Services.GetService<ILocalizationService>();
-                LoadingStatusText.Text = localizationService?.GetString(localizationKey) ?? localizationKey;
-            }
-            catch
-            {
-                LoadingStatusText.Text = localizationKey;
-            }
-        });
+        // Always complete startup on the UI thread so the app is usable
+        DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
     }
 
     /// <summary>

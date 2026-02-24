@@ -9,6 +9,7 @@ using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.Core.Features.Common.Events;
 
@@ -115,8 +116,14 @@ public static class DomainServicesExtensions
         // App Services (Scoped - Business logic)
         services.AddScoped<IAppLoadingService, AppLoadingService>();
 
-        // WinGet Service
-        services.AddSingleton<IWinGetService, WinGetService>();
+        // WinGet decomposed services
+        services.AddSingleton<WinGetComSession>();
+        services.AddSingleton<IWinGetBootstrapper, WinGetBootstrapper>();
+        services.AddSingleton<IWinGetDetectionService, WinGetDetectionService>();
+        services.AddSingleton<IWinGetPackageInstaller, WinGetPackageInstaller>();
+
+        // WinGet Startup Service (Singleton - Handles WinGet/AppInstaller readiness on startup)
+        services.AddSingleton<IWinGetStartupService, WinGetStartupService>();
 
         // Chocolatey Services (Fallback package manager)
         services.AddSingleton<IChocolateyService, ChocolateyService>();

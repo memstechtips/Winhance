@@ -18,7 +18,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppStatusDiscoveryService(
     ILogService logService,
-    IWinGetService winGetService,
+    IWinGetBootstrapper winGetBootstrapper,
+    IWinGetDetectionService winGetDetectionService,
     IChocolateyService chocolateyService,
     IInteractiveUserService interactiveUserService,
     IPowerShellRunner powerShellRunner) : IAppStatusDiscoveryService
@@ -403,14 +404,14 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            bool winGetReady = await winGetService.EnsureWinGetReadyAsync().ConfigureAwait(false);
+            bool winGetReady = await winGetBootstrapper.EnsureWinGetReadyAsync().ConfigureAwait(false);
             if (!winGetReady)
             {
                 logService.LogWarning("WinGet unavailable - skipping WinGet detection");
                 return null;
             }
 
-            _cachedWinGetPackageIds = await winGetService.GetInstalledPackageIdsAsync().ConfigureAwait(false);
+            _cachedWinGetPackageIds = await winGetDetectionService.GetInstalledPackageIdsAsync().ConfigureAwait(false);
             logService.LogInformation($"WinGet: Fetched {_cachedWinGetPackageIds.Count} installed package IDs");
             return _cachedWinGetPackageIds;
         }

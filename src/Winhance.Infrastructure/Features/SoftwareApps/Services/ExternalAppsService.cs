@@ -15,7 +15,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class ExternalAppsService(
     ILogService logService,
-    IWinGetService winGetService,
+    IWinGetPackageInstaller winGetPackageInstaller,
+    IWinGetDetectionService winGetDetectionService,
+    IWinGetBootstrapper winGetBootstrapper,
     IAppStatusDiscoveryService appStatusDiscoveryService,
     IAppUninstallService appUninstallService,
     IDirectDownloadService directDownloadService,
@@ -29,8 +31,8 @@ public class ExternalAppsService(
 
     public event EventHandler? WinGetReady
     {
-        add => winGetService.WinGetInstalled += value;
-        remove => winGetService.WinGetInstalled -= value;
+        add => winGetBootstrapper.WinGetInstalled += value;
+        remove => winGetBootstrapper.WinGetInstalled -= value;
     }
 
     public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
@@ -80,10 +82,10 @@ public class ExternalAppsService(
                 return OperationResult<bool>.Failed("No WinGet package ID or Store ID specified");
             }
 
-            var installerType = await winGetService.GetInstallerTypeAsync(packageId, cancellationToken).ConfigureAwait(false);
+            var installerType = await winGetDetectionService.GetInstallerTypeAsync(packageId, cancellationToken).ConfigureAwait(false);
             var isPortable = IsPortableInstallerType(installerType);
 
-            var wingetResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken).ConfigureAwait(false);
+            var wingetResult = await winGetPackageInstaller.InstallPackageAsync(packageId, source, item.Name, cancellationToken).ConfigureAwait(false);
 
             if (wingetResult.Success)
             {
