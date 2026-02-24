@@ -18,7 +18,7 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 /// <summary>
 /// ViewModel for the Windows Apps tab in the SoftwareApps feature.
 /// </summary>
-public partial class WindowsAppsViewModel : BaseViewModel
+public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProvider
 {
     private readonly IWindowsAppsService _windowsAppsService;
     private readonly IAppInstallationService _appInstallationService;

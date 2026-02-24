@@ -7,7 +7,6 @@ using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Utilities;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -20,8 +19,8 @@ public class ConfigExportService : IConfigExportService
     private readonly IGlobalSettingsPreloader _settingsPreloader;
     private readonly ISystemSettingsDiscoveryService _discoveryService;
     private readonly IInteractiveUserService _interactiveUserService;
-    private readonly WindowsAppsViewModel _windowsAppsVM;
-    private readonly ExternalAppsViewModel _externalAppsVM;
+    private readonly IWindowsAppsItemsProvider _windowsAppsVM;
+    private readonly IExternalAppsItemsProvider _externalAppsVM;
     private readonly IFileSystemService _fileSystemService;
     private readonly IMainWindowProvider _mainWindowProvider;
 
@@ -33,8 +32,8 @@ public class ConfigExportService : IConfigExportService
         IGlobalSettingsPreloader settingsPreloader,
         ISystemSettingsDiscoveryService discoveryService,
         IInteractiveUserService interactiveUserService,
-        WindowsAppsViewModel windowsAppsVM,
-        ExternalAppsViewModel externalAppsVM,
+        IWindowsAppsItemsProvider windowsAppsVM,
+        IExternalAppsItemsProvider externalAppsVM,
         IFileSystemService fileSystemService,
         IMainWindowProvider mainWindowProvider)
     {

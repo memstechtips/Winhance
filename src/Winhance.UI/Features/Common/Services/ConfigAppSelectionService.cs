@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -8,13 +9,13 @@ namespace Winhance.UI.Features.Common.Services;
 public class ConfigAppSelectionService : IConfigAppSelectionService
 {
     private readonly ILogService _logService;
-    private readonly WindowsAppsViewModel _windowsAppsVM;
-    private readonly ExternalAppsViewModel _externalAppsVM;
+    private readonly IWindowsAppsItemsProvider _windowsAppsVM;
+    private readonly IExternalAppsItemsProvider _externalAppsVM;
 
     public ConfigAppSelectionService(
         ILogService logService,
-        WindowsAppsViewModel windowsAppsVM,
-        ExternalAppsViewModel externalAppsVM)
+        IWindowsAppsItemsProvider windowsAppsVM,
+        IExternalAppsItemsProvider externalAppsVM)
     {
         _logService = logService;
         _windowsAppsVM = windowsAppsVM;

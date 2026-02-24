@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -66,15 +67,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel)
     {
-        var viewModel = new SettingItemViewModel(
-            _settingApplicationService,
-            _logService,
-            _dispatcherService,
-            _dialogService,
-            _localizationService,
-            _eventBus,
-            _userPreferencesService,
-            _regeditLauncher)
+        var config = new SettingItemViewModelConfig
         {
             SettingDefinition = setting,
             ParentFeatureViewModel = parentViewModel,
@@ -90,6 +83,17 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
             ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply"
         };
+
+        var viewModel = new SettingItemViewModel(
+            config,
+            _settingApplicationService,
+            _logService,
+            _dispatcherService,
+            _dialogService,
+            _localizationService,
+            _eventBus,
+            _userPreferencesService,
+            _regeditLauncher);
 
         // Set lock state for advanced settings
         if (setting.RequiresAdvancedUnlock)

@@ -1,9 +1,11 @@
+using Winhance.UI.Features.Common.Interfaces;
+
 namespace Winhance.UI.Features.Optimize.Models;
 
 /// <summary>
 /// Contains metadata for an optimization section.
 /// </summary>
-public class OptimizeSectionInfo
+public class OptimizeSectionInfo : ISectionInfo
 {
     /// <summary>
     /// Gets the unique key for the section (e.g., "Sound", "Privacy").

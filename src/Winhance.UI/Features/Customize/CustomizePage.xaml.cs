@@ -11,7 +11,7 @@ using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
 using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
-using Winhance.UI.Features.Customize.Models;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Customize.Pages;
 using Winhance.UI.Features.Customize.ViewModels;
 

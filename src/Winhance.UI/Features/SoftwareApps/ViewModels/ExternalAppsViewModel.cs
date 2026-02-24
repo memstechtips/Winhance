@@ -19,7 +19,7 @@ public record AppCategory(string GroupName, string DisplayName, string IconGlyph
 /// <summary>
 /// ViewModel for the External Apps tab in the SoftwareApps feature.
 /// </summary>
-public partial class ExternalAppsViewModel : BaseViewModel
+public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsProvider
 {
     private readonly IExternalAppsService _externalAppsService;
     private readonly ITaskProgressService _progressService;

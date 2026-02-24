@@ -4,7 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Optimize"
-    xmlns:models="using:Winhance.UI.Features.Optimize.Models"
+    xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     x:DefaultBindMode="OneWay"

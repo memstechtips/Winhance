@@ -277,6 +277,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public IAsyncRelayCommand ExecuteActionCommand { get; }
 
     public SettingItemViewModel(
+        SettingItemViewModelConfig config,
         ISettingApplicationService settingApplicationService,
         ILogService logService,
         IDispatcherService dispatcherService,
@@ -293,13 +294,22 @@ public partial class SettingItemViewModel : BaseViewModel
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
 
-        // Initialize partial property defaults
-        SettingId = string.Empty;
-        Name = string.Empty;
-        Description = string.Empty;
-        GroupName = string.Empty;
-        Icon = string.Empty;
-        IconPack = "Material";
+        // Unpack config data
+        SettingDefinition = config.SettingDefinition;
+        ParentFeatureViewModel = config.ParentFeatureViewModel;
+        SettingId = config.SettingId;
+        Name = config.Name;
+        Description = config.Description;
+        GroupName = config.GroupName;
+        Icon = config.Icon;
+        IconPack = config.IconPack;
+        InputType = config.InputType;
+        IsSelected = config.IsSelected;
+        OnText = config.OnText;
+        OffText = config.OffText;
+        ActionButtonText = config.ActionButtonText;
+
+        // Initialize remaining defaults
         Status = string.Empty;
         ComboBoxOptions = new ObservableCollection<ComboBoxOption>();
         MaxValue = 100;

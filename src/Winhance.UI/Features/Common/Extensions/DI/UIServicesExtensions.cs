@@ -130,8 +130,11 @@ public static class UIServicesExtensions
         services.AddSingleton<IAutounattendXmlGeneratorService, AutounattendXmlGeneratorService>();
 
         // SoftwareApps ViewModels (Singleton - shared between UI and ConfigurationService)
+        // Concrete VMs for XAML binding; interface aliases for service-layer decoupling (F-9)
         services.AddSingleton<WindowsAppsViewModel>();
+        services.AddSingleton<IWindowsAppsItemsProvider>(sp => sp.GetRequiredService<WindowsAppsViewModel>());
         services.AddSingleton<ExternalAppsViewModel>();
+        services.AddSingleton<IExternalAppsItemsProvider>(sp => sp.GetRequiredService<ExternalAppsViewModel>());
         services.AddSingleton<SoftwareAppsViewModel>();
 
         return services;
