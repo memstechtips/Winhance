@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -90,7 +91,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     InputType.Toggle => enable ? 1 : 0,
                     InputType.Selection when value is int index => comboBoxResolver.GetValueFromIndex(setting, index),
-                    InputType.NumericRange when value != null => ConvertToSystemUnits(ConvertNumericValue(value), GetDisplayUnits(setting)),
+                    InputType.NumericRange when value != null => ConvertToSystemUnits(NumericConversionHelper.ConvertNumericValue(value), GetDisplayUnits(setting)),
                     _ => throw new NotSupportedException($"Input type '{setting.InputType}' not supported for PowerCfg operations")
                 };
 
@@ -101,7 +102,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return OperationResult.Succeeded();
         }
 
-        private async Task ExecutePowerCfgSettings(List<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)
+        private async Task ExecutePowerCfgSettings(IReadOnlyList<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)
         {
             var activeSchemeResult = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out var activeSchemePtr);
             if (activeSchemeResult != PowerProf.ERROR_SUCCESS)
@@ -187,20 +188,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref activeSchemeGuid);
 
             logService.Log(LogLevel.Info, $"[PowerCfgApplier] Applied {changeCount} powercfg changes via P/Invoke");
-        }
-
-        private int ConvertNumericValue(object value)
-        {
-            return value switch
-            {
-                int intVal => intVal,
-                long longVal => (int)longVal,
-                double doubleVal => (int)doubleVal,
-                float floatVal => (int)floatVal,
-                string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
-                System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
-                _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to numeric value")
-            };
         }
 
         private int ConvertToSystemUnits(int displayValue, string? units)

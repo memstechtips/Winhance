@@ -33,12 +33,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// Initializes a new instance of the <see cref="InternetConnectivityService"/> class.
         /// </summary>
         /// <param name="logService">The log service.</param>
-        public InternetConnectivityService(ILogService logService)
+        public InternetConnectivityService(ILogService logService, HttpClient httpClient)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-
-            // Initialize HttpClient with a timeout
-            _httpClient = new HttpClient();
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _httpClient.Timeout = TimeSpan.FromSeconds(5); // Short timeout for connectivity checks
         }
 

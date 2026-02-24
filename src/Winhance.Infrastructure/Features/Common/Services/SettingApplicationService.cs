@@ -148,16 +148,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
             var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
 
-            var method = domainService.GetType().GetMethod(commandString);
-            if (method == null)
-                throw new NotSupportedException($"Method '{commandString}' not found on service '{domainService.GetType().Name}'");
-
-            if (!typeof(Task).IsAssignableFrom(method.ReturnType))
-                throw new NotSupportedException($"Method '{commandString}' must return Task for async execution");
-
-            var result = method.Invoke(domainService, null);
-            if (result is Task task)
-                await task.ConfigureAwait(false);
+            if (domainService is IActionCommandProvider commandProvider)
+            {
+                if (!commandProvider.SupportedCommands.Contains(commandString))
+                    throw new NotSupportedException($"Command '{commandString}' not supported by '{domainService.GetType().Name}'");
+                await commandProvider.ExecuteCommandAsync(commandString).ConfigureAwait(false);
+            }
+            else
+            {
+                throw new NotSupportedException($"Service '{domainService.GetType().Name}' does not support action commands");
+            }
 
             if (applyRecommended)
             {

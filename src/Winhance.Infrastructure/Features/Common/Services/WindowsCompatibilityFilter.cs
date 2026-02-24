@@ -58,7 +58,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     bool isWindows11Only = false;
                     int? minimumBuild = null;
                     int? maximumBuild = null;
-                    List<(int MinBuild, int MaxBuild)>? supportedRanges = null;
+                    IReadOnlyList<(int MinBuild, int MaxBuild)>? supportedRanges = null;
 
                     // Extract version info from SettingDefinition
                     if (setting is SettingDefinition appSetting)

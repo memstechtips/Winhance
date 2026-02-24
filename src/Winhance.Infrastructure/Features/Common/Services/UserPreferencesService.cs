@@ -170,25 +170,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 try
                 {
-                    if (key == "DontShowSupport" && typeof(T) == typeof(bool))
-                    {
-                        if (value != null)
-                        {
-                            string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
-                            if (valueStr == "true" || valueStr == "1")
-                            {
-                                return (T)(object)true;
-                            }
-                            else if (valueStr == "false" || valueStr == "0")
-                            {
-                                return (T)(object)false;
-                            }
-                        }
-                    }
-
                     if (value is T typedValue)
                     {
                         return typedValue;
+                    }
+
+                    // Handle bool conversion from non-JToken types (raw strings/numbers from JSON)
+                    if (typeof(T) == typeof(bool) && value != null)
+                    {
+                        string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
+                        if (valueStr == "true" || valueStr == "1")
+                            return (T)(object)true;
+                        if (valueStr == "false" || valueStr == "0")
+                            return (T)(object)false;
                     }
 
                     if (value is Newtonsoft.Json.Linq.JToken jToken)
@@ -309,6 +303,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     if (value is T typedValue)
                     {
                         return typedValue;
+                    }
+
+                    // Handle bool conversion from non-JToken types (raw strings/numbers from JSON)
+                    if (typeof(T) == typeof(bool) && value != null)
+                    {
+                        string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
+                        if (valueStr == "true" || valueStr == "1")
+                            return (T)(object)true;
+                        if (valueStr == "false" || valueStr == "0")
+                            return (T)(object)false;
                     }
 
                     if (value is Newtonsoft.Json.Linq.JToken jToken)

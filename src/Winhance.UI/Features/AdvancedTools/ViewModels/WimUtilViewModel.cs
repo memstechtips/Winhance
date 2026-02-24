@@ -38,6 +38,7 @@ public partial class WimUtilViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IProcessExecutor _processExecutor;
+    private readonly IFileSystemService _fileSystemService;
     private readonly Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel _windowsAppsViewModel;
     private CancellationTokenSource? _cancellationTokenSource;
 
@@ -164,7 +165,8 @@ public partial class WimUtilViewModel : ObservableObject
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IProcessExecutor processExecutor,
-        Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel windowsAppsViewModel)
+        Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel windowsAppsViewModel,
+        IFileSystemService fileSystemService)
     {
         _wimUtilService = wimUtilService;
         _taskProgressService = taskProgressService;
@@ -175,6 +177,7 @@ public partial class WimUtilViewModel : ObservableObject
         _windowsAppsViewModel = windowsAppsViewModel;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+        _fileSystemService = fileSystemService;
 
         // Initialize partial property defaults
         CurrentStep = 1;
@@ -190,7 +193,7 @@ public partial class WimUtilViewModel : ObservableObject
         OutputIsoPath = string.Empty;
 
         XmlStatus = _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
-        WorkingDirectory = Path.Combine(Path.GetTempPath(), "WinhanceWIM");
+        WorkingDirectory = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM");
 
         InitializeStepStates();
         CreateActionCards();
@@ -258,7 +261,7 @@ public partial class WimUtilViewModel : ObservableObject
         {
             IconPath = GetResourceIconPath("ExplorerIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title"),
-            Description = string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), Path.Combine(Path.GetTempPath(), "WinhanceWIM")),
+            Description = string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM")),
             ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button"),
             ButtonCommand = SelectWorkingDirectoryCommand,
             IsEnabled = true
@@ -395,10 +398,10 @@ public partial class WimUtilViewModel : ObservableObject
         }
         else
         {
-            WorkingDirectory = Path.Combine(selectedPath, "WinhanceWIM");
+            WorkingDirectory = _fileSystemService.CombinePath(selectedPath, "WinhanceWIM");
             try
             {
-                Directory.CreateDirectory(WorkingDirectory);
+                _fileSystemService.CreateDirectory(WorkingDirectory);
                 SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
                 CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
             }
@@ -415,24 +418,24 @@ public partial class WimUtilViewModel : ObservableObject
     {
         try
         {
-            var pathRoot = Path.GetPathRoot(path);
+            var pathRoot = _fileSystemService.GetPathRoot(path);
             if (!string.IsNullOrEmpty(pathRoot) && path.TrimEnd('\\', '/').Equals(pathRoot.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
                 return false;
 
             var driveInfo = new DriveInfo(path);
             if (driveInfo.DriveType == DriveType.CDRom) return false;
 
-            var testFile = Path.Combine(path, $".winhance_write_test_{Guid.NewGuid()}.tmp");
+            var testFile = _fileSystemService.CombinePath(path, $".winhance_write_test_{Guid.NewGuid()}.tmp");
             try
             {
-                await File.WriteAllTextAsync(testFile, "test");
-                File.Delete(testFile);
+                await _fileSystemService.WriteAllTextAsync(testFile, "test");
+                _fileSystemService.DeleteFile(testFile);
             }
             catch (Exception ex) { _logService.LogDebug($"Write test failed for directory '{path}': {ex.Message}"); return false; }
 
-            var extractedDirs = Directory.GetDirectories(path);
-            var hasSourcesDir = extractedDirs.Any(d => Path.GetFileName(d)?.Equals("sources", StringComparison.OrdinalIgnoreCase) == true);
-            var hasBootDir = extractedDirs.Any(d => Path.GetFileName(d)?.Equals("boot", StringComparison.OrdinalIgnoreCase) == true);
+            var extractedDirs = _fileSystemService.GetDirectories(path);
+            var hasSourcesDir = extractedDirs.Any(d => _fileSystemService.GetFileName(d)?.Equals("sources", StringComparison.OrdinalIgnoreCase) == true);
+            var hasBootDir = extractedDirs.Any(d => _fileSystemService.GetFileName(d)?.Equals("boot", StringComparison.OrdinalIgnoreCase) == true);
 
             return hasSourcesDir && hasBootDir;
         }
@@ -533,7 +536,7 @@ public partial class WimUtilViewModel : ObservableObject
             if (!confirmed) return;
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
-            var outputPath = Path.Combine(WorkingDirectory, "autounattend.xml");
+            var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
             var selectedApps = await ExtractSelectedWindowsAppsAsync();
             var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps);
 
@@ -595,7 +598,7 @@ public partial class WimUtilViewModel : ObservableObject
             DownloadXmlCard.IsComplete = false;
             DownloadXmlCard.HasFailed = false;
 
-            var destinationPath = Path.Combine(WorkingDirectory, "autounattend.xml");
+            var destinationPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => XmlStatus = detail.StatusText ?? _localizationService.GetString("WIMUtil_Status_XmlDownloading"));
 
@@ -779,7 +782,7 @@ public partial class WimUtilViewModel : ObservableObject
             var selectedPath = Win32FileDialogHelper.ShowFolderPicker(_mainWindow, _localizationService.GetString("WIMUtil_FolderDialog_SelectDrivers"));
             if (string.IsNullOrEmpty(selectedPath)) return;
 
-            if (!Directory.Exists(selectedPath))
+            if (!_fileSystemService.DirectoryExists(selectedPath))
             {
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowErrorAsync(
@@ -788,7 +791,7 @@ public partial class WimUtilViewModel : ObservableObject
                 return;
             }
 
-            var hasFiles = Directory.EnumerateFileSystemEntries(selectedPath, "*", SearchOption.AllDirectories).Any();
+            var hasFiles = _fileSystemService.GetFiles(selectedPath, "*", SearchOption.AllDirectories).Length > 0 || _fileSystemService.GetDirectories(selectedPath, "*", SearchOption.AllDirectories).Length > 0;
             if (!hasFiles)
             {
                 SelectCustomDriversCard.HasFailed = true;
@@ -899,7 +902,7 @@ public partial class WimUtilViewModel : ObservableObject
         if (!string.IsNullOrEmpty(path))
         {
             OutputIsoPath = path;
-            SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {Path.GetFileName(OutputIsoPath)}";
+            SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(OutputIsoPath)}";
         }
     }
 
@@ -965,7 +968,7 @@ public partial class WimUtilViewModel : ObservableObject
         {
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
-            try { if (File.Exists(OutputIsoPath)) File.Delete(OutputIsoPath); } catch (Exception ex) { _logService.LogDebug($"Best-effort incomplete ISO cleanup failed: {ex.Message}"); }
+            try { if (_fileSystemService.FileExists(OutputIsoPath)) _fileSystemService.DeleteFile(OutputIsoPath); } catch (Exception ex) { _logService.LogDebug($"Best-effort incomplete ISO cleanup failed: {ex.Message}"); }
             SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateCancelled");
         }
         catch (InsufficientDiskSpaceException spaceEx)
@@ -1084,7 +1087,7 @@ public partial class WimUtilViewModel : ObservableObject
                 : IsIsoCreated
                     ? _localizationService.GetString("WIMUtil_Status_IsoCreated")
                     : !string.IsNullOrEmpty(OutputIsoPath)
-                        ? $"{_localizationService.GetString("WIMUtil_Label_Output")}: {Path.GetFileName(OutputIsoPath)}"
+                        ? $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(OutputIsoPath)}"
                         : _localizationService.GetString("WIMUtil_Status_ReadyToCreateIso");
 
         OnPropertyChanged(nameof(Step1State));
@@ -1338,7 +1341,7 @@ public partial class WimUtilViewModel : ObservableObject
     {
         SelectDirectoryCard.Description = value
             ? _localizationService.GetString("WIMUtil_Label_SelectExtracted")
-            : string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), Path.Combine(Path.GetTempPath(), "WinhanceWIM"));
+            : string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM"));
     }
 
     partial void OnIsExtractionCompleteChanged(bool value)

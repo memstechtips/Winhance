@@ -3,7 +3,6 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -20,7 +19,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private readonly IConfigImportState _configImportState;
     private readonly IConfigAppSelectionService _configAppSelectionService;
     private readonly IConfigLoadService _configLoadService;
-    private readonly WindowsAppsViewModel _windowsAppsVM;
+    private readonly IReviewModeViewModelCoordinator _vmCoordinator;
 
     public ConfigApplicationExecutionService(
         ILogService logService,
@@ -34,7 +33,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         IConfigImportState configImportState,
         IConfigAppSelectionService configAppSelectionService,
         IConfigLoadService configLoadService,
-        WindowsAppsViewModel windowsAppsVM)
+        IReviewModeViewModelCoordinator vmCoordinator)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -47,7 +46,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _configImportState = configImportState;
         _configAppSelectionService = configAppSelectionService;
         _configLoadService = configLoadService;
-        _windowsAppsVM = windowsAppsVM;
+        _vmCoordinator = vmCoordinator;
     }
 
     public async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config, ImportOptions dialogOptions)
@@ -185,7 +184,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             if (hasWindowsApps && importOptions.ProcessWindowsAppsInstallation)
             {
                 _logService.Log(LogLevel.Info, "Processing Windows Apps installation");
-                await _windowsAppsVM.InstallAppsAsync();
+                await _vmCoordinator.InstallWindowsAppsAsync();
             }
 
             // Process External Apps AFTER success dialog dismissal (needs UI thread)
@@ -232,7 +231,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         if (shouldRemoveApps)
         {
             _logService.Log(LogLevel.Info, "Processing Windows Apps removal (parallel branch)");
-            parallelTasks.Add(_windowsAppsVM.RemoveApps(skipConfirmation: true, saveRemovalScripts: saveRemovalScripts));
+            parallelTasks.Add(_vmCoordinator.RemoveWindowsAppsAsync(skipConfirmation: true, saveRemovalScripts: saveRemovalScripts));
         }
 
         // Branch 2: All settings (Optimize + Customize in parallel within)

@@ -15,7 +15,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     public class TaskbarService(
         ILogService logService,
         IWindowsRegistryService windowsRegistryService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService, IActionCommandProvider
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
@@ -98,5 +98,17 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
+        private static readonly HashSet<string> _supportedCommands = new(StringComparer.Ordinal)
+        {
+            nameof(CleanTaskbarAsync)
+        };
+
+        public IReadOnlySet<string> SupportedCommands => _supportedCommands;
+
+        public Task ExecuteCommandAsync(string commandName) => commandName switch
+        {
+            nameof(CleanTaskbarAsync) => CleanTaskbarAsync(),
+            _ => throw new NotSupportedException($"Command '{commandName}' is not supported by {nameof(TaskbarService)}")
+        };
     }
 }

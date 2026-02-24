@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -88,7 +89,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     bool applyValue = setting.InputType switch
                     {
                         InputType.Toggle => enable,
-                        InputType.NumericRange when value != null => ConvertNumericValue(value) != 0,
+                        InputType.NumericRange when value != null => NumericConversionHelper.ConvertNumericValue(value) != 0,
                         InputType.Selection => enable,
                         _ => throw new NotSupportedException($"Input type '{setting.InputType}' not supported for registry operations")
                     };
@@ -219,20 +220,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
             return OperationResult.Succeeded();
-        }
-
-        private static int ConvertNumericValue(object value)
-        {
-            return value switch
-            {
-                int intVal => intVal,
-                long longVal => (int)longVal,
-                double doubleVal => (int)doubleVal,
-                float floatVal => (int)floatVal,
-                string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
-                System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
-                _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to numeric value")
-            };
         }
 
         private async Task RunCommandAsync(string command)

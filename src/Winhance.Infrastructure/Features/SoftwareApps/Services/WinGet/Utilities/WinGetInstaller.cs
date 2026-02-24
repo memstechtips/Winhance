@@ -25,14 +25,14 @@ public class WinGetInstaller
     private const string InstallerFileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle";
     private const string LicenseFileName = "e53e159d00e04f729cc2180cffd1c02e_License1.xml";
 
-    public WinGetInstaller(IPowerShellRunner powerShellRunner, ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null, IFileSystemService? fileSystemService = null)
+    public WinGetInstaller(IPowerShellRunner powerShellRunner, HttpClient httpClient, ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null, IFileSystemService? fileSystemService = null)
     {
         _powerShellRunner = powerShellRunner;
         _logService = logService;
         _localization = localization;
         _taskProgressService = taskProgressService;
         _fileSystemService = fileSystemService!;
-        _httpClient = new HttpClient();
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     public async Task<(bool Success, string Message)> InstallAsync(

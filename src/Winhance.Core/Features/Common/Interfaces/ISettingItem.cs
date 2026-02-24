@@ -15,7 +15,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         string Description { get; }
         string? GroupName { get; }
         InputType InputType { get; }
-        List<SettingDependency> Dependencies { get; }
+        IReadOnlyList<SettingDependency> Dependencies { get; }
 
     }
 }

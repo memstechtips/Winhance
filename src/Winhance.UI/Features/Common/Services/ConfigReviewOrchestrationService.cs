@@ -4,9 +4,6 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Customize.ViewModels;
-using Winhance.UI.Features.Optimize.ViewModels;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -24,12 +21,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IConfigLoadService _configLoadService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IEventBus _eventBus;
-    private readonly ISettingReviewDiffApplier _reviewDiffApplier;
-    private readonly SoftwareAppsViewModel _softwareAppsVM;
-    private readonly WindowsAppsViewModel _windowsAppsVM;
-    private readonly ExternalAppsViewModel _externalAppsVM;
-    private readonly OptimizeViewModel _optimizeVM;
-    private readonly CustomizeViewModel _customizeVM;
+    private readonly IReviewModeViewModelCoordinator _vmCoordinator;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -44,12 +36,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IConfigLoadService configLoadService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
-        ISettingReviewDiffApplier reviewDiffApplier,
-        SoftwareAppsViewModel softwareAppsVM,
-        WindowsAppsViewModel windowsAppsVM,
-        ExternalAppsViewModel externalAppsVM,
-        OptimizeViewModel optimizeVM,
-        CustomizeViewModel customizeVM)
+        IReviewModeViewModelCoordinator vmCoordinator)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -63,12 +50,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _configLoadService = configLoadService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _eventBus = eventBus;
-        _reviewDiffApplier = reviewDiffApplier;
-        _softwareAppsVM = softwareAppsVM;
-        _windowsAppsVM = windowsAppsVM;
-        _externalAppsVM = externalAppsVM;
-        _optimizeVM = optimizeVM;
-        _customizeVM = customizeVM;
+        _vmCoordinator = vmCoordinator;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
@@ -79,7 +61,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         if (_configReviewModeService.IsInReviewMode)
         {
             // Review mode was entered - reapply diffs to any already-loaded singleton VMs
-            ReapplyReviewDiffsToExistingSettings();
+            _vmCoordinator.ReapplyReviewDiffsToExistingSettings();
             return;
         }
 
@@ -93,45 +75,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _logService.Log(LogLevel.Info, "Published ReviewModeExitedEvent to clear review state from all loaded settings");
     }
 
-    /// <summary>
-    /// Reapplies review diffs to all already-loaded SettingItemViewModels.
-    /// Called when entering review mode a second time in the same session,
-    /// since singleton VMs may still have settings loaded from the first import.
-    /// </summary>
-    private void ReapplyReviewDiffsToExistingSettings()
-    {
-        void ReapplyToFeature(ISettingsFeatureViewModel featureVm)
-        {
-            foreach (var setting in featureVm.Settings)
-            {
-                // Clear any stale review state first
-                setting.ClearReviewState();
-                // Build currentState from the VM's actual displayed values
-                // so the fallback ComputeDiff sees accurate state, not defaults
-                var currentState = new SettingStateResult
-                {
-                    IsEnabled = setting.IsSelected,
-                    CurrentValue = setting.SelectedValue
-                };
-                // Re-apply the new diff
-                _reviewDiffApplier.ApplyReviewDiffToViewModel(setting, currentState);
-            }
-        }
-
-        ReapplyToFeature(_optimizeVM.SoundViewModel);
-        ReapplyToFeature(_optimizeVM.UpdateViewModel);
-        ReapplyToFeature(_optimizeVM.NotificationViewModel);
-        ReapplyToFeature(_optimizeVM.PrivacyViewModel);
-        ReapplyToFeature(_optimizeVM.PowerViewModel);
-        ReapplyToFeature(_optimizeVM.GamingViewModel);
-
-        ReapplyToFeature(_customizeVM.ExplorerViewModel);
-        ReapplyToFeature(_customizeVM.StartMenuViewModel);
-        ReapplyToFeature(_customizeVM.TaskbarViewModel);
-        ReapplyToFeature(_customizeVM.WindowsThemeViewModel);
-
-        _logService.Log(LogLevel.Info, "Reapplied review diffs to all existing loaded settings");
-    }
 
     public async Task EnterReviewModeAsync(UnifiedConfigurationFile config)
     {
@@ -193,16 +136,16 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             var selectedSections = new List<string>();
 
             // Check if any Windows Apps are selected and determine action
-            bool hasWindowsApps = _windowsAppsVM.Items?.Any(a => a.IsSelected) == true;
-            bool windowsAppsInstall = _softwareAppsVM.IsWindowsAppsInstallAction;
-            bool windowsAppsRemove = _softwareAppsVM.IsWindowsAppsRemoveAction;
+            bool hasWindowsApps = _vmCoordinator.HasSelectedWindowsApps;
+            bool windowsAppsInstall = _vmCoordinator.IsWindowsAppsInstallAction;
+            bool windowsAppsRemove = _vmCoordinator.IsWindowsAppsRemoveAction;
             if (hasWindowsApps && (windowsAppsInstall || windowsAppsRemove))
                 selectedSections.Add("WindowsApps");
 
             // Check if any External Apps are selected and determine action
-            bool hasExternalApps = _externalAppsVM.Items?.Any(a => a.IsSelected) == true;
-            bool externalAppsInstall = _softwareAppsVM.IsExternalAppsInstallAction;
-            bool externalAppsRemove = _softwareAppsVM.IsExternalAppsRemoveAction;
+            bool hasExternalApps = _vmCoordinator.HasSelectedExternalApps;
+            bool externalAppsInstall = _vmCoordinator.IsExternalAppsInstallAction;
+            bool externalAppsRemove = _vmCoordinator.IsExternalAppsRemoveAction;
             if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
                 selectedSections.Add("ExternalApps");
 
@@ -279,12 +222,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             // Capture current external app UI selections BEFORE exiting review mode
             // This preserves user's checkbox changes made during review
             List<string>? selectedExternalAppIds = null;
-            if (hasExternalApps && _externalAppsVM.Items != null)
+            if (hasExternalApps)
             {
-                selectedExternalAppIds = _externalAppsVM.Items
-                    .Where(a => a.IsSelected)
-                    .Select(a => a.Id ?? a.Name)
-                    .ToList();
+                selectedExternalAppIds = _vmCoordinator.GetSelectedExternalAppIds();
             }
 
             // Confirm Windows Apps removal if remove action is chosen
@@ -353,8 +293,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         // Clear app selections that were set during EnterReviewModeAsync
         await _configAppSelectionService.ClearWindowsAppsSelectionAsync();
 
-        foreach (var item in _externalAppsVM.Items)
-            item.IsSelected = false;
+        _vmCoordinator.ClearExternalAppSelections();
 
         _configReviewModeService.ExitReviewMode();
         _logService.Log(LogLevel.Info, "Review mode cancelled - all selections cleared");

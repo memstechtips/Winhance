@@ -40,18 +40,16 @@ public class DirectDownloadService : IDirectDownloadService
         ILocalizationService localization,
         IInteractiveUserService interactiveUserService,
         IProcessExecutor processExecutor,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        HttpClient httpClient)
     {
         _logService = logService;
         _localization = localization;
         _interactiveUserService = interactiveUserService;
         _processExecutor = processExecutor;
         _fileSystemService = fileSystemService;
-        _httpClient = new HttpClient
-        {
-            Timeout = TimeSpan.FromMinutes(30)
-        };
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Winhance-Download-Manager");
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Winhance-Download-Manager");
     }
 
     public async Task<bool> DownloadAndInstallAsync(

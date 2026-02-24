@@ -31,16 +31,14 @@ public class StoreDownloadService : IStoreDownloadService
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
         IFileSystemService fileSystemService,
+        HttpClient httpClient,
         ILogService? logService = null)
     {
         _taskProgressService = taskProgressService;
         _localization = localization;
         _fileSystemService = fileSystemService;
         _logService = logService;
-        _httpClient = new HttpClient
-        {
-            Timeout = TimeSpan.FromMinutes(10)
-        };
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     public async Task<bool> DownloadAndInstallPackageAsync(

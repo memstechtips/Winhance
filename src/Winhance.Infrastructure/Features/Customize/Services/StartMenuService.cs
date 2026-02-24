@@ -21,7 +21,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IInteractiveUserService interactiveUserService,
         IProcessExecutor processExecutor,
-        IFileSystemService fileSystemService) : IDomainService
+        IFileSystemService fileSystemService) : IDomainService, IActionCommandProvider
     {
         // Caching fields
         private IEnumerable<SettingDefinition>? _cachedSettings;
@@ -71,8 +71,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             {
                 logService.Log(LogLevel.Info, "Starting Windows 10 Start Menu cleaning process");
 
-                await Task.Run(() =>
-                    CleanWindows10StartMenu(scheduledTaskService, logService)
+                await Task.Run(async () =>
+                    await CleanWindows10StartMenu(scheduledTaskService, logService).ConfigureAwait(false)
                 ).ConfigureAwait(false);
 
                 logService.Log(LogLevel.Info, "Windows 10 Start Menu cleaned successfully");
@@ -162,7 +162,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        private void CleanWindows10StartMenu(
+        private async Task CleanWindows10StartMenu(
             IScheduledTaskService? scheduledTaskService = null,
             ILogService? logService = null
         )
@@ -196,7 +196,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 }
 
                 // Also apply to current user immediately
-                ApplyWindows10LayoutToCurrentUser();
+                await ApplyWindows10LayoutToCurrentUser().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -204,7 +204,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        private void ApplyWindows10LayoutToCurrentUser()
+        private async Task ApplyWindows10LayoutToCurrentUser()
         {
             // Set registry values to lock the Start Menu layout for current user
             using (
@@ -228,7 +228,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             TerminateStartMenuExperienceHost();
 
             // Wait for changes to take effect
-            System.Threading.Thread.Sleep(3000);
+            await Task.Delay(3000).ConfigureAwait(false);
 
             // Disable the locked layout so user can customize again
             using (
@@ -499,5 +499,19 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             string[] systemAccounts = { "Public", "Default", "All Users", "Default User" };
             return systemAccounts.Contains(username, StringComparer.OrdinalIgnoreCase);
         }
+        private static readonly HashSet<string> _supportedCommands = new(StringComparer.Ordinal)
+        {
+            nameof(CleanWindows10StartMenuAsync),
+            nameof(CleanWindows11StartMenuAsync)
+        };
+
+        public IReadOnlySet<string> SupportedCommands => _supportedCommands;
+
+        public Task ExecuteCommandAsync(string commandName) => commandName switch
+        {
+            nameof(CleanWindows10StartMenuAsync) => CleanWindows10StartMenuAsync(),
+            nameof(CleanWindows11StartMenuAsync) => CleanWindows11StartMenuAsync(),
+            _ => throw new NotSupportedException($"Command '{commandName}' is not supported by {nameof(StartMenuService)}")
+        };
     }
 }

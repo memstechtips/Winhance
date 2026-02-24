@@ -21,6 +21,7 @@ public class ConfigExportService : IConfigExportService
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly WindowsAppsViewModel _windowsAppsVM;
     private readonly ExternalAppsViewModel _externalAppsVM;
+    private readonly IFileSystemService _fileSystemService;
 
     public ConfigExportService(
         ILogService logService,
@@ -31,7 +32,8 @@ public class ConfigExportService : IConfigExportService
         ISystemSettingsDiscoveryService discoveryService,
         IInteractiveUserService interactiveUserService,
         WindowsAppsViewModel windowsAppsVM,
-        ExternalAppsViewModel externalAppsVM)
+        ExternalAppsViewModel externalAppsVM,
+        IFileSystemService fileSystemService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -42,6 +44,7 @@ public class ConfigExportService : IConfigExportService
         _interactiveUserService = interactiveUserService;
         _windowsAppsVM = windowsAppsVM;
         _externalAppsVM = externalAppsVM;
+        _fileSystemService = fileSystemService;
     }
 
     private async Task EnsureRegistryInitializedAsync()
@@ -95,7 +98,7 @@ public class ConfigExportService : IConfigExportService
             }
 
             var json = JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions);
-            await File.WriteAllTextAsync(filePath, json);
+            await _fileSystemService.WriteAllTextAsync(filePath, json);
 
             _logService.Log(LogLevel.Info, $"Configuration exported to {filePath}");
 
@@ -124,17 +127,17 @@ public class ConfigExportService : IConfigExportService
 
             var config = await CreateConfigurationFromSystemAsync(isBackup: true);
 
-            var configDir = Path.Combine(
+            var configDir = _fileSystemService.CombinePath(
                 _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Backup");
 
-            Directory.CreateDirectory(configDir);
+            _fileSystemService.CreateDirectory(configDir);
 
             var fileName = $"UserBackup_{DateTime.Now:yyyyMMdd_HHmmss}{ConfigFileConstants.FileExtension}";
-            var filePath = Path.Combine(configDir, fileName);
+            var filePath = _fileSystemService.CombinePath(configDir, fileName);
 
             var json = JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions);
-            await File.WriteAllTextAsync(filePath, json);
+            await _fileSystemService.WriteAllTextAsync(filePath, json);
 
             _logService.Log(LogLevel.Info, $"User backup configuration saved to {filePath}");
         }

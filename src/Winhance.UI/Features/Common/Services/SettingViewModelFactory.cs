@@ -1,3 +1,4 @@
+using System.Linq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
@@ -173,8 +174,8 @@ public class SettingViewModelFactory
                     var rawAcVal = currentState.RawValues.GetValueOrDefault("ACValue");
                     var rawDcVal = currentState.RawValues.GetValueOrDefault("DCValue");
 
-                    var acRaw = new Dictionary<string, object?>(currentState.RawValues) { ["PowerCfgValue"] = rawAcVal };
-                    var dcRaw = new Dictionary<string, object?>(currentState.RawValues) { ["PowerCfgValue"] = rawDcVal };
+                    var acRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); acRaw["PowerCfgValue"] = rawAcVal;
+                    var dcRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); dcRaw["PowerCfgValue"] = rawDcVal;
                     var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
                     var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
 

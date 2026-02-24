@@ -333,8 +333,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 {
                     try
                     {
-                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues);
-                        state.CurrentValue = resolvedValue;
+                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
+                        batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
                     }
                     catch (Exception ex)
                     {

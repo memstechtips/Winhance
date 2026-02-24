@@ -21,13 +21,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly string _latestReleaseDownloadUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
         private readonly string _userAgent = "Winhance-Update-Checker";
 
-        public VersionService(ILogService logService, IProcessExecutor processExecutor, IFileSystemService fileSystemService)
+        public VersionService(ILogService logService, IProcessExecutor processExecutor, IFileSystemService fileSystemService, HttpClient httpClient)
         {
             _logService = logService;
             _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
             _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
-            _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", _userAgent);
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", _userAgent);
         }
 
         public VersionInfo GetCurrentVersion()

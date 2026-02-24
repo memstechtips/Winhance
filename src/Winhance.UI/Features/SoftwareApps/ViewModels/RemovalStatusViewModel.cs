@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
@@ -12,16 +11,18 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IScheduledTaskService _scheduledTaskService;
     private readonly ILogService _logService;
+    private readonly IFileSystemService _fileSystemService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isActive;
     private bool _isLoading;
     private bool _disposed;
 
     public RemovalStatusViewModel(string name, string iconPath, string activeColor, string scriptFileName,
-        string scheduledTaskName, IScheduledTaskService scheduledTaskService, ILogService logService)
+        string scheduledTaskName, IScheduledTaskService scheduledTaskService, ILogService logService, IFileSystemService fileSystemService)
     {
         _scheduledTaskService = scheduledTaskService;
         _logService = logService;
+        _fileSystemService = fileSystemService;
 
         Name = name;
         IconPath = iconPath;
@@ -86,8 +87,8 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
                 () =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, ScriptFileName);
-                    return File.Exists(scriptPath);
+                    var scriptPath = _fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, ScriptFileName);
+                    return _fileSystemService.FileExists(scriptPath);
                 },
                 cancellationToken
             );
@@ -145,10 +146,10 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
 
             try
             {
-                var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, ScriptFileName);
-                if (File.Exists(scriptPath))
+                var scriptPath = _fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, ScriptFileName);
+                if (_fileSystemService.FileExists(scriptPath))
                 {
-                    File.Delete(scriptPath);
+                    _fileSystemService.DeleteFile(scriptPath);
                     _logService.LogInformation($"Deleted script file: {scriptPath}");
                 }
             }

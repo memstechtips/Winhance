@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
@@ -9,13 +10,13 @@ public record SettingDefinition : BaseDefinition, ISettingItem
 {
     public bool RequiresConfirmation { get; init; } = false;
     public string? ActionCommand { get; init; }
-    public List<(int MinBuild, int MaxBuild)> SupportedBuildRanges { get; init; } = new();
-    public List<ScheduledTaskSetting> ScheduledTaskSettings { get; init; } = new();
-    public List<PowerShellScriptSetting> PowerShellScripts { get; init; } = new();
-    public List<RegContentSetting> RegContents { get; init; } = new();
-    public List<PowerCfgSetting>? PowerCfgSettings { get; init; }
-    public List<SettingDependency> Dependencies { get; init; } = new();
-    public List<string>? AutoEnableSettingIds { get; init; }
+    public IReadOnlyList<(int MinBuild, int MaxBuild)> SupportedBuildRanges { get; init; } = Array.Empty<(int MinBuild, int MaxBuild)>();
+    public IReadOnlyList<ScheduledTaskSetting> ScheduledTaskSettings { get; init; } = Array.Empty<ScheduledTaskSetting>();
+    public IReadOnlyList<PowerShellScriptSetting> PowerShellScripts { get; init; } = Array.Empty<PowerShellScriptSetting>();
+    public IReadOnlyList<RegContentSetting> RegContents { get; init; } = Array.Empty<RegContentSetting>();
+    public IReadOnlyList<PowerCfgSetting>? PowerCfgSettings { get; init; }
+    public IReadOnlyList<SettingDependency> Dependencies { get; init; } = Array.Empty<SettingDependency>();
+    public IReadOnlyList<string>? AutoEnableSettingIds { get; init; }
     public bool RequiresBattery { get; init; }
     public bool RequiresLid { get; init; }
     public bool RequiresDesktop { get; init; }

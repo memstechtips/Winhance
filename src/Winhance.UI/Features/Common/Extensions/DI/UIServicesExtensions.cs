@@ -75,6 +75,9 @@ public static class UIServicesExtensions
         // Setting Review Diff Applier (Singleton - Applies review diffs to ViewModels)
         services.AddSingleton<ISettingReviewDiffApplier, SettingReviewDiffApplier>();
 
+        // Review Mode ViewModel Coordinator (Singleton - abstracts concrete ViewModel dependencies)
+        services.AddSingleton<IReviewModeViewModelCoordinator, ReviewModeViewModelCoordinator>();
+
         // Setting ViewModel Factory (Singleton - Creates fully-configured setting ViewModels)
         services.AddSingleton<SettingViewModelFactory>();
 

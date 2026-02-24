@@ -90,7 +90,9 @@ public static class InfrastructureServicesExtensions
 
         // Internet Connectivity
         services.AddSingleton<IInternetConnectivityService>(provider =>
-            new InternetConnectivityService(provider.GetRequiredService<ILogService>()));
+            new InternetConnectivityService(
+                provider.GetRequiredService<ILogService>(),
+                provider.GetRequiredService<System.Net.Http.HttpClient>()));
 
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();

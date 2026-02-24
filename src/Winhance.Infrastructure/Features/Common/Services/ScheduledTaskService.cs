@@ -18,7 +18,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
     public async Task<OperationResult> RegisterScheduledTaskAsync(RemovalScript script)
     {
-        return await Task.Run(() =>
+        return await Task.Run(async () =>
         {
             try
             {
@@ -32,7 +32,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
                 var triggerType = script.RunOnStartup ? TaskTriggerType.Startup : TaskTriggerType.Logon;
 
-                return RegisterTaskInternal(script.Name, script.ActualScriptPath, null, triggerType);
+                return await RegisterTaskInternal(script.Name, script.ActualScriptPath, null, triggerType).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -63,9 +63,9 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                         logService.LogInformation($"Unregistered task: {taskName}");
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Task doesn't exist
+                    logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Task '{taskName}' not found: {ex.Message}");
                 }
 
                 return OperationResult.Succeeded();
@@ -92,8 +92,9 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 var task = folder.GetTask(taskName);
                 return task != null;
             }
-            catch
+            catch (Exception ex)
             {
+                logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Error checking task registration for '{taskName}': {ex.Message}");
                 return false;
             }
         }).ConfigureAwait(false);
@@ -135,11 +136,11 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
     public async Task<OperationResult> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
     {
-        return await Task.Run(() =>
+        return await Task.Run(async () =>
         {
             try
             {
-                return RegisterTaskInternal(taskName, null, username, TaskTriggerType.Logon, command);
+                return await RegisterTaskInternal(taskName, null, username, TaskTriggerType.Logon, command).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -149,12 +150,12 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }).ConfigureAwait(false);
     }
 
-    private OperationResult RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
+    private async Task<OperationResult> RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
     {
         var taskService = CreateTaskService();
         var folder = GetOrCreateWinhanceFolder(taskService);
 
-        RemoveExistingTask(folder, taskName);
+        await RemoveExistingTask(folder, taskName).ConfigureAwait(false);
 
         var taskDefinition = CreateTaskDefinition(taskService, scriptPath, command, username, triggerType);
 
@@ -187,8 +188,9 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         {
             return rootFolder.GetFolder("Winhance");
         }
-        catch
+        catch (Exception ex)
         {
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder doesn't exist, creating: {ex.Message}");
             return rootFolder.CreateFolder("Winhance");
         }
     }
@@ -200,13 +202,14 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             dynamic rootFolder = taskService.GetFolder("\\");
             return rootFolder.GetFolder("Winhance");
         }
-        catch
+        catch (Exception ex)
         {
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder not found: {ex.Message}");
             return null;
         }
     }
 
-    private void RemoveExistingTask(dynamic folder, string taskName)
+    private async Task RemoveExistingTask(dynamic folder, string taskName)
     {
         try
         {
@@ -217,13 +220,13 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 logService.LogInformation($"Deleted existing task: {taskName}");
 
                 // Wait 2 seconds for Windows scheduled task cache to reset
-                System.Threading.Thread.Sleep(2000);
+                await Task.Delay(2000).ConfigureAwait(false);
                 logService.LogInformation("Waited 2 seconds for task cache reset");
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Task doesn't exist
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] No existing task '{taskName}' to remove: {ex.Message}");
         }
     }
 

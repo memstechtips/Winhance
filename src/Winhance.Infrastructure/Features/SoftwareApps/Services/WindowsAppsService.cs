@@ -22,13 +22,13 @@ public class WindowsAppsService(
     ILogService logService,
     IWinGetService winGetService,
     IAppStatusDiscoveryService appStatusDiscoveryService,
-    IStoreDownloadService? storeDownloadService = null,
-    IDialogService? dialogService = null,
-    IUserPreferencesService? userPreferencesService = null,
-    ITaskProgressService? taskProgressService = null,
-    ILocalizationService? localizationService = null,
-    ISettingApplicationService? settingApplicationService = null,
-    ISystemSettingsDiscoveryService? systemSettingsDiscoveryService = null) : IWindowsAppsService
+    IStoreDownloadService storeDownloadService,
+    IDialogService dialogService,
+    IUserPreferencesService userPreferencesService,
+    ITaskProgressService taskProgressService,
+    ILocalizationService localizationService,
+    ISettingApplicationService settingApplicationService,
+    ISystemSettingsDiscoveryService systemSettingsDiscoveryService) : IWindowsAppsService
 {
     public string DomainName => FeatureIds.WindowsApps;
     private const string FallbackConfirmationPreferenceKey = "StoreDownloadFallback_DontShowAgain";
@@ -43,7 +43,7 @@ public class WindowsAppsService(
 
     private CancellationToken GetCurrentCancellationToken()
     {
-        return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
+        return taskProgressService.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
     }
 
     public async Task<IEnumerable<ItemDefinition>> GetAppsAsync()
@@ -102,17 +102,17 @@ public class WindowsAppsService(
                 }
 
                 // If WinGet failed, check if Windows Update policy is blocking installations
-                if (await IsUpdatePolicyDisabledAsync().ConfigureAwait(false) && dialogService != null && settingApplicationService != null)
+                if (await IsUpdatePolicyDisabledAsync().ConfigureAwait(false))
                 {
                     logService?.LogWarning($"Windows Update DLLs appear to be renamed (Disabled mode). Offering to fix for {item.Name}...");
 
-                    var updateTitle = localizationService?.GetString("Dialog_UpdatePolicyBlocking_Title") ?? "Windows Updates Disabled";
-                    var updateMessage = localizationService?.GetString("Dialog_UpdatePolicyBlocking_Message", item.Name) ??
+                    var updateTitle = localizationService.GetString("Dialog_UpdatePolicyBlocking_Title") ?? "Windows Updates Disabled";
+                    var updateMessage = localizationService.GetString("Dialog_UpdatePolicyBlocking_Message", item.Name) ??
                         $"The installation of '{item.Name}' could not complete, likely because Windows Updates are disabled.\n\n" +
                         "Disabling Windows Updates prevents app installations from the Microsoft Store from completing.\n\n" +
                         "Would you like Winhance to change the update policy to 'Paused for a long time' and retry the installation?";
-                    var yesButton = localizationService?.GetString("Button_Yes") ?? "Yes";
-                    var noButton = localizationService?.GetString("Button_No") ?? "No";
+                    var yesButton = localizationService.GetString("Button_Yes") ?? "Yes";
+                    var noButton = localizationService.GetString("Button_No") ?? "No";
 
                     var userAccepted = await dialogService.ShowConfirmationAsync(
                         message: updateMessage,
@@ -155,33 +155,30 @@ public class WindowsAppsService(
 
                 // If WinGet failed and we have a WinGetPackageId, try fallback to direct download
                 // This bypasses market restrictions
-                if ((!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any())) && storeDownloadService != null)
+                if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
                 {
                     logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
 
                     // Check if user has opted to not show the confirmation dialog
                     bool skipConfirmation = false;
-                    if (userPreferencesService != null)
-                    {
-                        skipConfirmation = await userPreferencesService.GetPreferenceAsync(FallbackConfirmationPreferenceKey, false).ConfigureAwait(false);
-                    }
+                    skipConfirmation = await userPreferencesService.GetPreferenceAsync(FallbackConfirmationPreferenceKey, false).ConfigureAwait(false);
 
                     bool userConsent = skipConfirmation;
 
                     // Show confirmation dialog if needed
-                    if (!skipConfirmation && dialogService != null)
+                    if (!skipConfirmation)
                     {
-                        var title = localizationService?.GetString("Dialog_FallbackDownload") ?? "Alternative Download Method";
-                        var message = localizationService?.GetString("WindowsApps_Msg_FallbackDownload", item.Name) ??
+                        var title = localizationService.GetString("Dialog_FallbackDownload") ?? "Alternative Download Method";
+                        var message = localizationService.GetString("WindowsApps_Msg_FallbackDownload", item.Name) ??
                                      $"The package '{item.Name}' could not be found via WinGet, likely due to geographic market restrictions.\n\n" +
                                      $"Winhance can download this package directly from Microsoft's servers using an alternative method (store.rg-adguard.net).\n\n" +
                                      $"• The package files come directly from Microsoft's official CDN\n" +
                                      $"• This method is completely legal and safe\n" +
                                      $"• It bypasses regional restrictions only\n\n" +
                                      $"Would you like to proceed with the alternative download method?";
-                        var checkboxText = localizationService?.GetString("WindowsApps_Checkbox_DontAskAgain") ?? "Don't ask me again for future installations";
-                        var downloadButton = localizationService?.GetString("Button_Download") ?? "Download";
-                        var cancelButton = localizationService?.GetString("Button_Cancel") ?? "Cancel";
+                        var checkboxText = localizationService.GetString("WindowsApps_Checkbox_DontAskAgain") ?? "Don't ask me again for future installations";
+                        var downloadButton = localizationService.GetString("Button_Download") ?? "Download";
+                        var cancelButton = localizationService.GetString("Button_Cancel") ?? "Cancel";
 
                         var (confirmed, dontShowAgain) = await dialogService.ShowConfirmationWithCheckboxAsync(
                             message: message,
@@ -195,7 +192,7 @@ public class WindowsAppsService(
                         userConsent = confirmed;
 
                         // Save preference if user checked "don't show again"
-                        if (dontShowAgain && userPreferencesService != null)
+                        if (dontShowAgain)
                         {
                             await userPreferencesService.SetPreferenceAsync(FallbackConfirmationPreferenceKey, true).ConfigureAwait(false);
                             logService?.LogInformation("User opted to skip fallback confirmation in future");
@@ -646,9 +643,6 @@ public class WindowsAppsService(
 
     private async Task<bool> IsUpdatePolicyDisabledAsync()
     {
-        if (systemSettingsDiscoveryService == null)
-            return false;
-
         try
         {
             var updateSettings = UpdateOptimizations.GetUpdateOptimizations();

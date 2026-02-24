@@ -23,6 +23,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private readonly IInteractiveUserService _interactiveUserService;
         private readonly IPowerShellRunner _powerShellRunner;
         private readonly IFileSystemService _fileSystemService;
+        private readonly System.Net.Http.HttpClient _httpClient;
 
         private WindowsPackageManagerFactory? _winGetFactory;
         private PackageManager? _packageManager;
@@ -44,7 +45,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             ILocalizationService localization,
             IInteractiveUserService interactiveUserService,
             IPowerShellRunner powerShellRunner,
-            IFileSystemService fileSystemService)
+            IFileSystemService fileSystemService,
+            System.Net.Http.HttpClient httpClient)
         {
             _taskProgressService = taskProgressService;
             _logService = logService;
@@ -52,6 +54,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             _interactiveUserService = interactiveUserService;
             _powerShellRunner = powerShellRunner;
             _fileSystemService = fileSystemService;
+            _httpClient = httpClient;
         }
 
         #region COM Initialization (for detection)
@@ -627,7 +630,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _logService?.LogInformation("Starting AppInstaller installation...");
 
-                var installer = new WinGetInstaller(_powerShellRunner, _logService, _localization, _taskProgressService, _fileSystemService);
+                var installer = new WinGetInstaller(_powerShellRunner, _httpClient, _logService, _localization, _taskProgressService, _fileSystemService);
                 var (success, message) = await installer.InstallAsync(cancellationToken).ConfigureAwait(false);
 
                 if (!success)

@@ -17,6 +17,7 @@ public class ConfigLoadService : IConfigLoadService
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IFileSystemService _fileSystemService;
 
     public ConfigLoadService(
         ILogService logService,
@@ -25,7 +26,8 @@ public class ConfigLoadService : IConfigLoadService
         IWindowsVersionService windowsVersionService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IConfigMigrationService configMigrationService,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IFileSystemService fileSystemService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -34,6 +36,7 @@ public class ConfigLoadService : IConfigLoadService
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _configMigrationService = configMigrationService;
         _interactiveUserService = interactiveUserService;
+        _fileSystemService = fileSystemService;
     }
 
     private Window? GetMainWindow() => App.MainWindow;
@@ -57,7 +60,7 @@ public class ConfigLoadService : IConfigLoadService
         if (string.IsNullOrEmpty(filePath))
             return null;
 
-        var json = await File.ReadAllTextAsync(filePath);
+        var json = await _fileSystemService.ReadAllTextAsync(filePath);
         var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
 
         if (loadedConfig == null)
@@ -161,11 +164,11 @@ public class ConfigLoadService : IConfigLoadService
     {
         try
         {
-            var configDir = Path.Combine(
+            var configDir = _fileSystemService.CombinePath(
                 _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Backup");
 
-            if (!Directory.Exists(configDir))
+            if (!_fileSystemService.DirectoryExists(configDir))
             {
                 _dialogService.ShowMessage(
                     _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
@@ -173,7 +176,7 @@ public class ConfigLoadService : IConfigLoadService
                 return null;
             }
 
-            var backupFiles = Directory.GetFiles(configDir, $"UserBackup_*{ConfigFileConstants.FileExtension}")
+            var backupFiles = _fileSystemService.GetFiles(configDir, $"UserBackup_*{ConfigFileConstants.FileExtension}")
                 .OrderByDescending(f => f)
                 .ToArray();
 
@@ -216,7 +219,7 @@ public class ConfigLoadService : IConfigLoadService
             }
             _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
 
-            var json = await File.ReadAllTextAsync(filePath);
+            var json = await _fileSystemService.ReadAllTextAsync(filePath);
             var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
 
             if (config == null)

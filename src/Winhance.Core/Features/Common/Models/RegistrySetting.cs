@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
@@ -14,7 +15,7 @@ public record RegistrySetting
     public object? DisabledValue { get; init; }
     public required RegistryValueKind ValueType { get; init; }
     public bool IsPrimary { get; init; } = false;
-    public Dictionary<string, object>? CustomProperties { get; init; }
+    public IReadOnlyDictionary<string, object>? CustomProperties { get; init; }
     public int? BinaryByteIndex { get; init; }
     public bool ModifyByteOnly { get; init; } = false;
     public byte? BitMask { get; init; }
