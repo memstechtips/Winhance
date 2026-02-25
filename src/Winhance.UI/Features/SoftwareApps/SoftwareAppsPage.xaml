@@ -903,8 +903,18 @@
                                 <controls:DataGridTemplateColumn Header="Name" Width="*" Tag="Name">
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
+                                                                 Padding="0" MinHeight="0" MinWidth="0"
+                                                                 VerticalAlignment="Center"
+                                                                 Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
+                                                    <Viewbox Width="16" Height="16">
+                                                        <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular"/>
+                                                    </Viewbox>
+                                                </HyperlinkButton>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </controls:DataGridTemplateColumn.CellTemplate>
                                 </controls:DataGridTemplateColumn>
@@ -997,9 +1007,12 @@
                                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
                                                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                                         <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
-                                                                                         Padding="0" VerticalAlignment="Center"
-                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NullToVisibilityConverter}}">
-                                                                            <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular" FontSize="12"/>
+                                                                                         Padding="0" MinHeight="0" MinWidth="0"
+                                                                                         VerticalAlignment="Center"
+                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
+                                                                            <Viewbox Width="16" Height="16">
+                                                                                <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular"/>
+                                                                            </Viewbox>
                                                                         </HyperlinkButton>
                                                                     </StackPanel>
                                                                 </CheckBox>

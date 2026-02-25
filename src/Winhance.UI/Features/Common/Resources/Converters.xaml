@@ -18,6 +18,7 @@
 
     <!-- Null/Empty Converters -->
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+    <converters:NotNullToVisibilityConverter x:Key="NotNullToVisibilityConverter"/>
 
     <!-- Icon Converters -->
     <converters:IconConverter x:Key="IconConverter"/>
