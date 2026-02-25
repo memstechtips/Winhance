@@ -40,8 +40,9 @@ public class DirectDownloadService : IDirectDownloadService
         _processExecutor = processExecutor;
         _fileSystemService = fileSystemService;
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Winhance-Download-Manager");
     }
+
+    private static readonly string UserAgent = "Winhance-Download-Manager";
 
     public async Task<bool> DownloadAndInstallAsync(
         ItemDefinition item,
@@ -219,7 +220,9 @@ public class DirectDownloadService : IDirectDownloadService
             .Replace("github.com", "api.github.com/repos")
             .Replace("/releases/latest", "/releases/latest");
 
-        var response = await _httpClient.GetAsync(apiUrl, cancellationToken).ConfigureAwait(false);
+        using var apiRequest = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+        apiRequest.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+        var response = await _httpClient.SendAsync(apiRequest, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -267,7 +270,9 @@ public class DirectDownloadService : IDirectDownloadService
         {
             _logService?.LogInformation($"Downloading {fileName} from {url}...");
 
-            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, url);
+            downloadRequest.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+            using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? 0;

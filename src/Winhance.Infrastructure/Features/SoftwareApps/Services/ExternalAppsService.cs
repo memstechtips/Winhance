@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +23,8 @@ public class ExternalAppsService(
     IChocolateyService chocolateyService,
     IChocolateyConsentService chocolateyConsentService,
     IInteractiveUserService interactiveUserService,
-    IFileSystemService fileSystemService) : IExternalAppsService
+    IFileSystemService fileSystemService,
+    IProcessExecutor processExecutor) : IExternalAppsService
 {
     public string DomainName => FeatureIds.ExternalApps;
 
@@ -309,24 +308,12 @@ $Shortcut.Description = '{description.Replace("'", "''")}'
 $Shortcut.Save()
 ";
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
+        var args = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"";
+        var result = await processExecutor.ExecuteAsync("powershell", args, CancellationToken.None).ConfigureAwait(false);
 
-        using var process = new Process { StartInfo = startInfo };
-        process.Start();
-        await process.WaitForExitAsync().ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
+        if (result.ExitCode != 0)
         {
-            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-            logService.LogWarning($"Failed to create shortcut at {shortcutPath}: {error}");
+            logService.LogWarning($"Failed to create shortcut at {shortcutPath}: {result.StandardError}");
         }
     }
 

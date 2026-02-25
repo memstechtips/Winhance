@@ -27,6 +27,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly HttpClient _httpClient;
 
         // Cache the internet connectivity status to avoid frequent checks
+        private readonly object _cacheLock = new();
         private bool? _cachedInternetStatus = null;
         private DateTime _lastInternetCheckTime = DateTime.MinValue;
         private readonly TimeSpan _internetStatusCacheDuration = TimeSpan.FromSeconds(10); // Cache for 10 seconds
@@ -64,16 +65,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
 
                 // Return cached result if it's still valid and force check is not requested
-                if (
-                    !forceCheck
-                    && _cachedInternetStatus.HasValue
-                    && (DateTime.Now - _lastInternetCheckTime) < _internetStatusCacheDuration
-                )
+                lock (_cacheLock)
                 {
-                    _logService.LogInformation(
-                        $"Using cached internet connectivity status: {_cachedInternetStatus.Value}"
-                    );
-                    return _cachedInternetStatus.Value;
+                    if (
+                        !forceCheck
+                        && _cachedInternetStatus.HasValue
+                        && (DateTime.UtcNow - _lastInternetCheckTime) < _internetStatusCacheDuration
+                    )
+                    {
+                        _logService.LogInformation(
+                            $"Using cached internet connectivity status: {_cachedInternetStatus.Value}"
+                        );
+                        return _cachedInternetStatus.Value;
+                    }
                 }
 
                 // First check: NetworkInterface.GetIsNetworkAvailable()
@@ -83,8 +87,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.LogInformation(
                         "Network is not available according to NetworkInterface.GetIsNetworkAvailable()"
                     );
-                    _cachedInternetStatus = false;
-                    _lastInternetCheckTime = DateTime.Now;
+                    lock (_cacheLock)
+                    {
+                        _cachedInternetStatus = false;
+                        _lastInternetCheckTime = DateTime.UtcNow;
+                    }
 
                     return false;
                 }
@@ -164,8 +171,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         if (response.IsSuccessStatusCode)
                         {
                             _logService.LogInformation($"Successfully connected to {url}");
-                            _cachedInternetStatus = true;
-                            _lastInternetCheckTime = DateTime.Now;
+                            lock (_cacheLock)
+                            {
+                                _cachedInternetStatus = true;
+                                _lastInternetCheckTime = DateTime.UtcNow;
+                            }
 
                             return true;
                         }

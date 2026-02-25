@@ -493,7 +493,7 @@ public class WinGetInstaller
                     _logService?.LogInformation($"Installing dependency: {depUri.LocalPath}");
                     await packageManager.AddPackageAsync(
                         depUri, null,
-                        DeploymentOptions.ForceApplicationShutdown).AsTask().ConfigureAwait(false);
+                        DeploymentOptions.ForceApplicationShutdown).AsTask(cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -505,7 +505,7 @@ public class WinGetInstaller
         _logService?.LogInformation($"Installing package via PackageManager: {packagePath}");
         await packageManager.AddPackageAsync(
             packageUri, dependencyUris,
-            DeploymentOptions.ForceApplicationShutdown).AsTask().ConfigureAwait(false);
+            DeploymentOptions.ForceApplicationShutdown).AsTask(cancellationToken).ConfigureAwait(false);
     }
 
     private static string GetCurrentArchitecture()

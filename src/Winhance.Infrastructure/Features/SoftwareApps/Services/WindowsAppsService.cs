@@ -308,6 +308,16 @@ public class WindowsAppsService(
                 CreateNoWindow = false
             });
 
+            if (process != null)
+            {
+                await process.WaitForExitAsync().ConfigureAwait(false);
+                if (process.ExitCode != 0)
+                {
+                    logService?.LogError($"Capability installation for {item.Name} exited with code {process.ExitCode}");
+                    return OperationResult<bool>.Failed($"Capability installation failed with exit code {process.ExitCode}");
+                }
+            }
+
             return OperationResult<bool>.Succeeded(true);
         }
         catch (OperationCanceledException)
@@ -476,10 +486,12 @@ public class WindowsAppsService(
                         var processes = Process.GetProcessesByName(processName);
                         foreach (var proc in processes)
                         {
-                            logService?.LogInformation($"Stopping process: {processName} (PID {proc.Id})");
-                            proc.Kill();
-                            await proc.WaitForExitAsync(ct).ConfigureAwait(false);
-                            proc.Dispose();
+                            using (proc)
+                            {
+                                logService?.LogInformation($"Stopping process: {processName} (PID {proc.Id})");
+                                proc.Kill();
+                                await proc.WaitForExitAsync(ct).ConfigureAwait(false);
+                            }
                         }
                     }
                     catch (Exception ex)

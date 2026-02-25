@@ -270,13 +270,16 @@ public class AppUninstallService(
         return matchCount >= Math.Min(words1.Length, 2);
     }
 
-    private string NormalizeString(string input)
+    private static readonly Regex NonWordOrSpaceRegex = new(@"[^\w\s]", RegexOptions.Compiled);
+    private static readonly Regex MultipleSpacesRegex = new(@"\s+", RegexOptions.Compiled);
+
+    private static string NormalizeString(string input)
     {
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
-        var normalized = Regex.Replace(input, @"[^\w\s]", "").ToLowerInvariant().Trim();
-        return Regex.Replace(normalized, @"\s+", " ");
+        var normalized = NonWordOrSpaceRegex.Replace(input, "").ToLowerInvariant().Trim();
+        return MultipleSpacesRegex.Replace(normalized, " ");
     }
 
     private (string FileName, string Arguments) ParseUninstallString(string uninstallString)

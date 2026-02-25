@@ -27,7 +27,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
             _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", _userAgent);
         }
 
         public VersionInfo GetCurrentVersion()
@@ -70,7 +69,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public async Task<VersionInfo> CheckForUpdateAsync()
+        public async Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
             const int maxRetries = 3;
             int delayMs = 2000;
@@ -84,10 +83,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         : $"Checking for updates (attempt {attempt}/{maxRetries})...");
 
                     // Get the latest release information from GitHub API
-                    HttpResponseMessage response = await _httpClient.GetAsync(_latestReleaseApiUrl).ConfigureAwait(false);
+                    using var request = new HttpRequestMessage(HttpMethod.Get, _latestReleaseApiUrl);
+                    request.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
+                    HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
-                    string responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     using JsonDocument doc = JsonDocument.Parse(responseBody);
 
                     // Extract the tag name (version) from the response
@@ -108,10 +109,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     return latestVersion;
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Real cancellation — don't retry, propagate immediately
+                    throw;
+                }
                 catch (Exception ex) when (attempt < maxRetries && IsTransientError(ex))
                 {
                     _logService.Log(LogLevel.Warning, $"Update check attempt {attempt}/{maxRetries} failed: {ex.Message}. Retrying in {delayMs / 1000}s...");
-                    await Task.Delay(delayMs).ConfigureAwait(false);
+                    await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
                     delayMs *= 2;
                 }
                 catch (Exception ex)
@@ -129,21 +135,28 @@ namespace Winhance.Infrastructure.Features.Common.Services
             // DNS resolution failures, timeouts, and connection refused are transient
             if (ex is HttpRequestException)
                 return true;
-            if (ex is TaskCanceledException)
+            // Only retry on HTTP timeout, not on user-initiated cancellation
+            if (ex is TaskCanceledException tce && tce.InnerException is TimeoutException)
                 return true;
             return false;
         }
 
-        public async Task DownloadAndInstallUpdateAsync()
+        public async Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default)
         {
             _logService.Log(LogLevel.Info, "Downloading update...");
 
             // Create a temporary file to download the installer
             string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance.Installer.exe");
 
-            // Download the installer
-            byte[] installerBytes = await _httpClient.GetByteArrayAsync(_latestReleaseDownloadUrl).ConfigureAwait(false);
-            await _fileSystemService.WriteAllBytesAsync(tempPath, installerBytes).ConfigureAwait(false);
+            // Download the installer using streaming to avoid loading the entire file into memory
+            using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, _latestReleaseDownloadUrl);
+            downloadRequest.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
+            using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+            await contentStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
             _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}, launching installer...");
 
