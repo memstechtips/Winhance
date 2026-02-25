@@ -13,6 +13,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
+
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 /// <summary>
@@ -20,7 +21,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// </summary>
 public partial class WimStep1ViewModel : ObservableObject
 {
-    private readonly IWimUtilService _wimUtilService;
+    private readonly IIsoService _isoService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
@@ -50,7 +51,7 @@ public partial class WimStep1ViewModel : ObservableObject
     public WizardActionCard SelectDirectoryCard { get; private set; } = new();
 
     public WimStep1ViewModel(
-        IWimUtilService wimUtilService,
+        IIsoService isoService,
         ITaskProgressService taskProgressService,
         IDialogService dialogService,
         ILocalizationService localizationService,
@@ -58,7 +59,7 @@ public partial class WimStep1ViewModel : ObservableObject
         IFilePickerService filePickerService,
         ILogService logService)
     {
-        _wimUtilService = wimUtilService;
+        _isoService = isoService;
         _taskProgressService = taskProgressService;
         _dialogService = dialogService;
         _localizationService = localizationService;
@@ -202,7 +203,7 @@ public partial class WimStep1ViewModel : ObservableObject
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_Extracting"), true);
             var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimUtilService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
+            var success = await _isoService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             ResetExtractionState();
 

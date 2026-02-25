@@ -20,7 +20,8 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// </summary>
 public partial class WimStep4IsoViewModel : ObservableObject
 {
-    private readonly IWimUtilService _wimUtilService;
+    private readonly IOscdimgToolManager _oscdimgToolManager;
+    private readonly IIsoService _isoService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IProcessExecutor _processExecutor;
     private readonly IDialogService _dialogService;
@@ -48,7 +49,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
     public WizardActionCard SelectOutputCard { get; private set; } = new();
 
     public WimStep4IsoViewModel(
-        IWimUtilService wimUtilService,
+        IOscdimgToolManager oscdimgToolManager,
+        IIsoService isoService,
         ITaskProgressService taskProgressService,
         IProcessExecutor processExecutor,
         IDialogService dialogService,
@@ -57,7 +59,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
         IFilePickerService filePickerService,
         ILogService logService)
     {
-        _wimUtilService = wimUtilService;
+        _oscdimgToolManager = oscdimgToolManager;
+        _isoService = isoService;
         _taskProgressService = taskProgressService;
         _processExecutor = processExecutor;
         _dialogService = dialogService;
@@ -107,7 +110,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
-            var success = await _wimUtilService.EnsureOscdimgAvailableAsync(progress, _cancellationTokenSource.Token);
+            var success = await _oscdimgToolManager.EnsureOscdimgAvailableAsync(progress, _cancellationTokenSource.Token);
 
             DownloadOscdimgCard.IsProcessing = false;
 
@@ -185,7 +188,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
             var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimUtilService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
+            var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;

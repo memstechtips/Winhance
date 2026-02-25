@@ -17,7 +17,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// </summary>
 public partial class WimStep3DriversViewModel : ObservableObject
 {
-    private readonly IWimUtilService _wimUtilService;
+    private readonly IWimCustomizationService _wimCustomizationService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
@@ -37,14 +37,14 @@ public partial class WimStep3DriversViewModel : ObservableObject
     public WizardActionCard SelectCustomDriversCard { get; private set; } = new();
 
     public WimStep3DriversViewModel(
-        IWimUtilService wimUtilService,
+        IWimCustomizationService wimCustomizationService,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
         ILogService logService)
     {
-        _wimUtilService = wimUtilService;
+        _wimCustomizationService = wimCustomizationService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -97,7 +97,7 @@ public partial class WimStep3DriversViewModel : ObservableObject
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
-            var success = await _wimUtilService.AddDriversAsync(WorkingDirectory, null, progress, _cancellationTokenSource.Token);
+            var success = await _wimCustomizationService.AddDriversAsync(WorkingDirectory, null, progress, _cancellationTokenSource.Token);
 
             ExtractSystemDriversCard.IsProcessing = false;
             ExtractSystemDriversCard.IsEnabled = true;
@@ -167,7 +167,7 @@ public partial class WimStep3DriversViewModel : ObservableObject
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
-            var success = await _wimUtilService.AddDriversAsync(WorkingDirectory, selectedPath, progress, _cancellationTokenSource.Token);
+            var success = await _wimCustomizationService.AddDriversAsync(WorkingDirectory, selectedPath, progress, _cancellationTokenSource.Token);
 
             SelectCustomDriversCard.IsProcessing = false;
             SelectCustomDriversCard.IsEnabled = true;

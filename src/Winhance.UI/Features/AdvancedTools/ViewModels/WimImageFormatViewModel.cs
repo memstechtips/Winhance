@@ -18,7 +18,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// </summary>
 public partial class WimImageFormatViewModel : ObservableObject
 {
-    private readonly IWimUtilService _wimUtilService;
+    private readonly IWimImageService _wimImageService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDialogService _dialogService;
     private readonly IDispatcherService _dispatcherService;
@@ -58,14 +58,14 @@ public partial class WimImageFormatViewModel : ObservableObject
     public WizardActionCard ConvertImageCard { get; private set; } = new();
 
     public WimImageFormatViewModel(
-        IWimUtilService wimUtilService,
+        IWimImageService wimImageService,
         ITaskProgressService taskProgressService,
         IDialogService dialogService,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
         ILogService logService)
     {
-        _wimUtilService = wimUtilService;
+        _wimImageService = wimImageService;
         _taskProgressService = taskProgressService;
         _dialogService = dialogService;
         _dispatcherService = dispatcherService;
@@ -121,7 +121,7 @@ public partial class WimImageFormatViewModel : ObservableObject
             _taskProgressService.StartTask(string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName), true);
             var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimUtilService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
+            var success = await _wimImageService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             if (success)
             {
@@ -167,7 +167,7 @@ public partial class WimImageFormatViewModel : ObservableObject
     {
         try
         {
-            var detection = await _wimUtilService.DetectAllImageFormatsAsync(WorkingDirectory);
+            var detection = await _wimImageService.DetectAllImageFormatsAsync(WorkingDirectory);
             _dispatcherService.RunOnUIThread(() =>
             {
                 DetectionResult = detection;
@@ -216,7 +216,7 @@ public partial class WimImageFormatViewModel : ObservableObject
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
-            var success = await _wimUtilService.DeleteImageFileAsync(
+            var success = await _wimImageService.DeleteImageFileAsync(
                 WorkingDirectory,
                 ImageFormat.Wim,
                 progress,
@@ -260,7 +260,7 @@ public partial class WimImageFormatViewModel : ObservableObject
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
-            var success = await _wimUtilService.DeleteImageFileAsync(
+            var success = await _wimImageService.DeleteImageFileAsync(
                 WorkingDirectory,
                 ImageFormat.Esd,
                 progress,

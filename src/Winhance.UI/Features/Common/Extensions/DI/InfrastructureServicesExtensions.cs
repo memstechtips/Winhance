@@ -128,9 +128,18 @@ public static class InfrastructureServicesExtensions
                 provider.GetRequiredService<IWindowsVersionService>(),
                 provider.GetRequiredService<ILogService>()));
 
-        // Advanced Tools Services
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimUtilService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WimUtilService>();
+        // Advanced Tools Services — DISM Process Runner (shared utility)
+        services.AddSingleton<IDismProcessRunner, DismProcessRunner>();
+
+        // Advanced Tools Services — WIM/ISO decomposed services
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimImageService,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.WimImageService>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IOscdimgToolManager,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.OscdimgToolManager>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoService,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.WimCustomizationService>();
         services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendScriptBuilder>();
 
         // Http Client

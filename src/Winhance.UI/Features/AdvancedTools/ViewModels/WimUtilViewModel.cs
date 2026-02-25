@@ -16,7 +16,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// </summary>
 public partial class WimUtilViewModel : ObservableObject
 {
-    private readonly IWimUtilService _wimUtilService;
+    private readonly IOscdimgToolManager _oscdimgToolManager;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IFileSystemService _fileSystemService;
@@ -137,7 +137,10 @@ public partial class WimUtilViewModel : ObservableObject
     // ── Constructor ──────────────────────────────────────────────────
 
     public WimUtilViewModel(
-        IWimUtilService wimUtilService,
+        IOscdimgToolManager oscdimgToolManager,
+        IIsoService isoService,
+        IWimImageService wimImageService,
+        IWimCustomizationService wimCustomizationService,
         ITaskProgressService taskProgressService,
         IDialogService dialogService,
         ILogService logService,
@@ -148,30 +151,30 @@ public partial class WimUtilViewModel : ObservableObject
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService)
     {
-        _wimUtilService = wimUtilService;
+        _oscdimgToolManager = oscdimgToolManager;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _fileSystemService = fileSystemService;
 
         // Create sub-ViewModels
         Step1 = new WimStep1ViewModel(
-            wimUtilService, taskProgressService, dialogService,
+            isoService, taskProgressService, dialogService,
             localizationService, fileSystemService, filePickerService, logService);
 
         ImageFormat = new WimImageFormatViewModel(
-            wimUtilService, taskProgressService, dialogService,
+            wimImageService, taskProgressService, dialogService,
             dispatcherService, localizationService, logService);
 
         Step2 = new WimStep2XmlViewModel(
-            xmlGeneratorService, wimUtilService,
+            xmlGeneratorService, wimCustomizationService,
             dialogService, localizationService, fileSystemService, filePickerService, logService);
 
         Step3 = new WimStep3DriversViewModel(
-            wimUtilService, dialogService, localizationService,
+            wimCustomizationService, dialogService, localizationService,
             fileSystemService, filePickerService, logService);
 
         Step4 = new WimStep4IsoViewModel(
-            wimUtilService, taskProgressService, processExecutor,
+            oscdimgToolManager, isoService, taskProgressService, processExecutor,
             dialogService, localizationService, fileSystemService, filePickerService, logService);
 
         // Initialize wizard state
@@ -202,7 +205,7 @@ public partial class WimUtilViewModel : ObservableObject
 
     public async Task OnNavigatedToAsync()
     {
-        Step4.IsOscdimgAvailable = await _wimUtilService.IsOscdimgAvailableAsync();
+        Step4.IsOscdimgAvailable = await _oscdimgToolManager.IsOscdimgAvailableAsync();
         _dispatcherService.RunOnUIThread(Step4.UpdateDownloadOscdimgCardState);
         UpdateStepStates();
     }

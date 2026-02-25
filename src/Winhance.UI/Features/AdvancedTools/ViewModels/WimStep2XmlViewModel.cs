@@ -18,7 +18,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 public partial class WimStep2XmlViewModel : ObservableObject
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
-    private readonly IWimUtilService _wimUtilService;
+    private readonly IWimCustomizationService _wimCustomizationService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
@@ -46,7 +46,7 @@ public partial class WimStep2XmlViewModel : ObservableObject
 
     public WimStep2XmlViewModel(
         IAutounattendXmlGeneratorService xmlGeneratorService,
-        IWimUtilService wimUtilService,
+        IWimCustomizationService wimCustomizationService,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
@@ -54,7 +54,7 @@ public partial class WimStep2XmlViewModel : ObservableObject
         ILogService logService)
     {
         _xmlGeneratorService = xmlGeneratorService;
-        _wimUtilService = wimUtilService;
+        _wimCustomizationService = wimCustomizationService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -148,9 +148,9 @@ public partial class WimStep2XmlViewModel : ObservableObject
             var progress = new Progress<TaskProgressDetail>(detail => XmlStatus = detail.StatusText ?? _localizationService.GetString("WIMUtil_Status_XmlDownloading"));
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadStart");
-            await _wimUtilService.DownloadUnattendedWinstallXmlAsync(destinationPath, progress, _cancellationTokenSource.Token);
+            await _wimCustomizationService.DownloadUnattendedWinstallXmlAsync(destinationPath, progress, _cancellationTokenSource.Token);
 
-            var addSuccess = await _wimUtilService.AddXmlToImageAsync(destinationPath, WorkingDirectory);
+            var addSuccess = await _wimCustomizationService.AddXmlToImageAsync(destinationPath, WorkingDirectory);
             if (addSuccess)
             {
                 SelectedXmlPath = destinationPath;
@@ -205,7 +205,7 @@ public partial class WimStep2XmlViewModel : ObservableObject
             }
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAdding");
-            var addSuccess = await _wimUtilService.AddXmlToImageAsync(selectedPath, WorkingDirectory);
+            var addSuccess = await _wimCustomizationService.AddXmlToImageAsync(selectedPath, WorkingDirectory);
             if (addSuccess)
             {
                 SelectedXmlPath = selectedPath;
