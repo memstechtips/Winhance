@@ -20,7 +20,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
         
     {
-        private IEnumerable<SettingDefinition>? _cachedSettings;
+        private volatile IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
 
         public string DomainName => FeatureIds.ExplorerCustomization;

@@ -24,7 +24,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         IFileSystemService fileSystemService) : IDomainService, IActionCommandProvider
     {
         // Caching fields
-        private IEnumerable<SettingDefinition>? _cachedSettings;
+        private volatile IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
 
         public string DomainName => FeatureIds.StartMenu;
@@ -93,7 +93,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             {
                 logService.Log(LogLevel.Info, "Starting Windows 11 Start Menu cleaning process");
 
-                await Task.Run(() => CleanWindows11StartMenu(logService)).ConfigureAwait(false);
+                await CleanWindows11StartMenuCoreAsync(logService).ConfigureAwait(false);
 
                 logService.Log(LogLevel.Info, "Windows 11 Start Menu cleaned successfully");
             }
@@ -107,13 +107,13 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        private void CleanWindows11StartMenu(ILogService? logService = null)
+        private async Task CleanWindows11StartMenuCoreAsync(ILogService? logService = null)
         {
             try
             {
                 // Step 1: Add registry entry to configure empty pinned list
                 var regArgs = "add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{\\\"pinnedList\\\":[]}\" /f";
-                var result = processExecutor.ExecuteAsync("reg.exe", regArgs).GetAwaiter().GetResult();
+                var result = await processExecutor.ExecuteAsync("reg.exe", regArgs).ConfigureAwait(false);
 
                 if (result.ExitCode != 0)
                 {
@@ -175,15 +175,15 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     fileSystemService.DeleteFile(StartMenuLayouts.Win10StartLayoutPath);
                 }
 
+                // Ensure the directory exists for the layout file
+                fileSystemService.CreateDirectory(
+                    fileSystemService.GetDirectoryName(StartMenuLayouts.Win10StartLayoutPath)!
+                );
+
                 // Create new layout file with clean layout
                 fileSystemService.WriteAllText(
                     StartMenuLayouts.Win10StartLayoutPath,
                     StartMenuLayouts.Windows10Layout
-                );
-
-                // Ensure the directory exists for the layout file
-                fileSystemService.CreateDirectory(
-                    fileSystemService.GetDirectoryName(StartMenuLayouts.Win10StartLayoutPath)!
                 );
 
                 // Always setup scheduled tasks for all existing users
@@ -192,7 +192,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     logService?.LogInformation(
                         "Setting up scheduled tasks for all existing users..."
                     );
-                    SetupScheduledTasksForAllUsersWindows10(scheduledTaskService, logService);
+                    await SetupScheduledTasksForAllUsersWindows10(scheduledTaskService, logService).ConfigureAwait(false);
                 }
 
                 // Also apply to current user immediately
@@ -247,7 +247,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             TerminateStartMenuExperienceHost();
         }
 
-        private void SetupScheduledTasksForAllUsersWindows10(
+        private async Task SetupScheduledTasksForAllUsersWindows10(
             IScheduledTaskService scheduledTaskService,
             ILogService? logService = null
         )
@@ -269,6 +269,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     return;
                 }
 
+                var tasks = new List<Task>();
+
                 foreach (var username in otherUsernames)
                 {
                     try
@@ -280,7 +282,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                             $"-ExecutionPolicy Bypass -WindowStyle Hidden -Command \"$loggedInUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName.Split('\\')[1]; $userSID = (New-Object System.Security.Principal.NTAccount($loggedInUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v LockedStartLayout /t REG_DWORD /d 1 /f; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v StartLayoutFile /t REG_SZ /d 'C:\\Users\\Default\\AppData\\Local\\Microsoft\\Windows\\Shell\\LayoutModification.xml' /f; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; Start-Sleep 10; Set-ItemProperty -Path ('Registry::HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') -Name 'LockedStartLayout' -Value 0; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; schtasks /delete /tn 'Winhance\\{taskName}' /f\"";
 
                         // Create the scheduled task using the service
-                        Task.Run(async () =>
+                        tasks.Add(Task.Run(async () =>
                         {
                             try
                             {
@@ -300,7 +302,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                                     $"Failed to create scheduled task for user '{username}': {ex.Message}"
                                 );
                             }
-                        });
+                        }));
                     }
                     catch (Exception ex)
                     {
@@ -309,6 +311,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                         );
                     }
                 }
+
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -328,9 +332,9 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     process.Kill();
                     process.WaitForExit(5000); // Wait up to 5 seconds for the process to exit
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore errors - the process might have already exited or be inaccessible
+                    logService.Log(LogLevel.Debug, $"Could not terminate StartMenuExperienceHost process: {ex.Message}");
                 }
                 finally
                 {
@@ -486,9 +490,9 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Return empty list if we can't enumerate users
+                logService.Log(LogLevel.Warning, $"Failed to enumerate other user profiles: {ex.Message}");
             }
 
             return usernames;

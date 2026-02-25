@@ -17,7 +17,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         IWindowsRegistryService windowsRegistryService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService, IActionCommandProvider
     {
-        private IEnumerable<SettingDefinition>? _cachedSettings;
+        private volatile IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
 
         public string DomainName => FeatureIds.Taskbar;

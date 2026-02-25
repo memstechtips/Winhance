@@ -551,6 +551,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+            _externalAppsService.WinGetReady -= OnWinGetInstalled;
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;

@@ -28,7 +28,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         IProcessExecutor processExecutor,
         IFileSystemService fileSystemService) : IPowerService, ISpecialSettingHandler
     {
-        private IEnumerable<SettingDefinition>? _cachedSettings;
+        private volatile IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
 
         public string DomainName => FeatureIds.Power;

@@ -548,6 +548,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+            _windowsAppsService.WinGetReady -= OnWinGetInstalled;
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;
