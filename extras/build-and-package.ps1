@@ -344,6 +344,11 @@ $innoContent = $innoContent -replace 'SetupIconFile=C:\\Winhance\\src\\Winhance\
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance\.UI\\bin\\x64\\Release\\net10\.0-windows10\.0\.19041\.0\\', "Source: `"$publishPath\\"
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\extras\\prerequisites\\', "Source: `"$scriptRoot\\prerequisites\\"
 
+# Add uninstaller signing directives if code signing is enabled
+if ($shouldSign -and $certificate) {
+    $innoContent = $innoContent -replace '(SolidCompression=yes)', "`$1`r`nSignTool=mysigntool`r`nSignedUninstaller=yes"
+}
+
 # Write the updated script to a temporary file
 Set-Content -Path $tempInnoScript -Value $innoContent
 
@@ -359,7 +364,24 @@ if (-not (Test-Path $innoCompiler)) {
     }
 }
 
-& $innoCompiler $tempInnoScript
+if ($shouldSign -and $certificate) {
+    # Create a temporary batch file for the sign tool command
+    # This avoids quoting issues when passing the signtool path (which contains spaces) to ISCC
+    $signBatPath = "$env:TEMP\winhance-sign.bat"
+    $signtoolExe = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe"
+    if (-not (Test-Path $signtoolExe)) {
+        $possiblePaths = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue
+        if ($possiblePaths.Count -gt 0) {
+            $signtoolExe = $possiblePaths[0].FullName
+        }
+    }
+    Set-Content -Path $signBatPath -Value "@`"$signtoolExe`" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /sha1 $($certificate.Thumbprint) %1"
+
+    Write-Host "Creating installer with signed uninstaller..." -ForegroundColor Green
+    & $innoCompiler "/Smysigntool=$signBatPath `$f" $tempInnoScript
+} else {
+    & $innoCompiler $tempInnoScript
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to create installer" -ForegroundColor Red
     exit 1
@@ -367,6 +389,9 @@ if ($LASTEXITCODE -ne 0) {
 
 # Clean up
 Remove-Item $tempInnoScript -Force
+if ($signBatPath -and (Test-Path $signBatPath)) {
+    Remove-Item $signBatPath -Force
+}
 
 # Sign the installer if the executable was signed
 $installerFilename = if ($Beta) { "Winhance.Installer.Beta.exe" } else { "Winhance.Installer.exe" }
@@ -394,6 +419,7 @@ if ($shouldSign) {
     Write-Host "`nSigning Summary:" -ForegroundColor Cyan
     Write-Host "  Certificate: $($certificate.Subject)" -ForegroundColor Green
     Write-Host "  Executable: Signed" -ForegroundColor Green
+    Write-Host "  Uninstaller: Signed (embedded in installer)" -ForegroundColor Green
     if ($installerSignResult) {
         Write-Host "  Installer: Signed" -ForegroundColor Green
     }

@@ -34,6 +34,7 @@
     <FileVersion>26.02.20</FileVersion>
     <AssemblyVersion>26.02.20</AssemblyVersion>
     <InformationalVersion>v26.02.20</InformationalVersion>
+    <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

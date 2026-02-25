@@ -43,6 +43,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=C:\Winhance\installer-output
 OutputBaseFilename=Winhance.Installer
 SetupIconFile=C:\Winhance\src\Winhance.UI\Assets\AppIcons\winhance-rocket.ico
+VersionInfoCopyright=Copyright © Marco du Plessis
 SolidCompression=yes
 WizardStyle=modern
 ; Allow user to select installation type
@@ -175,6 +176,41 @@ begin
   if (CurPageID = wpSelectTasks) and (UserSelectedDir <> '') then
   begin
     WizardForm.DirEdit.Text := UserSelectedDir;
+  end;
+end;
+
+// Rename the uninstaller from generic unins000.exe to Winhance.Uninstaller.exe
+// This helps avoid false positive AV detections (see GitHub issue #479)
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  UninstExe, UninstDat: String;
+  NewExe, NewDat: String;
+  RegPath: String;
+begin
+  if CurStep = ssDone then
+  begin
+    UninstExe := ExpandConstant('{uninstallexe}');
+    if (UninstExe <> '') and FileExists(UninstExe) then
+    begin
+      UninstDat := ChangeFileExt(UninstExe, '.dat');
+      NewExe := ExtractFilePath(UninstExe) + 'Winhance.Uninstaller.exe';
+      NewDat := ExtractFilePath(UninstExe) + 'Winhance.Uninstaller.dat';
+
+      RenameFile(UninstExe, NewExe);
+      RenameFile(UninstDat, NewDat);
+
+      RegPath := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1';
+      if IsAdminInstallMode then
+      begin
+        RegWriteStringValue(HKLM, RegPath, 'UninstallString', '"' + NewExe + '"');
+        RegWriteStringValue(HKLM, RegPath, 'QuietUninstallString', '"' + NewExe + '" /SILENT');
+      end
+      else
+      begin
+        RegWriteStringValue(HKCU, RegPath, 'UninstallString', '"' + NewExe + '"');
+        RegWriteStringValue(HKCU, RegPath, 'QuietUninstallString', '"' + NewExe + '" /SILENT');
+      end;
+    end;
   end;
 end;
 
