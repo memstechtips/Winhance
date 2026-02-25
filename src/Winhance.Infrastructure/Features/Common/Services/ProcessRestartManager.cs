@@ -45,12 +45,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         // Wildcard service names require enumeration
                         var pattern = setting.RestartService.Replace("*", "");
                         var allServices = ServiceController.GetServices();
-                        var matchingServices = allServices.Where(s =>
-                            s.ServiceName.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                        foreach (var svc in matchingServices)
+                        try
                         {
-                            using (svc)
+                            var matchingServices = allServices.Where(s =>
+                                s.ServiceName.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                            foreach (var svc in matchingServices)
                             {
                                 try
                                 {
@@ -66,6 +66,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                     logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
                                 }
                             }
+                        }
+                        finally
+                        {
+                            foreach (var svc in allServices)
+                                svc.Dispose();
                         }
                     }
                     else

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -153,7 +154,7 @@ namespace Winhance.Infrastructure.Features.Common.Events
         private class SubscriptionToken : ISubscriptionToken
         {
             private readonly Action<ISubscriptionToken> _unsubscribeAction;
-            private bool _isDisposed;
+            private int _isDisposed; // 0 = not disposed, 1 = disposed
 
             public Guid SubscriptionId { get; }
             public Type EventType { get; }
@@ -167,10 +168,9 @@ namespace Winhance.Infrastructure.Features.Common.Events
 
             public void Dispose()
             {
-                if (!_isDisposed)
+                if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
                 {
                     _unsubscribeAction(this);
-                    _isDisposed = true;
                 }
             }
         }

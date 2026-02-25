@@ -125,10 +125,20 @@ public class ProcessExecutor : IProcessExecutor
 
         if (waitForExit)
         {
-            await process.WaitForExitAsync(ct).ConfigureAwait(false);
-            return process.ExitCode;
+            try
+            {
+                await process.WaitForExitAsync(ct).ConfigureAwait(false);
+                return process.ExitCode;
+            }
+            finally
+            {
+                process.Dispose();
+            }
         }
 
+        // Fire-and-forget: dispose immediately to release the native handle.
+        // The child process continues running independently.
+        process.Dispose();
         return 0;
     }
 }

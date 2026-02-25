@@ -387,18 +387,22 @@ public class WindowsAppsService(
 
                     logService?.LogInformation($"[DISM-Remove] Found {matching.Count} matching installed capabilities");
 
-                    using var cancelEvent = DismSessionManager.CreateCancelEvent(ct);
-                    var cancelHandle = cancelEvent.SafeWaitHandle.DangerousGetHandle();
-                    logService?.LogInformation($"[DISM-Remove] Cancel event handle: 0x{cancelHandle:X}, CanBeCanceled={ct.CanBeCanceled}");
-
-                    foreach (var cap in matching)
+                    var (cancelEvent, cancelRegistration) = DismSessionManager.CreateCancelEvent(ct);
+                    using (cancelEvent)
+                    using (cancelRegistration)
                     {
-                        var capName = Marshal.PtrToStringUni(cap.Name)!;
-                        logService?.LogInformation($"[DISM-Remove] >>> Calling DismRemoveCapability('{capName}')...");
-                        var sw = System.Diagnostics.Stopwatch.StartNew();
-                        var hr = DismApi.DismRemoveCapability(session, capName, cancelHandle, DismApi.NoOpProgressCallback, IntPtr.Zero);
-                        logService?.LogInformation($"[DISM-Remove] <<< DismRemoveCapability returned 0x{hr:X8} ({sw.ElapsedMilliseconds}ms)");
-                        DismApi.ThrowIfFailed(hr, "RemoveCapability");
+                        var cancelHandle = cancelEvent.SafeWaitHandle.DangerousGetHandle();
+                        logService?.LogInformation($"[DISM-Remove] Cancel event handle: 0x{cancelHandle:X}, CanBeCanceled={ct.CanBeCanceled}");
+
+                        foreach (var cap in matching)
+                        {
+                            var capName = Marshal.PtrToStringUni(cap.Name)!;
+                            logService?.LogInformation($"[DISM-Remove] >>> Calling DismRemoveCapability('{capName}')...");
+                            var sw = System.Diagnostics.Stopwatch.StartNew();
+                            var hr = DismApi.DismRemoveCapability(session, capName, cancelHandle, DismApi.NoOpProgressCallback, IntPtr.Zero);
+                            logService?.LogInformation($"[DISM-Remove] <<< DismRemoveCapability returned 0x{hr:X8} ({sw.ElapsedMilliseconds}ms)");
+                            DismApi.ThrowIfFailed(hr, "RemoveCapability");
+                        }
                     }
                 }
                 finally
@@ -429,16 +433,20 @@ public class WindowsAppsService(
 
             await DismSessionManager.ExecuteAsync(session =>
             {
-                using var cancelEvent = DismSessionManager.CreateCancelEvent(ct);
-                var cancelHandle = cancelEvent.SafeWaitHandle.DangerousGetHandle();
-                logService?.LogInformation($"[DISM-Disable] Cancel event handle: 0x{cancelHandle:X}, CanBeCanceled={ct.CanBeCanceled}");
+                var (cancelEvent, cancelRegistration) = DismSessionManager.CreateCancelEvent(ct);
+                using (cancelEvent)
+                using (cancelRegistration)
+                {
+                    var cancelHandle = cancelEvent.SafeWaitHandle.DangerousGetHandle();
+                    logService?.LogInformation($"[DISM-Disable] Cancel event handle: 0x{cancelHandle:X}, CanBeCanceled={ct.CanBeCanceled}");
 
-                logService?.LogInformation($"[DISM-Disable] >>> Calling DismDisableFeature('{item.OptionalFeatureName}')...");
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                var hr = DismApi.DismDisableFeature(session, item.OptionalFeatureName, null, false, cancelHandle, DismApi.NoOpProgressCallback, IntPtr.Zero);
-                logService?.LogInformation($"[DISM-Disable] <<< DismDisableFeature returned 0x{hr:X8} ({sw.ElapsedMilliseconds}ms)");
-                DismApi.ThrowIfFailed(hr, "DisableFeature");
-                logService?.LogInformation($"[DISM-Disable] Feature '{item.OptionalFeatureName}' disabled successfully");
+                    logService?.LogInformation($"[DISM-Disable] >>> Calling DismDisableFeature('{item.OptionalFeatureName}')...");
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    var hr = DismApi.DismDisableFeature(session, item.OptionalFeatureName, null, false, cancelHandle, DismApi.NoOpProgressCallback, IntPtr.Zero);
+                    logService?.LogInformation($"[DISM-Disable] <<< DismDisableFeature returned 0x{hr:X8} ({sw.ElapsedMilliseconds}ms)");
+                    DismApi.ThrowIfFailed(hr, "DisableFeature");
+                    logService?.LogInformation($"[DISM-Disable] Feature '{item.OptionalFeatureName}' disabled successfully");
+                }
             }, ct, log: msg => logService?.LogInformation(msg)).ConfigureAwait(false);
 
             logService?.LogInformation($"[DISM-Disable] DisableOptionalFeatureNativeAsync DONE: '{item.OptionalFeatureName}'");

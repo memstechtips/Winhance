@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Management;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,15 +13,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly ILogService _logService;
         private readonly ILocalizationService _localization;
+        private readonly IProcessExecutor _processExecutor;
 
         private const string RestorePointName = "Winhance Initial Restore Point";
 
         public SystemBackupService(
             ILogService logService,
-            ILocalizationService localization)
+            ILocalizationService localization,
+            IProcessExecutor processExecutor)
         {
             _logService = logService;
             _localization = localization;
+            _processExecutor = processExecutor;
         }
 
         public async Task<BackupResult> EnsureInitialBackupsAsync(
@@ -155,6 +157,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     foreach (ManagementObject obj in results)
                     {
                         _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
+
+                        var creationTimeStr = obj["CreationTime"]?.ToString();
+                        if (creationTimeStr != null)
+                        {
+                            return (DateTime?)ManagementDateTimeConverter.ToDateTime(creationTimeStr);
+                        }
                         return (DateTime?)DateTime.Now;
                     }
 
@@ -200,13 +208,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task<bool> EnableSystemRestoreAsync()
         {
-            return await Task.Run(() =>
+            try
             {
-                try
-                {
-                    var systemDrive = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
+                var systemDrive = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
 
-                    // Enable System Restore via WMI
+                // Enable System Restore via WMI (blocking COM call, run on thread pool)
+                await Task.Run(() =>
+                {
                     using var restoreClass = new ManagementClass(
                         new ManagementScope(@"\\.\root\default"),
                         new ManagementPath("SystemRestore"),
@@ -215,31 +223,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var inParams = restoreClass.GetMethodParameters("Enable");
                     inParams["Drive"] = systemDrive + "\\";
                     restoreClass.InvokeMethod("Enable", inParams, null);
+                }).ConfigureAwait(false);
 
-                    _logService.Log(LogLevel.Info, "System Restore enabled via WMI");
+                _logService.Log(LogLevel.Info, "System Restore enabled via WMI");
 
-                    // Resize shadow storage
-                    using var process = new Process();
-                    process.StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "vssadmin",
-                        Arguments = $"Resize ShadowStorage /For={systemDrive} /On={systemDrive} /MaxSize=10GB",
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        RedirectStandardOutput = true
-                    };
-                    process.Start();
-                    process.WaitForExit(30000);
+                // Resize shadow storage
+                await _processExecutor.ExecuteAsync(
+                    "vssadmin",
+                    $"Resize ShadowStorage /For={systemDrive} /On={systemDrive} /MaxSize=10GB")
+                    .ConfigureAwait(false);
 
-                    _logService.Log(LogLevel.Info, "Shadow storage resized");
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
-                    return false;
-                }
-            }).ConfigureAwait(false);
+                _logService.Log(LogLevel.Info, "Shadow storage resized");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
+                return false;
+            }
         }
     }
 }

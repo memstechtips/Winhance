@@ -1,7 +1,7 @@
 # Winhance Test Plan
 
 Date: 2026-02-20
-Updated: 2026-02-25 (v6 remediation complete: 4 large files decomposed — MainWindow.xaml.cs 1362→722, WimUtilViewModel 1363→425, AutounattendScriptBuilder 1859→265, DialogService 1181→480; ContentDialog outside DialogService fixed; constructor params reduced; mutable defaults fixed; ~27 new files; ISelectedAppsProvider moved to service layer; 0 files >1000 lines; see code-quality-v6.md)
+Updated: 2026-02-25 (v7 remediation: 8 findings fixed — ProcessExecutor handle leak, DismSessionManager event/registration leak, ProcessRestartManager ServiceController leak, SystemBackupService restore point date bug + IProcessExecutor adoption, PowerService bare catch logging, ScheduledTaskService COM lifecycle, EventBus thread-safe dispose; test plan corrections: WinGetInstaller status, [InternalsVisibleTo] WinUI separation, WimUtil sub-VM DI clarification, 5 missing test files added, AutounattendGeneratorVM concrete dep flagged, test count estimate updated to 300-400)
 
 ---
 
@@ -420,7 +420,7 @@ These concrete-only services/classes can't be swapped for test doubles:
 | `WinGetCliRunner` | static class | Infrastructure | Static WinGet wrapper, also uses direct `File.Exists` |
 | `WinGetExitCodes` | static class | Infrastructure | Static exit code mapping |
 | `WinGetProgressParser` | static class | Infrastructure | Static output parsing |
-| ~~`WinGetInstaller`~~ | ~~class with DI deps~~ | ~~Infrastructure~~ | ✅ **RESOLVED** — functionality absorbed into `WinGetBootstrapper` behind `IWinGetBootstrapper` (F-26) |
+| `WinGetInstaller` | class with DI deps | Infrastructure | 552 lines, created via `new` inside `WinGetBootstrapper` (not DI-registered). Has 6 deps: `IPowerShellRunner`, `HttpClient`, `ILogService`, `ILocalizationService`, `ITaskProgressService`, `IFileSystemService`. Testable through `WinGetBootstrapper` with mocked deps, or could extract `IWinGetInstaller` for direct mockability. |
 | `BloatRemovalScriptGenerator` | static class | Core | Generates bloat removal PowerShell scripts |
 | `ConPtyProcess` | internal sealed | Infrastructure | Pseudo-console wrapper |
 | `NumericConversionHelper` | internal static | Infrastructure | Shared utility (v3 QW-1), needs `[InternalsVisibleTo]` |
@@ -503,7 +503,7 @@ These concrete-only services/classes can't be swapped for test doubles:
    - `TaskProgressViewModel` progress state, cancel/close/show-details commands (S3)
    - `UpdateCheckViewModel` update check flow, InfoBar state management (S3)
    - `ReviewModeBarViewModel` review mode state, apply/cancel commands, status text (S3)
-   - `WimStep1ViewModel`, `WimStep2XmlViewModel`, `WimStep3DriversViewModel`, `WimStep4IsoViewModel`, `WimImageFormatViewModel` — independently testable sub-VMs (v6)
+   - `WimStep1ViewModel`, `WimStep2XmlViewModel`, `WimStep3DriversViewModel`, `WimStep4IsoViewModel`, `WimImageFormatViewModel` — independently testable sub-VMs (v6; not DI-registered — instantiated via `new` in `WimUtilViewModel` with deps passed manually, but all constructor deps are interface-based)
    - `WimUtilViewModel` orchestrator — wizard navigation state, step availability logic, sub-VM observation (v6)
    - `SettingViewModelEnricher` — battery detection, cross-group info, review diff (v6: extracted from factory)
    - `SettingPreparationPipeline` — setting filtering + localization (v6: extracted from loading service)
@@ -515,7 +515,7 @@ These concrete-only services/classes can't be swapped for test doubles:
    - `CompatibleSettingsRegistry` settings discovery
    - `OperationResult` / `OperationResult<T>` factory methods and state
 
-**Estimated scope:** 170-220 unit tests covering core logic paths. The expanded test file structure (see below) includes 9 settings feature ViewModels, 5 WimUtil sub-ViewModels, ~67 Infrastructure service tests (including 7 AutounattendScriptBuilder sections), 4 Core service tests, and ~25 UI service tests.
+**Estimated scope:** 300-400 unit tests for thorough Phase 1 coverage (happy path + error path + edge cases per method). The expanded test file structure (see below) includes 9 settings feature ViewModels, 5 WimUtil sub-ViewModels, ~67 Infrastructure service tests (including 7 AutounattendScriptBuilder sections), 4 Core service tests, and ~25 UI service tests.
 
 **No refactoring required.** All major testability blockers have been resolved through v1-v6 code quality rounds (`ISettingViewModelFactory`, `IAppItemsProvider`, `IExplorerWindowManager`, `IMainWindowProvider`, `IStartupOrchestrator`, `IFilePickerService`, `ISelectedAppsProvider`, `ISettingViewModelEnricher`, `ISettingPreparationPipeline`, etc.).
 
@@ -527,7 +527,7 @@ These concrete-only services/classes can't be swapped for test doubles:
 
 **Note:** The following services were already testable before Phase 2 (no `IProcessExecutor` dependency): `SettingDependencyResolver`, `RecommendedSettingsApplier`, `ConfigurationService` (facade), `ConfigLoadService`, `ConfigAppSelectionService`, `ConfigExportService`, `ConfigApplicationExecutionService`, `ConfigReviewOrchestrationService`, `SettingViewModelFactory`, `SettingReviewDiffApplier`, `SettingsLoadingService`.
 
-**Remaining:** `WinGetCliRunner` (static) and 3 decomposed WinGet services (`WinGetBootstrapper`, `WinGetDetectionService`, `WinGetPackageInstaller`) still use direct Process via `WinGetCliRunner`. `PowerShellRunner` was converted to injectable `IPowerShellRunner` in Phase C (S7). Note: `SystemBackupService` also has direct `ProcessStartInfo` for `vssadmin`.
+**Remaining:** `WinGetCliRunner` (static) and 3 decomposed WinGet services (`WinGetBootstrapper`, `WinGetDetectionService`, `WinGetPackageInstaller`) still use direct Process via `WinGetCliRunner`. `PowerShellRunner` was converted to injectable `IPowerShellRunner` in Phase C (S7). ~~`SystemBackupService` direct `ProcessStartInfo` for `vssadmin`~~ ✅ **RESOLVED** (v7 V7-5) — now uses `IProcessExecutor`.
 
 ### Phase 3: Interface Extraction for Concrete Services — PARTIALLY COMPLETED ✅
 
@@ -576,7 +576,9 @@ Zero `IServiceProvider` usage remains outside of DI registration infrastructure.
 
 **Target:** All service logic, ViewModel logic, model behavior.
 
-**Note:** `[InternalsVisibleTo]` attributes are needed on `Winhance.Infrastructure` (for `NumericConversionHelper`, `RegistryCommandEmitter`, `FeatureRegistryScriptSection`, `PowerSettingsScriptSection`, `ScriptPreambleSection`, `AppRemovalScriptSection`, `SpecialFeatureScriptSection`, `PowerShellScriptUtilities`) and `Winhance.UI` (for `SettingStatusBannerManager`, `TechnicalDetailsManager`, `ConfigImportDialogBuilder`, `TaskOutputDialogBuilder`, `DialogAccessibilityHelper`, `TaskProgressCoordinator`, `NavigationRouter`, `StartupUiCoordinator`, `TitleBarManager`) to test `internal` classes directly.
+**Note:** `[InternalsVisibleTo]` attributes are needed on `Winhance.Infrastructure` (for `NumericConversionHelper`, `RegistryCommandEmitter`, `FeatureRegistryScriptSection`, `PowerSettingsScriptSection`, `ScriptPreambleSection`, `AppRemovalScriptSection`, `SpecialFeatureScriptSection`, `PowerShellScriptUtilities`) and `Winhance.UI` (for `SettingStatusBannerManager`, `TechnicalDetailsManager`, `UnitConversionHelper`, `ConfigRegistryInitializer`) to test `internal` classes directly.
+
+**NOT unit testable (require WinUI 3 runtime — defer to integration tests):** `TaskProgressCoordinator` (takes `TaskProgressControl`, `DispatcherQueue`), `NavigationRouter` (uses `Frame`, page types), `StartupUiCoordinator` (references `Microsoft.UI.Xaml.Window`), `TitleBarManager` (references `Window`), `ConfigImportDialogBuilder` (uses WinUI `ContentDialog`, `StackPanel`), `TaskOutputDialogBuilder` (uses WinUI controls), `DialogAccessibilityHelper` (uses `UIElement`, `AutomationPeer`). These 7 classes depend directly on WinUI 3 types and cannot be tested with a standard xUnit runner.
 
 ```
 Winhance.Core.Tests/
@@ -589,6 +591,8 @@ Winhance.Core.Tests/
   │   ├── DependencyManagerTests.cs               # impl lives in Core
   │   ├── InitializationServiceTests.cs           # impl lives in Core
   │   └── LogServiceTests.cs                      # impl lives in Core (bootstrapping constraints noted)
+  ├── Utils/
+  │   └── SearchHelperTests.cs                     # public static, pure function MatchesSearchTerm()
   └── Events/
       └── EventBusTests.cs
 
@@ -618,6 +622,7 @@ Winhance.Infrastructure.Tests/
   │   │── RemovalScriptUpdateServiceTests.cs
   │   │── ExplorerWindowManagerTests.cs
   │   │── NumericConversionHelperTests.cs         # internal static — needs [InternalsVisibleTo]
+  │   │── TooltipRefreshEventHandlerTests.cs     # public, 4 interface deps — event subscription/refresh logic
   │   │── WindowsAppsServiceTests.cs
   │   │── ExternalAppsServiceTests.cs
   │   │── AppInstallationServiceTests.cs
@@ -644,7 +649,7 @@ Winhance.Infrastructure.Tests/
   │   │── HardwareCompatibilityFilterTests.cs
   │   │── WindowsCompatibilityFilterTests.cs
   │   │── TaskProgressServiceTests.cs             # ITaskProgressService + IMultiScriptProgressService
-  │   │── SystemBackupServiceTests.cs             # ISystemBackupService
+  │   │── SystemBackupServiceTests.cs             # ISystemBackupService (v7: now takes IProcessExecutor)
   │   │── WindowsVersionServiceTests.cs           # IWindowsVersionService
   │   │── WindowsUIManagementServiceTests.cs      # IWindowsUIManagementService
   │   │── LocalizationServiceTests.cs             # ILocalizationService
@@ -681,6 +686,7 @@ Winhance.UI.Tests/
   │   ├── CustomizeViewModelTests.cs              # 51 lines, extends SectionPageViewModel<T>
   │   ├── SectionPageViewModelTests.cs            # base class shared logic
   │   ├── WizardActionCardTests.cs                # model (ObservableObject), not DI-registered
+  │   ├── WizardStepStateTests.cs                 # public INotifyPropertyChanged model — computed properties (IsLocked, ShowChevron, ChevronRotation)
   │   ├── MainWindowViewModelTests.cs
   │   ├── TaskProgressViewModelTests.cs
   │   ├── UpdateCheckViewModelTests.cs
@@ -734,7 +740,9 @@ Winhance.UI.Tests/
       ├── ThemeServiceTests.cs
       ├── StartupOrchestratorTests.cs             # IStartupOrchestrator
       ├── WindowsVersionFilterServiceTests.cs     # IWindowsVersionFilterService
-      └── StartupNotificationServiceTests.cs      # IStartupNotificationService
+      ├── StartupNotificationServiceTests.cs      # IStartupNotificationService
+      ├── UnitConversionHelperTests.cs            # internal static — needs [InternalsVisibleTo], pure functions
+      └── ConfigRegistryInitializerTests.cs       # internal static — needs [InternalsVisibleTo], has interface deps
 ```
 
 ### Integration Tests (Future, Post-Refactoring)
@@ -807,7 +815,7 @@ These use real service implementations but mock the OS boundary:
 4. ~~**Service→ViewModel layer violation**~~ ✅ Resolved — `ConfigExportService`, `ConfigAppSelectionService` now depend on `IWindowsAppsItemsProvider`/`IExternalAppsItemsProvider` interfaces (v4 F-9).
 5. ~~**`MainWindow.xaml.cs` — 1483 lines, 25+ service locator calls**~~ ✅ Reduced to 722 lines (v6 V6-1). Startup orchestration extracted to `IStartupOrchestrator`/`StartupOrchestrator` (v4). Further decomposed into `TaskProgressCoordinator`, `NavigationRouter`, `StartupUiCoordinator`, `TitleBarManager` helpers + ~244 lines of PropertyChanged handlers eliminated via XAML `x:Bind` bindings (v6).
 6. ~~**Static `App.MainWindow` access in services**~~ ✅ **RESOLVED** — `ConfigExportService` and `ConfigLoadService` no longer access `App.MainWindow` directly; replaced with `IMainWindowProvider` (v4 F-22).
-7. **`SoftwareAppsViewModel` concrete ViewModel dependencies** — Constructor takes concrete `WindowsAppsViewModel` and `ExternalAppsViewModel` (not interfaces). These have complex constructors, making full mockability of `SoftwareAppsViewModel` difficult without creating real child VM instances. Workaround: use Moq with virtual members or create lightweight test doubles. (v6 added `IDialogService` dependency; `ShowHelpAsync` no longer creates ContentDialog directly.)
+7. **`SoftwareAppsViewModel` and `AutounattendGeneratorViewModel` concrete ViewModel dependencies** — `SoftwareAppsViewModel` constructor takes concrete `WindowsAppsViewModel` and `ExternalAppsViewModel` (not interfaces). `AutounattendGeneratorViewModel` also depends on concrete `WindowsAppsViewModel`. These have complex constructors, making full mockability difficult without creating real child VM instances. Workaround: use Moq with virtual members or create lightweight test doubles. (v6 added `IDialogService` dependency; `ShowHelpAsync` no longer creates ContentDialog directly.)
 
 **Resolved:**
 - ~~**`Process.Start()` not abstracted**~~ ✅ **RESOLVED** — `IProcessExecutor` injected into ~17 services
@@ -830,9 +838,9 @@ These use real service implementations but mock the OS boundary:
 | **Phase 4** | PARTIAL | P/Invoke & COM abstraction — `ServiceController` done, WinGet COM isolated to `WinGetComSession` (F-26), P/Invoke wrappers pending |
 | **Phase 5** | ✅ COMPLETE | `IServiceProvider` removal — all 6 locations resolved |
 
-### Current State (post v1-v4 refactoring + v5 review + v6 decomposition, verified 2026-02-25)
+### Current State (post v1-v6 refactoring + v7 correctness fixes, verified 2026-02-25)
 
-**~90% of application logic is testable today.** v5 independent verification confirmed 18/18 sampled v1-v4 code quality changes as correctly implemented. The v5 fresh review found only 8 minor findings (0 blocking, all resolved). v6 decomposed the 4 remaining large files (>1000 lines) into focused single-responsibility classes, added 4 new interfaces (`ISettingViewModelEnricher`, `ISettingPreparationPipeline`, `IFilePickerService`, `ISelectedAppsProvider`), and created 5 independently-testable sub-ViewModels for the WIM utility wizard. The codebase is ready for test authoring.
+**~90% of application logic is testable today.** v5 independent verification confirmed 18/18 sampled v1-v4 code quality changes as correctly implemented. The v5 fresh review found only 8 minor findings (0 blocking, all resolved). v6 decomposed the 4 remaining large files (>1000 lines) into focused single-responsibility classes, added 4 new interfaces (`ISettingViewModelEnricher`, `ISettingPreparationPipeline`, `IFilePickerService`, `ISelectedAppsProvider`), and created 5 independently-testable sub-ViewModels for the WIM utility wizard. v7 fixed 8 correctness/resource-leak issues including `SystemBackupService` now using `IProcessExecutor` (eliminating the last direct `Process` usage outside static utilities). The codebase is ready for test authoring.
 
 **What's ready now (Phase 1 — no refactoring needed):**
 - All ViewModels with constructor injection (~33 concrete ViewModels, including 5 new WimUtil sub-VMs from v6)
@@ -841,7 +849,7 @@ These use real service implementations but mock the OS boundary:
 - Config import/export pipeline (5 sub-services + facade)
 - OperationResult-based assertions across 7 interfaces
 - v6 extracted classes: `RegistryCommandEmitter`, `PowerShellScriptUtilities`, 5 script sections (all independently testable)
-- Estimated scope: 170-220 unit tests covering core logic paths (expanded test file structure with ~40 additional test files from v6)
+- Estimated scope: 300-400 unit tests for thorough coverage (expanded test file structure with ~40 additional test files from v6)
 
 **What blocks the remaining ~10%:**
 1. P/Invoke static classes in `Core/Native/` (6 classes, unmockable: `UserTokenApi`, `User32Api`, `ConPtyApi`, `PowerProf`, `DismApi`, `MsiApi`)

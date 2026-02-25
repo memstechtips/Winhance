@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
@@ -47,9 +48,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         return await Task.Run(() =>
         {
+            dynamic? taskService = null;
             try
             {
-                var taskService = CreateTaskService();
+                taskService = CreateTaskService();
                 var folder = GetWinhanceFolder(taskService);
 
                 if (folder == null) return OperationResult.Succeeded();
@@ -75,6 +77,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 logService.LogError($"Error unregistering task: {taskName}", ex);
                 return OperationResult.Failed(ex.Message, ex);
             }
+            finally
+            {
+                ReleaseComObject(taskService);
+            }
         }).ConfigureAwait(false);
     }
 
@@ -82,9 +88,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         return await Task.Run(() =>
         {
+            dynamic? taskService = null;
             try
             {
-                var taskService = CreateTaskService();
+                taskService = CreateTaskService();
                 var folder = GetWinhanceFolder(taskService);
 
                 if (folder == null) return false;
@@ -97,6 +104,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Task '{taskName}' not registered: {ex.Message}");
                 return false;
             }
+            finally
+            {
+                ReleaseComObject(taskService);
+            }
         }).ConfigureAwait(false);
     }
 
@@ -104,9 +115,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         return await Task.Run(() =>
         {
+            dynamic? taskService = null;
             try
             {
-                var taskService = CreateTaskService();
+                taskService = CreateTaskService();
                 var folder = GetWinhanceFolder(taskService);
 
                 if (folder == null)
@@ -131,6 +143,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 logService.LogError($"Error running task: {taskName}", ex);
                 return OperationResult.Failed(ex.Message, ex);
             }
+            finally
+            {
+                ReleaseComObject(taskService);
+            }
         }).ConfigureAwait(false);
     }
 
@@ -152,25 +168,33 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
     private async Task<OperationResult> RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
     {
-        var taskService = CreateTaskService();
-        var folder = GetOrCreateWinhanceFolder(taskService);
+        dynamic? taskService = null;
+        try
+        {
+            taskService = CreateTaskService();
+            var folder = GetOrCreateWinhanceFolder(taskService);
 
-        await RemoveExistingTask(folder, taskName).ConfigureAwait(false);
+            await RemoveExistingTask(folder, taskName).ConfigureAwait(false);
 
-        var taskDefinition = CreateTaskDefinition(taskService, scriptPath, command, username, triggerType);
+            var taskDefinition = CreateTaskDefinition(taskService, scriptPath, command, username, triggerType);
 
-        folder.RegisterTaskDefinition(
-            taskName,
-            taskDefinition,
-            6, // TASK_CREATE_OR_UPDATE
-            username,
-            null, // password
-            username != null ? 1 : 5, // TASK_LOGON_INTERACTIVE_TOKEN or TASK_LOGON_SERVICE_ACCOUNT
-            null
-        );
+            folder.RegisterTaskDefinition(
+                taskName,
+                taskDefinition,
+                6, // TASK_CREATE_OR_UPDATE
+                username,
+                null, // password
+                username != null ? 1 : 5, // TASK_LOGON_INTERACTIVE_TOKEN or TASK_LOGON_SERVICE_ACCOUNT
+                null
+            );
 
-        logService.LogInformation($"Registered task: {taskName} as {username ?? "SYSTEM"}");
-        return OperationResult.Succeeded();
+            logService.LogInformation($"Registered task: {taskName} as {username ?? "SYSTEM"}");
+            return OperationResult.Succeeded();
+        }
+        finally
+        {
+            ReleaseComObject(taskService);
+        }
     }
 
     private dynamic CreateTaskService()
@@ -179,6 +203,14 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         dynamic taskService = Activator.CreateInstance(taskSchedulerType)!;
         taskService.Connect();
         return taskService;
+    }
+
+    private static void ReleaseComObject(object? comObject)
+    {
+        if (comObject != null)
+        {
+            try { Marshal.ReleaseComObject(comObject); } catch { /* best-effort COM release */ }
+        }
     }
 
     private dynamic GetOrCreateWinhanceFolder(dynamic taskService)
@@ -293,9 +325,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         return await Task.Run(() =>
         {
+            dynamic? taskService = null;
             try
             {
-                var taskService = CreateTaskService();
+                taskService = CreateTaskService();
                 var (folderPath, taskName) = SplitTaskPath(taskPath);
                 dynamic folder = taskService.GetFolder(folderPath);
                 dynamic task = folder.GetTask(taskName);
@@ -309,14 +342,19 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                     $"Failed to query task state for {taskPath}: {ex.Message}");
                 return null;
             }
+            finally
+            {
+                ReleaseComObject(taskService);
+            }
         }).ConfigureAwait(false);
     }
 
     private OperationResult SetTaskEnabled(string taskPath, bool enabled)
     {
+        dynamic? taskService = null;
         try
         {
-            var taskService = CreateTaskService();
+            taskService = CreateTaskService();
             var (folderPath, taskName) = SplitTaskPath(taskPath);
             dynamic folder = taskService.GetFolder(folderPath);
             dynamic task = folder.GetTask(taskName);
@@ -329,6 +367,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
                 $"Failed to {(enabled ? "enable" : "disable")} task {taskPath}: {ex.Message}");
             return OperationResult.Failed(ex.Message, ex);
+        }
+        finally
+        {
+            ReleaseComObject(taskService);
         }
     }
 

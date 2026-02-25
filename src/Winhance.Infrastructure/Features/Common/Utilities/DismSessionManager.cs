@@ -137,13 +137,12 @@ internal static class DismSessionManager
         }
     }
 
-    public static ManualResetEvent CreateCancelEvent(CancellationToken ct)
+    public static (ManualResetEvent Event, CancellationTokenRegistration Registration) CreateCancelEvent(CancellationToken ct)
     {
         var cancelEvent = new ManualResetEvent(false);
-        if (ct.CanBeCanceled)
-        {
-            ct.Register(() => cancelEvent.Set());
-        }
-        return cancelEvent;
+        var registration = ct.CanBeCanceled
+            ? ct.Register(() => cancelEvent.Set())
+            : default;
+        return (cancelEvent, registration);
     }
 }

@@ -913,8 +913,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 var result = await processExecutor.ExecuteAsync(fileName, args).ConfigureAwait(false);
                 return (result.Succeeded, result.StandardOutput.TrimEnd());
             }
-            catch
+            catch (Exception ex)
             {
+                logService.Log(LogLevel.Warning, $"powercfg {arguments} failed: {ex.Message}");
                 return (false, string.Empty);
             }
         }
