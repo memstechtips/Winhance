@@ -11,9 +11,10 @@ namespace Winhance.UI.Features.Common.ViewModels;
 /// Handles initialization, search, navigation, and localization for pages
 /// that display a collection of feature ViewModels organized into sections.
 /// </summary>
-public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObject
+public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObject, IDisposable
     where TSectionInfo : ISectionInfo
 {
+    private bool _disposed;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
     private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
@@ -87,6 +88,13 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         SearchText = string.Empty;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     /// <summary>

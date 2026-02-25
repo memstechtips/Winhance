@@ -13,8 +13,9 @@ namespace Winhance.UI.Features.Settings.ViewModels;
 /// <summary>
 /// ViewModel for the Settings page.
 /// </summary>
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly ILocalizationService _localizationService;
     private readonly IThemeService _themeService;
     private readonly IUserPreferencesService _preferencesService;
@@ -106,6 +107,13 @@ public partial class SettingsViewModel : ObservableObject
 
         // Subscribe to language changes to update theme display names
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     /// <summary>

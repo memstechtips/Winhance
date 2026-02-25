@@ -167,10 +167,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             {
                 await ApplyConfigurationWithOptionsAsync(config, selectedSections, importOptions, saveRemovalScripts);
             }
-            catch (Exception)
-            {
-                throw;
-            }
             finally
             {
                 _configImportState.IsActive = false;

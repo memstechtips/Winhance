@@ -7,8 +7,9 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
-public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationService
+public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationService, IDisposable
 {
+    private bool _disposed;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
@@ -54,6 +55,13 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
     }
 
     private void OnReviewModeChanged(object? sender, EventArgs e)

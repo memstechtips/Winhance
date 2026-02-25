@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -461,25 +460,9 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         {
             try
             {
-                var dismProcesses = Process.GetProcessesByName("dism");
-                foreach (var process in dismProcesses)
-                {
-                    try
-                    {
-                        _logService.LogInformation($"Killing DISM process (PID: {process.Id})");
-                        process.Kill();
-                        process.WaitForExit(5000);
-                        _logService.LogInformation($"DISM process (PID: {process.Id}) terminated");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.LogWarning($"Failed to kill DISM process (PID: {process.Id}): {ex.Message}");
-                    }
-                    finally
-                    {
-                        process.Dispose();
-                    }
-                }
+                _logService.LogInformation("Killing all DISM processes");
+                _processExecutor.KillProcessesByName("dism");
+                _logService.LogInformation("DISM process kill completed");
             }
             catch (Exception ex)
             {

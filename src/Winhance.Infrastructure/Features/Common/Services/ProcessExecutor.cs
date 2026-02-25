@@ -107,6 +107,27 @@ public class ProcessExecutor : IProcessExecutor
         };
     }
 
+    public void KillProcessesByName(string processName)
+    {
+        var processes = Process.GetProcessesByName(processName);
+        foreach (var process in processes)
+        {
+            try
+            {
+                process.Kill();
+                process.WaitForExit(5000);
+            }
+            catch
+            {
+                // Best-effort kill — process may have already exited
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+    }
+
     public async Task<int?> ShellExecuteAsync(
         string fileName,
         string? arguments = null,

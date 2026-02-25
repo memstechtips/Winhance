@@ -33,6 +33,13 @@ public interface IProcessExecutor
         CancellationToken ct = default);
 
     /// <summary>
+    /// Kills all running processes with the specified name.
+    /// Each process is disposed after the kill attempt.
+    /// </summary>
+    /// <param name="processName">The process name without extension (e.g., "dism").</param>
+    void KillProcessesByName(string processName);
+
+    /// <summary>
     /// Launches a process using shell execution (UseShellExecute=true).
     /// Used for opening URLs, Explorer windows, interactive installers, and regedit.
     /// </summary>

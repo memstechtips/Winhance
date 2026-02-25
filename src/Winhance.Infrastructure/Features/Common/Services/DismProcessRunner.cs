@@ -35,14 +35,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
             IProgress<TaskProgressDetail>? progress,
             CancellationToken cancellationToken)
         {
-            var output = new StringBuilder();
+            var stdoutBuilder = new StringBuilder();
+            var stderrBuilder = new StringBuilder();
 
             var result = await _processExecutor.ExecuteWithStreamingAsync(
                 fileName,
                 arguments,
                 onOutputLine: line =>
                 {
-                    output.AppendLine(line);
+                    stdoutBuilder.AppendLine(line);
                     var match = ProgressRegex.Match(line);
                     if (match.Success && double.TryParse(match.Groups[1].Value, out var pct))
                     {
@@ -59,12 +60,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 },
                 onErrorLine: line =>
                 {
-                    output.AppendLine(line);
+                    stderrBuilder.AppendLine(line);
                     progress?.Report(new TaskProgressDetail { TerminalOutput = line });
                 },
                 ct: cancellationToken).ConfigureAwait(false);
 
-            return (result.ExitCode, output.ToString());
+            var combinedOutput = stdoutBuilder.ToString();
+            if (stderrBuilder.Length > 0)
+                combinedOutput += stderrBuilder.ToString();
+
+            return (result.ExitCode, combinedOutput);
         }
 
         public async Task<bool> CheckDiskSpaceAsync(string path, long requiredBytes, string operationName)
