@@ -85,6 +85,8 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         _disposed = true;
         _taskProgressService.ProgressUpdated -= OnProgressUpdated;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _hideDelayCts?.Cancel();
+        _hideDelayCts?.Dispose();
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

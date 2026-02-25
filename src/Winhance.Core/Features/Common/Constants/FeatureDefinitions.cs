@@ -6,7 +6,7 @@ namespace Winhance.Core.Features.Common.Constants
 {
     public static class FeatureDefinitions
     {
-        public static readonly List<FeatureDefinition> All = new()
+        public static readonly IReadOnlyList<FeatureDefinition> All = new List<FeatureDefinition>()
         {
             // Customize
             new(FeatureIds.WindowsTheme, "Windows Theme", "Customize"),

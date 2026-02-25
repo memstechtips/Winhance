@@ -15,7 +15,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// <summary>
 /// Sub-ViewModel for WIM Utility Step 2: XML generation, download, and selection.
 /// </summary>
-public partial class WimStep2XmlViewModel : ObservableObject
+public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
     private readonly IWimCustomizationService _wimCustomizationService;
@@ -25,6 +25,7 @@ public partial class WimStep2XmlViewModel : ObservableObject
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
     private CancellationTokenSource? _cancellationTokenSource;
+    private bool _disposed;
 
     /// <summary>
     /// The working directory, set by the parent when Step 1 completes.
@@ -144,6 +145,7 @@ public partial class WimStep2XmlViewModel : ObservableObject
             DownloadXmlCard.HasFailed = false;
 
             var destinationPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => XmlStatus = detail.StatusText ?? _localizationService.GetString("WIMUtil_Status_XmlDownloading"));
 
@@ -256,6 +258,15 @@ public partial class WimStep2XmlViewModel : ObservableObject
         if (exceptCard != "generate") GenerateWinhanceXmlCard.IsComplete = false;
         if (exceptCard != "download") DownloadXmlCard.IsComplete = false;
         if (exceptCard != "select") SelectXmlCard.IsComplete = false;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
     }
 
     private static string GetResourceIconPath(string resourceKey)

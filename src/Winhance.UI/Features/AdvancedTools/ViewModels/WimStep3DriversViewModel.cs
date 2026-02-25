@@ -15,7 +15,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// <summary>
 /// Sub-ViewModel for WIM Utility Step 3: driver extraction and injection.
 /// </summary>
-public partial class WimStep3DriversViewModel : ObservableObject
+public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 {
     private readonly IWimCustomizationService _wimCustomizationService;
     private readonly IDialogService _dialogService;
@@ -24,6 +24,7 @@ public partial class WimStep3DriversViewModel : ObservableObject
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
     private CancellationTokenSource? _cancellationTokenSource;
+    private bool _disposed;
 
     /// <summary>
     /// The working directory, set by the parent when Step 1 completes.
@@ -94,6 +95,7 @@ public partial class WimStep3DriversViewModel : ObservableObject
             ExtractSystemDriversCard.IsProcessing = true;
             ExtractSystemDriversCard.IsEnabled = false;
 
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
@@ -164,6 +166,7 @@ public partial class WimStep3DriversViewModel : ObservableObject
             SelectCustomDriversCard.IsEnabled = false;
             SelectCustomDriversCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {selectedPath}";
 
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
@@ -198,6 +201,15 @@ public partial class WimStep3DriversViewModel : ObservableObject
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DriverAdditionError"), ex.Message),
                 "Error");
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
     }
 
     private static string GetResourceIconPath(string resourceKey)

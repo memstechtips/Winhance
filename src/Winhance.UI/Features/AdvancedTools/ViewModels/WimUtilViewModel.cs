@@ -14,12 +14,13 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// Thin orchestrator ViewModel for the WIM Utility wizard.
 /// Owns wizard navigation state and delegates step-specific work to sub-ViewModels.
 /// </summary>
-public partial class WimUtilViewModel : ObservableObject
+public partial class WimUtilViewModel : ObservableObject, IDisposable
 {
     private readonly IOscdimgToolManager _oscdimgToolManager;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IFileSystemService _fileSystemService;
+    private bool _disposed;
 
     // ── Sub-ViewModels (public for XAML binding) ──────────────────────
 
@@ -423,5 +424,26 @@ public partial class WimUtilViewModel : ObservableObject
                 case nameof(WimStep4IsoViewModel.IsIsoCreated): OnPropertyChanged(nameof(IsIsoCreated)); break;
             }
         }
+    }
+
+    // ── IDisposable ─────────────────────────────────────────────────
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        // Unsubscribe from sub-VM PropertyChanged events
+        Step1.PropertyChanged -= OnSubViewModelPropertyChanged;
+        ImageFormat.PropertyChanged -= OnSubViewModelPropertyChanged;
+        Step2.PropertyChanged -= OnSubViewModelPropertyChanged;
+        Step3.PropertyChanged -= OnSubViewModelPropertyChanged;
+        Step4.PropertyChanged -= OnSubViewModelPropertyChanged;
+
+        // Dispose sub-VMs that implement IDisposable
+        (Step2 as IDisposable)?.Dispose();
+        (Step3 as IDisposable)?.Dispose();
+        (Step4 as IDisposable)?.Dispose();
+        (ImageFormat as IDisposable)?.Dispose();
     }
 }

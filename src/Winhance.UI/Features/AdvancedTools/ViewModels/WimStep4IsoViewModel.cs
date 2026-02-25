@@ -18,7 +18,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// <summary>
 /// Sub-ViewModel for WIM Utility Step 4: oscdimg download, output path selection, and ISO creation.
 /// </summary>
-public partial class WimStep4IsoViewModel : ObservableObject
+public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
 {
     private readonly IOscdimgToolManager _oscdimgToolManager;
     private readonly IIsoService _isoService;
@@ -30,6 +30,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
     private CancellationTokenSource? _cancellationTokenSource;
+    private bool _disposed;
 
     /// <summary>
     /// The working directory, set by the parent when Step 1 completes.
@@ -107,6 +108,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
             DownloadOscdimgCard.IsProcessing = true;
             DownloadOscdimgCard.IsEnabled = false;
 
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
@@ -267,6 +269,15 @@ public partial class WimStep4IsoViewModel : ObservableObject
             DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description");
             DownloadOscdimgCard.IconPath = GetResourceIconPath("ToolBoxIconPath");
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
     }
 
     private static string GetResourceIconPath(string resourceKey)

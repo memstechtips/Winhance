@@ -64,8 +64,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
-    private List<AppCategory> _categories = new();
-    public List<AppCategory> Categories
+    private IReadOnlyList<AppCategory> _categories = new List<AppCategory>();
+    public IReadOnlyList<AppCategory> Categories
     {
         get => _categories;
         private set => SetProperty(ref _categories, value);

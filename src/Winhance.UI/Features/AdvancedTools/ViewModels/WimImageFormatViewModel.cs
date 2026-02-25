@@ -16,7 +16,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// Sub-ViewModel for WIM image format detection, WIM/ESD conversion, and deletion.
 /// Receives WorkingDirectory from the parent.
 /// </summary>
-public partial class WimImageFormatViewModel : ObservableObject
+public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 {
     private readonly IWimImageService _wimImageService;
     private readonly ITaskProgressService _taskProgressService;
@@ -25,6 +25,7 @@ public partial class WimImageFormatViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
     private CancellationTokenSource? _cancellationTokenSource;
+    private bool _disposed;
 
     /// <summary>
     /// The working directory, set by the parent when Step 1 completes.
@@ -213,6 +214,7 @@ public partial class WimImageFormatViewModel : ObservableObject
                 _localizationService.GetString("Button_Cancel"));
             if (!confirmed) return;
 
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
@@ -257,6 +259,7 @@ public partial class WimImageFormatViewModel : ObservableObject
                 _localizationService.GetString("Button_Cancel"));
             if (!confirmed) return;
 
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
             var progress = new Progress<TaskProgressDetail>(detail => { });
 
@@ -314,6 +317,15 @@ public partial class WimImageFormatViewModel : ObservableObject
         ConvertImageCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Current")}: install.{currentFormat.ToLower()} ({currentSize:F2} GB)\n{_localizationService.GetString("WIMUtil_Label_AfterConversion")}: ~{estimatedTargetSize:F2} GB ({sizeChange})";
         ConvertImageCard.ButtonText = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormat);
         ConvertImageCard.IsEnabled = !IsConverting;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
     }
 
     internal static string FormatFileSize(long bytes) => $"{bytes / (1024.0 * 1024 * 1024):F2} GB";

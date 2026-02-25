@@ -248,7 +248,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 token.ThrowIfCancellationRequested();
 
                 bool featureMatches = string.IsNullOrWhiteSpace(value) ||
-                    DisplayName.ToLowerInvariant().Contains(value.ToLowerInvariant());
+                    DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase);
 
                 _dispatcherService.RunOnUIThread(() =>
                 {

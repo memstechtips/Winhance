@@ -21,7 +21,7 @@ public partial class OptimizeViewModel : SectionPageViewModel<OptimizeSectionInf
     /// <summary>
     /// Section definitions for navigation.
     /// </summary>
-    public static readonly List<OptimizeSectionInfo> Sections = new()
+    public static readonly IReadOnlyList<OptimizeSectionInfo> Sections = new List<OptimizeSectionInfo>()
     {
         new("Privacy", "PrivacyIconPath", "Privacy & Security", FeatureIds.Privacy),
         new("Power", "PowerIconPath", "Power", FeatureIds.Power),

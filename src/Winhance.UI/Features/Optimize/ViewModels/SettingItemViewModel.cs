@@ -342,10 +342,9 @@ public partial class SettingItemViewModel : BaseViewModel
             return;
         }
 
-        var lowerSearch = searchText.ToLowerInvariant();
-        IsVisible = Name.ToLowerInvariant().Contains(lowerSearch) ||
-                   Description.ToLowerInvariant().Contains(lowerSearch) ||
-                   (!string.IsNullOrEmpty(GroupName) && GroupName.ToLowerInvariant().Contains(lowerSearch));
+        IsVisible = Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                   Description.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                   (!string.IsNullOrEmpty(GroupName) && GroupName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
     }
 
     // Updates setting state from external events (bypasses apply logic since change already happened)

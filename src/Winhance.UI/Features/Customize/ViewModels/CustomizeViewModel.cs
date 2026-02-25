@@ -21,7 +21,7 @@ public partial class CustomizeViewModel : SectionPageViewModel<CustomizeSectionI
     /// <summary>
     /// Section definitions for navigation.
     /// </summary>
-    public static readonly List<CustomizeSectionInfo> Sections = new()
+    public static readonly IReadOnlyList<CustomizeSectionInfo> Sections = new List<CustomizeSectionInfo>()
     {
         new("Explorer", "ExplorerIconGlyph", "Explorer", FeatureIds.ExplorerCustomization),
         new("StartMenu", "StartMenuIconGlyph", "Start Menu", FeatureIds.StartMenu),

@@ -63,7 +63,7 @@ public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Section definitions for navigation.
     /// </summary>
-    public static readonly List<AdvancedToolsSectionInfo> Sections = new()
+    public static readonly IReadOnlyList<AdvancedToolsSectionInfo> Sections = new List<AdvancedToolsSectionInfo>()
     {
         new("WimUtil", "WimUtilIconPath", "WIMUtil"),
         new("AutounattendXml", "AutounattendXmlIconPath", "Create Autounattend XML"),
