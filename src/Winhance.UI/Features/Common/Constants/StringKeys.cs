@@ -55,7 +55,8 @@ public static class StringKeys
             { "sv", "Svenska (Swedish)" },
             { "vi", "Tiếng Việt (Vietnamese)" },
             { "uk", "Українська (Ukrainian)" },
-            { "el", "Ελληνικά (Greek)" }
+            { "el", "Ελληνικά (Greek)" },
+            { "tr", "Türkçe (Turkish)" }
         };
     }
 
