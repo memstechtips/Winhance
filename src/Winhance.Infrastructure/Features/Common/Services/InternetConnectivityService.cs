@@ -165,8 +165,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         // so we don't mutate the shared singleton HttpClient.Timeout
                         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                         cts.CancelAfter(_connectivityCheckTimeout);
-                        var request = new HttpRequestMessage(HttpMethod.Head, url);
-                        var response = await _httpClient.SendAsync(request, cts.Token).ConfigureAwait(false);
+                        using var request = new HttpRequestMessage(HttpMethod.Head, url);
+                        using var response = await _httpClient.SendAsync(request, cts.Token).ConfigureAwait(false);
 
                         if (response.IsSuccessStatusCode)
                         {
@@ -196,8 +196,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 // If we get here, all connectivity checks failed
                 _logService.LogWarning("All internet connectivity checks failed");
-                _cachedInternetStatus = false;
-                _lastInternetCheckTime = DateTime.Now;
+                lock (_cacheLock)
+                {
+                    _cachedInternetStatus = false;
+                    _lastInternetCheckTime = DateTime.UtcNow;
+                }
 
                 return false;
             }

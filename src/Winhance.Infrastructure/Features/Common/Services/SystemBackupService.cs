@@ -133,8 +133,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     using var results = searcher.Get();
                     return results.Count > 0;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logService.Log(LogLevel.Warning, $"Failed to check System Restore status: {ex.Message}");
                     return false;
                 }
             }).ConfigureAwait(false);

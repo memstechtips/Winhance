@@ -222,7 +222,7 @@ public class DirectDownloadService : IDirectDownloadService
 
         using var apiRequest = new HttpRequestMessage(HttpMethod.Get, apiUrl);
         apiRequest.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
-        var response = await _httpClient.SendAsync(apiRequest, cancellationToken).ConfigureAwait(false);
+        using var response = await _httpClient.SendAsync(apiRequest, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);

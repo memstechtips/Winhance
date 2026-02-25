@@ -14,6 +14,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly ILogService _logService;
         private readonly IScheduledTaskService _scheduledTaskService;
         private readonly IFileSystemService _fileSystemService;
+        private static readonly Regex ScriptVersionRegex = new(@"Script Version:\s*(\d+\.\d+)", RegexOptions.Compiled);
 
         private static readonly ScriptInfo[] Scripts =
         {
@@ -89,11 +90,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 var content = _fileSystemService.ReadAllText(filePath);
-                var match = Regex.Match(content, @"Script Version:\s*(\d+\.\d+)");
+                var match = ScriptVersionRegex.Match(content);
                 return match.Success ? match.Groups[1].Value : null;
             }
-            catch
+            catch (Exception ex)
             {
+                _logService.LogWarning($"Failed to extract version from {filePath}: {ex.Message}");
                 return null;
             }
         }

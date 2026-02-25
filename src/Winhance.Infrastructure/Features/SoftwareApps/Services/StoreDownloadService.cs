@@ -27,6 +27,16 @@ public class StoreDownloadService : IStoreDownloadService
 
     private const string StoreApiUrl = "https://store.rg-adguard.net/api/GetFiles";
 
+    private static readonly Regex DownloadLinkRegex = new(
+        @"<a\s+href=""(?<url>[^""]+)""\s*[^>]*>(?<filename>[^<]+)</a>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex FrameworkDependencyRegex = new(
+        @"Provide the framework ""([^""]+)""",
+        RegexOptions.Compiled);
+    private static readonly Regex AltFrameworkDependencyRegex = new(
+        @"framework that could not be found[.\s]*Provide the framework\s+""?([^""]+)""?",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
@@ -335,15 +345,13 @@ public class StoreDownloadService : IStoreDownloadService
 
         _logService?.LogInformation($"Requesting download links from store.rg-adguard.net API for {productId}");
 
-        var response = await _httpClient.PostAsync(StoreApiUrl, requestContent, cancellationToken).ConfigureAwait(false);
+        using var response = await _httpClient.PostAsync(StoreApiUrl, requestContent, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         var htmlContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         // Parse HTML for download links
-        // Pattern: <a href="URL">FILENAME</a>
-        var pattern = @"<a\s+href=""(?<url>[^""]+)""\s*[^>]*>(?<filename>[^<]+)</a>";
-        var matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
+        var matches = DownloadLinkRegex.Matches(htmlContent);
 
         var links = new List<PackageLink>();
         foreach (Match match in matches)
@@ -581,8 +589,7 @@ public class StoreDownloadService : IStoreDownloadService
             return dependencies;
 
         // Pattern 1: "Provide the framework "Microsoft.UI.Xaml.2.3" published by"
-        var frameworkPattern = @"Provide the framework ""([^""]+)""";
-        var frameworkMatches = Regex.Matches(errorMessage, frameworkPattern);
+        var frameworkMatches = FrameworkDependencyRegex.Matches(errorMessage);
         foreach (Match match in frameworkMatches)
         {
             if (match.Success && match.Groups.Count > 1)
@@ -594,8 +601,7 @@ public class StoreDownloadService : IStoreDownloadService
         }
 
         // Pattern 2: "could not be found. Provide the framework" (alternative format)
-        var altFrameworkPattern = @"framework that could not be found[.\s]*Provide the framework\s+""?([^""]+)""?";
-        var altMatches = Regex.Matches(errorMessage, altFrameworkPattern, RegexOptions.Singleline);
+        var altMatches = AltFrameworkDependencyRegex.Matches(errorMessage);
         foreach (Match match in altMatches)
         {
             if (match.Success && match.Groups.Count > 1)

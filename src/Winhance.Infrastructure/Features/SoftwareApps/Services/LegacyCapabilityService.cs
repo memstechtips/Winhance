@@ -13,7 +13,7 @@ public class LegacyCapabilityService(
     ILogService logService,
     IWindowsAppsService windowsAppsService) : ILegacyCapabilityService
 {
-    public async Task<bool> EnableCapabilityAsync(
+    public Task<bool> EnableCapabilityAsync(
         string capabilityName,
         string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
@@ -32,17 +32,13 @@ public class LegacyCapabilityService(
             });
 
             var psCommand = $"Add-WindowsCapability -Online -Name '{capabilityName}'";
-            var process = new Process
+            using var process = Process.Start(new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
-                    UseShellExecute = true,
-                    CreateNoWindow = false
-                }
-            };
-            process.Start();
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
+                UseShellExecute = true,
+                CreateNoWindow = false
+            });
 
             logService?.LogInformation($"PowerShell launched for capability '{capabilityName}'.");
 
@@ -52,7 +48,7 @@ public class LegacyCapabilityService(
                 IsIndeterminate = false
             });
 
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -63,7 +59,7 @@ public class LegacyCapabilityService(
                 IsIndeterminate = false,
                 LogLevel = Core.Features.Common.Enums.LogLevel.Error
             });
-            return false;
+            return Task.FromResult(false);
         }
     }
 

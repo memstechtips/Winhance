@@ -15,6 +15,7 @@ namespace Winhance.Infrastructure.Features.Common.Utilities;
 public class PowerShellRunner : IPowerShellRunner
 {
     private const string PowerShellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+    private static readonly Regex PercentRegex = new(@"(\d+(?:\.\d+)?)%", RegexOptions.Compiled);
     private readonly IFileSystemService _fileSystemService;
 
     public PowerShellRunner(IFileSystemService fileSystemService)
@@ -250,7 +251,7 @@ try {
     {
         if (progress == null || string.IsNullOrWhiteSpace(line)) return;
 
-        var match = Regex.Match(line, @"(\d+(?:\.\d+)?)%");
+        var match = PercentRegex.Match(line);
         if (match.Success && double.TryParse(match.Groups[1].Value,
                 System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out var pct))

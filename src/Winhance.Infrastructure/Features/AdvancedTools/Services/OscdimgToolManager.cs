@@ -170,12 +170,16 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                         TerminalOutput = $"Source: {sourceUrl}"
                     });
 
-                    _httpClient.Timeout = TimeSpan.FromMinutes(30);
-                    var response = await _httpClient.GetAsync(sourceUrl, cancellationToken).ConfigureAwait(false);
+                    // Use per-request timeout instead of mutating the shared singleton HttpClient.Timeout
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    cts.CancelAfter(TimeSpan.FromMinutes(30));
+
+                    using var response = await _httpClient.GetAsync(sourceUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
-                    var setupBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-                    await _fileSystemService.WriteAllBytesAsync(adkSetupPath, setupBytes, cancellationToken).ConfigureAwait(false);
+                    await using var contentStream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+                    await using var fileStream = new FileStream(adkSetupPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+                    await contentStream.CopyToAsync(fileStream, cts.Token).ConfigureAwait(false);
 
                     _logService.LogInformation($"ADK installer downloaded successfully from: {sourceUrl}");
                     return adkSetupPath;

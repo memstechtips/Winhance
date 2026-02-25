@@ -272,6 +272,7 @@ public class AppUninstallService(
 
     private static readonly Regex NonWordOrSpaceRegex = new(@"[^\w\s]", RegexOptions.Compiled);
     private static readonly Regex MultipleSpacesRegex = new(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex MsiInstallToUninstallRegex = new(@"/I(\{[A-F0-9-]+\})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static string NormalizeString(string input)
     {
@@ -326,12 +327,7 @@ public class AppUninstallService(
 
         if (lower.Contains("msiexec"))
         {
-            existingArgs = Regex.Replace(
-                existingArgs,
-                @"/I(\{[A-F0-9-]+\})",
-                "/X$1",
-                RegexOptions.IgnoreCase
-            );
+            existingArgs = MsiInstallToUninstallRegex.Replace(existingArgs, "/X$1");
 
             if (!existingArgs.Contains("/quiet") && !existingArgs.Contains("/qn"))
                 return $"{existingArgs} /quiet /norestart".Trim();

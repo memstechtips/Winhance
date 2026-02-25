@@ -321,7 +321,8 @@ $Shortcut.Save()
     {
         try
         {
-            var result = await appUninstallService.UninstallAsync(item, progress, CancellationToken.None).ConfigureAwait(false);
+            var cancellationToken = GetCurrentCancellationToken();
+            var result = await appUninstallService.UninstallAsync(item, progress, cancellationToken).ConfigureAwait(false);
 
             if (result.Success)
             {
