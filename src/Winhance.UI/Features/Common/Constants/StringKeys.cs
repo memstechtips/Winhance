@@ -46,6 +46,7 @@ public static class StringKeys
             { "hi", "हिन्दी (Hindi)" },
             { "hu", "Magyar (Hungarian)" },
             { "ja", "日本語 (Japanese)" },
+            { "ko", "한국어 (Korean)" },
             { "lt", "Lietuviškai (Lithuanian)" },
             { "lv", "Latviešu (Latvian)" },
             { "nl", "Nederlands (Dutch)" },
