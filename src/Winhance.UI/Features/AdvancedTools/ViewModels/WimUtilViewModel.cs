@@ -1,52 +1,54 @@
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
+using System.ComponentModel;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
-using Winhance.Core.Features.AdvancedTools.Models;
-using System.Collections.Generic;
-using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Exceptions;
-using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
-using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
-using Application = Microsoft.UI.Xaml.Application;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 /// <summary>
-/// ViewModel for the WIM Utility wizard.
+/// Thin orchestrator ViewModel for the WIM Utility wizard.
+/// Owns wizard navigation state and delegates step-specific work to sub-ViewModels.
 /// </summary>
 public partial class WimUtilViewModel : ObservableObject
 {
     private readonly IWimUtilService _wimUtilService;
-    private readonly ITaskProgressService _taskProgressService;
-    private readonly IDialogService _dialogService;
-    private readonly ILogService _logService;
-    private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
-    private readonly IProcessExecutor _processExecutor;
     private readonly IFileSystemService _fileSystemService;
-    private readonly Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel _windowsAppsViewModel;
-    private CancellationTokenSource? _cancellationTokenSource;
 
-    private Window? _mainWindow;
+    // ── Sub-ViewModels (public for XAML binding) ──────────────────────
+
+    public WimStep1ViewModel Step1 { get; }
+    public WimImageFormatViewModel ImageFormat { get; }
+    public WimStep2XmlViewModel Step2 { get; }
+    public WimStep3DriversViewModel Step3 { get; }
+    public WimStep4IsoViewModel Step4 { get; }
+
+    // ── Wizard navigation state ──────────────────────────────────────
+
+    [ObservableProperty]
+    public partial int CurrentStep { get; set; }
+
+    [ObservableProperty]
+    public partial WizardStepState Step1State { get; set; }
+
+    [ObservableProperty]
+    public partial WizardStepState Step2State { get; set; }
+
+    [ObservableProperty]
+    public partial WizardStepState Step3State { get; set; }
+
+    [ObservableProperty]
+    public partial WizardStepState Step4State { get; set; }
+
+    // ── Localization labels (read-only, for XAML) ────────────────────
 
     public string Title => _localizationService?.GetString("WIMUtil_Title") ?? "Windows Installation Media Utility";
-
-    // XAML-bound localized labels
     public string CheckboxExtractedAlreadyText => _localizationService.GetString("WIMUtil_CheckboxExtractedAlready");
     public string ButtonSelectFolderText => _localizationService.GetString("WIMUtil_ButtonSelectFolder");
     public string ButtonStartExtractionText => _localizationService.GetString("WIMUtil_ButtonStartExtraction");
@@ -67,94 +69,72 @@ public partial class WimUtilViewModel : ObservableObject
     public string TooltipSchneegans => _localizationService.GetString("WIMUtil_Tooltip_Schneegans");
     public string ButtonCreateIsoText => _localizationService.GetString("WIMUtil_ButtonCreateISO");
 
-    [ObservableProperty]
-    public partial int CurrentStep { get; set; }
+    // ── Forwarded properties for backward-compatible XAML bindings ───
+    // These delegate to the sub-VMs so existing XAML can still bind to
+    // ViewModel.PropertyName while the XAML migration happens.
 
-    [ObservableProperty]
-    public partial WizardStepState Step1State { get; set; }
+    public string SelectedIsoPath => Step1.SelectedIsoPath;
+    public string WorkingDirectory => Step1.WorkingDirectory;
+    public bool CanStartExtraction => Step1.CanStartExtraction;
+    public bool IsExtractionComplete => Step1.IsExtractionComplete;
+    public bool IsExtracting => Step1.IsExtracting;
+    public bool HasExtractedIsoAlready { get => Step1.HasExtractedIsoAlready; set => Step1.HasExtractedIsoAlready = value; }
 
-    [ObservableProperty]
-    public partial WizardStepState Step2State { get; set; }
+    public WizardActionCard SelectIsoCard => Step1.SelectIsoCard;
+    public WizardActionCard SelectDirectoryCard => Step1.SelectDirectoryCard;
 
-    [ObservableProperty]
-    public partial WizardStepState Step3State { get; set; }
+    public Core.Features.AdvancedTools.Models.ImageFormatInfo? CurrentImageFormat => ImageFormat.CurrentImageFormat;
+    public bool ShowConversionCard => ImageFormat.ShowConversionCard;
+    public bool IsConverting => ImageFormat.IsConverting;
+    public string ConversionStatus => ImageFormat.ConversionStatus;
+    public bool BothFormatsExist => ImageFormat.BothFormatsExist;
+    public string WimFileSize => ImageFormat.WimFileSize;
+    public string EsdFileSize => ImageFormat.EsdFileSize;
+    public Core.Features.AdvancedTools.Models.ImageDetectionResult? DetectionResult => ImageFormat.DetectionResult;
+    public WizardActionCard ConvertImageCard => ImageFormat.ConvertImageCard;
 
-    [ObservableProperty]
-    public partial WizardStepState Step4State { get; set; }
+    public string SelectedXmlPath => Step2.SelectedXmlPath;
+    public string XmlStatus => Step2.XmlStatus;
+    public bool IsXmlAdded => Step2.IsXmlAdded;
+    public WizardActionCard GenerateWinhanceXmlCard => Step2.GenerateWinhanceXmlCard;
+    public WizardActionCard DownloadXmlCard => Step2.DownloadXmlCard;
+    public WizardActionCard SelectXmlCard => Step2.SelectXmlCard;
 
-    [ObservableProperty]
-    public partial string SelectedIsoPath { get; set; }
+    public bool AreDriversAdded => Step3.AreDriversAdded;
+    public WizardActionCard ExtractSystemDriversCard => Step3.ExtractSystemDriversCard;
+    public WizardActionCard SelectCustomDriversCard => Step3.SelectCustomDriversCard;
 
-    [ObservableProperty]
-    public partial string WorkingDirectory { get; set; }
+    public bool IsOscdimgAvailable => Step4.IsOscdimgAvailable;
+    public string OutputIsoPath => Step4.OutputIsoPath;
+    public bool IsIsoCreated => Step4.IsIsoCreated;
+    public WizardActionCard DownloadOscdimgCard => Step4.DownloadOscdimgCard;
+    public WizardActionCard SelectOutputCard => Step4.SelectOutputCard;
 
-    [ObservableProperty]
-    public partial bool CanStartExtraction { get; set; }
+    // ── Forwarded commands for backward-compatible XAML bindings ─────
 
-    [ObservableProperty]
-    public partial bool IsExtractionComplete { get; set; }
+    public IRelayCommand SelectIsoFileCommand => Step1.SelectIsoFileCommand;
+    public IAsyncRelayCommand SelectWorkingDirectoryCommand => Step1.SelectWorkingDirectoryCommand;
+    public IAsyncRelayCommand StartIsoExtractionCommand => Step1.StartIsoExtractionCommand;
+    public IAsyncRelayCommand OpenWindows10DownloadCommand => Step1.OpenWindows10DownloadCommand;
+    public IAsyncRelayCommand OpenWindows11DownloadCommand => Step1.OpenWindows11DownloadCommand;
 
-    [ObservableProperty]
-    public partial bool IsExtracting { get; set; }
+    public IAsyncRelayCommand ConvertImageFormatCommand => ImageFormat.ConvertImageFormatCommand;
+    public IAsyncRelayCommand DeleteWimCommand => ImageFormat.DeleteWimCommand;
+    public IAsyncRelayCommand DeleteEsdCommand => ImageFormat.DeleteEsdCommand;
 
-    [ObservableProperty]
-    public partial bool HasExtractedIsoAlready { get; set; }
+    public IAsyncRelayCommand GenerateWinhanceXmlCommand => Step2.GenerateWinhanceXmlCommand;
+    public IAsyncRelayCommand DownloadUnattendedWinstallXmlCommand => Step2.DownloadUnattendedWinstallXmlCommand;
+    public IAsyncRelayCommand SelectXmlFileCommand => Step2.SelectXmlFileCommand;
+    public IAsyncRelayCommand OpenSchneegansXmlGeneratorCommand => Step2.OpenSchneegansXmlGeneratorCommand;
 
-    [ObservableProperty]
-    public partial ImageFormatInfo? CurrentImageFormat { get; set; }
+    public IAsyncRelayCommand ExtractAndAddSystemDriversCommand => Step3.ExtractAndAddSystemDriversCommand;
+    public IAsyncRelayCommand SelectAndAddCustomDriversCommand => Step3.SelectAndAddCustomDriversCommand;
 
-    [ObservableProperty]
-    public partial bool ShowConversionCard { get; set; }
+    public IAsyncRelayCommand DownloadOscdimgCommand => Step4.DownloadOscdimgCommand;
+    public IRelayCommand SelectIsoOutputLocationCommand => Step4.SelectIsoOutputLocationCommand;
+    public IAsyncRelayCommand CreateIsoCommand => Step4.CreateIsoCommand;
 
-    [ObservableProperty]
-    public partial bool IsConverting { get; set; }
-
-    [ObservableProperty]
-    public partial string ConversionStatus { get; set; }
-
-    [ObservableProperty]
-    public partial bool BothFormatsExist { get; set; }
-
-    [ObservableProperty]
-    public partial string WimFileSize { get; set; }
-
-    [ObservableProperty]
-    public partial string EsdFileSize { get; set; }
-
-    [ObservableProperty]
-    public partial ImageDetectionResult? DetectionResult { get; set; }
-
-    [ObservableProperty]
-    public partial string SelectedXmlPath { get; set; }
-
-    [ObservableProperty]
-    public partial string XmlStatus { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsXmlAdded { get; set; }
-
-    [ObservableProperty]
-    public partial bool AreDriversAdded { get; set; }
-
-    [ObservableProperty]
-    public partial string OutputIsoPath { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsOscdimgAvailable { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsIsoCreated { get; set; }
-
-    public WizardActionCard SelectIsoCard { get; private set; } = new();
-    public WizardActionCard SelectDirectoryCard { get; private set; } = new();
-    public WizardActionCard ConvertImageCard { get; private set; } = new();
-    public WizardActionCard GenerateWinhanceXmlCard { get; private set; } = new();
-    public WizardActionCard DownloadXmlCard { get; private set; } = new();
-    public WizardActionCard SelectXmlCard { get; private set; } = new();
-    public WizardActionCard ExtractSystemDriversCard { get; private set; } = new();
-    public WizardActionCard SelectCustomDriversCard { get; private set; } = new();
-    public WizardActionCard DownloadOscdimgCard { get; private set; } = new();
-    public WizardActionCard SelectOutputCard { get; private set; } = new();
+    // ── Constructor ──────────────────────────────────────────────────
 
     public WimUtilViewModel(
         IWimUtilService wimUtilService,
@@ -165,48 +145,96 @@ public partial class WimUtilViewModel : ObservableObject
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IProcessExecutor processExecutor,
-        Winhance.UI.Features.SoftwareApps.ViewModels.WindowsAppsViewModel windowsAppsViewModel,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        IFilePickerService filePickerService)
     {
         _wimUtilService = wimUtilService;
-        _taskProgressService = taskProgressService;
-        _dialogService = dialogService;
-        _logService = logService;
-        _xmlGeneratorService = xmlGeneratorService;
-        _processExecutor = processExecutor;
-        _windowsAppsViewModel = windowsAppsViewModel;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _fileSystemService = fileSystemService;
 
-        // Initialize partial property defaults
+        // Create sub-ViewModels
+        Step1 = new WimStep1ViewModel(
+            wimUtilService, taskProgressService, dialogService,
+            localizationService, fileSystemService, filePickerService, logService);
+
+        ImageFormat = new WimImageFormatViewModel(
+            wimUtilService, taskProgressService, dialogService,
+            dispatcherService, localizationService, logService);
+
+        Step2 = new WimStep2XmlViewModel(
+            xmlGeneratorService, wimUtilService,
+            dialogService, localizationService, fileSystemService, filePickerService, logService);
+
+        Step3 = new WimStep3DriversViewModel(
+            wimUtilService, dialogService, localizationService,
+            fileSystemService, filePickerService, logService);
+
+        Step4 = new WimStep4IsoViewModel(
+            wimUtilService, taskProgressService, processExecutor,
+            dialogService, localizationService, fileSystemService, filePickerService, logService);
+
+        // Initialize wizard state
         CurrentStep = 1;
         Step1State = new WizardStepState();
         Step2State = new WizardStepState();
         Step3State = new WizardStepState();
         Step4State = new WizardStepState();
-        SelectedIsoPath = string.Empty;
-        ConversionStatus = string.Empty;
-        WimFileSize = string.Empty;
-        EsdFileSize = string.Empty;
-        SelectedXmlPath = string.Empty;
-        OutputIsoPath = string.Empty;
-
-        XmlStatus = _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
-        WorkingDirectory = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM");
 
         InitializeStepStates();
-        CreateActionCards();
+
+        // Subscribe to sub-VM property changes to update wizard states
+        Step1.PropertyChanged += OnSubViewModelPropertyChanged;
+        ImageFormat.PropertyChanged += OnSubViewModelPropertyChanged;
+        Step2.PropertyChanged += OnSubViewModelPropertyChanged;
+        Step3.PropertyChanged += OnSubViewModelPropertyChanged;
+        Step4.PropertyChanged += OnSubViewModelPropertyChanged;
     }
 
-    public void SetMainWindow(Window window) => _mainWindow = window;
+    /// <summary>
+    /// Kept for backward compatibility with WimUtilPage.xaml.cs.
+    /// The IFilePickerService now handles window references internally via IMainWindowProvider.
+    /// </summary>
+    public void SetMainWindow(Microsoft.UI.Xaml.Window window)
+    {
+        // No-op: file picker now uses IMainWindowProvider internally.
+    }
 
     public async Task OnNavigatedToAsync()
     {
-        IsOscdimgAvailable = await _wimUtilService.IsOscdimgAvailableAsync();
-        _dispatcherService.RunOnUIThread(UpdateDownloadOscdimgCardState);
+        Step4.IsOscdimgAvailable = await _wimUtilService.IsOscdimgAvailableAsync();
+        _dispatcherService.RunOnUIThread(Step4.UpdateDownloadOscdimgCardState);
         UpdateStepStates();
     }
+
+    // ── Wizard navigation ────────────────────────────────────────────
+
+    [RelayCommand]
+    private void NavigateToStep(string? stepParameter)
+    {
+        if (string.IsNullOrEmpty(stepParameter) || !int.TryParse(stepParameter, out int targetStep)) return;
+
+        if (targetStep == CurrentStep)
+        {
+            CurrentStep = 0;
+            UpdateStepStates();
+            return;
+        }
+
+        if (!IsStepAvailable(targetStep)) return;
+
+        CurrentStep = targetStep;
+        UpdateStepStates();
+    }
+
+    private bool IsStepAvailable(int step) => step switch
+    {
+        1 => true,
+        2 or 3 or 4 => Step1.IsExtractionComplete && !ImageFormat.IsConverting,
+        _ => false
+    };
+
+    // ── Step state management ────────────────────────────────────────
 
     private void InitializeStepStates()
     {
@@ -245,849 +273,58 @@ public partial class WimUtilViewModel : ObservableObject
         };
     }
 
-    private void CreateActionCards()
-    {
-        SelectIsoCard = new WizardActionCard
-        {
-            Icon = "\uE958",
-            Title = _localizationService.GetString("WIMUtil_Card_SelectISO_Title"),
-            Description = _localizationService.GetString("WIMUtil_Label_NoSelection"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectISO_Button"),
-            ButtonCommand = SelectIsoFileCommand,
-            IsEnabled = true
-        };
-
-        SelectDirectoryCard = new WizardActionCard
-        {
-            IconPath = GetResourceIconPath("ExplorerIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title"),
-            Description = string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM")),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button"),
-            ButtonCommand = SelectWorkingDirectoryCommand,
-            IsEnabled = true
-        };
-
-        GenerateWinhanceXmlCard = new WizardActionCard
-        {
-            Icon = "\uE710",
-            Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Button"),
-            ButtonCommand = GenerateWinhanceXmlCommand,
-            IsEnabled = true
-        };
-
-        DownloadXmlCard = new WizardActionCard
-        {
-            IconPath = GetResourceIconPath("FileDownloadIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_DownloadXML_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_DownloadXML_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadXML_Button"),
-            ButtonCommand = DownloadUnattendedWinstallXmlCommand,
-            IsEnabled = true
-        };
-
-        SelectXmlCard = new WizardActionCard
-        {
-            IconPath = GetResourceIconPath("AutounattendXmlIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_SelectXML_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_SelectXML_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectXML_Button"),
-            ButtonCommand = SelectXmlFileCommand,
-            IsEnabled = true
-        };
-
-        ExtractSystemDriversCard = new WizardActionCard
-        {
-            IconPath = GetResourceIconPath("MemoryArrowDownIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Button"),
-            ButtonCommand = ExtractAndAddSystemDriversCommand,
-            IsEnabled = true
-        };
-
-        SelectCustomDriversCard = new WizardActionCard
-        {
-            IconPath = GetResourceIconPath("ExplorerIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Button"),
-            ButtonCommand = SelectAndAddCustomDriversCommand,
-            IsEnabled = true
-        };
-
-        DownloadOscdimgCard = new WizardActionCard
-        {
-            IconPath = GetResourceIconPath("ToolBoxIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Button"),
-            ButtonCommand = DownloadOscdimgCommand,
-            IsEnabled = true
-        };
-
-        SelectOutputCard = new WizardActionCard
-        {
-            Icon = "\uE74E",
-            Title = _localizationService.GetString("WIMUtil_Card_SelectOutput_Title"),
-            Description = _localizationService.GetString("WIMUtil_Label_NoLocation"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectOutput_Button"),
-            ButtonCommand = SelectIsoOutputLocationCommand,
-            IsEnabled = true
-        };
-
-        ConvertImageCard = new WizardActionCard
-        {
-            Icon = "\uE8AB",
-            Title = _localizationService.GetString("WIMUtil_Card_ConvertImage_Title"),
-            Description = _localizationService.GetString("WIMUtil_Label_Detecting"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_ConvertImage_Button"),
-            ButtonCommand = ConvertImageFormatCommand,
-            IsEnabled = false
-        };
-    }
-
-    [RelayCommand]
-    private void SelectIsoFile()
-    {
-        if (_mainWindow == null) return;
-
-        var path = Win32FileDialogHelper.ShowOpenFilePicker(_mainWindow, _localizationService.GetString("WIMUtil_FileDialog_SelectIso"), "ISO Files", "*.iso");
-        if (!string.IsNullOrEmpty(path))
-        {
-            SelectedIsoPath = path;
-            SelectIsoCard.Description = SelectedIsoPath;
-            CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
-        }
-    }
-
-    [RelayCommand]
-    private async Task SelectWorkingDirectory()
-    {
-        if (_mainWindow == null) return;
-
-        var description = HasExtractedIsoAlready
-            ? _localizationService.GetString("WIMUtil_FolderDialog_SelectExtracted")
-            : _localizationService.GetString("WIMUtil_FolderDialog_SelectWorkDir");
-        var selectedPath = Win32FileDialogHelper.ShowFolderPicker(_mainWindow, description);
-
-        if (string.IsNullOrEmpty(selectedPath)) return;
-
-        if (HasExtractedIsoAlready)
-        {
-            var isValid = await ValidateExtractedIsoDirectory(selectedPath);
-            if (isValid)
-            {
-                WorkingDirectory = selectedPath;
-                SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
-                IsExtractionComplete = true;
-                UpdateStepStates();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_ValidationComplete"),
-                    _localizationService.GetString("WIMUtil_SelectWorkingDirectory"));
-            }
-            else
-            {
-                WorkingDirectory = string.Empty;
-                SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Error_InvalidDirectory");
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_InvalidDirectory"),
-                    _localizationService.GetString("WIMUtil_Error_InvalidDirectory"));
-            }
-        }
-        else
-        {
-            WorkingDirectory = _fileSystemService.CombinePath(selectedPath, "WinhanceWIM");
-            try
-            {
-                _fileSystemService.CreateDirectory(WorkingDirectory);
-                SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
-                CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Failed to create working directory: {ex.Message}", ex);
-                SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Error_DirectoryCreateFailed");
-                WorkingDirectory = string.Empty;
-            }
-        }
-    }
-
-    private async Task<bool> ValidateExtractedIsoDirectory(string path)
-    {
-        try
-        {
-            var pathRoot = _fileSystemService.GetPathRoot(path);
-            if (!string.IsNullOrEmpty(pathRoot) && path.TrimEnd('\\', '/').Equals(pathRoot.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            var driveInfo = new DriveInfo(path);
-            if (driveInfo.DriveType == DriveType.CDRom) return false;
-
-            var testFile = _fileSystemService.CombinePath(path, $".winhance_write_test_{Guid.NewGuid()}.tmp");
-            try
-            {
-                await _fileSystemService.WriteAllTextAsync(testFile, "test");
-                _fileSystemService.DeleteFile(testFile);
-            }
-            catch (Exception ex) { _logService.LogDebug($"Write test failed for directory '{path}': {ex.Message}"); return false; }
-
-            var extractedDirs = _fileSystemService.GetDirectories(path);
-            var hasSourcesDir = extractedDirs.Any(d => _fileSystemService.GetFileName(d)?.Equals("sources", StringComparison.OrdinalIgnoreCase) == true);
-            var hasBootDir = extractedDirs.Any(d => _fileSystemService.GetFileName(d)?.Equals("boot", StringComparison.OrdinalIgnoreCase) == true);
-
-            return hasSourcesDir && hasBootDir;
-        }
-        catch (Exception ex) { _logService.LogDebug($"ISO directory validation failed for '{path}': {ex.Message}"); return false; }
-    }
-
-    [RelayCommand]
-    private async Task StartIsoExtraction()
-    {
-        try
-        {
-            SelectIsoCard.IsEnabled = false;
-            SelectIsoCard.Opacity = 0.5;
-            SelectDirectoryCard.IsEnabled = false;
-            SelectDirectoryCard.Opacity = 0.5;
-            IsExtracting = true;
-            UpdateStepStates();
-
-            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_Extracting"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
-
-            var success = await _wimUtilService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
-
-            ResetExtractionState();
-
-            if (success)
-            {
-                SelectIsoCard.IsComplete = true;
-                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionSuccess");
-                SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 27, 94, 32));
-                IsExtractionComplete = true;
-                UpdateStepStates();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_ExtractionComplete"),
-                    _localizationService.GetString("WIMUtil_Status_IsoExtractionSuccess"));
-            }
-            else
-            {
-                SelectIsoCard.HasFailed = true;
-                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionFailed");
-                SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 198, 40, 40));
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_ExtractionFailed"),
-                    _localizationService.GetString("WIMUtil_Status_IsoExtractionFailed"));
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            ResetExtractionState();
-            SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionCancelled");
-        }
-        catch (InsufficientDiskSpaceException spaceEx)
-        {
-            ResetExtractionState();
-            SelectIsoCard.HasFailed = true;
-            SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
-            await _dialogService.ShowWarningAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
-                string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
-        }
-        catch (Exception ex)
-        {
-            ResetExtractionState();
-            SelectIsoCard.HasFailed = true;
-            SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message),
-                "Error");
-        }
-        finally
-        {
-            _taskProgressService.CompleteTask();
-        }
-    }
-
-    private void ResetExtractionState()
-    {
-        SelectIsoCard.IsEnabled = true;
-        SelectIsoCard.Opacity = 1.0;
-        SelectDirectoryCard.IsEnabled = true;
-        SelectDirectoryCard.Opacity = 1.0;
-        IsExtracting = false;
-        UpdateStepStates();
-    }
-
-    [RelayCommand]
-    private async Task GenerateWinhanceXml()
-    {
-        try
-        {
-            GenerateWinhanceXmlCard.IsComplete = false;
-            GenerateWinhanceXmlCard.HasFailed = false;
-
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
-                _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
-                "Yes", "No");
-            if (!confirmed) return;
-
-            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
-            var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            var selectedApps = await ExtractSelectedWindowsAppsAsync();
-            var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps);
-
-            SelectedXmlPath = generatedPath;
-            IsXmlAdded = true;
-            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenSuccess");
-            ClearOtherXmlCardCompletions("generate");
-            GenerateWinhanceXmlCard.IsComplete = true;
-            UpdateStepStates();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error generating XML: {ex.Message}", ex);
-            XmlStatus = string.Format(_localizationService.GetString("WIMUtil_Status_XmlGenFailed"), ex.Message);
-            GenerateWinhanceXmlCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_XmlGenError"), ex.Message),
-                "Error");
-        }
-    }
-
-    private async Task<IReadOnlyList<ConfigurationItem>> ExtractSelectedWindowsAppsAsync()
-    {
-        if (!_windowsAppsViewModel.IsInitialized)
-            await _windowsAppsViewModel.LoadItemsAsync();
-
-        return _windowsAppsViewModel.Items
-            .Where(item => item.IsSelected)
-            .Select(item =>
-            {
-                var configItem = new ConfigurationItem
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    IsSelected = true,
-                    InputType = InputType.Toggle
-                };
-
-                if (!string.IsNullOrEmpty(item.Definition.AppxPackageName))
-                {
-                    configItem.AppxPackageName = item.Definition.AppxPackageName;
-                    if (item.Definition.SubPackages?.Length > 0)
-                        configItem.SubPackages = item.Definition.SubPackages;
-                }
-                else if (!string.IsNullOrEmpty(item.Definition.CapabilityName))
-                    configItem.CapabilityName = item.Definition.CapabilityName;
-                else if (!string.IsNullOrEmpty(item.Definition.OptionalFeatureName))
-                    configItem.OptionalFeatureName = item.Definition.OptionalFeatureName;
-
-                return configItem;
-            }).ToList();
-    }
-
-    [RelayCommand]
-    private async Task DownloadUnattendedWinstallXml()
-    {
-        try
-        {
-            DownloadXmlCard.IsComplete = false;
-            DownloadXmlCard.HasFailed = false;
-
-            var destinationPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => XmlStatus = detail.StatusText ?? _localizationService.GetString("WIMUtil_Status_XmlDownloading"));
-
-            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadStart");
-            await _wimUtilService.DownloadUnattendedWinstallXmlAsync(destinationPath, progress, _cancellationTokenSource.Token);
-
-            var addSuccess = await _wimUtilService.AddXmlToImageAsync(destinationPath, WorkingDirectory);
-            if (addSuccess)
-            {
-                SelectedXmlPath = destinationPath;
-                IsXmlAdded = true;
-                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadSuccess");
-                ClearOtherXmlCardCompletions("download");
-                DownloadXmlCard.IsComplete = true;
-                UpdateStepStates();
-            }
-            else
-            {
-                DownloadXmlCard.HasFailed = true;
-                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAddFailed");
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_XmlAddFailed"),
-                    "Error");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error downloading XML: {ex.Message}", ex);
-            XmlStatus = string.Format(_localizationService.GetString("WIMUtil_Status_XmlDownloadFailed"), ex.Message);
-            DownloadXmlCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_XmlDownloadError"), ex.Message),
-                "Error");
-        }
-    }
-
-    [RelayCommand]
-    private async Task SelectXmlFile()
-    {
-        if (_mainWindow == null) return;
-
-        try
-        {
-            SelectXmlCard.IsComplete = false;
-            SelectXmlCard.HasFailed = false;
-
-            var selectedPath = Win32FileDialogHelper.ShowOpenFilePicker(_mainWindow, _localizationService.GetString("WIMUtil_FileDialog_SelectXml"), "XML Files", "*.xml");
-            if (string.IsNullOrEmpty(selectedPath)) return;
-
-            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidating");
-            var isValidXml = await ValidateXmlFile(selectedPath);
-            if (!isValidXml)
-            {
-                SelectXmlCard.HasFailed = true;
-                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlInvalid");
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_XmlInvalidError"),
-                    "Error");
-                return;
-            }
-
-            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAdding");
-            var addSuccess = await _wimUtilService.AddXmlToImageAsync(selectedPath, WorkingDirectory);
-            if (addSuccess)
-            {
-                SelectedXmlPath = selectedPath;
-                IsXmlAdded = true;
-                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlSelectSuccess");
-                ClearOtherXmlCardCompletions("select");
-                SelectXmlCard.IsComplete = true;
-                UpdateStepStates();
-            }
-            else
-            {
-                SelectXmlCard.HasFailed = true;
-                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidAddFailed");
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_XmlValidAddFailed"),
-                    "Error");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error selecting XML: {ex.Message}", ex);
-            XmlStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            SelectXmlCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_XmlSelectError"), ex.Message),
-                "Error");
-        }
-    }
-
-    private async Task<bool> ValidateXmlFile(string xmlPath)
-    {
-        try
-        {
-            await Task.Run(() => XDocument.Load(xmlPath));
-            return true;
-        }
-        catch (Exception ex) { _logService.LogDebug($"XML validation failed for '{xmlPath}': {ex.Message}"); return false; }
-    }
-
-    private void ClearOtherXmlCardCompletions(string exceptCard)
-    {
-        if (exceptCard != "generate") GenerateWinhanceXmlCard.IsComplete = false;
-        if (exceptCard != "download") DownloadXmlCard.IsComplete = false;
-        if (exceptCard != "select") SelectXmlCard.IsComplete = false;
-    }
-
-    [RelayCommand]
-    private async Task OpenSchneegansXmlGenerator()
-    {
-        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://schneegans.de/windows/unattend-generator/")); }
-        catch (Exception ex) { _logService.LogError($"Error opening Schneegans XML generator: {ex.Message}", ex); }
-    }
-
-    [RelayCommand]
-    private async Task ExtractAndAddSystemDrivers()
-    {
-        try
-        {
-            ExtractSystemDriversCard.IsComplete = false;
-            ExtractSystemDriversCard.HasFailed = false;
-
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Msg_ExtractDriversConfirm"),
-                _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
-                "Yes", "No");
-            if (!confirmed) return;
-
-            ExtractSystemDriversCard.IsProcessing = true;
-            ExtractSystemDriversCard.IsEnabled = false;
-
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
-
-            var success = await _wimUtilService.AddDriversAsync(WorkingDirectory, null, progress, _cancellationTokenSource.Token);
-
-            ExtractSystemDriversCard.IsProcessing = false;
-            ExtractSystemDriversCard.IsEnabled = true;
-
-            if (success)
-            {
-                AreDriversAdded = true;
-                ExtractSystemDriversCard.IsComplete = true;
-                UpdateStepStates();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DriversSuccess"),
-                    "Success");
-            }
-            else
-            {
-                ExtractSystemDriversCard.HasFailed = true;
-                await _dialogService.ShowWarningAsync(
-                    _localizationService.GetString("WIMUtil_Msg_NoDriversFound"),
-                    "Warning");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error extracting system drivers: {ex.Message}", ex);
-            ExtractSystemDriversCard.IsProcessing = false;
-            ExtractSystemDriversCard.IsEnabled = true;
-            ExtractSystemDriversCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_DriverExtractionError"), ex.Message),
-                "Error");
-        }
-    }
-
-    [RelayCommand]
-    private async Task SelectAndAddCustomDrivers()
-    {
-        if (_mainWindow == null) return;
-
-        try
-        {
-            SelectCustomDriversCard.IsComplete = false;
-            SelectCustomDriversCard.HasFailed = false;
-
-            var selectedPath = Win32FileDialogHelper.ShowFolderPicker(_mainWindow, _localizationService.GetString("WIMUtil_FolderDialog_SelectDrivers"));
-            if (string.IsNullOrEmpty(selectedPath)) return;
-
-            if (!_fileSystemService.DirectoryExists(selectedPath))
-            {
-                SelectCustomDriversCard.HasFailed = true;
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_InvalidFolder"),
-                    "Error");
-                return;
-            }
-
-            var hasFiles = _fileSystemService.GetFiles(selectedPath, "*", SearchOption.AllDirectories).Length > 0 || _fileSystemService.GetDirectories(selectedPath, "*", SearchOption.AllDirectories).Length > 0;
-            if (!hasFiles)
-            {
-                SelectCustomDriversCard.HasFailed = true;
-                await _dialogService.ShowWarningAsync(
-                    _localizationService.GetString("WIMUtil_Msg_EmptyFolder"),
-                    "Warning");
-                return;
-            }
-
-            SelectCustomDriversCard.IsProcessing = true;
-            SelectCustomDriversCard.IsEnabled = false;
-            SelectCustomDriversCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {selectedPath}";
-
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
-
-            var success = await _wimUtilService.AddDriversAsync(WorkingDirectory, selectedPath, progress, _cancellationTokenSource.Token);
-
-            SelectCustomDriversCard.IsProcessing = false;
-            SelectCustomDriversCard.IsEnabled = true;
-
-            if (success)
-            {
-                AreDriversAdded = true;
-                SelectCustomDriversCard.IsComplete = true;
-                UpdateStepStates();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DriverFilesAdded"),
-                    "Success");
-            }
-            else
-            {
-                SelectCustomDriversCard.HasFailed = true;
-                await _dialogService.ShowWarningAsync(
-                    string.Format(_localizationService.GetString("WIMUtil_Msg_NoCustomDrivers"), selectedPath),
-                    "Warning");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error adding custom drivers: {ex.Message}", ex);
-            SelectCustomDriversCard.IsProcessing = false;
-            SelectCustomDriversCard.IsEnabled = true;
-            SelectCustomDriversCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_DriverAdditionError"), ex.Message),
-                "Error");
-        }
-    }
-
-    [RelayCommand]
-    private async Task DownloadOscdimg()
-    {
-        try
-        {
-            DownloadOscdimgCard.IsComplete = false;
-            DownloadOscdimgCard.HasFailed = false;
-            DownloadOscdimgCard.IsProcessing = true;
-            DownloadOscdimgCard.IsEnabled = false;
-
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
-
-            var success = await _wimUtilService.EnsureOscdimgAvailableAsync(progress, _cancellationTokenSource.Token);
-
-            DownloadOscdimgCard.IsProcessing = false;
-
-            if (success)
-            {
-                IsOscdimgAvailable = true;
-                DownloadOscdimgCard.IsComplete = true;
-                DownloadOscdimgCard.IsEnabled = false;
-                DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
-                DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
-                DownloadOscdimgCard.IconPath = GetResourceIconPath("CheckCircleIconPath");
-                UpdateStepStates();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
-                    "Success");
-            }
-            else
-            {
-                DownloadOscdimgCard.IsEnabled = true;
-                DownloadOscdimgCard.HasFailed = true;
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_AdkInstallFailed"),
-                    "Error");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error installing ADK: {ex.Message}", ex);
-            DownloadOscdimgCard.IsProcessing = false;
-            DownloadOscdimgCard.IsEnabled = true;
-            DownloadOscdimgCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_AdkInstallError"), ex.Message),
-                "Error");
-        }
-    }
-
-    [RelayCommand]
-    private void SelectIsoOutputLocation()
-    {
-        if (_mainWindow == null) return;
-
-        var path = Win32FileDialogHelper.ShowSaveFilePicker(_mainWindow, _localizationService.GetString("WIMUtil_FileDialog_SelectOutput"), "ISO Files", "*.iso", "Winhance_Windows.iso", "iso");
-        if (!string.IsNullOrEmpty(path))
-        {
-            OutputIsoPath = path;
-            SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(OutputIsoPath)}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task CreateIso()
-    {
-        try
-        {
-            if (!IsOscdimgAvailable)
-            {
-                await _dialogService.ShowWarningAsync(
-                    _localizationService.GetString("WIMUtil_Msg_OscdimgRequired"),
-                    "Required");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(OutputIsoPath))
-            {
-                await _dialogService.ShowWarningAsync(
-                    _localizationService.GetString("WIMUtil_Msg_OutputRequired"),
-                    "Required");
-                return;
-            }
-
-            SelectOutputCard.IsEnabled = false;
-            SelectOutputCard.Opacity = 0.5;
-
-            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
-
-            var success = await _wimUtilService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
-
-            SelectOutputCard.IsEnabled = true;
-            SelectOutputCard.Opacity = 1.0;
-
-            if (success)
-            {
-                IsIsoCreated = true;
-                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
-                SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 27, 94, 32));
-                UpdateStepStates();
-
-                var openFolder = await _dialogService.ShowConfirmationAsync(
-                    string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
-                    _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
-                    _localizationService.GetString("WIMUtil_Button_OpenFolder"),
-                    _localizationService.GetString("Button_Close"));
-                if (openFolder)
-                {
-                    _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"").FireAndForget(_logService);
-                }
-            }
-            else
-            {
-                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
-                SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 198, 40, 40));
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"),
-                    "Error");
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            SelectOutputCard.IsEnabled = true;
-            SelectOutputCard.Opacity = 1.0;
-            try { if (_fileSystemService.FileExists(OutputIsoPath)) _fileSystemService.DeleteFile(OutputIsoPath); } catch (Exception ex) { _logService.LogDebug($"Best-effort incomplete ISO cleanup failed: {ex.Message}"); }
-            SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateCancelled");
-        }
-        catch (InsufficientDiskSpaceException spaceEx)
-        {
-            SelectOutputCard.IsEnabled = true;
-            SelectOutputCard.Opacity = 1.0;
-            SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
-            await _dialogService.ShowWarningAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace_Create"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
-                string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
-        }
-        catch (Exception ex)
-        {
-            SelectOutputCard.IsEnabled = true;
-            SelectOutputCard.Opacity = 1.0;
-            SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreationError"), ex.Message),
-                "Error");
-        }
-        finally
-        {
-            _taskProgressService.CompleteTask();
-        }
-    }
-
-    [RelayCommand]
-    private void NavigateToStep(string? stepParameter)
-    {
-        if (string.IsNullOrEmpty(stepParameter) || !int.TryParse(stepParameter, out int targetStep)) return;
-
-        if (targetStep == CurrentStep)
-        {
-            CurrentStep = 0;
-            UpdateStepStates();
-            return;
-        }
-
-        if (!IsStepAvailable(targetStep)) return;
-
-        CurrentStep = targetStep;
-        UpdateStepStates();
-    }
-
-    private bool IsStepAvailable(int step) => step switch
-    {
-        1 => true,
-        2 or 3 or 4 => IsExtractionComplete && !IsConverting,
-        _ => false
-    };
-
-    private void UpdateDownloadOscdimgCardState()
-    {
-        if (IsOscdimgAvailable)
-        {
-            DownloadOscdimgCard.IsEnabled = false;
-            DownloadOscdimgCard.IsComplete = true;
-            DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
-            DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgFound");
-            DownloadOscdimgCard.IconPath = GetResourceIconPath("CheckCircleIconPath");
-        }
-        else
-        {
-            DownloadOscdimgCard.IsEnabled = true;
-            DownloadOscdimgCard.IsComplete = false;
-            DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_Download");
-            DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description");
-            DownloadOscdimgCard.IconPath = GetResourceIconPath("ToolBoxIconPath");
-        }
-    }
-
     private void UpdateStepStates()
     {
+        var extractionComplete = Step1.IsExtractionComplete;
+        var isConverting = ImageFormat.IsConverting;
+        var isExtracting = Step1.IsExtracting;
+
         Step1State.IsExpanded = CurrentStep == 1;
         Step1State.IsAvailable = true;
-        Step1State.IsComplete = IsExtractionComplete && !IsConverting;
-        Step1State.StatusText = IsConverting
+        Step1State.IsComplete = extractionComplete && !isConverting;
+        Step1State.StatusText = isConverting
             ? _localizationService.GetString("WIMUtil_Status_Converting")
-            : IsExtractionComplete
+            : extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_IsoExtracted")
-                : IsExtracting
+                : isExtracting
                     ? _localizationService.GetString("WIMUtil_Status_Extracting")
-                    : !string.IsNullOrEmpty(SelectedIsoPath)
+                    : !string.IsNullOrEmpty(Step1.SelectedIsoPath)
                         ? _localizationService.GetString("WIMUtil_Status_IsoSelected")
                         : _localizationService.GetString("WIMUtil_Status_NoIsoSelected");
 
         Step2State.IsExpanded = CurrentStep == 2;
-        Step2State.IsAvailable = IsExtractionComplete && !IsConverting;
-        Step2State.IsComplete = IsXmlAdded;
-        Step2State.StatusText = IsConverting
+        Step2State.IsAvailable = extractionComplete && !isConverting;
+        Step2State.IsComplete = Step2.IsXmlAdded;
+        Step2State.StatusText = isConverting
             ? _localizationService.GetString("WIMUtil_Status_WaitForConversion")
-            : !IsExtractionComplete
+            : !extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : IsXmlAdded
+                : Step2.IsXmlAdded
                     ? _localizationService.GetString("WIMUtil_Status_XmlAdded")
                     : _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
 
         Step3State.IsExpanded = CurrentStep == 3;
-        Step3State.IsAvailable = IsExtractionComplete && !IsConverting;
-        Step3State.IsComplete = AreDriversAdded;
-        Step3State.StatusText = IsConverting
+        Step3State.IsAvailable = extractionComplete && !isConverting;
+        Step3State.IsComplete = Step3.AreDriversAdded;
+        Step3State.StatusText = isConverting
             ? _localizationService.GetString("WIMUtil_Status_WaitForConversion")
-            : !IsExtractionComplete
+            : !extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : AreDriversAdded
+                : Step3.AreDriversAdded
                     ? _localizationService.GetString("WIMUtil_Status_DriversAdded")
                     : _localizationService.GetString("WIMUtil_Status_NoDriversAdded");
 
         Step4State.IsExpanded = CurrentStep == 4;
-        Step4State.IsAvailable = IsExtractionComplete && !IsConverting;
-        Step4State.IsComplete = IsIsoCreated;
-        Step4State.StatusText = IsConverting
+        Step4State.IsAvailable = extractionComplete && !isConverting;
+        Step4State.IsComplete = Step4.IsIsoCreated;
+        Step4State.StatusText = isConverting
             ? _localizationService.GetString("WIMUtil_Status_WaitForConversion")
-            : !IsExtractionComplete
+            : !extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : IsIsoCreated
+                : Step4.IsIsoCreated
                     ? _localizationService.GetString("WIMUtil_Status_IsoCreated")
-                    : !string.IsNullOrEmpty(OutputIsoPath)
-                        ? $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(OutputIsoPath)}"
+                    : !string.IsNullOrEmpty(Step4.OutputIsoPath)
+                        ? $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(Step4.OutputIsoPath)}"
                         : _localizationService.GetString("WIMUtil_Status_ReadyToCreateIso");
 
         OnPropertyChanged(nameof(Step1State));
@@ -1096,268 +333,92 @@ public partial class WimUtilViewModel : ObservableObject
         OnPropertyChanged(nameof(Step4State));
     }
 
-    [RelayCommand]
-    private async Task OpenWindows10Download()
-    {
-        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows10")); }
-        catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 10 download URL: {ex.Message}"); }
-    }
+    // ── Sub-VM observation ───────────────────────────────────────────
 
-    [RelayCommand]
-    private async Task OpenWindows11Download()
+    private void OnSubViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows11")); }
-        catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 11 download URL: {ex.Message}"); }
-    }
-
-    [RelayCommand]
-    private async Task ConvertImageFormat()
-    {
-        if (CurrentImageFormat == null) return;
-
-        try
+        // Propagate working directory to sub-VMs that need it
+        if (sender == Step1)
         {
-            var targetFormat = CurrentImageFormat.Format == ImageFormat.Wim ? ImageFormat.Esd : ImageFormat.Wim;
-            var targetFormatName = targetFormat == ImageFormat.Wim ? "WIM" : "ESD";
-            var currentFormatName = CurrentImageFormat.Format == ImageFormat.Wim ? "WIM" : "ESD";
-
-            var confirmKey = targetFormat == ImageFormat.Esd ? "WIMUtil_Msg_ConvertConfirm_Esd" : "WIMUtil_Msg_ConvertConfirm_Wim";
-            var currentSize = CurrentImageFormat.FileSizeBytes / (1024.0 * 1024 * 1024);
-            var estimatedTargetSize = CurrentImageFormat.Format == ImageFormat.Wim ? currentSize * 0.65 : currentSize * 1.50;
-            var diff = Math.Abs(estimatedTargetSize - currentSize);
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                string.Format(_localizationService.GetString(confirmKey), diff.ToString("F2")),
-                string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormatName),
-                "Yes", "No");
-            if (!confirmed) return;
-
-            IsConverting = true;
-            ConvertImageCard.IsProcessing = true;
-            ConvertImageCard.IsEnabled = false;
-            ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName);
-            UpdateStepStates();
-
-            _taskProgressService.StartTask(string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
-
-            var success = await _wimUtilService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
-
-            if (success)
+            switch (e.PropertyName)
             {
-                ConvertImageCard.IsComplete = true;
-                ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ConversionSuccess"), targetFormatName);
-                await DetectImageFormatAsync();
-                await _dialogService.ShowInformationAsync(
-                    string.Format(_localizationService.GetString("WIMUtil_Msg_ConversionSuccess"), targetFormatName),
-                    "Success");
-            }
-            else
-            {
-                ConvertImageCard.HasFailed = true;
-                ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionFailed");
-                await _dialogService.ShowErrorAsync(
-                    string.Format(_localizationService.GetString("WIMUtil_Msg_ConversionFailed"), targetFormatName),
-                    "Error");
+                case nameof(WimStep1ViewModel.WorkingDirectory):
+                    var wd = Step1.WorkingDirectory;
+                    ImageFormat.WorkingDirectory = wd;
+                    Step2.WorkingDirectory = wd;
+                    Step3.WorkingDirectory = wd;
+                    Step4.WorkingDirectory = wd;
+                    break;
+
+                case nameof(WimStep1ViewModel.IsExtractionComplete):
+                    if (Step1.IsExtractionComplete)
+                    {
+                        _ = ImageFormat.SafeDetectImageFormatAsync();
+                    }
+                    break;
             }
         }
-        catch (OperationCanceledException)
-        {
-            ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionCancelled");
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error during conversion: {ex.Message}", ex);
-            ConvertImageCard.HasFailed = true;
-            ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_ConversionError"), ex.Message),
-                "Error");
-        }
-        finally
-        {
-            IsConverting = false;
-            ConvertImageCard.IsProcessing = false;
-            ConvertImageCard.IsEnabled = true;
-            UpdateStepStates();
-            _taskProgressService.CompleteTask();
-        }
+
+        // Forward property changes so XAML bindings on the parent still work
+        ForwardPropertyChange(sender, e);
+
+        // Update wizard step states whenever completion flags change
+        UpdateStepStates();
     }
 
-    private async Task DetectImageFormatAsync()
+    private void ForwardPropertyChange(object? sender, PropertyChangedEventArgs e)
     {
-        try
+        // Raise PropertyChanged on the parent for forwarded properties
+        if (sender == Step1)
         {
-            var detection = await _wimUtilService.DetectAllImageFormatsAsync(WorkingDirectory);
-            _dispatcherService.RunOnUIThread(() =>
+            switch (e.PropertyName)
             {
-                DetectionResult = detection;
-                BothFormatsExist = detection.BothExist;
-                CurrentImageFormat = detection.PrimaryFormat;
-                ShowConversionCard = detection.HasAnyFormat;
-                if (detection.BothExist)
-                {
-                    WimFileSize = FormatFileSize(detection.WimInfo!.FileSizeBytes);
-                    EsdFileSize = FormatFileSize(detection.EsdInfo!.FileSizeBytes);
-                }
-                UpdateConversionCardState();
-            });
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error detecting image formats: {ex.Message}", ex);
-            ShowConversionCard = false;
-        }
-    }
-
-    private string FormatFileSize(long bytes) => $"{bytes / (1024.0 * 1024 * 1024):F2} GB";
-
-    private static string GetResourceIconPath(string resourceKey)
-    {
-        if (Application.Current.Resources.TryGetValue(resourceKey, out var value) && value is string path)
-            return path;
-        return string.Empty;
-    }
-
-    private void UpdateConversionCardState()
-    {
-        if (BothFormatsExist || CurrentImageFormat == null)
-        {
-            ConvertImageCard.IsEnabled = CurrentImageFormat != null && !BothFormatsExist;
-            ConvertImageCard.Description = CurrentImageFormat == null
-                ? _localizationService.GetString("WIMUtil_Label_NoImageDetected")
-                : _localizationService.GetString("WIMUtil_Card_BothImages_Title");
-            return;
-        }
-
-        var currentFormat = CurrentImageFormat.Format == ImageFormat.Wim ? "WIM" : "ESD";
-        var targetFormat = CurrentImageFormat.Format == ImageFormat.Wim ? "ESD" : "WIM";
-        var currentSize = CurrentImageFormat.FileSizeBytes / (1024.0 * 1024 * 1024);
-        var estimatedTargetSize = CurrentImageFormat.Format == ImageFormat.Wim ? currentSize * 0.65 : currentSize * 1.50;
-        var diff = Math.Abs(estimatedTargetSize - currentSize);
-        var sizeChange = CurrentImageFormat.Format == ImageFormat.Wim
-            ? $"{_localizationService.GetString("WIMUtil_Label_Save")} ~{diff:F2} GB"
-            : string.Format(_localizationService.GetString("WIMUtil_Label_RequiresMore"), diff.ToString("F2"));
-
-        var perfNote = CurrentImageFormat.Format == ImageFormat.Wim
-            ? _localizationService.GetString("WIMUtil_Label_PerfNote_Wim")
-            : _localizationService.GetString("WIMUtil_Label_PerfNote_Esd");
-
-        ConvertImageCard.Icon = CurrentImageFormat.Format == ImageFormat.Wim ? "\uE740" : "\uE741";
-        ConvertImageCard.Title = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Title_Dynamic"), currentFormat, targetFormat);
-        ConvertImageCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Current")}: install.{currentFormat.ToLower()} ({currentSize:F2} GB)\n{_localizationService.GetString("WIMUtil_Label_AfterConversion")}: ~{estimatedTargetSize:F2} GB ({sizeChange})";
-        ConvertImageCard.ButtonText = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormat);
-        ConvertImageCard.IsEnabled = !IsConverting;
-    }
-
-    [RelayCommand]
-    private async Task DeleteWim()
-    {
-        try
-        {
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Msg_DeleteWimConfirm"),
-                _localizationService.GetString("WIMUtil_Button_DeleteWim"),
-                _localizationService.GetString("Button_Delete"),
-                _localizationService.GetString("Button_Cancel"));
-            if (!confirmed) return;
-
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
-
-            var success = await _wimUtilService.DeleteImageFileAsync(
-                WorkingDirectory,
-                ImageFormat.Wim,
-                progress,
-                _cancellationTokenSource.Token);
-
-            if (success)
-            {
-                await DetectImageFormatAsync();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DeleteWimSuccess"),
-                    _localizationService.GetString("WIMUtil_Button_DeleteWim"));
-            }
-            else
-            {
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DeleteFailed"),
-                    "Error");
+                case nameof(WimStep1ViewModel.SelectedIsoPath): OnPropertyChanged(nameof(SelectedIsoPath)); break;
+                case nameof(WimStep1ViewModel.WorkingDirectory): OnPropertyChanged(nameof(WorkingDirectory)); break;
+                case nameof(WimStep1ViewModel.CanStartExtraction): OnPropertyChanged(nameof(CanStartExtraction)); break;
+                case nameof(WimStep1ViewModel.IsExtractionComplete): OnPropertyChanged(nameof(IsExtractionComplete)); break;
+                case nameof(WimStep1ViewModel.IsExtracting): OnPropertyChanged(nameof(IsExtracting)); break;
+                case nameof(WimStep1ViewModel.HasExtractedIsoAlready): OnPropertyChanged(nameof(HasExtractedIsoAlready)); break;
             }
         }
-        catch (Exception ex)
+        else if (sender == ImageFormat)
         {
-            _logService.LogError($"Error deleting WIM: {ex.Message}", ex);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_DeleteError"), ex.Message),
-                "Error");
-        }
-    }
-
-    [RelayCommand]
-    private async Task DeleteEsd()
-    {
-        try
-        {
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Msg_DeleteEsdConfirm"),
-                _localizationService.GetString("WIMUtil_Button_DeleteEsd"),
-                _localizationService.GetString("Button_Delete"),
-                _localizationService.GetString("Button_Cancel"));
-            if (!confirmed) return;
-
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
-
-            var success = await _wimUtilService.DeleteImageFileAsync(
-                WorkingDirectory,
-                ImageFormat.Esd,
-                progress,
-                _cancellationTokenSource.Token);
-
-            if (success)
+            switch (e.PropertyName)
             {
-                await DetectImageFormatAsync();
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DeleteEsdSuccess"),
-                    _localizationService.GetString("WIMUtil_Button_DeleteEsd"));
-            }
-            else
-            {
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DeleteFailed"),
-                    "Error");
+                case nameof(WimImageFormatViewModel.CurrentImageFormat): OnPropertyChanged(nameof(CurrentImageFormat)); break;
+                case nameof(WimImageFormatViewModel.ShowConversionCard): OnPropertyChanged(nameof(ShowConversionCard)); break;
+                case nameof(WimImageFormatViewModel.IsConverting): OnPropertyChanged(nameof(IsConverting)); break;
+                case nameof(WimImageFormatViewModel.ConversionStatus): OnPropertyChanged(nameof(ConversionStatus)); break;
+                case nameof(WimImageFormatViewModel.BothFormatsExist): OnPropertyChanged(nameof(BothFormatsExist)); break;
+                case nameof(WimImageFormatViewModel.WimFileSize): OnPropertyChanged(nameof(WimFileSize)); break;
+                case nameof(WimImageFormatViewModel.EsdFileSize): OnPropertyChanged(nameof(EsdFileSize)); break;
+                case nameof(WimImageFormatViewModel.DetectionResult): OnPropertyChanged(nameof(DetectionResult)); break;
             }
         }
-        catch (Exception ex)
+        else if (sender == Step2)
         {
-            _logService.LogError($"Error deleting ESD: {ex.Message}", ex);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_DeleteError"), ex.Message),
-                "Error");
+            switch (e.PropertyName)
+            {
+                case nameof(WimStep2XmlViewModel.SelectedXmlPath): OnPropertyChanged(nameof(SelectedXmlPath)); break;
+                case nameof(WimStep2XmlViewModel.XmlStatus): OnPropertyChanged(nameof(XmlStatus)); break;
+                case nameof(WimStep2XmlViewModel.IsXmlAdded): OnPropertyChanged(nameof(IsXmlAdded)); break;
+            }
         }
-    }
-
-    partial void OnHasExtractedIsoAlreadyChanged(bool value)
-    {
-        SelectDirectoryCard.Description = value
-            ? _localizationService.GetString("WIMUtil_Label_SelectExtracted")
-            : string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM"));
-    }
-
-    partial void OnIsExtractionCompleteChanged(bool value)
-    {
-        if (value) _ = SafeDetectImageFormatAsync();
-    }
-
-    private async Task SafeDetectImageFormatAsync()
-    {
-        try
+        else if (sender == Step3)
         {
-            await DetectImageFormatAsync();
+            switch (e.PropertyName)
+            {
+                case nameof(WimStep3DriversViewModel.AreDriversAdded): OnPropertyChanged(nameof(AreDriversAdded)); break;
+            }
         }
-        catch (Exception ex)
+        else if (sender == Step4)
         {
-            _logService.LogError($"Unhandled error in image format detection: {ex.Message}", ex);
+            switch (e.PropertyName)
+            {
+                case nameof(WimStep4IsoViewModel.IsOscdimgAvailable): OnPropertyChanged(nameof(IsOscdimgAvailable)); break;
+                case nameof(WimStep4IsoViewModel.OutputIsoPath): OnPropertyChanged(nameof(OutputIsoPath)); break;
+                case nameof(WimStep4IsoViewModel.IsIsoCreated): OnPropertyChanged(nameof(IsIsoCreated)); break;
+            }
         }
     }
 }

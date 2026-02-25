@@ -69,8 +69,7 @@ namespace Winhance.UI.Features.Common.Services
                     checkboxText,
                     title: _localizationService.GetString("Startup_Backup_Title"),
                     continueButtonText: _localizationService.GetString("Button_OK"),
-                    cancelButtonText: "",
-                    titleBarIcon: "Shield");
+                    cancelButtonText: "");
 
                 if (dialogResult.CheckboxChecked)
                 {

@@ -1,14 +1,11 @@
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Constants;
-using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -71,11 +68,77 @@ public class DialogService : IDialogService
         };
     }
 
+    #region Guard Helpers
+
+    /// <summary>
+    /// Acquires the dialog semaphore, checks XamlRoot, and executes the dialog action.
+    /// Returns <paramref name="defaultValue"/> if XamlRoot is null.
+    /// </summary>
+    private async Task<T> ExecuteDialogAsync<T>(Func<Task<T>> dialogAction, T defaultValue)
+    {
+        await _dialogSemaphore.WaitAsync();
+        try
+        {
+            if (XamlRoot == null)
+            {
+                _logService.LogWarning("[DialogService] XamlRoot is null");
+                return defaultValue;
+            }
+            return await dialogAction();
+        }
+        finally
+        {
+            _dialogSemaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Acquires the dialog semaphore, checks XamlRoot, and executes a void dialog action.
+    /// </summary>
+    private async Task ExecuteDialogAsync(Func<Task> dialogAction)
+    {
+        await ExecuteDialogAsync(async () => { await dialogAction(); return true; }, true);
+    }
+
+    #endregion
+
+    #region Simple Dialogs
+
+    /// <summary>
+    /// Shared implementation for ShowInformationAsync, ShowWarningAsync, and ShowErrorAsync.
+    /// </summary>
+    private async Task ShowSimpleDialogAsync(string message, string title, string buttonText)
+    {
+        await ExecuteDialogAsync(async () =>
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = buttonText,
+                DefaultButton = ContentDialogButton.Close
+            };
+            ConfigureDialog(dialog);
+            await dialog.ShowAsync();
+        });
+    }
+
     public void ShowMessage(string message, string title = "")
     {
         // Fire-and-forget for non-async message display
         _ = ShowInformationAsync(message, title);
     }
+
+    public async Task ShowInformationAsync(string message, string title = "Information", string buttonText = "OK")
+        => await ShowSimpleDialogAsync(message, title, buttonText);
+
+    public async Task ShowWarningAsync(string message, string title = "Warning", string buttonText = "OK")
+        => await ShowSimpleDialogAsync(message, title, buttonText);
+
+    public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
+        => await ShowSimpleDialogAsync(message, title, buttonText);
+
+    #endregion
 
     public async Task<bool> ShowConfirmationAsync(
         string message,
@@ -83,15 +146,8 @@ public class DialogService : IDialogService
         string okButtonText = "OK",
         string cancelButtonText = "Cancel")
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        return await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return false;
-            }
-
             var dialog = new ContentDialog
             {
                 Title = string.IsNullOrEmpty(title) ? StringKeys.Localized.Dialog_Confirmation : title,
@@ -104,108 +160,13 @@ public class DialogService : IDialogService
 
             var result = await dialog.ShowAsync();
             return result == ContentDialogResult.Primary;
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
-    }
-
-    public async Task ShowInformationAsync(string message, string title = "Information", string buttonText = "OK")
-    {
-        await _dialogSemaphore.WaitAsync();
-        try
-        {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return;
-            }
-
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = message,
-                CloseButtonText = buttonText,
-                DefaultButton = ContentDialogButton.Close
-            };
-            ConfigureDialog(dialog);
-
-            await dialog.ShowAsync();
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
-    }
-
-    public async Task ShowWarningAsync(string message, string title = "Warning", string buttonText = "OK")
-    {
-        await _dialogSemaphore.WaitAsync();
-        try
-        {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return;
-            }
-
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = message,
-                CloseButtonText = buttonText,
-                DefaultButton = ContentDialogButton.Close
-            };
-            ConfigureDialog(dialog);
-
-            await dialog.ShowAsync();
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
-    }
-
-    public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
-    {
-        await _dialogSemaphore.WaitAsync();
-        try
-        {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return;
-            }
-
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = message,
-                CloseButtonText = buttonText,
-                DefaultButton = ContentDialogButton.Close
-            };
-            ConfigureDialog(dialog);
-
-            await dialog.ShowAsync();
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+        }, false);
     }
 
     public async Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string? title = null, string? supportMessage = null)
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        return await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show donation dialog");
-                return (null, false);
-            }
-
             // Red heart icon matching the WPF DonationDialog
             // Use Path inside Viewbox for proper scaling (PathIcon doesn't scale with Width/Height)
             var heartPath = new Microsoft.UI.Xaml.Shapes.Path
@@ -312,488 +273,20 @@ public class DialogService : IDialogService
             ConfigureDialog(dialog);
 
             var result = await dialog.ShowAsync();
-            return (result == ContentDialogResult.Primary, dontShowCheckBox.IsChecked == true);
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+            return ((bool?)(result == ContentDialogResult.Primary), dontShowCheckBox.IsChecked == true);
+        }, ((bool?)null, false));
     }
 
     public async Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync()
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        return await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return (null, new ImportOptions { ReviewBeforeApplying = true });
-            }
-
-            ImportOption? selectedOption = null;
-
-            bool isDark = (XamlRoot?.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
-
-            var dialog = new ContentDialog
-            {
-                Title = _localization.GetString("Dialog_ImportConfig_Title"),
-                PrimaryButtonText = StringKeys.Localized.Button_Continue,
-                IsPrimaryButtonEnabled = false,
-                CloseButtonText = StringKeys.Localized.Button_Cancel,
-                DefaultButton = ContentDialogButton.None,
-                MinWidth = 500
-            };
+            var builder = new Dialogs.ConfigImportDialogBuilder(_localization);
+            var dialog = builder.Build(XamlRoot!);
             ConfigureDialog(dialog);
-
-            // Selection state for option cards
-            Button? selectedCardButton = null;
-            Border? selectedBgBorder = null;
-            Border? selectedAccentBorder = null;
-
-            // Helper to create option cards with select-then-continue behavior
-            Button CreateOptionCard(UIElement icon, string titleKey, string descKey, ImportOption option, bool isLast = false)
-            {
-                var titleText = _localization.GetString(titleKey);
-                var descText = _localization.GetString(descKey);
-
-                var textPanel = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
-                textPanel.Children.Add(new TextBlock
-                {
-                    Text = titleText,
-                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    FontSize = 14
-                });
-                textPanel.Children.Add(new TextBlock
-                {
-                    Text = descText,
-                    FontSize = 12,
-                    Opacity = 0.7,
-                    TextWrapping = TextWrapping.Wrap
-                });
-
-                var contentPanel2 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(12, 8, 12, 8) };
-                contentPanel2.Children.Add(icon);
-                contentPanel2.Children.Add(textPanel);
-
-                // Layer 0: Background fill (matches default Button rest state)
-                var defaultBg = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
-                var bgBorder = new Border
-                {
-                    Background = defaultBg,
-                    CornerRadius = new CornerRadius(4)
-                };
-
-                // Layer 1: Accent border
-                var accentBorder = new Border
-                {
-                    BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                    BorderThickness = new Thickness(2),
-                    CornerRadius = new CornerRadius(4)
-                };
-
-                var cardVisual = new Grid();
-                cardVisual.Children.Add(bgBorder);
-                cardVisual.Children.Add(accentBorder);
-                cardVisual.Children.Add(contentPanel2);
-
-                var cardButton = new Button
-                {
-                    Content = cardVisual,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                    Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                    BorderThickness = new Thickness(0),
-                    Padding = new Thickness(0),
-                    Margin = new Thickness(0, 0, 0, isLast ? 0 : 6)
-                };
-                AutomationProperties.SetName(cardButton, $"{titleText}. {descText}");
-
-                // Override Button's built-in hover/press visual states so only our custom bgBorder shows
-                cardButton.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-                cardButton.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-                cardButton.Resources["ButtonBorderBrushPointerOver"] = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-                cardButton.Resources["ButtonBorderBrushPressed"] = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-
-                cardButton.Click += (_, _) =>
-                {
-                    // Re-click same card: no-op
-                    if (selectedCardButton == cardButton) return;
-
-                    // Deselect previous card
-                    if (selectedBgBorder != null)
-                        selectedBgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
-                    if (selectedAccentBorder != null)
-                        selectedAccentBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-
-                    // Select this card
-                    bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
-                    accentBorder.BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-
-                    selectedCardButton = cardButton;
-                    selectedBgBorder = bgBorder;
-                    selectedAccentBorder = accentBorder;
-                    selectedOption = option;
-                    dialog.IsPrimaryButtonEnabled = true;
-
-                    // Announce the selection to Narrator
-                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(cardButton)
-                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(cardButton);
-                    peer?.RaiseNotificationEvent(
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                        $"{_localization.GetString("Accessibility_Selected") ?? "Selected"}: {titleText}",
-                        "ConfigOptionSelected");
-                };
-
-                cardButton.PointerEntered += (_, _) =>
-                {
-                    if (selectedCardButton != cardButton)
-                        bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"];
-                };
-
-                cardButton.PointerExited += (_, _) =>
-                {
-                    if (selectedCardButton != cardButton)
-                        bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
-                };
-
-                // Show hover-like state on keyboard focus
-                cardButton.GotFocus += (_, _) =>
-                {
-                    if (selectedCardButton != cardButton)
-                        bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"];
-                };
-                cardButton.LostFocus += (_, _) =>
-                {
-                    if (selectedCardButton != cardButton)
-                        bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
-                };
-
-                return cardButton;
-            }
-
-            // Card 1: Import own config - FolderOpen icon
-            var ownIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.FolderOpen, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
-            var ownCard = CreateOptionCard(ownIcon,
-                "Dialog_ImportConfig_Option_Own_Title",
-                "Dialog_ImportConfig_Option_Own_Description",
-                ImportOption.ImportOwn);
-
-            // Card 2: Import recommended config - Winhance logo
-            var logoUri = isDark
-                ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
-                : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
-            var recIcon = new Image
-            {
-                Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new System.Uri(logoUri)),
-                Width = 24,
-                Height = 24,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            var recCard = CreateOptionCard(recIcon,
-                "Dialog_ImportConfig_Option_Recommended_Title",
-                "Dialog_ImportConfig_Option_Recommended_Description",
-                ImportOption.ImportRecommended);
-
-            // Card 3: Import backup config - History icon
-            var backupIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.History, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
-            var backupCard = CreateOptionCard(backupIcon,
-                "Dialog_ImportConfig_Option_Backup_Title",
-                "Dialog_ImportConfig_Option_Backup_Description",
-                ImportOption.ImportBackup);
-
-            // Card 4: Import Windows defaults - Refresh icon
-            var defaultsIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.ArrowReset, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
-            var defaultsCard = CreateOptionCard(defaultsIcon,
-                "Dialog_ImportConfig_Option_Defaults_Title",
-                "Dialog_ImportConfig_Option_Defaults_Description",
-                ImportOption.ImportWindowsDefaults, isLast: true);
-
-            // Helper to announce control state changes to Narrator
-            void Announce(UIElement element, string message)
-            {
-                var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(element)
-                           ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(element);
-                peer?.RaiseNotificationEvent(
-                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                    message,
-                    "ConfigDialogStateChange");
-            }
-
-            var skipReviewText = _localization.GetString("Review_Mode_Skip_Checkbox") ?? "Skip review and apply immediately";
-            var skipReviewCheckbox = new CheckBox
-            {
-                Content = skipReviewText,
-                IsChecked = false,
-                Margin = new Thickness(0, 12, 0, 0)
-            };
-
-            // --- Import options panel (disabled unless skip review is checked) ---
-            // Use a Grid so label and radio columns align across both rows
-            var appsGrid = new Grid
-            {
-                Margin = new Thickness(0, 3, 0, 0),
-                RowSpacing = 0,
-                ColumnSpacing = 2
-            };
-            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var winAppsText = _localization.GetString("Config_Import_Options_WindowsApps") ?? "Windows Apps";
-            var extAppsText = _localization.GetString("Config_Import_Options_ExternalApps") ?? "External Apps";
-            var installText = _localization.GetString("Config_Import_Options_Install") ?? "Install";
-            var uninstallText = _localization.GetString("Config_Import_Options_Uninstall") ?? "Uninstall";
-            var selectOnlyText = _localization.GetString("Config_Import_Options_SelectOnly") ?? "Select Only";
-
-            // Row 0: Windows Apps
-            var winAppsLabel = new TextBlock
-            {
-                Text = winAppsText,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetRow(winAppsLabel, 0);
-            Grid.SetColumn(winAppsLabel, 0);
-
-            var winAppsInstallRadio = new RadioButton
-            {
-                Content = new TextBlock { Text = installText, FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
-                GroupName = "WindowsApps",
-                VerticalContentAlignment = VerticalAlignment.Center,
-                IsEnabled = false,
-                MinWidth = 0, MinHeight = 0,
-                Padding = new Thickness(4, 0, 4, 0)
-            };
-            AutomationProperties.SetName(winAppsInstallRadio, $"{winAppsText}: {installText}");
-            winAppsInstallRadio.Checked += (_, _) => Announce(winAppsInstallRadio, $"{winAppsText}: {installText}");
-            Grid.SetRow(winAppsInstallRadio, 0);
-            Grid.SetColumn(winAppsInstallRadio, 1);
-
-            var winAppsUninstallRadio = new RadioButton
-            {
-                Content = new TextBlock { Text = uninstallText, FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
-                GroupName = "WindowsApps",
-                VerticalContentAlignment = VerticalAlignment.Center,
-                IsChecked = true,
-                IsEnabled = false,
-                MinWidth = 0, MinHeight = 0,
-                Padding = new Thickness(4, 0, 4, 0)
-            };
-            AutomationProperties.SetName(winAppsUninstallRadio, $"{winAppsText}: {uninstallText}");
-            winAppsUninstallRadio.Checked += (_, _) => Announce(winAppsUninstallRadio, $"{winAppsText}: {uninstallText}");
-            Grid.SetRow(winAppsUninstallRadio, 0);
-            Grid.SetColumn(winAppsUninstallRadio, 2);
-
-            var winAppsSelectOnlyRadio = new RadioButton
-            {
-                Content = new TextBlock { Text = selectOnlyText, FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
-                GroupName = "WindowsApps",
-                VerticalContentAlignment = VerticalAlignment.Center,
-                IsEnabled = false,
-                MinWidth = 0, MinHeight = 0,
-                Padding = new Thickness(4, 0, 4, 0)
-            };
-            AutomationProperties.SetName(winAppsSelectOnlyRadio, $"{winAppsText}: {selectOnlyText}");
-            winAppsSelectOnlyRadio.Checked += (_, _) => Announce(winAppsSelectOnlyRadio, $"{winAppsText}: {selectOnlyText}");
-            Grid.SetRow(winAppsSelectOnlyRadio, 0);
-            Grid.SetColumn(winAppsSelectOnlyRadio, 3);
-
-            // Row 1: External Apps
-            var extAppsLabel = new TextBlock
-            {
-                Text = extAppsText,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetRow(extAppsLabel, 1);
-            Grid.SetColumn(extAppsLabel, 0);
-
-            var extAppsInstallRadio = new RadioButton
-            {
-                Content = new TextBlock { Text = installText, FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
-                GroupName = "ExternalApps",
-                VerticalContentAlignment = VerticalAlignment.Center,
-                IsChecked = true,
-                IsEnabled = false,
-                MinWidth = 0, MinHeight = 0,
-                Padding = new Thickness(4, 0, 4, 0)
-            };
-            AutomationProperties.SetName(extAppsInstallRadio, $"{extAppsText}: {installText}");
-            extAppsInstallRadio.Checked += (_, _) => Announce(extAppsInstallRadio, $"{extAppsText}: {installText}");
-            Grid.SetRow(extAppsInstallRadio, 1);
-            Grid.SetColumn(extAppsInstallRadio, 1);
-
-            var extAppsUninstallRadio = new RadioButton
-            {
-                Content = new TextBlock { Text = uninstallText, FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
-                GroupName = "ExternalApps",
-                VerticalContentAlignment = VerticalAlignment.Center,
-                IsEnabled = false,
-                MinWidth = 0, MinHeight = 0,
-                Padding = new Thickness(4, 0, 4, 0)
-            };
-            AutomationProperties.SetName(extAppsUninstallRadio, $"{extAppsText}: {uninstallText}");
-            extAppsUninstallRadio.Checked += (_, _) => Announce(extAppsUninstallRadio, $"{extAppsText}: {uninstallText}");
-            Grid.SetRow(extAppsUninstallRadio, 1);
-            Grid.SetColumn(extAppsUninstallRadio, 2);
-
-            var extAppsSelectOnlyRadio = new RadioButton
-            {
-                Content = new TextBlock { Text = selectOnlyText, FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
-                GroupName = "ExternalApps",
-                VerticalContentAlignment = VerticalAlignment.Center,
-                IsEnabled = false,
-                MinWidth = 0, MinHeight = 0,
-                Padding = new Thickness(4, 0, 4, 0)
-            };
-            AutomationProperties.SetName(extAppsSelectOnlyRadio, $"{extAppsText}: {selectOnlyText}");
-            extAppsSelectOnlyRadio.Checked += (_, _) => Announce(extAppsSelectOnlyRadio, $"{extAppsText}: {selectOnlyText}");
-            Grid.SetRow(extAppsSelectOnlyRadio, 1);
-            Grid.SetColumn(extAppsSelectOnlyRadio, 3);
-
-            appsGrid.Children.Add(winAppsLabel);
-            appsGrid.Children.Add(winAppsInstallRadio);
-            appsGrid.Children.Add(winAppsUninstallRadio);
-            appsGrid.Children.Add(winAppsSelectOnlyRadio);
-            appsGrid.Children.Add(extAppsLabel);
-            appsGrid.Children.Add(extAppsInstallRadio);
-            appsGrid.Children.Add(extAppsUninstallRadio);
-            appsGrid.Children.Add(extAppsSelectOnlyRadio);
-
-            // Customize action checkboxes
-            var themeWallpaperText = _localization.GetString("Config_Import_Options_ThemeWallpaper") ?? "Apply default wallpaper for theme";
-            var themeWallpaperCheckbox = new CheckBox
-            {
-                Content = themeWallpaperText,
-                IsChecked = true,
-                IsEnabled = false,
-                MinHeight = 0,
-                Padding = new Thickness(4, 2, 4, 2),
-                Margin = new Thickness(0, 2, 0, 0)
-            };
-            themeWallpaperCheckbox.Checked += (_, _) => Announce(themeWallpaperCheckbox, $"{themeWallpaperText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
-            themeWallpaperCheckbox.Unchecked += (_, _) => Announce(themeWallpaperCheckbox, $"{themeWallpaperText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
-
-            var cleanTaskbarText = _localization.GetString("Config_Import_Options_CleanTaskbar") ?? "Clean Taskbar";
-            var cleanTaskbarCheckbox = new CheckBox
-            {
-                Content = cleanTaskbarText,
-                IsChecked = true,
-                IsEnabled = false,
-                MinHeight = 0,
-                Padding = new Thickness(4, 2, 4, 2)
-            };
-            cleanTaskbarCheckbox.Checked += (_, _) => Announce(cleanTaskbarCheckbox, $"{cleanTaskbarText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
-            cleanTaskbarCheckbox.Unchecked += (_, _) => Announce(cleanTaskbarCheckbox, $"{cleanTaskbarText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
-
-            var cleanStartMenuText = _localization.GetString("Config_Import_Options_CleanStartMenu") ?? "Clean Start Menu";
-            var cleanStartMenuCheckbox = new CheckBox
-            {
-                Content = cleanStartMenuText,
-                IsChecked = true,
-                IsEnabled = false,
-                MinHeight = 0,
-                Padding = new Thickness(4, 2, 4, 2)
-            };
-            cleanStartMenuCheckbox.Checked += (_, _) => Announce(cleanStartMenuCheckbox, $"{cleanStartMenuText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
-            cleanStartMenuCheckbox.Unchecked += (_, _) => Announce(cleanStartMenuCheckbox, $"{cleanStartMenuText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
-
-            var optionsPanel = new StackPanel
-            {
-                Spacing = 0,
-                Opacity = 0.4
-            };
-            optionsPanel.Children.Add(appsGrid);
-            optionsPanel.Children.Add(themeWallpaperCheckbox);
-            optionsPanel.Children.Add(cleanTaskbarCheckbox);
-            optionsPanel.Children.Add(cleanStartMenuCheckbox);
-
-            // Enable/disable options panel based on skip review checkbox
-            skipReviewCheckbox.Checked += (_, _) =>
-            {
-                optionsPanel.Opacity = 1.0;
-                winAppsInstallRadio.IsEnabled = true;
-                winAppsUninstallRadio.IsEnabled = true;
-                winAppsSelectOnlyRadio.IsEnabled = true;
-                extAppsInstallRadio.IsEnabled = true;
-                extAppsUninstallRadio.IsEnabled = true;
-                extAppsSelectOnlyRadio.IsEnabled = true;
-                themeWallpaperCheckbox.IsEnabled = true;
-                cleanTaskbarCheckbox.IsEnabled = true;
-                cleanStartMenuCheckbox.IsEnabled = true;
-                Announce(skipReviewCheckbox, $"{skipReviewText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
-            };
-            skipReviewCheckbox.Unchecked += (_, _) =>
-            {
-                optionsPanel.Opacity = 0.4;
-                winAppsInstallRadio.IsEnabled = false;
-                winAppsUninstallRadio.IsEnabled = false;
-                winAppsSelectOnlyRadio.IsEnabled = false;
-                extAppsInstallRadio.IsEnabled = false;
-                extAppsUninstallRadio.IsEnabled = false;
-                extAppsSelectOnlyRadio.IsEnabled = false;
-                themeWallpaperCheckbox.IsEnabled = false;
-                cleanTaskbarCheckbox.IsEnabled = false;
-                cleanStartMenuCheckbox.IsEnabled = false;
-                Announce(skipReviewCheckbox, $"{skipReviewText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
-            };
-
-            var contentPanel = new StackPanel { Spacing = 0, Margin = new Thickness(0, 0, 14, 0) };
-            contentPanel.Children.Add(new TextBlock
-            {
-                Text = _localization.GetString("Dialog_ImportOptions_Message"),
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 12)
-            });
-            contentPanel.Children.Add(ownCard);
-            contentPanel.Children.Add(recCard);
-            contentPanel.Children.Add(backupCard);
-            contentPanel.Children.Add(defaultsCard);
-            contentPanel.Children.Add(skipReviewCheckbox);
-            contentPanel.Children.Add(optionsPanel);
-
-            var scrollViewer = new ScrollViewer
-            {
-                Content = contentPanel,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                MaxHeight = 480
-            };
-
-            dialog.Content = scrollViewer;
-
             var result = await dialog.ShowAsync();
-            if (result != ContentDialogResult.Primary)
-            {
-                selectedOption = null; // Cancel was clicked, discard any selection
-            }
-
-            bool skipReview = skipReviewCheckbox.IsChecked == true;
-            var importOptions = new ImportOptions
-            {
-                ReviewBeforeApplying = !skipReview,
-                ProcessWindowsAppsInstallation = skipReview && winAppsInstallRadio.IsChecked == true,
-                ProcessWindowsAppsRemoval = skipReview && winAppsUninstallRadio.IsChecked == true,
-                // Select Only: neither Install nor Uninstall flag is set — apps get pre-selected only
-                ProcessExternalAppsInstallation = skipReview && extAppsInstallRadio.IsChecked == true,
-                ProcessExternalAppsRemoval = skipReview && extAppsUninstallRadio.IsChecked == true,
-                ApplyThemeWallpaper = skipReview && themeWallpaperCheckbox.IsChecked == true,
-                ApplyCleanTaskbar = skipReview && cleanTaskbarCheckbox.IsChecked == true,
-                ApplyCleanStartMenu = skipReview && cleanStartMenuCheckbox.IsChecked == true,
-            };
-            return (selectedOption, importOptions);
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+            return builder.ExtractResult(result);
+        }, ((ImportOption?)null, new ImportOptions { ReviewBeforeApplying = true }));
     }
 
     public async Task<(bool Confirmed, bool CheckboxChecked)> ShowConfirmationWithCheckboxAsync(
@@ -801,17 +294,10 @@ public class DialogService : IDialogService
         string? checkboxText = null,
         string title = "Confirmation",
         string continueButtonText = "Continue",
-        string cancelButtonText = "Cancel",
-        string? titleBarIcon = null)
+        string cancelButtonText = "Cancel")
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        return await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return (false, false);
-            }
 
             var checkBox = new CheckBox { Content = checkboxText ?? "Don't show again", IsChecked = true };
 
@@ -834,11 +320,7 @@ public class DialogService : IDialogService
 
             var result = await dialog.ShowAsync();
             return (result == ContentDialogResult.Primary, checkBox.IsChecked == true);
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+        }, (false, false));
     }
 
     public async Task<(bool Confirmed, bool CheckboxChecked)> ShowAppOperationConfirmationAsync(
@@ -847,15 +329,8 @@ public class DialogService : IDialogService
         int count,
         string? checkboxText = null)
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        return await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return (false, false);
-            }
-
             bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
             bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
 
@@ -897,18 +372,14 @@ public class DialogService : IDialogService
                 checkBox = new CheckBox { Content = checkboxText, IsChecked = true };
 
                 // Announce checkbox state changes to Narrator
-                void AnnounceCheckbox(UIElement element, string message)
-                {
-                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(element)
-                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(element);
-                    peer?.RaiseNotificationEvent(
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                        message,
-                        "CheckboxStateChange");
-                }
-                checkBox.Checked += (_, _) => AnnounceCheckbox(checkBox, $"{checkboxText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
-                checkBox.Unchecked += (_, _) => AnnounceCheckbox(checkBox, $"{checkboxText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
+                checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
+                    checkBox,
+                    $"{checkboxText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}",
+                    "CheckboxStateChange");
+                checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
+                    checkBox,
+                    $"{checkboxText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}",
+                    "CheckboxStateChange");
 
                 contentPanel.Children.Add(checkBox);
             }
@@ -925,11 +396,7 @@ public class DialogService : IDialogService
 
             var result = await dialog.ShowAsync();
             return (result == ContentDialogResult.Primary, checkBox?.IsChecked == true);
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+        }, (false, false));
     }
 
     public async Task<ConfirmationResponse> ShowConfirmationAsync(
@@ -937,15 +404,8 @@ public class DialogService : IDialogService
         string continueButtonText = "Continue",
         string cancelButtonText = "Cancel")
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        return await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return new ConfirmationResponse { Confirmed = false };
-            }
-
             var contentPanel = new StackPanel { Spacing = 8 };
 
             if (!string.IsNullOrEmpty(confirmationRequest.Message))
@@ -980,202 +440,41 @@ public class DialogService : IDialogService
                 Confirmed = result == ContentDialogResult.Primary,
                 CheckboxChecked = checkBox?.IsChecked == true
             };
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+        }, new ConfirmationResponse { Confirmed = false });
     }
 
     public async Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages)
     {
-        await _dialogSemaphore.WaitAsync();
-        try
+        await ExecuteDialogAsync(async () =>
         {
-            if (XamlRoot == null)
-            {
-                _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return;
-            }
-
-            // Mutable list of all lines — snapshot + live additions.
-            // Used by Copy to Clipboard at click time.
-            var allLines = new List<string>(logMessages);
-
-            // Build a single RichTextBlock with one Paragraph containing Runs.
-            // Unlike individual TextBlocks, RichTextBlock renders block characters
-            // (█, ═, ▒) with consistent line height — no overlapping artifacts.
-            var par = new Paragraph();
-            foreach (var line in logMessages)
-            {
-                foreach (var run in TerminalLineRenderer.CreateLineRuns(line))
-                    par.Inlines.Add(run);
-            }
-
-            var richTextBlock = new RichTextBlock
-            {
-                FontFamily = TerminalLineRenderer.MonoFont,
-                FontSize = 12,
-                Foreground = TerminalLineRenderer.DefaultBrush,
-                TextWrapping = TextWrapping.Wrap,
-                IsTextSelectionEnabled = true
-            };
-            richTextBlock.Blocks.Add(par);
-
-            var scrollViewer = new ScrollViewer
-            {
-                Content = richTextBlock,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Padding = new Thickness(14, 10, 14, 10)
-            };
-
-            // Auto-scroll to bottom on initial load
-            scrollViewer.Loaded += (_, _) =>
-                scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null, true);
-
-            var container = new Border
-            {
-                Child = scrollViewer,
-                Background = new SolidColorBrush(TerminalLineRenderer.TerminalBackground),
-                CornerRadius = new CornerRadius(6),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x3E, 0x3E, 0x3E)),
-                BorderThickness = new Thickness(1)
-            };
-
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = container,
-                CloseButtonText = _localization.GetString("Button_Close") ?? "Close",
-                SecondaryButtonText = _localization.GetString("Button_CopyToClipboard") ?? "Copy to Clipboard",
-                DefaultButton = ContentDialogButton.Close
-            };
-
-            // Blow out WinUI's built-in ContentDialog size caps so that the
-            // SizeChanged handler below can drive actual content dimensions.
-            dialog.Resources["ContentDialogMaxWidth"] = 8192;
-            dialog.Resources["ContentDialogMaxHeight"] = 4096;
-
+            var builder = new Dialogs.TaskOutputDialogBuilder(_localization, _taskProgressService);
+            var dialog = builder.Build(XamlRoot!, title, logMessages);
             ConfigureDialog(dialog);
-
-            dialog.SizeChanged += (_, _) =>
-            {
-                if (dialog.Content is FrameworkElement content && XamlRoot?.Size.Width > 0)
-                {
-                    double winWidth = XamlRoot.Size.Width;
-                    double winHeight = XamlRoot.Size.Height;
-
-                    // 90% of window width, floor 600px, minus dialog chrome padding (~48px)
-                    content.Width = Math.Min(Math.Max(600, winWidth * 0.90) - 48, 8192);
-
-                    // 70% of window height, floor 300px, minus title+buttons chrome (~120px)
-                    content.Height = Math.Min(Math.Max(300, winHeight * 0.70) - 120, 4096);
-                }
-            };
-
-            // Copy to Clipboard — build text dynamically to include live lines
-            dialog.SecondaryButtonClick += (_, _) =>
-            {
-                var dataPackage = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                dataPackage.SetText(string.Join("\n", allLines));
-                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dataPackage);
-            };
-
-            // Live update subscription: append/replace terminal lines in real-time
-            var isSubscribed = false;
-            var lastLineWasProgress = false;
-            var lastLineRunCount = 1;
-            EventHandler<TaskProgressDetail>? liveHandler = null;
-
-            if (_taskProgressService.IsTaskRunning)
-            {
-                var dispatcherQueue = DispatcherQueue.GetForCurrentThread();
-                isSubscribed = true;
-
-                liveHandler = (_, detail) =>
-                {
-                    if (string.IsNullOrEmpty(detail.TerminalOutput))
-                        return;
-
-                    var line = detail.TerminalOutput;
-                    var isProgress = detail.IsProgressIndicator;
-
-                    dispatcherQueue.TryEnqueue(() =>
-                    {
-                        // Always remove the last progress line
-                        // before adding ANY new line. This handles:
-                        //   progress → progress: replacement (progress bar filling)
-                        //   progress → permanent: cleanup (stale progress/spinner removed)
-                        //   permanent → permanent: normal append
-                        //   permanent → progress: normal append
-                        if (lastLineWasProgress && par.Inlines.Count > 0)
-                        {
-                            for (int r = 0; r < lastLineRunCount && par.Inlines.Count > 0; r++)
-                                par.Inlines.RemoveAt(par.Inlines.Count - 1);
-                            allLines.RemoveAt(allLines.Count - 1);
-                        }
-                        else if (isProgress && allLines.Count > 0
-                            && TerminalLineRenderer.LooksLikeProgressBar(allLines[allLines.Count - 1]))
-                        {
-                            // First progress bar sometimes arrives as a permanent line
-                            // (winget's initial render uses \n before switching to \r).
-                            // Detect and remove it so it doesn't duplicate.
-                            for (int r = 0; r < lastLineRunCount && par.Inlines.Count > 0; r++)
-                                par.Inlines.RemoveAt(par.Inlines.Count - 1);
-                            allLines.RemoveAt(allLines.Count - 1);
-                        }
-
-                        allLines.Add(line);
-                        var runs = TerminalLineRenderer.CreateLineRuns(line);
-                        foreach (var run in runs)
-                            par.Inlines.Add(run);
-                        lastLineRunCount = runs.Length;
-                        lastLineWasProgress = isProgress;
-
-                        // Auto-scroll only if the user is near the bottom;
-                        // if they scrolled up, leave the view where they put it.
-                        scrollViewer.UpdateLayout();
-                        var isNearBottom = scrollViewer.VerticalOffset
-                            >= scrollViewer.ScrollableHeight - 20;
-                        if (isNearBottom)
-                            scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null, true);
-                    });
-
-                    // Unsubscribe only when the overall task has actually stopped
-                    // (not on per-item completion signals like IsCompletion/Progress==100,
-                    // which fire for each item in a queued batch).
-                    if (!_taskProgressService.IsTaskRunning)
-                    {
-                        if (isSubscribed)
-                        {
-                            isSubscribed = false;
-                            _taskProgressService.ProgressUpdated -= liveHandler;
-                        }
-                    }
-                };
-
-                _taskProgressService.ProgressUpdated += liveHandler;
-            }
-
+            builder.StartLiveUpdates(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
             try
             {
                 await dialog.ShowAsync();
             }
             finally
             {
-                // Unsubscribe when dialog closes (task may still be running)
-                if (isSubscribed && liveHandler != null)
-                {
-                    isSubscribed = false;
-                    _taskProgressService.ProgressUpdated -= liveHandler;
-                }
+                builder.StopLiveUpdates();
             }
-        }
-        finally
-        {
-            _dialogSemaphore.Release();
-        }
+        });
     }
 
+    public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "Close")
+    {
+        await ExecuteDialogAsync(async () =>
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = content,
+                CloseButtonText = closeButtonText,
+                DefaultButton = ContentDialogButton.Close
+            };
+            ConfigureDialog(dialog);
+            await dialog.ShowAsync();
+        });
+    }
 }

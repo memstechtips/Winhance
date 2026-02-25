@@ -2,9 +2,6 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
@@ -16,6 +13,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 {
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
+    private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewBadgeService _configReviewBadgeService;
@@ -28,6 +26,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ExternalAppsViewModel externalAppsViewModel,
         ILocalizationService localizationService,
         ILogService logService,
+        IDialogService dialogService,
         IUserPreferencesService userPreferencesService,
         IConfigReviewModeService configReviewModeService,
         IConfigReviewBadgeService configReviewBadgeService,
@@ -38,6 +37,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ExternalAppsViewModel = externalAppsViewModel;
         _localizationService = localizationService;
         _logService = logService;
+        _dialogService = dialogService;
         _userPreferencesService = userPreferencesService;
         _configReviewModeService = configReviewModeService;
         _configReviewBadgeService = configReviewBadgeService;
@@ -483,51 +483,27 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task ShowHelpAsync(XamlRoot xamlRoot)
+    private async Task ShowHelpAsync()
     {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = xamlRoot,
-            CloseButtonText = _localizationService.GetString("Help_CloseHelp"),
-            DefaultButton = ContentDialogButton.Close,
-        };
-
-        // Set theme and semi-transparent background so Mica/Acrylic backdrop shows through
-        if (xamlRoot?.Content is FrameworkElement rootElement)
-        {
-            dialog.RequestedTheme = rootElement.ActualTheme == ElementTheme.Dark
-                ? ElementTheme.Dark
-                : ElementTheme.Light;
-        }
-        var baseColor = dialog.RequestedTheme == ElementTheme.Dark
-            ? Windows.UI.Color.FromArgb(255, 44, 44, 44)
-            : Windows.UI.Color.FromArgb(255, 243, 243, 243);
-        dialog.Background = new AcrylicBrush
-        {
-            TintColor = baseColor,
-            TintOpacity = 0.65,
-            TintLuminosityOpacity = 0.75,
-            FallbackColor = baseColor
-        };
+        var closeButtonText = _localizationService.GetString("Help_CloseHelp");
 
         if (IsWindowsAppsTabSelected)
         {
-            dialog.Title = _localizationService.GetString("Help_WindowsApps_Title");
-
             var vm = new RemovalStatusContainerViewModel(_scheduledTaskService, _logService, _fileSystemService);
-            var content = new WindowsAppsHelpContent(_localizationService);
-            content.DataContext = vm;
-            dialog.Content = content;
-
+            var content = new WindowsAppsHelpContent(_localizationService) { DataContext = vm };
             _ = vm.RefreshAllStatusesAsync();
-            await dialog.ShowAsync();
+            await _dialogService.ShowCustomContentDialogAsync(
+                _localizationService.GetString("Help_WindowsApps_Title"),
+                content,
+                closeButtonText);
             vm.Dispose();
         }
         else
         {
-            dialog.Title = _localizationService.GetString("Help_ExternalApps_Title");
-            dialog.Content = new ExternalAppsHelpContent(_localizationService);
-            await dialog.ShowAsync();
+            await _dialogService.ShowCustomContentDialogAsync(
+                _localizationService.GetString("Help_ExternalApps_Title"),
+                new ExternalAppsHelpContent(_localizationService),
+                closeButtonText);
         }
     }
 

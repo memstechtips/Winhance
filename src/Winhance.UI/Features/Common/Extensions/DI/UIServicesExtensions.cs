@@ -4,6 +4,7 @@ using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.UI.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Customize.Interfaces;
@@ -12,6 +13,7 @@ using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.Settings.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.UI.ViewModels;
 
@@ -42,6 +44,12 @@ public static class UIServicesExtensions
         // Dialog Service (Singleton - ContentDialog management with queuing)
         // Requires XamlRoot to be set by MainWindow after content is loaded
         services.AddSingleton<IDialogService, DialogService>();
+
+        // File Picker Service (Singleton - Wraps Win32FileDialogHelper via IMainWindowProvider)
+        services.AddSingleton<IFilePickerService, FilePickerService>();
+
+        // Selected Apps Provider (Singleton - Bridges WIM feature to SoftwareApps feature)
+        services.AddSingleton<ISelectedAppsProvider, SelectedAppsProvider>();
 
         // Application Close Service (Singleton - Handles shutdown with donation dialog)
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
@@ -87,8 +95,17 @@ public static class UIServicesExtensions
         // Review Mode ViewModel Coordinator (Singleton - abstracts concrete ViewModel dependencies)
         services.AddSingleton<IReviewModeViewModelCoordinator, ReviewModeViewModelCoordinator>();
 
+        // Setting ViewModel Dependencies (parameter object grouping pass-through deps for SettingItemViewModel)
+        services.AddSingleton<SettingViewModelDependencies>();
+
+        // Setting ViewModel Enricher (hardware detection, cross-group info, review diff)
+        services.AddSingleton<ISettingViewModelEnricher, SettingViewModelEnricher>();
+
         // Setting ViewModel Factory (Singleton - Creates fully-configured setting ViewModels)
         services.AddSingleton<ISettingViewModelFactory, SettingViewModelFactory>();
+
+        // Setting Preparation Pipeline (filters and localizes settings for a feature module)
+        services.AddSingleton<ISettingPreparationPipeline, SettingPreparationPipeline>();
 
         // Settings Loading Service (Singleton - Orchestrates setting loading and refresh)
         services.AddSingleton<Features.Common.Interfaces.ISettingsLoadingService, SettingsLoadingService>();

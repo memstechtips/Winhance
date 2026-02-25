@@ -26,8 +26,7 @@ namespace Winhance.Core.Features.Common.Interfaces
             string? checkboxText = null,
             string title = "Confirmation",
             string continueButtonText = "Continue",
-            string cancelButtonText = "Cancel",
-            string? titleBarIcon = null);
+            string cancelButtonText = "Cancel");
 
         Task<(bool Confirmed, bool CheckboxChecked)> ShowAppOperationConfirmationAsync(
             string operationType,
@@ -42,5 +41,6 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
+        Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "Close");
     }
 }

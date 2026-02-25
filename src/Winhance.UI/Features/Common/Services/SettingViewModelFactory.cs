@@ -15,48 +15,30 @@ namespace Winhance.UI.Features.Common.Services;
 /// </summary>
 public class SettingViewModelFactory : ISettingViewModelFactory
 {
-    private readonly ISettingApplicationService _settingApplicationService;
+    private readonly SettingViewModelDependencies _viewModelDeps;
     private readonly ILogService _logService;
-    private readonly IDispatcherService _dispatcherService;
-    private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly IEventBus _eventBus;
     private readonly IUserPreferencesService _userPreferencesService;
-    private readonly IRegeditLauncher _regeditLauncher;
     private readonly IComboBoxSetupService _comboBoxSetupService;
     private readonly IComboBoxResolver _comboBoxResolver;
-    private readonly IHardwareDetectionService _hardwareDetectionService;
-    private readonly ISettingLocalizationService _settingLocalizationService;
-    private readonly ISettingReviewDiffApplier _reviewDiffApplier;
+    private readonly ISettingViewModelEnricher _enricher;
 
     public SettingViewModelFactory(
-        ISettingApplicationService settingApplicationService,
+        SettingViewModelDependencies viewModelDeps,
         ILogService logService,
-        IDispatcherService dispatcherService,
-        IDialogService dialogService,
         ILocalizationService localizationService,
-        IEventBus eventBus,
         IUserPreferencesService userPreferencesService,
-        IRegeditLauncher regeditLauncher,
         IComboBoxSetupService comboBoxSetupService,
         IComboBoxResolver comboBoxResolver,
-        IHardwareDetectionService hardwareDetectionService,
-        ISettingLocalizationService settingLocalizationService,
-        ISettingReviewDiffApplier reviewDiffApplier)
+        ISettingViewModelEnricher enricher)
     {
-        _settingApplicationService = settingApplicationService;
+        _viewModelDeps = viewModelDeps;
         _logService = logService;
-        _dispatcherService = dispatcherService;
-        _dialogService = dialogService;
         _localizationService = localizationService;
-        _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
-        _regeditLauncher = regeditLauncher;
         _comboBoxSetupService = comboBoxSetupService;
         _comboBoxResolver = comboBoxResolver;
-        _hardwareDetectionService = hardwareDetectionService;
-        _settingLocalizationService = settingLocalizationService;
-        _reviewDiffApplier = reviewDiffApplier;
+        _enricher = enricher;
     }
 
     /// <summary>
@@ -86,14 +68,14 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
         var viewModel = new SettingItemViewModel(
             config,
-            _settingApplicationService,
-            _logService,
-            _dispatcherService,
-            _dialogService,
+            _viewModelDeps.SettingApplicationService,
+            _viewModelDeps.LogService,
+            _viewModelDeps.DispatcherService,
+            _viewModelDeps.DialogService,
             _localizationService,
-            _eventBus,
+            _viewModelDeps.EventBus,
             _userPreferencesService,
-            _regeditLauncher);
+            _viewModelDeps.RegeditLauncher);
 
         // Set lock state for advanced settings
         if (setting.RequiresAdvancedUnlock)
@@ -105,7 +87,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         // Populate AC/DC values for PowerModeSupport.Separate settings
         if (viewModel.SupportsSeparateACDC)
         {
-            viewModel.HasBattery = await _hardwareDetectionService.HasBatteryAsync();
+            await _enricher.DetectBatteryAsync(viewModel);
 
             if (setting.InputType == InputType.NumericRange && currentState.RawValues != null)
             {
@@ -158,7 +140,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 }
 
                 // Build cross-group info message if this setting has CrossGroupChildSettings
-                viewModel.CrossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+                _enricher.SetCrossGroupInfoMessage(viewModel, setting);
 
                 // Set the selected value from the setup result or current state
                 if (comboBoxResult.SelectedValue != null)
@@ -200,7 +182,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
 
         // If in review mode, apply review diff to the newly created ViewModel
-        _reviewDiffApplier.ApplyReviewDiffToViewModel(viewModel, currentState);
+        _enricher.ApplyReviewDiff(viewModel, currentState);
 
         return viewModel;
     }

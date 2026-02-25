@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
-using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
@@ -8,42 +7,58 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
-using Winhance.UI.Features.AdvancedTools;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
-using Winhance.UI.Features.Customize;
-using Winhance.UI.Features.Optimize;
-using Winhance.UI.Features.Settings;
-using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
 using System;
-using System.Collections.Generic;
-using System.IO;
+using System.ComponentModel;
 using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Models;
-using Windows.Foundation;
-using Windows.Graphics;
 
 namespace Winhance.UI;
 
 /// <summary>
 /// Main application window with custom NavSidebar navigation.
+/// Delegates task progress, navigation, startup, and title bar management to helper classes.
 /// </summary>
-public sealed partial class MainWindow : Window
+public sealed partial class MainWindow : Window, INotifyPropertyChanged
 {
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
     private IConfigReviewService? _configReviewService;
     private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
-    private BackupResult? _backupResult;
     private bool _isStartupLoading = true;
+
+    // Helper classes (Phases 2-5)
+    private TaskProgressCoordinator? _taskProgressCoordinator;
+    private NavigationRouter? _navigationRouter;
+    private StartupUiCoordinator? _startupUiCoordinator;
+    private TitleBarManager? _titleBarManager;
+
+    /// <summary>
+    /// ViewModel exposed for x:Bind in XAML. Raises PropertyChanged so bindings update
+    /// when the ViewModel is assigned after construction.
+    /// </summary>
+    public MainWindowViewModel? ViewModel
+    {
+        get => _viewModel;
+        private set
+        {
+            if (_viewModel != value)
+            {
+                _viewModel = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ViewModel)));
+            }
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public MainWindow()
     {
@@ -58,9 +73,10 @@ public sealed partial class MainWindow : Window
         // Set tall title bar mode so caption buttons fill the full height
         this.AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
 
-        // Apply theme-aware caption button colors and update when theme changes
-        RootGrid.ActualThemeChanged += (_, _) => ApplySystemThemeToCaptionButtons();
-        RootGrid.Loaded += (_, _) => ApplySystemThemeToCaptionButtons();
+        // Create TitleBarManager and apply theme-aware caption button colors
+        _titleBarManager = new TitleBarManager(this.AppWindow, _logService);
+        RootGrid.ActualThemeChanged += (_, _) => _titleBarManager.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
+        RootGrid.Loaded += (_, _) => _titleBarManager.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
 
         // Initialize window size manager for position/size persistence
         InitializeWindowSizeManager();
@@ -69,7 +85,6 @@ public sealed partial class MainWindow : Window
         TrySetMicaBackdrop();
 
         // Initialize DispatcherService - MUST be done before any service uses it
-        // This is required because DispatcherQueue is only available after window creation
         InitializeDispatcherService();
 
         // Apply initial FlowDirection for RTL languages and subscribe to language changes
@@ -82,41 +97,42 @@ public sealed partial class MainWindow : Window
         NavSidebar.Loaded += NavSidebar_Loaded;
     }
 
+    #region Startup & Initialization
+
     /// <summary>
     /// Sets the default navigation item after the NavSidebar is loaded.
     /// </summary>
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
         StartupLogger.Log("MainWindow", "NavSidebar_Loaded");
-
-        // Subscribe to MoreMenuClosed to restore selection based on current page
         NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
 
-        // Skip auto-navigation during startup — CompleteStartup() will trigger it
+        // Skip auto-navigation during startup -- CompleteStartup() will trigger it
         if (_isStartupLoading)
         {
             StartupLogger.Log("MainWindow", "Startup loading in progress, deferring navigation");
             return;
         }
 
-        // Navigate to SoftwareApps page by default
-        StartupLogger.Log("MainWindow", "Navigating to SoftwareApps as default...");
         NavSidebar.SelectedTag = "SoftwareApps";
-        NavigateToPage("SoftwareApps");
+        _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
         StartupLogger.Log("MainWindow", "SoftwareApps selected");
     }
 
     /// <summary>
-    /// Handles the More menu closing by restoring selection to the current page.
+    /// Kicks off the async startup sequence. Called by App.xaml.cs after Activate + InitializeTheme.
     /// </summary>
-    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e)
+    public void StartStartupOperations()
     {
-        // Get the tag for the currently displayed page
-        var currentTag = GetTagForCurrentPage();
-        if (!string.IsNullOrEmpty(currentTag))
-        {
-            NavSidebar.SelectedTag = currentTag;
-        }
+        StartupLogger.Log("MainWindow", "StartStartupOperations called");
+
+        _startupUiCoordinator = new StartupUiCoordinator(this.DispatcherQueue, _logService);
+        _startupUiCoordinator.InitializeLoadingOverlay(
+            LoadingTitleText, LoadingTaglineText, LoadingStatusText, LoadingLogo, RootGrid);
+
+        _ = _startupUiCoordinator.RunStartupAndCompleteAsync(
+            LoadingStatusText, ContentFrame, NavSidebar, LoadingOverlay, ViewModel,
+            markStartupComplete: () => _isStartupLoading = false);
     }
 
     /// <summary>
@@ -130,21 +146,15 @@ public sealed partial class MainWindow : Window
             var userPreferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
             _logService = App.Services.GetRequiredService<ILogService>();
             _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, _logService);
-
-            // Initialize async (restore saved position/size or set defaults)
             _windowSizeManager.InitializeAsync().FireAndForget(_logService!);
 
-            // Wire up ApplicationCloseService: saves window state, shows donation dialog, then exits
             var applicationCloseService = App.Services.GetRequiredService<IApplicationCloseService>();
             applicationCloseService.BeforeShutdown = async () =>
             {
                 if (_windowSizeManager != null)
-                {
                     await _windowSizeManager.SaveWindowSettingsAsync();
-                }
             };
 
-            // Intercept window close — cancel the native close and delegate to ApplicationCloseService
             this.AppWindow.Closing += async (sender, args) =>
             {
                 args.Cancel = true;
@@ -153,29 +163,9 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            // Fallback to a reasonable default if WindowSizeManager fails
             this.AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
             _logService?.LogDebug($"Failed to initialize WindowSizeManager: {ex.Message}");
         }
-    }
-
-    /// <summary>
-    /// Gets the navigation tag for the currently displayed page.
-    /// </summary>
-    private string? GetTagForCurrentPage()
-    {
-        var pageType = ContentFrame.CurrentSourcePageType;
-        if (pageType == null) return null;
-
-        return pageType.Name switch
-        {
-            nameof(SettingsPage) => "Settings",
-            nameof(OptimizePage) => "Optimize",
-            nameof(CustomizePage) => "Customize",
-            nameof(AdvancedToolsPage) => "AdvancedTools",
-            nameof(SoftwareAppsPage) => "SoftwareApps",
-            _ => null
-        };
     }
 
     /// <summary>
@@ -185,14 +175,11 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            // Try Mica first (Windows 11)
             if (MicaController.IsSupported())
             {
                 SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
                 return;
             }
-
-            // Fall back to DesktopAcrylic (Windows 10)
             if (DesktopAcrylicController.IsSupported())
             {
                 SystemBackdrop = new DesktopAcrylicBackdrop();
@@ -200,14 +187,12 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            // Backdrop not supported or failed - continue without it
             _logService?.LogDebug($"Failed to set backdrop: {ex.Message}");
         }
     }
 
     /// <summary>
-    /// Sets the initial FlowDirection based on the current language and subscribes
-    /// to language changes so RTL languages (e.g. Arabic) mirror the entire UI.
+    /// Sets the initial FlowDirection based on the current language and subscribes to language changes.
     /// </summary>
     private void InitializeFlowDirection()
     {
@@ -229,34 +214,24 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Applies the appropriate FlowDirection to the root grid and refreshes title bar padding.
-    /// </summary>
     private void ApplyFlowDirection(bool isRightToLeft)
     {
         RootGrid.FlowDirection = isRightToLeft
             ? FlowDirection.RightToLeft
             : FlowDirection.LeftToRight;
 
-        // Re-apply title bar padding since column positions flip with FlowDirection
         if (AppTitleBar.IsLoaded)
         {
-            SetTitleBarPadding();
+            _titleBarManager?.SetTitleBarPadding(
+                LeftPaddingColumn, RightPaddingColumn, AppTitleBar, RootGrid.FlowDirection);
         }
     }
 
-    /// <summary>
-    /// Called when the root grid is loaded. Sets up services that need XamlRoot.
-    /// </summary>
     private void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
-        // Initialize DialogService with XamlRoot - required for ContentDialog
         InitializeDialogService();
     }
 
-    /// <summary>
-    /// Initializes the dispatcher service with this window's DispatcherQueue.
-    /// </summary>
     private void InitializeDispatcherService()
     {
         try
@@ -273,9 +248,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Initializes the dialog service with XamlRoot for ContentDialog support.
-    /// </summary>
     private void InitializeDialogService()
     {
         try
@@ -292,13 +264,150 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    #endregion
+
+    #region Title Bar
+
     /// <summary>
-    /// Handles the pane toggle button click in the title bar.
+    /// Called when the title bar is loaded. Sets up ViewModel bindings and padding.
     /// </summary>
+    private void AppTitleBar_Loaded(object sender, RoutedEventArgs e)
+    {
+        _titleBarManager?.SetTitleBarPadding(
+            LeftPaddingColumn, RightPaddingColumn, AppTitleBar, RootGrid.FlowDirection);
+
+        // Defer passthrough region setup to ensure all elements are laid out
+        DispatcherQueue.TryEnqueue(() =>
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons));
+
+        AppTitleBar.SizeChanged += (_, _) =>
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons);
+        TitleBarButtons.SizeChanged += (_, _) =>
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons);
+
+        // Initialize ViewModel and wire up bindings
+        InitializeViewModel();
+    }
+
+    /// <summary>
+    /// Initializes the ViewModel and wires up button commands and helper classes.
+    /// </summary>
+    private void InitializeViewModel()
+    {
+        try
+        {
+            ViewModel = App.Services.GetService<MainWindowViewModel>();
+
+            if (ViewModel != null)
+            {
+                // Wire up button commands
+                SaveConfigButton.Command = ViewModel.SaveConfigCommand;
+                ImportConfigButton.Command = ViewModel.ImportConfigCommand;
+                WindowsFilterButton.Command = ViewModel.ToggleWindowsFilterCommand;
+                DonateButton.Command = ViewModel.DonateCommand;
+                BugReportButton.Command = ViewModel.BugReportCommand;
+                DocsButton.Command = ViewModel.DocsCommand;
+
+                // Set initial filter button icon
+                UpdateFilterButtonIcon();
+
+                // Subscribe to property changes that require code-behind
+                // (Narrator announcements, icon conversion, dynamic button creation, filter icon opacity)
+                ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+                ViewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
+                ViewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
+
+                // Deferred initialization: subscribes to events and sets initial state
+                ViewModel.Initialize();
+
+                // Set initial icon
+                UpdateAppIcon();
+
+                // Show beta banner if this is a beta build
+                var versionService = App.Services.GetService<IVersionService>();
+                if (versionService?.GetCurrentVersion().IsBeta == true)
+                {
+                    BetaBannerText.Visibility = Visibility.Visible;
+                }
+
+                // Pass ViewModel to NavSidebar for localized nav button text
+                NavSidebar.ViewModel = ViewModel;
+
+                // Wire up Task Progress Coordinator (Phase 2)
+                _taskProgressCoordinator = new TaskProgressCoordinator(
+                    TaskProgressControl, TaskProgressControl2, TaskProgressControl3,
+                    _logService!, this.DispatcherQueue);
+
+                TaskProgressControl.CancelCommand = ViewModel.TaskProgress.CancelCommand;
+                TaskProgressControl.CancelText = ViewModel.TaskProgress.CancelButtonLabel;
+                TaskProgressControl.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+                TaskProgressControl2.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+                TaskProgressControl3.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+
+                ViewModel.TaskProgress.PropertyChanged += (s, e) =>
+                    _taskProgressCoordinator?.HandlePropertyChanged(ViewModel.TaskProgress, e.PropertyName);
+                ViewModel.TaskProgress.ScriptProgressReceived +=
+                    (slotIndex, detail) => _taskProgressCoordinator?.HandleScriptProgressReceived(slotIndex, detail);
+
+                // Wire up Navigation Router (Phase 3)
+                _configReviewService = App.Services.GetService<IConfigReviewService>();
+                _navBadgeService = App.Services.GetService<INavBadgeService>();
+                _navigationRouter = new NavigationRouter(
+                    _configReviewService, _navBadgeService, this.DispatcherQueue);
+
+                // Subscribe to review mode badge events
+                if (_configReviewService != null)
+                {
+                    _configReviewService.ReviewModeChanged += OnReviewModeBadgeChanged;
+                    _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+                }
+
+                // Load filter preference asynchronously
+                _ = ViewModel.LoadFilterPreferenceAsync();
+
+                // Notify x:Bind that ViewModel is now available
+                Bindings.Update();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogDebug($"Failed to initialize ViewModel: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region Navigation
+
     private void PaneToggleButton_Click(object sender, RoutedEventArgs e)
     {
         NavSidebar.TogglePane();
     }
+
+    private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
+    {
+        var tag = e.NavigationTag?.ToString();
+        StartupLogger.Log("MainWindow", $"NavSidebar_ItemClicked - Tag: {tag}");
+
+        if (tag == "More")
+        {
+            NavSidebar.ShowMoreMenuFlyout();
+            return;
+        }
+
+        _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
+    }
+
+    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e)
+    {
+        var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
+        if (!string.IsNullOrEmpty(currentTag))
+        {
+            NavSidebar.SelectedTag = currentTag;
+        }
+    }
+
+    #endregion
 
     #region Review Mode Badges
 
@@ -328,7 +437,6 @@ public sealed partial class MainWindow : Window
     private void ApplyNavBadges()
     {
         if (_navBadgeService == null) return;
-
         var badges = _navBadgeService.ComputeNavBadges();
         foreach (var badge in badges)
         {
@@ -338,233 +446,195 @@ public sealed partial class MainWindow : Window
 
     #endregion
 
-    /// <summary>
-    /// Handles navigation when a NavButton is clicked in the sidebar.
-    /// </summary>
-    private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
-    {
-        var tag = e.NavigationTag?.ToString();
-        StartupLogger.Log("MainWindow", $"NavSidebar_ItemClicked - Tag: {tag}");
+    #region PropertyChanged Handlers (code-behind only -- Narrator, icon conversion, dynamic buttons)
 
-        // Special handling for More button - show flyout instead of navigating
-        if (tag == "More")
+    /// <summary>
+    /// Handles MainWindowViewModel property changes that genuinely require code-behind:
+    /// icon source (BitmapImage creation), filter icon (geometry conversion), filter icon opacity,
+    /// and WindowsFilterTooltip Narrator announcement.
+    /// Tooltip text, InfoBar, AppTitle/AppSubtitle are now handled by XAML x:Bind.
+    /// </summary>
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.AppIconSource))
         {
-            ShowMoreMenuFlyout();
-            return;
+            DispatcherQueue.TryEnqueue(UpdateAppIcon);
         }
-
-        NavigateToPage(tag);
-    }
-
-    /// <summary>
-    /// Shows the More menu flyout - delegates to NavSidebar which owns the flyout.
-    /// </summary>
-    private void ShowMoreMenuFlyout()
-    {
-        NavSidebar.ShowMoreMenuFlyout();
-    }
-
-    /// <summary>
-    /// Navigates to the specified page based on the tag.
-    /// </summary>
-    private void NavigateToPage(string? tag)
-    {
-        StartupLogger.Log("MainWindow", $"NavigateToPage called with tag: {tag}");
-        Type? pageType = tag switch
+        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterTooltip) && ViewModel != null)
         {
-            "Settings" => typeof(SettingsPage),
-            "Optimize" => typeof(OptimizePage),
-            "Customize" => typeof(CustomizePage),
-            "AdvancedTools" => typeof(AdvancedToolsPage),
-            "SoftwareApps" => typeof(SoftwareAppsPage),
-            "More" => null, // More button could open a flyout or dialog
-            _ => null
-        };
-
-        StartupLogger.Log("MainWindow", $"Resolved page type: {pageType?.Name ?? "null"}");
-
-        if (pageType != null && ContentFrame.CurrentSourcePageType != pageType)
-        {
-            try
+            // Narrator announcement for filter state change (visual update handled by XAML binding)
+            DispatcherQueue.TryEnqueue(() =>
             {
-                StartupLogger.Log("MainWindow", $"Navigating to {pageType.Name}...");
-                var result = ContentFrame.Navigate(pageType);
-                StartupLogger.Log("MainWindow", $"Navigate result: {result}");
+                var tooltip = ViewModel.WindowsFilterTooltip;
+                var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(WindowsFilterButton)
+                           ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(WindowsFilterButton);
+                peer?.RaiseNotificationEvent(
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                    tooltip,
+                    "FilterStateChanged");
+            });
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterIcon) && ViewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(UpdateFilterButtonIcon);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsWindowsFilterButtonEnabled) && ViewModel != null)
+        {
+            // Update opacity for the disabled state (IsEnabled is handled by XAML binding)
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                WindowsFilterIcon.Opacity = ViewModel.IsWindowsFilterButtonEnabled ? 1.0 : 0.4;
+            });
+        }
+    }
 
-                // Mark SoftwareApps features as visited when navigating to that page
-                if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
+    /// <summary>
+    /// Handles UpdateCheckViewModel property changes that require code-behind:
+    /// dynamic action button creation (cannot be done in XAML).
+    /// IsOpen, Title, Message, Severity are now handled by XAML x:Bind.
+    /// </summary>
+    private void UpdateCheck_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateActionButtonVisible)
+            || e.PropertyName == nameof(UpdateCheckViewModel.InstallNowButtonText))
+        {
+            DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
+        }
+    }
+
+    /// <summary>
+    /// Handles ReviewModeBarViewModel property changes that require code-behind:
+    /// Narrator announcements for review mode entry/exit, and ReviewModeBar visibility toggle.
+    /// Text bindings, IsEnabled, AutomationProperties.Name are now handled by XAML x:Bind.
+    /// </summary>
+    private void ReviewModeBar_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ViewModel == null) return;
+        var rm = ViewModel.ReviewModeBar;
+
+        if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ReviewModeBar.Visibility = rm.IsInReviewMode ? Visibility.Visible : Visibility.Collapsed;
+                if (rm.IsInReviewMode)
                 {
-                    _configReviewService.MarkFeatureVisited(FeatureIds.WindowsApps);
-                    _configReviewService.MarkFeatureVisited(FeatureIds.ExternalApps);
-                    _navBadgeService?.SubscribeToSoftwareAppsChanges(() =>
-                        DispatcherQueue.TryEnqueue(ApplyNavBadges));
+                    // Announce review mode entry to Narrator
+                    var announcement = $"{rm.ReviewModeTitleText}. {rm.ReviewModeDescriptionText}";
+                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(ReviewModeBar)
+                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ReviewModeBar);
+                    peer?.RaiseNotificationEvent(
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                        announcement,
+                        "ReviewModeEntered");
                 }
-            }
-            catch (Exception ex)
+                else
+                {
+                    // Announce review mode exit to Narrator
+                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(RootGrid)
+                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RootGrid);
+                    peer?.RaiseNotificationEvent(
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                        "Config Review Mode ended",
+                        "ReviewModeExited");
+                }
+            });
+        }
+    }
+
+    #endregion
+
+    #region UI Update Helpers
+
+    private void UpdateFilterButtonIcon()
+    {
+        try
+        {
+            if (ViewModel != null && WindowsFilterIcon != null)
             {
-                StartupLogger.Log("MainWindow", $"Navigation EXCEPTION: {ex}");
+                var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Geometry),
+                    ViewModel.WindowsFilterIcon);
+                WindowsFilterIcon.Data = geometry;
             }
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogDebug($"Failed to update filter button icon: {ex.Message}");
+        }
+    }
+
+    private void UpdateInfoBarActionButton()
+    {
+        if (ViewModel == null) return;
+        var uc = ViewModel.UpdateCheck;
+
+        if (uc.IsUpdateActionButtonVisible)
+        {
+            var button = new Button
+            {
+                Content = uc.InstallNowButtonText,
+                Command = uc.InstallUpdateCommand,
+                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+            };
+            UpdateInfoBar.ActionButton = button;
         }
         else
         {
-            StartupLogger.Log("MainWindow", $"Skipping navigation - pageType null or same page");
+            UpdateInfoBar.ActionButton = null;
         }
     }
 
-    /// <summary>
-    /// Kicks off the async startup sequence. Called by App.xaml.cs after Activate + InitializeTheme.
-    /// </summary>
-    public void StartStartupOperations()
-    {
-        StartupLogger.Log("MainWindow", "StartStartupOperations called");
-        UpdateLoadingLogo();
-
-        // Set all overlay text from localization keys
-        try
-        {
-            var localizationService = App.Services.GetService<ILocalizationService>();
-            if (localizationService != null)
-            {
-                LoadingTitleText.Text = localizationService.GetString("App_Title");
-                LoadingTaglineText.Text = localizationService.GetString("App_Tagline");
-                LoadingStatusText.Text = localizationService.GetString("Loading_PreparingApp");
-            }
-        }
-        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to set loading overlay text: {ex.Message}"); }
-
-        _ = RunStartupAndCompleteAsync();
-    }
-
-    /// <summary>
-    /// Delegates startup to the orchestrator, then dispatches CompleteStartupAsync on the UI thread.
-    /// </summary>
-    private async Task RunStartupAndCompleteAsync()
+    private void UpdateAppIcon()
     {
         try
         {
-            var orchestrator = App.Services.GetRequiredService<IStartupOrchestrator>();
-
-            var statusProgress = new Progress<string>(localizationKey =>
+            if (ViewModel != null)
             {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    try
-                    {
-                        var localizationService = App.Services.GetService<ILocalizationService>();
-                        LoadingStatusText.Text = localizationService?.GetString(localizationKey) ?? localizationKey;
-                    }
-                    catch
-                    {
-                        LoadingStatusText.Text = localizationKey;
-                    }
-                });
-            });
-
-            var detailedProgress = new Progress<Core.Features.Common.Models.TaskProgressDetail>(detail =>
-            {
-                if (!string.IsNullOrEmpty(detail.StatusText))
-                {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        try { LoadingStatusText.Text = detail.StatusText; }
-                        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update loading status text: {ex.Message}"); }
-                    });
-                }
-            });
-
-            var result = await orchestrator.RunStartupSequenceAsync(statusProgress, detailedProgress).ConfigureAwait(false);
-            _backupResult = result.BackupResult;
-        }
-        catch (Exception ex)
-        {
-            StartupLogger.Log("MainWindow", $"Startup: RunStartupAndCompleteAsync EXCEPTION: {ex}");
-        }
-
-        // Always complete startup on the UI thread so the app is usable
-        DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
-    }
-
-    /// <summary>
-    /// Navigates to SoftwareApps, waits for its installation status checks to finish,
-    /// then hides the loading overlay so the UI is fully ready.
-    /// </summary>
-    private async Task CompleteStartupAsync()
-    {
-        StartupLogger.Log("MainWindow", "CompleteStartupAsync starting");
-
-        try
-        {
-            // Navigate to SoftwareApps with "startup" parameter to prevent double-init
-            NavSidebar.SelectedTag = "SoftwareApps";
-            ContentFrame.Navigate(typeof(SoftwareAppsPage), "startup");
-
-            // Wait for the SoftwareApps page to finish loading apps + installation status
-            var page = ContentFrame.Content as SoftwareAppsPage;
-            if (page != null)
-            {
-                StartupLogger.Log("MainWindow", "Awaiting SoftwareApps initialization...");
-                await page.ViewModel.InitializeAsync();
-                StartupLogger.Log("MainWindow", "SoftwareApps initialization complete");
+                AppIcon.Source = new BitmapImage(new Uri(ViewModel.AppIconSource));
             }
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("MainWindow", $"SoftwareApps initialization failed: {ex.Message}");
-            _logService?.LogWarning($"SoftwareApps init failed: {ex.Message}");
-        }
-
-        // Hide overlay and mark startup complete
-        _isStartupLoading = false;
-        LoadingOverlay.Visibility = Visibility.Collapsed;
-        StartupLogger.Log("MainWindow", "Startup complete, overlay hidden");
-
-        // Show backup notification dialog if backups were created
-        try
-        {
-            var startupNotifications = App.Services.GetRequiredService<IStartupNotificationService>();
-            if (_backupResult != null)
-            {
-                await startupNotifications.ShowBackupNotificationAsync(_backupResult);
-            }
-        }
-        catch (Exception ex)
-        {
-            StartupLogger.Log("MainWindow", $"Startup notification failed: {ex.Message}");
-        }
-
-        // Check for updates silently (only shows InfoBar if update available)
-        // Ensure WinGet is ready (shows task progress if installation/update needed)
-        if (_viewModel != null)
-        {
-            _ = _viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync();
-            _ = _viewModel.EnsureWinGetReadyOnStartupAsync();
+            _logService?.LogDebug($"Failed to update app icon: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Sets the loading overlay logo based on the current theme.
-    /// </summary>
-    private void UpdateLoadingLogo()
+    #endregion
+
+    #region Event Handlers (XAML-referenced)
+
+    private void OtsElevationInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
     {
-        try
-        {
-            var isDark = RootGrid.ActualTheme != ElementTheme.Light;
-            var logoUri = isDark
-                ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
-                : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
-            LoadingLogo.Source = new BitmapImage(new Uri(logoUri));
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to set loading logo: {ex.Message}");
-        }
+        ViewModel?.DismissOtsInfoBar();
     }
+
+    private void UpdateInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
+    {
+        ViewModel?.UpdateCheck.DismissUpdateInfoBar();
+    }
+
+    private void ReviewModeApplyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.ReviewModeBar.ApplyReviewedConfigCommand.CanExecute(null) == true)
+            ViewModel.ReviewModeBar.ApplyReviewedConfigCommand.Execute(null);
+    }
+
+    private void ReviewModeCancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.ReviewModeBar.CancelReviewModeCommand.CanExecute(null) == true)
+            ViewModel.ReviewModeBar.CancelReviewModeCommand.Execute(null);
+    }
+
+    #endregion
 
     #region Keyboard Accelerators
 
-    /// <summary>
-    /// Handles Ctrl+1 through Ctrl+5 keyboard shortcuts to navigate between sections.
-    /// </summary>
     private void NavigateAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         var tag = sender.Key switch
@@ -580,7 +650,7 @@ public sealed partial class MainWindow : Window
         if (tag != null)
         {
             NavSidebar.SelectedTag = tag;
-            NavigateToPage(tag);
+            _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
 
             // Focus the NavButton so Narrator announces the page name
             var navButton = NavSidebar.GetButton(tag);
@@ -590,31 +660,21 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Handles Ctrl+S keyboard shortcut to save configuration.
-    /// </summary>
     private void SaveConfigAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (_viewModel?.SaveConfigCommand.CanExecute(null) == true)
+        if (ViewModel?.SaveConfigCommand.CanExecute(null) == true)
         {
-            _viewModel.SaveConfigCommand.Execute(null);
+            ViewModel.SaveConfigCommand.Execute(null);
         }
         args.Handled = true;
     }
 
-    /// <summary>
-    /// Handles Ctrl+6 keyboard shortcut to open the More menu.
-    /// </summary>
     private void MoreMenuAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        ShowMoreMenuFlyout();
+        NavSidebar.ShowMoreMenuFlyout();
         args.Handled = true;
     }
 
-    /// <summary>
-    /// Handles Ctrl+Shift+1 through Ctrl+Shift+6 keyboard shortcuts for title bar action buttons.
-    /// Announces the button name to Narrator after execution.
-    /// </summary>
     private void TitleBarAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         var button = sender.Key switch
@@ -639,7 +699,7 @@ public sealed partial class MainWindow : Window
             button.Command.Execute(null);
         }
 
-        // Announce after a short delay so async state changes (e.g. filter toggle) are reflected
+        // Announce after a short delay so async state changes are reflected
         DispatcherQueue.TryEnqueue(() =>
         {
             var name = AutomationProperties.GetName(button);
@@ -656,706 +716,6 @@ public sealed partial class MainWindow : Window
         });
 
         args.Handled = true;
-    }
-
-    #endregion
-
-    #region Title Bar
-
-    /// <summary>
-    /// Called when the title bar is loaded. Sets up ViewModel bindings and padding.
-    /// </summary>
-    private void AppTitleBar_Loaded(object sender, RoutedEventArgs e)
-    {
-        // Set up caption button padding
-        SetTitleBarPadding();
-
-        // Defer passthrough region setup to ensure all elements are laid out
-        DispatcherQueue.TryEnqueue(() => SetTitleBarPassthroughRegions());
-
-        // Update passthrough regions when title bar size changes
-        AppTitleBar.SizeChanged += (_, _) => SetTitleBarPassthroughRegions();
-        TitleBarButtons.SizeChanged += (_, _) => SetTitleBarPassthroughRegions();
-
-        // Initialize ViewModel and wire up bindings
-        InitializeViewModel();
-    }
-
-    /// <summary>
-    /// Sets up passthrough regions for interactive elements in the title bar.
-    /// This prevents double-clicks on buttons from maximizing the window.
-    /// </summary>
-    private void SetTitleBarPassthroughRegions()
-    {
-        try
-        {
-            var nonClientInputSrc = InputNonClientPointerSource.GetForWindowId(this.AppWindow.Id);
-            var scale = AppTitleBar.XamlRoot?.RasterizationScale ?? 1.0;
-
-            var passthroughRects = new List<RectInt32>();
-
-            // Add passthrough region for the pane toggle button
-            AddElementPassthroughRect(PaneToggleButton, scale, passthroughRects);
-
-            // Add passthrough region for the entire title bar buttons container
-            // This ensures all buttons are covered regardless of individual positioning
-            AddElementPassthroughRect(TitleBarButtons, scale, passthroughRects);
-
-            if (passthroughRects.Count > 0)
-            {
-                nonClientInputSrc.SetRegionRects(NonClientRegionKind.Passthrough, passthroughRects.ToArray());
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to set title bar passthrough regions: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Adds an element's bounds to the passthrough rectangles list.
-    /// </summary>
-    private void AddElementPassthroughRect(FrameworkElement element, double scale, List<RectInt32> rects)
-    {
-        try
-        {
-            var transform = element.TransformToVisual(null);
-            var bounds = transform.TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
-
-            rects.Add(new RectInt32(
-                _X: (int)Math.Round(bounds.X * scale),
-                _Y: (int)Math.Round(bounds.Y * scale),
-                _Width: (int)Math.Round(bounds.Width * scale),
-                _Height: (int)Math.Round(bounds.Height * scale)
-            ));
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to add passthrough rect for {element.Name}: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Initializes the ViewModel and wires up button commands.
-    /// </summary>
-    private void InitializeViewModel()
-    {
-        try
-        {
-            _viewModel = App.Services.GetService<MainWindowViewModel>();
-
-            if (_viewModel != null)
-            {
-                // Wire up button commands
-                SaveConfigButton.Command = _viewModel.SaveConfigCommand;
-                ImportConfigButton.Command = _viewModel.ImportConfigCommand;
-                WindowsFilterButton.Command = _viewModel.ToggleWindowsFilterCommand;
-                DonateButton.Command = _viewModel.DonateCommand;
-                BugReportButton.Command = _viewModel.BugReportCommand;
-                DocsButton.Command = _viewModel.DocsCommand;
-
-                // Set initial filter button icon
-                UpdateFilterButtonIcon();
-
-                // Wire up tooltips and accessible names
-                ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
-                AutomationProperties.SetName(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
-                ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
-                AutomationProperties.SetName(SaveConfigButton, _viewModel.SaveConfigTooltip);
-                ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip);
-                AutomationProperties.SetName(ImportConfigButton, _viewModel.ImportConfigTooltip);
-                ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
-                AutomationProperties.SetName(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
-                ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip);
-                AutomationProperties.SetName(DonateButton, _viewModel.DonateTooltip);
-                ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip);
-                AutomationProperties.SetName(BugReportButton, _viewModel.BugReportTooltip);
-                ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip);
-                AutomationProperties.SetName(DocsButton, _viewModel.DocsTooltip);
-
-                // Subscribe to property changes — split across parent + child VMs
-                _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-                _viewModel.TaskProgress.PropertyChanged += TaskProgress_PropertyChanged;
-                _viewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
-                _viewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
-
-                // Deferred initialization: subscribes to events and sets initial state.
-                // Called after PropertyChanged is wired so changes are observed by the UI.
-                _viewModel.Initialize();
-
-                // Set initial icon
-                UpdateAppIcon();
-
-                // Set localized app title and subtitle
-                AppTitleTextBlock.Text = _viewModel.AppTitle;
-                AppSubtitleTextBlock.Text = _viewModel.AppSubtitle;
-
-                // Show beta banner if this is a beta build
-                var versionService = App.Services.GetService<IVersionService>();
-                if (versionService?.GetCurrentVersion().IsBeta == true)
-                {
-                    BetaBannerText.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
-                }
-
-                // Pass ViewModel to NavSidebar for localized nav button text
-                NavSidebar.ViewModel = _viewModel;
-
-                // Wire up Task Progress Control (commands now on child VM)
-                TaskProgressControl.CancelCommand = _viewModel.TaskProgress.CancelCommand;
-                TaskProgressControl.CancelText = _viewModel.TaskProgress.CancelButtonLabel;
-                TaskProgressControl.ShowDetailsCommand = _viewModel.TaskProgress.ShowDetailsCommand;
-                TaskProgressControl2.ShowDetailsCommand = _viewModel.TaskProgress.ShowDetailsCommand;
-                TaskProgressControl3.ShowDetailsCommand = _viewModel.TaskProgress.ShowDetailsCommand;
-
-                // Subscribe to multi-script progress updates
-                _viewModel.TaskProgress.ScriptProgressReceived += OnScriptProgressReceived;
-
-                // Load filter preference asynchronously
-                _ = _viewModel.LoadFilterPreferenceAsync();
-
-                // Subscribe to review mode badge events
-                _configReviewService = App.Services.GetService<IConfigReviewService>();
-                _navBadgeService = App.Services.GetService<INavBadgeService>();
-                if (_configReviewService != null)
-                {
-                    _configReviewService.ReviewModeChanged += OnReviewModeBadgeChanged;
-                    _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to initialize ViewModel: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Handles MainWindowViewModel property changes (title bar, tooltips, filter, OTS InfoBar).
-    /// </summary>
-    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(MainWindowViewModel.AppIconSource))
-        {
-            DispatcherQueue.TryEnqueue(UpdateAppIcon);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.AppTitle) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => AppTitleTextBlock.Text = _viewModel.AppTitle);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.AppSubtitle) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => AppSubtitleTextBlock.Text = _viewModel.AppSubtitle);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.ToggleNavigationTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
-                AutomationProperties.SetName(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.SaveConfigTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
-                AutomationProperties.SetName(SaveConfigButton, _viewModel.SaveConfigTooltip);
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.ImportConfigTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip);
-                AutomationProperties.SetName(ImportConfigButton, _viewModel.ImportConfigTooltip);
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                var tooltip = _viewModel.WindowsFilterTooltip;
-                ToolTipService.SetToolTip(WindowsFilterButton, tooltip);
-                AutomationProperties.SetName(WindowsFilterButton, tooltip);
-
-                // Announce the new filter state so Narrator reports ON/OFF after toggle
-                var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(WindowsFilterButton)
-                           ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(WindowsFilterButton);
-                peer?.RaiseNotificationEvent(
-                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                    tooltip,
-                    "FilterStateChanged");
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.DonateTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip);
-                AutomationProperties.SetName(DonateButton, _viewModel.DonateTooltip);
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.BugReportTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip);
-                AutomationProperties.SetName(BugReportButton, _viewModel.BugReportTooltip);
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.DocsTooltip) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip);
-                AutomationProperties.SetName(DocsButton, _viewModel.DocsTooltip);
-            });
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterIcon) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(UpdateFilterButtonIcon);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsOtsInfoBarOpen) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.IsOpen = _viewModel.IsOtsInfoBarOpen);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.OtsInfoBarTitle) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.Title = _viewModel.OtsInfoBarTitle);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.OtsInfoBarMessage) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.Message = _viewModel.OtsInfoBarMessage);
-        }
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsWindowsFilterButtonEnabled) && _viewModel != null)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                WindowsFilterButton.IsEnabled = _viewModel.IsWindowsFilterButtonEnabled;
-                WindowsFilterIcon.Opacity = _viewModel.IsWindowsFilterButtonEnabled ? 1.0 : 0.4;
-            });
-        }
-    }
-
-    /// <summary>
-    /// Handles TaskProgressViewModel property changes.
-    /// </summary>
-    private void TaskProgress_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (_viewModel == null) return;
-        var tp = _viewModel.TaskProgress;
-
-        if (e.PropertyName == nameof(TaskProgressViewModel.IsLoading))
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                // Skip single-task IsLoading updates when multi-script mode is active
-                if (tp.ActiveScriptCount > 0) return;
-
-                var taskProgressService = App.Services.GetService<ITaskProgressService>();
-                var isActuallyRunning = taskProgressService?.IsTaskRunning == true;
-
-                if (tp.IsLoading)
-                {
-                    TaskProgressControl.IsProgressVisible = Visibility.Visible;
-                    if (isActuallyRunning)
-                    {
-                        TaskProgressControl.CanCancel = Visibility.Visible;
-                        TaskProgressControl.IsTaskRunning = true;
-                        TaskProgressControl.CancelCommand = tp.CancelCommand;
-                        TaskProgressControl.CancelText = tp.CancelButtonLabel;
-                    }
-                    else if (tp.IsTaskFailed)
-                    {
-                        // Failure state: show Close button to dismiss the bar
-                        TaskProgressControl.CanCancel = Visibility.Visible;
-                        TaskProgressControl.IsTaskRunning = true;
-                        TaskProgressControl.CancelCommand = tp.CloseFailedTaskCommand;
-                        TaskProgressControl.CancelText = tp.CloseButtonLabel;
-                    }
-                    else
-                    {
-                        TaskProgressControl.CanCancel = Visibility.Collapsed;
-                        TaskProgressControl.IsTaskRunning = false;
-                    }
-                }
-                else
-                {
-                    TaskProgressControl.IsProgressVisible = Visibility.Collapsed;
-                    TaskProgressControl.CanCancel = Visibility.Collapsed;
-                    TaskProgressControl.IsTaskRunning = false;
-                }
-            });
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.AppName))
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.AppName = tp.AppName);
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.LastTerminalLine))
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.LastTerminalLine = tp.LastTerminalLine);
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.CancelButtonLabel))
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.CancelText = tp.CancelButtonLabel);
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.QueueStatusText))
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueStatusText = tp.QueueStatusText);
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.QueueNextItemName))
-        {
-            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueNextItemName = tp.QueueNextItemName);
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.IsQueueVisible))
-        {
-            DispatcherQueue.TryEnqueue(() =>
-                TaskProgressControl.IsQueueInfoVisible = tp.IsQueueVisible ? Visibility.Visible : Visibility.Collapsed);
-        }
-        else if (e.PropertyName == nameof(TaskProgressViewModel.ActiveScriptCount))
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateMultiScriptControls(tp.ActiveScriptCount));
-        }
-    }
-
-    /// <summary>
-    /// Handles UpdateCheckViewModel property changes.
-    /// </summary>
-    private void UpdateCheck_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (_viewModel == null) return;
-        var uc = _viewModel.UpdateCheck;
-
-        if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateInfoBarOpen))
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.IsOpen = uc.IsUpdateInfoBarOpen);
-        }
-        else if (e.PropertyName == nameof(UpdateCheckViewModel.UpdateInfoBarTitle))
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Title = uc.UpdateInfoBarTitle);
-        }
-        else if (e.PropertyName == nameof(UpdateCheckViewModel.UpdateInfoBarMessage))
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Message = uc.UpdateInfoBarMessage);
-        }
-        else if (e.PropertyName == nameof(UpdateCheckViewModel.UpdateInfoBarSeverity))
-        {
-            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Severity = uc.UpdateInfoBarSeverity);
-        }
-        else if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateActionButtonVisible)
-              || e.PropertyName == nameof(UpdateCheckViewModel.InstallNowButtonText))
-        {
-            DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
-        }
-    }
-
-    /// <summary>
-    /// Handles ReviewModeBarViewModel property changes.
-    /// </summary>
-    private void ReviewModeBar_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (_viewModel == null) return;
-        var rm = _viewModel.ReviewModeBar;
-
-        if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ReviewModeBar.Visibility = rm.IsInReviewMode ? Visibility.Visible : Visibility.Collapsed;
-                if (rm.IsInReviewMode)
-                {
-                    ReviewModeTitleText.Text = rm.ReviewModeTitleText;
-                    ReviewModeDescriptionText.Text = rm.ReviewModeDescriptionText;
-                    ReviewModeApplyButtonText.Text = rm.ReviewModeApplyButtonText;
-                    ReviewModeCancelButtonText.Text = rm.ReviewModeCancelButtonText;
-                    ReviewModeApplyButton.IsEnabled = rm.CanApplyReviewedConfig;
-
-                    // Update accessible names on review mode buttons from localized text
-                    AutomationProperties.SetName(ReviewModeApplyButton, rm.ReviewModeApplyButtonText);
-                    AutomationProperties.SetName(ReviewModeCancelButton, rm.ReviewModeCancelButtonText);
-
-                    // Announce review mode entry to Narrator
-                    var announcement = $"{rm.ReviewModeTitleText}. {rm.ReviewModeDescriptionText}";
-                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(ReviewModeBar)
-                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ReviewModeBar);
-                    peer?.RaiseNotificationEvent(
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                        announcement,
-                        "ReviewModeEntered");
-                }
-                else
-                {
-                    // Announce review mode exit to Narrator
-                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(RootGrid)
-                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RootGrid);
-                    peer?.RaiseNotificationEvent(
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                        "Config Review Mode ended",
-                        "ReviewModeExited");
-                }
-            });
-        }
-        else if ((e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeTitleText)
-              || e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeDescriptionText)
-              || e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeApplyButtonText)
-              || e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeCancelButtonText))
-             && rm.IsInReviewMode)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ReviewModeTitleText.Text = rm.ReviewModeTitleText;
-                ReviewModeDescriptionText.Text = rm.ReviewModeDescriptionText;
-                ReviewModeApplyButtonText.Text = rm.ReviewModeApplyButtonText;
-                ReviewModeCancelButtonText.Text = rm.ReviewModeCancelButtonText;
-            });
-        }
-        else if (e.PropertyName == nameof(ReviewModeBarViewModel.ReviewModeStatusText))
-        {
-            DispatcherQueue.TryEnqueue(() => ReviewModeStatusText.Text = rm.ReviewModeStatusText);
-        }
-        else if (e.PropertyName == nameof(ReviewModeBarViewModel.CanApplyReviewedConfig))
-        {
-            DispatcherQueue.TryEnqueue(() => ReviewModeApplyButton.IsEnabled = rm.CanApplyReviewedConfig);
-        }
-    }
-
-    /// <summary>
-    /// Routes multi-script progress updates to the correct TaskProgressControl.
-    /// Adds a 2-second delay before hiding a slot on completion.
-    /// </summary>
-    private void OnScriptProgressReceived(int slotIndex, TaskProgressDetail detail)
-    {
-        var control = slotIndex switch
-        {
-            0 => TaskProgressControl,
-            1 => TaskProgressControl2,
-            2 => TaskProgressControl3,
-            _ => null
-        };
-        if (control == null) return;
-
-        // Slot completed — keep visible briefly so the user can see the result
-        if (detail.IsCompletion)
-        {
-            control.IsTaskRunning = false;
-            control.CanCancel = Visibility.Collapsed;
-            HideControlAfterDelayAsync(control, 2000).FireAndForget(_logService!);
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(detail.StatusText))
-            control.AppName = detail.StatusText;
-        control.LastTerminalLine = detail.TerminalOutput ?? "";
-        if (detail.QueueTotal > 1)
-        {
-            control.IsQueueInfoVisible = Visibility.Visible;
-            control.QueueStatusText = $"{detail.QueueCurrent} / {detail.QueueTotal}";
-            control.QueueNextItemName = !string.IsNullOrEmpty(detail.QueueNextItemName)
-                ? $"Next: {detail.QueueNextItemName}" : "";
-        }
-    }
-
-    /// <summary>
-    /// Hides a TaskProgressControl after the specified delay.
-    /// </summary>
-    private async Task HideControlAfterDelayAsync(Features.Common.Controls.TaskProgressControl control, int delayMs)
-    {
-        await Task.Delay(delayMs).ConfigureAwait(false);
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            control.IsProgressVisible = Visibility.Collapsed;
-        });
-    }
-
-    /// <summary>
-    /// Shows/hides multi-script progress controls based on active slot count.
-    /// No cancel buttons in multi-script mode.
-    /// </summary>
-    private void UpdateMultiScriptControls(int activeCount)
-    {
-        // Control 1
-        TaskProgressControl.IsProgressVisible = activeCount >= 1 ? Visibility.Visible : Visibility.Collapsed;
-        TaskProgressControl.IsTaskRunning = activeCount >= 1;
-        TaskProgressControl.CanCancel = Visibility.Collapsed;
-
-        // Control 2
-        TaskProgressControl2.IsProgressVisible = activeCount >= 2 ? Visibility.Visible : Visibility.Collapsed;
-        TaskProgressControl2.IsTaskRunning = activeCount >= 2;
-        TaskProgressControl2.CanCancel = Visibility.Collapsed;
-
-        // Control 3
-        TaskProgressControl3.IsProgressVisible = activeCount >= 3 ? Visibility.Visible : Visibility.Collapsed;
-        TaskProgressControl3.IsTaskRunning = activeCount >= 3;
-        TaskProgressControl3.CanCancel = Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// Updates the Windows filter button icon based on the filter state.
-    /// </summary>
-    private void UpdateFilterButtonIcon()
-    {
-        try
-        {
-            if (_viewModel != null && WindowsFilterIcon != null)
-            {
-                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry),
-                    _viewModel.WindowsFilterIcon);
-                WindowsFilterIcon.Data = geometry;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to update filter button icon: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Updates the InfoBar action button based on visibility state.
-    /// </summary>
-    private void UpdateInfoBarActionButton()
-    {
-        if (_viewModel == null) return;
-        var uc = _viewModel.UpdateCheck;
-
-        if (uc.IsUpdateActionButtonVisible)
-        {
-            var button = new Button
-            {
-                Content = uc.InstallNowButtonText,
-                Command = uc.InstallUpdateCommand,
-                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
-            };
-            UpdateInfoBar.ActionButton = button;
-        }
-        else
-        {
-            UpdateInfoBar.ActionButton = null;
-        }
-    }
-
-    /// <summary>
-    /// Handles the OTS Elevation InfoBar Closed event.
-    /// </summary>
-    private void OtsElevationInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
-    {
-        _viewModel?.DismissOtsInfoBar();
-    }
-
-    /// <summary>
-    /// Handles the InfoBar Closed event to sync ViewModel state.
-    /// </summary>
-    private void UpdateInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
-    {
-        _viewModel?.UpdateCheck.DismissUpdateInfoBar();
-    }
-
-    /// <summary>
-    /// Handles the Review Mode Apply button click.
-    /// </summary>
-    private void ReviewModeApplyButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel?.ReviewModeBar.ApplyReviewedConfigCommand.CanExecute(null) == true)
-            _viewModel.ReviewModeBar.ApplyReviewedConfigCommand.Execute(null);
-    }
-
-    /// <summary>
-    /// Handles the Review Mode Cancel button click.
-    /// </summary>
-    private void ReviewModeCancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel?.ReviewModeBar.CancelReviewModeCommand.CanExecute(null) == true)
-            _viewModel.ReviewModeBar.CancelReviewModeCommand.Execute(null);
-    }
-
-    /// <summary>
-    /// Updates the app icon from the ViewModel.
-    /// </summary>
-    private void UpdateAppIcon()
-    {
-        try
-        {
-            if (_viewModel != null)
-            {
-                AppIcon.Source = new BitmapImage(new Uri(_viewModel.AppIconSource));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to update app icon: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Sets the padding columns to account for system caption buttons.
-    /// </summary>
-    private void SetTitleBarPadding()
-    {
-        try
-        {
-            var titleBar = this.AppWindow.TitleBar;
-            var scale = AppTitleBar.XamlRoot?.RasterizationScale ?? 1.0;
-
-            // When FlowDirection is RTL, the grid columns are visually mirrored:
-            // LeftPaddingColumn (Column 0) renders on the physical right,
-            // RightPaddingColumn (last column) renders on the physical left.
-            // The system caption buttons remain physically on the right regardless of FlowDirection,
-            // so we swap the inset assignments to keep padding aligned with the caption buttons.
-            if (RootGrid.FlowDirection == FlowDirection.RightToLeft)
-            {
-                LeftPaddingColumn.Width = new GridLength(titleBar.RightInset / scale);
-                RightPaddingColumn.Width = new GridLength(titleBar.LeftInset / scale);
-            }
-            else
-            {
-                RightPaddingColumn.Width = new GridLength(titleBar.RightInset / scale);
-                LeftPaddingColumn.Width = new GridLength(titleBar.LeftInset / scale);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to set title bar padding: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Applies theme-aware colors to the caption buttons (minimize, maximize, close).
-    /// This is a workaround as AppWindow TitleBar doesn't update caption button colors correctly when theme changes.
-    /// Based on WinUI Gallery implementation.
-    /// </summary>
-    private void ApplySystemThemeToCaptionButtons()
-    {
-        try
-        {
-            var titleBar = this.AppWindow.TitleBar;
-            var currentTheme = RootGrid.ActualTheme;
-
-            // Set foreground colors based on theme
-            var foregroundColor = currentTheme == ElementTheme.Dark
-                ? Microsoft.UI.Colors.White
-                : Microsoft.UI.Colors.Black;
-
-            titleBar.ButtonForegroundColor = foregroundColor;
-            titleBar.ButtonHoverForegroundColor = foregroundColor;
-
-            // Set hover background to subtle theme-aware color (~9% opacity)
-            var hoverBackgroundColor = currentTheme == ElementTheme.Dark
-                ? Windows.UI.Color.FromArgb(24, 255, 255, 255)  // Subtle white
-                : Windows.UI.Color.FromArgb(24, 0, 0, 0);        // Subtle black
-
-            titleBar.ButtonHoverBackgroundColor = hoverBackgroundColor;
-
-            // Set other backgrounds to transparent
-            titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
-            titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to apply caption button colors: {ex.Message}");
-        }
     }
 
     #endregion

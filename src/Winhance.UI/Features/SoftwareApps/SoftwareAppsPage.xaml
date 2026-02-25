@@ -439,7 +439,6 @@
                 </StackPanel>
             </Button>
             <Button Command="{x:Bind ViewModel.ShowHelpCommand}"
-                    CommandParameter="{x:Bind XamlRoot}"
                     AutomationProperties.Name="{x:Bind ViewModel.HelpButtonText}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <fluentIcons:SymbolIcon Symbol="QuestionCircle" IconVariant="Regular" FontSize="18"/>

@@ -186,8 +186,7 @@ public class WindowsAppsService(
                             checkboxText: checkboxText,
                             title: title,
                             continueButtonText: downloadButton,
-                            cancelButtonText: cancelButton,
-                            titleBarIcon: "Download"
+                            cancelButtonText: cancelButton
                         ).ConfigureAwait(false);
 
                         userConsent = confirmed;

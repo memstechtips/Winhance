@@ -19,19 +19,22 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private readonly ILogService _logService;
     private readonly AutounattendScriptBuilder _scriptBuilder;
     private readonly IPowerShellRunner _powerShellRunner;
+    private readonly ISelectedAppsProvider _selectedAppsProvider;
 
     public AutounattendXmlGeneratorService(
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ISystemSettingsDiscoveryService discoveryService,
         ILogService logService,
         AutounattendScriptBuilder scriptBuilder,
-        IPowerShellRunner powerShellRunner)
+        IPowerShellRunner powerShellRunner,
+        ISelectedAppsProvider selectedAppsProvider)
     {
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _discoveryService = discoveryService;
         _logService = logService;
         _scriptBuilder = scriptBuilder;
         _powerShellRunner = powerShellRunner;
+        _selectedAppsProvider = selectedAppsProvider;
     }
 
     public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath,
@@ -41,7 +44,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         {
             _logService.Log(LogLevel.Info, "Starting autounattend.xml generation");
 
-            var config = await CreateConfigurationFromSystemAsync(selectedWindowsApps);
+            var apps = selectedWindowsApps
+                ?? await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
+
+            var config = await CreateConfigurationFromSystemAsync(apps);
 
             var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
 

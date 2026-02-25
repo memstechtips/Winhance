@@ -16,8 +16,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
     private readonly IComboBoxResolver _comboBoxResolver;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly ISettingLocalizationService _settingLocalizationService;
+    private readonly ISettingPreparationPipeline _preparationPipeline;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
 
@@ -27,8 +26,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         ILogService logService,
         IInitializationService initializationService,
         IComboBoxResolver comboBoxResolver,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ISettingLocalizationService settingLocalizationService,
+        ISettingPreparationPipeline preparationPipeline,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory)
     {
@@ -37,8 +35,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _logService = logService;
         _initializationService = initializationService;
         _comboBoxResolver = comboBoxResolver;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _settingLocalizationService = settingLocalizationService;
+        _preparationPipeline = preparationPipeline;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
     }
@@ -55,9 +52,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
             _initializationService.StartFeatureInitialization(featureModuleId);
 
-            var settingDefinitions = _compatibleSettingsRegistry.GetFilteredSettings(featureModuleId);
-            var localizedSettings = settingDefinitions.Select(s => _settingLocalizationService.LocalizeSetting(s));
-            var settingsList = localizedSettings.ToList();
+            var settingsList = _preparationPipeline.PrepareSettings(featureModuleId);
 
             var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
@@ -69,21 +64,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             var batchStates = await _discoveryService.GetSettingStatesAsync(settingsList);
 
             // Resolve combo box values for Selection type settings
-            foreach (var setting in settingsList.Where(s => s.InputType == InputType.Selection))
-            {
-                if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
-                {
-                    try
-                    {
-                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
-                        batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Warning, $"Failed to resolve combo box value for '{setting.Id}': {ex.Message}");
-                    }
-                }
-            }
+            await ResolveComboBoxStatesAsync(settingsList, batchStates);
 
             // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
             foreach (var setting in settingsList)
@@ -129,7 +110,19 @@ public class SettingsLoadingService : ISettingsLoadingService
         var batchStates = await _discoveryService.GetSettingStatesAsync(definitions);
 
         // Resolve combo box values for Selection type settings
-        foreach (var setting in definitions.Where(s => s.InputType == InputType.Selection))
+        await ResolveComboBoxStatesAsync(definitions, batchStates);
+
+        return batchStates;
+    }
+
+    /// <summary>
+    /// Resolves combo box values for all Selection-type settings in the batch.
+    /// </summary>
+    private async Task ResolveComboBoxStatesAsync(
+        IEnumerable<SettingDefinition> settings,
+        Dictionary<string, SettingStateResult> batchStates)
+    {
+        foreach (var setting in settings.Where(s => s.InputType == InputType.Selection))
         {
             if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
             {
@@ -144,7 +137,5 @@ public class SettingsLoadingService : ISettingsLoadingService
                 }
             }
         }
-
-        return batchStates;
     }
 }
