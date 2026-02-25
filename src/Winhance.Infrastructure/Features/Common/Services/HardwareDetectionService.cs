@@ -51,13 +51,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         foreach (ManagementObject system in collection)
                         {
-                            if (system["PCSystemType"] != null)
+                            using (system)
                             {
-                                int pcSystemType = Convert.ToInt32(system["PCSystemType"]);
-                                if (pcSystemType == 2)
-                                    return true;
-                                else if (pcSystemType == 1)
-                                    return false;
+                                if (system["PCSystemType"] != null)
+                                {
+                                    int pcSystemType = Convert.ToInt32(system["PCSystemType"]);
+                                    if (pcSystemType == 2)
+                                        return true;
+                                    else if (pcSystemType == 1)
+                                        return false;
+                                }
                             }
                         }
                     }
@@ -67,13 +70,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         foreach (ManagementObject enclosure in collection)
                         {
-                            if (enclosure["ChassisTypes"] is Array chassisTypes && chassisTypes.Length > 0)
+                            using (enclosure)
                             {
-                                foreach (var chassisType in chassisTypes)
+                                if (enclosure["ChassisTypes"] is Array chassisTypes && chassisTypes.Length > 0)
                                 {
-                                    int type = Convert.ToInt32(chassisType);
-                                    if (LaptopChassisTypes.Contains(type))
-                                        return true;
+                                    foreach (var chassisType in chassisTypes)
+                                    {
+                                        int type = Convert.ToInt32(chassisType);
+                                        if (LaptopChassisTypes.Contains(type))
+                                            return true;
+                                    }
                                 }
                             }
                         }

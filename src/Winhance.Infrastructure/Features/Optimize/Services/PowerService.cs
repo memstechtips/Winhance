@@ -864,8 +864,10 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
+                if (settingApplicationService == null)
+                    throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
                 logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-                await settingApplicationService!.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
+                await settingApplicationService.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
                 logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
             }
             catch (Exception ex)

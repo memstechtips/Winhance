@@ -46,16 +46,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             return results;
         }
 
-        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+        public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Update);
+                return Task.FromResult(compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Update));
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error loading Update settings: {ex.Message}");
-                return Enumerable.Empty<SettingDefinition>();
+                return Task.FromResult(Enumerable.Empty<SettingDefinition>());
             }
         }
 
@@ -108,7 +108,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
             try
             {
-                await settingApplicationService!.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+                if (settingApplicationService == null)
+                    throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
+                await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -126,7 +128,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
             try
             {
-                await settingApplicationService!.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+                if (settingApplicationService == null)
+                    throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
+                await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

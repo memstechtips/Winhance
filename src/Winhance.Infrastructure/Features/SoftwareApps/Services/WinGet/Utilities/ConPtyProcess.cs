@@ -45,16 +45,28 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 bInheritHandle = true
             };
 
-            if (!CreatePipe(out var inputReadSide, out _pipeWeWriteToConsole, ref sa, 0))
-                throw new InvalidOperationException($"CreatePipe(input) failed: {Marshal.GetLastWin32Error()}");
+            IntPtr inputReadSide = IntPtr.Zero;
+            IntPtr outputWriteSide = IntPtr.Zero;
 
-            if (!CreatePipe(out _pipeWeReadFromConsole, out var outputWriteSide, ref sa, 0))
-                throw new InvalidOperationException($"CreatePipe(output) failed: {Marshal.GetLastWin32Error()}");
+            try
+            {
+                if (!CreatePipe(out inputReadSide, out _pipeWeWriteToConsole, ref sa, 0))
+                    throw new InvalidOperationException($"CreatePipe(input) failed: {Marshal.GetLastWin32Error()}");
 
-            var size = new COORD(120, 30);
-            int hr = CreatePseudoConsole(size, inputReadSide, outputWriteSide, 0, out _hPC);
-            if (hr != 0)
-                throw new InvalidOperationException($"CreatePseudoConsole failed: HRESULT 0x{hr:X8}");
+                if (!CreatePipe(out _pipeWeReadFromConsole, out outputWriteSide, ref sa, 0))
+                    throw new InvalidOperationException($"CreatePipe(output) failed: {Marshal.GetLastWin32Error()}");
+
+                var size = new COORD(120, 30);
+                int hr = CreatePseudoConsole(size, inputReadSide, outputWriteSide, 0, out _hPC);
+                if (hr != 0)
+                    throw new InvalidOperationException($"CreatePseudoConsole failed: HRESULT 0x{hr:X8}");
+            }
+            catch
+            {
+                if (inputReadSide != IntPtr.Zero) CloseHandle(inputReadSide);
+                if (outputWriteSide != IntPtr.Zero) CloseHandle(outputWriteSide);
+                throw;
+            }
 
             CloseHandle(inputReadSide);
             CloseHandle(outputWriteSide);

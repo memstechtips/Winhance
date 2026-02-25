@@ -311,6 +311,10 @@ public class StoreDownloadService : IStoreDownloadService
             _logService?.LogError($"Installation failed after {maxDependencyRounds} dependency resolution rounds");
             return null;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logService?.LogError($"Error downloading package {productId}: {ex.Message}");
@@ -453,6 +457,10 @@ public class StoreDownloadService : IStoreDownloadService
 
             _logService?.LogInformation($"Downloaded {fileName} successfully ({totalMB:F2} MB)");
             return filePath;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

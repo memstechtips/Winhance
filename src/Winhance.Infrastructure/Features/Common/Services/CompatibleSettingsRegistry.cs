@@ -198,21 +198,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                         if (method != null)
                         {
-                            var featureId = GetFeatureIdFromMethod(method);
+                            var result = method.Invoke(null, null);
+                            var featureIdProperty = result!.GetType().GetProperty("FeatureId");
+                            var featureId = (string)featureIdProperty!.GetValue(result)!;
+                            var settingsProperty = result.GetType().GetProperty("Settings");
+                            var settings = (IEnumerable<SettingDefinition>)settingsProperty!.GetValue(result)!;
 
-                            providers[featureId] = () => {
-                                try
-                                {
-                                    var result = method.Invoke(null, null);
-                                    var settingsProperty = result!.GetType().GetProperty("Settings");
-                                    return (IEnumerable<SettingDefinition>)settingsProperty!.GetValue(result)!;
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to invoke settings provider '{method.DeclaringType?.Name}.{method.Name}': {ex.Message}");
-                                    return Enumerable.Empty<SettingDefinition>();
-                                }
-                            };
+                            providers[featureId] = () => settings;
                         }
                     }
                     catch (Exception ex)
@@ -235,21 +227,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 .Any(i => i.IsGenericType &&
                      i.GetGenericTypeDefinition() == typeof(IEnumerable<>) &&
                      i.GetGenericArguments()[0] == typeof(SettingDefinition));
-        }
-
-        private string GetFeatureIdFromMethod(MethodInfo method)
-        {
-            try
-            {
-                var result = method.Invoke(null, null);
-                var featureIdProperty = result!.GetType().GetProperty("FeatureId");
-                return (string)featureIdProperty!.GetValue(result)!;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to extract feature ID from '{method.DeclaringType?.Name}.{method.Name}': {ex.Message}");
-                return "Unknown";
-            }
         }
 
     }

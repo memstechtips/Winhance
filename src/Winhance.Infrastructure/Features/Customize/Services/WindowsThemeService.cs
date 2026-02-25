@@ -29,16 +29,16 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             return false;
         }
 
-        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+        public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.WindowsTheme);
+                return Task.FromResult(compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.WindowsTheme));
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error loading Windows theme settings: {ex.Message}");
-                return Enumerable.Empty<SettingDefinition>();
+                return Task.FromResult(Enumerable.Empty<SettingDefinition>());
             }
         }
 

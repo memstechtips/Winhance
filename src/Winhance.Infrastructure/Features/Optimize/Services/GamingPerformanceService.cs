@@ -19,16 +19,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     {
         public string DomainName => FeatureIds.GamingPerformance;
 
-        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+        public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.GamingPerformance);
+                return Task.FromResult(compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.GamingPerformance));
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error loading Gaming Performance settings: {ex.Message}");
-                return Enumerable.Empty<SettingDefinition>();
+                return Task.FromResult(Enumerable.Empty<SettingDefinition>());
             }
         }
     }

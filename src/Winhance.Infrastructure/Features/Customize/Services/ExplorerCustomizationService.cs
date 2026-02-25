@@ -25,27 +25,27 @@ namespace Winhance.Infrastructure.Features.Customize.Services
 
         public string DomainName => FeatureIds.ExplorerCustomization;
 
-        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+        public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             if (_cachedSettings != null)
-                return _cachedSettings;
+                return Task.FromResult(_cachedSettings);
 
             lock (_cacheLock)
             {
                 if (_cachedSettings != null)
-                    return _cachedSettings;
+                    return Task.FromResult(_cachedSettings);
 
                 try
                 {
                     logService.Log(LogLevel.Info, "Loading Explorer Customizations settings");
 
                     _cachedSettings = compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.ExplorerCustomization);
-                    return _cachedSettings;
+                    return Task.FromResult(_cachedSettings);
                 }
                 catch (Exception ex)
                 {
                     logService.Log(LogLevel.Error, $"Error loading Explorer Customizations settings: {ex.Message}");
-                    return Enumerable.Empty<SettingDefinition>();
+                    return Task.FromResult(Enumerable.Empty<SettingDefinition>());
                 }
             }
         }

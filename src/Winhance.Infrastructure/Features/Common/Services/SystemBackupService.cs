@@ -156,14 +156,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     foreach (ManagementObject obj in results)
                     {
-                        _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
-
-                        var creationTimeStr = obj["CreationTime"]?.ToString();
-                        if (creationTimeStr != null)
+                        using (obj)
                         {
-                            return (DateTime?)ManagementDateTimeConverter.ToDateTime(creationTimeStr);
+                            _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
+
+                            var creationTimeStr = obj["CreationTime"]?.ToString();
+                            if (creationTimeStr != null)
+                            {
+                                return (DateTime?)ManagementDateTimeConverter.ToDateTime(creationTimeStr);
+                            }
+                            return (DateTime?)DateTime.Now;
                         }
-                        return (DateTime?)DateTime.Now;
                     }
 
                     _logService.Log(LogLevel.Info, $"No restore point found with description: '{description}'");

@@ -18,16 +18,16 @@ public class PrivacyAndSecurityService(
 {
     public string DomainName => FeatureIds.Privacy;
 
-    public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+    public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
     {
         try
         {
-            return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Privacy);
+            return Task.FromResult(compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Privacy));
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"Error loading Privacy & Security settings: {ex.Message}");
-            return Enumerable.Empty<SettingDefinition>();
+            return Task.FromResult(Enumerable.Empty<SettingDefinition>());
         }
     }
 }

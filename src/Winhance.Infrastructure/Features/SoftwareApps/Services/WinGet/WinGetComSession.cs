@@ -15,8 +15,8 @@ public class WinGetComSession
     private WindowsPackageManagerFactory? _winGetFactory;
     private PackageManager? _packageManager;
     private readonly object _factoryLock = new();
-    private bool _isInitialized;
-    private bool _comInitTimedOut;
+    private volatile bool _isInitialized;
+    private volatile bool _comInitTimedOut;
 
     public WinGetComSession(ILogService logService)
     {

@@ -96,6 +96,8 @@ public class AppInstallationService(
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!string.IsNullOrEmpty(app?.CapabilityName))
             {
                 var launched = await capabilityService.EnableCapabilityAsync(app.CapabilityName, app.Name).ConfigureAwait(false);
@@ -107,6 +109,8 @@ public class AppInstallationService(
                 return OperationResult<bool>.Failed("Failed to launch PowerShell for capability");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!string.IsNullOrEmpty(app?.OptionalFeatureName))
             {
                 var launched = await featureService.EnableFeatureAsync(app.OptionalFeatureName, app.Name).ConfigureAwait(false);
@@ -117,6 +121,8 @@ public class AppInstallationService(
                 }
                 return OperationResult<bool>.Failed("Failed to launch PowerShell for feature");
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
                 !string.IsNullOrEmpty(app?.MsStoreId) ||

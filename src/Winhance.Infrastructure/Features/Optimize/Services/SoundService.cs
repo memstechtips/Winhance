@@ -18,16 +18,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     {
         public string DomainName => FeatureIds.Sound;
 
-        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+        public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Sound);
+                return Task.FromResult(compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Sound));
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error loading Sound settings: {ex.Message}");
-                return Enumerable.Empty<SettingDefinition>();
+                return Task.FromResult(Enumerable.Empty<SettingDefinition>());
             }
         }
 

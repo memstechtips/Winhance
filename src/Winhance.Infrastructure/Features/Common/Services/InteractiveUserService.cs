@@ -536,22 +536,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 using var searcher = new ManagementObjectSearcher("SELECT UserName FROM Win32_ComputerSystem");
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    var domainUser = obj["UserName"]?.ToString();
-                    if (string.IsNullOrEmpty(domainUser))
-                        continue;
+                    using (obj)
+                    {
+                        var domainUser = obj["UserName"]?.ToString();
+                        if (string.IsNullOrEmpty(domainUser))
+                            continue;
 
-                    try
-                    {
-                        var ntAccount = new NTAccount(domainUser);
-                        var sid = (SecurityIdentifier)ntAccount.Translate(typeof(SecurityIdentifier));
-                        _logService.Log(LogLevel.Debug,
-                            $"OTS detection: WMI returned user '{domainUser}' → SID: {sid.Value}");
-                        return sid.Value;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Debug,
-                            $"OTS detection: Failed to translate WMI user '{domainUser}' to SID: {ex.Message}");
+                        try
+                        {
+                            var ntAccount = new NTAccount(domainUser);
+                            var sid = (SecurityIdentifier)ntAccount.Translate(typeof(SecurityIdentifier));
+                            _logService.Log(LogLevel.Debug,
+                                $"OTS detection: WMI returned user '{domainUser}' → SID: {sid.Value}");
+                            return sid.Value;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService.Log(LogLevel.Debug,
+                                $"OTS detection: Failed to translate WMI user '{domainUser}' to SID: {ex.Message}");
+                        }
                     }
                 }
             }

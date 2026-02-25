@@ -253,7 +253,7 @@ public class DirectDownloadService : IDirectDownloadService
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
 
-    private async Task<string> DownloadFileAsync(
+    private async Task<string?> DownloadFileAsync(
         string url,
         string downloadPath,
         string displayName,
@@ -317,7 +317,7 @@ public class DirectDownloadService : IDirectDownloadService
         catch (Exception ex)
         {
             _logService?.LogError($"Failed to download {fileName}: {ex.Message}");
-            return null!;
+            return null;
         }
     }
 
