@@ -21,8 +21,9 @@ internal enum UpdateInfoBarState
 /// Child ViewModel for update checking in the main window.
 /// Manages update InfoBar state, check/install commands.
 /// </summary>
-public partial class UpdateCheckViewModel : ObservableObject
+public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly IVersionService _versionService;
     private readonly IInternetConnectivityService _internetConnectivityService;
     private readonly ILocalizationService _localizationService;
@@ -70,6 +71,13 @@ public partial class UpdateCheckViewModel : ObservableObject
         UpdateInfoBarMessage = string.Empty;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

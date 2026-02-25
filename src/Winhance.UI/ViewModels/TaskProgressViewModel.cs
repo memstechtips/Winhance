@@ -10,8 +10,9 @@ namespace Winhance.UI.ViewModels;
 /// Child ViewModel for task progress display in the main window.
 /// Manages progress bar state, queue info, and multi-script slots.
 /// </summary>
-public partial class TaskProgressViewModel : ObservableObject
+public partial class TaskProgressViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
@@ -76,6 +77,14 @@ public partial class TaskProgressViewModel : ObservableObject
 
         _taskProgressService.ProgressUpdated += OnProgressUpdated;
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _taskProgressService.ProgressUpdated -= OnProgressUpdated;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
@@ -12,6 +13,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 {
     public class IsoService : IIsoService
     {
+        private static readonly Regex DriveLetterRegex = new(@"\b[A-Z]\b", RegexOptions.Compiled);
         private readonly IFileSystemService _fileSystemService;
         private readonly ILogService _logService;
         private readonly ILocalizationService _localization;
@@ -150,7 +152,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     cancellationToken).ConfigureAwait(false);
                 var rawOutput = mountResult.StandardOutput;
 
-                var driveLetterMatch = System.Text.RegularExpressions.Regex.Match(rawOutput, @"\b[A-Z]\b");
+                var driveLetterMatch = DriveLetterRegex.Match(rawOutput);
                 var driveLetter = driveLetterMatch.Success ? driveLetterMatch.Value : string.Empty;
 
                 if (string.IsNullOrEmpty(driveLetter) || !mountResult.Succeeded)

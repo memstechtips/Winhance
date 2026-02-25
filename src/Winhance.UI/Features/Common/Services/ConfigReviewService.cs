@@ -16,8 +16,9 @@ namespace Winhance.UI.Features.Common.Services;
 /// Eagerly computes diffs when entering review mode so badge counts
 /// reflect actual changes from current system state.
 /// </summary>
-public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService
+public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IDisposable
 {
+    private bool _disposed;
     private readonly ILogService _logService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ISystemSettingsDiscoveryService _discoveryService;
@@ -57,6 +58,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _windowsVersionService = windowsVersionService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     public bool IsInReviewMode { get; private set; }

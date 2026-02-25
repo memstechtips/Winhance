@@ -11,8 +11,8 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class LocalizationService : ILocalizationService
 {
     private CultureInfo _currentCulture;
-    private Dictionary<string, string> _currentStrings;
-    private Dictionary<string, string> _fallbackStrings;
+    private volatile Dictionary<string, string> _currentStrings;
+    private volatile Dictionary<string, string> _fallbackStrings;
     private readonly string _localizationPath;
     private readonly IFileSystemService _fileSystemService;
     private string _currentLanguageCode;

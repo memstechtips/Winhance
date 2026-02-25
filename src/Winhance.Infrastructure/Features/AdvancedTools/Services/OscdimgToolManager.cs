@@ -84,7 +84,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
                 try
                 {
-                    var matchingDirs = Directory.GetDirectories(packagesDir, "Microsoft.OSCDIMG_*");
+                    var matchingDirs = _fileSystemService.GetDirectories(packagesDir, "Microsoft.OSCDIMG_*");
                     foreach (var dir in matchingDirs)
                     {
                         var candidate = _fileSystemService.CombinePath(dir, "oscdimg.exe");

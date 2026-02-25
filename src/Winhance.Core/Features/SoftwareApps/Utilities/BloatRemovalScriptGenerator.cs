@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -6,6 +7,7 @@ namespace Winhance.Core.Features.SoftwareApps.Utilities;
 public static class BloatRemovalScriptGenerator
 {
     public const string ScriptVersion = "2.1";
+    private static readonly ConcurrentDictionary<string, Regex> ArrayPatternCache = new();
 
     public static string GenerateScript(
         List<string> packages,
@@ -28,8 +30,12 @@ public static class BloatRemovalScriptGenerator
 
     public static List<string> ExtractArrayFromScript(string content, string arrayName)
     {
-        var pattern = $@"\${arrayName}\s*=\s*@\(\s*(.*?)\s*\)";
-        var match = Regex.Match(content, pattern, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        var regex = ArrayPatternCache.GetOrAdd(arrayName, name =>
+        {
+            var pattern = $@"\${name}\s*=\s*@\(\s*(.*?)\s*\)";
+            return new Regex(pattern, RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        });
+        var match = regex.Match(content);
 
         if (!match.Success) return new List<string>();
 

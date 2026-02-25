@@ -12,8 +12,9 @@ namespace Winhance.UI.ViewModels;
 /// ViewModel for the MainWindow, handling title bar commands and state.
 /// Child ViewModels handle task progress, update checking, and review mode.
 /// </summary>
-public partial class MainWindowViewModel : ObservableObject
+public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly IThemeService _themeService;
     private readonly IConfigurationService _configurationService;
     private readonly ILocalizationService _localizationService;
@@ -114,6 +115,16 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Show OTS elevation InfoBar if needed
         InitializeOtsInfoBar();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _themeService.ThemeChanged -= OnThemeChanged;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
+        ReviewModeBar.PropertyChanged -= OnReviewModeBarPropertyChanged;
+        _windowsVersionFilterService.FilterStateChanged -= OnFilterStateChanged;
     }
 
     /// <summary>

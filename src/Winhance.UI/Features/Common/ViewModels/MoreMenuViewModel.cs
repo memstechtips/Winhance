@@ -8,8 +8,9 @@ namespace Winhance.UI.Features.Common.ViewModels;
 /// <summary>
 /// ViewModel for the More menu flyout, providing localized strings and commands.
 /// </summary>
-public partial class MoreMenuViewModel : ObservableObject
+public partial class MoreMenuViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
@@ -40,6 +41,13 @@ public partial class MoreMenuViewModel : ObservableObject
         _localizationService.LanguageChanged += OnLanguageChanged;
 
         InitializeVersionInfo();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     /// <summary>

@@ -12,8 +12,9 @@ namespace Winhance.UI.ViewModels;
 /// Child ViewModel for the review mode bar in the main window.
 /// Manages review mode state, status text, and apply/cancel commands.
 /// </summary>
-public partial class ReviewModeBarViewModel : ObservableObject
+public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly IConfigReviewBadgeService _configReviewBadgeService;
@@ -69,6 +70,16 @@ public partial class ReviewModeBarViewModel : ObservableObject
         _configReviewDiffService.ApprovalCountChanged += OnApprovalCountChanged;
         _configReviewBadgeService.BadgeStateChanged += OnBadgeStateChangedForApplyButton;
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
+        _configReviewDiffService.ApprovalCountChanged -= OnApprovalCountChanged;
+        _configReviewBadgeService.BadgeStateChanged -= OnBadgeStateChangedForApplyButton;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

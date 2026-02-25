@@ -7,8 +7,9 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// <summary>
 /// ViewModel for the AdvancedTools page, coordinating sub-feature navigation.
 /// </summary>
-public partial class AdvancedToolsViewModel : ObservableObject
+public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly ILocalizationService _localizationService;
 
     [ObservableProperty]
@@ -73,6 +74,13 @@ public partial class AdvancedToolsViewModel : ObservableObject
         _localizationService = localizationService;
         CurrentSectionKey = "Overview";
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

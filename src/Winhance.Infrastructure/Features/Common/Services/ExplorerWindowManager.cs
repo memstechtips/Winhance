@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
@@ -25,37 +26,54 @@ public class ExplorerWindowManager(
             Type? shellType = Type.GetTypeFromProgID("Shell.Application");
             if (shellType != null)
             {
-                dynamic shell = Activator.CreateInstance(shellType)!;
-                dynamic windows = shell.Windows();
-
-                foreach (dynamic window in windows)
+                dynamic? shell = null;
+                dynamic? windows = null;
+                try
                 {
-                    try
+                    shell = Activator.CreateInstance(shellType)!;
+                    windows = shell.Windows();
+
+                    foreach (dynamic window in windows)
                     {
-                        string? locationUrl = window.LocationURL;
-                        if (string.IsNullOrEmpty(locationUrl))
-                            continue;
-
-                        Uri uri = new Uri(locationUrl);
-                        string windowPath = System.IO.Path.GetFullPath(uri.LocalPath)
-                            .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
-                            .ToLowerInvariant();
-
-                        if (windowPath == normalizedPath)
+                        try
                         {
-                            IntPtr handle = new IntPtr(window.HWND);
-                            if (User32Api.IsIconic(handle))
+                            string? locationUrl = window.LocationURL;
+                            if (string.IsNullOrEmpty(locationUrl))
+                                continue;
+
+                            Uri uri = new Uri(locationUrl);
+                            string windowPath = System.IO.Path.GetFullPath(uri.LocalPath)
+                                .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
+                                .ToLowerInvariant();
+
+                            if (windowPath == normalizedPath)
                             {
-                                User32Api.ShowWindow(handle, User32Api.SW_RESTORE);
+                                IntPtr handle = new IntPtr(window.HWND);
+                                if (User32Api.IsIconic(handle))
+                                {
+                                    User32Api.ShowWindow(handle, User32Api.SW_RESTORE);
+                                }
+                                User32Api.SetForegroundWindow(handle);
+                                return;
                             }
-                            User32Api.SetForegroundWindow(handle);
-                            return;
+                        }
+                        catch
+                        {
+                            // Skip windows that can't be inspected
+                        }
+                        finally
+                        {
+                            if (window != null)
+                                try { Marshal.ReleaseComObject(window); } catch { /* best-effort COM release */ }
                         }
                     }
-                    catch
-                    {
-                        // Skip windows that can't be inspected
-                    }
+                }
+                finally
+                {
+                    if (windows != null)
+                        try { Marshal.ReleaseComObject(windows); } catch { /* best-effort COM release */ }
+                    if (shell != null)
+                        try { Marshal.ReleaseComObject(shell); } catch { /* best-effort COM release */ }
                 }
             }
         }

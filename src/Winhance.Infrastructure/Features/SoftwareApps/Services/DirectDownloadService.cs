@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO.Compression;
@@ -43,6 +45,7 @@ public class DirectDownloadService : IDirectDownloadService
     }
 
     private static readonly string UserAgent = "Winhance-Download-Manager";
+    private static readonly ConcurrentDictionary<string, Regex> PatternCache = new();
 
     public async Task<bool> DownloadAndInstallAsync(
         ItemDefinition item,
@@ -246,14 +249,15 @@ public class DirectDownloadService : IDirectDownloadService
 
     private bool MatchesPattern(string fileName, string pattern)
     {
-        var regexPattern = "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
-            .Replace("\\*", ".*")
-            .Replace("\\?", ".") + "$";
+        var regex = PatternCache.GetOrAdd(pattern, p =>
+        {
+            var regexPattern = "^" + Regex.Escape(p)
+                .Replace("\\*", ".*")
+                .Replace("\\?", ".") + "$";
+            return new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        });
 
-        return System.Text.RegularExpressions.Regex.IsMatch(
-            fileName,
-            regexPattern,
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return regex.IsMatch(fileName);
     }
 
     private async Task<string?> DownloadFileAsync(
