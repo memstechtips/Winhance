@@ -206,6 +206,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
         try
         {
+            foreach (var item in Items)
+                item.Dispose();
             Items.Clear();
 
             var allItems = await _windowsAppsService.GetAppsAsync();
@@ -552,6 +554,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;
+                item.Dispose();
             }
         }
         base.Dispose(disposing);

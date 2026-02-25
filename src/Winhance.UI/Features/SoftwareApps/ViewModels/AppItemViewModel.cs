@@ -9,11 +9,12 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 /// <summary>
 /// ViewModel for an individual app item in the software apps list.
 /// </summary>
-public partial class AppItemViewModel : ObservableObject, ISelectable
+public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposable
 {
     private readonly ItemDefinition _definition;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private bool _disposed;
 
     public AppItemViewModel(
         ItemDefinition definition,
@@ -25,6 +26,15 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
         _dispatcherService = dispatcherService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _localizationService.LanguageChanged -= OnLanguageChanged;
+            _disposed = true;
+        }
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

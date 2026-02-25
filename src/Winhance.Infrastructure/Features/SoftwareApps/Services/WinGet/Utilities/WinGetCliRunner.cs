@@ -55,9 +55,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                     if (File.Exists(candidate))
                         return candidate;
                 }
-                catch
+                catch (Exception)
                 {
-                    // Skip invalid PATH entries
+                    // Skip invalid PATH entries (e.g., malformed paths, access denied)
                 }
             }
 
@@ -103,9 +103,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                     if (File.Exists(candidate))
                         return true;
                 }
-                catch
+                catch (Exception)
                 {
-                    // Skip invalid PATH entries
+                    // Skip invalid PATH entries (e.g., malformed paths, access denied)
                 }
             }
 

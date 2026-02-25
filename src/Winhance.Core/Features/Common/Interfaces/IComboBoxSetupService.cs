@@ -6,9 +6,8 @@ namespace Winhance.Core.Features.Common.Interfaces
 {
     public interface IComboBoxSetupService
     {
-        ComboBoxSetupResult SetupComboBoxOptions(SettingDefinition setting, object? currentValue);
         Task<ComboBoxSetupResult> SetupComboBoxOptionsAsync(SettingDefinition setting, object? currentValue);
-        int ResolveIndexFromRawValues(SettingDefinition setting, Dictionary<string, object?> rawValues);
+        Task<int> ResolveIndexFromRawValuesAsync(SettingDefinition setting, Dictionary<string, object?> rawValues);
     }
 
     public class ComboBoxSetupResult

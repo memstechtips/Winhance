@@ -215,11 +215,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return name?.Trim() ?? string.Empty;
         }
 
-        public int ResolveIndexFromRawValues(SettingDefinition setting, Dictionary<string, object?> rawValues)
+        public async Task<int> ResolveIndexFromRawValuesAsync(SettingDefinition setting, Dictionary<string, object?> rawValues)
         {
             try
             {
-                var options = GetPowerPlanOptionsAsync().GetAwaiter().GetResult();
+                var options = await GetPowerPlanOptionsAsync().ConfigureAwait(false);
 
                 // 1. Try to match by GUID (Best, independent of language)
                 if (rawValues.TryGetValue("ActivePowerPlanGuid", out var activeGuidObj) && activeGuidObj != null)

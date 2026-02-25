@@ -17,6 +17,7 @@ public class ChocolateyService : IChocolateyService
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
     private readonly IFileSystemService _fileSystemService;
+    private readonly object _installCheckLock = new();
     private bool? _isInstalled;
 
     public ChocolateyService(
@@ -35,11 +36,14 @@ public class ChocolateyService : IChocolateyService
 
     public Task<bool> IsChocolateyInstalledAsync(CancellationToken cancellationToken = default)
     {
-        if (_isInstalled.HasValue)
-            return Task.FromResult(_isInstalled.Value);
+        lock (_installCheckLock)
+        {
+            if (_isInstalled.HasValue)
+                return Task.FromResult(_isInstalled.Value);
 
-        _isInstalled = FindChocoExecutable() != null;
-        return Task.FromResult(_isInstalled.Value);
+            _isInstalled = FindChocoExecutable() != null;
+            return Task.FromResult(_isInstalled.Value);
+        }
     }
 
     public async Task<bool> InstallChocolateyAsync(CancellationToken cancellationToken = default)
@@ -60,7 +64,7 @@ public class ChocolateyService : IChocolateyService
 
             if (result.ExitCode == 0)
             {
-                _isInstalled = true;
+                lock (_installCheckLock) { _isInstalled = true; }
                 _logService.LogInformation("Chocolatey installed successfully");
                 _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_Choco_Installed"));
                 return true;

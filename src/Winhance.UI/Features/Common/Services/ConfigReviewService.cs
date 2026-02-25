@@ -363,8 +363,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     continue;
 
                 // Compute diff
-                var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = ComputeEagerDiff(
-                    settingDef, configItem, currentState, onText, offText);
+                var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = await ComputeEagerDiffAsync(
+                    settingDef, configItem, currentState, onText, offText).ConfigureAwait(false);
 
                 if (hasDiff || isActionSetting)
                 {
@@ -424,7 +424,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// Works with SettingDefinition + SettingStateResult (no ViewModel required).
     /// Returns display strings, plus raw keys for re-localization on language change.
     /// </summary>
-    private (bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey) ComputeEagerDiff(
+    private async Task<(bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey)> ComputeEagerDiffAsync(
         SettingDefinition settingDef,
         ConfigurationItem configItem,
         SettingStateResult currentState,
@@ -450,7 +450,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             case InputType.Selection:
             {
                 // Resolve the current index via combo box setup for accurate display
-                var comboResult = _comboBoxSetupService.SetupComboBoxOptions(settingDef, currentState.CurrentValue);
+                var comboResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
                 // Special handling: PowerPlan - compare by GUID from RawValues (locale-independent)
@@ -516,7 +516,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         ? comboResult.Options[currentIndex].DisplayText : null;
                     var currentDisplayName = currentRawKey != null
                         ? LocalizeComboBoxDisplayText(currentRawKey)
-                        : GetComboBoxDisplayNameFromDef(settingDef, currentIndex, currentState);
+                        : await GetComboBoxDisplayNameFromDefAsync(settingDef, currentIndex, currentState).ConfigureAwait(false);
                     var configDisplayName = configItem.PowerPlanName ?? "Custom";
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
                         return (true, currentDisplayName, configDisplayName, currentRawKey, configDisplayName);
@@ -564,14 +564,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// <summary>
     /// Gets a display name for a combo box index using the setting definition's combo box setup.
     /// </summary>
-    private string GetComboBoxDisplayNameFromDef(
+    private async Task<string> GetComboBoxDisplayNameFromDefAsync(
         SettingDefinition settingDef,
         int index,
         SettingStateResult currentState)
     {
         try
         {
-            var result = _comboBoxSetupService.SetupComboBoxOptions(settingDef, currentState.CurrentValue);
+            var result = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
             if (index >= 0 && index < result.Options.Count)
             {
                 return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString());

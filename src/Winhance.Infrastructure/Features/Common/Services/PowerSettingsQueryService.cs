@@ -9,17 +9,25 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
 {
-    private List<PowerPlan>? _cachedPlans;
+    private volatile List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
     private readonly TimeSpan _cacheTimeout = TimeSpan.FromSeconds(2);
+    private readonly object _cacheLock = new();
     private readonly Dictionary<string, (int? min, int? max)> _capabilityCache = new();
 
     public async Task<List<PowerPlan>> GetAvailablePowerPlansAsync()
     {
-        if (_cachedPlans != null && DateTime.UtcNow - _cacheTime < _cacheTimeout)
+        var cached = _cachedPlans;
+        if (cached != null)
         {
-            logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({_cachedPlans.Count} plans)");
-            return _cachedPlans;
+            lock (_cacheLock)
+            {
+                if (DateTime.UtcNow - _cacheTime < _cacheTimeout)
+                {
+                    logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({cached.Count} plans)");
+                    return cached;
+                }
+            }
         }
 
         try
@@ -67,13 +75,17 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                 Marshal.FreeHGlobal(buffer);
             }
 
-            _cachedPlans = plans.OrderByDescending(p => p.IsActive).ThenBy(p => p.Name).ToList();
-            _cacheTime = DateTime.UtcNow;
+            var sortedPlans = plans.OrderByDescending(p => p.IsActive).ThenBy(p => p.Name).ToList();
+            lock (_cacheLock)
+            {
+                _cachedPlans = sortedPlans;
+                _cacheTime = DateTime.UtcNow;
+            }
 
-            var activePlan = _cachedPlans.FirstOrDefault(p => p.IsActive);
-            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {_cachedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
-            
-            return _cachedPlans;
+            var activePlan = sortedPlans.FirstOrDefault(p => p.IsActive);
+            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {sortedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
+
+            return sortedPlans;
         }
         catch (Exception ex)
         {
@@ -129,8 +141,11 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
     public void InvalidateCache()
     {
-        _cachedPlans = null;
-        _capabilityCache.Clear();
+        lock (_cacheLock)
+        {
+            _cachedPlans = null;
+            _capabilityCache.Clear();
+        }
     }
 
     public async Task<PowerPlan> GetActivePowerPlanAsync()
@@ -289,10 +304,13 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
     {
         var cacheKey = powerCfgSetting.SettingGuid;
 
-        if (_capabilityCache.TryGetValue(cacheKey, out var cached))
+        lock (_cacheLock)
         {
-            logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
-            return cached;
+            if (_capabilityCache.TryGetValue(cacheKey, out var cached))
+            {
+                logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
+                return cached;
+            }
         }
 
         try
@@ -313,7 +331,10 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                 return (min, max);
             }).ConfigureAwait(false);
 
-            _capabilityCache[cacheKey] = capabilities;
+            lock (_cacheLock)
+            {
+                _capabilityCache[cacheKey] = capabilities;
+            }
 
             logService.Log(LogLevel.Info,
                 $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");

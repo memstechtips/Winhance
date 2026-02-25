@@ -215,6 +215,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
         try
         {
+            foreach (var item in Items)
+                item.Dispose();
             Items.Clear();
 
             var allItems = await _externalAppsService.GetAppsAsync();
@@ -555,6 +557,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;
+                item.Dispose();
             }
         }
         base.Dispose(disposing);

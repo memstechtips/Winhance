@@ -16,11 +16,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IPowerPlanComboBoxService powerPlanComboBoxService,
         ISystemSettingsDiscoveryService systemSettingsDiscoveryService) : IComboBoxSetupService
     {
-        public ComboBoxSetupResult SetupComboBoxOptions(SettingDefinition setting, object? currentValue)
-        {
-            return SetupComboBoxOptionsAsync(setting, currentValue).GetAwaiter().GetResult();
-        }
-
         public async Task<ComboBoxSetupResult> SetupComboBoxOptionsAsync(SettingDefinition setting, object? currentValue)
         {
             var result = new ComboBoxSetupResult();
@@ -132,9 +127,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
                 var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
-                
+
                 string[] finalDisplayNames = displayNames;
-                
+
                 if (supportsCustomState && isCustomState)
                 {
                     var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
@@ -159,8 +154,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                logService.Log(LogLevel.Warning, $"Failed to setup simple value mappings for '{setting.Id}': {ex.Message}");
                 return false;
             }
         }
@@ -198,26 +194,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                logService.Log(LogLevel.Warning, $"Failed to setup command value mappings for '{setting.Id}': {ex.Message}");
                 return false;
             }
         }
 
 
 
-
-
-
-        public int ResolveIndexFromRawValues(SettingDefinition setting, Dictionary<string, object?> rawValues)
+        public async Task<int> ResolveIndexFromRawValuesAsync(SettingDefinition setting, Dictionary<string, object?> rawValues)
         {
             try
             {
                 if (setting.Id == "power-plan-selection")
                 {
-                    return powerPlanComboBoxService.ResolveIndexFromRawValues(setting, rawValues);
+                    return await powerPlanComboBoxService.ResolveIndexFromRawValuesAsync(setting, rawValues).ConfigureAwait(false);
                 }
-                
+
                 return comboBoxResolver.ResolveRawValuesToIndex(setting, rawValues);
             }
             catch (Exception ex)
