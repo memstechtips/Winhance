@@ -1,7 +1,7 @@
 # Winhance Test Plan
 
 Date: 2026-02-20
-Updated: 2026-02-25 (v8 remediation: 10 findings fixed — OperationCanceledException propagation in StoreDownloadService, null-forgiving removal in DirectDownloadService, ConPtyProcess handle leak guard, WinGetComSession volatile fields, ManagementObject disposal in 3 services, null guards in UpdateService/PowerService, unnecessary async removed from 7 domain services, CancellationToken propagation in AppInstallationService, CompatibleSettingsRegistry double-invocation eliminated; test plan corrections: InfrastructureServicesExtensions interface count 37→46, SrClientApi added to P/Invoke table (7 classes), WimUtilServiceTests + ScriptPreambleSectionTests added, >1000 lines claim corrected)
+Updated: 2026-02-25 (v9 remediation: 10 findings fixed — shared HttpClient timeout mutation removed from InternetConnectivityService (per-request CTS instead), IDisposable/Dispose removed from InternetConnectivityService (shared singleton), OperationCanceledException propagation added to StoreDownloadService TryInstallPackageAsync and TryInstallPackageWithDependenciesAsync, Process handle leak fixed in WindowsAppsService.EnableCapabilityAsync, COM object leaks fixed in ScheduledTaskService (10+ intermediate objects across 8 methods), ManagementObject disposal in AppStatusDiscoveryService, dead code removed from PowerService.ImportPowerPlanAsync, unnecessary async removed from IsoService/WindowsAppsService/ExternalAppsService GetAppsAsync, exception-safe Process disposal in WindowsAppsService.ExecuteUninstallStringAsync; documentation corrections: IAppRemovalService→IAppUninstallService naming, WimUtilViewModel 425→427 lines, example test feature ID Windows.Theme→WindowsTheme, 3 missing test files added, interface count 95+→107, scores adjusted)
 
 ---
 
@@ -133,7 +133,7 @@ See `code-quality-v4.md`, `code-quality-v5.md`, and `code-quality-v6.md` for the
   ```
 
 - **DI Registration:** All services registered in extension methods:
-  - `InfrastructureServicesExtensions.cs` (~46 interface-to-implementation registrations, ~52 total `Add*` calls including forwarding)
+  - `InfrastructureServicesExtensions.cs` (~50 interface-to-implementation registrations, ~56 total `Add*` calls including forwarding)
   - `DomainServicesExtensions.cs` (~30 services, ~41 total `Add*` calls including forwarding)
   - `UIServicesExtensions.cs` (UI-specific — includes 5 config sub-services + facade, `ISelectedAppsProvider`, `IFilePickerService`, `SettingViewModelDependencies`, `ISettingViewModelEnricher`, `ISettingPreparationPipeline`, and WimUtil sub-VMs)
   - Services registered as Singletons or Scoped (scoped for services with per-operation state like `IWindowsAppsService`, `IExternalAppsService`, `IAppInstallationService`, `IAppUninstallationService`, `IAppLoadingService`, `IAppUninstallService`, `ILegacyCapabilityService`, `IOptionalFeatureService`)
@@ -301,11 +301,11 @@ public void DomainServiceRouter_GetDomainService_ReturnsCorrectServiceForFeature
 {
     // Arrange
     var mockService = new Mock<IDomainService>();
-    mockService.Setup(s => s.DomainName).Returns("Windows.Theme");
+    mockService.Setup(s => s.DomainName).Returns("WindowsTheme");
     var router = new DomainServiceRouter(new[] { mockService.Object });
 
     // Act
-    var result = router.GetDomainService("Windows.Theme");
+    var result = router.GetDomainService("WindowsTheme");
 
     // Assert
     Assert.Same(mockService.Object, result);
@@ -463,14 +463,14 @@ These concrete-only services/classes can't be swapped for test doubles:
 | Area | Score | Notes |
 |------|-------|-------|
 | **DI Architecture** | 10/10 | Excellent — `IServiceProvider` fully eliminated from all services. Zero circular dependencies (method-parameter callback pattern). |
-| **Interface Coverage** | 9.5/10 | Most services have interfaces. v4 resolved remaining high-impact gaps: `ISettingViewModelFactory` (F-4), `IWindowsAppsItemsProvider`/`IExternalAppsItemsProvider` (F-9), `IExplorerWindowManager` (F-18), `IMainWindowProvider` (F-22). v3 added `IReviewModeViewModelCoordinator`, `IActionCommandProvider`. HttpClient now DI-injected in 5 services. IFileSystemService migrated to 5 UI layer files. v6 added `IFilePickerService`, `ISelectedAppsProvider`, `ISettingViewModelEnricher`, `ISettingPreparationPipeline`. |
-| **Service Coupling** | 9.5/10 | Good DI, most large services decomposed. Config sub-services decoupled from concrete VMs via `IWindowsAppsItemsProvider`/`IExternalAppsItemsProvider` (v4 F-9 ✅). `MainWindowViewModel` reduced from 16 to 11 params (v4 F-7 ✅). v6: `SettingViewModelFactory` 13→7 params, `SettingsLoadingService` 9→8 params, `AutounattendXmlGeneratorService` now self-contained (gathers selected apps via `ISelectedAppsProvider` internally). |
-| **ViewModel Design** | 9.5/10 | Constructor injection throughout, most dependencies injectable. `MainWindowViewModel` constructor has zero side effects (OB3). Decomposed into 3 child VMs (S3). v4 F-18 resolved: `MoreMenuViewModel` P/Invoke + COM extracted to `IExplorerWindowManager`, now fully testable via DI. v6: `WimUtilViewModel` decomposed into 5 sub-ViewModels (425-line orchestrator); `SoftwareAppsViewModel.ShowHelpAsync` no longer creates ContentDialog directly. |
+| **Interface Coverage** | 9/10 | 107 unique interface registrations across 3 DI files. v4 resolved remaining high-impact gaps: `ISettingViewModelFactory` (F-4), `IWindowsAppsItemsProvider`/`IExternalAppsItemsProvider` (F-9), `IExplorerWindowManager` (F-18), `IMainWindowProvider` (F-22). v3 added `IReviewModeViewModelCoordinator`, `IActionCommandProvider`. v6 added `IFilePickerService`, `ISelectedAppsProvider`, `ISettingViewModelEnricher`, `ISettingPreparationPipeline`. Remaining gap: ~6-7 concrete-only utilities (`WinGetCliRunner`, `DismSessionManager`, `AutounattendScriptBuilder`, `WinGetComSession`). |
+| **Service Coupling** | 9/10 | Good DI, most large services decomposed. Config sub-services decoupled from concrete VMs via `IWindowsAppsItemsProvider`/`IExternalAppsItemsProvider` (v4 F-9 ✅). `MainWindowViewModel` reduced from 16 to 11 params (v4 F-7 ✅). v6: `SettingViewModelFactory` 13→7 params, `SettingsLoadingService` 9→8 params, `AutounattendXmlGeneratorService` now self-contained. Remaining gap: `SoftwareAppsViewModel` depends on concrete `WindowsAppsViewModel`/`ExternalAppsViewModel`. |
+| **ViewModel Design** | 9.5/10 | Constructor injection throughout, most dependencies injectable. `MainWindowViewModel` constructor has zero side effects (OB3). Decomposed into 3 child VMs (S3). v4 F-18 resolved: `MoreMenuViewModel` P/Invoke + COM extracted to `IExplorerWindowManager`, now fully testable via DI. v6: `WimUtilViewModel` decomposed into 5 sub-ViewModels (427-line orchestrator); `SoftwareAppsViewModel.ShowHelpAsync` no longer creates ContentDialog directly. |
 | **System Abstraction** | 8/10 | Process.Start abstracted via `IProcessExecutor`. ServiceController abstracted via `IProcessRestartManager`. File I/O abstracted via `IFileSystemService` (24 files migrated). P/Invoke centralized in `Core/Native/` (OM5: `User32Api` added). IFileSystemService extended to 5 UI layer files (v3 ME-3). HttpClient DI-injected in 5 services (v3 QW-7+ME-5). Remaining gaps: P/Invoke wrappers, COM |
 | **Static Method Usage** | 7.5/10 | `PowerShellRunner`, `DriverCategorizer`, `RegeditLauncher` converted to injectable (S7). P/Invoke centralized in Native folder (OM5). `WinGetService` decomposed into 3 interface-backed services + COM session (F-26). Remaining static: `WinGetCliRunner`, `DismSessionManager`, `WinGetProgressParser` |
 | **Event System** | 10/10 | `IEventBus` is well-abstracted with both sync `Subscribe` and async `SubscribeAsync` overloads (S8); 4 `async void` handlers converted to proper `async Task` with observed error handling |
-| **Error Handling** | 10/10 | `OperationResult` standardized across 7 interfaces for fallible operations (OM4). Boolean queries (`IsTaskRegistered`, `HasBattery`) correctly remain `Task<bool>`. Async event handlers use `SubscribeAsync` with Task observation (S8). Empty catch blocks eliminated from 5 UI controls (OL2). |
-| **Overall Unit Testing** | 9/10 | ~90% testable in isolation; OM2 decomposition makes `SettingApplicationService` and `SettingOperationExecutor` independently testable; OB3 makes `MainWindowViewModel` constructable without side effects; v3 ME-1+ME-2 makes `ConfigReviewOrchestrationService` testable with mocked VMs; F-26 decomposition makes WinGet install/detect/bootstrap independently testable |
+| **Error Handling** | 9.5/10 | `OperationResult` standardized across 7 interfaces for fallible operations (OM4). Boolean queries (`IsTaskRegistered`, `HasBattery`) correctly remain `Task<bool>`. Async event handlers use `SubscribeAsync` with Task observation (S8). v9 fixed remaining cancellation-swallowing patterns in StoreDownloadService. Some services still use broad `catch(Exception)`. |
+| **Overall Unit Testing** | 8.5/10 | ~90% testable in isolation; OM2 decomposition makes `SettingApplicationService` and `SettingOperationExecutor` independently testable; OB3 makes `MainWindowViewModel` constructable without side effects; v3 ME-1+ME-2 makes `ConfigReviewOrchestrationService` testable with mocked VMs; F-26 decomposition makes WinGet install/detect/bootstrap independently testable |
 | **Overall Integration Testing** | 7/10 | Process execution mockable, ServiceController abstracted, file I/O fully abstracted. P/Invoke and COM still tightly coupled |
 
 ---
@@ -524,7 +524,7 @@ These concrete-only services/classes can't be swapped for test doubles:
 
 **Status:** Completed 2026-02-23. `IProcessExecutor` interface created in Core with 3 methods (`ExecuteAsync`, `ExecuteWithStreamingAsync`, `ShellExecuteAsync`). `ProcessExecutor` implementation in Infrastructure. Injected into ~17 services across Infrastructure and UI layers. Registered as singleton in DI.
 
-**Unlocked by IProcessExecutor (now testable with mocked process execution):** `PowerService`, `UpdateService`, `WimUtilService`, `ChocolateyService`, `DirectDownloadService`, `AppUninstallService`, `StartMenuService`, `WindowsUIManagementService`, `VersionService`, `InteractiveUserService`, `ApplicationCloseService`, `SettingApplicationService` (9 params, routes to `IProcessExecutor` via sub-services), `SettingOperationExecutor` (10 params), `PowerCfgApplier`.
+**Unlocked by IProcessExecutor (now testable with mocked process execution):** `PowerService`, `UpdateService`, `DismProcessRunner`, `WimImageService`, `IsoService`, `ChocolateyService`, `DirectDownloadService`, `AppUninstallService`, `StartMenuService`, `WindowsUIManagementService`, `VersionService`, `InteractiveUserService`, `ApplicationCloseService`, `SettingApplicationService` (9 params, routes to `IProcessExecutor` via sub-services), `SettingOperationExecutor` (10 params), `PowerCfgApplier`.
 
 **Note:** The following services were already testable before Phase 2 (no `IProcessExecutor` dependency): `SettingDependencyResolver`, `RecommendedSettingsApplier`, `ConfigurationService` (facade), `ConfigLoadService`, `ConfigAppSelectionService`, `ConfigExportService`, `ConfigApplicationExecutionService`, `ConfigReviewOrchestrationService`, `SettingViewModelFactory`, `SettingReviewDiffApplier`, `SettingsLoadingService`.
 
@@ -676,7 +676,14 @@ Winhance.Infrastructure.Tests/
       ├── AppRemovalScriptSectionTests.cs         # app removal scripts section (v6: extracted)
       ├── SpecialFeatureScriptSectionTests.cs     # special feature handlers (v6: extracted)
       ├── ScriptPreambleSectionTests.cs           # script preamble section (v6: extracted from AutounattendScriptBuilder)
-      └── WimUtilServiceTests.cs                  # WimUtilService (1577 lines — largest Infrastructure service)
+      └── DriverCategorizerTests.cs              # IDriverCategorizer — driver INF parsing and class categorization (v9: added)
+  ├── AdvancedTools/WimServices/
+  │   ├── WimImageServiceTests.cs                 # IWimImageService — WIM/ESD image detection, extraction, conversion
+  │   ├── IsoServiceTests.cs                      # IIsoService — ISO extraction and creation
+  │   ├── OscdimgToolManagerTests.cs              # IOscdimgToolManager — oscdimg tool acquisition and management
+  │   └── WimCustomizationServiceTests.cs         # IWimCustomizationService — driver injection and image customization
+  ├── Common/
+  │   └── DismProcessRunnerTests.cs               # IDismProcessRunner — shared DISM process execution
 
 Winhance.UI.Tests/
   ├── ViewModels/
@@ -694,7 +701,7 @@ Winhance.UI.Tests/
   │   ├── TaskProgressViewModelTests.cs
   │   ├── UpdateCheckViewModelTests.cs
   │   ├── ReviewModeBarViewModelTests.cs
-  │   ├── WimUtilViewModelTests.cs                # thin orchestrator (v6: 425 lines)
+  │   ├── WimUtilViewModelTests.cs                # thin orchestrator (v6: 427 lines)
   │   ├── WimStep1ViewModelTests.cs               # Step 1: ISO selection/extraction (v6: extracted)
   │   ├── WimImageFormatViewModelTests.cs          # Image format detection/conversion (v6: extracted)
   │   ├── WimStep2XmlViewModelTests.cs             # Step 2: XML management (v6: extracted)
@@ -745,7 +752,9 @@ Winhance.UI.Tests/
       ├── WindowsVersionFilterServiceTests.cs     # IWindowsVersionFilterService
       ├── StartupNotificationServiceTests.cs      # IStartupNotificationService
       ├── UnitConversionHelperTests.cs            # internal static — needs [InternalsVisibleTo], pure functions
-      └── ConfigRegistryInitializerTests.cs       # internal static — needs [InternalsVisibleTo], has interface deps
+      ├── ConfigRegistryInitializerTests.cs       # internal static — needs [InternalsVisibleTo], has interface deps
+      ├── AutounattendXmlGeneratorServiceTests.cs # IAutounattendXmlGeneratorService — XML generation from current selections (v9: added)
+      └── RegeditLauncherTests.cs                 # IRegeditLauncher — registry path construction logic (v9: added)
 ```
 
 ### Integration Tests (Future, Post-Refactoring)
@@ -795,6 +804,27 @@ These use real service implementations but mock the OS boundary:
 - Generated MVVM Toolkit code (`OnPropertyChanged`, etc.)
 - DI container wiring in general (trust Microsoft.Extensions.DependencyInjection) — **exception:** add a DI smoke test that verifies all 3 `IConfigReviewService` sub-interface forwarding casts resolve correctly (OB6: compile-time safe via interface inheritance, but a smoke test provides runtime confidence)
 
+**Intentionally excluded services (no unit test file):**
+
+| Service | Reason |
+|---------|--------|
+| `WindowsRegistryService` | Thin OS wrapper — needs integration tests |
+| `ProcessExecutor` | Thin OS wrapper — needs integration tests |
+| `FileSystemService` | Thin OS wrapper — needs integration tests |
+| `PowerShellRunner` | Wraps actual PowerShell execution — needs integration tests |
+| `DispatcherService` | Requires WinUI 3 runtime |
+| `DialogService` | Requires WinUI 3 runtime (builder classes are testable separately) |
+| `MainWindowProvider` | Requires WinUI 3 runtime |
+| `StartupLogger` | Static pre-DI logger with direct `File.IO` |
+| `ConfigImportState` | Trivial 1-property state class (8 lines) |
+| `TaskProgressCoordinator` | Takes WinUI `TaskProgressControl` + `DispatcherQueue` |
+| `NavigationRouter` | Uses WinUI `Frame` and page types |
+| `StartupUiCoordinator` | References `Microsoft.UI.Xaml.Window` |
+| `TitleBarManager` | References WinUI `Window` |
+| `ConfigImportDialogBuilder` | Uses WinUI `ContentDialog`, `StackPanel` |
+| `TaskOutputDialogBuilder` | Uses WinUI controls |
+| `DialogAccessibilityHelper` | Uses `UIElement`, `AutomationPeer` |
+
 ---
 
 ## Strengths of the Current Architecture (for testing)
@@ -805,7 +835,7 @@ These use real service implementations but mock the OS boundary:
 4. **Well-abstracted event system** — `IEventBus` provides clean sync + async pub/sub (S8)
 5. **Zero circular dependencies** — method-parameter callback pattern (zero `Lazy<T>` in codebase)
 6. **No service-to-service `new` instantiation** — all cross-service dependencies go through DI
-7. **Well-decomposed services** — `SettingApplicationService` split: routing (9 params) + execution via `ISettingOperationExecutor` (10 params) per OM2. `ConfigurationService` decomposed into 5 focused services + facade (S2+S7). `MainWindowViewModel` decomposed into 3 child VMs (S3). `SettingsLoadingService` decomposed into 3 classes (S5). `SettingItemViewModel` decomposed with 2 manager classes (S4). Window/ExternalAppsVM deps pushed into service layer (OM3). v6: `WimUtilViewModel` decomposed into 5 sub-ViewModels + orchestrator. `AutounattendScriptBuilder` decomposed into 7 section/helper classes + orchestrator. `DialogService` decomposed into 2 builder classes + accessibility helper. `MainWindow.xaml.cs` decomposed into 4 helper classes. `SettingViewModelFactory` reduced from 13→7 params via `SettingViewModelDependencies` + `ISettingViewModelEnricher`. **1 service file >1000 lines remains** (`WimUtilService.cs` at 1577 lines — deferred to V8-11; 4 data-only model files in Core are also >1000 lines but contain pure setting definitions, not service logic).
+7. **Well-decomposed services** — `SettingApplicationService` split: routing (9 params) + execution via `ISettingOperationExecutor` (10 params) per OM2. `ConfigurationService` decomposed into 5 focused services + facade (S2+S7). `MainWindowViewModel` decomposed into 3 child VMs (S3). `SettingsLoadingService` decomposed into 3 classes (S5). `SettingItemViewModel` decomposed with 2 manager classes (S4). Window/ExternalAppsVM deps pushed into service layer (OM3). v6: `WimUtilViewModel` decomposed into 5 sub-ViewModels + orchestrator. `AutounattendScriptBuilder` decomposed into 7 section/helper classes + orchestrator. `DialogService` decomposed into 2 builder classes + accessibility helper. `MainWindow.xaml.cs` decomposed into 4 helper classes. `SettingViewModelFactory` reduced from 13→7 params via `SettingViewModelDependencies` + `ISettingViewModelEnricher`. **0 service files >1000 lines** (former `WimUtilService.cs` at 1577 lines decomposed into 5 focused services per V8-11; 4 data-only model files in Core are also >1000 lines but contain pure setting definitions, not service logic).
 8. **File I/O fully abstracted** — all 24 eligible Infrastructure services AND 5 UI layer files (v3 ME-3) use `IFileSystemService`, enabling mock-based testing without touching the real file system
 9. **Standardized error returns** — `OperationResult` (non-generic) used across 7 interfaces for fallible operations (OM4); `.Success` property enables clean test assertions without try/catch
 
@@ -841,13 +871,13 @@ These use real service implementations but mock the OS boundary:
 | **Phase 4** | PARTIAL | P/Invoke & COM abstraction — `ServiceController` done, WinGet COM isolated to `WinGetComSession` (F-26), P/Invoke wrappers pending |
 | **Phase 5** | ✅ COMPLETE | `IServiceProvider` removal — all 6 locations resolved |
 
-### Current State (post v1-v8 refactoring, verified 2026-02-25)
+### Current State (post v1-v9 refactoring, verified 2026-02-25)
 
-**~90% of application logic is testable today.** v5 independent verification confirmed 18/18 sampled v1-v4 code quality changes as correctly implemented. The v5 fresh review found only 8 minor findings (0 blocking, all resolved). v6 decomposed the 4 remaining large files (>1000 lines) into focused single-responsibility classes, added 4 new interfaces (`ISettingViewModelEnricher`, `ISettingPreparationPipeline`, `IFilePickerService`, `ISelectedAppsProvider`), and created 5 independently-testable sub-ViewModels for the WIM utility wizard. v7 fixed 8 correctness/resource-leak issues including `SystemBackupService` now using `IProcessExecutor` (eliminating the last direct `Process` usage outside static utilities). v8 fixed 10 code quality issues: cancellation propagation, resource disposal, volatile fields, null safety, unnecessary async removal, and reflection optimization. The codebase is ready for test authoring.
+**~90% of application logic is testable today.** v5 independent verification confirmed 18/18 sampled v1-v4 code quality changes as correctly implemented. The v5 fresh review found only 8 minor findings (0 blocking, all resolved). v6 decomposed the 4 remaining large files (>1000 lines) into focused single-responsibility classes, added 4 new interfaces (`ISettingViewModelEnricher`, `ISettingPreparationPipeline`, `IFilePickerService`, `ISelectedAppsProvider`), and created 5 independently-testable sub-ViewModels for the WIM utility wizard. v7 fixed 8 correctness/resource-leak issues including `SystemBackupService` now using `IProcessExecutor` (eliminating the last direct `Process` usage outside static utilities). v8 fixed 10 code quality issues: cancellation propagation, resource disposal, volatile fields, null safety, unnecessary async removal, and reflection optimization. v9 fixed 10 issues: shared singleton HttpClient mutation/disposal (production bug), remaining OperationCanceledException swallowing (2 methods), Process handle leak, COM object leaks in ScheduledTaskService (10+ intermediate objects), ManagementObject disposal, dead code, unnecessary async (3 methods), exception-unsafe Process disposal. Independent verification (v9) confirmed 48/50+ v1-v8 changes correctly implemented (97% pass rate), zero false RESOLVED claims. The codebase is ready for test authoring.
 
 **What's ready now (Phase 1 — no refactoring needed):**
 - All ViewModels with constructor injection (~33 concrete ViewModels, including 5 new WimUtil sub-VMs from v6)
-- All services behind interfaces (91+ DI-registered interface-to-implementation pairs, +4 from v6)
+- All services behind interfaces (~107 DI-registered interface-to-implementation pairs across 3 DI files)
 - EventBus pub/sub, DomainServiceRouter routing, SettingApplicationService orchestration
 - Config import/export pipeline (5 sub-services + facade)
 - OperationResult-based assertions across 7 interfaces
@@ -914,7 +944,7 @@ See `code-quality-v4.md` for the full 26-finding analysis with prioritized remed
 **v5 deferred items verification:**
 - 6.4 (fire-and-forget without error handling) — **RESOLVED** (all call sites now use safe `FireAndForget(ILogService)`)
 - M9/5.3 (IDomainService async for sync) — **NON-ISSUE** (interface is clean, async contract correct for general case)
-- ~~ME-4/8.4 (large files)~~ — ✅ **RESOLVED** (v6 V6-1/V6-2/V6-3/V6-4: all 4 files decomposed — MainWindow.xaml.cs 1362→722, WimUtilViewModel 1363→425, AutounattendScriptBuilder 1859→265, DialogService 1181→480; 0 files >1000 lines remain)
+- ~~ME-4/8.4 (large files)~~ — ✅ **RESOLVED** (v6 V6-1/V6-2/V6-3/V6-4: all 4 files decomposed — MainWindow.xaml.cs 1362→722, WimUtilViewModel 1363→427, AutounattendScriptBuilder 1859→265, DialogService 1181→480; 0 files >1000 lines remain)
 - ~~8.5 (ViewModel showing dialogs)~~ — ✅ **RESOLVED** (v6 V6-5: `SoftwareAppsViewModel.ShowHelpAsync` now uses `_dialogService.ShowCustomContentDialogAsync()` instead of creating ContentDialog directly)
 - All other deferred items confirmed as legitimate deferrals
 
@@ -925,7 +955,7 @@ See `code-quality-v4.md` for the full 26-finding analysis with prioritized remed
 | Finding | Severity | Resolution |
 |---------|----------|------------|
 | V6-1: MainWindow.xaml.cs (1362 lines) | MEDIUM | **RESOLVED** — 1362→722 lines. Extracted `TaskProgressCoordinator`, `NavigationRouter`, `StartupUiCoordinator`, `TitleBarManager`. Replaced ~244 lines of PropertyChanged handlers with XAML `x:Bind` bindings. |
-| V6-2: WimUtilViewModel (1363 lines) | MEDIUM | **RESOLVED** — 1363→425 lines. Extracted 5 sub-ViewModels: `WimStep1ViewModel` (294), `WimImageFormatViewModel` (320), `WimStep2XmlViewModel` (265), `WimStep3DriversViewModel` (209), `WimStep4IsoViewModel` (275). Created `ISelectedAppsProvider` (consumed by `AutounattendXmlGeneratorService`) and `IFilePickerService`. |
+| V6-2: WimUtilViewModel (1363 lines) | MEDIUM | **RESOLVED** — 1363→427 lines. Extracted 5 sub-ViewModels: `WimStep1ViewModel` (294), `WimImageFormatViewModel` (320), `WimStep2XmlViewModel` (265), `WimStep3DriversViewModel` (209), `WimStep4IsoViewModel` (275). Created `ISelectedAppsProvider` (consumed by `AutounattendXmlGeneratorService`) and `IFilePickerService`. |
 | V6-3: AutounattendScriptBuilder (1859 lines) | MEDIUM | **RESOLVED** — 1859→265 lines. Extracted `PowerShellScriptUtilities` (60), `RegistryCommandEmitter` (318), `FeatureRegistryScriptSection` (341), `PowerSettingsScriptSection` (262), `ScriptPreambleSection` (386), `AppRemovalScriptSection` (277), `SpecialFeatureScriptSection` (86). Fixed DRY violation in binary registry emit logic. |
 | V6-4: DialogService (1181 lines) | MEDIUM | **RESOLVED** — 1181→480 lines. Extracted `ConfigImportDialogBuilder` (464), `TaskOutputDialogBuilder` (220), `DialogAccessibilityHelper` (29). `ExecuteDialogAsync` guard helper eliminated 9x boilerplate. |
 | V6-5: ContentDialog outside DialogService | LOW-MED | **RESOLVED** — Added `ShowCustomContentDialogAsync` to `IDialogService`. `SoftwareAppsViewModel.ShowHelpAsync` refactored. |
@@ -941,20 +971,37 @@ See `code-quality-v4.md` for the full 26-finding analysis with prioritized remed
 
 ### v8 Code Quality Fixes (2026-02-25)
 
-**v8 code quality review** (`code-quality-v8.md`) performed a fresh independent review. Found 11 issues. **10 resolved** (V8-11 deferred — WimUtilService decomposition):
+**v8 code quality review** (`code-quality-v8.md`) performed a fresh independent review. Found 11 issues. **All 11 resolved** (V8-11 WimUtilService decomposition completed):
 
 | Finding | Severity | Resolution |
 |---------|----------|------------|
-| V8-1: `OperationCanceledException` swallowed in `StoreDownloadService.DownloadPackageAsync` | MEDIUM | **RESOLVED** — Added `catch (OperationCanceledException) { throw; }` before general catch |
-| V8-2: `OperationCanceledException` swallowed in `StoreDownloadService.DownloadFileAsync` | MEDIUM | **RESOLVED** — Same pattern applied |
-| V8-3: `null!` return in `DirectDownloadService.DownloadFileAsync` | LOW-MED | **RESOLVED** — Return type changed to `Task<string?>`, `null!` → `null` |
+| V8-1: `OperationCanceledException` swallowed in `StoreDownloadService.DownloadPackageAsync` | HIGH | **RESOLVED** — Added `catch (OperationCanceledException) { throw; }` before general catch |
+| V8-2: `OperationCanceledException` swallowed in `StoreDownloadService.DownloadFileAsync` | HIGH | **RESOLVED** — Same pattern applied |
+| V8-3: `null!` return in `DirectDownloadService.DownloadFileAsync` | HIGH | **RESOLVED** — Return type changed to `Task<string?>`, `null!` → `null` |
 | V8-4: Handle leak in `ConPtyProcess.RunAsync` setup | MEDIUM | **RESOLVED** — Pipe handles wrapped in try/catch with cleanup on failure |
-| V8-5: Missing `volatile` on `WinGetComSession` flags | LOW-MED | **RESOLVED** — `_isInitialized` and `_comInitTimedOut` marked `volatile` |
-| V8-6: `ManagementObject` not disposed in foreach loops | LOW-MED | **RESOLVED** — Added `using (obj)` in `HardwareDetectionService` (2), `SystemBackupService` (1), `InteractiveUserService` (1) |
+| V8-5: Missing `volatile` on `WinGetComSession` flags | LOW | **RESOLVED** — `_isInitialized` and `_comInitTimedOut` marked `volatile` |
+| V8-6: `ManagementObject` not disposed in foreach loops | LOW | **RESOLVED** — Added `using (obj)` in `HardwareDetectionService` (2), `SystemBackupService` (1), `InteractiveUserService` (1) |
 | V8-7: Null-forgiving `!` on nullable params | MEDIUM | **RESOLVED** — Null guards with `InvalidOperationException` in `UpdateService` (2) and `PowerService` (1) |
 | V8-8: Unnecessary `async` on 7 domain services | LOW | **RESOLVED** — Removed `async`, return `Task.FromResult()` in `UpdateService`, `SoundService`, `PrivacyAndSecurityService`, `GamingPerformanceService`, `NotificationService`, `WindowsThemeService`, `ExplorerCustomizationService` |
-| V8-9: Unused `CancellationToken` in `AppInstallationService` | LOW-MED | **RESOLVED** — Added `ThrowIfCancellationRequested()` checks between sequential service calls |
+| V8-9: Unused `CancellationToken` in `AppInstallationService` | MEDIUM | **RESOLVED** — Added `ThrowIfCancellationRequested()` checks between sequential service calls |
 | V8-10: Double method invocation in `CompatibleSettingsRegistry` | LOW | **RESOLVED** — Single invocation during discovery; extracted both featureId and settings from one call; removed unused `GetFeatureIdFromMethod` |
-| V8-11: `WimUtilService` at 1577 lines | LOW | **DEFERRED** — Requires significant decomposition into focused helpers |
+| V8-11: `WimUtilService` at 1577 lines | MEDIUM | **RESOLVED** — Decomposed into 5 focused services: `DismProcessRunner` (Common), `WimImageService`, `OscdimgToolManager`, `IsoService`, `WimCustomizationService`. Old `IWimUtilService`/`WimUtilService` deleted. |
 
-**Status:** All code quality items across 8 rounds of review are resolved (1 deferred: V8-11 WimUtilService decomposition). 1 service file >1000 lines (WimUtilService.cs). Ready for Phase 1 test implementation.
+### v9 Code Quality Fixes (2026-02-25)
+
+**v9 code quality review** (`code-quality-v9.md`) performed a fresh independent review with new eyes. Found 10 issues including 2 HIGH production bugs. **All 10 resolved:**
+
+| Finding | Severity | Resolution |
+|---------|----------|------------|
+| V9-1: `InternetConnectivityService` mutates shared singleton `HttpClient.Timeout = 5s` | HIGH | **RESOLVED** — Removed timeout mutation; uses per-request `CancellationTokenSource.CreateLinkedTokenSource` + `CancelAfter(5s)` |
+| V9-2: `InternetConnectivityService.Dispose()` disposes shared singleton HttpClient | HIGH | **RESOLVED** — Removed `Dispose()` method and `IDisposable`; HttpClient lifecycle managed by DI |
+| V9-3: `StoreDownloadService.TryInstallPackageAsync` swallows `OperationCanceledException` | MEDIUM | **RESOLVED** — Added `catch (OperationCanceledException) { throw; }` + passed `cancellationToken` to `.AsTask(cancellationToken)` |
+| V9-4: `WindowsAppsService.EnableCapabilityAsync` leaks Process object | MEDIUM | **RESOLVED** — Changed to `using var process = Process.Start(...)` |
+| V9-5: `ScheduledTaskService` leaks ~10 intermediate COM objects | MEDIUM | **RESOLVED** — Added `ReleaseComObject` calls in finally blocks across 8 methods |
+| V9-6: `AppStatusDiscoveryService` ManagementObject not disposed | LOW | **RESOLVED** — Added `using (obj)` in foreach loop |
+| V9-7: Dead code in `PowerService.ImportPowerPlanAsync` (`existingPlanNames` never used) | LOW | **RESOLVED** — Removed both unused HashSet computations |
+| V9-8: 3 async methods never await (`IsoService`, `WindowsAppsService`, `ExternalAppsService`) | LOW | **RESOLVED** — Removed `async`, return `Task.FromResult(...)` |
+| V9-9: `WindowsAppsService.ExecuteUninstallStringAsync` non-exception-safe Process disposal | LOW | **RESOLVED** — Changed to `using var process` |
+| V9-10: `StoreDownloadService.TryInstallPackageWithDependenciesAsync` swallows `OperationCanceledException` | MEDIUM | **RESOLVED** — Same fix as V9-3 |
+
+**Status:** All code quality items across 9 rounds of review are resolved (0 deferred). 0 service files >1000 lines. Ready for Phase 1 test implementation.

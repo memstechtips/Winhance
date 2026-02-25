@@ -35,19 +35,19 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             _oscdimgToolManager = oscdimgToolManager;
         }
 
-        public async Task<bool> ValidateIsoFileAsync(string isoPath)
+        public Task<bool> ValidateIsoFileAsync(string isoPath)
         {
             if (!_fileSystemService.FileExists(isoPath))
             {
                 _logService.LogError($"ISO file not found: {isoPath}");
-                return false;
+                return Task.FromResult(false);
             }
 
             var extension = _fileSystemService.GetExtension(isoPath).ToLowerInvariant();
             if (extension != ".iso")
             {
                 _logService.LogError($"Invalid file extension: {extension}. Expected .iso");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Check if it's a valid ISO by attempting to read it
@@ -57,16 +57,16 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 if (fileSize < 1024 * 1024) // Less than 1MB
                 {
                     _logService.LogError("ISO file is too small to be valid");
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 _logService.LogInformation($"ISO file validated: {isoPath} ({fileSize:N0} bytes)");
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error validating ISO: {ex.Message}", ex);
-                return false;
+                return Task.FromResult(false);
             }
         }
 

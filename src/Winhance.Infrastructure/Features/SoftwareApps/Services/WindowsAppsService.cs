@@ -47,13 +47,13 @@ public class WindowsAppsService(
         return taskProgressService.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
     }
 
-    public async Task<IEnumerable<ItemDefinition>> GetAppsAsync()
+    public Task<IEnumerable<ItemDefinition>> GetAppsAsync()
     {
         var allItems = new List<ItemDefinition>();
         allItems.AddRange(WindowsAppDefinitions.GetWindowsApps().Items);
         allItems.AddRange(CapabilityDefinitions.GetWindowsCapabilities().Items);
         allItems.AddRange(OptionalFeatureDefinitions.GetWindowsOptionalFeatures().Items);
-        return allItems;
+        return Task.FromResult<IEnumerable<ItemDefinition>>(allItems);
     }
 
     public async Task<ItemDefinition?> GetAppByIdAsync(string appId)
@@ -300,17 +300,13 @@ public class WindowsAppsService(
                 return OperationResult<bool>.Failed("No capability name specified");
 
             var psCommand = $"Add-WindowsCapability -Online -Name '{item.CapabilityName}'";
-            var process = new Process
+            using var process = Process.Start(new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
-                    UseShellExecute = true,
-                    CreateNoWindow = false
-                }
-            };
-            process.Start();
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
+                UseShellExecute = true,
+                CreateNoWindow = false
+            });
 
             return OperationResult<bool>.Succeeded(true);
         }
@@ -632,7 +628,7 @@ public class WindowsAppsService(
 
         logService?.LogInformation($"Executing uninstall: {exePath} {args}");
 
-        var process = new Process
+        using var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
@@ -646,7 +642,6 @@ public class WindowsAppsService(
         process.Start();
         await process.WaitForExitAsync(ct).ConfigureAwait(false);
         logService?.LogInformation($"Uninstall process exited with code: {process.ExitCode}");
-        process.Dispose();
     }
 
     private async Task<bool> IsUpdatePolicyDisabledAsync()

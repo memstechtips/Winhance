@@ -42,9 +42,9 @@ public class ExternalAppsService(
         return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
     }
 
-    public async Task<IEnumerable<ItemDefinition>> GetAppsAsync()
+    public Task<IEnumerable<ItemDefinition>> GetAppsAsync()
     {
-        return ExternalAppDefinitions.GetExternalApps().Items;
+        return Task.FromResult<IEnumerable<ItemDefinition>>(ExternalAppDefinitions.GetExternalApps().Items);
     }
 
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)

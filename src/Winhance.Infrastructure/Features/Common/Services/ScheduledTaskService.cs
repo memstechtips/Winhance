@@ -49,16 +49,18 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         return await Task.Run(() =>
         {
             dynamic? taskService = null;
+            dynamic? folder = null;
+            dynamic? existingTask = null;
             try
             {
                 taskService = CreateTaskService();
-                var folder = GetWinhanceFolder(taskService);
+                folder = GetWinhanceFolder(taskService);
 
                 if (folder == null) return OperationResult.Succeeded();
 
                 try
                 {
-                    var existingTask = folder.GetTask(taskName);
+                    existingTask = folder.GetTask(taskName);
                     if (existingTask != null)
                     {
                         folder.DeleteTask(taskName, 0);
@@ -79,6 +81,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             }
             finally
             {
+                ReleaseComObject(existingTask);
+                ReleaseComObject(folder);
                 ReleaseComObject(taskService);
             }
         }).ConfigureAwait(false);
@@ -89,14 +93,16 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         return await Task.Run(() =>
         {
             dynamic? taskService = null;
+            dynamic? folder = null;
+            dynamic? task = null;
             try
             {
                 taskService = CreateTaskService();
-                var folder = GetWinhanceFolder(taskService);
+                folder = GetWinhanceFolder(taskService);
 
                 if (folder == null) return false;
 
-                var task = folder.GetTask(taskName);
+                task = folder.GetTask(taskName);
                 return task != null;
             }
             catch (Exception ex)
@@ -106,6 +112,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             }
             finally
             {
+                ReleaseComObject(task);
+                ReleaseComObject(folder);
                 ReleaseComObject(taskService);
             }
         }).ConfigureAwait(false);
@@ -116,10 +124,12 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         return await Task.Run(() =>
         {
             dynamic? taskService = null;
+            dynamic? folder = null;
+            dynamic? task = null;
             try
             {
                 taskService = CreateTaskService();
-                var folder = GetWinhanceFolder(taskService);
+                folder = GetWinhanceFolder(taskService);
 
                 if (folder == null)
                 {
@@ -127,7 +137,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                     return OperationResult.Failed("Winhance task folder not found");
                 }
 
-                var task = folder.GetTask(taskName);
+                task = folder.GetTask(taskName);
                 if (task == null)
                 {
                     logService.LogError($"Task not found: {taskName}");
@@ -145,6 +155,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             }
             finally
             {
+                ReleaseComObject(task);
+                ReleaseComObject(folder);
                 ReleaseComObject(taskService);
             }
         }).ConfigureAwait(false);
@@ -169,14 +181,16 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     private async Task<OperationResult> RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
     {
         dynamic? taskService = null;
+        dynamic? folder = null;
+        dynamic? taskDefinition = null;
         try
         {
             taskService = CreateTaskService();
-            var folder = GetOrCreateWinhanceFolder(taskService);
+            folder = GetOrCreateWinhanceFolder(taskService);
 
             await RemoveExistingTask(folder, taskName).ConfigureAwait(false);
 
-            var taskDefinition = CreateTaskDefinition(taskService, scriptPath, command, username, triggerType);
+            taskDefinition = CreateTaskDefinition(taskService, scriptPath, command, username, triggerType);
 
             folder.RegisterTaskDefinition(
                 taskName,
@@ -193,6 +207,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }
         finally
         {
+            ReleaseComObject(taskDefinition);
+            ReleaseComObject(folder);
             ReleaseComObject(taskService);
         }
     }
@@ -225,13 +241,18 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder doesn't exist, creating: {ex.Message}");
             return rootFolder.CreateFolder("Winhance");
         }
+        finally
+        {
+            ReleaseComObject(rootFolder);
+        }
     }
 
     private dynamic? GetWinhanceFolder(dynamic taskService)
     {
+        dynamic? rootFolder = null;
         try
         {
-            dynamic rootFolder = taskService.GetFolder("\\");
+            rootFolder = taskService.GetFolder("\\");
             return rootFolder.GetFolder("Winhance");
         }
         catch (Exception ex)
@@ -239,13 +260,18 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder not found: {ex.Message}");
             return null;
         }
+        finally
+        {
+            ReleaseComObject(rootFolder);
+        }
     }
 
     private async Task RemoveExistingTask(dynamic folder, string taskName)
     {
+        dynamic? existingTask = null;
         try
         {
-            var existingTask = folder.GetTask(taskName);
+            existingTask = folder.GetTask(taskName);
             if (existingTask != null)
             {
                 folder.DeleteTask(taskName, 0);
@@ -260,6 +286,10 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] No existing task '{taskName}' to remove: {ex.Message}");
         }
+        finally
+        {
+            ReleaseComObject(existingTask);
+        }
     }
 
 
@@ -267,47 +297,65 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         var taskDefinition = taskService.NewTask(0);
 
-        // Settings
-        var settings = taskDefinition.Settings;
-        settings.Enabled = true;
-        settings.DisallowStartIfOnBatteries = false;
-        settings.StopIfGoingOnBatteries = false;
-        settings.AllowDemandStart = true;
-
-        // Trigger
-        var triggers = taskDefinition.Triggers;
-        var trigger = triggers.Create((int)triggerType);
-        trigger.Enabled = true;
-
-        if (triggerType == TaskTriggerType.Logon && !string.IsNullOrEmpty(username))
+        dynamic? settings = null;
+        dynamic? triggers = null;
+        dynamic? trigger = null;
+        dynamic? actions = null;
+        dynamic? action = null;
+        dynamic? principal = null;
+        try
         {
-            trigger.UserId = username;
+            // Settings
+            settings = taskDefinition.Settings;
+            settings.Enabled = true;
+            settings.DisallowStartIfOnBatteries = false;
+            settings.StopIfGoingOnBatteries = false;
+            settings.AllowDemandStart = true;
+
+            // Trigger
+            triggers = taskDefinition.Triggers;
+            trigger = triggers.Create((int)triggerType);
+            trigger.Enabled = true;
+
+            if (triggerType == TaskTriggerType.Logon && !string.IsNullOrEmpty(username))
+            {
+                trigger.UserId = username;
+            }
+
+            // Action
+            actions = taskDefinition.Actions;
+            action = actions.Create(0); // TASK_ACTION_EXEC
+            action.Path = "powershell.exe";
+            action.Arguments = scriptPath != null
+                ? $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{scriptPath.Replace("'", "''")}'))\""
+                : command;
+
+            // Principal
+            principal = taskDefinition.Principal;
+            if (!string.IsNullOrEmpty(username))
+            {
+                principal.UserId = username;
+                principal.LogonType = 5; // Run whether logged in or not
+                principal.RunLevel = 1; // Highest privileges
+            }
+            else
+            {
+                principal.UserId = "SYSTEM";
+                principal.LogonType = 5;
+                principal.RunLevel = 1;
+            }
+
+            return taskDefinition;
         }
-
-        // Action
-        var actions = taskDefinition.Actions;
-        var action = actions.Create(0); // TASK_ACTION_EXEC
-        action.Path = "powershell.exe";
-        action.Arguments = scriptPath != null
-            ? $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{scriptPath.Replace("'", "''")}'))\""
-            : command;
-
-        // Principal
-        var principal = taskDefinition.Principal;
-        if (!string.IsNullOrEmpty(username))
+        finally
         {
-            principal.UserId = username;
-            principal.LogonType = 5; // Run whether logged in or not
-            principal.RunLevel = 1; // Highest privileges
+            ReleaseComObject(principal);
+            ReleaseComObject(action);
+            ReleaseComObject(actions);
+            ReleaseComObject(trigger);
+            ReleaseComObject(triggers);
+            ReleaseComObject(settings);
         }
-        else
-        {
-            principal.UserId = "SYSTEM";
-            principal.LogonType = 5;
-            principal.RunLevel = 1;
-        }
-
-        return taskDefinition;
     }
 
 
@@ -326,12 +374,14 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         return await Task.Run(() =>
         {
             dynamic? taskService = null;
+            dynamic? folder = null;
+            dynamic? task = null;
             try
             {
                 taskService = CreateTaskService();
                 var (folderPath, taskName) = SplitTaskPath(taskPath);
-                dynamic folder = taskService.GetFolder(folderPath);
-                dynamic task = folder.GetTask(taskName);
+                folder = taskService.GetFolder(folderPath);
+                task = folder.GetTask(taskName);
                 // State: 1 = Disabled, 3 = Ready, 4 = Running
                 int state = (int)task.State;
                 return (bool?)(state != 1);
@@ -344,6 +394,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             }
             finally
             {
+                ReleaseComObject(task);
+                ReleaseComObject(folder);
                 ReleaseComObject(taskService);
             }
         }).ConfigureAwait(false);
@@ -352,12 +404,14 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     private OperationResult SetTaskEnabled(string taskPath, bool enabled)
     {
         dynamic? taskService = null;
+        dynamic? folder = null;
+        dynamic? task = null;
         try
         {
             taskService = CreateTaskService();
             var (folderPath, taskName) = SplitTaskPath(taskPath);
-            dynamic folder = taskService.GetFolder(folderPath);
-            dynamic task = folder.GetTask(taskName);
+            folder = taskService.GetFolder(folderPath);
+            task = folder.GetTask(taskName);
             task.Enabled = enabled;
             logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")} task: {taskPath}");
             return OperationResult.Succeeded();
@@ -370,6 +424,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }
         finally
         {
+            ReleaseComObject(task);
+            ReleaseComObject(folder);
             ReleaseComObject(taskService);
         }
     }

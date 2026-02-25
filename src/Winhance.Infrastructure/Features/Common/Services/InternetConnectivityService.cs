@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     /// <summary>
     /// Service for checking and monitoring internet connectivity.
     /// </summary>
-    public class InternetConnectivityService : IInternetConnectivityService, IDisposable
+    public class InternetConnectivityService : IInternetConnectivityService
     {
         // List of reliable domains to check for internet connectivity
         private static readonly string[] _connectivityCheckUrls = new string[]
@@ -19,6 +19,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             "https://www.google.com",
             "https://www.cloudflare.com",
         };
+
+        // Timeout for connectivity check requests (per-request, does not mutate shared HttpClient)
+        private static readonly TimeSpan _connectivityCheckTimeout = TimeSpan.FromSeconds(5);
 
         // HttpClient for internet connectivity checks
         private readonly HttpClient _httpClient;
@@ -37,7 +40,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _httpClient.Timeout = TimeSpan.FromSeconds(5); // Short timeout for connectivity checks
         }
 
         /// <summary>
@@ -152,9 +154,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             throw new OperationCanceledException(cancellationToken);
                         }
 
-                        // Make a HEAD request to minimize data transfer
+                        // Make a HEAD request to minimize data transfer, with a per-request timeout
+                        // so we don't mutate the shared singleton HttpClient.Timeout
+                        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        cts.CancelAfter(_connectivityCheckTimeout);
                         var request = new HttpRequestMessage(HttpMethod.Head, url);
-                        var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                        var response = await _httpClient.SendAsync(request, cts.Token).ConfigureAwait(false);
 
                         if (response.IsSuccessStatusCode)
                         {
@@ -201,12 +206,5 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        /// <summary>
-        /// Disposes the resources used by the service.
-        /// </summary>
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
     }
 }

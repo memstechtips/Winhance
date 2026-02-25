@@ -510,10 +510,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         return new PowerPlanImportResult(true, existingPlan.Guid);
                     }
 
-                    var existingPlanNames = new HashSet<string>(
-                        systemPlans.Select(p => CleanPlanName(p.Name)),
-                        StringComparer.OrdinalIgnoreCase);
-
                     var sourceGuid = Guid.Parse(predefinedPlan.Guid);
                     var dupResult = PowerProf.PowerDuplicateScheme(IntPtr.Zero, ref sourceGuid, out var destPtr);
 
@@ -546,10 +542,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         logService.Log(LogLevel.Info, $"Power plan '{predefinedPlan.Name}' already exists with GUID: {existingPlan.Guid}");
                         return new PowerPlanImportResult(true, existingPlan.Guid);
                     }
-
-                    var existingPlanNames = new HashSet<string>(
-                        systemPlans.Select(p => CleanPlanName(p.Name)),
-                        StringComparer.OrdinalIgnoreCase);
 
                     logService.Log(LogLevel.Info, $"Attempting to duplicate power plan '{predefinedPlan.Name}' using GUID {predefinedPlan.Guid}");
                     var srcGuid = Guid.Parse(predefinedPlan.Guid);

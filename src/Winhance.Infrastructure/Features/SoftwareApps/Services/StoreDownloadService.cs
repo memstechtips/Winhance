@@ -480,10 +480,14 @@ public class StoreDownloadService : IStoreDownloadService
 
             var packageManager = new Windows.Management.Deployment.PackageManager();
             var packageUri = new Uri(packagePath);
-            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None).AsTask().ConfigureAwait(false);
+            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None).AsTask(cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation($"Successfully installed {displayName}");
             return (true, string.Empty);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -512,10 +516,14 @@ public class StoreDownloadService : IStoreDownloadService
             var packageUri = new Uri(packagePath);
             var dependencyUris = dependencyPaths.Select(p => new Uri(p)).ToList();
 
-            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None).AsTask().ConfigureAwait(false);
+            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None).AsTask(cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation($"Successfully installed {displayName} with dependencies");
             return (true, string.Empty);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

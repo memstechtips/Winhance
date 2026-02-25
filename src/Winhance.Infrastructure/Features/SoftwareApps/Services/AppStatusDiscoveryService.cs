@@ -341,18 +341,21 @@ public class AppStatusDiscoveryService(
                 using var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_InstalledStoreProgram");
                 foreach (var obj in searcher.Get())
                 {
-                    try
+                    using (obj)
                     {
-                        var name = obj["Name"]?.ToString();
-                        if (!string.IsNullOrEmpty(name))
+                        try
                         {
-                            // Name is the package family name (e.g., "Microsoft.BingSearch_8wekyb3d8bbwe")
-                            // Extract the package name before the publisher hash to match PackageManager.Id.Name
-                            var underscoreIndex = name.IndexOf('_');
-                            packageNames.Add(underscoreIndex > 0 ? name[..underscoreIndex] : name);
+                            var name = obj["Name"]?.ToString();
+                            if (!string.IsNullOrEmpty(name))
+                            {
+                                // Name is the package family name (e.g., "Microsoft.BingSearch_8wekyb3d8bbwe")
+                                // Extract the package name before the publisher hash to match PackageManager.Id.Name
+                                var underscoreIndex = name.IndexOf('_');
+                                packageNames.Add(underscoreIndex > 0 ? name[..underscoreIndex] : name);
+                            }
                         }
+                        catch (Exception ex) { logService.LogDebug($"Failed to read WMI InstalledStoreProgram entry: {ex.Message}"); }
                     }
-                    catch (Exception ex) { logService.LogDebug($"Failed to read WMI InstalledStoreProgram entry: {ex.Message}"); }
                 }
             }).ConfigureAwait(false);
 
