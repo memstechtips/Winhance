@@ -35,5 +35,8 @@ namespace Winhance.Core.Features.Common.Native
 
         [DllImport("user32.dll")]
         public static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern int SystemParametersInfo(int uAction, int uParam, string? lpvParam, int fuWinIni);
     }
 }

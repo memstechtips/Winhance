@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 using Microsoft.Win32;
 
 namespace Winhance.Core.Features.Optimize.Models
@@ -242,6 +243,15 @@ namespace Winhance.Core.Features.Optimize.Models
                                 EnabledValue = 1,
                                 DisabledValue = 0,
                                 ValueType = RegistryValueKind.DWord,
+                            },
+                        },
+                        NativePowerApiSettings = new List<NativePowerApiSetting>
+                        {
+                            new NativePowerApiSetting
+                            {
+                                InformationLevel = PowerProf.SystemReserveHiberFile,
+                                EnabledValue = 1,
+                                DisabledValue = 0,
                             },
                         },
                         AutoEnableSettingIds = new List<string> { "start-power-hibernate-option" },

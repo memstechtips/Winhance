@@ -15,6 +15,7 @@ public record SettingDefinition : BaseDefinition, ISettingItem
     public IReadOnlyList<PowerShellScriptSetting> PowerShellScripts { get; init; } = Array.Empty<PowerShellScriptSetting>();
     public IReadOnlyList<RegContentSetting> RegContents { get; init; } = Array.Empty<RegContentSetting>();
     public IReadOnlyList<PowerCfgSetting>? PowerCfgSettings { get; init; }
+    public IReadOnlyList<NativePowerApiSetting> NativePowerApiSettings { get; init; } = Array.Empty<NativePowerApiSetting>();
     public IReadOnlyList<SettingDependency> Dependencies { get; init; } = Array.Empty<SettingDependency>();
     public IReadOnlyList<string>? AutoEnableSettingIds { get; init; }
     public bool RequiresBattery { get; init; }

@@ -10,6 +10,7 @@ namespace Winhance.Core.Features.Common.Services
     {
         private readonly ConcurrentDictionary<string, List<ISettingItem>> _moduleSettings;
         private readonly ILogService _logService;
+        private readonly object _listLock = new();
 
         public GlobalSettingsRegistry(ILogService logService)
         {
@@ -53,7 +54,11 @@ namespace Winhance.Core.Features.Common.Services
                 // Search in specific module
                 if (_moduleSettings.TryGetValue(moduleName, out var moduleSettingsList))
                 {
-                    var setting = moduleSettingsList.FirstOrDefault(s => s.Id == settingId);
+                    ISettingItem? setting;
+                    lock (_listLock)
+                    {
+                        setting = moduleSettingsList.FirstOrDefault(s => s.Id == settingId);
+                    }
                     if (setting != null)
                     {
                         _logService.Log(
@@ -73,7 +78,11 @@ namespace Winhance.Core.Features.Common.Services
             // Search in all modules
             foreach (var kvp in _moduleSettings)
             {
-                var setting = kvp.Value.FirstOrDefault(s => s.Id == settingId);
+                ISettingItem? setting;
+                lock (_listLock)
+                {
+                    setting = kvp.Value.FirstOrDefault(s => s.Id == settingId);
+                }
                 if (setting != null)
                 {
                     _logService.Log(
@@ -90,7 +99,12 @@ namespace Winhance.Core.Features.Common.Services
 
         public IEnumerable<ISettingItem> GetAllSettings()
         {
-            return _moduleSettings.Values.SelectMany(settings => settings);
+            lock (_listLock)
+            {
+                return _moduleSettings.Values
+                    .SelectMany(settings => settings)
+                    .ToList();
+            }
         }
 
         public void RegisterSetting(string moduleName, ISettingItem setting)
@@ -110,30 +124,33 @@ namespace Winhance.Core.Features.Common.Services
                 return;
             }
 
-            _moduleSettings.AddOrUpdate(
-                moduleName,
-                new List<ISettingItem> { setting }, // Create new list if module doesn't exist
-                (key, existingSettings) =>
-                {
-                    // Add to existing list if setting doesn't already exist
-                    if (!existingSettings.Any(s => s.Id == setting.Id))
+            lock (_listLock)
+            {
+                _moduleSettings.AddOrUpdate(
+                    moduleName,
+                    new List<ISettingItem> { setting }, // Create new list if module doesn't exist
+                    (key, existingSettings) =>
                     {
-                        existingSettings.Add(setting);
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"Added setting '{setting.Id}' to existing module '{moduleName}'"
-                        );
+                        // Add to existing list if setting doesn't already exist
+                        if (!existingSettings.Any(s => s.Id == setting.Id))
+                        {
+                            existingSettings.Add(setting);
+                            _logService.Log(
+                                LogLevel.Debug,
+                                $"Added setting '{setting.Id}' to existing module '{moduleName}'"
+                            );
+                        }
+                        else
+                        {
+                            _logService.Log(
+                                LogLevel.Debug,
+                                $"Setting '{setting.Id}' already exists in module '{moduleName}', skipping registration"
+                            );
+                        }
+                        return existingSettings;
                     }
-                    else
-                    {
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"Setting '{setting.Id}' already exists in module '{moduleName}', skipping registration"
-                        );
-                    }
-                    return existingSettings;
-                }
-            );
+                );
+            }
 
             _logService.Log(
                 LogLevel.Debug,

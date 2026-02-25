@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Services
 {
-    public class LogService : ILogService
+    public class LogService : ILogService, IDisposable
     {
         private string _logPath;
         private StreamWriter? _logWriter;

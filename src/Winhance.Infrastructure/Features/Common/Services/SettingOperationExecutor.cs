@@ -116,19 +116,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
 
-            if (setting.Id == "power-hibernation-enable")
-            {
-                byte hibValue = enable ? (byte)1 : (byte)0;
-                var result = PowerProf.CallNtPowerInformation(
-                    PowerProf.SystemReserveHiberFile,
-                    ref hibValue, 1, IntPtr.Zero, 0);
-
-                if (result == 0)
-                    logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Hibernation {(enable ? "enabled" : "disabled")} via CallNtPowerInformation");
-                else
-                    logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] CallNtPowerInformation failed with status {result}");
-            }
-
             if (setting.PowerShellScripts?.Count > 0)
             {
                 logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Executing {setting.PowerShellScripts.Count} PowerShell scripts for '{setting.Id}'");
@@ -215,6 +202,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
             if (setting.PowerCfgSettings?.Count > 0)
             {
                 await powerCfgApplier.ApplyPowerCfgSettingsAsync(setting, enable, value).ConfigureAwait(false);
+            }
+
+            if (setting.NativePowerApiSettings?.Count > 0)
+            {
+                logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Applying {setting.NativePowerApiSettings.Count} native power API settings for '{setting.Id}'");
+
+                foreach (var apiSetting in setting.NativePowerApiSettings)
+                {
+                    byte inputValue = enable ? apiSetting.EnabledValue : apiSetting.DisabledValue;
+                    var result = PowerProf.CallNtPowerInformation(
+                        apiSetting.InformationLevel,
+                        ref inputValue,
+                        1,
+                        IntPtr.Zero,
+                        0);
+
+                    if (result == 0)
+                        logService.Log(LogLevel.Info, $"[SettingOperationExecutor] CallNtPowerInformation(level={apiSetting.InformationLevel}) succeeded for '{setting.Id}'");
+                    else
+                        logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] CallNtPowerInformation(level={apiSetting.InformationLevel}) failed with status {result} for '{setting.Id}'");
+                }
             }
 
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);

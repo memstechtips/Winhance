@@ -49,9 +49,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (_isInitialized) return;
 
                 _logService.Log(LogLevel.Info, "Initializing compatible settings registry with auto-discovery");
-                
+
                 await PreFilterAllFeatureSettingsAsync().ConfigureAwait(false);
-                
+
                 _isInitialized = true;
                 _logService.Log(LogLevel.Info, $"Compatible settings registry initialized with {_preFilteredSettings.Count} pre-filtered features");
             }
@@ -175,8 +175,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         {
                             return assembly.GetTypes();
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to load types from assembly '{assembly.GetName().Name}': {ex.Message}");
                             return Enumerable.Empty<Type>();
                         }
                     })
@@ -206,22 +207,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                     var settingsProperty = result!.GetType().GetProperty("Settings");
                                     return (IEnumerable<SettingDefinition>)settingsProperty!.GetValue(result)!;
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to invoke settings provider '{method.DeclaringType?.Name}.{method.Name}': {ex.Message}");
                                     return Enumerable.Empty<SettingDefinition>();
                                 }
                             };
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Continue processing other classes
+                        _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to process setting class '{settingClass.Name}': {ex.Message}");
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Return empty providers if discovery fails
+                _logService.LogWarning($"[CompatibleSettingsRegistry] Feature provider discovery failed: {ex.Message}");
             }
 
             return providers;
@@ -230,7 +232,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private bool IsSettingDefinitionEnumerable(Type type)
         {
             return type.GetInterfaces()
-                .Any(i => i.IsGenericType && 
+                .Any(i => i.IsGenericType &&
                      i.GetGenericTypeDefinition() == typeof(IEnumerable<>) &&
                      i.GetGenericArguments()[0] == typeof(SettingDefinition));
         }
@@ -243,8 +245,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var featureIdProperty = result!.GetType().GetProperty("FeatureId");
                 return (string)featureIdProperty!.GetValue(result)!;
             }
-            catch
+            catch (Exception ex)
             {
+                _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to extract feature ID from '{method.DeclaringType?.Name}.{method.Name}': {ex.Message}");
                 return "Unknown";
             }
         }

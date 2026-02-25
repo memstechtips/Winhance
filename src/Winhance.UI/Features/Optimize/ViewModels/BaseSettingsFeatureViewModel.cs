@@ -237,6 +237,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     partial void OnSearchTextChanged(string value)
     {
         _searchDebounceTokenSource?.Cancel();
+        _searchDebounceTokenSource?.Dispose();
         _searchDebounceTokenSource = new CancellationTokenSource();
         var token = _searchDebounceTokenSource.Token;
 
@@ -490,6 +491,10 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 }
                 Settings.Clear();
             }
+
+            _searchDebounceTokenSource?.Cancel();
+            _searchDebounceTokenSource?.Dispose();
+            _searchDebounceTokenSource = null;
 
             _settingsById.Clear();
             _childrenByParentId.Clear();

@@ -1,12 +1,12 @@
 using System;
 using System.Diagnostics;
 using System.Management;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -169,46 +169,21 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }).ConfigureAwait(false);
         }
 
-        [DllImport("SrClient.dll", CharSet = CharSet.Unicode)]
-        private static extern bool SRSetRestorePointW(
-            ref RESTOREPOINTINFO pRestorePtSpec,
-            out STATEMGRSTATUS pSMgrStatus);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct RESTOREPOINTINFO
-        {
-            public int dwEventType;
-            public int dwRestorePtType;
-            public long llSequenceNumber;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-            public string szDescription;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct STATEMGRSTATUS
-        {
-            public int nStatus;
-            public long llSequenceNumber;
-        }
-
-        private const int BEGIN_SYSTEM_CHANGE = 100;
-        private const int MODIFY_SETTINGS = 12;
-
         private async Task<bool> CreateRestorePointAsync(string description)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    var restorePointInfo = new RESTOREPOINTINFO
+                    var restorePointInfo = new SrClientApi.RESTOREPOINTINFO
                     {
-                        dwEventType = BEGIN_SYSTEM_CHANGE,
-                        dwRestorePtType = MODIFY_SETTINGS,
+                        dwEventType = SrClientApi.BEGIN_SYSTEM_CHANGE,
+                        dwRestorePtType = SrClientApi.MODIFY_SETTINGS,
                         llSequenceNumber = 0,
                         szDescription = description
                     };
 
-                    var success = SRSetRestorePointW(ref restorePointInfo, out var status);
+                    var success = SrClientApi.SRSetRestorePointW(ref restorePointInfo, out var status);
                     if (!success)
                     {
                         _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {status.nStatus}");

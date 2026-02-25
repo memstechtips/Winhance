@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Customize.Models;
 
@@ -21,9 +22,6 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         private const int SPI_SETDESKWALLPAPER = 0x0014;
         private const int SPIF_UPDATEINIFILE = 0x01;
         private const int SPIF_SENDCHANGE = 0x02;
-
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 
         public WallpaperService(
             ILogService logService,
@@ -65,7 +63,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     flags = SPIF_UPDATEINIFILE | SPIF_SENDCHANGE;
                 }
 
-                bool success = SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallpaperPath, flags) != 0;
+                bool success = User32Api.SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallpaperPath, flags) != 0;
 
                 if (success)
                 {
