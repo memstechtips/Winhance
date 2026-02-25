@@ -43,7 +43,11 @@
                         IsItemClickEnabled="False"
                         IsTabStop="False"
                         Background="Transparent"
-                        Padding="0">
+                        Padding="0"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ScrollViewer.VerticalScrollMode="Disabled"
+                        ScrollViewer.HorizontalScrollMode="Disabled">
 
                         <ListView.KeyboardAccelerators>
                             <KeyboardAccelerator Key="D" Modifiers="Control"
