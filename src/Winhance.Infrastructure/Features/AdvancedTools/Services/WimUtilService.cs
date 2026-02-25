@@ -58,18 +58,56 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
         public string GetOscdimgPath()
         {
-            var adkPaths = new[]
+            var searchPaths = new[]
             {
+                // ADK paths
                 @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
                 @"C:\Program Files (x86)\Windows Kits\11\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
                 @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\oscdimg.exe",
+                // Winget Links paths
+                @"C:\Program Files\WinGet\Links\oscdimg.exe",
+                _fileSystemService.CombinePath(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    @"Microsoft\WinGet\Links\oscdimg.exe"),
             };
 
-            foreach (var adkPath in adkPaths)
+            foreach (var path in searchPaths)
             {
-                if (_fileSystemService.FileExists(adkPath))
+                if (_fileSystemService.FileExists(path))
                 {
-                    return adkPath;
+                    return path;
+                }
+            }
+
+            // Scan winget Packages directories for Microsoft.OSCDIMG
+            var wingetPackageDirs = new[]
+            {
+                @"C:\Program Files\WinGet\Packages",
+                _fileSystemService.CombinePath(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    @"Microsoft\WinGet\Packages"),
+            };
+
+            foreach (var packagesDir in wingetPackageDirs)
+            {
+                if (!_fileSystemService.DirectoryExists(packagesDir))
+                    continue;
+
+                try
+                {
+                    var matchingDirs = Directory.GetDirectories(packagesDir, "Microsoft.OSCDIMG_*");
+                    foreach (var dir in matchingDirs)
+                    {
+                        var candidate = _fileSystemService.CombinePath(dir, "oscdimg.exe");
+                        if (_fileSystemService.FileExists(candidate))
+                        {
+                            return candidate;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogDebug($"Error scanning winget packages directory {packagesDir}: {ex.Message}");
                 }
             }
 
@@ -599,6 +637,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 TerminalOutput = "Checking installation methods"
             });
 
+            if (await InstallOscdimgPackageViaWingetAsync(progress, cancellationToken).ConfigureAwait(false))
+            {
+                return true;
+            }
+
+            _logService.LogWarning("Microsoft.OSCDIMG package installation failed, trying direct ADK installation...");
             if (await InstallAdkDeploymentToolsAsync(progress, cancellationToken).ConfigureAwait(false))
             {
                 return true;
@@ -792,6 +836,84 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error installing ADK via winget: {ex.Message}", ex);
+                return false;
+            }
+        }
+
+        private async Task<bool> InstallOscdimgPackageViaWingetAsync(
+            IProgress<TaskProgressDetail>? progress,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = _localization.GetString("Progress_CheckingWinget"),
+                    TerminalOutput = "Verifying winget availability"
+                });
+
+                var wingetInstalled = await _winGetPackageInstaller.IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false);
+
+                if (!wingetInstalled)
+                {
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        StatusText = _localization.GetString("Progress_InstallingWinget"),
+                        TerminalOutput = "winget is required for this installation method"
+                    });
+
+                    var wingetInstallSuccess = await _winGetBootstrapper.InstallWinGetAsync(cancellationToken).ConfigureAwait(false);
+                    if (!wingetInstallSuccess)
+                    {
+                        _logService.LogError("Failed to install winget");
+                        return false;
+                    }
+                }
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = "Installing Microsoft.OSCDIMG package...",
+                    TerminalOutput = "Installing lightweight oscdimg package via winget"
+                });
+
+                var arguments = "install Microsoft.OSCDIMG --exact --silent --scope machine --accept-package-agreements --accept-source-agreements";
+
+                // Prefer system winget (kept up-to-date via Store) over bundled CLI
+                var systemAvailable = _winGetBootstrapper.IsSystemWinGetAvailable
+                    || WinGetCliRunner.IsSystemWinGetAvailable();
+
+                string wingetExe;
+                if (systemAvailable)
+                {
+                    wingetExe = WinGetCliRunner.GetWinGetExePath() ?? "winget";
+                    _logService.LogInformation($"Using system winget for OSCDIMG install: {wingetExe}");
+                }
+                else
+                {
+                    wingetExe = WinGetCliRunner.GetBundledWinGetExePath()
+                        ?? WinGetCliRunner.GetWinGetExePath()
+                        ?? "winget";
+                    _logService.LogInformation($"No system winget — using bundled CLI for OSCDIMG install: {wingetExe}");
+                }
+
+                var (exitCode, _) = await RunProcessWithProgressAsync(wingetExe, arguments, progress, cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    throw new Exception($"winget install Microsoft.OSCDIMG failed with exit code: {exitCode}");
+                }
+
+                if (await IsOscdimgAvailableAsync().ConfigureAwait(false))
+                {
+                    _logService.LogInformation("Microsoft.OSCDIMG package installed via winget and oscdimg.exe found");
+                    return true;
+                }
+
+                _logService.LogError("Microsoft.OSCDIMG package installed via winget but oscdimg.exe not found");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error installing Microsoft.OSCDIMG package via winget: {ex.Message}", ex);
                 return false;
             }
         }
