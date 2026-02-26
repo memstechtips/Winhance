@@ -38,6 +38,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Winhance.UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Windows App SDK - Use 1.7.x for stability -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
