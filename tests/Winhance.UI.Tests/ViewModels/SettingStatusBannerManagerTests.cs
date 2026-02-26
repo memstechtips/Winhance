@@ -47,8 +47,7 @@ public class SettingStatusBannerManagerTests
         {
             Id = "test",
             Name = "Test",
-            Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>()
+            Description = "Test setting"
         };
 
         // Act
@@ -67,10 +66,7 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.VersionCompatibilityMessage, "Windows 11 only" }
-            }
+            VersionCompatibilityMessage = "Windows 11 only"
         };
 
         // Act
@@ -83,7 +79,7 @@ public class SettingStatusBannerManagerTests
     }
 
     [Fact]
-    public void GetCompatibilityBanner_WithNonStringCompatibilityValue_ReturnsNull()
+    public void GetCompatibilityBanner_WithEmptyCompatibilityMessage_ReturnsWarningBanner()
     {
         // Arrange
         var definition = new SettingDefinition
@@ -91,17 +87,15 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.VersionCompatibilityMessage, 42 }
-            }
+            VersionCompatibilityMessage = ""
         };
 
         // Act
         var result = _manager.GetCompatibilityBanner(definition);
 
         // Assert
-        result.Should().BeNull();
+        // VersionCompatibilityMessage is a non-null string, so the pattern match succeeds
+        result.Should().NotBeNull();
     }
 
     // ──────────────────────────────────────────────────
@@ -128,8 +122,7 @@ public class SettingStatusBannerManagerTests
         {
             Id = "test",
             Name = "Test",
-            Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>()
+            Description = "Test setting"
         };
 
         // Act
@@ -149,10 +142,7 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.VersionCompatibilityMessage, "Win11 only" }
-            }
+            VersionCompatibilityMessage = "Win11 only"
         };
 
         // Act
@@ -175,9 +165,10 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
+            ComboBox = new ComboBoxMetadata
             {
-                { CustomPropertyKeys.OptionWarnings, warningDict }
+                DisplayNames = new[] { "Option A", "Option B" },
+                OptionWarnings = warningDict
             }
         };
 
@@ -203,9 +194,10 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
+            ComboBox = new ComboBoxMetadata
             {
-                { CustomPropertyKeys.OptionWarnings, warningDict }
+                DisplayNames = new[] { "Option A", "Option B" },
+                OptionWarnings = warningDict
             }
         };
 
@@ -227,11 +219,8 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.CrossGroupChildSettings, new List<string> { "child1" } },
-                { CustomPropertyKeys.ComboBoxDisplayNames, displayNames }
-            }
+            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
+            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
         };
 
         // Act - select last index (Custom)
@@ -253,11 +242,8 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.CrossGroupChildSettings, new List<string> { "child1" } },
-                { CustomPropertyKeys.ComboBoxDisplayNames, displayNames }
-            }
+            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
+            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
         };
 
         // Act - select first index (not Custom)
@@ -278,11 +264,8 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.CrossGroupChildSettings, new List<string> { "child1" } },
-                { CustomPropertyKeys.ComboBoxDisplayNames, displayNames }
-            }
+            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
+            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
         };
 
         // Act - use ComboBoxConstants.CustomStateIndex (-1)
@@ -308,11 +291,8 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.CrossGroupChildSettings, new List<string> { "child1" } },
-                { CustomPropertyKeys.ComboBoxDisplayNames, displayNames }
-            }
+            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
+            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
         };
 
         // Act - custom index with null crossGroupInfoMessage
@@ -333,10 +313,7 @@ public class SettingStatusBannerManagerTests
             Id = "test",
             Name = "Test",
             Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.VersionCompatibilityMessage, "Requires Windows 11 22H2+" }
-            }
+            VersionCompatibilityMessage = "Requires Windows 11 22H2+"
         };
 
         // Act
@@ -356,8 +333,7 @@ public class SettingStatusBannerManagerTests
         {
             Id = "test",
             Name = "Test",
-            Description = "Test setting",
-            CustomProperties = new Dictionary<string, object>()
+            Description = "Test setting"
         };
 
         // Act

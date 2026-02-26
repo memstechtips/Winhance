@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -45,22 +44,19 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0, // Hide
                             DefaultValue = 3, // Windows default is search box
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Search box",
-                            },
+                            DefaultOption = "Search box",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Hide",
                             "Search icon only",
                             "Search icon and label",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Hide
                             {
@@ -100,21 +96,18 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0, // Hide
                             DefaultValue = 2, // Windows default is search box
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Search box",
-                            },
+                            DefaultOption = "Search box",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Hide",
                             "Search icon only",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Hide
                             {
@@ -151,10 +144,10 @@ public static class TaskbarCustomizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Left", "Center" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        DisplayNames = new string[] { "Left", "Center" },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Left
                             {
@@ -381,15 +374,15 @@ public static class TaskbarCustomizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Windows default",
                             "Transparent",
                             "Opaque",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Windows default (delete registry value)
                             {

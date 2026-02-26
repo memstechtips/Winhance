@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -30,16 +29,15 @@ public class PowerCfgApplierTests
         string id,
         InputType inputType = InputType.Toggle,
         PowerModeSupport powerMode = PowerModeSupport.Both,
-        string? units = null,
-        Dictionary<string, object>? customProperties = null) => new()
+        string? units = null) => new()
     {
         Id = id,
         Name = $"Power Setting {id}",
         Description = $"Description for {id}",
         InputType = inputType,
-        CustomProperties = customProperties != null
-            ? new System.Collections.ObjectModel.ReadOnlyDictionary<string, object>(customProperties)
-            : new System.Collections.ObjectModel.ReadOnlyDictionary<string, object>(new Dictionary<string, object>()),
+        NumericRange = units != null
+            ? new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = units }
+            : null,
         PowerCfgSettings = new[]
         {
             new PowerCfgSetting

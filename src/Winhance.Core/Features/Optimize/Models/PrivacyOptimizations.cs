@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -46,9 +45,9 @@ public static class PrivacyAndSecurityOptimizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Prompt for Credentials",
                             "Always notify",
@@ -56,7 +55,7 @@ public static class PrivacyAndSecurityOptimizations
                             "Notify when apps try to make changes (no dim)",
                             "Never notify",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -84,8 +83,8 @@ public static class PrivacyAndSecurityOptimizations
                                 ["PromptOnSecureDesktop"] = 0,
                             },
                         },
-                        [CustomPropertyKeys.SupportsCustomState] = true,
-                        [CustomPropertyKeys.CustomStateDisplayName] = "Custom (User Defined)",
+                        SupportsCustomState = true,
+                        CustomStateDisplayName = "Custom (User Defined)",
                     },
                 },
                 new SettingDefinition
@@ -273,15 +272,15 @@ public static class PrivacyAndSecurityOptimizations
                             IsPrimary = true,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Allow",
                             "Deny",
                             "Custom",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -296,58 +295,58 @@ public static class PrivacyAndSecurityOptimizations
                                 ["AdsPromotionalContentMode"] = 2,
                             },
                         },
-                        [CustomPropertyKeys.SettingPresets] = new Dictionary<int, Dictionary<string, bool>>
+                    },
+                    SettingPresets = new Dictionary<int, Dictionary<string, bool>>
+                    {
+                        [0] = new Dictionary<string, bool>
                         {
-                            [0] = new Dictionary<string, bool>
-                            {
-                                ["privacy-content-delivery-allowed"] = true,
-                                ["privacy-subscribed-content"] = true,
-                                ["privacy-feature-management"] = true,
-                                ["privacy-soft-landing"] = true,
-                                ["privacy-oem-preinstalled-apps"] = true,
-                                ["privacy-preinstalled-apps"] = true,
-                                ["privacy-preinstalled-apps-ever"] = true,
-                                ["privacy-silent-installed-apps"] = true,
-                                ["privacy-rotating-lock-screen"] = true,
-                                ["privacy-lock-screen-overlay"] = true,
-                                ["privacy-settings-content"] = true,
-                                ["privacy-timeline-suggestions"] = true,
-                                ["notifications-welcome-experience"] = true,
-                                ["notifications-tips-suggestions"] = true,
-                                ["notifications-system-pane-suggestions"] = true,
-                                ["start-show-suggestions"] = true,
-                            },
-                            [1] = new Dictionary<string, bool>
-                            {
-                                ["privacy-content-delivery-allowed"] = false,
-                                ["privacy-subscribed-content"] = false,
-                                ["privacy-feature-management"] = false,
-                                ["privacy-soft-landing"] = false,
-                                ["privacy-oem-preinstalled-apps"] = false,
-                                ["privacy-preinstalled-apps"] = false,
-                                ["privacy-preinstalled-apps-ever"] = false,
-                                ["privacy-silent-installed-apps"] = false,
-                                ["privacy-rotating-lock-screen"] = false,
-                                ["privacy-lock-screen-overlay"] = false,
-                                ["privacy-settings-content"] = false,
-                                ["privacy-timeline-suggestions"] = false,
-                                ["notifications-welcome-experience"] = false,
-                                ["notifications-tips-suggestions"] = false,
-                                ["notifications-system-pane-suggestions"] = false,
-                                ["start-show-suggestions"] = false,
-                            },
+                            ["privacy-content-delivery-allowed"] = true,
+                            ["privacy-subscribed-content"] = true,
+                            ["privacy-feature-management"] = true,
+                            ["privacy-soft-landing"] = true,
+                            ["privacy-oem-preinstalled-apps"] = true,
+                            ["privacy-preinstalled-apps"] = true,
+                            ["privacy-preinstalled-apps-ever"] = true,
+                            ["privacy-silent-installed-apps"] = true,
+                            ["privacy-rotating-lock-screen"] = true,
+                            ["privacy-lock-screen-overlay"] = true,
+                            ["privacy-settings-content"] = true,
+                            ["privacy-timeline-suggestions"] = true,
+                            ["notifications-welcome-experience"] = true,
+                            ["notifications-tips-suggestions"] = true,
+                            ["notifications-system-pane-suggestions"] = true,
+                            ["start-show-suggestions"] = true,
                         },
-                        [CustomPropertyKeys.CrossGroupChildSettings] = new Dictionary<string, string>
+                        [1] = new Dictionary<string, bool>
                         {
-                            ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
-                            ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
-                            ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
-                            ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
-                            ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
-                            ["notifications-tips-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TipsSuggestions",
-                            ["notifications-system-pane-suggestions"] = "Setting_privacy-ads-promotional-master_Child_NotificationCenterSuggestions",
-                            ["start-show-suggestions"] = "Setting_privacy-ads-promotional-master_Child_StartSuggestions",
+                            ["privacy-content-delivery-allowed"] = false,
+                            ["privacy-subscribed-content"] = false,
+                            ["privacy-feature-management"] = false,
+                            ["privacy-soft-landing"] = false,
+                            ["privacy-oem-preinstalled-apps"] = false,
+                            ["privacy-preinstalled-apps"] = false,
+                            ["privacy-preinstalled-apps-ever"] = false,
+                            ["privacy-silent-installed-apps"] = false,
+                            ["privacy-rotating-lock-screen"] = false,
+                            ["privacy-lock-screen-overlay"] = false,
+                            ["privacy-settings-content"] = false,
+                            ["privacy-timeline-suggestions"] = false,
+                            ["notifications-welcome-experience"] = false,
+                            ["notifications-tips-suggestions"] = false,
+                            ["notifications-system-pane-suggestions"] = false,
+                            ["start-show-suggestions"] = false,
                         },
+                    },
+                    CrossGroupChildSettings = new Dictionary<string, string>
+                    {
+                        ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
+                        ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
+                        ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
+                        ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
+                        ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
+                        ["notifications-tips-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TipsSuggestions",
+                        ["notifications-system-pane-suggestions"] = "Setting_privacy-ads-promotional-master_Child_NotificationCenterSuggestions",
+                        ["start-show-suggestions"] = "Setting_privacy-ads-promotional-master_Child_StartSuggestions",
                     },
                 },
                 new SettingDefinition

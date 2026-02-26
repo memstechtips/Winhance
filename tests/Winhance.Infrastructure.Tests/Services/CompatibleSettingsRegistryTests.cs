@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -77,27 +78,40 @@ public class CompatibleSettingsRegistryTests
     [Fact]
     public async Task GetFilteredSettings_WhenFilterEnabled_ReturnsPreFilteredSettingsForKnownFeature()
     {
-        // Setup: windows filter removes one setting from input
-        var settingA = CreateSetting("A", "Setting A");
-        var settingB = CreateSetting("B", "Setting B");
-        var allSettings = new List<SettingDefinition> { settingA, settingB };
-        var filteredSettings = new List<SettingDefinition> { settingA };
-
-        _windowsFilter
-            .Setup(f => f.FilterSettingsByWindowsVersion(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .Returns(filteredSettings);
-
-        _windowsFilter
-            .Setup(f => f.FilterSettingsByWindowsVersion(It.IsAny<IEnumerable<SettingDefinition>>(), false))
-            .Returns(allSettings);
-
         await _sut.InitializeAsync();
 
-        // We can't easily inject a known featureId because GetKnownFeatureProviders
-        // uses reflection. Instead, verify the filter was invoked during initialization.
+        // Now that providers are explicit (not reflection-based),
+        // we can test with real FeatureIds directly.
+        var result = _sut.GetFilteredSettings(FeatureIds.Privacy);
+
+        result.Should().NotBeEmpty("Privacy settings should be registered via explicit provider");
         _windowsFilter.Verify(
             f => f.FilterSettingsByWindowsVersion(It.IsAny<IEnumerable<SettingDefinition>>()),
             Times.AtLeastOnce);
+    }
+
+    [Theory]
+    [InlineData(nameof(FeatureIds.ExplorerCustomization))]
+    [InlineData(nameof(FeatureIds.StartMenu))]
+    [InlineData(nameof(FeatureIds.Taskbar))]
+    [InlineData(nameof(FeatureIds.WindowsTheme))]
+    [InlineData(nameof(FeatureIds.Power))]
+    [InlineData(nameof(FeatureIds.GamingPerformance))]
+    [InlineData(nameof(FeatureIds.Notifications))]
+    [InlineData(nameof(FeatureIds.Privacy))]
+    [InlineData(nameof(FeatureIds.Sound))]
+    [InlineData(nameof(FeatureIds.Update))]
+    public async Task InitializeAsync_RegistersAllExplicitProviders(string featureIdFieldName)
+    {
+        // Resolve the actual FeatureId string from the field name
+        var featureId = typeof(FeatureIds)
+            .GetField(featureIdFieldName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+            .GetValue(null) as string;
+
+        await _sut.InitializeAsync();
+
+        var result = _sut.GetFilteredSettings(featureId!);
+        result.Should().NotBeEmpty($"Feature '{featureId}' should have settings registered via explicit provider");
     }
 
     [Fact]

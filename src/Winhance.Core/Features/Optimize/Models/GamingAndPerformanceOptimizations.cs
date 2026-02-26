@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -241,14 +240,14 @@ public static class GamingAndPerformanceOptimizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Programs",
                             "Background Services",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -674,15 +673,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Cached",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Disabled (Recommended for SSD)",
                             "Manual",
                             "Automatic (Recommended for HDD)",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -741,15 +740,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "DatabaseSearch",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -776,15 +775,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Printer",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -811,15 +810,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "CloudUpload",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -846,15 +845,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "ApplicationCog",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -881,15 +880,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "AlertOctagon",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -916,15 +915,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "MapMarkerOff",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -951,15 +950,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "StorefrontOutline",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -986,15 +985,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "TestTube",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1021,15 +1020,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Cellphone",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1056,15 +1055,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Wallet",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1091,15 +1090,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "SmartCard",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1140,15 +1139,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "MapOutline",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1175,15 +1174,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Fax",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_DisabledRecommended",
                             "ServiceOption_Manual",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1210,15 +1209,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "ShareOff",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_DisabledRecommended",
                             "ServiceOption_Manual",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1245,15 +1244,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "VirtualReality",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1280,15 +1279,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "CellphoneWireless",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1315,15 +1314,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "MessageText",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1350,15 +1349,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "ShieldAccount",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1385,15 +1384,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Nfc",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1420,15 +1419,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "ShieldCheck",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1455,15 +1454,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Vpn",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1490,15 +1489,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "NetworkOff",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1525,15 +1524,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "RemoteDesktop",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1560,15 +1559,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "MonitorShare",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1595,15 +1594,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "TransitConnectionVariant",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1630,15 +1629,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "CloudDownload",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1665,21 +1664,21 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "MicrosoftXbox",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
                             [2] = new Dictionary<string, object?> { ["Start"] = 2 },
                         },
-                        [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
+                        OptionWarnings = new Dictionary<int, string>
                         {
                             [0] = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
                         },
@@ -1704,15 +1703,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "CloudUploadOutline",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1739,15 +1738,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "NetworkOutline",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1774,15 +1773,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Fingerprint",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1809,15 +1808,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "KeyboardOutline",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1844,15 +1843,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "Radar",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -1879,15 +1878,15 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "ChartBox",
                     InputType = InputType.Selection,
                     RequiresRestart = true,
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "ServiceOption_Disabled",
                             "ServiceOption_ManualRecommended",
                             "ServiceOption_Automatic",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> { ["Start"] = 4 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3 },
@@ -2217,16 +2216,16 @@ public static class GamingAndPerformanceOptimizations
                             IsPrimary = true,
                         }
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Let Windows choose what's best for my computer",
                             "Adjust for best appearance",
                             "Adjust for best performance",
                             "Custom",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -2245,73 +2244,73 @@ public static class GamingAndPerformanceOptimizations
                                 ["VisualFXSetting"] = 3,
                             },
                         },
-                        [CustomPropertyKeys.SettingPresets] = new Dictionary<int, Dictionary<string, bool>>
+                    },
+                    SettingPresets = new Dictionary<int, Dictionary<string, bool>>
+                    {
+                        [0] = new Dictionary<string, bool> // Let Windows Decide (Windows changes this preset based on hardware and just setting VisualFXSetting to 0 does not automatically apply the preset)
+                                                           // For this reason, Winhance applies a "Balanced" preset that actually applies the child settings to the system
+                                                           // Note: The Visual Effects GUI in Windows will not be accurate after selecting this option in Winhance
+                                                           // if you truly want to let Windows decide, toggle the setting in Windows.
                         {
-                            [0] = new Dictionary<string, bool> // Let Windows Decide (Windows changes this preset based on hardware and just setting VisualFXSetting to 0 does not automatically apply the preset) 
-                                                               // For this reason, Winhance applies a "Balanced" preset that actually applies the child settings to the system
-                                                               // Note: The Visual Effects GUI in Windows will not be accurate after selecting this option in Winhance
-                                                               // if you truly want to let Windows decide, toggle the setting in Windows.
-                            {
-                                ["ui-effects"] = false,
-                                ["window-animation"] = false,
-                                ["taskbar-animations"] = false,
-                                ["enable-peek"] = true,
-                                ["menu-animation"] = false,
-                                ["fade-tooltip"] = false,
-                                ["fade-menu-items"] = false,
-                                ["taskbar-thumbnails"] = true,
-                                ["mouse-shadow"] = false,
-                                ["window-shadows"] = false,
-                                ["show-thumbnails"] = true,
-                                ["translucent-selection"] = true,
-                                ["drag-full-windows"] = true,
-                                ["combo-box-animation"] = false,
-                                ["font-smoothing"] = true,
-                                ["smooth-scroll-listboxes"] = true,
-                                ["drop-shadows"] = false,
-                            },
-                            [1] = new Dictionary<string, bool> // Best Appearance
-                            {
-                                ["ui-effects"] = true,
-                                ["window-animation"] = true,
-                                ["taskbar-animations"] = true,
-                                ["enable-peek"] = true,
-                                ["menu-animation"] = true,
-                                ["fade-tooltip"] = true,
-                                ["fade-menu-items"] = true,
-                                ["taskbar-thumbnails"] = true,
-                                ["mouse-shadow"] = true,
-                                ["window-shadows"] = true,
-                                ["show-thumbnails"] = true,
-                                ["translucent-selection"] = true,
-                                ["drag-full-windows"] = true,
-                                ["combo-box-animation"] = true,
-                                ["font-smoothing"] = true,
-                                ["smooth-scroll-listboxes"] = true,
-                                ["drop-shadows"] = true,
-                            },
-                            [2] = new Dictionary<string, bool> // Best Performance
-                            {
-                                ["ui-effects"] = false,
-                                ["window-animation"] = false,
-                                ["taskbar-animations"] = false,
-                                ["enable-peek"] = false,
-                                ["menu-animation"] = false,
-                                ["fade-tooltip"] = false,
-                                ["fade-menu-items"] = false,
-                                ["taskbar-thumbnails"] = false,
-                                ["mouse-shadow"] = false,
-                                ["window-shadows"] = false,
-                                ["show-thumbnails"] = false,
-                                ["translucent-selection"] = false,
-                                ["drag-full-windows"] = false,
-                                ["combo-box-animation"] = false,
-                                ["font-smoothing"] = false,
-                                ["smooth-scroll-listboxes"] = false,
-                                ["drop-shadows"] = false,
-                            },
-                            // No preset for Custom, since it's, you know.... Custom...
+                            ["ui-effects"] = false,
+                            ["window-animation"] = false,
+                            ["taskbar-animations"] = false,
+                            ["enable-peek"] = true,
+                            ["menu-animation"] = false,
+                            ["fade-tooltip"] = false,
+                            ["fade-menu-items"] = false,
+                            ["taskbar-thumbnails"] = true,
+                            ["mouse-shadow"] = false,
+                            ["window-shadows"] = false,
+                            ["show-thumbnails"] = true,
+                            ["translucent-selection"] = true,
+                            ["drag-full-windows"] = true,
+                            ["combo-box-animation"] = false,
+                            ["font-smoothing"] = true,
+                            ["smooth-scroll-listboxes"] = true,
+                            ["drop-shadows"] = false,
                         },
+                        [1] = new Dictionary<string, bool> // Best Appearance
+                        {
+                            ["ui-effects"] = true,
+                            ["window-animation"] = true,
+                            ["taskbar-animations"] = true,
+                            ["enable-peek"] = true,
+                            ["menu-animation"] = true,
+                            ["fade-tooltip"] = true,
+                            ["fade-menu-items"] = true,
+                            ["taskbar-thumbnails"] = true,
+                            ["mouse-shadow"] = true,
+                            ["window-shadows"] = true,
+                            ["show-thumbnails"] = true,
+                            ["translucent-selection"] = true,
+                            ["drag-full-windows"] = true,
+                            ["combo-box-animation"] = true,
+                            ["font-smoothing"] = true,
+                            ["smooth-scroll-listboxes"] = true,
+                            ["drop-shadows"] = true,
+                        },
+                        [2] = new Dictionary<string, bool> // Best Performance
+                        {
+                            ["ui-effects"] = false,
+                            ["window-animation"] = false,
+                            ["taskbar-animations"] = false,
+                            ["enable-peek"] = false,
+                            ["menu-animation"] = false,
+                            ["fade-tooltip"] = false,
+                            ["fade-menu-items"] = false,
+                            ["taskbar-thumbnails"] = false,
+                            ["mouse-shadow"] = false,
+                            ["window-shadows"] = false,
+                            ["show-thumbnails"] = false,
+                            ["translucent-selection"] = false,
+                            ["drag-full-windows"] = false,
+                            ["combo-box-animation"] = false,
+                            ["font-smoothing"] = false,
+                            ["smooth-scroll-listboxes"] = false,
+                            ["drop-shadows"] = false,
+                        },
+                        // No preset for Custom, since it's, you know.... Custom...
                     },
                 },
                 new SettingDefinition

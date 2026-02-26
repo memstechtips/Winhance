@@ -28,7 +28,7 @@
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
         <PackageReference Include="System.Text.Json" Version="9.0.2" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+
 
     </ItemGroup>
 

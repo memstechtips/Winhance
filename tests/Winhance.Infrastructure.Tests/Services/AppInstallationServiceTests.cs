@@ -428,13 +428,12 @@ public class AppInstallationServiceTests
     public async Task InstallAppAsync_RequiresDirectDownload_RoutesToExternalAppsService()
     {
         var sut = CreateSut();
-        var customProps = new Dictionary<string, object> { { "RequiresDirectDownload", true } };
         var item = new ItemDefinition
         {
             Id = "direct-app",
             Name = "Direct App",
             Description = "Needs direct download",
-            CustomProperties = customProps
+            ExternalApp = new ExternalAppMetadata { RequiresDirectDownload = true }
         };
 
         _bloatRemovalService

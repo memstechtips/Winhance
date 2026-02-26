@@ -1,5 +1,6 @@
+using System.Collections.Generic;
+using System.Text.Json;
 using FluentAssertions;
-using Newtonsoft.Json;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
@@ -61,7 +62,7 @@ public class ConfigurationItemTests
             Name = "Test",
         };
 
-        var json = JsonConvert.SerializeObject(item);
+        var json = JsonSerializer.Serialize(item);
 
         json.Should().Contain("\"Id\"");
         json.Should().Contain("\"Name\"");
@@ -83,7 +84,7 @@ public class ConfigurationItemTests
             SelectedIndex = 1,
         };
 
-        var json = JsonConvert.SerializeObject(item);
+        var json = JsonSerializer.Serialize(item);
 
         json.Should().Contain("\"AppxPackageName\":\"Microsoft.App\"");
         json.Should().Contain("\"SelectedIndex\":1");
@@ -108,8 +109,8 @@ public class ConfigurationItemTests
             },
         };
 
-        var json = JsonConvert.SerializeObject(original);
-        var deserialized = JsonConvert.DeserializeObject<ConfigurationItem>(json);
+        var json = JsonSerializer.Serialize(original);
+        var deserialized = JsonSerializer.Deserialize<ConfigurationItem>(json);
 
         deserialized.Should().NotBeNull();
         deserialized!.Id.Should().Be(original.Id);
@@ -127,7 +128,7 @@ public class ConfigurationItemTests
     {
         var json = """{"Id":"test","Name":"Test","UnknownProp":"value"}""";
 
-        var item = JsonConvert.DeserializeObject<ConfigurationItem>(json);
+        var item = JsonSerializer.Deserialize<ConfigurationItem>(json);
 
         item.Should().NotBeNull();
         item!.Id.Should().Be("test");
@@ -139,7 +140,7 @@ public class ConfigurationItemTests
     {
         var json = """{"Id":"test"}""";
 
-        var item = JsonConvert.DeserializeObject<ConfigurationItem>(json);
+        var item = JsonSerializer.Deserialize<ConfigurationItem>(json);
 
         item.Should().NotBeNull();
         item!.Id.Should().Be("test");

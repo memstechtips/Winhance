@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -297,20 +296,17 @@ public static class ExplorerCustomizations
                             RecommendedValue = 1,
                             DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Home",
-                            },
+                            DefaultOption = "Home",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Home",
                             "This PC",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -346,14 +342,14 @@ public static class ExplorerCustomizations
                             BinaryByteIndex = 4,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Open each folder in the same window",
                             "Open each folder in its own window",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -397,15 +393,15 @@ public static class ExplorerCustomizations
                             DefaultValue = 3,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Double-click to open an item (single-click to select)",
                             "Single-click to open (underline icon titles consistent with browser)",
                             "Single-click to open (underline icon titles only when pointing)",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -1127,20 +1123,17 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Select the typed item in the view",
-                            },
+                            DefaultOption = "Select the typed item in the view",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Select the typed item in the view",
                             "Automatically type into the Search Box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {

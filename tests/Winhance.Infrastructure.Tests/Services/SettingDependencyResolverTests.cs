@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -34,7 +33,8 @@ public class SettingDependencyResolverTests
         IReadOnlyList<SettingDependency>? dependencies = null,
         IReadOnlyList<string>? autoEnableSettingIds = null,
         InputType inputType = InputType.Toggle,
-        IReadOnlyDictionary<string, object>? customProperties = null) => new()
+        ComboBoxMetadata? comboBox = null,
+        Dictionary<int, Dictionary<string, bool>>? settingPresets = null) => new()
     {
         Id = id,
         Name = $"Setting {id}",
@@ -42,7 +42,8 @@ public class SettingDependencyResolverTests
         Dependencies = dependencies ?? Array.Empty<SettingDependency>(),
         AutoEnableSettingIds = autoEnableSettingIds,
         InputType = inputType,
-        CustomProperties = customProperties ?? new Dictionary<string, object>(),
+        ComboBox = comboBox,
+        SettingPresets = settingPresets,
     };
 
     private static SettingDependency CreateDependency(
@@ -530,13 +531,13 @@ public class SettingDependencyResolverTests
         var dependency = CreateDependency("setting1", "required1",
             SettingDependencyType.RequiresValueBeforeAnyChange, requiredValue: "High");
 
-        var customProps = new Dictionary<string, object>
+        var comboBox = new ComboBoxMetadata
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Low", "Medium", "High" },
+            DisplayNames = new[] { "Low", "Medium", "High" },
         };
         var setting = CreateSetting("setting1", dependencies: new[] { dependency });
         var requiredSetting = CreateSetting("required1", inputType: InputType.Selection,
-            customProperties: customProps);
+            comboBox: comboBox);
         var allSettings = new[] { setting, requiredSetting };
 
         var states = new Dictionary<string, SettingStateResult>
@@ -565,13 +566,13 @@ public class SettingDependencyResolverTests
         var dependency = CreateDependency("setting1", "required1",
             SettingDependencyType.RequiresValueBeforeAnyChange, requiredValue: "High");
 
-        var customProps = new Dictionary<string, object>
+        var comboBox = new ComboBoxMetadata
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Low", "Medium", "High" },
+            DisplayNames = new[] { "Low", "Medium", "High" },
         };
         var setting = CreateSetting("setting1", dependencies: new[] { dependency });
         var requiredSetting = CreateSetting("required1", inputType: InputType.Selection,
-            customProperties: customProps);
+            comboBox: comboBox);
         var allSettings = new[] { setting, requiredSetting };
 
         var states = new Dictionary<string, SettingStateResult>
@@ -793,7 +794,7 @@ public class SettingDependencyResolverTests
         var dependency = CreateDependency("child1", "parent1",
             SettingDependencyType.RequiresValueBeforeAnyChange, requiredValue: "High");
         var child = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1"); // no SettingPresets in CustomProperties
+        var parent = CreateSetting("parent1"); // no SettingPresets
         var allSettings = new[] { child, parent };
 
         await _resolver.SyncParentToMatchingPresetAsync(
@@ -819,14 +820,10 @@ public class SettingDependencyResolverTests
             [0] = new() { ["child1"] = true, ["child2"] = false },
             [1] = new() { ["child1"] = true, ["child2"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
         var child2 = CreateSetting("child2");
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, child2, parent };
 
         // Both children are enabled -> matches preset index 1
@@ -870,14 +867,10 @@ public class SettingDependencyResolverTests
             [0] = new() { ["child1"] = true, ["child2"] = false },
             [1] = new() { ["child1"] = false, ["child2"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
         var child2 = CreateSetting("child2");
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, child2, parent };
 
         _mockGlobalRegistry.Setup(r => r.GetSetting("child1", null)).Returns(child1);
@@ -915,14 +908,10 @@ public class SettingDependencyResolverTests
             [0] = new() { ["child1"] = true, ["child2"] = false },
             [1] = new() { ["child1"] = true, ["child2"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
         var child2 = CreateSetting("child2");
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, child2, parent };
 
         _mockGlobalRegistry.Setup(r => r.GetSetting("child1", null)).Returns(child1);
@@ -966,14 +955,10 @@ public class SettingDependencyResolverTests
         {
             [0] = new() { ["child1"] = true, ["child_incompatible"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
         var childIncompat = CreateSetting("child_incompatible");
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, childIncompat, parent };
 
         _mockGlobalRegistry.Setup(r => r.GetSetting("child1", null)).Returns(child1);
@@ -1016,13 +1001,9 @@ public class SettingDependencyResolverTests
         {
             [0] = new() { ["child1"] = true, ["unregistered_child"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, parent };
 
         _mockGlobalRegistry.Setup(r => r.GetSetting("child1", null)).Returns(child1);
@@ -1066,14 +1047,10 @@ public class SettingDependencyResolverTests
         {
             [0] = new() { ["child1"] = true, ["child2"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
         var child2 = CreateSetting("child2");
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         // child2 is NOT in allSettings (different domain)
         var allSettings = new[] { child1, parent };
 
@@ -1120,13 +1097,9 @@ public class SettingDependencyResolverTests
         {
             [0] = new() { ["child1"] = true, ["child2"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         // child2 is NOT in allSettings, forcing the count mismatch path
         var allSettings = new[] { child1, parent };
 
@@ -1186,13 +1159,9 @@ public class SettingDependencyResolverTests
         {
             [0] = new() { ["child1"] = true, ["child2"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, parent };
 
         _mockGlobalRegistry.Setup(r => r.GetSetting("child1", null)).Returns(child1);
@@ -1242,13 +1211,9 @@ public class SettingDependencyResolverTests
         {
             [0] = new() { ["child1"] = true },
         };
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = presets,
-        };
 
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1", settingPresets: presets);
         var allSettings = new[] { child1, parent };
 
         _mockGlobalRegistry.Setup(r => r.GetSetting("child1", null)).Returns(child1);
@@ -1302,13 +1267,9 @@ public class SettingDependencyResolverTests
         var dependency = CreateDependency("child1", "parent1",
             SettingDependencyType.RequiresValueBeforeAnyChange, requiredValue: "Custom");
 
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = new Dictionary<int, Dictionary<string, bool>>(),
-        };
-
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1",
+            settingPresets: new Dictionary<int, Dictionary<string, bool>>());
         var allSettings = new[] { child1, parent };
 
         await _resolver.SyncParentToMatchingPresetAsync(
@@ -1321,21 +1282,16 @@ public class SettingDependencyResolverTests
 
     #endregion
 
-    #region SyncParentToMatchingPresetAsync - Presets Value Is Not Correct Type
+    #region SyncParentToMatchingPresetAsync - Presets Property Is Null
 
     [Fact]
-    public async Task SyncParentToMatchingPresetAsync_PresetsPropertyIsWrongType_ReturnsImmediately()
+    public async Task SyncParentToMatchingPresetAsync_PresetsPropertyIsNull_ReturnsImmediately()
     {
         var dependency = CreateDependency("child1", "parent1",
             SettingDependencyType.RequiresValueBeforeAnyChange, requiredValue: "Custom");
 
-        var parentProps = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.SettingPresets] = "not-a-dictionary",
-        };
-
         var child1 = CreateSetting("child1", dependencies: new[] { dependency });
-        var parent = CreateSetting("parent1", customProperties: parentProps);
+        var parent = CreateSetting("parent1"); // SettingPresets is null by default
         var allSettings = new[] { child1, parent };
 
         await _resolver.SyncParentToMatchingPresetAsync(

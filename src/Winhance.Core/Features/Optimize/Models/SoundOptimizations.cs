@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -64,16 +63,16 @@ public static class SoundOptimizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Mute all other sounds",
                             "Reduce the volume of other sounds by 80%",
                             "Reduce the volume of other sounds by 50%",
                             "Do nothing",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {

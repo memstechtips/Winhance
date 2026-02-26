@@ -22,6 +22,7 @@ public record ItemDefinition : BaseDefinition
     public string? RegistryUninstallSearchPattern { get; init; }
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
+    public ExternalAppMetadata? ExternalApp { get; init; }
 
     // Mutable runtime state — set by AppLoadingService/AppStatusDiscoveryService,
     // proxied through AppItemViewModel for UI binding

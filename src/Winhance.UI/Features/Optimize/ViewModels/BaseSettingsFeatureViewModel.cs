@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
@@ -25,13 +27,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private bool _settingsLoaded = false;
     private bool _isSubscribed = false;
-    private readonly object _loadingLock = new();
+    private readonly SemaphoreSlim _loadingSemaphore = new(1, 1);
     private CancellationTokenSource? _searchDebounceTokenSource;
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
-    private Dictionary<string, SettingItemViewModel> _settingsById = new();
-    private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
+    private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
+    private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
     [ObservableProperty]
     public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
@@ -167,10 +169,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     {
         try
         {
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
 
             OnPropertyChanged(nameof(DisplayName));
             await LoadSettingsAsync();
@@ -204,10 +203,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
 
             // Reset the loaded flag to allow reloading
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
 
             // Clear and reload settings
             if (Settings?.Any() == true)
@@ -236,10 +232,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     partial void OnSearchTextChanged(string value)
     {
-        _searchDebounceTokenSource?.Cancel();
-        _searchDebounceTokenSource?.Dispose();
-        _searchDebounceTokenSource = new CancellationTokenSource();
-        var token = _searchDebounceTokenSource.Token;
+        var newCts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _searchDebounceTokenSource, newCts);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+        var token = newCts.Token;
 
         Task.Run(async () =>
         {
@@ -281,15 +278,16 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     {
         SubscribeToEvents();
 
-        lock (_loadingLock)
-        {
-            if (_settingsLoaded)
-                return;
-            _settingsLoaded = true;
-        }
+        // SemaphoreSlim is async-safe. WaitAsync(0) returns false immediately
+        // if already held, preventing duplicate concurrent loads.
+        if (!await _loadingSemaphore.WaitAsync(0))
+            return;
 
         try
         {
+            if (_settingsLoaded)
+                return;
+
             IsLoading = true;
 
             if (Settings?.Any() == true)
@@ -310,26 +308,30 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             Settings = loadedSettings;
 
-            // Build dictionaries for O(1) lookups
-            _settingsById.Clear();
-            _childrenByParentId.Clear();
+            // Build new dictionaries and atomically swap references.
+            // Readers on other threads (OnSettingApplied) see either the old
+            // complete dictionary or the new complete one — never a partial build.
+            var newSettingsById = new Dictionary<string, SettingItemViewModel>();
+            var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
             foreach (var setting in Settings)
             {
                 if (!string.IsNullOrEmpty(setting.SettingId))
-                    _settingsById[setting.SettingId] = setting;
+                    newSettingsById[setting.SettingId] = setting;
 
                 // Index children by their parent ID for fast lookup when parent changes
                 var parentId = setting.SettingDefinition?.ParentSettingId;
                 if (!string.IsNullOrEmpty(parentId))
                 {
-                    if (!_childrenByParentId.TryGetValue(parentId, out var children))
+                    if (!newChildrenByParentId.TryGetValue(parentId, out var children))
                     {
                         children = new List<SettingItemViewModel>();
-                        _childrenByParentId[parentId] = children;
+                        newChildrenByParentId[parentId] = children;
                     }
                     children.Add(setting);
                 }
             }
+            _settingsById = newSettingsById;
+            _childrenByParentId = newChildrenByParentId;
 
             UpdateParentChildRelationships();
             RebuildGroupedSettings();
@@ -339,20 +341,19 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             OnPropertyChanged(nameof(SettingsCount));
             OnPropertyChanged(nameof(GroupDescriptionText));
 
+            _settingsLoaded = true;
             _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
         }
         catch (Exception ex)
         {
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
             _logService.Log(LogLevel.Error, $"Error loading {DisplayName} settings: {ex.Message}");
             throw;
         }
         finally
         {
             IsLoading = false;
+            _loadingSemaphore.Release();
         }
     }
 
@@ -362,10 +363,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName}");
 
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
 
             if (Settings?.Any() == true)
             {
@@ -492,13 +490,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 Settings.Clear();
             }
 
-            _searchDebounceTokenSource?.Cancel();
-            _searchDebounceTokenSource?.Dispose();
-            _searchDebounceTokenSource = null;
+            var cts = Interlocked.Exchange(ref _searchDebounceTokenSource, null);
+            cts?.Cancel();
+            cts?.Dispose();
 
-            _settingsById.Clear();
-            _childrenByParentId.Clear();
+            _settingsById = new Dictionary<string, SettingItemViewModel>();
+            _childrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
             _settingsLoaded = false;
+            _loadingSemaphore.Dispose();
         }
 
         base.Dispose(disposing);

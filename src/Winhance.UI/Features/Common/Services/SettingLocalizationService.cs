@@ -1,5 +1,3 @@
-using System.Text.Json;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -31,70 +29,84 @@ public class SettingLocalizationService : ISettingLocalizationService
             GroupName = setting.GroupName != null ? GetLocalizedGroupName(setting.GroupName) : null
         };
 
-        if (setting.CustomProperties.Count > 0)
+        if (setting.ComboBox != null)
         {
-            var customProps = new Dictionary<string, object>(setting.CustomProperties);
+            var comboBox = setting.ComboBox;
 
-            if (customProps.ContainsKey(CustomPropertyKeys.ComboBoxDisplayNames))
+            var localizedComboBox = comboBox with
             {
-                customProps[CustomPropertyKeys.ComboBoxDisplayNames] = LocalizeComboBoxNames(setting);
-            }
+                DisplayNames = LocalizeComboBoxNames(setting)
+            };
 
-            if (customProps.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customState) && customState is string csKey)
+            if (comboBox.CustomStateDisplayName != null)
             {
-                customProps[CustomPropertyKeys.CustomStateDisplayName] = GetLocalizedCustomState(setting);
-            }
-
-            if (customProps.TryGetValue("Units", out var units) && units is string unitsKey)
-            {
-                customProps["Units"] = LocalizeUnits(unitsKey);
-            }
-
-            if (customProps.ContainsKey(CustomPropertyKeys.OptionWarnings))
-            {
-                customProps[CustomPropertyKeys.OptionWarnings] = LocalizeOptionWarnings(setting);
-            }
-
-            if (customProps.ContainsKey(CustomPropertyKeys.OptionTooltips))
-            {
-                customProps[CustomPropertyKeys.OptionTooltips] = LocalizeOptionTooltips(setting);
-            }
-
-            if (customProps.ContainsKey(CustomPropertyKeys.OptionConfirmations))
-            {
-                customProps[CustomPropertyKeys.OptionConfirmations] = LocalizeOptionConfirmations(setting);
-            }
-
-            // Handle compatibility messages (format: Key|Arg1|Arg2...)
-            if (customProps.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMsg) && compatMsg is string compatKey)
-            {
-                if (compatKey.StartsWith("Compatibility_"))
+                localizedComboBox = localizedComboBox with
                 {
-                    var parts = compatKey.Split('|');
-                    var key = parts[0];
+                    CustomStateDisplayName = GetLocalizedCustomState(setting)
+                };
+            }
 
-                    if (parts.Length > 1)
-                    {
-                        // Handle args
-                        var args = parts.Skip(1).ToArray();
-                        try
-                        {
-                            var format = _localization.GetString(key);
-                            customProps[CustomPropertyKeys.VersionCompatibilityMessage] = string.Format(format, args);
-                        }
-                        catch
-                        {
-                            customProps[CustomPropertyKeys.VersionCompatibilityMessage] = _localization.GetString(key);
-                        }
-                    }
-                    else
-                    {
-                        customProps[CustomPropertyKeys.VersionCompatibilityMessage] = _localization.GetString(key);
-                    }
+            if (comboBox.OptionWarnings != null)
+            {
+                localizedComboBox = localizedComboBox with
+                {
+                    OptionWarnings = LocalizeOptionWarnings(setting)
+                };
+            }
+
+            if (comboBox.OptionTooltips != null)
+            {
+                localizedComboBox = localizedComboBox with
+                {
+                    OptionTooltips = LocalizeOptionTooltips(setting)
+                };
+            }
+
+            if (comboBox.OptionConfirmations != null)
+            {
+                localizedComboBox = localizedComboBox with
+                {
+                    OptionConfirmations = LocalizeOptionConfirmations(setting)
+                };
+            }
+
+            localized = localized with { ComboBox = localizedComboBox };
+        }
+
+        if (setting.NumericRange?.Units != null)
+        {
+            localized = localized with
+            {
+                NumericRange = setting.NumericRange with
+                {
+                    Units = LocalizeUnits(setting.NumericRange.Units)
+                }
+            };
+        }
+
+        // Handle compatibility messages (format: Key|Arg1|Arg2...)
+        if (setting.VersionCompatibilityMessage is { } compatKey && compatKey.StartsWith("Compatibility_"))
+        {
+            var parts = compatKey.Split('|');
+            var key = parts[0];
+
+            if (parts.Length > 1)
+            {
+                var args = parts.Skip(1).ToArray();
+                try
+                {
+                    var format = _localization.GetString(key);
+                    localized = localized with { VersionCompatibilityMessage = string.Format(format, args) };
+                }
+                catch
+                {
+                    localized = localized with { VersionCompatibilityMessage = _localization.GetString(key) };
                 }
             }
-
-            localized = localized with { CustomProperties = customProps };
+            else
+            {
+                localized = localized with { VersionCompatibilityMessage = _localization.GetString(key) };
+            }
         }
 
         return localized;
@@ -142,73 +154,37 @@ public class SettingLocalizationService : ISettingLocalizationService
     private string GetLocalizedCustomState(SettingDefinition setting)
     {
         var key = $"Setting_{setting.Id}_CustomState";
-        var original = setting.CustomProperties[CustomPropertyKeys.CustomStateDisplayName].ToString();
-        return GetStringOrFallback(key, original!);
+        var original = setting.ComboBox!.CustomStateDisplayName!;
+        return GetStringOrFallback(key, original);
     }
 
     private Dictionary<int, string> LocalizeOptionWarnings(SettingDefinition setting)
     {
-        if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.OptionWarnings, out var value))
+        var originalWarnings = setting.ComboBox?.OptionWarnings;
+        if (originalWarnings == null)
             return new Dictionary<int, string>();
 
         var localizedWarnings = new Dictionary<int, string>();
-
-        if (value is JsonElement element && element.ValueKind == JsonValueKind.Object)
+        foreach (var kvp in originalWarnings)
         {
-            foreach (var property in element.EnumerateObject())
-            {
-                if (int.TryParse(property.Name, out var key))
-                {
-                    var val = property.Value.GetString();
-                    if (val != null)
-                    {
-                        var locKey = $"Setting_{setting.Id}_OptionWarning_{key}";
-                        localizedWarnings[key] = GetStringOrFallback(locKey, val);
-                    }
-                }
-            }
-        }
-        else if (value is Dictionary<int, string> originalWarnings)
-        {
-            foreach (var kvp in originalWarnings)
-            {
-                var locKey = $"Setting_{setting.Id}_OptionWarning_{kvp.Key}";
-                localizedWarnings[kvp.Key] = GetStringOrFallback(locKey, kvp.Value);
-            }
+            var locKey = $"Setting_{setting.Id}_OptionWarning_{kvp.Key}";
+            localizedWarnings[kvp.Key] = GetStringOrFallback(locKey, kvp.Value);
         }
 
         return localizedWarnings;
     }
 
-    private Dictionary<int, string> LocalizeOptionTooltips(SettingDefinition setting)
+    private string[] LocalizeOptionTooltips(SettingDefinition setting)
     {
-        if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.OptionTooltips, out var value))
-            return new Dictionary<int, string>();
+        var originalTooltips = setting.ComboBox?.OptionTooltips;
+        if (originalTooltips == null)
+            return Array.Empty<string>();
 
-        var localizedTooltips = new Dictionary<int, string>();
-
-        if (value is JsonElement element && element.ValueKind == JsonValueKind.Object)
+        var localizedTooltips = new string[originalTooltips.Length];
+        for (int i = 0; i < originalTooltips.Length; i++)
         {
-            foreach (var property in element.EnumerateObject())
-            {
-                if (int.TryParse(property.Name, out var key))
-                {
-                    var val = property.Value.GetString();
-                    if (val != null)
-                    {
-                        var locKey = $"Setting_{setting.Id}_OptionTooltip_{key}";
-                        localizedTooltips[key] = GetStringOrFallback(locKey, val);
-                    }
-                }
-            }
-        }
-        else if (value is Dictionary<int, string> originalTooltips)
-        {
-            foreach (var kvp in originalTooltips)
-            {
-                var locKey = $"Setting_{setting.Id}_OptionTooltip_{kvp.Key}";
-                localizedTooltips[kvp.Key] = GetStringOrFallback(locKey, kvp.Value);
-            }
+            var locKey = $"Setting_{setting.Id}_OptionTooltip_{i}";
+            localizedTooltips[i] = GetStringOrFallback(locKey, originalTooltips[i]);
         }
 
         return localizedTooltips;
@@ -216,43 +192,16 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     private Dictionary<int, (string Title, string Message)> LocalizeOptionConfirmations(SettingDefinition setting)
     {
-        if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.OptionConfirmations, out var value))
+        var originalConfirmations = setting.ComboBox?.OptionConfirmations;
+        if (originalConfirmations == null)
             return new Dictionary<int, (string Title, string Message)>();
 
         var localizedConfirmations = new Dictionary<int, (string Title, string Message)>();
-
-        if (value is JsonElement element && element.ValueKind == JsonValueKind.Object)
+        foreach (var kvp in originalConfirmations)
         {
-            foreach (var property in element.EnumerateObject())
-            {
-                if (int.TryParse(property.Name, out var key) && property.Value.ValueKind == JsonValueKind.Object)
-                {
-                    string? title = null;
-                    string? message = null;
-
-                    if (property.Value.TryGetProperty("Title", out var titleProp))
-                        title = titleProp.GetString();
-
-                    if (property.Value.TryGetProperty("Message", out var messageProp))
-                        message = messageProp.GetString();
-
-                    if (title != null && message != null)
-                    {
-                         var locTitle = GetStringOrFallback(title, title);
-                         var locMessage = GetStringOrFallback(message, message);
-                         localizedConfirmations[key] = (locTitle, locMessage);
-                    }
-                }
-            }
-        }
-        else if (value is Dictionary<int, (string Title, string Message)> originalConfirmations)
-        {
-            foreach (var kvp in originalConfirmations)
-            {
-                var title = GetStringOrFallback(kvp.Value.Title, kvp.Value.Title);
-                var message = GetStringOrFallback(kvp.Value.Message, kvp.Value.Message);
-                localizedConfirmations[kvp.Key] = (title, message);
-            }
+            var title = GetStringOrFallback(kvp.Value.Title, kvp.Value.Title);
+            var message = GetStringOrFallback(kvp.Value.Message, kvp.Value.Message);
+            localizedConfirmations[kvp.Key] = (title, message);
         }
 
         return localizedConfirmations;
@@ -260,10 +209,7 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     private string[] LocalizeComboBoxNames(SettingDefinition setting)
     {
-        if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var value))
-            return Array.Empty<string>();
-
-        var originalNames = (string[])value;
+        var originalNames = setting.ComboBox!.DisplayNames;
         var localizedNames = new string[originalNames.Length];
 
         for (int i = 0; i < originalNames.Length; i++)
@@ -307,9 +253,8 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     public string? BuildCrossGroupInfoMessage(SettingDefinition setting)
     {
-        if (setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CrossGroupChildSettings, out var crossGroupObj) != true ||
-            crossGroupObj is not Dictionary<string, string> crossGroupSettings ||
-            crossGroupSettings.Count == 0)
+        var crossGroupSettings = setting.CrossGroupChildSettings;
+        if (crossGroupSettings == null || crossGroupSettings.Count == 0)
         {
             return null;
         }

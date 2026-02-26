@@ -65,11 +65,8 @@ public class RecommendedSettingsApplierTests
                 ValueType = RegistryValueKind.DWord,
                 IsPrimary = true,
                 RecommendedValue = comboBoxOptions[recommendedOption],
-                CustomProperties = new Dictionary<string, object>
-                {
-                    ["RecommendedOption"] = recommendedOption,
-                    ["ComboBoxOptions"] = comboBoxOptions,
-                },
+                RecommendedOption = recommendedOption,
+                ComboBoxOptions = comboBoxOptions,
             }
         }
     };

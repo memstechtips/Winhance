@@ -27,6 +27,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Processing operations for '{setting.Id}' - Type: {setting.InputType}");
 
+            bool allSucceeded = true;
+            var failedOperations = new List<string>();
+
             if (setting.RegistrySettings?.Count > 0 && setting.RegContents?.Count == 0)
             {
                 if (setting.InputType == InputType.Selection && value is Dictionary<string, object> customValues)
@@ -39,13 +42,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                         if (customValues.TryGetValue(valueName, out var specificValue))
                         {
-                            if (specificValue == null)
+                            bool ok = specificValue == null
+                                ? registryService.ApplySetting(registrySetting, false)
+                                : registryService.ApplySetting(registrySetting, true, specificValue);
+
+                            if (!ok)
                             {
-                                registryService.ApplySetting(registrySetting, false);
-                            }
-                            else
-                            {
-                                registryService.ApplySetting(registrySetting, true, specificValue);
+                                allSucceeded = false;
+                                failedOperations.Add($"Registry: {registrySetting.KeyPath}\\{valueName}");
+                                logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] Failed to apply registry setting: {registrySetting.KeyPath}\\{valueName}");
                             }
                         }
                     }
@@ -65,22 +70,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     foreach (var registrySetting in setting.RegistrySettings)
                     {
                         var valueName = registrySetting.ValueName ?? "KeyExists";
+                        bool ok;
 
                         if (specificValues.TryGetValue(valueName, out var specificValue))
                         {
-                            if (specificValue == null)
-                            {
-                                registryService.ApplySetting(registrySetting, false);
-                            }
-                            else
-                            {
-                                registryService.ApplySetting(registrySetting, true, specificValue);
-                            }
+                            ok = specificValue == null
+                                ? registryService.ApplySetting(registrySetting, false)
+                                : registryService.ApplySetting(registrySetting, true, specificValue);
                         }
                         else
                         {
                             bool applyValue = comboBoxResolver.GetValueFromIndex(setting, index) != 0;
-                            registryService.ApplySetting(registrySetting, applyValue);
+                            ok = registryService.ApplySetting(registrySetting, applyValue);
+                        }
+
+                        if (!ok)
+                        {
+                            allSucceeded = false;
+                            failedOperations.Add($"Registry: {registrySetting.KeyPath}\\{valueName}");
+                            logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] Failed to apply registry setting: {registrySetting.KeyPath}\\{valueName}");
                         }
                     }
                 }
@@ -98,7 +106,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     foreach (var registrySetting in setting.RegistrySettings)
                     {
-                        registryService.ApplySetting(registrySetting, applyValue);
+                        if (!registryService.ApplySetting(registrySetting, applyValue))
+                        {
+                            allSucceeded = false;
+                            var valueName = registrySetting.ValueName ?? "KeyExists";
+                            failedOperations.Add($"Registry: {registrySetting.KeyPath}\\{valueName}");
+                            logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] Failed to apply registry setting: {registrySetting.KeyPath}\\{valueName}");
+                        }
                     }
                 }
             }
@@ -219,13 +233,26 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         0);
 
                     if (result == 0)
+                    {
                         logService.Log(LogLevel.Info, $"[SettingOperationExecutor] CallNtPowerInformation(level={apiSetting.InformationLevel}) succeeded for '{setting.Id}'");
+                    }
                     else
+                    {
+                        allSucceeded = false;
+                        failedOperations.Add($"NativePowerApi: level={apiSetting.InformationLevel}");
                         logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] CallNtPowerInformation(level={apiSetting.InformationLevel}) failed with status {result} for '{setting.Id}'");
+                    }
                 }
             }
 
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
+
+            if (!allSucceeded)
+            {
+                var message = $"One or more operations failed for '{setting.Id}': {string.Join(", ", failedOperations)}";
+                logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] {message}");
+                return OperationResult.Failed(message);
+            }
 
             return OperationResult.Succeeded();
         }

@@ -25,6 +25,11 @@ public class SettingOperationExecutorTests
 
     public SettingOperationExecutorTests()
     {
+        _mockRegistry
+            .Setup(r => r.ApplySetting(
+                It.IsAny<RegistrySetting>(), It.IsAny<bool>(), It.IsAny<object?>()))
+            .Returns(true);
+
         _mockPowerCfg
             .Setup(p => p.ApplyPowerCfgSettingsAsync(
                 It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
@@ -1138,5 +1143,145 @@ public class SettingOperationExecutorTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
         result.ErrorMessage.Should().BeNull();
+    }
+
+    // ---------------------------------------------------------------
+    // BP-1: Registry failure propagation
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_RegistryApplyFails_ReturnsFailedResult()
+    {
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Fail",
+            ValueName = "Bad",
+            ValueType = RegistryValueKind.DWord,
+        };
+        var setting = CreateSetting("reg-fail") with
+        {
+            RegistrySettings = new[] { regSetting },
+        };
+
+        _mockRegistry
+            .Setup(r => r.ApplySetting(regSetting, true, null))
+            .Returns(false);
+
+        var result = await _executor.ApplySettingOperationsAsync(setting, true, null);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("reg-fail");
+        result.ErrorMessage.Should().Contain(@"HKCU\Software\Fail\Bad");
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_PartialRegistryFailure_ReportsAllFailedOperations()
+    {
+        var reg1 = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Pass",
+            ValueName = "Good",
+            ValueType = RegistryValueKind.DWord,
+        };
+        var reg2 = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Fail",
+            ValueName = "Bad",
+            ValueType = RegistryValueKind.DWord,
+        };
+        var setting = CreateSetting("partial-fail") with
+        {
+            RegistrySettings = new[] { reg1, reg2 },
+        };
+
+        _mockRegistry
+            .Setup(r => r.ApplySetting(reg1, true, null))
+            .Returns(true);
+        _mockRegistry
+            .Setup(r => r.ApplySetting(reg2, true, null))
+            .Returns(false);
+
+        var result = await _executor.ApplySettingOperationsAsync(setting, true, null);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(@"HKCU\Software\Fail\Bad");
+        result.ErrorMessage.Should().NotContain(@"HKCU\Software\Pass\Good");
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_RegistryFails_StillCallsProcessRestart()
+    {
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Fail",
+            ValueName = "Val",
+            ValueType = RegistryValueKind.DWord,
+        };
+        var setting = CreateSetting("fail-restart") with
+        {
+            RegistrySettings = new[] { regSetting },
+        };
+
+        _mockRegistry
+            .Setup(r => r.ApplySetting(regSetting, true, null))
+            .Returns(false);
+
+        await _executor.ApplySettingOperationsAsync(setting, true, null);
+
+        _mockRestart.Verify(
+            r => r.HandleProcessAndServiceRestartsAsync(setting),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_SelectionCustomValueFails_ReturnsFailedResult()
+    {
+        var reg1 = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Sel",
+            ValueName = "Opt1",
+            ValueType = RegistryValueKind.DWord,
+        };
+        var setting = CreateSetting("sel-fail", InputType.Selection) with
+        {
+            RegistrySettings = new[] { reg1 },
+        };
+
+        _mockRegistry
+            .Setup(r => r.ApplySetting(reg1, true, 42))
+            .Returns(false);
+
+        var customValues = new Dictionary<string, object> { { "Opt1", 42 } };
+        var result = await _executor.ApplySettingOperationsAsync(setting, true, customValues);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Opt1");
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_SelectionWithIndexFails_ReturnsFailedResult()
+    {
+        var reg1 = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Combo",
+            ValueName = "Setting1",
+            ValueType = RegistryValueKind.DWord,
+        };
+        var setting = CreateSetting("sel-idx-fail", InputType.Selection) with
+        {
+            RegistrySettings = new[] { reg1 },
+        };
+
+        _mockComboBox
+            .Setup(c => c.ResolveIndexToRawValues(setting, 1))
+            .Returns(new Dictionary<string, object?> { { "Setting1", 100 } });
+        _mockRegistry
+            .Setup(r => r.ApplySetting(reg1, true, 100))
+            .Returns(false);
+
+        var result = await _executor.ApplySettingOperationsAsync(setting, true, 1);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Setting1");
     }
 }

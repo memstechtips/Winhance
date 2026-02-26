@@ -24,7 +24,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
-            if (setting.Id == "updates-policy-mode" && value is int index)
+            if (setting.Id == SettingIds.UpdatesPolicyMode && value is int index)
             {
                 await ApplyUpdatesPolicyModeAsync(setting, index, settingApplicationService).ConfigureAwait(false);
                 return true;
@@ -36,11 +36,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             var results = new Dictionary<string, Dictionary<string, object?>>();
 
-            var updatesSetting = settings.FirstOrDefault(s => s.Id == "updates-policy-mode");
+            var updatesSetting = settings.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
             if (updatesSetting != null)
             {
                 var currentIndex = await GetCurrentUpdatePolicyIndexAsync().ConfigureAwait(false);
-                results["updates-policy-mode"] = new Dictionary<string, object?> { ["CurrentPolicyIndex"] = currentIndex };
+                results[SettingIds.UpdatesPolicyMode] = new Dictionary<string, object?> { ["CurrentPolicyIndex"] = currentIndex };
             }
 
             return results;
@@ -364,10 +364,10 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         private void ApplyRegistrySettingsForIndex(SettingDefinition setting, int index)
         {
-            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            if (setting.ComboBox?.ValueMappings == null)
                 return;
 
-            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            var mappings = setting.ComboBox.ValueMappings;
             if (!mappings.TryGetValue(index, out var valueMapping))
                 return;
 

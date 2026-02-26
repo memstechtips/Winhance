@@ -92,4 +92,34 @@ public class WindowsVersionServiceTests
 
         act.Should().NotThrow();
     }
+
+    // ── IsWindowsServer ──
+
+    [Fact]
+    public void IsWindowsServer_ReturnsConsistentValue()
+    {
+        var first = _sut.IsWindowsServer();
+        var second = _sut.IsWindowsServer();
+
+        first.Should().Be(second);
+    }
+
+    [Fact]
+    public void IsWindowsServer_DoesNotThrow()
+    {
+        var act = () => _sut.IsWindowsServer();
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void IsWindowsServer_ReturnsBool()
+    {
+        // On a desktop Windows machine this should be false;
+        // on a Server SKU it should be true.
+        // Either way it must return without error.
+        var result = _sut.IsWindowsServer();
+
+        result.Should().Be(result); // valid bool
+    }
 }

@@ -240,7 +240,7 @@ internal class RegistryCommandEmitter
 
     public void AppendSelectionCommandsFiltered(StringBuilder sb, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
-        if (setting.Id == "power-plan-selection")
+        if (setting.Id == SettingIds.PowerPlanSelection)
             return;
 
         Dictionary<string, object> valuesToApply;
@@ -250,7 +250,7 @@ internal class RegistryCommandEmitter
             valuesToApply = configItem.CustomStateValues;
         }
         else if (configItem.SelectedIndex.HasValue &&
-                 setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true)
+                 setting.ComboBox?.ValueMappings != null)
         {
             var resolvedValues = _comboBoxResolver.ResolveIndexToRawValues(setting, configItem.SelectedIndex.Value);
             valuesToApply = resolvedValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);

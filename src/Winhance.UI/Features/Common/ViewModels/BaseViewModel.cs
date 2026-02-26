@@ -23,8 +23,4 @@ public abstract class BaseViewModel : ObservableObject, IDisposable
         }
     }
 
-    ~BaseViewModel()
-    {
-        Dispose(false);
-    }
 }

@@ -129,7 +129,7 @@ public class WindowsAppsService(
                         {
                             await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                             {
-                                SettingId = "updates-policy-mode",
+                                SettingId = SettingIds.UpdatesPolicyMode,
                                 Enable = true,
                                 Value = 2
                             }).ConfigureAwait(false);
@@ -661,12 +661,12 @@ public class WindowsAppsService(
         try
         {
             var updateSettings = UpdateOptimizations.GetUpdateOptimizations();
-            var policySetting = updateSettings.Settings.FirstOrDefault(s => s.Id == "updates-policy-mode");
+            var policySetting = updateSettings.Settings.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
             if (policySetting == null)
                 return false;
 
             var states = await systemSettingsDiscoveryService.GetSettingStatesAsync(new[] { policySetting }).ConfigureAwait(false);
-            if (states.TryGetValue("updates-policy-mode", out var state) && state.Success)
+            if (states.TryGetValue(SettingIds.UpdatesPolicyMode, out var state) && state.Success)
             {
                 return state.CurrentValue is int index && index == 3;
             }

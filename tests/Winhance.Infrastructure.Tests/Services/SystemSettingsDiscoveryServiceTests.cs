@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -456,13 +455,13 @@ public class SystemSettingsDiscoveryServiceTests
     [Fact]
     public async Task GetSettingStatesAsync_ExceptionForIndividualSetting_ReturnsFailedResult()
     {
-        // Create a setting that will cause an error during interpretation
+        // Create a setting whose registry check will throw during state interpretation
         var setting = new SettingDefinition
         {
             Id = "test-error",
             Name = "Error Setting",
             Description = "Will cause error",
-            InputType = InputType.Selection,
+            InputType = InputType.Toggle,
             RegistrySettings = new[]
             {
                 new RegistrySetting
@@ -472,25 +471,17 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                 },
             },
-            // Selection type with ValueMappings that will cause a cast error
-            CustomProperties = new Dictionary<string, object>
-            {
-                { CustomPropertyKeys.ValueMappings, "not-a-dictionary" }, // Wrong type
-            },
         };
 
+        // GetBatchValues returns a value so raw values exist, but IsSettingApplied throws
+        // during the per-setting interpretation phase (inside the try/catch)
         _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
             .Returns(new Dictionary<string, object?>
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 1 },
             });
         _mockRegistry.Setup(r => r.IsSettingApplied(It.IsAny<RegistrySetting>()))
-            .Returns(true);
-
-        // Set up domain router for Selection type
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.DomainName).Returns("TestDomain");
-        _mockDomainRouter.Setup(r => r.GetDomainService("test-error")).Returns(mockDomain.Object);
+            .Throws(new InvalidOperationException("Simulated registry error"));
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 

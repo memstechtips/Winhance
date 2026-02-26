@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Constants;
+
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -179,15 +179,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             var parentSetting = allSettings.FirstOrDefault(s => s.Id == prerequisite.RequiredSettingId);
-            if (parentSetting?.CustomProperties?.ContainsKey(CustomPropertyKeys.SettingPresets) != true)
+            if (parentSetting?.SettingPresets == null || parentSetting.SettingPresets.Count == 0)
             {
                 return;
             }
 
-            var presets = parentSetting.CustomProperties[CustomPropertyKeys.SettingPresets]
-                as Dictionary<int, Dictionary<string, bool>>;
+            var presets = parentSetting.SettingPresets;
 
-            if (presets == null || presets.Count == 0)
+            if (presets.Count == 0)
             {
                 return;
             }
@@ -315,8 +314,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             if (setting.InputType == InputType.Selection &&
-                setting.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var namesObj) == true &&
-                namesObj is string[] displayNames)
+                setting.ComboBox?.DisplayNames is { } displayNames)
             {
                 int requiredIndex = -1;
                 for (int i = 0; i < displayNames.Length; i++)
@@ -353,8 +351,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             if (setting.InputType == InputType.Selection &&
-                setting.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var namesObj) == true &&
-                namesObj is string[] displayNames)
+                setting.ComboBox?.DisplayNames is { } displayNames)
             {
                 for (int i = 0; i < displayNames.Length; i++)
                 {

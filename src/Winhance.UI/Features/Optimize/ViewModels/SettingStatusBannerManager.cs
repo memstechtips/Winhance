@@ -29,9 +29,7 @@ internal sealed class SettingStatusBannerManager
     /// </summary>
     public BannerState? GetCompatibilityBanner(SettingDefinition? definition)
     {
-        if (definition?.CustomProperties?.TryGetValue(
-            CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
-            compatMessage is string messageText)
+        if (definition?.VersionCompatibilityMessage is { } messageText)
         {
             return new BannerState(messageText, InfoBarSeverity.Warning);
         }
@@ -48,8 +46,7 @@ internal sealed class SettingStatusBannerManager
         if (definition == null || value is not int selectedIndex)
         {
             // Keep existing compatibility banner if present, otherwise clear
-            if (definition?.CustomProperties?.ContainsKey(
-                CustomPropertyKeys.VersionCompatibilityMessage) != true)
+            if (definition?.VersionCompatibilityMessage == null)
             {
                 return BannerState.Clear;
             }
@@ -57,27 +54,22 @@ internal sealed class SettingStatusBannerManager
         }
 
         // Check for option-specific warnings (e.g., update policy security warnings)
-        if (definition.CustomProperties?.TryGetValue(
-            CustomPropertyKeys.OptionWarnings, out var warnings) == true &&
-            warnings is Dictionary<int, string> warningDict &&
+        if (definition.ComboBox?.OptionWarnings is { } warningDict &&
             warningDict.TryGetValue(selectedIndex, out var warning))
         {
             return new BannerState(warning, InfoBarSeverity.Error);
         }
 
         // Check for cross-group child settings info (promotional banner)
-        if (definition.CustomProperties?.ContainsKey(
-            CustomPropertyKeys.CrossGroupChildSettings) == true)
+        if (definition.CrossGroupChildSettings != null)
         {
             return ComputeCrossGroupBanner(definition, selectedIndex, crossGroupInfoMessage);
         }
 
         // No option-specific warning - check for compatibility message
-        if (definition.CustomProperties?.TryGetValue(
-            CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
-            compatMessage is string messageText)
+        if (definition.VersionCompatibilityMessage is { } compatText)
         {
-            return new BannerState(messageText, InfoBarSeverity.Warning);
+            return new BannerState(compatText, InfoBarSeverity.Warning);
         }
 
         return BannerState.Clear;
@@ -100,10 +92,7 @@ internal sealed class SettingStatusBannerManager
     private BannerState ComputeCrossGroupBanner(
         SettingDefinition definition, int selectedIndex, string? crossGroupInfoMessage)
     {
-        var displayNames = definition.CustomProperties?.TryGetValue(
-            CustomPropertyKeys.ComboBoxDisplayNames, out var names) == true
-            ? names as string[]
-            : null;
+        var displayNames = definition.ComboBox?.DisplayNames;
 
         if (displayNames == null)
             return BannerState.Clear;

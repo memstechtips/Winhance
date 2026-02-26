@@ -173,19 +173,16 @@ public class DirectDownloadService : IDirectDownloadService
 
     private async Task<string> ResolveDownloadUrlAsync(ItemDefinition item, CancellationToken cancellationToken)
     {
-        var isGitHubRelease = item.CustomProperties.TryGetValue("IsGitHubRelease", out var isGitHub)
-            && isGitHub is bool isGitHubBool && isGitHubBool;
+        var externalApp = item.ExternalApp;
+        if (externalApp == null)
+            throw new Exception($"No ExternalApp metadata found for {item.Name}");
 
-        if (isGitHubRelease)
+        if (externalApp.IsGitHubRelease && externalApp.DownloadUrl != null && externalApp.AssetPattern != null)
         {
-            if (item.CustomProperties.TryGetValue("DownloadUrl", out var githubUrl) &&
-                item.CustomProperties.TryGetValue("AssetPattern", out var pattern))
-            {
-                return await ResolveGitHubReleaseUrlAsync(
-                    githubUrl.ToString()!,
-                    pattern.ToString()!,
-                    cancellationToken).ConfigureAwait(false);
-            }
+            return await ResolveGitHubReleaseUrlAsync(
+                externalApp.DownloadUrl,
+                externalApp.AssetPattern,
+                cancellationToken).ConfigureAwait(false);
         }
 
         return SelectDownloadUrl(item);
@@ -196,16 +193,15 @@ public class DirectDownloadService : IDirectDownloadService
         var arch = GetCurrentArchitecture();
         _logService?.LogInformation($"Detecting architecture: {arch}");
 
-        if (item.CustomProperties.TryGetValue($"DownloadUrl_{arch}", out var archUrl))
-        {
-            _logService?.LogInformation($"Found architecture-specific URL for {arch}");
-            return archUrl.ToString()!;
-        }
+        var externalApp = item.ExternalApp;
+        if (externalApp == null)
+            throw new Exception($"No ExternalApp metadata found for {item.Name}");
 
-        if (item.CustomProperties.TryGetValue("DownloadUrl", out var genericUrl))
+        var archUrl = externalApp.GetDownloadUrlForArchitecture(arch);
+        if (archUrl != null)
         {
-            _logService?.LogWarning($"No {arch}-specific download found for {item.Name}, using generic URL. This may not work on this architecture.");
-            return genericUrl.ToString()!;
+            _logService?.LogInformation($"Found download URL for {arch}");
+            return archUrl;
         }
 
         _logService?.LogError($"No download URL found for {item.Name} (architecture: {arch})");

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -18,6 +18,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly ILogService _logService;
         private readonly IInteractiveUserService _interactiveUserService;
         private readonly IFileSystemService _fileSystemService;
+
+        private static readonly JsonSerializerOptions WriteOptions = new()
+        {
+            WriteIndented = true,
+        };
 
         public UserPreferencesService(ILogService logService, IInteractiveUserService interactiveUserService, IFileSystemService fileSystemService)
         {
@@ -84,14 +89,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return new Dictionary<string, object>();
                 }
 
-                var settings = new JsonSerializerSettings
-                {
-                    NullValueHandling = NullValueHandling.Include,
-                    TypeNameHandling = TypeNameHandling.None,
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                };
-
-                var preferences = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
+                var preferences = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
 
                 if (preferences != null)
                 {
@@ -122,15 +120,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 string filePath = GetPreferencesFilePath();
 
-                var settings = new JsonSerializerSettings
-                {
-                    Formatting = Formatting.Indented,
-                    NullValueHandling = NullValueHandling.Include,
-                    TypeNameHandling = TypeNameHandling.None,
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                };
-
-                string json = JsonConvert.SerializeObject(preferences, settings);
+                string json = JsonSerializer.Serialize(preferences, WriteOptions);
 
                 string? directory = _fileSystemService.GetDirectoryName(filePath);
                 if (directory != null && !_fileSystemService.DirectoryExists(directory))
@@ -175,7 +165,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         return typedValue;
                     }
 
-                    // Handle bool conversion from non-JToken types (raw strings/numbers from JSON)
+                    // Handle bool conversion from non-JsonElement types (raw strings/numbers)
                     if (typeof(T) == typeof(bool) && value != null)
                     {
                         string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
@@ -185,38 +175,33 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             return (T)(object)false;
                     }
 
-                    if (value is Newtonsoft.Json.Linq.JToken jToken)
+                    if (value is JsonElement je)
                     {
                         if (typeof(T) == typeof(bool))
                         {
-                            if (jToken.Type == Newtonsoft.Json.Linq.JTokenType.Boolean)
+                            if (je.ValueKind == JsonValueKind.True)
+                                return (T)(object)true;
+                            if (je.ValueKind == JsonValueKind.False)
+                                return (T)(object)false;
+                            if (je.ValueKind == JsonValueKind.String)
                             {
-                                bool boolValue = (bool)(jToken.ToObject(typeof(bool)) ?? false);
-                                return (T)(object)boolValue;
-                            }
-                            else if (jToken.Type == Newtonsoft.Json.Linq.JTokenType.String)
-                            {
-                                string strValue = jToken.ToString();
+                                string strValue = je.GetString() ?? "";
                                 if (bool.TryParse(strValue, out bool boolResult))
-                                {
                                     return (T)(object)boolResult;
-                                }
-                                else if (strValue == "1")
-                                {
+                                if (strValue == "1")
                                     return (T)(object)true;
-                                }
-                                else if (strValue == "0")
-                                {
+                                if (strValue == "0")
                                     return (T)(object)false;
-                                }
                             }
-                            else if (jToken.Type == Newtonsoft.Json.Linq.JTokenType.Integer)
+                            if (je.ValueKind == JsonValueKind.Number)
                             {
-                                double numValue = Convert.ToDouble(jToken.ToObject<object>());
-                                bool boolValue = numValue != 0;
-                                return (T)(object)boolValue;
+                                return (T)(object)(je.GetDouble() != 0);
                             }
                         }
+
+                        var deserialized = je.Deserialize<T>();
+                        if (deserialized != null)
+                            return deserialized;
                     }
 
                     if (value != null)
@@ -289,14 +274,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return defaultValue;
                 }
 
-                var settings = new JsonSerializerSettings
-                {
-                    NullValueHandling = NullValueHandling.Include,
-                    TypeNameHandling = TypeNameHandling.None,
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                };
-
-                var preferences = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
+                var preferences = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
 
                 if (preferences != null && preferences.TryGetValue(key, out var value))
                 {
@@ -305,7 +283,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         return typedValue;
                     }
 
-                    // Handle bool conversion from non-JToken types (raw strings/numbers from JSON)
+                    // Handle bool conversion from non-JsonElement types (raw strings/numbers)
                     if (typeof(T) == typeof(bool) && value != null)
                     {
                         string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
@@ -315,13 +293,33 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             return (T)(object)false;
                     }
 
-                    if (value is Newtonsoft.Json.Linq.JToken jToken)
+                    if (value is JsonElement je)
                     {
-                        var result = jToken.ToObject<T>();
-                        if (result != null)
+                        if (typeof(T) == typeof(bool))
                         {
-                            return result;
+                            if (je.ValueKind == JsonValueKind.True)
+                                return (T)(object)true;
+                            if (je.ValueKind == JsonValueKind.False)
+                                return (T)(object)false;
+                            if (je.ValueKind == JsonValueKind.String)
+                            {
+                                string strValue = je.GetString() ?? "";
+                                if (bool.TryParse(strValue, out bool boolResult))
+                                    return (T)(object)boolResult;
+                                if (strValue == "1")
+                                    return (T)(object)true;
+                                if (strValue == "0")
+                                    return (T)(object)false;
+                            }
+                            if (je.ValueKind == JsonValueKind.Number)
+                            {
+                                return (T)(object)(je.GetDouble() != 0);
+                            }
                         }
+
+                        var deserialized = je.Deserialize<T>();
+                        if (deserialized != null)
+                            return deserialized;
                     }
 
                     if (value != null)

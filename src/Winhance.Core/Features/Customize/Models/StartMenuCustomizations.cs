@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
@@ -62,22 +61,19 @@ public static class StartMenuCustomizations
                             RecommendedValue = 1, // More Pins
                             DefaultValue = 0, // Windows default is default layout
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Default",
-                                ["RecommendedOption"] = "More pins",
-                            },
+                            DefaultOption = "Default",
+                            RecommendedOption = "More pins",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Default",
                             "More pins",
                             "More recommendations",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Default
                             {
@@ -136,15 +132,15 @@ public static class StartMenuCustomizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Show", "Hide" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        DisplayNames = new string[] { "Show", "Hide" },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Show (delete registry values)
                             {
                                 ["HideRecommendedSection"] = null, // Delete
-                                ["IsEducationEnvironment"] = null, // Delete 
+                                ["IsEducationEnvironment"] = null, // Delete
                             },
                             [1] = new Dictionary<string, object?> // Hide (set registry values)
                             {

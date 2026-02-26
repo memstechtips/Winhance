@@ -58,18 +58,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         internal static string? GetRecommendedOptionFromSetting(SettingDefinition setting)
         {
             var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-            if (primaryRegistrySetting?.CustomProperties?.TryGetValue("RecommendedOption", out var recommendedOption) == true)
-            {
-                return recommendedOption?.ToString();
-            }
-            return null;
+            return primaryRegistrySetting?.RecommendedOption;
         }
 
         internal static int? GetCorrectSelectionIndex(SettingDefinition setting, string optionName, int? desiredRegistryValue)
         {
             var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-            if (primaryRegistrySetting?.CustomProperties?.TryGetValue("ComboBoxOptions", out var comboBoxOptionsObj) == true
-                && comboBoxOptionsObj is Dictionary<string, int> comboBoxOptions)
+            if (primaryRegistrySetting?.ComboBoxOptions is { } comboBoxOptions)
             {
                 // Create a list ordered by key name (alphabetical) to match GenericResolver logic
                 var orderedOptions = comboBoxOptions.OrderBy(kvp => kvp.Key).ToList();
@@ -89,8 +84,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         internal static int? GetRegistryValueFromOptionName(SettingDefinition setting, string optionName)
         {
             var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-            if (primaryRegistrySetting?.CustomProperties?.TryGetValue("ComboBoxOptions", out var comboBoxOptionsObj) == true
-                && comboBoxOptionsObj is Dictionary<string, int> comboBoxOptions)
+            if (primaryRegistrySetting?.ComboBoxOptions is { } comboBoxOptions)
             {
                 // Simply return the registry value for this option name
                 if (comboBoxOptions.TryGetValue(optionName, out var registryValue))

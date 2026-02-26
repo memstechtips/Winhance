@@ -204,7 +204,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private string GetDisplayUnits(SettingDefinition setting)
         {
-            if (setting.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr)
+            if (setting.NumericRange?.Units is { } unitsStr)
                 return unitsStr;
             return setting.PowerCfgSettings?[0]?.Units ?? string.Empty;
         }

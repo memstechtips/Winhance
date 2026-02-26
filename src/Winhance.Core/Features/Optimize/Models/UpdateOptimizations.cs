@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -222,29 +221,29 @@ public static class UpdateOptimizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    DisableTooltip = true,
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.DisableTooltip] = true,
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Normal (Windows Default)",
                             "Security Updates Only (Recommended)",
                             "Paused for a long time (Unpause in Settings)",
                             "Disabled (NOT Recommended, Security Risk)",
                         },
-                        [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
+                        OptionWarnings = new Dictionary<int, string>
                         {
                             [2] = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
                             [3] = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk."
                         },
-                        [CustomPropertyKeys.OptionTooltips] = new string[]
+                        OptionTooltips = new string[]
                         {
                             "Windows default behavior - automatic updates enabled",
                             "Only install critical security updates, defer feature updates by 1 year",
                             "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
                             "Completely disable Windows Update services and block all updates - NOT RECOMMENDED"
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Normal
                             {
@@ -376,16 +375,16 @@ public static class UpdateOptimizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Windows Default",
                             "Devices on LAN Only",
                             "Devices on LAN and Internet",
                             "ServiceOption_Disabled",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {

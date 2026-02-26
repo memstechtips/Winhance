@@ -133,13 +133,12 @@ public class ExternalAppsServiceTests
     public async Task InstallAppAsync_RequiresDirectDownload_UsesDirectDownloadService()
     {
         var sut = CreateSut();
-        var customProps = new Dictionary<string, object> { { "RequiresDirectDownload", true } };
         var item = new ItemDefinition
         {
             Id = "direct-app",
             Name = "Direct App",
             Description = "Needs direct download",
-            CustomProperties = customProps
+            ExternalApp = new ExternalAppMetadata { RequiresDirectDownload = true }
         };
 
         _directDownloadService
@@ -158,13 +157,12 @@ public class ExternalAppsServiceTests
     public async Task InstallAppAsync_DirectDownloadFails_ReturnsFailed()
     {
         var sut = CreateSut();
-        var customProps = new Dictionary<string, object> { { "RequiresDirectDownload", true } };
         var item = new ItemDefinition
         {
             Id = "direct-app",
             Name = "Direct App",
             Description = "Needs direct download",
-            CustomProperties = customProps
+            ExternalApp = new ExternalAppMetadata { RequiresDirectDownload = true }
         };
 
         _directDownloadService

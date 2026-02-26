@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Optimize.Models
 {
     public static class PowerTemplates
     {
-        public static readonly Dictionary<string, object> TimeIntervals = new()
+        public static readonly ComboBoxMetadata TimeIntervals = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+            DisplayNames = new string[]
             {
                 "Template_TimeIntervals_Option_0",
                 "Template_TimeIntervals_Option_1",
@@ -26,7 +25,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 "Template_TimeIntervals_Option_14",
                 "Template_TimeIntervals_Option_15"
             },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 60 },
@@ -47,30 +46,30 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> OnOff = new()
+        public static readonly ComboBoxMetadata OnOff = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_OnOff_Option_0", "Template_OnOff_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_OnOff_Option_0", "Template_OnOff_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["Value"] = 0 },
                 [1] = new Dictionary<string, object?> { ["Value"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> EnabledDisabled = new()
+        public static readonly ComboBoxMetadata EnabledDisabled = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_EnabledDisabled_Option_0", "Template_EnabledDisabled_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_EnabledDisabled_Option_0", "Template_EnabledDisabled_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["Value"] = 0 },
                 [1] = new Dictionary<string, object?> { ["Value"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> WakeTimers = new()
+        public static readonly ComboBoxMetadata WakeTimers = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_WakeTimers_Option_0", "Template_WakeTimers_Option_1", "Template_WakeTimers_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_WakeTimers_Option_0", "Template_WakeTimers_Option_1", "Template_WakeTimers_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -78,10 +77,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> PowerButtonActions = new()
+        public static readonly ComboBoxMetadata PowerButtonActions = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_PowerButtonActions_Option_0", "Template_PowerButtonActions_Option_1", "Template_PowerButtonActions_Option_2", "Template_PowerButtonActions_Option_3", "Template_PowerButtonActions_Option_4" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_PowerButtonActions_Option_0", "Template_PowerButtonActions_Option_1", "Template_PowerButtonActions_Option_2", "Template_PowerButtonActions_Option_3", "Template_PowerButtonActions_Option_4" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -91,10 +90,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> LidActions = new()
+        public static readonly ComboBoxMetadata LidActions = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_LidActions_Option_0", "Template_LidActions_Option_1", "Template_LidActions_Option_2", "Template_LidActions_Option_3" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_LidActions_Option_0", "Template_LidActions_Option_1", "Template_LidActions_Option_2", "Template_LidActions_Option_3" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -103,20 +102,20 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> CoolingPolicy = new()
+        public static readonly ComboBoxMetadata CoolingPolicy = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_CoolingPolicy_Option_0", "Template_CoolingPolicy_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_CoolingPolicy_Option_0", "Template_CoolingPolicy_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> BatteryActions = new()
+        public static readonly ComboBoxMetadata BatteryActions = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_BatteryActions_Option_0", "Template_BatteryActions_Option_1", "Template_BatteryActions_Option_2", "Template_BatteryActions_Option_3" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_BatteryActions_Option_0", "Template_BatteryActions_Option_1", "Template_BatteryActions_Option_2", "Template_BatteryActions_Option_3" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -125,10 +124,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> WirelessPower = new()
+        public static readonly ComboBoxMetadata WirelessPower = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_WirelessPower_Option_0", "Template_WirelessPower_Option_1", "Template_WirelessPower_Option_2", "Template_WirelessPower_Option_3" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_WirelessPower_Option_0", "Template_WirelessPower_Option_1", "Template_WirelessPower_Option_2", "Template_WirelessPower_Option_3" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -137,20 +136,20 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> Slideshow = new()
+        public static readonly ComboBoxMetadata Slideshow = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_Slideshow_Option_0", "Template_Slideshow_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_Slideshow_Option_0", "Template_Slideshow_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> PciExpress = new()
+        public static readonly ComboBoxMetadata PciExpress = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_PciExpress_Option_0", "Template_PciExpress_Option_1", "Template_PciExpress_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_PciExpress_Option_0", "Template_PciExpress_Option_1", "Template_PciExpress_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -158,10 +157,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> Usb3LinkPower = new()
+        public static readonly ComboBoxMetadata Usb3LinkPower = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_Usb3LinkPower_Option_0", "Template_Usb3LinkPower_Option_1", "Template_Usb3LinkPower_Option_2", "Template_Usb3LinkPower_Option_3" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_Usb3LinkPower_Option_0", "Template_Usb3LinkPower_Option_1", "Template_Usb3LinkPower_Option_2", "Template_Usb3LinkPower_Option_3" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -170,30 +169,30 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> MediaSharing = new()
+        public static readonly ComboBoxMetadata MediaSharing = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_MediaSharing_Option_0", "Template_MediaSharing_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_MediaSharing_Option_0", "Template_MediaSharing_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> VideoQualityBias = new()
+        public static readonly ComboBoxMetadata VideoQualityBias = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_VideoQualityBias_Option_0", "Template_VideoQualityBias_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_VideoQualityBias_Option_0", "Template_VideoQualityBias_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> VideoPlayback = new()
+        public static readonly ComboBoxMetadata VideoPlayback = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_VideoPlayback_Option_0", "Template_VideoPlayback_Option_1", "Template_VideoPlayback_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_VideoPlayback_Option_0", "Template_VideoPlayback_Option_1", "Template_VideoPlayback_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -201,10 +200,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> AmdPowerSlider = new()
+        public static readonly ComboBoxMetadata AmdPowerSlider = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_AmdPowerSlider_Option_0", "Template_AmdPowerSlider_Option_1", "Template_AmdPowerSlider_Option_2", "Template_AmdPowerSlider_Option_3" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_AmdPowerSlider_Option_0", "Template_AmdPowerSlider_Option_1", "Template_AmdPowerSlider_Option_2", "Template_AmdPowerSlider_Option_3" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -213,20 +212,20 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> JavaScriptTimers = new()
+        public static readonly ComboBoxMetadata JavaScriptTimers = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_JavaScriptTimers_Option_0", "Template_JavaScriptTimers_Option_1" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_JavaScriptTimers_Option_0", "Template_JavaScriptTimers_Option_1" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
             }
         };
 
-        public static readonly Dictionary<string, object> IntelGraphics = new()
+        public static readonly ComboBoxMetadata IntelGraphics = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_IntelGraphics_Option_0", "Template_IntelGraphics_Option_1", "Template_IntelGraphics_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_IntelGraphics_Option_0", "Template_IntelGraphics_Option_1", "Template_IntelGraphics_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -234,10 +233,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> AtiPowerPlay = new()
+        public static readonly ComboBoxMetadata AtiPowerPlay = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_AtiPowerPlay_Option_0", "Template_AtiPowerPlay_Option_1", "Template_AtiPowerPlay_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_AtiPowerPlay_Option_0", "Template_AtiPowerPlay_Option_1", "Template_AtiPowerPlay_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -245,10 +244,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> SwitchableGraphics = new()
+        public static readonly ComboBoxMetadata SwitchableGraphics = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_SwitchableGraphics_Option_0", "Template_SwitchableGraphics_Option_1", "Template_SwitchableGraphics_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_SwitchableGraphics_Option_0", "Template_SwitchableGraphics_Option_1", "Template_SwitchableGraphics_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -256,10 +255,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> ProcessorBoostMode = new()
+        public static readonly ComboBoxMetadata ProcessorBoostMode = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_ProcessorBoostMode_Option_0", "Template_ProcessorBoostMode_Option_1", "Template_ProcessorBoostMode_Option_2", "Template_ProcessorBoostMode_Option_3", "Template_ProcessorBoostMode_Option_4", "Template_ProcessorBoostMode_Option_5", "Template_ProcessorBoostMode_Option_6" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_ProcessorBoostMode_Option_0", "Template_ProcessorBoostMode_Option_1", "Template_ProcessorBoostMode_Option_2", "Template_ProcessorBoostMode_Option_3", "Template_ProcessorBoostMode_Option_4", "Template_ProcessorBoostMode_Option_5", "Template_ProcessorBoostMode_Option_6" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -271,10 +270,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> PerformanceIncreasePolicy = new()
+        public static readonly ComboBoxMetadata PerformanceIncreasePolicy = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_PerformanceIncreasePolicy_Option_0", "Template_PerformanceIncreasePolicy_Option_1", "Template_PerformanceIncreasePolicy_Option_2", "Template_PerformanceIncreasePolicy_Option_3" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_PerformanceIncreasePolicy_Option_0", "Template_PerformanceIncreasePolicy_Option_1", "Template_PerformanceIncreasePolicy_Option_2", "Template_PerformanceIncreasePolicy_Option_3" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -283,10 +282,10 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static readonly Dictionary<string, object> PerformanceDecreasePolicy = new()
+        public static readonly ComboBoxMetadata PerformanceDecreasePolicy = new()
         {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_PerformanceDecreasePolicy_Option_0", "Template_PerformanceDecreasePolicy_Option_1", "Template_PerformanceDecreasePolicy_Option_2" },
-            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+            DisplayNames = new string[] { "Template_PerformanceDecreasePolicy_Option_0", "Template_PerformanceDecreasePolicy_Option_1", "Template_PerformanceDecreasePolicy_Option_2" },
+            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
             {
                 [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
                 [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
@@ -294,14 +293,14 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         };
 
-        public static Dictionary<string, object> CreateNumericRange(int minValue, int maxValue, string units)
+        public static NumericRangeMetadata CreateNumericRange(int minValue, int maxValue, string units)
         {
-            return new Dictionary<string, object>
+            return new NumericRangeMetadata
             {
-                ["MinValue"] = minValue,
-                ["MaxValue"] = maxValue,
-                ["Increment"] = 1,
-                ["Units"] = units
+                MinValue = minValue,
+                MaxValue = maxValue,
+                Increment = 1,
+                Units = units
             };
         }
     }

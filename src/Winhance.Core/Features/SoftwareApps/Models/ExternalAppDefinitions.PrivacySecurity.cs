@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models
 {
@@ -62,12 +62,12 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Network monitoring tool to analyze your internet traffic",
                             GroupName = "Privacy & Security",
                             WebsiteUrl = "https://sniffnet.net/",
-                            CustomProperties = new Dictionary<string, object>
+                            ExternalApp = new ExternalAppMetadata
                             {
-                                { "DownloadUrl_arm64", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_arm64.msi" },
-                                { "DownloadUrl_x64", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_x64.msi" },
-                                { "DownloadUrl_x86", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_x86.msi" },
-                                { "RequiresDirectDownload", true }
+                                DownloadUrlArm64 = "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_arm64.msi",
+                                DownloadUrlX64 = "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_x64.msi",
+                                DownloadUrlX86 = "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_x86.msi",
+                                RequiresDirectDownload = true,
                             }
                         },
                         new ItemDefinition
@@ -77,10 +77,10 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Secure messaging app with end-to-end encryption",
                             GroupName = "Privacy & Security",
                             WebsiteUrl = "https://teleguard.com/en",
-                            CustomProperties = new Dictionary<string, object>
+                            ExternalApp = new ExternalAppMetadata
                             {
-                                { "DownloadUrl", "https://pub.teleguard.com/teleguard-desktop-latest.exe" },
-                                { "RequiresDirectDownload", true }
+                                DownloadUrl = "https://pub.teleguard.com/teleguard-desktop-latest.exe",
+                                RequiresDirectDownload = true,
                             }
                         },
                         new ItemDefinition

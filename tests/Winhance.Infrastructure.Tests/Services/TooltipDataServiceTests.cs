@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -25,13 +24,14 @@ public class TooltipDataServiceTests
         IReadOnlyList<RegistrySetting>? registrySettings = null,
         IReadOnlyList<ScheduledTaskSetting>? scheduledTaskSettings = null,
         IReadOnlyList<PowerCfgSetting>? powerCfgSettings = null,
-        IReadOnlyDictionary<string, object>? customProperties = null)
+        bool disableTooltip = false)
     {
         var setting = new SettingDefinition
         {
             Id = id,
             Name = $"Setting {id}",
             Description = $"Description for {id}",
+            DisableTooltip = disableTooltip,
         };
 
         if (registrySettings != null)
@@ -40,8 +40,6 @@ public class TooltipDataServiceTests
             setting = setting with { ScheduledTaskSettings = scheduledTaskSettings };
         if (powerCfgSettings != null)
             setting = setting with { PowerCfgSettings = powerCfgSettings };
-        if (customProperties != null)
-            setting = setting with { CustomProperties = customProperties };
 
         return setting;
     }
@@ -170,14 +168,10 @@ public class TooltipDataServiceTests
     [Fact]
     public async Task GetTooltipDataAsync_SettingWithDisableTooltip_ReturnsNull()
     {
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.DisableTooltip, true }
-        };
         var regSetting = CreateRegistrySetting();
         var setting = CreateSetting("disabled-tooltip",
             registrySettings: new[] { regSetting },
-            customProperties: customProps);
+            disableTooltip: true);
 
         var result = await _service.GetTooltipDataAsync(new[] { setting });
 
@@ -187,14 +181,10 @@ public class TooltipDataServiceTests
     [Fact]
     public async Task GetTooltipDataAsync_DisableTooltipFalse_StillReturnsData()
     {
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.DisableTooltip, false }
-        };
         var regSetting = CreateRegistrySetting();
         var setting = CreateSetting("not-disabled",
             registrySettings: new[] { regSetting },
-            customProperties: customProps);
+            disableTooltip: false);
 
         _mockRegistry
             .Setup(r => r.GetValue(regSetting.KeyPath, regSetting.ValueName!))
@@ -366,14 +356,10 @@ public class TooltipDataServiceTests
     [Fact]
     public async Task RefreshTooltipDataAsync_DisableTooltip_ReturnsNull()
     {
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.DisableTooltip, true }
-        };
         var regSetting = CreateRegistrySetting();
         var setting = CreateSetting("disabled",
             registrySettings: new[] { regSetting },
-            customProperties: customProps);
+            disableTooltip: true);
 
         var result = await _service.RefreshTooltipDataAsync("disabled", setting);
 

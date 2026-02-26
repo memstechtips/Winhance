@@ -189,6 +189,51 @@ public class WindowsCompatibilityFilterTests
             .Which.Id.Should().Be("normal");
     }
 
+    [Fact]
+    public void FilterSettingsByWindowsVersion_OnWindowsServer_DoesNotFilterSettings()
+    {
+        // Arrange — Server 2022 (build 20348) detected as Windows 10
+        _mockVersionService.Setup(v => v.IsWindows11()).Returns(false);
+        _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(20348);
+        _mockVersionService.Setup(v => v.IsWindowsServer()).Returns(true);
+
+        var filter = CreateFilter();
+        var settings = new List<SettingDefinition>
+        {
+            CreateSetting("s1"),
+            CreateSetting("s2"),
+            CreateSetting("s3")
+        };
+
+        // Act
+        var result = filter.FilterSettingsByWindowsVersion(settings);
+
+        // Assert — all settings pass through, Server does not cause extra filtering
+        result.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void FilterSettingsByWindowsVersion_OnWindowsServer_LogsServerDetection()
+    {
+        // Arrange
+        _mockVersionService.Setup(v => v.IsWindows11()).Returns(false);
+        _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(20348);
+        _mockVersionService.Setup(v => v.IsWindowsServer()).Returns(true);
+
+        var filter = CreateFilter();
+        var settings = new List<SettingDefinition> { CreateSetting("s1") };
+
+        // Act
+        filter.FilterSettingsByWindowsVersion(settings);
+
+        // Assert — verify the Server detection was logged at Info level
+        _mockLogService.Verify(
+            l => l.Log(
+                Winhance.Core.Features.Common.Enums.LogLevel.Info,
+                It.Is<string>(s => s.Contains("Windows Server detected"))),
+            Times.Once);
+    }
+
     #endregion
 
     #region FilterSettingsByWindowsVersion (with applyFilter=false)
@@ -213,8 +258,7 @@ public class WindowsCompatibilityFilterTests
         // Assert - all settings returned (not filtered), but win10only gets a compatibility message
         result.Should().HaveCount(2);
         var win10Setting = result.First(s => s.Id == "win10only");
-        win10Setting.CustomProperties.Should().ContainKey(
-            Winhance.Core.Features.Common.Constants.CustomPropertyKeys.VersionCompatibilityMessage);
+        win10Setting.VersionCompatibilityMessage.Should().NotBeNullOrEmpty();
     }
 
     #endregion

@@ -52,8 +52,7 @@ public class ExternalAppsService(
 
         try
         {
-            if (item.CustomProperties.TryGetValue("RequiresDirectDownload", out var requiresDownload)
-                && requiresDownload is bool isDirect && isDirect)
+            if (item.ExternalApp?.RequiresDirectDownload == true)
             {
                 logService.LogInformation($"Installing {item.Name} via direct download");
                 var success = await directDownloadService.DownloadAndInstallAsync(item, progress, cancellationToken).ConfigureAwait(false);

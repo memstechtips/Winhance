@@ -22,10 +22,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
             if (settings == null) return results;
 
             var settingsList = settings.ToList();
-            var powerCfgSettings = settingsList.Where(s => s.PowerCfgSettings?.Count > 0 && s.Id != "power-plan-selection").ToList();
+            var powerCfgSettings = settingsList.Where(s => s.PowerCfgSettings?.Count > 0 && s.Id != SettingIds.PowerPlanSelection).ToList();
             var registrySettings = settingsList.Where(s => s.RegistrySettings?.Count > 0).ToList();
             var scheduledTaskSettings = settingsList.Where(s => s.ScheduledTaskSettings?.Count > 0).ToList();
-            var powerPlanSettings = settingsList.Where(s => s.Id == "power-plan-selection").ToList();
+            var powerPlanSettings = settingsList.Where(s => s.Id == SettingIds.PowerPlanSelection).ToList();
 
             List<PowerPlan> availablePlans = new();
 
@@ -339,7 +339,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         // Need this private function as we can't inject IComboboxResolver here, it creates a circular dependency issue
         private int ResolveRawValuesToIndex(SettingDefinition setting, Dictionary<string, object?> rawValues)
         {
-            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            if (setting.ComboBox?.ValueMappings == null)
             {
                 return 0;
             }
@@ -349,7 +349,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return policyIndex is int index ? index : 0;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            var mappings = setting.ComboBox.ValueMappings;
             var currentValues = new Dictionary<string, object?>();
 
             if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
@@ -400,7 +400,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
 
-            var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+            var supportsCustomState = setting.ComboBox?.SupportsCustomState == true;
             if (supportsCustomState)
             {
                 return -1;

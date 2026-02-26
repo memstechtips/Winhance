@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,15 +27,15 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
-    private readonly Dictionary<string, ConfigReviewDiff> _diffs = new();
-    private readonly Dictionary<string, int> _configItemCounts = new();
-    private readonly HashSet<string> _featuresInConfig = new();
-    private readonly HashSet<string> _visitedFeatures = new();
+    private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
+    private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
+    private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
+    private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
 
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
     {
-        "theme-mode-windows",
+        SettingIds.ThemeModeWindows,
         "taskbar-clean",
         "start-menu-clean-10",
         "start-menu-clean-11"
@@ -70,8 +71,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public bool IsInReviewMode { get; private set; }
     public UnifiedConfigurationFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
-    public int ApprovedChanges => _diffs.Values.Count(d => d.IsReviewed && d.IsApproved);
-    public int ReviewedChanges => _diffs.Values.Count(d => d.IsReviewed);
+    public int ApprovedChanges => _diffs.Values.Count(static d => d.IsReviewed && d.IsApproved);
+    public int ReviewedChanges => _diffs.Values.Count(static d => d.IsReviewed);
     public int TotalConfigItems { get; private set; }
     public bool IsSoftwareAppsReviewed { get; set; }
 
@@ -95,14 +96,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         await ComputeEagerDiffsAsync(config);
 
         // Auto-mark features with 0 diffs as visited (nothing to review)
-        foreach (var featureId in _featuresInConfig.ToList())
+        foreach (var featureId in _featuresInConfig.Keys)
         {
             if (FeatureDefinitions.OptimizeFeatures.Contains(featureId) ||
                 FeatureDefinitions.CustomizeFeatures.Contains(featureId))
             {
                 if (GetFeatureDiffCount(featureId) == 0)
                 {
-                    _visitedFeatures.Add(featureId);
+                    _visitedFeatures.TryAdd(featureId, 0);
                 }
             }
         }
@@ -165,7 +166,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public void MarkFeatureVisited(string featureId)
     {
-        if (_visitedFeatures.Add(featureId))
+        if (_visitedFeatures.TryAdd(featureId, 0))
         {
             _logService.Log(LogLevel.Debug,
                 $"[ConfigReviewService] Feature '{featureId}' marked as visited");
@@ -206,7 +207,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public bool IsFeatureInConfig(string featureId)
     {
-        return _featuresInConfig.Contains(featureId);
+        return _featuresInConfig.ContainsKey(featureId);
     }
 
     public bool IsSectionFullyReviewed(string sectionTag)
@@ -227,7 +228,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         };
 
         // Only consider features that are in the config
-        var relevantFeatures = featureIds.Where(f => _featuresInConfig.Contains(f)).ToList();
+        var relevantFeatures = featureIds.Where(f => _featuresInConfig.ContainsKey(f)).ToList();
         if (relevantFeatures.Count == 0) return false;
 
         return relevantFeatures.All(IsFeatureFullyReviewed);
@@ -236,7 +237,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public bool IsFeatureFullyReviewed(string featureId)
     {
         if (!IsInReviewMode) return false;
-        if (!_featuresInConfig.Contains(featureId)) return false;
+        if (!_featuresInConfig.ContainsKey(featureId)) return false;
 
         // Features with 0 diffs that are in config = fully reviewed (nothing to change)
         var featureDiffs = _diffs.Values.Where(d => d.FeatureModuleId == featureId).ToList();
@@ -246,7 +247,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
 
         // Must be visited AND all diffs explicitly reviewed (accept or reject)
-        if (!_visitedFeatures.Contains(featureId)) return false;
+        if (!_visitedFeatures.ContainsKey(featureId)) return false;
         return featureDiffs.All(d => d.IsReviewed);
     }
 
@@ -258,7 +259,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (config.WindowsApps.IsIncluded && config.WindowsApps.Items.Count > 0)
         {
             _configItemCounts[FeatureIds.WindowsApps] = config.WindowsApps.Items.Count;
-            _featuresInConfig.Add(FeatureIds.WindowsApps);
+            _featuresInConfig.TryAdd(FeatureIds.WindowsApps, 0);
             total += config.WindowsApps.Items.Count;
         }
 
@@ -266,7 +267,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (config.ExternalApps.IsIncluded && config.ExternalApps.Items.Count > 0)
         {
             _configItemCounts[FeatureIds.ExternalApps] = config.ExternalApps.Items.Count;
-            _featuresInConfig.Add(FeatureIds.ExternalApps);
+            _featuresInConfig.TryAdd(FeatureIds.ExternalApps, 0);
             total += config.ExternalApps.Items.Count;
         }
 
@@ -276,7 +277,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             if (kvp.Value.IsIncluded && kvp.Value.Items.Count > 0)
             {
                 _configItemCounts[kvp.Key] = kvp.Value.Items.Count;
-                _featuresInConfig.Add(kvp.Key);
+                _featuresInConfig.TryAdd(kvp.Key, 0);
                 total += kvp.Value.Items.Count;
             }
         }
@@ -287,7 +288,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             if (kvp.Value.IsIncluded && kvp.Value.Items.Count > 0)
             {
                 _configItemCounts[kvp.Key] = kvp.Value.Items.Count;
-                _featuresInConfig.Add(kvp.Key);
+                _featuresInConfig.TryAdd(kvp.Key, 0);
                 total += kvp.Value.Items.Count;
             }
         }
@@ -416,7 +417,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         return settingId switch
         {
-            "theme-mode-windows" => _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
+            SettingIds.ThemeModeWindows => _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
                 ?? "Apply the default wallpaper for this theme? (Recommended)",
             "taskbar-clean" => _localizationService.GetString("Review_Mode_Action_CleanTaskbar")
                 ?? "Clean the taskbar as part of this configuration?",
@@ -633,9 +634,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// </summary>
     private void RelocalizeDisplayStrings()
     {
-        foreach (var key in _diffs.Keys.ToList())
+        foreach (var key in _diffs.Keys)
         {
-            var diff = _diffs[key];
+            if (!_diffs.TryGetValue(key, out var diff))
+                continue;
             var updated = diff;
             if (diff.CurrentDisplayKey != null)
                 updated = updated with { CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey) };

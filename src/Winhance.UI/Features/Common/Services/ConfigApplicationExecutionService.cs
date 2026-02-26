@@ -361,10 +361,10 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
             (settingId, value, setting) =>
             {
-                if (settingId == "power-plan-selection" || settingId == "updates-policy-mode")
+                if (settingId == SettingIds.PowerPlanSelection || settingId == SettingIds.UpdatesPolicyMode)
                     return Task.FromResult((true, true));
 
-                if (settingId == "theme-mode-windows")
+                if (settingId == SettingIds.ThemeModeWindows)
                     return Task.FromResult((true, options?.ApplyThemeWallpaper ?? false));
 
                 if (settingId == "taskbar-clean")
@@ -469,7 +469,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             {
                 actionItems.Add(new ConfigurationItem
                 {
-                    Id = "theme-mode-windows",
+                    Id = SettingIds.ThemeModeWindows,
                     Name = "Windows Theme",
                     IsSelected = true,
                     InputType = InputType.Selection,

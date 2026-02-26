@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -57,10 +56,7 @@ namespace Winhance.Core.Features.Customize.Models
                                 RecommendedValue = 0, // Dark mode recommended
                                 DefaultValue = 1, // Light mode is Windows default
                                 ValueType = RegistryValueKind.DWord,
-                                CustomProperties = new Dictionary<string, object>
-                                {
-                                    ["DefaultOption"] = "Light Mode",
-                                },
+                                DefaultOption = "Light Mode",
                             },
                             new RegistrySetting
                             {
@@ -72,14 +68,14 @@ namespace Winhance.Core.Features.Customize.Models
                                 ValueType = RegistryValueKind.DWord,
                             },
                         },
-                        CustomProperties = new Dictionary<string, object>
+                        ComboBox = new ComboBoxMetadata
                         {
-                            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                            DisplayNames = new string[]
                             {
                                 "Light Mode",
                                 "Dark Mode",
                             },
-                            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                            ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                             {
                                 [0] = new Dictionary<string, object?> // Light Mode
                                 {
@@ -92,8 +88,8 @@ namespace Winhance.Core.Features.Customize.Models
                                     ["SystemUsesLightTheme"] = 0,
                                 },
                             },
-                            [CustomPropertyKeys.SupportsCustomState] = true,
-                            [CustomPropertyKeys.CustomStateDisplayName] = "Custom",
+                            SupportsCustomState = true,
+                            CustomStateDisplayName = "Custom",
                         },
                     },
                     new SettingDefinition

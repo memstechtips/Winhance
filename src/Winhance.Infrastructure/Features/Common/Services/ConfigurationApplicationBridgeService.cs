@@ -83,7 +83,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
     private object ResolveSelectionValue(SettingDefinition setting, ConfigurationItem item)
     {
-        if (setting.Id == "power-plan-selection")
+        if (setting.Id == SettingIds.PowerPlanSelection)
         {
             return ResolvePowerPlanValue(setting, item);
         }

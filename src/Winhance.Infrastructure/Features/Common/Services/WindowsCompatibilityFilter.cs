@@ -41,9 +41,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var isWindows11 = _versionService.IsWindows11();
                 var buildNumber = _versionService.GetWindowsBuildNumber();
+                var isServer = _versionService.IsWindowsServer();
+
+                if (isServer)
+                {
+                    _logService.Log(LogLevel.Info,
+                        $"Windows Server detected (build {buildNumber}). Treating as Windows {(isWindows11 ? "11" : "10")} for compatibility filtering.");
+                }
 
                 _logService.Log(LogLevel.Debug,
-                    $"Filtering settings for Windows {(isWindows11 ? "11" : "10")} build {buildNumber}");
+                    $"Filtering settings for Windows {(isWindows11 ? "11" : "10")}{(isServer ? " Server" : "")} build {buildNumber}");
 
                 var compatibleSettings = new List<SettingDefinition>();
                 var filteredCount = 0;
@@ -186,12 +193,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         _loggedCompatibilityMessages.Add(logKey);
                     }
 
-                    var updatedProperties = new Dictionary<string, object>(setting.CustomProperties)
-                    {
-                        [Winhance.Core.Features.Common.Constants.CustomPropertyKeys.VersionCompatibilityMessage] = compatibilityMessage
-                    };
-
-                    yield return setting with { CustomProperties = updatedProperties };
+                    yield return setting with { VersionCompatibilityMessage = compatibilityMessage };
                 }
                 else
                 {

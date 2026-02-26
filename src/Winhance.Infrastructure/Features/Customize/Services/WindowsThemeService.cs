@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -21,7 +22,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
 
         public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
-            if (setting.Id == "theme-mode-windows" && value is int index)
+            if (setting.Id == SettingIds.ThemeModeWindows && value is int index)
             {
                 await ApplyThemeModeWindowsAsync(setting, index, applyWallpaper: additionalContext).ConfigureAwait(false);
                 return true;

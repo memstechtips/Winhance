@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -29,8 +30,9 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IUserPreferencesService? _userPreferencesService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
-    private bool _isUpdatingFromEvent;
+    private volatile bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
+    private object? _pendingValue;
 
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
 
@@ -231,15 +233,20 @@ public partial class SettingItemViewModel : BaseViewModel
     /// <summary>
     /// Clears all review mode state including event handlers.
     /// Used when exiting review mode to ensure clean state for subsequent imports.
+    /// Nulls event handler first to prevent stale notifications during property resets.
     /// </summary>
     public void ClearReviewState()
     {
+        // Clear event handler BEFORE resetting properties to prevent
+        // OnIsReviewApprovedChanged/OnIsReviewRejectedChanged from
+        // invoking stale subscribers during cleanup.
+        ReviewApprovalChanged = null;
+
         IsInReviewMode = false;
         HasReviewDiff = false;
         ReviewDiffMessage = null;
         IsReviewApproved = false;
         IsReviewRejected = false;
-        ReviewApprovalChanged = null;
     }
 
     partial void OnIsEnabledChanged(bool value)
@@ -263,7 +270,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsCheckBoxType => InputType == InputType.CheckBox;
     public bool IsSubSetting => !string.IsNullOrEmpty(SettingDefinition?.ParentSettingId);
     public bool IsPowerPlanSetting => InputType == InputType.Selection &&
-        SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
+        SettingDefinition?.Recommendation?.LoadDynamicOptions == true;
 
     public bool SupportsSeparateACDC =>
         SettingDefinition?.PowerCfgSettings?.Any(p =>
@@ -387,10 +394,8 @@ public partial class SettingItemViewModel : BaseViewModel
                     break;
                 case InputType.Selection:
                     if (SupportsSeparateACDC && state.RawValues != null &&
-                        SettingDefinition?.CustomProperties?.TryGetValue(
-                            CustomPropertyKeys.ValueMappings, out var mappingsObj) == true)
+                        SettingDefinition?.ComboBox?.ValueMappings is { } mappings)
                     {
-                        var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
                         if (state.RawValues.TryGetValue("ACValue", out var acRaw) && acRaw != null)
                             AcValue = FindIndexForPowerCfgValue(mappings, Convert.ToInt32(acRaw));
                         if (state.RawValues.TryGetValue("DCValue", out var dcRaw) && dcRaw != null)
@@ -434,9 +439,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private int ConvertFromSystemUnits(int systemValue)
     {
-        var displayUnits = SettingDefinition?.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
-            ? unitsStr
-            : null;
+        var displayUnits = SettingDefinition?.NumericRange?.Units;
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
@@ -550,7 +553,14 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
-            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, CheckboxResult = checkboxChecked });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, CheckboxResult = checkboxChecked });
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' apply failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(IsSelected));
+                return;
+            }
 
             IsSelected = newValue;
             _hasChangedThisSession = true;
@@ -572,9 +582,17 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
 
-        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null || value == null)
+        if (_isUpdatingFromEvent || SettingDefinition == null || value == null)
         {
-            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: IsApplying={IsApplying}, _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
+            return;
+        }
+
+        // Queue the value if another apply is in progress instead of dropping it
+        if (IsApplying)
+        {
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: queuing pending value {value} for {SettingId}");
+            _pendingValue = value;
             return;
         }
 
@@ -599,9 +617,17 @@ public partial class SettingItemViewModel : BaseViewModel
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
             _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
 
-            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, CheckboxResult = checkboxChecked });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, CheckboxResult = checkboxChecked });
 
             _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' value change failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(SelectedValue));
+                OnPropertyChanged(nameof(NumericValue));
+                return;
+            }
 
             SelectedValue = value;
 
@@ -624,6 +650,23 @@ public partial class SettingItemViewModel : BaseViewModel
         finally
         {
             IsApplying = false;
+            await ProcessPendingValueAsync();
+        }
+    }
+
+    /// <summary>
+    /// If a value change was queued while a previous apply was in progress,
+    /// drain and apply it now.
+    /// </summary>
+    private async Task ProcessPendingValueAsync()
+    {
+        var pending = _pendingValue;
+        _pendingValue = null;
+
+        if (pending != null && !Equals(pending, SelectedValue))
+        {
+            _logService.LogDebug($"[SettingItemViewModel] Processing pending value {pending} for {SettingId}");
+            await HandleValueChangedAsync(pending);
         }
     }
 
@@ -636,7 +679,16 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
-            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' AC/DC selection failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(AcValue));
+                OnPropertyChanged(nameof(DcValue));
+                return;
+            }
+
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
         }
@@ -659,7 +711,16 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
-            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' AC/DC numeric failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(AcNumericValue));
+                OnPropertyChanged(nameof(DcNumericValue));
+                return;
+            }
+
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
         }
@@ -722,7 +783,7 @@ public partial class SettingItemViewModel : BaseViewModel
         var message = _localizationService.GetString($"Setting_{SettingId}_ConfirmMessage");
         var checkboxText = _localizationService.GetString($"Setting_{SettingId}_ConfirmCheckbox");
 
-        if (SettingId == "theme-mode-windows" && value is int comboBoxIndex)
+        if (SettingId == SettingIds.ThemeModeWindows && value is int comboBoxIndex)
         {
             var themeMode = comboBoxIndex == 1
                 ? _localizationService.GetString("Setting_theme-mode-windows_Option_1")

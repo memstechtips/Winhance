@@ -24,6 +24,11 @@ public class SettingApplicationServiceTests
 
     public SettingApplicationServiceTests()
     {
+        _mockExecutor
+            .Setup(e => e.ApplySettingOperationsAsync(
+                It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
         _service = new SettingApplicationService(
             _mockRouter.Object, _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
@@ -207,5 +212,68 @@ public class SettingApplicationServiceTests
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForDomainAsync(
             "test-id", _service), Times.Once);
+    }
+
+    // ---------------------------------------------------------------
+    // BP-1: Failure propagation from OperationExecutor
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_ExecutorFails_PropagatesFailedResult()
+    {
+        SetupDomainServiceWithSetting("fail-setting");
+        _mockExecutor
+            .Setup(e => e.ApplySettingOperationsAsync(
+                It.Is<SettingDefinition>(s => s.Id == "fail-setting"),
+                It.IsAny<bool>(), It.IsAny<object?>()))
+            .ReturnsAsync(OperationResult.Failed("Registry write denied"));
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "fail-setting",
+            Enable = true,
+        });
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Registry write denied");
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ExecutorFails_StillPublishesEvent()
+    {
+        SetupDomainServiceWithSetting("fail-event");
+        _mockExecutor
+            .Setup(e => e.ApplySettingOperationsAsync(
+                It.Is<SettingDefinition>(s => s.Id == "fail-event"),
+                It.IsAny<bool>(), It.IsAny<object?>()))
+            .ReturnsAsync(OperationResult.Failed("Some failure"));
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "fail-event",
+            Enable = true,
+        });
+
+        _mockEventBus.Verify(e => e.Publish(It.Is<SettingAppliedEvent>(
+            evt => evt.SettingId == "fail-event")), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ExecutorSucceeds_ReturnsSuccess()
+    {
+        SetupDomainServiceWithSetting("ok-setting");
+        _mockExecutor
+            .Setup(e => e.ApplySettingOperationsAsync(
+                It.Is<SettingDefinition>(s => s.Id == "ok-setting"),
+                It.IsAny<bool>(), It.IsAny<object?>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "ok-setting",
+            Enable = true,
+        });
+
+        result.Success.Should().BeTrue();
     }
 }

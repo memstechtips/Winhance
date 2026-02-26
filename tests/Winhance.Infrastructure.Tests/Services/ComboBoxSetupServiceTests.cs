@@ -1,7 +1,5 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -32,14 +30,14 @@ public class ComboBoxSetupServiceTests
         string[]? displayNames = null,
         Dictionary<int, Dictionary<string, object?>>? valueMappings = null)
     {
-        var customProps = new Dictionary<string, object>();
-        if (displayNames != null)
+        ComboBoxMetadata? comboBox = null;
+        if (displayNames != null || valueMappings != null)
         {
-            customProps[CustomPropertyKeys.ComboBoxDisplayNames] = displayNames;
-        }
-        if (valueMappings != null)
-        {
-            customProps[CustomPropertyKeys.ValueMappings] = valueMappings;
+            comboBox = new ComboBoxMetadata
+            {
+                DisplayNames = displayNames ?? Array.Empty<string>(),
+                ValueMappings = valueMappings,
+            };
         }
 
         return new SettingDefinition
@@ -48,7 +46,7 @@ public class ComboBoxSetupServiceTests
             Name = $"Setting {id}",
             Description = $"Description for {id}",
             InputType = InputType.Selection,
-            CustomProperties = new ReadOnlyDictionary<string, object>(customProps),
+            ComboBox = comboBox,
         };
     }
 

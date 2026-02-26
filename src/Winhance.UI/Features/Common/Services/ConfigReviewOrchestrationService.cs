@@ -189,7 +189,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 ProcessWindowsAppsInstallation = hasWindowsApps && windowsAppsInstall,
                 ProcessExternalAppsInstallation = hasExternalApps && externalAppsInstall,
                 ProcessExternalAppsRemoval = hasExternalApps && externalAppsRemove,
-                ApplyThemeWallpaper = approvedSettingIds.Contains("theme-mode-windows"),
+                ApplyThemeWallpaper = approvedSettingIds.Contains(SettingIds.ThemeModeWindows),
                 ApplyCleanTaskbar = approvedSettingIds.Contains("taskbar-clean"),
                 ApplyCleanStartMenu = approvedSettingIds.Contains("start-menu-clean-10") || approvedSettingIds.Contains("start-menu-clean-11"),
             };

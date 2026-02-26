@@ -199,7 +199,7 @@ public class ConfigExportService : IConfigExportService
                 {
                     var (selectedIndex, customStateValues, powerPlanGuid, powerPlanName) = GetSelectionStateFromState(setting, state);
 
-                    if (setting.Id == "power-plan-selection")
+                    if (setting.Id == SettingIds.PowerPlanSelection)
                     {
                         item.PowerPlanGuid = powerPlanGuid;
                         item.PowerPlanName = powerPlanName;
@@ -368,7 +368,7 @@ public class ConfigExportService : IConfigExportService
         if (state?.CurrentValue is not int index)
             return (0, null, null, null);
 
-        if (setting.Id == "power-plan-selection" && state.RawValues != null)
+        if (setting.Id == SettingIds.PowerPlanSelection && state.RawValues != null)
         {
             var guid = state.RawValues.TryGetValue("ActivePowerPlanGuid", out var g) ? g?.ToString() : null;
             var name = state.RawValues.TryGetValue("ActivePowerPlan", out var n) ? n?.ToString() : null;
@@ -405,10 +405,10 @@ public class ConfigExportService : IConfigExportService
 
         var intValue = Convert.ToInt32(value);
 
-        if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+        if (setting.ComboBox?.ValueMappings == null)
             return 0;
 
-        var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+        var mappings = setting.ComboBox.ValueMappings;
 
         foreach (var mapping in mappings)
         {

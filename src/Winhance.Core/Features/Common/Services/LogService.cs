@@ -69,6 +69,9 @@ namespace Winhance.Core.Features.Common.Services
                     throw new InvalidOperationException("Log directory path is null.");
                 }
 
+                // Clean up old log files before creating a new one
+                CleanupOldLogs(logDirectory, maxAgeDays: 30, maxFiles: 50);
+
                 // Create or overwrite log file
                 _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8)
                 {
@@ -147,6 +150,49 @@ namespace Winhance.Core.Features.Common.Services
         public string GetLogPath()
         {
             return _logPath;
+        }
+
+        /// <summary>
+        /// Removes log files older than <paramref name="maxAgeDays"/> days and
+        /// caps the total number of log files to <paramref name="maxFiles"/>,
+        /// deleting the oldest files first.
+        /// </summary>
+        internal static void CleanupOldLogs(string logDirectory, int maxAgeDays = 30, int maxFiles = 50)
+        {
+            try
+            {
+                if (!Directory.Exists(logDirectory))
+                    return;
+
+                var logFiles = Directory.GetFiles(logDirectory, "Winhance_Log_*.log")
+                    .Select(f => new FileInfo(f))
+                    .OrderBy(f => f.CreationTimeUtc)
+                    .ToList();
+
+                var cutoff = DateTime.UtcNow.AddDays(-maxAgeDays);
+
+                // Delete files older than maxAgeDays
+                for (int i = logFiles.Count - 1; i >= 0; i--)
+                {
+                    if (logFiles[i].CreationTimeUtc < cutoff)
+                    {
+                        try { logFiles[i].Delete(); logFiles.RemoveAt(i); }
+                        catch { /* best-effort cleanup */ }
+                    }
+                }
+
+                // If still over maxFiles, delete the oldest
+                while (logFiles.Count > maxFiles)
+                {
+                    try { logFiles[0].Delete(); }
+                    catch { /* best-effort cleanup */ }
+                    logFiles.RemoveAt(0);
+                }
+            }
+            catch
+            {
+                // Cleanup is best-effort; don't let it prevent logging from starting
+            }
         }
 
         private void WriteLog(string message, string level)

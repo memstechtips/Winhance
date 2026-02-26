@@ -51,7 +51,7 @@ internal class FeatureRegistryScriptSection
                 var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
                 if (settingDef == null) continue;
 
-                if (settingDef.Id == "power-plan-selection") continue;
+                if (settingDef.Id == SettingIds.PowerPlanSelection) continue;
 
                 foreach (var regSetting in settingDef.RegistrySettings)
                 {
@@ -151,7 +151,7 @@ internal class FeatureRegistryScriptSection
 
             if (featureId == FeatureIds.Update && !isHkcu)
             {
-                var updatePolicySetting = configSection.Items.FirstOrDefault(i => i.Id == "updates-policy-mode");
+                var updatePolicySetting = configSection.Items.FirstOrDefault(i => i.Id == SettingIds.UpdatesPolicyMode);
                 if (updatePolicySetting?.SelectedIndex == 3)
                 {
                     AppendWindowsUpdateDisabledModeLogic(sb, indent);

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using FluentAssertions;
 using Moq;
-using Newtonsoft.Json;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
@@ -72,7 +72,7 @@ public class UserPreferencesServiceTests
     {
         // Arrange
         var prefs = new Dictionary<string, object> { { "Theme", "Dark" } };
-        string json = JsonConvert.SerializeObject(prefs);
+        string json = JsonSerializer.Serialize(prefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
@@ -81,7 +81,7 @@ public class UserPreferencesServiceTests
         // Act
         var result = await _service.GetPreferenceAsync("Theme", "Light");
 
-        // Assert — Newtonsoft deserializes string values as JToken, so the conversion logic handles it
+        // Assert — STJ deserializes string values as JsonElement, the conversion logic handles it
         result.Should().Be("Dark");
     }
 
@@ -90,7 +90,7 @@ public class UserPreferencesServiceTests
     {
         // Arrange
         var prefs = new Dictionary<string, object> { { "AutoUpdate", true } };
-        string json = JsonConvert.SerializeObject(prefs);
+        string json = JsonSerializer.Serialize(prefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
@@ -156,7 +156,7 @@ public class UserPreferencesServiceTests
     {
         // Arrange — file has an existing preference
         var existingPrefs = new Dictionary<string, object> { { "Theme", "Light" } };
-        string existingJson = JsonConvert.SerializeObject(existingPrefs);
+        string existingJson = JsonSerializer.Serialize(existingPrefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
@@ -207,7 +207,7 @@ public class UserPreferencesServiceTests
             { "FontSize", 14 },
             { "AutoUpdate", true }
         };
-        string json = JsonConvert.SerializeObject(prefs);
+        string json = JsonSerializer.Serialize(prefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
@@ -296,7 +296,7 @@ public class UserPreferencesServiceTests
 
         _mockFileSystemService
             .Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default))
-            .ThrowsAsync(new IOException("Disk full"));
+            .ThrowsAsync(new System.IO.IOException("Disk full"));
 
         // Act
         var result = await _service.SavePreferencesAsync(prefs);
@@ -328,7 +328,7 @@ public class UserPreferencesServiceTests
     {
         // Arrange
         var prefs = new Dictionary<string, object> { { "Volume", 75 } };
-        string json = JsonConvert.SerializeObject(prefs);
+        string json = JsonSerializer.Serialize(prefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllText(It.Is<string>(s => s.Contains("UserPreferences"))))
@@ -337,7 +337,7 @@ public class UserPreferencesServiceTests
         // Act
         var result = _service.GetPreference("Volume", 50);
 
-        // Assert — Newtonsoft deserializes int as JToken (Int64), so the JToken path handles it
+        // Assert — STJ deserializes numbers as JsonElement, the JsonElement.Deserialize<int>() handles it
         result.Should().Be(75);
     }
 
@@ -361,7 +361,7 @@ public class UserPreferencesServiceTests
     {
         // Arrange
         var prefs = new Dictionary<string, object> { { "DarkMode", true } };
-        string json = JsonConvert.SerializeObject(prefs);
+        string json = JsonSerializer.Serialize(prefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllText(It.Is<string>(s => s.Contains("UserPreferences"))))

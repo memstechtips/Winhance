@@ -69,6 +69,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
+        /// <summary>
+        /// Minimum number of path segments (backslash-separated) required in the
+        /// sub-key portion of a registry path before <see cref="DeleteSubKeyTree"/>
+        /// is allowed. This prevents accidental deletion of top-level hive branches
+        /// like <c>HKLM\SOFTWARE</c>.
+        /// </summary>
+        private const int MinDeleteDepth = 2;
+
+        /// <summary>
+        /// Top-level registry branches that must never be deleted via
+        /// <see cref="DeleteKey"/>. Comparison is case-insensitive.
+        /// </summary>
+        internal static readonly HashSet<string> ProtectedSubKeyRoots = new(StringComparer.OrdinalIgnoreCase)
+        {
+            @"SOFTWARE\Microsoft\Windows",
+            @"SOFTWARE\Microsoft\Windows NT",
+            @"SOFTWARE\Policies",
+            @"SYSTEM\CurrentControlSet",
+            @"SYSTEM\CurrentControlSet\Services",
+        };
+
         public bool DeleteKey(string keyPath)
         {
             try
@@ -77,6 +98,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return true;
 
                 var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+
+                // Safeguard: reject paths that are too shallow (e.g. "SOFTWARE" or "SOFTWARE\Microsoft")
+                var segments = subKeyPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length < MinDeleteDepth)
+                {
+                    logService.Log(LogLevel.Warning,
+                        $"[WindowsRegistryService] Refusing to delete shallow registry key '{keyPath}' (depth {segments.Length} < {MinDeleteDepth})");
+                    return false;
+                }
+
+                // Safeguard: reject paths that start with a protected root
+                foreach (var protectedRoot in ProtectedSubKeyRoots)
+                {
+                    if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
+                    {
+                        logService.Log(LogLevel.Warning,
+                            $"[WindowsRegistryService] Refusing to delete protected registry key '{keyPath}'");
+                        return false;
+                    }
+                }
+
                 rootKey.DeleteSubKeyTree(subKeyPath, false);
                 return true;
             }
@@ -640,7 +682,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 "HKEY_CLASSES_ROOT" or "HKCR" => Registry.ClassesRoot,
                 "HKEY_USERS" or "HKU" => Registry.Users,
                 "HKEY_CURRENT_CONFIG" or "HKCC" => Registry.CurrentConfig,
-                _ => Registry.CurrentUser,
+                _ => throw new ArgumentException($"Unrecognized registry hive: '{hive}' in path '{keyPath}'"),
             };
         }
 
@@ -650,6 +692,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 null => desired == null,
                 int i when desired is int d => i == d,
+                int i when desired is long d => i == d,
+                long l when desired is long d => l == d,
+                long l when desired is int d => l == d,
                 string s when desired is string ds => s.Equals(
                     ds,
                     StringComparison.OrdinalIgnoreCase

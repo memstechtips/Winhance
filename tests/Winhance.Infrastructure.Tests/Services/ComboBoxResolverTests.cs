@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -131,19 +130,18 @@ public class ComboBoxResolverTests
             { 1, new Dictionary<string, object?> { { "TestValue", 1 } } },
         };
 
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.ValueMappings, mappings },
-            { CustomPropertyKeys.SupportsCustomState, true },
-        };
-
         var setting = new SettingDefinition
         {
             Id = "test",
             Name = "Test Setting",
             Description = "Test",
             InputType = InputType.Selection,
-            CustomProperties = new ReadOnlyDictionary<string, object>(customProps),
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = Array.Empty<string>(),
+                ValueMappings = mappings,
+                SupportsCustomState = true,
+            },
             RegistrySettings = new[]
             {
                 new RegistrySetting
@@ -189,8 +187,11 @@ public class ComboBoxResolverTests
             Name = "Test Setting",
             Description = "Test",
             InputType = InputType.Selection,
-            CustomProperties = new ReadOnlyDictionary<string, object>(
-                new Dictionary<string, object> { { CustomPropertyKeys.ValueMappings, mappings } }),
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = Array.Empty<string>(),
+                ValueMappings = mappings,
+            },
             RegistrySettings = new[]
             {
                 new RegistrySetting
@@ -455,18 +456,17 @@ public class ComboBoxResolverTests
         string id,
         Dictionary<int, Dictionary<string, object?>> mappings)
     {
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.ValueMappings, mappings },
-        };
-
         return new SettingDefinition
         {
             Id = id,
             Name = $"Setting {id}",
             Description = $"Description for {id}",
             InputType = InputType.Selection,
-            CustomProperties = new ReadOnlyDictionary<string, object>(customProps),
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = Array.Empty<string>(),
+                ValueMappings = mappings,
+            },
         };
     }
 
@@ -475,18 +475,17 @@ public class ComboBoxResolverTests
         Dictionary<int, Dictionary<string, object?>> mappings,
         string valueName)
     {
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.ValueMappings, mappings },
-        };
-
         return new SettingDefinition
         {
             Id = id,
             Name = $"Setting {id}",
             Description = $"Description for {id}",
             InputType = InputType.Selection,
-            CustomProperties = new ReadOnlyDictionary<string, object>(customProps),
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = Array.Empty<string>(),
+                ValueMappings = mappings,
+            },
             RegistrySettings = new[]
             {
                 new RegistrySetting
@@ -501,18 +500,16 @@ public class ComboBoxResolverTests
 
     private static SettingDefinition CreateSettingWithDisplayNames(string id, string[] displayNames)
     {
-        var customProps = new Dictionary<string, object>
-        {
-            { CustomPropertyKeys.ComboBoxDisplayNames, displayNames },
-        };
-
         return new SettingDefinition
         {
             Id = id,
             Name = $"Setting {id}",
             Description = $"Description for {id}",
             InputType = InputType.Selection,
-            CustomProperties = new ReadOnlyDictionary<string, object>(customProps),
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = displayNames,
+            },
         };
     }
 

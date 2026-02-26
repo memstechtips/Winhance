@@ -105,11 +105,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
 
         // Set up numeric range settings
-        if (setting.InputType == InputType.NumericRange && setting.CustomProperties != null)
+        if (setting.InputType == InputType.NumericRange && setting.NumericRange != null)
         {
-            viewModel.MaxValue = setting.CustomProperties.TryGetValue("MaxValue", out var max) ? (int)max : int.MaxValue;
-            viewModel.MinValue = setting.CustomProperties.TryGetValue("MinValue", out var min) ? (int)min : 0;
-            viewModel.Units = setting.CustomProperties.TryGetValue("Units", out var units) ? (string)units : "";
+            viewModel.MaxValue = setting.NumericRange.MaxValue;
+            viewModel.MinValue = setting.NumericRange.MinValue;
+            viewModel.Units = setting.NumericRange.Units ?? "";
 
             if (currentState.CurrentValue is int intValue)
             {
@@ -126,7 +126,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 viewModel.ComboBoxOptions.Clear();
 
                 // Check if this is a PowerPlan setting that needs localization
-                var isPowerPlanSetting = setting.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
+                var isPowerPlanSetting = setting.Recommendation?.LoadDynamicOptions == true;
 
                 foreach (var option in comboBoxResult.Options)
                 {
@@ -189,9 +189,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
     private static int ConvertFromSystemUnits(int systemValue, SettingDefinition setting)
     {
-        var displayUnits = setting.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
-            ? unitsStr
-            : null;
+        var displayUnits = setting.NumericRange?.Units;
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 }

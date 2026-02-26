@@ -145,7 +145,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 {
                     var (selectedIndex, customStateValues, powerPlanGuid, powerPlanName) = GetSelectionStateFromState(setting, state);
 
-                    if (setting.Id == "power-plan-selection")
+                    if (setting.Id == SettingIds.PowerPlanSelection)
                     {
                         item.PowerPlanGuid = powerPlanGuid;
                         item.PowerPlanName = powerPlanName;
@@ -221,7 +221,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         if (state?.CurrentValue is not int index)
             return (0, null, null, null);
 
-        if (setting.Id == "power-plan-selection" && state.RawValues != null)
+        if (setting.Id == SettingIds.PowerPlanSelection && state.RawValues != null)
         {
             var guid = state.RawValues.TryGetValue("ActivePowerPlanGuid", out var g) ? g?.ToString() : null;
             var name = state.RawValues.TryGetValue("ActivePowerPlan", out var n) ? n?.ToString() : null;

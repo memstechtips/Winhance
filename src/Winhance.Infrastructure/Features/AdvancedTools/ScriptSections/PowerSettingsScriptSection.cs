@@ -48,7 +48,7 @@ internal class PowerSettingsScriptSection
             return null;
 
         return powerSection.Items.FirstOrDefault(item =>
-            item.Id == "power-plan-selection" && !string.IsNullOrEmpty(item.PowerPlanGuid));
+            item.Id == SettingIds.PowerPlanSelection && !string.IsNullOrEmpty(item.PowerPlanGuid));
     }
 
     public async Task<bool> AppendPowerSettingsSectionAsync(
@@ -228,7 +228,7 @@ internal class PowerSettingsScriptSection
 
         foreach (var settingDef in settingDefinitions)
         {
-            if (settingDef.Id == "power-plan-selection" || settingDef.PowerCfgSettings?.Any() != true)
+            if (settingDef.Id == SettingIds.PowerPlanSelection || settingDef.PowerCfgSettings?.Any() != true)
                 continue;
 
             if (settingDef.RequiresBattery && !hasBattery)

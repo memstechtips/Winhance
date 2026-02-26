@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Constants;
+
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -76,16 +76,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return OperationResult.Succeeded();
             }
 
-            await operationExecutor.ApplySettingOperationsAsync(setting, enable, value).ConfigureAwait(false);
+            var operationResult = await operationExecutor.ApplySettingOperationsAsync(setting, enable, value).ConfigureAwait(false);
 
-            if (setting.CustomProperties?.ContainsKey(CustomPropertyKeys.SettingPresets) == true &&
+            if (setting.SettingPresets != null &&
                 setting.InputType == InputType.Selection &&
                 value is int selectedIndex)
             {
-                var presets = setting.CustomProperties[CustomPropertyKeys.SettingPresets]
-                    as Dictionary<int, Dictionary<string, bool>>;
+                var presets = setting.SettingPresets;
 
-                if (presets?.ContainsKey(selectedIndex) == true)
+                if (presets.ContainsKey(selectedIndex))
                 {
                     logService.Log(LogLevel.Info,
                         $"[SettingApplicationService] Applying preset for '{settingId}' at index {selectedIndex}");
@@ -132,9 +131,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 await dependencyResolver.SyncParentToMatchingPresetAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
             }
 
+            // Always publish the event — even on partial failure, some operations may
+            // have succeeded and listeners need to re-read actual system state.
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}'");
 
+            if (!operationResult.Success)
+            {
+                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Setting '{settingId}' partially failed: {operationResult.ErrorMessage}");
+                return operationResult;
+            }
+
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}'");
             return OperationResult.Succeeded();
         }
 

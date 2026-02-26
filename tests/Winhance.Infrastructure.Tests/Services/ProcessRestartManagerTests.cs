@@ -53,19 +53,41 @@ public class ProcessRestartManagerTests
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WithRestartProcess_KillsProcess()
+    public async Task HandleProcessAndServiceRestartsAsync_WithNonExplorerProcess_KillsProcess()
     {
-        // Arrange
-        var setting = CreateSetting("proc-restart", restartProcess: "explorer");
+        // Arrange — use a non-explorer process to test the simple KillProcess path
+        var setting = CreateSetting("proc-restart", restartProcess: "notepad");
 
         // Act
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
 
         // Assert
-        _mockUiManagement.Verify(u => u.KillProcess("explorer"), Times.Once);
+        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once);
         _mockLog.Verify(
             l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("explorer") && s.Contains("proc-restart")),
+                It.Is<string>(s => s.Contains("notepad") && s.Contains("proc-restart")),
+                It.IsAny<Exception?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_WithExplorer_UsesRetryLogic()
+    {
+        // Arrange — Explorer respawns immediately after being killed
+        _mockUiManagement
+            .Setup(u => u.IsProcessRunning("explorer"))
+            .Returns(true);
+        var setting = CreateSetting("explorer-restart", restartProcess: "explorer");
+
+        // Act
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+
+        // Assert — KillProcess called once (succeeded on first attempt)
+        _mockUiManagement.Verify(u => u.KillProcess("explorer"), Times.Once);
+        _mockUiManagement.Verify(u => u.IsProcessRunning("explorer"), Times.AtLeastOnce);
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Info,
+                It.Is<string>(s => s.Contains("Explorer restarted successfully")),
                 It.IsAny<Exception?>()),
             Times.Once);
     }

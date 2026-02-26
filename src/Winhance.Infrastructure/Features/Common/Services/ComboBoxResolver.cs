@@ -18,7 +18,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             var rawValues = await GetRawValues(setting, existingRawValues).ConfigureAwait(false);
             
-            if (setting.InputType == InputType.Selection && setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true)
+            if (setting.InputType == InputType.Selection && setting.ComboBox?.ValueMappings != null)
             {
                 return ResolveRawValuesToIndex(setting, rawValues);
             }
@@ -52,13 +52,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return 0;
             }
 
-            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            if (setting.ComboBox?.ValueMappings == null)
             {
                 return index;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
-            if (mappings.TryGetValue(index, out var valueDict))
+            if (setting.ComboBox.ValueMappings.TryGetValue(index, out var valueDict))
             {
                 var firstValue = valueDict.Values.FirstOrDefault();
                 return firstValue is int intVal ? intVal : (firstValue != null ? Convert.ToInt32(firstValue) : index);
@@ -71,7 +70,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public int ResolveRawValuesToIndex(SettingDefinition setting, Dictionary<string, object?> rawValues)
         {
-            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            if (setting.ComboBox?.ValueMappings == null)
             {
                 return 0;
             }
@@ -81,7 +80,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return policyIndex is int index ? index : 0;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            var mappings = setting.ComboBox.ValueMappings;
             var currentValues = new Dictionary<string, object?>();
 
             if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
@@ -132,7 +131,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
 
-            var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+            var supportsCustomState = setting.ComboBox?.SupportsCustomState == true;
             if (supportsCustomState)
             {
                 return ComboBoxConstants.CustomStateIndex;
@@ -145,13 +144,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             var result = new Dictionary<string, object?>();
 
-            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            if (setting.ComboBox?.ValueMappings == null)
             {
                 return result;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
-            if (mappings.TryGetValue(index, out var expectedValues))
+            if (setting.ComboBox.ValueMappings.TryGetValue(index, out var expectedValues))
             {
                 foreach (var expectedValue in expectedValues)
                 {
@@ -164,8 +162,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public int GetIndexFromDisplayName(SettingDefinition setting, string displayName)
         {
-            if (setting.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var displayNamesObj) == true &&
-                displayNamesObj is string[] displayNames)
+            if (setting.ComboBox?.DisplayNames is { } displayNames)
             {
                 for (int i = 0; i < displayNames.Length; i++)
                 {

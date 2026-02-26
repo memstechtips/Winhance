@@ -349,11 +349,11 @@ public class SettingViewModelFactoryTests
             Description = "Numeric setting",
             InputType = InputType.NumericRange,
             GroupName = string.Empty,
-            CustomProperties = new Dictionary<string, object>
+            NumericRange = new NumericRangeMetadata
             {
-                { "MinValue", min },
-                { "MaxValue", max },
-                { "Units", units }
+                MinValue = min,
+                MaxValue = max,
+                Units = units
             }
         };
     }

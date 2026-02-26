@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Models;
+using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -161,72 +162,29 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _logService.Log(LogLevel.Info, "Pre-filtering completed");
         }
 
-        private Dictionary<string, Func<IEnumerable<SettingDefinition>>> GetKnownFeatureProviders()
+        /// <summary>
+        /// Returns the explicit registry of all feature setting providers.
+        /// Each provider is a direct static method call — no reflection, no naming conventions.
+        /// To add a new feature, add a single entry here.
+        /// </summary>
+        private static Dictionary<string, Func<IEnumerable<SettingDefinition>>> GetKnownFeatureProviders()
         {
-            var providers = new Dictionary<string, Func<IEnumerable<SettingDefinition>>>();
-
-            try
+            return new Dictionary<string, Func<IEnumerable<SettingDefinition>>>
             {
-                var settingClasses = AppDomain.CurrentDomain.GetAssemblies()
-                    .Where(assembly => !assembly.IsDynamic && assembly.GetName().Name?.Contains("Winhance") == true)
-                    .SelectMany(assembly =>
-                    {
-                        try
-                        {
-                            return assembly.GetTypes();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to load types from assembly '{assembly.GetName().Name}': {ex.Message}");
-                            return Enumerable.Empty<Type>();
-                        }
-                    })
-                    .Where(type => type != null && type.IsClass && (
-                        type.Name.EndsWith("Customizations") ||
-                        type.Name.EndsWith("Optimizations")))
-                    .ToList();
+                // Customize features
+                [FeatureIds.ExplorerCustomization] = () => ExplorerCustomizations.GetExplorerCustomizations().Settings,
+                [FeatureIds.StartMenu] = () => StartMenuCustomizations.GetStartMenuCustomizations().Settings,
+                [FeatureIds.Taskbar] = () => TaskbarCustomizations.GetTaskbarCustomizations().Settings,
+                [FeatureIds.WindowsTheme] = () => WindowsThemeCustomizations.GetWindowsThemeCustomizations().Settings,
 
-                foreach (var settingClass in settingClasses)
-                {
-                    try
-                    {
-                        var method = settingClass.GetMethods(BindingFlags.Static | BindingFlags.Public)
-                            .FirstOrDefault(m =>
-                                m.GetParameters().Length == 0 &&
-                                m.ReturnType.GetProperty("Settings") != null &&
-                                IsSettingDefinitionEnumerable(m.ReturnType.GetProperty("Settings")!.PropertyType));
-
-                        if (method != null)
-                        {
-                            var result = method.Invoke(null, null);
-                            var featureIdProperty = result!.GetType().GetProperty("FeatureId");
-                            var featureId = (string)featureIdProperty!.GetValue(result)!;
-                            var settingsProperty = result.GetType().GetProperty("Settings");
-                            var settings = (IEnumerable<SettingDefinition>)settingsProperty!.GetValue(result)!;
-
-                            providers[featureId] = () => settings;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.LogWarning($"[CompatibleSettingsRegistry] Failed to process setting class '{settingClass.Name}': {ex.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning($"[CompatibleSettingsRegistry] Feature provider discovery failed: {ex.Message}");
-            }
-
-            return providers;
-        }
-
-        private bool IsSettingDefinitionEnumerable(Type type)
-        {
-            return type.GetInterfaces()
-                .Any(i => i.IsGenericType &&
-                     i.GetGenericTypeDefinition() == typeof(IEnumerable<>) &&
-                     i.GetGenericArguments()[0] == typeof(SettingDefinition));
+                // Optimize features
+                [FeatureIds.Power] = () => PowerOptimizations.GetPowerOptimizations().Settings,
+                [FeatureIds.GamingPerformance] = () => GamingAndPerformanceOptimizations.GetGamingAndPerformanceOptimizations().Settings,
+                [FeatureIds.Notifications] = () => NotificationOptimizations.GetNotificationOptimizations().Settings,
+                [FeatureIds.Privacy] = () => PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
+                [FeatureIds.Sound] = () => SoundOptimizations.GetSoundOptimizations().Settings,
+                [FeatureIds.Update] = () => UpdateOptimizations.GetUpdateOptimizations().Settings,
+            };
         }
 
     }

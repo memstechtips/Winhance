@@ -28,7 +28,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return result;
                 }
 
-                if (setting.Id == "power-plan-selection")
+                if (setting.Id == SettingIds.PowerPlanSelection)
                 {
                     return await powerPlanComboBoxService.SetupPowerPlanComboBoxAsync(setting, currentValue).ConfigureAwait(false);
                 }
@@ -65,49 +65,39 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private bool SetupFromComboBoxDisplayNames(SettingDefinition setting, int currentIndex, ComboBoxSetupResult result)
         {
-            if (!setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ComboBoxDisplayNames) == true ||
-                !setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true)
+            var comboBox = setting.ComboBox;
+            if (comboBox == null)
+                return false;
+
+            var displayNames = comboBox.DisplayNames;
+
+            if (comboBox.ValueMappings == null)
             {
+                if (comboBox.SimpleValueMappings != null)
+                {
+                    return SetupFromSimpleValueMappings(setting, currentIndex, result, displayNames, comboBox.SimpleValueMappings);
+                }
+
+                if (comboBox.CommandValueMappings != null)
+                {
+                    return SetupFromCommandValueMappings(setting, currentIndex, result, displayNames, comboBox.CommandValueMappings);
+                }
+
                 return false;
             }
 
-            var displayNames = setting.CustomProperties![CustomPropertyKeys.ComboBoxDisplayNames] as string[];
-            var valueMappings = setting.CustomProperties![CustomPropertyKeys.ValueMappings] as Dictionary<int, Dictionary<string, object?>>;
-
-            if (displayNames == null || valueMappings == null)
-            {
-                var simpleValueMappings = setting.CustomProperties![CustomPropertyKeys.ValueMappings] as Dictionary<int, int>;
-                if (displayNames != null && simpleValueMappings != null)
-                {
-                    return SetupFromSimpleValueMappings(setting, currentIndex, result, displayNames, simpleValueMappings);
-                }
-                
-                var commandValueMappings = setting.CustomProperties[CustomPropertyKeys.ValueMappings] as Dictionary<int, bool>;
-                if (displayNames != null && commandValueMappings != null)
-                {
-                    return SetupFromCommandValueMappings(setting, currentIndex, result, displayNames, commandValueMappings);
-                }
-                
-                return false;
-            }
-
-            var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+            var supportsCustomState = comboBox.SupportsCustomState;
             var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
             string[] finalDisplayNames = displayNames;
 
             if (supportsCustomState && isCustomState)
             {
-                var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
-                    ? customStr
-                    : "Custom (User Defined)";
-
+                var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom (User Defined)";
                 finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
             }
 
-            string[]? optionTooltips = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionTooltips, out var tooltips) == true
-                ? tooltips as string[]
-                : null;
+            var optionTooltips = comboBox.OptionTooltips;
 
             for (int i = 0; i < finalDisplayNames.Length; i++)
             {
@@ -125,23 +115,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+                var comboBox = setting.ComboBox;
+                var supportsCustomState = comboBox?.SupportsCustomState == true;
                 var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
                 string[] finalDisplayNames = displayNames;
 
                 if (supportsCustomState && isCustomState)
                 {
-                    var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
-                        ? customStr
-                        : "Custom (User Defined)";
-
+                    var customDisplayName = comboBox?.CustomStateDisplayName ?? "Custom (User Defined)";
                     finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
                 }
 
-                string[]? optionTooltips = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionTooltips, out var tooltips) == true
-                    ? tooltips as string[]
-                    : null;
+                var optionTooltips = comboBox?.OptionTooltips;
 
                 for (int i = 0; i < finalDisplayNames.Length; i++)
                 {
@@ -165,23 +151,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+                var comboBox = setting.ComboBox;
+                var supportsCustomState = comboBox?.SupportsCustomState == true;
                 var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
                 string[] finalDisplayNames = displayNames;
 
                 if (supportsCustomState && isCustomState)
                 {
-                    var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
-                        ? customStr
-                        : "Custom (User Defined)";
-
+                    var customDisplayName = comboBox?.CustomStateDisplayName ?? "Custom (User Defined)";
                     finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
                 }
 
-                string[]? optionTooltips = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionTooltips, out var tooltips) == true
-                    ? tooltips as string[]
-                    : null;
+                var optionTooltips = comboBox?.OptionTooltips;
 
                 for (int i = 0; i < finalDisplayNames.Length; i++)
                 {
@@ -207,7 +189,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                if (setting.Id == "power-plan-selection")
+                if (setting.Id == SettingIds.PowerPlanSelection)
                 {
                     return await powerPlanComboBoxService.ResolveIndexFromRawValuesAsync(setting, rawValues).ConfigureAwait(false);
                 }

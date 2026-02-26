@@ -4,5 +4,6 @@ namespace Winhance.Core.Features.Common.Interfaces
     {
         int GetWindowsBuildNumber();
         bool IsWindows11();
+        bool IsWindowsServer();
     }
 }

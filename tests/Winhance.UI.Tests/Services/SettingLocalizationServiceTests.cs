@@ -1,7 +1,6 @@
-using System.Text.Json;
+using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -33,15 +32,19 @@ public class SettingLocalizationServiceTests
         string name = "Test Setting",
         string description = "Test Description",
         string? groupName = "TestGroup",
-        Dictionary<string, object>? customProperties = null) => new()
+        ComboBoxMetadata? comboBox = null,
+        NumericRangeMetadata? numericRange = null,
+        string? versionCompatibilityMessage = null,
+        Dictionary<string, string>? crossGroupChildSettings = null) => new()
     {
         Id = id,
         Name = name,
         Description = description,
         GroupName = groupName,
-        CustomProperties = customProperties != null
-            ? new Dictionary<string, object>(customProperties)
-            : new Dictionary<string, object>()
+        ComboBox = comboBox,
+        NumericRange = numericRange,
+        VersionCompatibilityMessage = versionCompatibilityMessage,
+        CrossGroupChildSettings = crossGroupChildSettings
     };
 
     // --- LocalizeSetting: Name ---
@@ -169,17 +172,18 @@ public class SettingLocalizationServiceTests
         result.GroupName.Should().Be("Unknown Group");
     }
 
-    // --- LocalizeSetting: CustomProperties ---
+    // --- LocalizeSetting: No typed metadata ---
 
     [Fact]
-    public void LocalizeSetting_WhenNoCustomProperties_ReturnsSettingWithoutCustomPropertyChanges()
+    public void LocalizeSetting_WhenNoTypedMetadata_ReturnsSettingWithoutMetadataChanges()
     {
         var sut = CreateSut();
         var setting = CreateTestSetting();
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties.Should().BeEmpty();
+        result.ComboBox.Should().BeNull();
+        result.NumericRange.Should().BeNull();
     }
 
     // --- ComboBoxDisplayNames ---
@@ -192,19 +196,17 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Setting_test-setting_Option_1"))
             .Returns("Localized Option B");
 
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Option A", "Option B" }
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Option A", "Option B" }
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        var names = (string[])result.CustomProperties[CustomPropertyKeys.ComboBoxDisplayNames];
-        names[0].Should().Be("Localized Option A");
-        names[1].Should().Be("Localized Option B");
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.DisplayNames[0].Should().Be("Localized Option A");
+        result.ComboBox.DisplayNames[1].Should().Be("Localized Option B");
     }
 
     [Fact]
@@ -213,18 +215,16 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Template_MyOption"))
             .Returns("Template Localized");
 
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_MyOption" }
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Template_MyOption" }
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        var names = (string[])result.CustomProperties[CustomPropertyKeys.ComboBoxDisplayNames];
-        names[0].Should().Be("Template Localized");
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.DisplayNames[0].Should().Be("Template Localized");
     }
 
     // --- CustomStateDisplayName ---
@@ -235,17 +235,17 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Setting_test-setting_CustomState"))
             .Returns("Localized Custom State");
 
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.CustomStateDisplayName] = "Original State"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Option A" },
+            CustomStateDisplayName = "Original State"
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties[CustomPropertyKeys.CustomStateDisplayName].Should().Be("Localized Custom State");
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.CustomStateDisplayName.Should().Be("Localized Custom State");
     }
 
     // --- Units ---
@@ -256,17 +256,18 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Common_Unit_Minutes"))
             .Returns("min");
 
-        var props = new Dictionary<string, object>
-        {
-            ["Units"] = "Minutes"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
+        {
+            MinValue = 0,
+            MaxValue = 100,
+            Units = "Minutes"
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties["Units"].Should().Be("min");
+        result.NumericRange.Should().NotBeNull();
+        result.NumericRange!.Units.Should().Be("min");
     }
 
     [Fact]
@@ -275,182 +276,104 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Common_Unit_Milliseconds"))
             .Returns("ms");
 
-        var props = new Dictionary<string, object>
-        {
-            ["Units"] = "Milliseconds"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
+        {
+            MinValue = 0,
+            MaxValue = 1000,
+            Units = "Milliseconds"
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties["Units"].Should().Be("ms");
+        result.NumericRange.Should().NotBeNull();
+        result.NumericRange!.Units.Should().Be("ms");
     }
 
     [Fact]
     public void LocalizeSetting_PercentUnits_ReturnsSameValue()
     {
-        var props = new Dictionary<string, object>
-        {
-            ["Units"] = "%"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
+        {
+            MinValue = 0,
+            MaxValue = 100,
+            Units = "%"
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties["Units"].Should().Be("%");
+        result.NumericRange.Should().NotBeNull();
+        result.NumericRange!.Units.Should().Be("%");
     }
 
     [Fact]
     public void LocalizeSetting_UnknownUnits_ReturnsSameValue()
     {
-        var props = new Dictionary<string, object>
-        {
-            ["Units"] = "Pixels"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
+        {
+            MinValue = 0,
+            MaxValue = 100,
+            Units = "Pixels"
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties["Units"].Should().Be("Pixels");
+        result.NumericRange.Should().NotBeNull();
+        result.NumericRange!.Units.Should().Be("Pixels");
     }
 
     // --- OptionWarnings (Dictionary<int, string>) ---
 
     [Fact]
-    public void LocalizeSetting_LocalizesOptionWarnings_FromDictionary()
+    public void LocalizeSetting_LocalizesOptionWarnings()
     {
         _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionWarning_1"))
             .Returns("Localized Warning");
 
         var warnings = new Dictionary<int, string> { [1] = "Original Warning" };
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.OptionWarnings] = warnings
-        };
 
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Option A", "Option B" },
+            OptionWarnings = warnings
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        var localizedWarnings = (Dictionary<int, string>)result.CustomProperties[CustomPropertyKeys.OptionWarnings];
-        localizedWarnings[1].Should().Be("Localized Warning");
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.OptionWarnings.Should().NotBeNull();
+        result.ComboBox.OptionWarnings![1].Should().Be("Localized Warning");
     }
 
-    // --- OptionWarnings (JsonElement) ---
+    // --- OptionTooltips (string[]) ---
 
     [Fact]
-    public void LocalizeSetting_LocalizesOptionWarnings_FromJsonElement()
+    public void LocalizeSetting_LocalizesOptionTooltips()
     {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionWarning_0"))
-            .Returns("JSON Localized Warning");
-
-        var json = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["0"] = "Warning" });
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.OptionWarnings] = json
-        };
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
-
-        var result = sut.LocalizeSetting(setting);
-
-        var localizedWarnings = (Dictionary<int, string>)result.CustomProperties[CustomPropertyKeys.OptionWarnings];
-        localizedWarnings[0].Should().Be("JSON Localized Warning");
-    }
-
-    // --- OptionTooltips (Dictionary<int, string>) ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesOptionTooltips_FromDictionary()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionTooltip_2"))
+        _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionTooltip_0"))
             .Returns("Localized Tooltip");
 
-        var tooltips = new Dictionary<int, string> { [2] = "Original Tooltip" };
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.OptionTooltips] = tooltips
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Option A" },
+            OptionTooltips = new[] { "Original Tooltip" }
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        var localizedTooltips = (Dictionary<int, string>)result.CustomProperties[CustomPropertyKeys.OptionTooltips];
-        localizedTooltips[2].Should().Be("Localized Tooltip");
-    }
-
-    // --- OptionTooltips (JsonElement) ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesOptionTooltips_FromJsonElement()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionTooltip_1"))
-            .Returns("JSON Localized Tooltip");
-
-        var json = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["1"] = "Tooltip" });
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.OptionTooltips] = json
-        };
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
-
-        var result = sut.LocalizeSetting(setting);
-
-        var localizedTooltips = (Dictionary<int, string>)result.CustomProperties[CustomPropertyKeys.OptionTooltips];
-        localizedTooltips[1].Should().Be("JSON Localized Tooltip");
-    }
-
-    // --- OptionConfirmations (JsonElement) ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesOptionConfirmations_FromJsonElement()
-    {
-        _localizationService.Setup(l => l.GetString("ConfirmTitle"))
-            .Returns("Localized Title");
-        _localizationService.Setup(l => l.GetString("ConfirmMessage"))
-            .Returns("Localized Message");
-
-        var confirmJson = new Dictionary<string, object>
-        {
-            ["0"] = new Dictionary<string, string>
-            {
-                ["Title"] = "ConfirmTitle",
-                ["Message"] = "ConfirmMessage"
-            }
-        };
-        var json = JsonSerializer.SerializeToElement(confirmJson);
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.OptionConfirmations] = json
-        };
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
-
-        var result = sut.LocalizeSetting(setting);
-
-        var localizedConfirms = (Dictionary<int, (string Title, string Message)>)
-            result.CustomProperties[CustomPropertyKeys.OptionConfirmations];
-        localizedConfirms[0].Title.Should().Be("Localized Title");
-        localizedConfirms[0].Message.Should().Be("Localized Message");
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.OptionTooltips.Should().NotBeNull();
+        result.ComboBox.OptionTooltips![0].Should().Be("Localized Tooltip");
     }
 
     // --- OptionConfirmations (Dictionary<int, (string, string)>) ---
 
     [Fact]
-    public void LocalizeSetting_LocalizesOptionConfirmations_FromDictionary()
+    public void LocalizeSetting_LocalizesOptionConfirmations()
     {
         _localizationService.Setup(l => l.GetString("OldTitle"))
             .Returns("Localized Title");
@@ -461,20 +384,20 @@ public class SettingLocalizationServiceTests
         {
             [0] = ("OldTitle", "OldMessage")
         };
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.OptionConfirmations] = confirmDict
-        };
 
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Option A" },
+            OptionConfirmations = confirmDict
+        });
 
         var result = sut.LocalizeSetting(setting);
 
-        var localizedConfirms = (Dictionary<int, (string Title, string Message)>)
-            result.CustomProperties[CustomPropertyKeys.OptionConfirmations];
-        localizedConfirms[0].Title.Should().Be("Localized Title");
-        localizedConfirms[0].Message.Should().Be("Localized Message");
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.OptionConfirmations.Should().NotBeNull();
+        result.ComboBox.OptionConfirmations![0].Title.Should().Be("Localized Title");
+        result.ComboBox.OptionConfirmations[0].Message.Should().Be("Localized Message");
     }
 
     // --- VersionCompatibilityMessage ---
@@ -485,18 +408,12 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Compatibility_NotSupported"))
             .Returns("This setting is not supported");
 
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.VersionCompatibilityMessage] = "Compatibility_NotSupported"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(versionCompatibilityMessage: "Compatibility_NotSupported");
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties[CustomPropertyKeys.VersionCompatibilityMessage]
-            .Should().Be("This setting is not supported");
+        result.VersionCompatibilityMessage.Should().Be("This setting is not supported");
     }
 
     [Fact]
@@ -505,35 +422,23 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Compatibility_RequiresVersion"))
             .Returns("Requires version {0} or higher");
 
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.VersionCompatibilityMessage] = "Compatibility_RequiresVersion|22H2"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(versionCompatibilityMessage: "Compatibility_RequiresVersion|22H2");
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties[CustomPropertyKeys.VersionCompatibilityMessage]
-            .Should().Be("Requires version 22H2 or higher");
+        result.VersionCompatibilityMessage.Should().Be("Requires version 22H2 or higher");
     }
 
     [Fact]
     public void LocalizeSetting_VersionCompatibilityMessage_NonCompatibilityKey_NotLocalized()
     {
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.VersionCompatibilityMessage] = "Some raw message"
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(versionCompatibilityMessage: "Some raw message");
 
         var result = sut.LocalizeSetting(setting);
 
-        result.CustomProperties[CustomPropertyKeys.VersionCompatibilityMessage]
-            .Should().Be("Some raw message");
+        result.VersionCompatibilityMessage.Should().Be("Some raw message");
     }
 
     // --- BuildCrossGroupInfoMessage ---
@@ -552,13 +457,8 @@ public class SettingLocalizationServiceTests
     [Fact]
     public void BuildCrossGroupInfoMessage_WhenNoCrossGroupSettings_ReturnsNull()
     {
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.CrossGroupChildSettings] = new Dictionary<string, string>()
-        };
-
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(crossGroupChildSettings: new Dictionary<string, string>());
 
         var result = sut.BuildCrossGroupInfoMessage(setting);
 
@@ -571,10 +471,6 @@ public class SettingLocalizationServiceTests
         var crossGroupSettings = new Dictionary<string, string>
         {
             ["privacy-child1"] = "Setting_Child1_Name"
-        };
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.CrossGroupChildSettings] = crossGroupSettings
         };
 
         var mockDomainService = new Mock<IDomainService>();
@@ -602,7 +498,7 @@ public class SettingLocalizationServiceTests
             .Returns("Privacy Group Localized");
 
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);
 
         var result = sut.BuildCrossGroupInfoMessage(setting);
 
@@ -618,16 +514,12 @@ public class SettingLocalizationServiceTests
         {
             ["unknown-child1"] = "Setting_Unknown_Name"
         };
-        var props = new Dictionary<string, object>
-        {
-            [CustomPropertyKeys.CrossGroupChildSettings] = crossGroupSettings
-        };
 
         _domainServiceRouter.Setup(r => r.GetDomainService("unknown-child1"))
             .Throws(new InvalidOperationException("Unknown setting"));
 
         var sut = CreateSut();
-        var setting = CreateTestSetting(customProperties: props);
+        var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);
 
         var result = sut.BuildCrossGroupInfoMessage(setting);
 

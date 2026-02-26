@@ -1,4 +1,4 @@
-using Winhance.Core.Features.Common.Constants;
+
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -100,9 +100,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task<SettingTooltipData?> GetTooltipDataForSettingAsync(SettingDefinition setting)
         {
-            if (setting.CustomProperties?.TryGetValue(CustomPropertyKeys.DisableTooltip, out var disableTooltipObj) == true
-                && disableTooltipObj is bool disableTooltip
-                && disableTooltip)
+            if (setting.DisableTooltip)
             {
                 return null;
             }

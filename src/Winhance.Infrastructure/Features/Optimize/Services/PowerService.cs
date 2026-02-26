@@ -45,7 +45,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// </returns>
         public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         {
-            if (setting.Id == "power-plan-selection")
+            if (setting.Id == SettingIds.PowerPlanSelection)
             {
                 logService.Log(LogLevel.Info, "[PowerService] Applying power-plan-selection");
 
@@ -83,7 +83,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             var results = new Dictionary<string, Dictionary<string, object?>>();
 
-            var powerPlanSetting = settings.FirstOrDefault(s => s.Id == "power-plan-selection");
+            var powerPlanSetting = settings.FirstOrDefault(s => s.Id == SettingIds.PowerPlanSelection);
             if (powerPlanSetting != null)
             {
                 var activePlan = await GetActivePowerPlanAsync().ConfigureAwait(false);
@@ -92,7 +92,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     ["ActivePowerPlan"] = activePlan?.Name,
                     ["ActivePowerPlanGuid"] = activePlan?.Guid
                 };
-                results["power-plan-selection"] = rawValues;
+                results[SettingIds.PowerPlanSelection] = rawValues;
             }
 
             return results;
@@ -787,34 +787,32 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         }
 
                         if (setting.InputType == InputType.Selection &&
-                            setting.CustomProperties?.TryGetValue("RecommendedOptionAC", out var recommendedOptionACObj) == true &&
+                            setting.Recommendation?.RecommendedOptionAC != null &&
                             setting.PowerCfgSettings?.Any() == true)
                         {
-                            var recommendedOptionAC = recommendedOptionACObj.ToString();
-                            var recommendedOptionDC = setting.CustomProperties.TryGetValue("RecommendedOptionDC", out var recommendedOptionDCObj)
-                                ? recommendedOptionDCObj.ToString()
-                                : recommendedOptionAC;
+                            var recommendedOptionAC = setting.Recommendation.RecommendedOptionAC;
+                            var recommendedOptionDC = setting.Recommendation.RecommendedOptionDC ?? recommendedOptionAC;
 
-                            var displayNames = setting.CustomProperties.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var displayNamesObj) &&
-                                              displayNamesObj is string[] names ? names : null;
+                            var displayNames = setting.ComboBox?.DisplayNames;
 
                             if (displayNames != null)
                             {
                                 var indexAC = Array.IndexOf(displayNames, recommendedOptionAC);
                                 var indexDC = Array.IndexOf(displayNames, recommendedOptionDC);
 
-                                var valueMappings = setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj) &&
-                                                   mappingsObj is Dictionary<int, Dictionary<string, int?>> mappings ? mappings : null;
+                                var valueMappings = setting.ComboBox?.ValueMappings;
 
                                 if (valueMappings != null)
                                 {
                                     int? acValue = null, dcValue = null;
 
-                                    if (indexAC >= 0 && valueMappings.TryGetValue(indexAC, out var valueDictAC))
-                                        acValue = valueDictAC.TryGetValue("PowerCfgValue", out var powerCfgValueAC) ? powerCfgValueAC : null;
+                                    if (indexAC >= 0 && valueMappings.TryGetValue(indexAC, out var valueDictAC) &&
+                                        valueDictAC.TryGetValue("PowerCfgValue", out var powerCfgValueAC) && powerCfgValueAC != null)
+                                        acValue = Convert.ToInt32(powerCfgValueAC);
 
-                                    if (indexDC >= 0 && valueMappings.TryGetValue(indexDC, out var valueDictDC))
-                                        dcValue = valueDictDC.TryGetValue("PowerCfgValue", out var powerCfgValueDC) ? powerCfgValueDC : null;
+                                    if (indexDC >= 0 && valueMappings.TryGetValue(indexDC, out var valueDictDC) &&
+                                        valueDictDC.TryGetValue("PowerCfgValue", out var powerCfgValueDC) && powerCfgValueDC != null)
+                                        dcValue = Convert.ToInt32(powerCfgValueDC);
 
                                     if (acValue.HasValue && dcValue.HasValue)
                                     {
@@ -859,7 +857,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (settingApplicationService == null)
                     throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
                 logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-                await settingApplicationService.ApplyRecommendedSettingsForDomainAsync("power-plan-selection").ConfigureAwait(false);
+                await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(SettingIds.PowerPlanSelection).ConfigureAwait(false);
                 logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
             }
             catch (Exception ex)
