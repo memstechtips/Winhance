@@ -41,13 +41,17 @@
 #
 # # Create a beta version
 # .\build-and-package.ps1 -Beta
+#
+# # Skip running tests
+# .\build-and-package.ps1 -SkipTests
 param (
     [string]$Version = (Get-Date -Format "yy.MM.dd"),
     [string]$OutputDir = "$PSScriptRoot\..\installer-output",
     [string]$CertificateSubject = "",
     [string]$CertificateThumbprint = "",
     [switch]$SignApplication = $false,
-    [switch]$Beta = $false
+    [switch]$Beta = $false,
+    [switch]$SkipTests = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -288,7 +292,20 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Step 3.5: Sign the application executable
+# Step 3: Run tests
+if (-not $SkipTests) {
+    Write-Host "Running tests..." -ForegroundColor Green
+    & "$scriptRoot\run-winhance-tests.ps1"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Tests failed. Fix the failing tests before building the installer." -ForegroundColor Red
+        exit 1
+    }
+}
+else {
+    Write-Host "Skipping tests (-SkipTests)..." -ForegroundColor Yellow
+}
+
+# Step 4: Sign the application executable
 $mainExecutable = "$publishOutputPath\Winhance.exe"
 
 # Check if signing is requested
@@ -318,7 +335,7 @@ else {
     Write-Host "Skipping application signing..." -ForegroundColor Yellow
 }
 
-# Step 4: Update the InnoSetup script with correct paths
+# Step 5: Update the InnoSetup script with correct paths
 Write-Host "Preparing InnoSetup script..." -ForegroundColor Green
 $innoContent = Get-Content -Path $innoSetupScript -Raw
 
@@ -352,7 +369,7 @@ if ($shouldSign -and $certificate) {
 # Write the updated script to a temporary file
 Set-Content -Path $tempInnoScript -Value $innoContent
 
-# Step 5: Run the InnoSetup compiler
+# Step 6: Run the InnoSetup compiler
 Write-Host "Creating installer..." -ForegroundColor Green
 $innoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $innoCompiler)) {
