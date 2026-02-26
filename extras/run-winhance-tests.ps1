@@ -58,7 +58,7 @@ function Run-TestProject {
         $skipped = [int]$resultMatch.Groups[3].Value
     }
     else {
-        # Could not parse — treat as failure
+        # Could not parse - treat as failure
         Write-Host $output
         $failed = 1; $passed = 0; $skipped = 0
     }
@@ -87,36 +87,63 @@ Write-Host ("=" * 60) -ForegroundColor Cyan
 $startTime = Get-Date
 
 if (-not $IntegrationOnly) {
-    # Unit Tests — Core
+    # Unit Tests - Core
     Run-TestProject `
         -Name "Core Unit Tests" `
         -ProjectPath "$solutionDir\tests\Winhance.Core.Tests\Winhance.Core.Tests.csproj"
 
-    # Unit Tests — Infrastructure
+    # Unit Tests - Infrastructure
     Run-TestProject `
         -Name "Infrastructure Unit Tests" `
         -ProjectPath "$solutionDir\tests\Winhance.Infrastructure.Tests\Winhance.Infrastructure.Tests.csproj"
 
-    # Unit Tests — UI (requires Visual Studio / WinUI SDK)
+    # Unit Tests - UI (requires Visual Studio / WinUI SDK, built with MSBuild)
     if (-not $SkipUITests) {
         $uiProjectPath = "$solutionDir\tests\Winhance.UI.Tests\Winhance.UI.Tests.csproj"
 
-        # Quick check: try to build UI tests first since they need VS tooling
-        Write-Host ""
-        Write-Host ("=" * 60) -ForegroundColor DarkGray
-        Write-Host "  Building UI Tests (requires Visual Studio)..." -ForegroundColor Cyan
-        Write-Host ("=" * 60) -ForegroundColor DarkGray
+        # Find MSBuild via vswhere, then fall back to well-known paths
+        $msbuildPath = $null
+        $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if (Test-Path $vswherePath) {
+            $msbuildPath = & $vswherePath -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+        }
+        if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
+            $fallbackPaths = @(
+                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
+                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
+                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+            )
+            foreach ($path in $fallbackPaths) {
+                if (Test-Path $path) {
+                    $msbuildPath = $path
+                    break
+                }
+            }
+        }
 
-        $buildOutput = dotnet build $uiProjectPath -p:Platform=x64 --verbosity quiet 2>&1 | Out-String
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  SKIPPED: UI Tests failed to build (Visual Studio tooling may be missing)" -ForegroundColor Yellow
+        if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
+            Write-Host ""
+            Write-Host "  SKIPPED: UI Tests - MSBuild not found (Visual Studio required)" -ForegroundColor Yellow
             Write-Host "  Use -SkipUITests to suppress this warning" -ForegroundColor DarkGray
         }
         else {
-            Run-TestProject `
-                -Name "UI Unit Tests" `
-                -ProjectPath $uiProjectPath `
-                -ExtraArgs "--no-build -p:Platform=x64"
+            Write-Host ""
+            Write-Host ("=" * 60) -ForegroundColor DarkGray
+            Write-Host "  Building UI Tests with MSBuild..." -ForegroundColor Cyan
+            Write-Host ("=" * 60) -ForegroundColor DarkGray
+
+            $buildOutput = & $msbuildPath $uiProjectPath /p:Configuration=Debug /p:Platform=x64 /verbosity:quiet -restore 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "  SKIPPED: UI Tests failed to build" -ForegroundColor Yellow
+                Write-Host $buildOutput -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host "  Build succeeded" -ForegroundColor Green
+                Run-TestProject `
+                    -Name "UI Unit Tests" `
+                    -ProjectPath $uiProjectPath `
+                    -ExtraArgs "--no-build -p:Platform=x64"
+            }
         }
     }
     else {
@@ -163,7 +190,7 @@ if ($failedProjects.Count -gt 0) {
 }
 else {
     Write-Host ""
-    Write-Host "  All tests passed!" -ForegroundColor Green
+    Write-Host "  All tests passed." -ForegroundColor Green
     Write-Host ""
     exit 0
 }
