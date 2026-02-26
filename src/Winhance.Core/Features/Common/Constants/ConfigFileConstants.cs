@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Winhance.UI.Features.Common.Constants;
+namespace Winhance.Core.Features.Common.Constants;
 
-internal static class ConfigFileConstants
+public static class ConfigFileConstants
 {
     public const string FileExtension = ".winhance";
     public const string FileFilter = "Winhance Configuration Files";

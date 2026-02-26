@@ -6,7 +6,7 @@ using Winhance.Infrastructure.Features.Common.Events;
 using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
 
-namespace Winhance.UI.Features.Common.Extensions.DI;
+namespace Winhance.Infrastructure.Extensions.DI;
 
 /// <summary>
 /// Extension methods for registering infrastructure services.

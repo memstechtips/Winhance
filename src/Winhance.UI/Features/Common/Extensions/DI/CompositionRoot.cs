@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Winhance.Infrastructure.Extensions.DI;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
