@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
-public class RemovalScript
+public record RemovalScript
 {
     public string Name { get; init; } = string.Empty;
     public string Content { get; init; } = string.Empty;

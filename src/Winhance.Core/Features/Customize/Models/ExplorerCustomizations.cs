@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Customize.Models;
 

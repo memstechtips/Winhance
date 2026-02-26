@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.SoftwareApps.Views;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 

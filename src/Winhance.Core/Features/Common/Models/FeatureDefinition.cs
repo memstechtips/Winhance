@@ -1,8 +1,7 @@
-namespace Winhance.Core.Features.Common.Models
-{
-    public record FeatureDefinition(
-        string Id,
-        string DefaultName,
-        string Category
-    );
-}
+namespace Winhance.Core.Features.Common.Models;
+
+public record FeatureDefinition(
+    string Id,
+    string DefaultName,
+    string Category
+);
