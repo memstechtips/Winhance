@@ -73,14 +73,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (comboBox.ValueMappings == null)
             {
-                if (comboBox.SimpleValueMappings != null)
+                if (comboBox.SimpleValueMappings != null || comboBox.CommandValueMappings != null)
                 {
-                    return SetupFromSimpleValueMappings(setting, currentIndex, result, displayNames, comboBox.SimpleValueMappings);
-                }
-
-                if (comboBox.CommandValueMappings != null)
-                {
-                    return SetupFromCommandValueMappings(setting, currentIndex, result, displayNames, comboBox.CommandValueMappings);
+                    return SetupFromMappings(setting, currentIndex, result, displayNames);
                 }
 
                 return false;
@@ -111,7 +106,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return true;
         }
 
-        private bool SetupFromSimpleValueMappings(SettingDefinition setting, int currentIndex, ComboBoxSetupResult result, string[] displayNames, Dictionary<int, int> simpleValueMappings)
+        private bool SetupFromMappings(SettingDefinition setting, int currentIndex, ComboBoxSetupResult result, string[] displayNames)
         {
             try
             {
@@ -142,43 +137,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"Failed to setup simple value mappings for '{setting.Id}': {ex.Message}");
-                return false;
-            }
-        }
-
-        private bool SetupFromCommandValueMappings(SettingDefinition setting, int currentIndex, ComboBoxSetupResult result, string[] displayNames, Dictionary<int, bool> commandValueMappings)
-        {
-            try
-            {
-                var comboBox = setting.ComboBox;
-                var supportsCustomState = comboBox?.SupportsCustomState == true;
-                var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
-
-                string[] finalDisplayNames = displayNames;
-
-                if (supportsCustomState && isCustomState)
-                {
-                    var customDisplayName = comboBox?.CustomStateDisplayName ?? "Custom (User Defined)";
-                    finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
-                }
-
-                var optionTooltips = comboBox?.OptionTooltips;
-
-                for (int i = 0; i < finalDisplayNames.Length; i++)
-                {
-                    result.Options.Add(new ComboBoxOption(
-                        finalDisplayNames[i],
-                        i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
-                        optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null));
-                }
-
-                result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"Failed to setup command value mappings for '{setting.Id}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to setup value mappings for '{setting.Id}': {ex.Message}");
                 return false;
             }
         }

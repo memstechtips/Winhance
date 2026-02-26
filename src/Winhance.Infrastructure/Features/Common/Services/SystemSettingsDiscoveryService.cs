@@ -309,9 +309,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (setting.RegistrySettings?.Count > 0)
             {
+                // Use the pre-fetched rawValues instead of re-reading registry individually
                 foreach (var registrySetting in setting.RegistrySettings)
                 {
-                    if (registryService.IsSettingApplied(registrySetting))
+                    var valueName = registrySetting.ValueName ?? "KeyExists";
+                    if (!rawValues.TryGetValue(valueName, out var currentValue))
+                        continue;
+
+                    if (currentValue == null)
+                        continue;
+
+                    // For BitMask/ModifyByteOnly the rawValues already contain the processed value
+                    var enabledValue = registrySetting.EnabledValue;
+                    if (enabledValue != null && ValuesAreEqual(currentValue, enabledValue))
+                        return true;
+
+                    // If no enabled value defined, check if value is non-zero/non-null (toggle-style)
+                    if (enabledValue == null && currentValue is not false)
                         return true;
                 }
                 return false;
@@ -410,31 +424,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         private static bool ValuesAreEqual(object? value1, object? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-
-            if (value1 is byte[] bytes1 && value2 is byte[] bytes2)
-            {
-                return bytes1.SequenceEqual(bytes2);
-            }
-
-            if (value1 is byte b1 && value2 is byte b2)
-            {
-                return b1 == b2;
-            }
-
-            if (value1 is byte b1Int && value2 is int i2)
-            {
-                return b1Int == i2;
-            }
-
-            if (value1 is int i1 && value2 is byte b2Int)
-            {
-                return i1 == b2Int;
-            }
-
-            return value1.Equals(value2);
-        }
+            => Utilities.ValueComparer.ValuesAreEqual(value1, value2);
     }
 }

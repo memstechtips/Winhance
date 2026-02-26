@@ -21,7 +21,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IInteractiveUserService interactiveUserService,
         IProcessExecutor processExecutor,
-        IFileSystemService fileSystemService) : IDomainService, IActionCommandProvider
+        IFileSystemService fileSystemService,
+        IWindowsRegistryService windowsRegistryService) : IDomainService, IActionCommandProvider
     {
         // Caching fields
         private volatile IEnumerable<SettingDefinition>? _cachedSettings;
@@ -207,22 +208,10 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         private async Task ApplyWindows10LayoutToCurrentUser()
         {
             // Set registry values to lock the Start Menu layout for current user
-            using (
-                var key = Registry.CurrentUser.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
-            {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 1, RegistryValueKind.DWord);
-                    key.SetValue(
-                        "StartLayoutFile",
-                        StartMenuLayouts.Win10StartLayoutPath,
-                        RegistryValueKind.String
-                    );
-                }
-            }
+            // Uses IWindowsRegistryService for OTS-aware HKCU redirection
+            var keyPath = @"HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer";
+            windowsRegistryService.SetValue(keyPath, "LockedStartLayout", 1, RegistryValueKind.DWord);
+            windowsRegistryService.SetValue(keyPath, "StartLayoutFile", StartMenuLayouts.Win10StartLayoutPath, RegistryValueKind.String);
 
             // End the StartMenuExperienceHost process to apply changes immediately
             TerminateStartMenuExperienceHost();
@@ -231,17 +220,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             await Task.Delay(3000).ConfigureAwait(false);
 
             // Disable the locked layout so user can customize again
-            using (
-                var key = Registry.CurrentUser.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
-            {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 0, RegistryValueKind.DWord);
-                }
-            }
+            windowsRegistryService.SetValue(keyPath, "LockedStartLayout", 0, RegistryValueKind.DWord);
 
             // End the StartMenuExperienceHost process again to apply final changes
             TerminateStartMenuExperienceHost();
@@ -455,36 +434,24 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             try
             {
                 // Use ProfileList registry to get ALL users (logged in or not)
-                using (
-                    var profileList = Registry.LocalMachine.OpenSubKey(
-                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
-                    )
-                )
+                // Uses HKLM which is not affected by OTS elevation
+                var profileListPath = @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList";
+                var subKeyNames = windowsRegistryService.GetSubKeyNames(profileListPath);
+
+                foreach (string sidKey in subKeyNames)
                 {
-                    if (profileList != null)
+                    if (sidKey.StartsWith("S-1-5-21-")) // User SID pattern
                     {
-                        foreach (string sidKey in profileList.GetSubKeyNames())
+                        var profilePath = windowsRegistryService.GetValue(
+                            $@"{profileListPath}\{sidKey}", "ProfileImagePath")?.ToString();
+
+                        if (!string.IsNullOrEmpty(profilePath))
                         {
-                            if (sidKey.StartsWith("S-1-5-21-")) // User SID pattern
+                            string username = fileSystemService.GetFileName(profilePath);
+                            // Skip current user and system accounts
+                            if (username != currentUsername && !IsSystemAccount(username))
                             {
-                                using (var userKey = profileList.OpenSubKey(sidKey))
-                                {
-                                    string? profilePath = userKey
-                                        ?.GetValue("ProfileImagePath")
-                                        ?.ToString();
-                                    if (!string.IsNullOrEmpty(profilePath))
-                                    {
-                                        string username = fileSystemService.GetFileName(profilePath);
-                                        // Skip current user and system accounts
-                                        if (
-                                            username != currentUsername
-                                            && !IsSystemAccount(username)
-                                        )
-                                        {
-                                            usernames.Add(username);
-                                        }
-                                    }
-                                }
+                                usernames.Add(username);
                             }
                         }
                     }

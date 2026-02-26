@@ -17,6 +17,7 @@ public class StartMenuServiceTests
     private readonly Mock<IInteractiveUserService> _interactiveUserService;
     private readonly Mock<IProcessExecutor> _processExecutor;
     private readonly Mock<IFileSystemService> _fileSystemService;
+    private readonly Mock<IWindowsRegistryService> _windowsRegistryService;
     private readonly StartMenuService _sut;
 
     public StartMenuServiceTests()
@@ -27,6 +28,7 @@ public class StartMenuServiceTests
         _interactiveUserService = new Mock<IInteractiveUserService>();
         _processExecutor = new Mock<IProcessExecutor>();
         _fileSystemService = new Mock<IFileSystemService>();
+        _windowsRegistryService = new Mock<IWindowsRegistryService>();
 
         _sut = new StartMenuService(
             _scheduledTaskService.Object,
@@ -34,7 +36,8 @@ public class StartMenuServiceTests
             _compatibleSettingsRegistry.Object,
             _interactiveUserService.Object,
             _processExecutor.Object,
-            _fileSystemService.Object);
+            _fileSystemService.Object,
+            _windowsRegistryService.Object);
     }
 
     private static SettingDefinition MakeSetting(string id, string? name = null, string? description = null) =>

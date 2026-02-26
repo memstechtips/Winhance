@@ -77,7 +77,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     if (!enabled)
                     {
                         _logService.Log(LogLevel.Error, "Failed to enable System Restore - cannot create restore point");
-                        return BackupResult.CreateSuccess(systemRestoreWasDisabled: true);
+                        return BackupResult.CreateFailure(
+                            "Failed to enable System Restore - cannot create restore point",
+                            systemRestoreWasDisabled: true);
                     }
 
                     _logService.Log(LogLevel.Info, "System Restore enabled successfully");

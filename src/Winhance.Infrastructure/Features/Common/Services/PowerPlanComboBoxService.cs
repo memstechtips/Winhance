@@ -66,13 +66,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     if (predefinedPlan.Name == "Ultimate Performance")
                     {
-                        matchingSystemPlan = systemPlans.FirstOrDefault(sp => IsUltimatePerformancePlan(sp.Name));
+                        matchingSystemPlan = systemPlans.FirstOrDefault(sp => Utilities.PowerPlanHelper.IsUltimatePerformancePlan(sp.Name));
                         matchMethod = "Ultimate Performance detection";
                     }
                     else
                     {
                         matchingSystemPlan = systemPlans.FirstOrDefault(sp =>
-                            string.Equals(CleanPlanName(sp.Name), predefinedPlan.Name, StringComparison.OrdinalIgnoreCase));
+                            string.Equals(Utilities.PowerPlanHelper.CleanPlanName(sp.Name), predefinedPlan.Name, StringComparison.OrdinalIgnoreCase));
                         matchMethod = "name";
                     }
                 }
@@ -90,10 +90,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     });
 
                     processedGuids.Add(matchingSystemPlan.Guid);
-                    processedNames.Add(CleanPlanName(matchingSystemPlan.Name));
+                    processedNames.Add(Utilities.PowerPlanHelper.CleanPlanName(matchingSystemPlan.Name));
                     matchedPredefinedCount++;
 
-                    logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService]   ✓ Matched predefined '{predefinedPlan.Name}' with system '{CleanPlanName(matchingSystemPlan.Name)}' by {matchMethod}{(matchingSystemPlan.IsActive ? " *ACTIVE*" : "")}");
+                    logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService]   ✓ Matched predefined '{predefinedPlan.Name}' with system '{Utilities.PowerPlanHelper.CleanPlanName(matchingSystemPlan.Name)}' by {matchMethod}{(matchingSystemPlan.IsActive ? " *ACTIVE*" : "")}");
                 }
                 else
                 {
@@ -113,13 +113,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             var unmatchedSystemPlans = systemPlans.Where(sp =>
                 !processedGuids.Contains(sp.Guid) &&
-                !processedNames.Contains(CleanPlanName(sp.Name))).ToList();
+                !processedNames.Contains(Utilities.PowerPlanHelper.CleanPlanName(sp.Name))).ToList();
 
             foreach (var systemPlan in unmatchedSystemPlans)
             {
                 options.Add(new PowerPlanComboBoxOption
                 {
-                    DisplayName = CleanPlanName(systemPlan.Name),
+                    DisplayName = Utilities.PowerPlanHelper.CleanPlanName(systemPlan.Name),
                     PredefinedPlan = null,
                     SystemPlan = systemPlan,
                     ExistsOnSystem = true,
@@ -127,7 +127,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     Index = options.Count
                 });
 
-                logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService]   + Added unmatched system plan '{CleanPlanName(systemPlan.Name)}'{(systemPlan.IsActive ? " *ACTIVE*" : "")}");
+                logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService]   + Added unmatched system plan '{Utilities.PowerPlanHelper.CleanPlanName(systemPlan.Name)}'{(systemPlan.IsActive ? " *ACTIVE*" : "")}");
             }
 
             var sortedOptions = options.OrderBy(o => o.DisplayName)
@@ -177,42 +177,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        private bool IsUltimatePerformancePlan(string planName)
-        {
-            var cleanName = CleanPlanName(planName).ToLowerInvariant();
-            
-            var knownNames = new[]
-            {
-                "ultimate performance",
-                "rendimiento máximo", 
-                "prestazioni ottimali",
-                "höchstleistung",
-                "performances optimales",
-                "desempenho máximo",
-                "ultieme prestaties",
-                "максимальная производительность"
-            };
-            
-            if (knownNames.Contains(cleanName))
-                return true;
-            
-            var ultimateWords = new[] { "ultimate", "ultieme", "máximo", "optimal", "höchst" };
-            var performanceWords = new[] { "performance", "prestazioni", "leistung", "performances", "desempenho" };
-            
-            bool hasUltimateWord = ultimateWords.Any(word => cleanName.Contains(word));
-            bool hasPerformanceWord = performanceWords.Any(word => cleanName.Contains(word));
-            
-            return hasUltimateWord && hasPerformanceWord;
-        }
-
         public void InvalidateCache()
         {
             powerSettingsQueryService.InvalidateCache();
-        }
-
-        private string CleanPlanName(string name)
-        {
-            return name?.Trim() ?? string.Empty;
         }
 
         public async Task<int> ResolveIndexFromRawValuesAsync(SettingDefinition setting, Dictionary<string, object?> rawValues)
@@ -246,9 +213,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     for (int i = 0; i < options.Count; i++)
                     {
                         // Check against DisplayName (LocalizationKey) or SystemPlan.Name
-                        var displayMatch = string.Equals(CleanPlanName(options[i].DisplayName), activeNameStr, StringComparison.OrdinalIgnoreCase);
+                        var displayMatch = string.Equals(Utilities.PowerPlanHelper.CleanPlanName(options[i].DisplayName), activeNameStr, StringComparison.OrdinalIgnoreCase);
                         var systemMatch = options[i].SystemPlan != null && 
-                                        string.Equals(CleanPlanName(options[i].SystemPlan!.Name), activeNameStr, StringComparison.OrdinalIgnoreCase);
+                                        string.Equals(Utilities.PowerPlanHelper.CleanPlanName(options[i].SystemPlan!.Name), activeNameStr, StringComparison.OrdinalIgnoreCase);
 
                         if (displayMatch || systemMatch)
                         {

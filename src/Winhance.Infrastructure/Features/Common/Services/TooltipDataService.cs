@@ -55,9 +55,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Silent failure for bulk operations
+                _logService.LogWarning($"[TooltipDataService] Error fetching bulk tooltip data: {ex.Message}");
             }
 
             return tooltipData;
@@ -69,8 +69,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 return await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex)
             {
+                _logService.LogWarning($"[TooltipDataService] Error refreshing tooltip for '{settingId}': {ex.Message}");
                 return null;
             }
         }
@@ -90,9 +91,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Silent failure for bulk operations
+                _logService.LogWarning($"[TooltipDataService] Error refreshing multiple tooltips: {ex.Message}");
             }
 
             return tooltipData;
@@ -156,8 +157,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 primaryDisplayValue = formattedValue;
                             }
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            _logService.LogDebug($"[TooltipDataService] Error reading registry for tooltip '{registrySetting.KeyPath}\\{registrySetting.ValueName}': {ex.Message}");
                             individualValues[registrySetting] = null;
                         }
                     }
@@ -175,8 +177,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                _logService.LogWarning($"[TooltipDataService] Error building tooltip data for '{setting.Id}': {ex.Message}");
                 return null;
             }
         }

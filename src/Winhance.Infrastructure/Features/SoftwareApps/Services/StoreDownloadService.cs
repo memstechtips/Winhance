@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -144,7 +143,7 @@ public class StoreDownloadService : IStoreDownloadService
             _logService?.LogInformation($"Found {downloadLinks.Count} package file(s) for {productId}");
 
             // Step 2: Separate main packages and dependencies
-            var currentArch = GetCurrentArchitecture();
+            var currentArch = Common.Utilities.ArchitectureHelper.GetCurrentArchitecture();
             var mainPackages = FilterPackageLinks(downloadLinks, currentArch, isDependency: false);
             var allDependencies = FilterPackageLinks(downloadLinks, currentArch, isDependency: true);
 
@@ -630,18 +629,6 @@ public class StoreDownloadService : IStoreDownloadService
                lower.EndsWith(".msixbundle");
     }
 
-    private static string GetCurrentArchitecture()
-    {
-        var arch = RuntimeInformation.OSArchitecture;
-        return arch switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm64 => "arm64",
-            Architecture.Arm => "arm",
-            _ => "x64" // Default to x64
-        };
-    }
 
     private class PackageLink
     {

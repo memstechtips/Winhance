@@ -453,14 +453,15 @@ public class SystemSettingsDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GetSettingStatesAsync_ExceptionForIndividualSetting_ReturnsFailedResult()
+    public async Task GetSettingStatesAsync_RegistrySettingWithBatchValues_InterpretedSuccessfully()
     {
-        // Create a setting whose registry check will throw during state interpretation
+        // DetermineIfSettingIsEnabled uses pre-fetched raw values (not individual registry reads).
+        // When batch values contain a valid value, the setting should be interpreted as enabled.
         var setting = new SettingDefinition
         {
-            Id = "test-error",
-            Name = "Error Setting",
-            Description = "Will cause error",
+            Id = "test-batch",
+            Name = "Batch Setting",
+            Description = "Uses batch values",
             InputType = InputType.Toggle,
             RegistrySettings = new[]
             {
@@ -473,20 +474,16 @@ public class SystemSettingsDiscoveryServiceTests
             },
         };
 
-        // GetBatchValues returns a value so raw values exist, but IsSettingApplied throws
-        // during the per-setting interpretation phase (inside the try/catch)
         _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
             .Returns(new Dictionary<string, object?>
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 1 },
             });
-        _mockRegistry.Setup(r => r.IsSettingApplied(It.IsAny<RegistrySetting>()))
-            .Throws(new InvalidOperationException("Simulated registry error"));
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 
-        result["test-error"].Success.Should().BeFalse();
-        result["test-error"].ErrorMessage.Should().NotBeNullOrEmpty();
+        result["test-batch"].Success.Should().BeTrue();
+        result["test-batch"].IsEnabled.Should().BeTrue();
     }
 
     [Fact]

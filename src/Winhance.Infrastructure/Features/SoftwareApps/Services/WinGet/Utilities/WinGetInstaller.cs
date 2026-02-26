@@ -3,7 +3,6 @@
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Text;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
@@ -402,7 +401,7 @@ public class WinGetInstaller
         cancellationToken.ThrowIfCancellationRequested();
 
         // Get architecture-specific dependencies
-        var arch = GetCurrentArchitecture();
+        var arch = Common.Utilities.ArchitectureHelper.GetCurrentArchitecture();
         var allAppxFiles = _fileSystemService.GetFiles(dependenciesPath, "*.appx", SearchOption.AllDirectories);
         var dependencyPackages = allAppxFiles
             .Where(f => IsRelevantForArchitecture(f, arch))
@@ -508,16 +507,6 @@ public class WinGetInstaller
             DeploymentOptions.ForceApplicationShutdown).AsTask(cancellationToken).ConfigureAwait(false);
     }
 
-    private static string GetCurrentArchitecture()
-    {
-        return RuntimeInformation.ProcessArchitecture switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm64 => "arm64",
-            _ => "x64"
-        };
-    }
 
     private bool IsRelevantForArchitecture(string filePath, string targetArch)
     {

@@ -176,31 +176,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         private static bool ValuesAreEqual(object? value1, object? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-
-            if (value1 is byte[] bytes1 && value2 is byte[] bytes2)
-            {
-                return bytes1.SequenceEqual(bytes2);
-            }
-
-            if (value1 is byte b1 && value2 is byte b2)
-            {
-                return b1 == b2;
-            }
-
-            if (value1 is byte b1Int && value2 is int i2)
-            {
-                return b1Int == i2;
-            }
-
-            if (value1 is int i1 && value2 is byte b2Int)
-            {
-                return i1 == b2Int;
-            }
-
-            return value1.Equals(value2);
-        }
+            => Utilities.ValueComparer.ValuesAreEqual(value1, value2);
     }
 }

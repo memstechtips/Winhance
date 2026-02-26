@@ -123,10 +123,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 foreach (var taskSetting in setting.ScheduledTaskSettings)
                 {
-                    if (enable)
-                        await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath).ConfigureAwait(false);
-                    else
-                        await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath).ConfigureAwait(false);
+                    var taskResult = enable
+                        ? await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath).ConfigureAwait(false)
+                        : await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath).ConfigureAwait(false);
+
+                    if (!taskResult.Success)
+                    {
+                        allSucceeded = false;
+                        failedOperations.Add($"ScheduledTask: {taskSetting.TaskPath}");
+                        logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] Failed to {(enable ? "enable" : "disable")} scheduled task: {taskSetting.TaskPath}");
+                    }
                 }
             }
 

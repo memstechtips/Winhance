@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Winhance.Core.Features.Common.Enums;
@@ -12,7 +13,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly IWindowsVersionService _versionService;
         private readonly ILogService _logService;
-        private readonly HashSet<string> _loggedCompatibilityMessages = new();
+        private readonly ConcurrentDictionary<string, byte> _loggedCompatibilityMessages = new();
 
         public WindowsCompatibilityFilter(
             IWindowsVersionService versionService,
@@ -187,10 +188,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (compatibilityMessage != null)
                 {
                     var logKey = $"{setting.Name}:{compatibilityMessage}";
-                    if (!_loggedCompatibilityMessages.Contains(logKey))
+                    if (_loggedCompatibilityMessages.TryAdd(logKey, 0))
                     {
                         _logService.Log(LogLevel.Info, $"Adding compatibility message to {setting.Name}: {compatibilityMessage}");
-                        _loggedCompatibilityMessages.Add(logKey);
                     }
 
                     yield return setting with { VersionCompatibilityMessage = compatibilityMessage };

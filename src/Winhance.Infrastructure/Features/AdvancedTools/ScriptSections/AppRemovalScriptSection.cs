@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
 
@@ -16,7 +17,7 @@ internal class AppRemovalScriptSection
 {
     public void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
     {
-        sb.AppendLine($"{indent}$scriptsDir = \"C:\\ProgramData\\Winhance\\Scripts\"");
+        sb.AppendLine($"{indent}$scriptsDir = \"{ScriptPaths.ScriptsDirectoryLiteral}\"");
         sb.AppendLine($"{indent}if (!(Test-Path $scriptsDir)) {{");
         sb.AppendLine($"{indent}    New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null");
         sb.AppendLine($"{indent}    Write-Log \"Created scripts directory: $scriptsDir\" \"SUCCESS\"");
@@ -251,7 +252,7 @@ try {
         sb.AppendLine($"{indent}    $shortcutPath = \"C:\\Users\\Default\\Desktop\\Install Winhance.lnk\"");
         sb.AppendLine($"{indent}    $WshShell = New-Object -ComObject WScript.Shell");
         sb.AppendLine($"{indent}    $shortcut = $WshShell.CreateShortcut($shortcutPath)");
-        sb.AppendLine($"{indent}    $shortcut.TargetPath = \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"");
+        sb.AppendLine($"{indent}    $shortcut.TargetPath = \"{ScriptPaths.PowerShellExePath}\"");
         sb.AppendLine($"{indent}    $shortcut.Arguments = \"-ExecutionPolicy Bypass -NoProfile -File `\"$targetFile`\"\"");
         sb.AppendLine($"{indent}    $shortcut.IconLocation = \"C:\\Windows\\System32\\appwiz.cpl,0\"");
         sb.AppendLine($"{indent}    $shortcut.WorkingDirectory = \"C:\\Windows\\System32\"");

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
@@ -106,7 +107,7 @@ public static class BloatRemovalScriptGenerator
     private static void AppendLoggingSetup(StringBuilder sb)
     {
         sb.AppendLine("# Setup logging");
-        sb.AppendLine("$logFolder = \"C:\\ProgramData\\Winhance\\Logs\"");
+        sb.AppendLine($"$logFolder = \"{ScriptPaths.LogsDirectoryLiteral}\"");
         sb.AppendLine("$logFile = \"$logFolder\\BloatRemovalLog.txt\"");
         sb.AppendLine();
         sb.AppendLine("if (!(Test-Path $logFolder)) {");

@@ -111,8 +111,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (setting.IsWindows10Only && !osInfo.IsWindows10) return false;
             if (setting.IsWindows11Only && !osInfo.IsWindows11) return false;
-            if (setting.MinimumBuildNumber.HasValue && osInfo.BuildNumber < setting.MinimumBuildNumber.Value) return false;
-            if (setting.MaximumBuildNumber.HasValue && osInfo.BuildNumber > setting.MaximumBuildNumber.Value) return false;
+
+            // Check SupportedBuildRanges (takes precedence over min/max if specified)
+            if (setting.SupportedBuildRanges?.Count > 0)
+            {
+                bool inSupportedRange = setting.SupportedBuildRanges.Any(range =>
+                    osInfo.BuildNumber >= range.MinBuild && osInfo.BuildNumber <= range.MaxBuild);
+                if (!inSupportedRange) return false;
+            }
+            else
+            {
+                if (setting.MinimumBuildNumber.HasValue && osInfo.BuildNumber < setting.MinimumBuildNumber.Value) return false;
+                if (setting.MaximumBuildNumber.HasValue && osInfo.BuildNumber > setting.MaximumBuildNumber.Value) return false;
+            }
+
             return true;
         }
 

@@ -1,10 +1,9 @@
-namespace Winhance.Core.Features.Optimize.Models
+namespace Winhance.Core.Features.Optimize.Models;
+
+public record PowerPlan
 {
-    public class PowerPlan
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Guid { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
-    }
+    public string Name { get; init; } = string.Empty;
+    public string Guid { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public bool IsActive { get; init; }
 }

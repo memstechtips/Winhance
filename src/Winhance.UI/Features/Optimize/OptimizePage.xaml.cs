@@ -151,6 +151,12 @@ public sealed partial class OptimizePage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        if (_configReviewService != null)
+        {
+            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+            _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
+        }
         ViewModel.OnNavigatedFrom();
     }
 

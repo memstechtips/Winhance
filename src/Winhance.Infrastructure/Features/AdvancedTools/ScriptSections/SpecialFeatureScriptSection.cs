@@ -1,4 +1,5 @@
 using System.Text;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
@@ -16,7 +17,7 @@ internal static class SpecialFeatureScriptSection
         sb.AppendLine();
         sb.AppendLine($"{indent}Write-Log \"Registering UserCustomizations scheduled task...\" \"INFO\"");
         sb.AppendLine($"{indent}try {{");
-        sb.AppendLine($"{indent}    $action = New-ScheduledTaskAction -Execute \"powershell.exe\" -Argument \"-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File C:\\ProgramData\\Winhance\\Unattend\\Scripts\\Winhancements.ps1 -UserCustomizations\"");
+        sb.AppendLine($"{indent}    $action = New-ScheduledTaskAction -Execute \"powershell.exe\" -Argument \"-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File {ScriptPaths.UnattendScriptPath} -UserCustomizations\"");
         sb.AppendLine($"{indent}    $trigger = New-ScheduledTaskTrigger -AtLogOn");
         sb.AppendLine($"{indent}    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0");
         sb.AppendLine($"{indent}    $principal = New-ScheduledTaskPrincipal -UserId \"SYSTEM\" -LogonType ServiceAccount -RunLevel Highest");

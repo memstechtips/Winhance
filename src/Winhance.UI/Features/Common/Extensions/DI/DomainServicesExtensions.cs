@@ -104,17 +104,17 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddSoftwareAppServices(this IServiceCollection services)
     {
-        // New Domain Services (Scoped - Business logic)
-        services.AddScoped<IWindowsAppsService, WindowsAppsService>();
-        services.AddScoped<IExternalAppsService, ExternalAppsService>();
-        services.AddScoped<IAppInstallationService, AppInstallationService>();
-        services.AddScoped<IAppUninstallationService, AppUninstallationService>();
+        // Domain Services (Singleton - consumed by Singleton ViewModels)
+        services.AddSingleton<IWindowsAppsService, WindowsAppsService>();
+        services.AddSingleton<IExternalAppsService, ExternalAppsService>();
+        services.AddSingleton<IAppInstallationService, AppInstallationService>();
+        services.AddSingleton<IAppUninstallationService, AppUninstallationService>();
 
         // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();
 
-        // App Services (Scoped - Business logic)
-        services.AddScoped<IAppLoadingService, AppLoadingService>();
+        // App Services (Singleton - consumed by Singleton ViewModels)
+        services.AddSingleton<IAppLoadingService, AppLoadingService>();
 
         // WinGet decomposed services
         services.AddSingleton<WinGetComSession>();
@@ -130,7 +130,7 @@ public static class DomainServicesExtensions
         services.AddSingleton<IChocolateyConsentService, ChocolateyConsentService>();
 
         // App Uninstall Service
-        services.AddScoped<IAppUninstallService, AppUninstallService>();
+        services.AddSingleton<IAppUninstallService, AppUninstallService>();
 
         // Store Download Service (Fallback for market-restricted apps)
         services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
@@ -138,12 +138,12 @@ public static class DomainServicesExtensions
         // Direct Download Service (For non-WinGet apps)
         services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
 
-        // Legacy Capability and Optional Feature Services (Scoped - depends on Scoped IWindowsAppsService)
-        services.AddScoped<ILegacyCapabilityService>(provider => new LegacyCapabilityService(
+        // Legacy Capability and Optional Feature Services (Singleton - depends on Singleton IWindowsAppsService)
+        services.AddSingleton<ILegacyCapabilityService>(provider => new LegacyCapabilityService(
             provider.GetRequiredService<ILogService>(),
             provider.GetRequiredService<IWindowsAppsService>()
         ));
-        services.AddScoped<IOptionalFeatureService>(provider => new OptionalFeatureService(
+        services.AddSingleton<IOptionalFeatureService>(provider => new OptionalFeatureService(
             provider.GetRequiredService<ILogService>(),
             provider.GetRequiredService<IWindowsAppsService>()
         ));

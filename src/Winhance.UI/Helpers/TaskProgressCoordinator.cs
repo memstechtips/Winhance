@@ -19,6 +19,7 @@ internal sealed class TaskProgressCoordinator
     private readonly TaskProgressControl _control3;
     private readonly ILogService _logService;
     private readonly DispatcherQueue _dispatcherQueue;
+    private readonly CancellationTokenSource?[] _hideDelayCts = new CancellationTokenSource?[3];
 
     public TaskProgressCoordinator(
         TaskProgressControl control1,
@@ -128,12 +129,17 @@ internal sealed class TaskProgressCoordinator
         };
         if (control == null) return;
 
+        // Cancel any pending hide-delay for this slot when new data arrives
+        CancelPendingHide(slotIndex);
+
         // Slot completed -- keep visible briefly so the user can see the result
         if (detail.IsCompletion)
         {
             control.IsTaskRunning = false;
             control.CanCancel = Visibility.Collapsed;
-            HideControlAfterDelayAsync(control, 2000).FireAndForget(_logService);
+            var cts = new CancellationTokenSource();
+            _hideDelayCts[slotIndex] = cts;
+            HideControlAfterDelayAsync(control, 2000, cts.Token).FireAndForget(_logService);
             return;
         }
 
@@ -168,14 +174,31 @@ internal sealed class TaskProgressCoordinator
     }
 
     /// <summary>
+    /// Cancels any pending hide-delay for the given slot.
+    /// </summary>
+    private void CancelPendingHide(int slotIndex)
+    {
+        var old = Interlocked.Exchange(ref _hideDelayCts[slotIndex], null);
+        old?.Cancel();
+        old?.Dispose();
+    }
+
+    /// <summary>
     /// Hides a TaskProgressControl after the specified delay.
     /// </summary>
-    private async Task HideControlAfterDelayAsync(TaskProgressControl control, int delayMs)
+    private async Task HideControlAfterDelayAsync(TaskProgressControl control, int delayMs, CancellationToken cancellationToken)
     {
-        await Task.Delay(delayMs).ConfigureAwait(false);
-        _dispatcherQueue.TryEnqueue(() =>
+        try
         {
-            control.IsProgressVisible = Visibility.Collapsed;
-        });
+            await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                control.IsProgressVisible = Visibility.Collapsed;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Hide was cancelled because a new task started on this slot
+        }
     }
 }

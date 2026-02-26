@@ -502,7 +502,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (predefinedPlan.Name == "Ultimate Performance")
                 {
                     var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-                    var existingPlan = systemPlans.FirstOrDefault(p => IsUltimatePerformancePlan(p.Name));
+                    var existingPlan = systemPlans.FirstOrDefault(p => Common.Utilities.PowerPlanHelper.IsUltimatePerformancePlan(p.Name));
 
                     if (existingPlan != null)
                     {
@@ -597,7 +597,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 var plans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
                 var targetGuid = plans.FirstOrDefault(p =>
-                    string.Equals(CleanPlanName(p.Name), targetPlan.Name, StringComparison.OrdinalIgnoreCase))?.Guid;
+                    string.Equals(Common.Utilities.PowerPlanHelper.CleanPlanName(p.Name), targetPlan.Name, StringComparison.OrdinalIgnoreCase))?.Guid;
 
                 return !string.IsNullOrEmpty(targetGuid)
                     ? new PowerPlanImportResult(true, targetGuid)
@@ -661,7 +661,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
             return allPlans.Where(plan =>
                 !builtInGuids.Contains(plan.Guid) ||
-                !builtInNames.Contains(CleanPlanName(plan.Name))
+                !builtInNames.Contains(Common.Utilities.PowerPlanHelper.CleanPlanName(plan.Name))
             ).ToList();
         }
 
@@ -669,39 +669,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             var invalid = Path.GetInvalidFileNameChars();
             return string.Join("_", filename.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
-        }
-
-        private bool IsUltimatePerformancePlan(string planName)
-        {
-            var cleanName = CleanPlanName(planName).ToLowerInvariant();
-
-            var knownNames = new[]
-            {
-                "ultimate performance",
-                "rendimiento máximo",
-                "prestazioni ottimali",
-                "höchstleistung",
-                "performances optimales",
-                "desempenho máximo",
-                "ultieme prestaties",
-                "максимальная производительность"
-            };
-
-            if (knownNames.Contains(cleanName))
-                return true;
-
-            var ultimateWords = new[] { "ultimate", "ultieme", "máximo", "optimal", "höchst" };
-            var performanceWords = new[] { "performance", "prestazioni", "leistung", "performances", "desempenho" };
-
-            bool hasUltimateWord = ultimateWords.Any(word => cleanName.Contains(word));
-            bool hasPerformanceWord = performanceWords.Any(word => cleanName.Contains(word));
-
-            return hasUltimateWord && hasPerformanceWord;
-        }
-
-        private string CleanPlanName(string name)
-        {
-            return name?.Trim() ?? string.Empty;
         }
 
         private async Task<PowerPlanImportResult> CreateWinhancePowerPlanAsync(PredefinedPowerPlan predefinedPlan)
