@@ -153,35 +153,6 @@ public static class StartMenuCustomizations
                 },
                 new SettingDefinition
                 {
-                    Id = "start-show-all-pins-by-default",
-                    Name = "Show all pins by default",
-                    Description = "Automatically expand to show all pinned apps instead of requiring you to click 'All apps'",
-                    GroupName = "Start Menu Settings",
-                    InputType = InputType.Toggle,
-                    IconPack = "Fluent",
-                    Icon = "PinOff",
-                    IsWindows11Only = true,
-                    SupportedBuildRanges = new List<(int, int)>
-                    {
-                        (26120, int.MaxValue), // Windows 11 24H2 build 26120.4250 and later
-                        (26200, int.MaxValue), // Windows 11 25H2 build 26200.5670 and later
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
-                            ValueName = "ShowAllPinsList",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, all pins are shown
-                            DisabledValue = 0, // When toggle is OFF, all pins are not shown
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
                     Id = "start-show-recently-added-apps",
                     Name = "Show recently added apps",
                     Description = "Display a list of recently installed applications at the top of the All Apps list",
