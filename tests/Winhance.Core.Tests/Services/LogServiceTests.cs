@@ -1,5 +1,8 @@
 using System.IO;
 using FluentAssertions;
+using Moq;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
 using Xunit;
 
@@ -78,11 +81,96 @@ public class LogServiceTests
     public void SetInteractiveUserService_DoesNotThrow()
     {
         using var service = new LogService();
-        var mockService = new Moq.Mock<Winhance.Core.Features.Common.Interfaces.IInteractiveUserService>();
+        var mockService = new Mock<IInteractiveUserService>();
 
         var action = () => service.SetInteractiveUserService(mockService.Object);
 
         action.Should().NotThrow();
+    }
+
+    [Fact]
+    public void SetSystemInfoProvider_DoesNotThrow()
+    {
+        using var service = new LogService();
+        var mockProvider = new Mock<ISystemInfoProvider>();
+
+        var action = () => service.SetSystemInfoProvider(mockProvider.Object);
+
+        action.Should().NotThrow();
+    }
+
+    [Fact]
+    public void StartLog_WithSystemInfoProvider_WritesAllDiagnosticFields()
+    {
+        var service = new LogService();
+        var mockProvider = new Mock<ISystemInfoProvider>();
+        mockProvider.Setup(p => p.Collect()).Returns(new SystemInfo
+        {
+            AppVersion = "26.02.20",
+            OperatingSystem = "Windows 11 Pro 25H2 (Build 26100.4061)",
+            Architecture = "x64",
+            DeviceType = "Laptop",
+            Cpu = "AMD Ryzen 7 7840HS (16 cores)",
+            Ram = "32 GB",
+            Gpu = "NVIDIA GeForce RTX 4060 (Dedicated)",
+            DotNetRuntime = ".NET 10.0.0",
+            Elevation = "Admin (OTS)",
+            FirmwareType = "UEFI",
+            SecureBoot = "Enabled",
+            Tpm = "2.0",
+            DomainJoined = "No"
+        });
+        service.SetSystemInfoProvider(mockProvider.Object);
+        service.StartLog();
+        var logPath = service.GetLogPath();
+        service.Dispose(); // Release file lock before reading
+
+        var logContent = File.ReadAllText(logPath);
+        logContent.Should().Contain("Winhance 26.02.20 Log Started");
+        logContent.Should().Contain("OS:            Windows 11 Pro 25H2 (Build 26100.4061)");
+        logContent.Should().Contain("Architecture:  x64");
+        logContent.Should().Contain("Device Type:   Laptop");
+        logContent.Should().Contain("CPU:           AMD Ryzen 7 7840HS (16 cores)");
+        logContent.Should().Contain("RAM:           32 GB");
+        logContent.Should().Contain("GPU:           NVIDIA GeForce RTX 4060 (Dedicated)");
+        logContent.Should().Contain(".NET Runtime:  .NET 10.0.0");
+        logContent.Should().Contain("Elevation:     Admin (OTS)");
+        logContent.Should().Contain("Firmware:      UEFI");
+        logContent.Should().Contain("Secure Boot:   Enabled");
+        logContent.Should().Contain("TPM:           2.0");
+        logContent.Should().Contain("Domain Joined: No");
+        logContent.Should().Contain("=====================================");
+    }
+
+    [Fact]
+    public void StartLog_WithoutSystemInfoProvider_WritesFallbackMessage()
+    {
+        var service = new LogService();
+        service.StartLog();
+        var logPath = service.GetLogPath();
+        service.Dispose(); // Release file lock before reading
+
+        var logContent = File.ReadAllText(logPath);
+        logContent.Should().Contain("Winhance Log Started");
+        logContent.Should().Contain("System info unavailable (provider not configured)");
+    }
+
+    [Fact]
+    public void StartLog_DoesNotContainUserOrMachineInfo()
+    {
+        var service = new LogService();
+        var mockProvider = new Mock<ISystemInfoProvider>();
+        mockProvider.Setup(p => p.Collect()).Returns(new SystemInfo());
+        service.SetSystemInfoProvider(mockProvider.Object);
+        service.StartLog();
+        var logPath = service.GetLogPath();
+        service.Dispose(); // Release file lock before reading
+
+        var logContent = File.ReadAllText(logPath);
+        logContent.Should().NotContain("User:");
+        logContent.Should().NotContain("Elevated User:");
+        logContent.Should().NotContain("Machine:");
+        logContent.Should().NotContain("Timestamp:");
     }
 
     // ── CleanupOldLogs (BP-7) ──

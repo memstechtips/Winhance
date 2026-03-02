@@ -25,6 +25,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IProcessExecutor, ProcessExecutor>();
         services.AddSingleton<ILogService, Winhance.Core.Features.Common.Services.LogService>();
         services.AddSingleton<IInteractiveUserService, InteractiveUserService>();
+        services.AddSingleton<ISystemInfoProvider, SystemInfoProvider>();
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
         // Dependency Manager
         services.AddSingleton<IDependencyManager, Winhance.Core.Features.Common.Services.DependencyManager>();
