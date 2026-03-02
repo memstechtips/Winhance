@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Użyj klasycznego menu kontekstowego",
   "Setting_explorer-customization-context-menu_Description": "Użyj menu kontekstowego w stylu Windows 10 ze wszystkimi widocznymi opcjami zamiast uproszczonego menu Windows 11",
   "Setting_explorer-take-ownership_Name": "Dodaj 'Przejmij na własność' do menu kontekstowego",
-  "Setting_explorer-take-ownership_Description": "Dodaje opcję kliknięcia prawym przyciskiem myszy, aby przejąć na własność pliki, foldery i dyski z automatycznym podniesieniem uprawnień",
+  "Setting_explorer-take-ownership_Description": "Dodaje opcję kliknięcia prawym przyciskiem myszy, aby przejąć na własność pliki, foldery i dyski z automatycznym podniesieniem uprawnień. Może wymagać tymczasowego wyłączenia programu Windows Defender dla chronionych plików",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Dodaj 'Pokaż/Ukryj rozszerzenia' do menu kontekstowego",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Dodaje opcję menu kontekstowego do szybkiego przełączania widoczności rozszerzeń plików w Eksploratorze plików (widoczne tylko w klasycznym menu kontekstowym lub menu 'Pokaż więcej opcji' w Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Pokaż 'Otwórz w terminalu Windows' w menu kontekstowym",

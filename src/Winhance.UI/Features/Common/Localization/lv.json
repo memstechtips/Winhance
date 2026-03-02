@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Lietot klasisko konteksta izvēlni",
   "Setting_explorer-customization-context-menu_Description": "Lietot Windows 10 stila labās peles pogas izvēlni ar visām redzamām opcijām, nevis vienkāršoto Windows 11 izvēlni",
   "Setting_explorer-take-ownership_Name": "Pievienot 'Pārņemt īpašumtiesības' konteksta izvēlnei",
-  "Setting_explorer-take-ownership_Description": "Pievieno labās peles pogas opciju, lai pārņemtu īpašumtiesības pār failiem, mapēm un diskiem ar automātisku atļauju paaugstināšanu",
+  "Setting_explorer-take-ownership_Description": "Pievieno labās peles pogas opciju, lai pārņemtu īpašumtiesības pār failiem, mapēm un diskiem ar automātisku atļauju paaugstināšanu. Aizsargātiem failiem var būt nepieciešams īslaicīgi atspējot Windows Defender",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Pievienot 'Rādīt/Slēpt paplašinājumus' konteksta izvēlnei",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Pievieno labās peles pogas izvēlnes opciju, lai ātri pārslēgtu failu paplašinājumu redzamību Failu pārlūkā (redzams tikai klasiskajā konteksta izvēlnē vai 'Rādīt vairāk opciju' izvēlnē sistēmā Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Rādīt 'Atvērt Windows terminālī' konteksta izvēlnē",

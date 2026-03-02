@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Usa menu contestuale classico",
   "Setting_explorer-customization-context-menu_Description": "Usa il menu contestuale in stile Windows 10 con tutte le opzioni visibili invece del menu semplificato di Windows 11",
   "Setting_explorer-take-ownership_Name": "Aggiungi 'Acquisisci proprietà' al menu contestuale",
-  "Setting_explorer-take-ownership_Description": "Aggiunge un'opzione con il pulsante destro del mouse per acquisire la proprietà di file, cartelle e unità con elevazione automatica delle autorizzazioni",
+  "Setting_explorer-take-ownership_Description": "Aggiunge un'opzione con il pulsante destro del mouse per acquisire la proprietà di file, cartelle e unità con elevazione automatica delle autorizzazioni. Potrebbe richiedere la disattivazione temporanea di Windows Defender per i file protetti",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Aggiungi 'Mostra/Nascondi estensioni' al menu contestuale",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Aggiunge un'opzione del menu contestuale per attivare/disattivare rapidamente la visibilità dell'estensione del file in Esplora file (visibile solo nel menu contestuale classico o nel menu Mostra altre opzioni in Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Mostra 'Apri in Windows Terminal' nel menu contestuale",

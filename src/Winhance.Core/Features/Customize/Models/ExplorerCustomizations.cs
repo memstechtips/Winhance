@@ -66,7 +66,7 @@ public static class ExplorerCustomizations
                 {
                     Id = "explorer-take-ownership",
                     Name = "Add 'Take Ownership' to Context Menu",
-                    Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation",
+                    Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
                     GroupName = "Context Menu",
                     InputType = InputType.Toggle,
                     Icon = "Security",

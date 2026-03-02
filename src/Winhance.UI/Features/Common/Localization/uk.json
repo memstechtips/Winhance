@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Використовувати класичне контекстне меню",
   "Setting_explorer-customization-context-menu_Description": "Використовувати меню правого кліку в стилі Windows 10 з усіма видимими опціями замість спрощеного меню Windows 11",
   "Setting_explorer-take-ownership_Name": "Додати 'Стати власником' до контекстного меню",
-  "Setting_explorer-take-ownership_Description": "Додає опцію правого кліку для отримання права власності на файли, папки та диски з автоматичним підвищенням дозволів",
+  "Setting_explorer-take-ownership_Description": "Додає опцію правого кліку для отримання права власності на файли, папки та диски з автоматичним підвищенням дозволів. Може потребувати тимчасового вимкнення Windows Defender для захищених файлів",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Додати 'Показати/Приховати розширення' до контекстного меню",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Додає опцію контекстного меню для швидкого перемикання видимості розширень файлів у Провіднику (видимо лише в класичному контекстному меню або меню 'Показати більше опцій' у Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Показувати 'Відкрити у Windows Terminal' в контекстному меню",

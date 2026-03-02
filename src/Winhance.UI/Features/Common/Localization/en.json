@@ -340,7 +340,7 @@
   "Setting_explorer-customization-context-menu_Name": "Use Classic Context Menu",
   "Setting_explorer-customization-context-menu_Description": "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
   "Setting_explorer-take-ownership_Name": "Add \u0027Take Ownership\u0027 to Context Menu",
-  "Setting_explorer-take-ownership_Description": "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation",
+  "Setting_explorer-take-ownership_Description": "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Add \u0027Show/Hide Extensions\u0027 to Context Menu",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Show \u0027Open in Windows Terminal\u0027 in Context Menu",

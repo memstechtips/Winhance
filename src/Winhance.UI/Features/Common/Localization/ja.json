@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "クラシックコンテキストメニューを使用",
   "Setting_explorer-customization-context-menu_Description": "簡素化されたWindows 11メニューの代わりに、すべてのオプションが表示されるWindows 10スタイルの右クリックメニューを使用",
   "Setting_explorer-take-ownership_Name": "コンテキストメニューに「所有権を取得」を追加",
-  "Setting_explorer-take-ownership_Description": "ファイル、フォルダー、ドライブの所有権を取得するための右クリックオプションを追加し、自動的に権限を昇格",
+  "Setting_explorer-take-ownership_Description": "ファイル、フォルダー、ドライブの所有権を取得するための右クリックオプションを追加し、自動的に権限を昇格。保護されたファイルにはWindows Defenderの一時的な無効化が必要な場合があります",
   "Setting_explorer-context-menu-toggle-extensions_Name": "コンテキストメニューに「拡張子の表示/非表示」を追加",
   "Setting_explorer-context-menu-toggle-extensions_Description": "ファイルエクスプローラーでファイル拡張子の表示をすばやく切り替えるための右クリックメニューオプションを追加（Windows 11のクラシックコンテキストメニューまたは[その他のオプションを表示]メニューでのみ表示）",
   "Setting_explorer-context-menu-windows-terminal_Name": "コンテキストメニューに「Windowsターミナルで開く」を表示",

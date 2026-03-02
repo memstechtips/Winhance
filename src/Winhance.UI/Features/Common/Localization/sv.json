@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Använd klassisk snabbmeny",
   "Setting_explorer-customization-context-menu_Description": "Använd snabbmenyn i Windows 10-stil med alla alternativ synliga istället för den förenklade Windows 11-menyn",
   "Setting_explorer-take-ownership_Name": "Lägg till 'Ta ägarskap' i snabbmenyn",
-  "Setting_explorer-take-ownership_Description": "Lägger till ett högerklicksalternativ för att ta ägarskap över filer, mappar och enheter med automatisk behörighetshöjning",
+  "Setting_explorer-take-ownership_Description": "Lägger till ett högerklicksalternativ för att ta ägarskap över filer, mappar och enheter med automatisk behörighetshöjning. Kan kräva att Windows Defender tillfälligt inaktiveras för skyddade filer",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Lägg till 'Visa/Dölj filnamnstillägg' i snabbmenyn",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Lägger till ett högerklicksmenyalternativ för att snabbt växla synlighet för filnamnstillägg i Utforskaren (endast synligt i den klassiska snabbmenyn eller Visa fler alternativ-menyn i Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Visa 'Öppna i Windows Terminal' i snabbmenyn",

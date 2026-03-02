@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "क्लासिक संदर्भ मेनू का उपयोग करें",
   "Setting_explorer-customization-context-menu_Description": "सरलीकृत विंडोज 11 मेनू के बजाय सभी विकल्पों के साथ विंडोज 10-शैली राइट-क्लिक मेनू का उपयोग करें",
   "Setting_explorer-take-ownership_Name": "संदर्भ मेनू में 'स्वामित्व लें' जोड़ें",
-  "Setting_explorer-take-ownership_Description": "स्वचालित अनुमति उन्नयन के साथ फ़ाइलों, फ़ोल्डरों और ड्राइव का स्वामित्व लेने के लिए एक राइट-क्लिक विकल्प जोड़ता है",
+  "Setting_explorer-take-ownership_Description": "स्वचालित अनुमति उन्नयन के साथ फ़ाइलों, फ़ोल्डरों और ड्राइव का स्वामित्व लेने के लिए एक राइट-क्लिक विकल्प जोड़ता है। सुरक्षित फ़ाइलों के लिए Windows Defender को अस्थायी रूप से अक्षम करने की आवश्यकता हो सकती है",
   "Setting_explorer-context-menu-toggle-extensions_Name": "संदर्भ मेनू में 'एक्सटेंशन दिखाएँ/छिपाएँ' जोड़ें",
   "Setting_explorer-context-menu-toggle-extensions_Description": "फ़ाइल एक्सप्लोरर में फ़ाइल एक्सटेंशन दृश्यता को जल्दी से टॉगल करने के लिए एक राइट-क्लिक मेनू विकल्प जोड़ता है (केवल क्लासिक संदर्भ मेनू या विंडोज 11 में अधिक विकल्प मेनू दिखाएँ पर दिखाई देता है)",
   "Setting_explorer-context-menu-windows-terminal_Name": "संदर्भ मेनू में 'विंडोज टर्मिनल में खोलें' दिखाएँ",

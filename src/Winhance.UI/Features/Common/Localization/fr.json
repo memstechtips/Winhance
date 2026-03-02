@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Utiliser le menu contextuel classique",
   "Setting_explorer-customization-context-menu_Description": "Utiliser le menu contextuel de style Windows 10 avec toutes les options visibles au lieu du menu simplifié de Windows 11",
   "Setting_explorer-take-ownership_Name": "Ajouter 'Prendre possession' au menu contextuel",
-  "Setting_explorer-take-ownership_Description": "Ajoute une option de clic droit pour prendre possession de fichiers, de dossiers et de lecteurs avec une élévation automatique des autorisations",
+  "Setting_explorer-take-ownership_Description": "Ajoute une option de clic droit pour prendre possession de fichiers, de dossiers et de lecteurs avec une élévation automatique des autorisations. Peut nécessiter la désactivation temporaire de Windows Defender pour les fichiers protégés",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Ajouter 'Afficher/Masquer les extensions' au menu contextuel",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Ajoute une option de menu contextuel pour basculer rapidement la visibilité des extensions de fichier dans l'Explorateur de fichiers (uniquement visible dans le menu contextuel classique ou le menu Afficher plus d'options dans Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Afficher 'Ouvrir dans le terminal Windows' dans le menu contextuel",

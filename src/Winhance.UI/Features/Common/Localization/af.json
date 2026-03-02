@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Gebruik Klassieke Kontekskieslys",
   "Setting_explorer-customization-context-menu_Description": "Gebruik die Windows 10-styl regskliek-kieslys met alle opsies sigbaar in plaas van die vereenvoudigde Windows 11 kieslys",
   "Setting_explorer-take-ownership_Name": "Voeg 'Neem Eienaarskap' by Kontekskieslys",
-  "Setting_explorer-take-ownership_Description": "Voeg 'n regskliek-opsie by om eienaarskap van lêers, gidse, en drywes te neem met outomatiese toestemmingverhoging",
+  "Setting_explorer-take-ownership_Description": "Voeg 'n regskliek-opsie by om eienaarskap van lêers, gidse, en drywes te neem met outomatiese toestemmingverhoging. Mag vereis dat Windows Defender tydelik gedeaktiveer word vir beskermde lêers",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Voeg 'Wys/Verberg Uitbreidings' by Kontekskieslys",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Voeg 'n regskliek-kieslysopsie by om lêeruitbreidingsigbaarheid vinnig te wissel in Lêerverkenner (slegs sigbaar op die Klassieke Kontekskieslys of Wys Meer Opsies Kieslys in Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Wys 'Maak oop in Windows Terminal' in Kontekskieslys",

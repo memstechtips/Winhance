@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Χρήση Κλασικού Μενού Περιβάλλοντος",
   "Setting_explorer-customization-context-menu_Description": "Χρήση του μενού δεξιού κλικ στυλ Windows 10 με όλες τις επιλογές ορατές αντί του απλοποιημένου μενού των Windows 11",
   "Setting_explorer-take-ownership_Name": "Προσθήκη \u0027Απόκτηση Κυριότητας\u0027 στο Μενού Περιβάλλοντος",
-  "Setting_explorer-take-ownership_Description": "Προσθέτει μια επιλογή δεξιού κλικ για απόκτηση κυριότητας αρχείων, φακέλων και δίσκων με αυτόματη ανύψωση δικαιωμάτων",
+  "Setting_explorer-take-ownership_Description": "Προσθέτει μια επιλογή δεξιού κλικ για απόκτηση κυριότητας αρχείων, φακέλων και δίσκων με αυτόματη ανύψωση δικαιωμάτων. Ενδέχεται να απαιτείται η προσωρινή απενεργοποίηση του Windows Defender για προστατευμένα αρχεία",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Προσθήκη \u0027Εμφάνιση/Απόκρυψη Επεκτάσεων\u0027 στο Μενού Περιβάλλοντος",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Προσθέτει μια επιλογή μενού δεξιού κλικ για γρήγορη εναλλαγή ορατότητας επεκτάσεων αρχείων στην Εξερεύνηση Αρχείων (ορατό μόνο στο Κλασικό Μενού Περιβάλλοντος ή στο μενού Εμφάνιση Περισσότερων Επιλογών στα Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Εμφάνιση \u0027Άνοιγμα στο Windows Terminal\u0027 στο Μενού Περιβάλλοντος",

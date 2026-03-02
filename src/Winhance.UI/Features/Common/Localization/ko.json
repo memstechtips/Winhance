@@ -340,7 +340,7 @@
   "Setting_explorer-customization-context-menu_Name": "클래식 상황에 맞는 메뉴 사용",
   "Setting_explorer-customization-context-menu_Description": "간소화된 Windows 11 메뉴 대신 모든 옵션이 표시되는 Windows 10 스타일의 마우스 오른쪽 클릭 메뉴를 사용합니다",
   "Setting_explorer-take-ownership_Name": "상황에 맞는 메뉴에 \u0027소유권 가져오기\u0027 추가",
-  "Setting_explorer-take-ownership_Description": "자동 권한 상승으로 파일, 폴더 및 드라이브의 소유권을 가져오는 마우스 오른쪽 클릭 옵션을 추가합니다",
+  "Setting_explorer-take-ownership_Description": "자동 권한 상승으로 파일, 폴더 및 드라이브의 소유권을 가져오는 마우스 오른쪽 클릭 옵션을 추가합니다. 보호된 파일의 경우 Windows Defender를 일시적으로 비활성화해야 할 수 있습니다",
   "Setting_explorer-context-menu-toggle-extensions_Name": "상황에 맞는 메뉴에 \u0027확장명 표시/숨기기\u0027 추가",
   "Setting_explorer-context-menu-toggle-extensions_Description": "파일 탐색기에서 파일 확장명 표시 여부를 빠르게 전환할 수 있는 마우스 오른쪽 클릭 메뉴 옵션을 추가합니다 (Windows 11에서는 클래식 상황에 맞는 메뉴 또는 옵션 더 보기 메뉴에서만 표시됨)",
   "Setting_explorer-context-menu-windows-terminal_Name": "상황에 맞는 메뉴에 \u0027Windows 터미널에서 열기\u0027 표시",

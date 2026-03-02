@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Použít klasickou kontextovou nabídku",
   "Setting_explorer-customization-context-menu_Description": "Použít kontextovou nabídku ve stylu Windows 10 se všemi viditelnými možnostmi místo zjednodušené nabídky Windows 11",
   "Setting_explorer-take-ownership_Name": "Přidat 'Převzít vlastnictví' do kontextové nabídky",
-  "Setting_explorer-take-ownership_Description": "Přidá možnost kliknutím pravým tlačítkem převzít vlastnictví souborů, složek a jednotek s automatickým zvýšením oprávnění",
+  "Setting_explorer-take-ownership_Description": "Přidá možnost kliknutím pravým tlačítkem převzít vlastnictví souborů, složek a jednotek s automatickým zvýšením oprávnění. Pro chráněné soubory může vyžadovat dočasné vypnutí programu Windows Defender",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Přidat 'Zobrazit/skrýt přípony' do kontextové nabídky",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Přidá možnost v kontextové nabídce pro rychlé přepínání viditelnosti přípon souborů v Průzkumníku souborů (viditelné pouze v klasické kontextové nabídce nebo v nabídce Zobrazit více možností ve Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Zobrazit 'Otevřít v Terminálu Windows' v kontextové nabídce",

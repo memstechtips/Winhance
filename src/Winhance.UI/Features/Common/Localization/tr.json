@@ -340,7 +340,7 @@
   "Setting_explorer-customization-context-menu_Name": "Klasik Bağlam Menüsünü Kullan",
   "Setting_explorer-customization-context-menu_Description": "Basitleştirilmiş Windows 11 menüsü yerine tüm seçeneklerin görünür olduğu Windows 10 tarzı sağ tık menüsünü kullanın",
   "Setting_explorer-take-ownership_Name": "Bağlam Menüsüne \u0027Sahipliği Al\u0027 ekle",
-  "Setting_explorer-take-ownership_Description": "Dosyaların, klasörlerin ve sürücülerin sahipliğini otomatik izin yükseltme ile almak için bir sağ tık seçeneği ekler",
+  "Setting_explorer-take-ownership_Description": "Dosyaların, klasörlerin ve sürücülerin sahipliğini otomatik izin yükseltme ile almak için bir sağ tık seçeneği ekler. Korumalı dosyalar için Windows Defender'ın geçici olarak devre dışı bırakılması gerekebilir",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Bağlam Menüsüne \u0027Uzantıları Göster/Gizle\u0027 ekle",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Dosya Gezgini\u0027nde dosya uzantısı görünürlüğünü hızla değiştirmek için bir sağ tık menü seçeneği ekler (yalnızca Klasik Bağlam Menüsünde veya Windows 11\u0027deki Diğer Seçenekleri Göster Menüsünde görünür)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Bağlam Menüsünde \u0027Windows Terminal\u0027de Aç\u0027ı göster",

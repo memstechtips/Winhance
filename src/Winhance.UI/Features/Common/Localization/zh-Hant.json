@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "使用傳統右鍵選單",
   "Setting_explorer-customization-context-menu_Description": "使用顯示所有選項的 Windows 10 風格右鍵選單，取代 Windows 11 的簡化選單",
   "Setting_explorer-take-ownership_Name": "新增「取得擁有權」至右鍵選單",
-  "Setting_explorer-take-ownership_Description": "新增右鍵選單選項，可自動提升權限以取得檔案、資料夾與磁碟機的擁有權",
+  "Setting_explorer-take-ownership_Description": "新增右鍵選單選項，可自動提升權限以取得檔案、資料夾與磁碟機的擁有權。對於受保護的檔案，可能需要暫時停用 Windows Defender",
   "Setting_explorer-context-menu-toggle-extensions_Name": "新增「顯示/隱藏副檔名」至右鍵選單",
   "Setting_explorer-context-menu-toggle-extensions_Description": "新增右鍵選單選項，可快速切換檔案總管中副檔名的可見性（僅在傳統右鍵選單或 Windows 11 的「顯示其他選項」選單中可見）",
   "Setting_explorer-context-menu-windows-terminal_Name": "在右鍵選單顯示「在 Windows 終端機中開啟」",

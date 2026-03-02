@@ -291,7 +291,7 @@
     "Setting_explorer-customization-context-menu_Name": "استخدام قائمة سياق كلاسيكية",
     "Setting_explorer-customization-context-menu_Description": "استخدام قائمة النقر بزر الفأرة الأيمن بنمط Windows 10 مع إظهار كل الخيارات بدلًا من قائمة Windows 11 المبسطة",
     "Setting_explorer-take-ownership_Name": "إضافة \"Take Ownership\" إلى قائمة السياق",
-    "Setting_explorer-take-ownership_Description": "إضافة خيار النقر بزر الفأرة الأيمن للاستحواذ على ملكية الملفات والمجلدات ومحركات الأقراص مع رفع الأذونات تلقائيًا",
+    "Setting_explorer-take-ownership_Description": "إضافة خيار النقر بزر الفأرة الأيمن للاستحواذ على ملكية الملفات والمجلدات ومحركات الأقراص مع رفع الأذونات تلقائيًا. قد يتطلب تعطيل Windows Defender مؤقتًا للملفات المحمية",
     "Setting_explorer-context-menu-toggle-extensions_Name": "إضافة \"إظهار/إخفاء الامتدادات\" إلى قائمة السياق",
     "Setting_explorer-context-menu-toggle-extensions_Description": "إضافة خيار في قائمة النقر بزر الفأرة الأيمن للتبديل السريع لإظهار امتدادات الملفات (مرئي فقط في قائمة السياق الكلاسيكية أو قائمة \"إظهار المزيد من الخيارات\" في Windows 11)",
     "Setting_explorer-context-menu-windows-terminal_Name": "إظهار \"فتح في Windows Terminal\" في قائمة السياق",

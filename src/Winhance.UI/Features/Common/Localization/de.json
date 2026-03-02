@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Klassisches Kontextmenü verwenden",
   "Setting_explorer-customization-context-menu_Description": "Das Rechtsklick-Menü im Stil von Windows 10 mit allen sichtbaren Optionen anstelle des vereinfachten Menüs von Windows 11 verwenden",
   "Setting_explorer-take-ownership_Name": "'Besitz übernehmen' zum Kontextmenü hinzufügen",
-  "Setting_explorer-take-ownership_Description": "Fügt eine Rechtsklick-Option hinzu, um den Besitz von Dateien, Ordnern und Besitzern mit automatischer Berechtigungserhöhung zu übernehmen",
+  "Setting_explorer-take-ownership_Description": "Fügt eine Rechtsklick-Option hinzu, um den Besitz von Dateien, Ordnern und Laufwerken mit automatischer Berechtigungserhöhung zu übernehmen. Erfordert möglicherweise die vorübergehende Deaktivierung von Windows Defender für geschützte Dateien",
   "Setting_explorer-context-menu-toggle-extensions_Name": "'Erweiterungen ein-/ausblenden' zum Kontextmenü hinzufügen",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Fügt eine Rechtsklick-Menüoption hinzu, um die Sichtbarkeit von Dateierweiterungen im Datei-Explorer schnell umzuschalten (nur im klassischen Kontextmenü oder im Menü 'Weitere Optionen anzeigen' in Windows 11 sichtbar)",
   "Setting_explorer-context-menu-windows-terminal_Name": "'In Windows Terminal öffnen' im Kontextmenü anzeigen",

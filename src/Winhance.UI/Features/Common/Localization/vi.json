@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Sử dụng Menu ngữ cảnh cổ điển",
   "Setting_explorer-customization-context-menu_Description": "Sử dụng menu nhấp chuột phải kiểu Windows 10 với tất cả các tùy chọn hiển thị thay vì menu Windows 11 được đơn giản hóa",
   "Setting_explorer-take-ownership_Name": "Thêm 'Giành quyền sở hữu' vào Menu ngữ cảnh",
-  "Setting_explorer-take-ownership_Description": "Thêm tùy chọn nhấp chuột phải để giành quyền sở hữu tệp, thư mục và ổ đĩa với quyền nâng cao tự động",
+  "Setting_explorer-take-ownership_Description": "Thêm tùy chọn nhấp chuột phải để giành quyền sở hữu tệp, thư mục và ổ đĩa với quyền nâng cao tự động. Có thể cần tạm thời tắt Windows Defender cho các tệp được bảo vệ",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Thêm 'Hiển thị/Ẩn phần mở rộng' vào Menu ngữ cảnh",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Thêm một tùy chọn menu nhấp chuột phải để nhanh chóng chuyển đổi khả năng hiển thị phần mở rộng tệp trong File Explorer (chỉ hiển thị trên Menu Ngữ cảnh Cổ điển hoặc Menu Hiển thị Thêm Tùy chọn trong Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Hiển thị 'Mở trong Windows Terminal' trong Menu ngữ cảnh",

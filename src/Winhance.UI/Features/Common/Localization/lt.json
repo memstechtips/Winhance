@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Naudoti klasikinį kontekstinį meniu",
   "Setting_explorer-customization-context-menu_Description": "Naudoti Windows 10 stiliaus dešiniojo pelės klavišo meniu su visomis matomomis parinktimis vietoj supaprastinto Windows 11 meniu",
   "Setting_explorer-take-ownership_Name": "Pridėti „Perimti nuosavybę“ į kontekstinį meniu",
-  "Setting_explorer-take-ownership_Description": "Prideda dešiniojo pelės klavišo parinktį, leidžiančią perimti failų, aplankų ir diskų nuosavybę su automatiniu leidimų pakėlimu",
+  "Setting_explorer-take-ownership_Description": "Prideda dešiniojo pelės klavišo parinktį, leidžiančią perimti failų, aplankų ir diskų nuosavybę su automatiniu leidimų pakėlimu. Apsaugotiems failams gali reikėti laikinai išjungti „Windows Defender"",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Pridėti „Rodyti/Slėpti plėtinius“ į kontekstinį meniu",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Prideda dešiniojo pelės klavišo meniu parinktį greitai perjungti failų plėtinių matomumą Failų naršyklėje (matoma tik klasikiniame kontekstiniame meniu arba „Rodyti daugiau parinkčių“ meniu Windows 11 sistemoje)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Rodyti „Atidaryti Windows terminale“ kontekstiniame meniu",

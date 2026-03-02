@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Использовать классическое контекстное меню",
   "Setting_explorer-customization-context-menu_Description": "Использовать контекстное меню в стиле Windows 10 со всеми видимыми опциями вместо упрощенного меню Windows 11",
   "Setting_explorer-take-ownership_Name": "Добавить 'Стать владельцем' в контекстное меню",
-  "Setting_explorer-take-ownership_Description": "Добавляет опцию в контекстное меню для получения прав владения файлами, папками и дисками с автоматическим повышением разрешений",
+  "Setting_explorer-take-ownership_Description": "Добавляет опцию в контекстное меню для получения прав владения файлами, папками и дисками с автоматическим повышением разрешений. Может потребоваться временное отключение Windows Defender для защищённых файлов",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Добавить 'Показать/Скрыть расширения' в контекстное меню",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Добавляет опцию в контекстное меню для быстрого переключения видимости расширений файлов в Проводнике (видно только в классическом контекстном меню или меню 'Показать дополнительные параметры' в Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Показывать 'Открыть в Терминале Windows' в контекстном меню",

@@ -305,7 +305,7 @@
   "Setting_explorer-customization-context-menu_Name": "Usar Menu de Contexto Clássico",
   "Setting_explorer-customization-context-menu_Description": "Usar o menu de clique com o botão direito no estilo do Windows 10 com todas as opções visíveis em vez do menu simplificado do Windows 11",
   "Setting_explorer-take-ownership_Name": "Adicionar 'Tomar Posse' ao Menu de Contexto",
-  "Setting_explorer-take-ownership_Description": "Adiciona uma opção de clique com o botão direito para tomar posse de arquivos, pastas e unidades com elevação automática de permissão",
+  "Setting_explorer-take-ownership_Description": "Adiciona uma opção de clique com o botão direito para tomar posse de arquivos, pastas e unidades com elevação automática de permissão. Pode exigir a desativação temporária do Windows Defender para arquivos protegidos",
   "Setting_explorer-context-menu-toggle-extensions_Name": "Adicionar 'Mostrar/Ocultar Extensões' ao Menu de Contexto",
   "Setting_explorer-context-menu-toggle-extensions_Description": "Adiciona uma opção de menu de clique com o botão direito para alternar rapidamente a visibilidade da extensão de arquivo no Explorador de Arquivos (visível apenas no Menu de Contexto Clássico ou no Menu Mostrar Mais Opções no Windows 11)",
   "Setting_explorer-context-menu-windows-terminal_Name": "Mostrar 'Abrir no Windows Terminal' no Menu de Contexto",
