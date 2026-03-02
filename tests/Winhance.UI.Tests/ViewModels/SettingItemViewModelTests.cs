@@ -427,6 +427,351 @@ public class SettingItemViewModelTests : IDisposable
         sut.NumericValue.Should().Be(75);
     }
 
+    // ── UpdateStateFromSystemState: NumericRange unit conversion ──
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_WithMinuteUnits_ConvertsSecondsToMinutes()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "power-timeout",
+            Name = "Power Timeout",
+            Description = "Timeout setting",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "power-timeout",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 1200 });
+
+        sut.NumericValue.Should().Be(20); // 1200 seconds / 60 = 20 minutes
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_WithHourUnits_ConvertsSecondsToHours()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "disk-timeout",
+            Name = "Disk Timeout",
+            Description = "Disk timeout setting",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 24, Units = "Hours" }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "disk-timeout",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 7200 });
+
+        sut.NumericValue.Should().Be(2); // 7200 seconds / 3600 = 2 hours
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_WithNullUnits_PassesValueThrough()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "raw-setting",
+            Name = "Raw Setting",
+            Description = "No unit conversion",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 1000, Units = null }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "raw-setting",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 300 });
+
+        sut.NumericValue.Should().Be(300);
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_ZeroValue_RemainsZero()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "zero-setting",
+            Name = "Zero Setting",
+            Description = "Zero value test",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "zero-setting",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 0 });
+
+        sut.NumericValue.Should().Be(0);
+    }
+
+    // ── UpdateStateFromSystemState: AC/DC separate value handling for NumericRange ──
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_SeparateACDC_UpdatesBothValues()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "acdc-numeric",
+            Name = "AC/DC Numeric",
+            Description = "Separate AC/DC numeric",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
+            PowerCfgSettings = new List<PowerCfgSetting>
+            {
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+            }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "acdc-numeric",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        var rawValues = new Dictionary<string, object?> { { "ACValue", 1200 }, { "DCValue", 600 } };
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+
+        sut.AcNumericValue.Should().Be(20); // 1200 / 60
+        sut.DcNumericValue.Should().Be(10); // 600 / 60
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_SeparateACDC_MissingDCValue_OnlyUpdatesAC()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "acdc-ac-only",
+            Name = "AC Only Numeric",
+            Description = "Only AC value present",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
+            PowerCfgSettings = new List<PowerCfgSetting>
+            {
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+            }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "acdc-ac-only",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+        sut.DcNumericValue = 99; // pre-set DC value
+
+        var rawValues = new Dictionary<string, object?> { { "ACValue", 1200 } };
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+
+        sut.AcNumericValue.Should().Be(20); // 1200 / 60
+        sut.DcNumericValue.Should().Be(99); // unchanged
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_SeparateACDC_NullRawValues_FallsBackToCurrentValue()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "acdc-fallback",
+            Name = "ACDC Fallback",
+            Description = "Null RawValues falls back",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
+            PowerCfgSettings = new List<PowerCfgSetting>
+            {
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+            }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "acdc-fallback",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        // RawValues is null but CurrentValue is set — falls through to the else branch
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 600, RawValues = null });
+
+        sut.NumericValue.Should().Be(10); // 600 / 60 via fallback path
+    }
+
+    // ── UpdateStateFromSystemState: AC/DC separate value handling for Selection ──
+
+    [Fact]
+    public void UpdateStateFromSystemState_Selection_SeparateACDC_UpdatesBothIndices()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "acdc-selection",
+            Name = "AC/DC Selection",
+            Description = "Separate AC/DC selection",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = new[] { "Option A", "Option B", "Option C" },
+                ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                {
+                    { 0, new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
+                    { 1, new Dictionary<string, object?> { { "PowerCfgValue", 20 } } },
+                    { 2, new Dictionary<string, object?> { { "PowerCfgValue", 30 } } }
+                }
+            },
+            PowerCfgSettings = new List<PowerCfgSetting>
+            {
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+            }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "acdc-selection",
+            InputType = InputType.Selection
+        };
+        var sut = CreateSut(config);
+
+        var rawValues = new Dictionary<string, object?> { { "ACValue", 30 }, { "DCValue", 10 } };
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+
+        sut.AcValue.Should().Be(2); // PowerCfgValue 30 maps to index 2
+        sut.DcValue.Should().Be(0); // PowerCfgValue 10 maps to index 0
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_Selection_SeparateACDC_UnknownPowerCfgValue_DefaultsToZero()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "acdc-unknown",
+            Name = "AC/DC Unknown Value",
+            Description = "Unknown PowerCfg value defaults to 0",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = new[] { "Option A", "Option B" },
+                ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                {
+                    { 0, new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
+                    { 1, new Dictionary<string, object?> { { "PowerCfgValue", 20 } } }
+                }
+            },
+            PowerCfgSettings = new List<PowerCfgSetting>
+            {
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+            }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "acdc-unknown",
+            InputType = InputType.Selection
+        };
+        var sut = CreateSut(config);
+
+        var rawValues = new Dictionary<string, object?> { { "ACValue", 99 }, { "DCValue", 10 } };
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+
+        sut.AcValue.Should().Be(0); // 99 not in mappings, defaults to 0
+        sut.DcValue.Should().Be(0); // 10 maps to index 0
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_Selection_NonSeparate_UpdatesSelectedValue()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "standard-selection",
+            Name = "Standard Selection",
+            Description = "Non-separate selection",
+            InputType = InputType.Selection
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "standard-selection",
+            InputType = InputType.Selection
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 2 });
+
+        sut.SelectedValue.Should().Be(2);
+    }
+
+    // ── UpdateStateFromSystemState: Failed/missing state handling ──
+
+    [Fact]
+    public void UpdateStateFromSystemState_FailedResult_DoesNotResetNumericValue()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "fail-numeric",
+            Name = "Fail Numeric",
+            Description = "Failed result test",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "fail-numeric",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+        sut.NumericValue = 42;
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = false, CurrentValue = 0 });
+
+        sut.NumericValue.Should().Be(42); // preserved, NOT reset to 0
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_NumericRange_NullCurrentValue_DoesNotResetToZero()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "null-current",
+            Name = "Null Current Value",
+            Description = "Null CurrentValue test",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120 }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = "null-current",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+        sut.NumericValue = 55;
+
+        // CurrentValue is null (not int), so the `is int` pattern match fails
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = null });
+
+        sut.NumericValue.Should().Be(55); // preserved
+    }
+
     // ── Review Mode ──
 
     [Fact]

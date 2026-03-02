@@ -301,31 +301,147 @@ public class SettingsLoadingServiceTests
             selectionSetting, It.IsAny<Dictionary<string, object?>>()), Times.Once);
     }
 
+    // ── RefreshSettingStatesAsync: combo box resolution + batch verification ──
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_SelectionSettings_ResolvesComboBoxValues()
+    {
+        var selectionDef = new SettingDefinition
+        {
+            Id = "SelectSetting",
+            Name = "Select Setting",
+            Description = "Selection test",
+            InputType = InputType.Selection
+        };
+
+        var vm = CreateMockSettingItemViewModel("SelectSetting", selectionDef);
+        var rawValues = new Dictionary<string, object?> { { "PowerCfgValue", 1 } };
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                { "SelectSetting", new SettingStateResult { Success = true, CurrentValue = 1, RawValues = rawValues } }
+            });
+
+        _mockComboBoxResolver
+            .Setup(r => r.ResolveCurrentValueAsync(
+                selectionDef,
+                It.IsAny<Dictionary<string, object?>>()))
+            .ReturnsAsync(2);
+
+        var result = await _sut.RefreshSettingStatesAsync(new[] { vm });
+
+        result["SelectSetting"].CurrentValue.Should().Be(2);
+        _mockComboBoxResolver.Verify(r => r.ResolveCurrentValueAsync(
+            selectionDef, It.IsAny<Dictionary<string, object?>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_WithMixedInputTypes_ReturnsStatesForAll()
+    {
+        var toggleDef = new SettingDefinition
+        {
+            Id = "Toggle1", Name = "Toggle", Description = "Toggle desc", InputType = InputType.Toggle
+        };
+        var selectionDef = new SettingDefinition
+        {
+            Id = "Select1", Name = "Select", Description = "Select desc", InputType = InputType.Selection
+        };
+        var numericDef = new SettingDefinition
+        {
+            Id = "Numeric1", Name = "Numeric", Description = "Numeric desc", InputType = InputType.NumericRange
+        };
+
+        var vms = new[]
+        {
+            CreateMockSettingItemViewModel("Toggle1", toggleDef),
+            CreateMockSettingItemViewModel("Select1", selectionDef),
+            CreateMockSettingItemViewModel("Numeric1", numericDef)
+        };
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                { "Toggle1", new SettingStateResult { Success = true, IsEnabled = true } },
+                { "Select1", new SettingStateResult { Success = true, CurrentValue = 1 } },
+                { "Numeric1", new SettingStateResult { Success = true, CurrentValue = 300 } }
+            });
+
+        var result = await _sut.RefreshSettingStatesAsync(vms);
+
+        result.Should().HaveCount(3);
+        result["Toggle1"].IsEnabled.Should().BeTrue();
+        result["Select1"].CurrentValue.Should().Be(1);
+        result["Numeric1"].CurrentValue.Should().Be(300);
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_CallsDiscoveryServiceExactlyOnce()
+    {
+        var def1 = new SettingDefinition
+        {
+            Id = "S1", Name = "S1", Description = "Desc", InputType = InputType.Toggle
+        };
+        var def2 = new SettingDefinition
+        {
+            Id = "S2", Name = "S2", Description = "Desc", InputType = InputType.Toggle
+        };
+        var def3 = new SettingDefinition
+        {
+            Id = "S3", Name = "S3", Description = "Desc", InputType = InputType.NumericRange
+        };
+
+        var vms = new[]
+        {
+            CreateMockSettingItemViewModel("S1", def1),
+            CreateMockSettingItemViewModel("S2", def2),
+            CreateMockSettingItemViewModel("S3", def3)
+        };
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                { "S1", new SettingStateResult { Success = true } },
+                { "S2", new SettingStateResult { Success = true } },
+                { "S3", new SettingStateResult { Success = true } }
+            });
+
+        await _sut.RefreshSettingStatesAsync(vms);
+
+        // Batch call: exactly one call with all 3 definitions, not 3 individual calls
+        _mockDiscoveryService.Verify(
+            d => d.GetSettingStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(l => l.Count == 3)),
+            Times.Once);
+    }
+
     // ── Helper ──
 
     private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId)
     {
-        // Create a minimal config for the SettingItemViewModel
-        // Since we can't easily mock ObservableObject, we create a real instance
-        // with a minimal set of dependencies
-        var settingDefinition = new SettingDefinition
+        return CreateMockSettingItemViewModel(settingId, new SettingDefinition
         {
             Id = settingId,
             Name = settingId,
             Description = "Test",
             InputType = InputType.Toggle
-        };
+        });
+    }
 
+    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, SettingDefinition settingDefinition)
+    {
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = settingDefinition,
             SettingId = settingId,
-            Name = settingId,
-            Description = "Test",
+            Name = settingDefinition.Name,
+            Description = settingDefinition.Description,
             GroupName = string.Empty,
             Icon = string.Empty,
             IconPack = "Material",
-            InputType = InputType.Toggle,
+            InputType = settingDefinition.InputType,
             IsSelected = false,
             OnText = "On",
             OffText = "Off",

@@ -546,4 +546,194 @@ public class SettingReviewDiffApplierTests
                 diff.FeatureModuleId == "WindowsTheme")),
             Times.Once);
     }
+
+    // -------------------------------------------------------
+    // ApplyReviewDiffToViewModel - NumericRange on-the-fly diff
+    // -------------------------------------------------------
+
+    [Fact]
+    public void ApplyReviewDiffToViewModel_NumericRange_WithACValueDiff_SetsHasReviewDiff()
+    {
+        var activeConfig = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "numeric-power",
+                                Name = "Numeric Power",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["ACValue"] = 60
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("numeric-power"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "numeric-power",
+            name: "Numeric Power",
+            inputType: InputType.NumericRange);
+        vm.NumericValue = 30;
+
+        var state = new SettingStateResult { CurrentValue = 30 };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().BeTrue();
+        vm.ReviewDiffMessage.Should().Contain("30").And.Contain("60");
+        _mockConfigReviewDiffService.Verify(
+            d => d.RegisterDiff(It.Is<ConfigReviewDiff>(diff =>
+                diff.SettingId == "numeric-power" &&
+                diff.FeatureModuleId == "Power")),
+            Times.Once);
+    }
+
+    [Fact]
+    public void ApplyReviewDiffToViewModel_NumericRange_SameACValue_NoReviewDiff()
+    {
+        var activeConfig = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "numeric-same",
+                                Name = "Numeric Same",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["ACValue"] = 30
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("numeric-same"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "numeric-same",
+            name: "Numeric Same",
+            inputType: InputType.NumericRange);
+        vm.NumericValue = 30;
+
+        var state = new SettingStateResult { CurrentValue = 30 };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().BeFalse();
+        _mockConfigReviewDiffService.Verify(
+            d => d.RegisterDiff(It.IsAny<ConfigReviewDiff>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void ApplyReviewDiffToViewModel_NumericRange_NoPowerSettings_NoReviewDiff()
+    {
+        var activeConfig = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "numeric-nopower",
+                                Name = "Numeric No Power",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = null
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("numeric-nopower"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "numeric-nopower",
+            name: "Numeric No Power",
+            inputType: InputType.NumericRange);
+        vm.NumericValue = 50;
+
+        var state = new SettingStateResult { CurrentValue = 50 };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().BeFalse();
+    }
+
+    // -------------------------------------------------------
+    // ApplyReviewDiffToViewModel - Action settings in review
+    // -------------------------------------------------------
+
+    [Fact]
+    public void ApplyReviewDiffToViewModel_Action_InConfig_SetsReviewMode()
+    {
+        var activeConfig = new UnifiedConfigurationFile();
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+
+        var diff = new ConfigReviewDiff
+        {
+            SettingId = "taskbar-clean",
+            IsActionSetting = true,
+            ActionConfirmationMessage = "Apply taskbar cleanup?",
+            CurrentValueDisplay = "",
+            ConfigValueDisplay = "",
+            IsReviewed = false,
+            IsApproved = false
+        };
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("taskbar-clean"))
+            .Returns(diff);
+
+        var vm = CreateSettingViewModel(
+            settingId: "taskbar-clean",
+            name: "Clean Taskbar",
+            inputType: InputType.Action);
+
+        var state = new SettingStateResult();
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.IsInReviewMode.Should().BeTrue();
+        vm.HasReviewDiff.Should().BeTrue();
+        vm.ReviewDiffMessage.Should().Be("Apply taskbar cleanup?");
+    }
 }

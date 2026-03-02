@@ -116,7 +116,12 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         string description = "Description",
         string groupName = "Group1",
         InputType inputType = InputType.Toggle,
-        bool isSelected = false)
+        bool isSelected = false,
+        int numericValue = 0,
+        object? selectedValue = null,
+        NumericRangeMetadata? numericRange = null,
+        ComboBoxMetadata? comboBox = null,
+        IReadOnlyList<PowerCfgSetting>? powerCfgSettings = null)
     {
         var config = new SettingItemViewModelConfig
         {
@@ -126,6 +131,9 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
                 Name = name,
                 Description = description,
                 InputType = inputType,
+                NumericRange = numericRange,
+                ComboBox = comboBox,
+                PowerCfgSettings = powerCfgSettings,
             },
             SettingId = settingId,
             Name = name,
@@ -140,7 +148,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         var mockSettingAppService = new Mock<ISettingApplicationService>();
         var mockDialogService = new Mock<IDialogService>();
 
-        return new SettingItemViewModel(
+        var vm = new SettingItemViewModel(
             config,
             mockSettingAppService.Object,
             _mockLogService.Object,
@@ -148,6 +156,14 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockEventBus.Object);
+
+        // Set post-construction values for non-Toggle types
+        if (inputType == InputType.NumericRange)
+            vm.NumericValue = numericValue;
+        if (inputType == InputType.Selection && selectedValue != null)
+            vm.SelectedValue = selectedValue;
+
+        return vm;
     }
 
     private ObservableCollection<SettingItemViewModel> CreateSettingsCollection(params (string id, string name, string group)[] items)
@@ -1238,6 +1254,417 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         // Assert
         raisedProperties.Should().Contain(nameof(vm.IsLoading));
+    }
+
+    // ── LoadSettingsAsync: InputType population (guards #482 blank page) ──
+
+    [Fact]
+    public async Task LoadSettingsAsync_WithToggleSettings_PopulatesIsSelectedFromState()
+    {
+        var vm = CreateViewModel();
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("toggle1", "Toggle Setting", isSelected: true)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings.Should().HaveCount(1);
+        vm.Settings[0].IsSelected.Should().BeTrue();
+        vm.HasVisibleSettings.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_WithSelectionSettings_PopulatesSelectedValueAndComboBoxOptions()
+    {
+        var vm = CreateViewModel();
+        var comboBox = new ComboBoxMetadata
+        {
+            DisplayNames = new[] { "Low", "Medium", "High" }
+        };
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("sel1", "Selection Setting", inputType: InputType.Selection,
+                selectedValue: 1, comboBox: comboBox)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings.Should().HaveCount(1);
+        vm.Settings[0].SelectedValue.Should().Be(1);
+        vm.HasVisibleSettings.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_WithNumericRangeSettings_PopulatesNumericValueAndBounds()
+    {
+        var vm = CreateViewModel();
+        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" };
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("num1", "Numeric Setting", inputType: InputType.NumericRange,
+                numericValue: 30, numericRange: numericRange)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings.Should().HaveCount(1);
+        vm.Settings[0].NumericValue.Should().Be(30);
+        vm.HasVisibleSettings.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_WithMixedInputTypes_AllSettingsPopulatedCorrectly()
+    {
+        var vm = CreateViewModel();
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("toggle1", "Toggle", inputType: InputType.Toggle, isSelected: true),
+            CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 2),
+            CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange, numericValue: 45,
+                numericRange: new NumericRangeMetadata { MinValue = 0, MaxValue = 100 }),
+            CreateSettingItem("action1", "Action", inputType: InputType.Action)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings.Should().HaveCount(4);
+        vm.Settings[0].IsSelected.Should().BeTrue();
+        vm.Settings[1].SelectedValue.Should().Be(2);
+        vm.Settings[2].NumericValue.Should().Be(45);
+        vm.Settings[3].InputType.Should().Be(InputType.Action);
+        vm.HasVisibleSettings.Should().BeTrue();
+    }
+
+    // ── RefreshSettingStatesAsync: value updates (guards #483 value corruption) ──
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_ToggleSetting_UpdatesIsSelectedFromNewState()
+    {
+        var vm = CreateViewModel();
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("t1", "Toggle", isSelected: false)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["t1"] = new SettingStateResult { Success = true, IsEnabled = true }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+        vm.Settings[0].IsSelected.Should().BeFalse();
+
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[0].IsSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_SelectionSetting_UpdatesSelectedValueFromNewState()
+    {
+        var vm = CreateViewModel();
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 0)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["sel1"] = new SettingStateResult { Success = true, CurrentValue = 2 }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[0].SelectedValue.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_NumericRangeSetting_UpdatesNumericValueFromNewState()
+    {
+        var vm = CreateViewModel();
+        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" };
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
+                numericValue: 10, numericRange: numericRange)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        // RefreshSettingStatesAsync returns raw system values (seconds), unit conversion happens in UpdateStateFromSystemState
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["num1"] = new SettingStateResult { Success = true, CurrentValue = 1800 }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+        vm.Settings[0].NumericValue.Should().Be(10);
+
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[0].NumericValue.Should().Be(30); // 1800 seconds / 60 = 30 minutes
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_FailedResult_DoesNotChangeExistingValues()
+    {
+        var vm = CreateViewModel();
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("t1", "Toggle", isSelected: true)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["t1"] = new SettingStateResult { Success = false, IsEnabled = false }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[0].IsSelected.Should().BeTrue(); // unchanged due to failed result
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_MissingSettingInResults_DoesNotThrow()
+    {
+        var vm = CreateViewModel();
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("t1", "Toggle", isSelected: true),
+            CreateSettingItem("t2", "Toggle 2", isSelected: false)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        // Only return state for t1, not t2
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["t1"] = new SettingStateResult { Success = true, IsEnabled = false }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+
+        var action = () => vm.RefreshSettingStatesAsync();
+
+        await action.Should().NotThrowAsync();
+        vm.Settings[0].IsSelected.Should().BeFalse(); // updated
+        vm.Settings[1].IsSelected.Should().BeFalse(); // unchanged (no state returned)
+    }
+
+    // ── Full lifecycle: load → refresh → values preserved ──
+
+    [Fact]
+    public async Task FullLifecycle_LoadThenRefreshWithSameValues_PreservesAllTypes()
+    {
+        var vm = CreateViewModel();
+        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60 };
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("t1", "Toggle", isSelected: true),
+            CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 1),
+            CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
+                numericValue: 42, numericRange: numericRange)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        // Refresh returns the same values
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["t1"] = new SettingStateResult { Success = true, IsEnabled = true },
+            ["sel1"] = new SettingStateResult { Success = true, CurrentValue = 1 },
+            ["num1"] = new SettingStateResult { Success = true, CurrentValue = 42 }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[0].IsSelected.Should().BeTrue();
+        vm.Settings[1].SelectedValue.Should().Be(1);
+        vm.Settings[2].NumericValue.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task FullLifecycle_LoadThenRefreshWithChangedValues_UpdatesAllTypes()
+    {
+        var vm = CreateViewModel();
+        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100 };
+        var settings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("t1", "Toggle", isSelected: false),
+            CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 0),
+            CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
+                numericValue: 10, numericRange: numericRange)
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        // Refresh returns different values
+        var refreshStates = new Dictionary<string, SettingStateResult>
+        {
+            ["t1"] = new SettingStateResult { Success = true, IsEnabled = true },
+            ["sel1"] = new SettingStateResult { Success = true, CurrentValue = 3 },
+            ["num1"] = new SettingStateResult { Success = true, CurrentValue = 75 }
+        };
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(refreshStates);
+
+        await vm.LoadSettingsAsync();
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[0].IsSelected.Should().BeTrue();
+        vm.Settings[1].SelectedValue.Should().Be(3);
+        vm.Settings[2].NumericValue.Should().Be(75);
+    }
+
+    // ── Multiple reload cycles ──
+
+    [Fact]
+    public async Task RefreshSettingsAsync_DisposesOldSettings_LoadsNewOnes()
+    {
+        var vm = CreateViewModel();
+        var firstSettings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("old1", "Old Setting 1"),
+            CreateSettingItem("old2", "Old Setting 2")
+        };
+        var secondSettings = new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("new1", "New Setting 1"),
+            CreateSettingItem("new2", "New Setting 2"),
+            CreateSettingItem("new3", "New Setting 3")
+        };
+        var callCount = 0;
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return callCount == 1 ? firstSettings : secondSettings;
+            });
+
+        await vm.LoadSettingsAsync();
+        vm.Settings.Should().HaveCount(2);
+        vm.Settings[0].Name.Should().Be("Old Setting 1");
+
+        await vm.RefreshSettingsAsync();
+
+        vm.Settings.Should().HaveCount(3);
+        vm.Settings[0].Name.Should().Be("New Setting 1");
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_CalledAfterRefreshSettings_RebuildsGroupedSettings()
+    {
+        var vm = CreateViewModel();
+        var firstSettings = CreateSettingsCollection(("s1", "S1", "GroupA"));
+        var secondSettings = CreateSettingsCollection(("s2", "S2", "GroupB"), ("s3", "S3", "GroupC"));
+        var callCount = 0;
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return callCount == 1 ? firstSettings : secondSettings;
+            });
+
+        await vm.LoadSettingsAsync();
+        vm.GroupedSettings.Should().HaveCount(1);
+        vm.GroupedSettings[0].Key.Should().Be("GroupA");
+
+        await vm.RefreshSettingsAsync();
+
+        vm.GroupedSettings.Should().HaveCount(2);
+        vm.GroupedSettings[0].Key.Should().Be("GroupB");
+        vm.GroupedSettings[1].Key.Should().Be("GroupC");
     }
 
     // ── GroupedSettings Ordering ──

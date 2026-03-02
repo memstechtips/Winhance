@@ -1150,4 +1150,420 @@ public class ConfigReviewServiceTests : IDisposable
 
         service.GetDiffForSetting("start-menu-clean-11").Should().BeNull();
     }
+
+    // -------------------------------------------------------
+    // NumericRange edge cases (guards #482 rendering)
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task EnterReviewModeAsync_NumericRange_SameACValue_NoDiff()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "nr-same",
+            Name = "Numeric Same",
+            Description = "Test",
+            InputType = InputType.NumericRange
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Power"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["nr-same"] = new SettingStateResult { CurrentValue = 30 }
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "nr-same",
+                                Name = "Numeric Same",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["ACValue"] = 30
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.GetDiffForSetting("nr-same").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_NumericRange_NoPowerSettings_NoDiff()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "nr-nopower",
+            Name = "No Power Settings",
+            Description = "Test",
+            InputType = InputType.NumericRange
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Power"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["nr-nopower"] = new SettingStateResult { CurrentValue = 50 }
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "nr-nopower",
+                                Name = "No Power Settings",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = null // No PowerSettings dictionary
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.GetDiffForSetting("nr-nopower").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_NumericRange_WithDCValueOnly_UsesACValueForComparison()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "nr-dconly",
+            Name = "DC Only NumericRange",
+            Description = "Test",
+            InputType = InputType.NumericRange
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Power"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["nr-dconly"] = new SettingStateResult { CurrentValue = 30 }
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "nr-dconly",
+                                Name = "DC Only NumericRange",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["DCValue"] = 60 // Only DCValue, no ACValue
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        // Should not register a diff since ACValue is the comparison key and it's missing
+        service.GetDiffForSetting("nr-dconly").Should().BeNull();
+    }
+
+    // -------------------------------------------------------
+    // Multi-feature diff computation (guards #482 for all pages)
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task EnterReviewModeAsync_MultipleFeatures_ComputesDiffsPerFeature()
+    {
+        // Privacy (Toggle)
+        var privacyDef = new SettingDefinition
+        {
+            Id = "priv1",
+            Name = "Privacy Setting",
+            Description = "Test",
+            InputType = InputType.Toggle
+        };
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Privacy"))
+            .Returns(new[] { privacyDef });
+
+        // Power (NumericRange)
+        var powerDef = new SettingDefinition
+        {
+            Id = "pow1",
+            Name = "Power Setting",
+            Description = "Test",
+            InputType = InputType.NumericRange
+        };
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Power"))
+            .Returns(new[] { powerDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
+                l => l.Any(s => s.Id == "priv1"))))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["priv1"] = new SettingStateResult { IsEnabled = false }
+            });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
+                l => l.Any(s => s.Id == "pow1"))))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["pow1"] = new SettingStateResult { CurrentValue = 30 }
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "priv1",
+                                Name = "Privacy Setting",
+                                IsSelected = true,
+                                InputType = InputType.Toggle
+                            }
+                        }
+                    },
+                    ["Power"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "pow1",
+                                Name = "Power Setting",
+                                InputType = InputType.NumericRange,
+                                PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["ACValue"] = 60
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.TotalChanges.Should().Be(2);
+        service.GetFeatureDiffCount("Privacy").Should().Be(1);
+        service.GetFeatureDiffCount("Power").Should().Be(1);
+
+        var privDiff = service.GetDiffForSetting("priv1");
+        privDiff.Should().NotBeNull();
+        privDiff!.FeatureModuleId.Should().Be("Privacy");
+
+        var powDiff = service.GetDiffForSetting("pow1");
+        powDiff.Should().NotBeNull();
+        powDiff!.FeatureModuleId.Should().Be("Power");
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_Selection_WithNullSelectedIndex_NoDiff()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "sel-null",
+            Name = "Selection Null Index",
+            Description = "Test",
+            InputType = InputType.Selection
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Privacy"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-null"] = new SettingStateResult { CurrentValue = 0 }
+            });
+
+        _mockComboBoxSetupService
+            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
+            .ReturnsAsync(new ComboBoxSetupResult
+            {
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxOption>
+                {
+                    new ComboBoxOption("Option A", 0)
+                },
+                SelectedValue = 0,
+                Success = true
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "sel-null",
+                                Name = "Selection Null Index",
+                                InputType = InputType.Selection,
+                                SelectedIndex = null // Null index
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.GetDiffForSetting("sel-null").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_Selection_WithPowerPlanGuid_DifferentPlan_RegistersDiff()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "power-plan",
+            Name = "Power Plan",
+            Description = "Test",
+            InputType = InputType.Selection
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Power"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["power-plan"] = new SettingStateResult
+                {
+                    CurrentValue = 0,
+                    RawValues = new Dictionary<string, object?>
+                    {
+                        ["ActivePowerPlanGuid"] = "381b4222-f694-41f0-9685-ff5bb260df2e", // Balanced
+                        ["ActivePowerPlan"] = "Balanced"
+                    }
+                }
+            });
+
+        _mockComboBoxSetupService
+            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
+            .ReturnsAsync(new ComboBoxSetupResult
+            {
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxOption>
+                {
+                    new ComboBoxOption("Balanced", 0),
+                    new ComboBoxOption("High Performance", 1)
+                },
+                SelectedValue = 0,
+                Success = true
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Power"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "power-plan",
+                                Name = "Power Plan",
+                                InputType = InputType.Selection,
+                                PowerPlanGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", // High Performance
+                                PowerPlanName = "High Performance"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        var diff = service.GetDiffForSetting("power-plan");
+        diff.Should().NotBeNull();
+    }
 }
