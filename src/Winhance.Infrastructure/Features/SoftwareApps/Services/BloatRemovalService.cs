@@ -362,11 +362,9 @@ public class BloatRemovalService(
                 capabilities.Add(name);
             else if (!string.IsNullOrEmpty(app.OptionalFeatureName))
                 optionalFeatures.Add(name);
-            else
+            else if (app.AppxPackageName?.Length > 0)
             {
-                packages.Add(name);
-                if (app.SubPackages?.Any() == true)
-                    packages.AddRange(app.SubPackages);
+                packages.AddRange(app.AppxPackageName);
                 if (IsOneNote(app))
                     specialApps.Add("OneNote");
             }
@@ -429,9 +427,12 @@ public class BloatRemovalService(
         var names = new List<string>();
         foreach (var item in items)
         {
-            var name = GetAppName(item);
-            if (!string.IsNullOrEmpty(name))
-                names.Add(name);
+            if (!string.IsNullOrEmpty(item.CapabilityName))
+                names.Add(item.CapabilityName);
+            else if (!string.IsNullOrEmpty(item.OptionalFeatureName))
+                names.Add(item.OptionalFeatureName);
+            else if (item.AppxPackageName?.Length > 0)
+                names.AddRange(item.AppxPackageName);
         }
         return names;
     }
@@ -468,7 +469,7 @@ public class BloatRemovalService(
     private static List<string> ExtractArrayFromScript(string content, string arrayName)
         => BloatRemovalScriptGenerator.ExtractArrayFromScript(content, arrayName);
 
-    private static string GetAppName(ItemDefinition app)
+    private static string? GetAppName(ItemDefinition app)
     {
         if (!string.IsNullOrEmpty(app.CapabilityName))
             return app.CapabilityName;
@@ -476,7 +477,7 @@ public class BloatRemovalService(
         if (!string.IsNullOrEmpty(app.OptionalFeatureName))
             return app.OptionalFeatureName;
 
-        return app.AppxPackageName!;
+        return app.AppxPackageName?.FirstOrDefault();
     }
 
     private string GenerateScriptContent(List<string> packages, List<string> capabilities, List<string> features, List<string>? specialApps = null)
@@ -496,7 +497,7 @@ public class BloatRemovalService(
 
     private static bool IsOneNote(ItemDefinition app)
     {
-        return app.AppxPackageName?.Contains("OneNote", StringComparison.OrdinalIgnoreCase) == true;
+        return app.AppxPackageName?.Any(name => name.Contains("OneNote", StringComparison.OrdinalIgnoreCase)) == true;
     }
 
     private static bool IsOneNotePackage(string packageName, string specialAppType)

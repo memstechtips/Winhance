@@ -43,8 +43,7 @@ public static class TestSettingFactory
     public static ConfigurationItem CreateAppItem(
         string id,
         string name = "Test App",
-        string? appxPackageName = null,
-        string[]? subPackages = null,
+        string[]? appxPackageName = null,
         string? winGetPackageId = null,
         string? capabilityName = null)
     {
@@ -54,7 +53,6 @@ public static class TestSettingFactory
             Name = name,
             IsSelected = true,
             AppxPackageName = appxPackageName,
-            SubPackages = subPackages,
             WinGetPackageId = winGetPackageId,
             CapabilityName = capabilityName,
         };
@@ -98,8 +96,7 @@ public static class TestSettingFactory
         var appItem = CreateAppItem(
             "app1",
             "Test Windows App",
-            appxPackageName: "Microsoft.TestApp",
-            subPackages: new[] { "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2" },
+            appxPackageName: new[] { "Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2" },
             winGetPackageId: "TestVendor.TestApp",
             capabilityName: "TestCapability");
 

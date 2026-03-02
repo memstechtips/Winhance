@@ -61,16 +61,11 @@ internal class AppRemovalScriptSection
             {
                 optionalFeatures.Add(app.OptionalFeatureName);
             }
-            else if (!string.IsNullOrEmpty(app.AppxPackageName))
+            else if (app.AppxPackageName?.Length > 0)
             {
-                regularApps.Add(app.AppxPackageName);
+                regularApps.AddRange(app.AppxPackageName);
 
-                if (app.SubPackages?.Length > 0)
-                {
-                    regularApps.AddRange(app.SubPackages);
-                }
-
-                if (app.AppxPackageName.Contains("OneNote", StringComparison.OrdinalIgnoreCase) &&
+                if (app.AppxPackageName.Any(name => name.Contains("OneNote", StringComparison.OrdinalIgnoreCase)) &&
                     !specialApps.Contains("OneNote"))
                 {
                     specialApps.Add("OneNote");

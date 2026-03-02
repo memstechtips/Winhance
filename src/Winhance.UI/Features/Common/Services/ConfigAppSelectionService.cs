@@ -1,3 +1,4 @@
+using System.Linq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -155,7 +156,7 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
     private static AppItemViewModel? FindMatchingWindowsApp(IEnumerable<AppItemViewModel> vmItems, ConfigurationItem configItem)
     {
         return vmItems.FirstOrDefault(i =>
-            (!string.IsNullOrEmpty(configItem.AppxPackageName) && i.Definition?.AppxPackageName == configItem.AppxPackageName) ||
+            (configItem.AppxPackageName?.Length > 0 && i.Definition?.AppxPackageName?.Length > 0 && configItem.AppxPackageName.First() == i.Definition.AppxPackageName.First()) ||
             (!string.IsNullOrEmpty(configItem.CapabilityName) && i.Definition?.CapabilityName == configItem.CapabilityName) ||
             (!string.IsNullOrEmpty(configItem.OptionalFeatureName) && i.Definition?.OptionalFeatureName == configItem.OptionalFeatureName) ||
             i.Id == configItem.Id);

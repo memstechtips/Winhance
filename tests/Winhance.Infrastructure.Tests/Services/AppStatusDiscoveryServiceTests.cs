@@ -34,7 +34,7 @@ public class AppStatusDiscoveryServiceTests
         Id = id,
         Name = name ?? id,
         Description = $"Description for {id}",
-        AppxPackageName = appxName,
+        AppxPackageName = new[] { appxName },
     };
 
     private static ItemDefinition CreateCapabilityDefinition(string id, string capabilityName) => new()

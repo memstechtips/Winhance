@@ -38,7 +38,7 @@ public class AppUninstallationService(
                 return OperationResult<bool>.Failed("App not found");
             }
 
-            logService.LogInformation($"[UninstallApp] Found: '{app.Name}' AppX={app.AppxPackageName ?? "null"} Cap={app.CapabilityName ?? "null"} Feat={app.OptionalFeatureName ?? "null"}");
+            logService.LogInformation($"[UninstallApp] Found: '{app.Name}' AppX={( app.AppxPackageName != null ? string.Join(", ", app.AppxPackageName) : "null")} Cap={app.CapabilityName ?? "null"} Feat={app.OptionalFeatureName ?? "null"}");
 
             RemovalOutcome outcome;
 
@@ -88,7 +88,7 @@ public class AppUninstallationService(
 
             logService.LogInformation($"[UninstallApps] Categorization: ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
             foreach (var a in apps)
-                logService.LogInformation($"[UninstallApps]   Item: '{a.Name}' Id={a.Id} AppX={a.AppxPackageName ?? "null"} Cap={a.CapabilityName ?? "null"} Feat={a.OptionalFeatureName ?? "null"} IsInstalled={a.IsInstalled}");
+                logService.LogInformation($"[UninstallApps]   Item: '{a.Name}' Id={a.Id} AppX={(a.AppxPackageName != null ? string.Join(", ", a.AppxPackageName) : "null")} Cap={a.CapabilityName ?? "null"} Feat={a.OptionalFeatureName ?? "null"} IsInstalled={a.IsInstalled}");
 
             var anyDeferred = false;
 

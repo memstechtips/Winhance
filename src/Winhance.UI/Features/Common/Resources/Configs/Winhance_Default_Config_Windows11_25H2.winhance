@@ -9,134 +9,170 @@
         "Name": "Bing Search",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.BingSearch"
+        "AppxPackageName": [
+          "Microsoft.BingSearch"
+        ]
       },
       {
         "Id": "windows-app-microsoft-news",
         "Name": "Microsoft News",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.BingNews"
+        "AppxPackageName": [
+          "Microsoft.BingNews"
+        ]
       },
       {
         "Id": "windows-app-msn-weather",
         "Name": "MSN Weather",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.BingWeather"
+        "AppxPackageName": [
+          "Microsoft.BingWeather"
+        ]
       },
       {
         "Id": "windows-app-camera",
         "Name": "Camera",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsCamera"
+        "AppxPackageName": [
+          "Microsoft.WindowsCamera"
+        ]
       },
       {
         "Id": "windows-app-clipchamp",
         "Name": "Clipchamp",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Clipchamp.Clipchamp"
+        "AppxPackageName": [
+          "Clipchamp.Clipchamp"
+        ]
       },
       {
         "Id": "windows-app-alarms-clock",
         "Name": "Alarms & Clock",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsAlarms"
+        "AppxPackageName": [
+          "Microsoft.WindowsAlarms"
+        ]
       },
       {
         "Id": "windows-app-get-help",
         "Name": "Get Help",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.GetHelp"
+        "AppxPackageName": [
+          "Microsoft.GetHelp"
+        ]
       },
       {
         "Id": "windows-app-calculator",
         "Name": "Calculator",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsCalculator"
+        "AppxPackageName": [
+          "Microsoft.WindowsCalculator"
+        ]
       },
       {
         "Id": "windows-app-dev-home",
         "Name": "Dev Home",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.Windows.DevHome"
+        "AppxPackageName": [
+          "Microsoft.Windows.DevHome"
+        ]
       },
       {
         "Id": "windows-app-family-safety",
         "Name": "Microsoft Family Safety",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "MicrosoftCorporationII.MicrosoftFamily"
+        "AppxPackageName": [
+          "MicrosoftCorporationII.MicrosoftFamily"
+        ]
       },
       {
         "Id": "windows-app-teams",
         "Name": "Microsoft Teams",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "MSTeams"
+        "AppxPackageName": [
+          "MSTeams"
+        ]
       },
       {
         "Id": "windows-app-feedback-hub",
         "Name": "Feedback Hub",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsFeedbackHub"
+        "AppxPackageName": [
+          "Microsoft.WindowsFeedbackHub"
+        ]
       },
       {
         "Id": "windows-app-terminal",
         "Name": "Terminal",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsTerminal"
+        "AppxPackageName": [
+          "Microsoft.WindowsTerminal"
+        ]
       },
       {
         "Id": "windows-app-outlook",
         "Name": "Outlook for Windows",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.OutlookForWindows"
+        "AppxPackageName": [
+          "Microsoft.OutlookForWindows"
+        ]
       },
       {
         "Id": "windows-app-snipping-tool",
         "Name": "Snipping Tool",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.ScreenSketch"
+        "AppxPackageName": [
+          "Microsoft.ScreenSketch"
+        ]
       },
       {
         "Id": "windows-app-power-automate",
         "Name": "Power Automate",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.PowerAutomateDesktop"
+        "AppxPackageName": [
+          "Microsoft.PowerAutomateDesktop"
+        ]
       },
       {
         "Id": "windows-app-quick-assist",
         "Name": "Quick Assist",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "MicrosoftCorporationII.QuickAssist"
+        "AppxPackageName": [
+          "MicrosoftCorporationII.QuickAssist"
+        ]
       },
       {
         "Id": "windows-app-solitaire",
         "Name": "Solitaire Collection",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.MicrosoftSolitaireCollection"
+        "AppxPackageName": [
+          "Microsoft.MicrosoftSolitaireCollection"
+        ]
       },
       {
         "Id": "windows-app-xbox",
         "Name": "Xbox",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.GamingApp",
-        "SubPackages": [
+        "AppxPackageName": [
+          "Microsoft.GamingApp",
           "Microsoft.XboxApp"
         ]
       },
@@ -145,78 +181,98 @@
         "Name": "Xbox Identity Provider",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.XboxIdentityProvider"
+        "AppxPackageName": [
+          "Microsoft.XboxIdentityProvider"
+        ]
       },
       {
         "Id": "windows-app-xbox-live-ingame",
         "Name": "Xbox Live In-Game Experience",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.Xbox.TCUI"
+        "AppxPackageName": [
+          "Microsoft.Xbox.TCUI"
+        ]
       },
       {
         "Id": "windows-app-xbox-game-bar",
         "Name": "Xbox Game Bar",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.XboxGamingOverlay"
+        "AppxPackageName": [
+          "Microsoft.XboxGamingOverlay"
+        ]
       },
       {
         "Id": "windows-app-store",
         "Name": "Microsoft Store",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsStore"
+        "AppxPackageName": [
+          "Microsoft.WindowsStore"
+        ]
       },
       {
         "Id": "windows-app-media-player",
         "Name": "Media Player",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.ZuneMusic"
+        "AppxPackageName": [
+          "Microsoft.ZuneMusic"
+        ]
       },
       {
         "Id": "windows-app-sound-recorder",
         "Name": "Sound Recorder",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsSoundRecorder"
+        "AppxPackageName": [
+          "Microsoft.WindowsSoundRecorder"
+        ]
       },
       {
         "Id": "windows-app-sticky-notes",
         "Name": "Sticky Notes",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.MicrosoftStickyNotes"
+        "AppxPackageName": [
+          "Microsoft.MicrosoftStickyNotes"
+        ]
       },
       {
         "Id": "windows-app-todo",
         "Name": "To Do: Lists, Tasks & Reminders",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.Todos"
+        "AppxPackageName": [
+          "Microsoft.Todos"
+        ]
       },
       {
         "Id": "windows-app-notepad",
         "Name": "Notepad",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.WindowsNotepad"
+        "AppxPackageName": [
+          "Microsoft.WindowsNotepad"
+        ]
       },
       {
         "Id": "windows-app-phone-link",
         "Name": "Phone Link",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.YourPhone"
+        "AppxPackageName": [
+          "Microsoft.YourPhone"
+        ]
       },
       {
         "Id": "windows-app-copilot",
         "Name": "Copilot",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.Copilot",
-        "SubPackages": [
+        "AppxPackageName": [
+          "Microsoft.Copilot",
           "Microsoft.Windows.Ai.Copilot.Provider",
           "Microsoft.Copilot_8wekyb3d8bbwe"
         ]
@@ -226,14 +282,18 @@
         "Name": "Microsoft Edge",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.MicrosoftEdge.Stable"
+        "AppxPackageName": [
+          "Microsoft.MicrosoftEdge.Stable"
+        ]
       },
       {
         "Id": "windows-app-onedrive",
         "Name": "OneDrive",
         "IsSelected": true,
         "InputType": 0,
-        "AppxPackageName": "Microsoft.OneDriveSync"
+        "AppxPackageName": [
+          "Microsoft.OneDriveSync"
+        ]
       },
       {
         "Id": "capability-internet-explorer",

@@ -82,7 +82,7 @@ public class AppRemovalScriptSectionTests
             new ConfigurationItem
             {
                 Id = "windows-app-cortana",
-                AppxPackageName = "Microsoft.549981C3F5F10"
+                AppxPackageName = ["Microsoft.549981C3F5F10"]
             }
         };
 
@@ -106,7 +106,7 @@ public class AppRemovalScriptSectionTests
             new ConfigurationItem
             {
                 Id = "windows-app-edge",
-                AppxPackageName = "Microsoft.Edge"
+                AppxPackageName = ["Microsoft.Edge"]
             }
         };
 
@@ -129,7 +129,7 @@ public class AppRemovalScriptSectionTests
             new ConfigurationItem
             {
                 Id = "windows-app-onedrive",
-                AppxPackageName = "Microsoft.OneDrive"
+                AppxPackageName = ["Microsoft.OneDrive"]
             }
         };
 
@@ -186,11 +186,11 @@ public class AppRemovalScriptSectionTests
     }
 
     // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - SubPackages
+    // AppendBloatRemovalScriptAsync - Multiple packages
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task AppendBloatRemovalScriptAsync_AppWithSubPackages_IncludesSubPackages()
+    public async Task AppendBloatRemovalScriptAsync_AppWithMultiplePackages_IncludesAllPackages()
     {
         var sb = new StringBuilder();
         var apps = new List<ConfigurationItem>
@@ -198,8 +198,7 @@ public class AppRemovalScriptSectionTests
             new ConfigurationItem
             {
                 Id = "windows-app-xbox",
-                AppxPackageName = "Microsoft.GamingApp",
-                SubPackages = new[] { "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay" }
+                AppxPackageName = ["Microsoft.GamingApp", "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay"]
             }
         };
 
@@ -222,7 +221,7 @@ public class AppRemovalScriptSectionTests
             new ConfigurationItem
             {
                 Id = "windows-app-cortana",
-                AppxPackageName = "Microsoft.549981C3F5F10"
+                AppxPackageName = ["Microsoft.549981C3F5F10"]
             }
         };
 
@@ -243,9 +242,9 @@ public class AppRemovalScriptSectionTests
         var sb = new StringBuilder();
         var apps = new List<ConfigurationItem>
         {
-            new ConfigurationItem { Id = "windows-app-cortana", AppxPackageName = "Microsoft.549981C3F5F10" },
-            new ConfigurationItem { Id = "windows-app-edge", AppxPackageName = "Microsoft.Edge" },
-            new ConfigurationItem { Id = "windows-app-onedrive", AppxPackageName = "Microsoft.OneDrive" }
+            new ConfigurationItem { Id = "windows-app-cortana", AppxPackageName = ["Microsoft.549981C3F5F10"] },
+            new ConfigurationItem { Id = "windows-app-edge", AppxPackageName = ["Microsoft.Edge"] },
+            new ConfigurationItem { Id = "windows-app-onedrive", AppxPackageName = ["Microsoft.OneDrive"] }
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");

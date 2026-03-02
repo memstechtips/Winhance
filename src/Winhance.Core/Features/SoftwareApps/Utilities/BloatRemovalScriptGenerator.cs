@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
-    public const string ScriptVersion = "2.1";
+    public const string ScriptVersion = "2.2";
     private static readonly ConcurrentDictionary<string, Regex> ArrayPatternCache = new();
 
     public static string GenerateScript(
@@ -246,6 +246,7 @@ if ($hasXboxPackages) {
                     Write-Log ""Applying settings for user: $username (SID: $sid)""
                     reg add ""HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
                     reg add ""HKU\$sid\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
+                    reg add ""HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR"" /f /t REG_DWORD /v ""AllowGameDVR"" /d 0 2>$null | Out-Null
                     Write-Log ""Xbox Game DVR registry settings applied successfully""
                 } else {
                     Write-Log ""Warning: Could not resolve SID for user: $username""
@@ -257,6 +258,7 @@ if ($hasXboxPackages) {
             Write-Log ""Running as user - applying settings directly to HKCU""
             reg add ""HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
             reg add ""HKCU\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
+            reg add ""HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR"" /f /t REG_DWORD /v ""AllowGameDVR"" /d 0 2>$null | Out-Null
             Write-Log ""Xbox Game DVR registry settings applied successfully""
         }
     } catch {

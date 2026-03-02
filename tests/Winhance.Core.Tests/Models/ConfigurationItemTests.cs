@@ -22,7 +22,7 @@ public class ConfigurationItemTests
         item.WinGetPackageId.Should().BeNull();
         item.CapabilityName.Should().BeNull();
         item.OptionalFeatureName.Should().BeNull();
-        item.SubPackages.Should().BeNull();
+        // SubPackages was removed - all package names are now in AppxPackageName array
         item.SelectedIndex.Should().BeNull();
         item.CustomStateValues.Should().BeNull();
         item.PowerSettings.Should().BeNull();
@@ -39,7 +39,7 @@ public class ConfigurationItemTests
             Name = "Test Setting",
             IsSelected = true,
             InputType = InputType.Selection,
-            AppxPackageName = "Microsoft.Test",
+            AppxPackageName = ["Microsoft.Test"],
             WinGetPackageId = "test.package",
             SelectedIndex = 2,
         };
@@ -48,7 +48,7 @@ public class ConfigurationItemTests
         item.Name.Should().Be("Test Setting");
         item.IsSelected.Should().BeTrue();
         item.InputType.Should().Be(InputType.Selection);
-        item.AppxPackageName.Should().Be("Microsoft.Test");
+        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.Test" });
         item.WinGetPackageId.Should().Be("test.package");
         item.SelectedIndex.Should().Be(2);
     }
@@ -69,7 +69,7 @@ public class ConfigurationItemTests
         json.Should().NotContain("\"AppxPackageName\"");
         json.Should().NotContain("\"WinGetPackageId\"");
         json.Should().NotContain("\"CapabilityName\"");
-        json.Should().NotContain("\"SubPackages\"");
+        // SubPackages property was removed
         json.Should().NotContain("\"PowerSettings\"");
     }
 
@@ -80,13 +80,13 @@ public class ConfigurationItemTests
         {
             Id = "test",
             Name = "Test",
-            AppxPackageName = "Microsoft.App",
+            AppxPackageName = ["Microsoft.App"],
             SelectedIndex = 1,
         };
 
         var json = JsonSerializer.Serialize(item);
 
-        json.Should().Contain("\"AppxPackageName\":\"Microsoft.App\"");
+        json.Should().Contain("\"AppxPackageName\":[\"Microsoft.App\"]");
         json.Should().Contain("\"SelectedIndex\":1");
     }
 

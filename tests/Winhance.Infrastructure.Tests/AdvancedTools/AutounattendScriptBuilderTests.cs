@@ -297,7 +297,7 @@ public class AutounattendScriptBuilderTests
                     new ConfigurationItem
                     {
                         Id = "windows-app-cortana",
-                        AppxPackageName = "Microsoft.549981C3F5F10"
+                        AppxPackageName = new[] { "Microsoft.549981C3F5F10" }
                     }
                 }
             }

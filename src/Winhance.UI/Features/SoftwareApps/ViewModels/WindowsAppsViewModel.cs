@@ -71,7 +71,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
     public IEnumerable<AppItemViewModel> WindowsAppsFiltered => Items
         .Where(a =>
-            !string.IsNullOrEmpty(a.Definition.AppxPackageName) &&
+            a.Definition.AppxPackageName?.Length > 0 &&
             string.IsNullOrEmpty(a.Definition.CapabilityName) &&
             string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
             FilterItem(a))
@@ -211,7 +211,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             Items.Clear();
 
             var allItems = await _windowsAppsService.GetAppsAsync();
-            var apps = allItems.Where(x => !string.IsNullOrEmpty(x.AppxPackageName) || (x.WinGetPackageId != null && x.WinGetPackageId.Any()));
+            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Any()));
             var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
             var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 

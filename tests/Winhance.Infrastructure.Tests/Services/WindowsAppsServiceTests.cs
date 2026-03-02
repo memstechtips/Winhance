@@ -332,7 +332,7 @@ public class WindowsAppsServiceTests
             Id = "test-appx",
             Name = "Test Appx",
             Description = "An appx app",
-            AppxPackageName = "Microsoft.TestApp"
+            AppxPackageName = new[] { "Microsoft.TestApp" }
         };
 
         _winGetPackageInstaller

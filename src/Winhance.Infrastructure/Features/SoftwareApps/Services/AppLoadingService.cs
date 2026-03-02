@@ -64,7 +64,7 @@ public class AppLoadingService(
 
     private static string GetKeyForDefinition(ItemDefinition definition)
     {
-        return definition.CapabilityName ?? definition.OptionalFeatureName ?? definition.AppxPackageName ?? definition.Id;
+        return definition.CapabilityName ?? definition.OptionalFeatureName ?? definition.AppxPackageName?.FirstOrDefault() ?? definition.Id;
     }
 
     public async Task<OperationResult<bool>> RefreshInstallationStatusAsync(IEnumerable<ItemDefinition> apps)

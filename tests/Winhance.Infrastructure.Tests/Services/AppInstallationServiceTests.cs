@@ -44,7 +44,7 @@ public class AppInstallationServiceTests
             Name = "Test Windows App",
             Description = "A windows store app",
             WinGetPackageId = new[] { "Publisher.WinApp" },
-            AppxPackageName = "Microsoft.WinApp"
+            AppxPackageName = new[] { "Microsoft.WinApp" }
         };
 
         _bloatRemovalService
@@ -264,7 +264,7 @@ public class AppInstallationServiceTests
             Name = "Microsoft Edge",
             Description = "Edge browser",
             WinGetPackageId = new[] { "Microsoft.Edge" },
-            AppxPackageName = "Microsoft.MicrosoftEdge"
+            AppxPackageName = new[] { "Microsoft.MicrosoftEdge" }
         };
 
         _bloatRemovalService

@@ -82,7 +82,7 @@ public class AppUninstallationServiceTests
             Id = "windows-app-calc",
             Name = "Calculator",
             Description = "Windows calculator",
-            AppxPackageName = "Microsoft.WindowsCalculator"
+            AppxPackageName = ["Microsoft.WindowsCalculator"]
         };
 
         _windowsAppsService
@@ -116,7 +116,7 @@ public class AppUninstallationServiceTests
             Id = "windows-app-test",
             Name = "Test App",
             Description = "Test",
-            AppxPackageName = "Microsoft.TestApp"
+            AppxPackageName = ["Microsoft.TestApp"]
         };
 
         _windowsAppsService
@@ -145,7 +145,7 @@ public class AppUninstallationServiceTests
             Id = "windows-app-test",
             Name = "Test App",
             Description = "Test",
-            AppxPackageName = "Microsoft.TestApp"
+            AppxPackageName = ["Microsoft.TestApp"]
         };
 
         _windowsAppsService
@@ -225,8 +225,8 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" },
-            new() { Id = "app2", Name = "App2", Description = "Desc2", AppxPackageName = "Microsoft.App2" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] },
+            new() { Id = "app2", Name = "App2", Description = "Desc2", AppxPackageName = ["Microsoft.App2"] }
         };
 
         _bloatRemovalService
@@ -299,7 +299,7 @@ public class AppUninstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                AppxPackageName = "Microsoft.App1"
+                AppxPackageName = ["Microsoft.App1"]
             }
         };
 
@@ -341,7 +341,7 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
         };
 
         _bloatRemovalService
@@ -363,7 +363,7 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
         };
 
         _bloatRemovalService
@@ -413,7 +413,7 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
         };
 
         _bloatRemovalService
@@ -459,8 +459,8 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" },
-            new() { Id = "app2", Name = "App2", Description = "Desc2", AppxPackageName = "Microsoft.App2" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] },
+            new() { Id = "app2", Name = "App2", Description = "Desc2", AppxPackageName = ["Microsoft.App2"] }
         };
 
         var cts = new CancellationTokenSource();
@@ -551,7 +551,7 @@ public class AppUninstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                AppxPackageName = "Microsoft.App1"
+                AppxPackageName = ["Microsoft.App1"]
             }
         };
 
@@ -595,7 +595,7 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
         };
 
         var cts = new CancellationTokenSource();
@@ -626,7 +626,7 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
         };
 
         var cts = new CancellationTokenSource();
@@ -694,7 +694,7 @@ public class AppUninstallationServiceTests
         var sut = CreateSut();
         var apps = new List<ItemDefinition>
         {
-            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = "Microsoft.App1" }
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
         };
 
         var cts = new CancellationTokenSource();

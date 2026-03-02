@@ -57,7 +57,7 @@ public class ScriptBuilderTests
         {
             WindowsApps = TestSettingFactory.CreateSection(true,
                 TestSettingFactory.CreateAppItem("app1", "Clipchamp",
-                    appxPackageName: "Clipchamp.Clipchamp")),
+                    appxPackageName: new[] { "Clipchamp.Clipchamp" })),
         };
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
 

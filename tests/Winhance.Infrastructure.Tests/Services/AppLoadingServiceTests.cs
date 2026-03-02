@@ -34,7 +34,7 @@ public class AppLoadingServiceTests
         Id = id,
         Name = $"App {id}",
         Description = $"Description for {id}",
-        AppxPackageName = appxName,
+        AppxPackageName = appxName != null ? new[] { appxName } : null,
         CapabilityName = capabilityName,
         OptionalFeatureName = featureName,
     };

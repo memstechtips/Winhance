@@ -38,11 +38,9 @@ public class SelectedAppsProvider : ISelectedAppsProvider
                     InputType = InputType.Toggle
                 };
 
-                if (!string.IsNullOrEmpty(item.Definition.AppxPackageName))
+                if (item.Definition.AppxPackageName?.Length > 0)
                 {
                     configItem.AppxPackageName = item.Definition.AppxPackageName;
-                    if (item.Definition.SubPackages?.Length > 0)
-                        configItem.SubPackages = item.Definition.SubPackages;
                 }
                 else if (!string.IsNullOrEmpty(item.Definition.CapabilityName))
                     configItem.CapabilityName = item.Definition.CapabilityName;

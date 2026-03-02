@@ -89,7 +89,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
             if (!string.IsNullOrEmpty(Definition.OptionalFeatureName))
                 return "Optional Feature";
 
-            if (!string.IsNullOrEmpty(Definition.AppxPackageName))
+            if (Definition.AppxPackageName?.Length > 0)
                 return "AppX Package";
 
             return string.Empty;

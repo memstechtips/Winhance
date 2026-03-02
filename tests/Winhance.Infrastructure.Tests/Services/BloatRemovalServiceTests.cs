@@ -34,7 +34,7 @@ public class BloatRemovalServiceTests
         Id = id,
         Name = name ?? id,
         Description = $"Description for {id}",
-        AppxPackageName = appxName,
+        AppxPackageName = new[] { appxName },
     };
 
     private static ItemDefinition CreateDedicatedScriptApp(string id, string name, Func<string> removalScript) => new()

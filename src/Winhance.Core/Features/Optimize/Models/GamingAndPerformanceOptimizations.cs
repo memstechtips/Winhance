@@ -589,7 +589,17 @@ public static class GamingAndPerformanceOptimizations
                         },
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\GameConfigStore",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\GameDVR",
+                            ValueName = "AppCaptureEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, app capture is enabled
+                            DisabledValue = 0, // When toggle is OFF, app capture is disabled
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR",
                             ValueName = "AllowGameDVR",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, Xbox Game DVR is enabled

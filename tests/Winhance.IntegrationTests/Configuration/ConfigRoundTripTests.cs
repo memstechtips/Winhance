@@ -104,8 +104,7 @@ public class ConfigRoundTripTests
     {
         // Arrange
         var item = TestSettingFactory.CreateAppItem("app1", "Calculator",
-            appxPackageName: "Microsoft.WindowsCalculator",
-            subPackages: new[] { "Microsoft.WindowsCalculator.Sub1" },
+            appxPackageName: new[] { "Microsoft.WindowsCalculator", "Microsoft.WindowsCalculator.Sub1" },
             winGetPackageId: "Microsoft.WindowsCalculator",
             capabilityName: "MathRecognizer");
 
@@ -120,8 +119,7 @@ public class ConfigRoundTripTests
 
         // Assert
         var result = deserialized!.WindowsApps.Items[0];
-        result.AppxPackageName.Should().Be("Microsoft.WindowsCalculator");
-        result.SubPackages.Should().BeEquivalentTo(new[] { "Microsoft.WindowsCalculator.Sub1" });
+        result.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.WindowsCalculator", "Microsoft.WindowsCalculator.Sub1" });
         result.WinGetPackageId.Should().Be("Microsoft.WindowsCalculator");
         result.CapabilityName.Should().Be("MathRecognizer");
     }
@@ -133,7 +131,6 @@ public class ConfigRoundTripTests
         var item = TestSettingFactory.CreateToggleItem("t1", "Simple Toggle", true);
         // These should all be null and omitted from JSON
         item.AppxPackageName.Should().BeNull();
-        item.SubPackages.Should().BeNull();
 
         var config = new UnifiedConfigurationFile
         {
@@ -148,7 +145,7 @@ public class ConfigRoundTripTests
 
         // Assert — null properties should not appear in JSON at all
         json.Should().NotContain("\"AppxPackageName\"");
-        json.Should().NotContain("\"SubPackages\"");
+        // SubPackages property was removed
         json.Should().NotContain("\"WinGetPackageId\"");
         json.Should().NotContain("\"CapabilityName\"");
         json.Should().NotContain("\"SelectedIndex\"");

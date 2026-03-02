@@ -71,7 +71,7 @@ public class WindowsAppsService(
     {
         try
         {
-            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()) || !string.IsNullOrEmpty(item.AppxPackageName))
+            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()) || item.AppxPackageName?.Length > 0)
             {
                 // Determine package ID and source
                 string? packageId = null;
@@ -89,7 +89,7 @@ public class WindowsAppsService(
                 }
                 else
                 {
-                    packageId = item.AppxPackageName;
+                    packageId = item.AppxPackageName?.FirstOrDefault();
                 }
 
                 // Try WinGet first (official method)
@@ -255,18 +255,18 @@ public class WindowsAppsService(
     {
         try
         {
-            if (string.IsNullOrEmpty(item.AppxPackageName))
+            if (item.AppxPackageName == null || item.AppxPackageName.Length == 0)
                 return OperationResult<bool>.Failed("No package name specified");
 
             try
             {
                 var packageManager = new Windows.Management.Deployment.PackageManager();
                 var packages = packageManager.FindPackagesForUser("")
-                    .Where(p => p.Id.Name.Contains(item.AppxPackageName, StringComparison.OrdinalIgnoreCase))
+                    .Where(p => item.AppxPackageName.Any(name => p.Id.Name.Contains(name, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
                 if (packages.Count == 0)
-                    return OperationResult<bool>.Failed($"Package '{item.AppxPackageName}' not found");
+                    return OperationResult<bool>.Failed($"Package '{string.Join(", ", item.AppxPackageName)}' not found");
 
                 foreach (var package in packages)
                 {

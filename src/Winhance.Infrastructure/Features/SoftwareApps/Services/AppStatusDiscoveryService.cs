@@ -40,7 +40,7 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            var apps = definitionList.Where(d => !string.IsNullOrEmpty(d.AppxPackageName)).ToList();
+            var apps = definitionList.Where(d => d.AppxPackageName?.Length > 0).ToList();
             var capabilities = definitionList.Where(d => !string.IsNullOrEmpty(d.CapabilityName)).ToList();
             var features = definitionList.Where(d => !string.IsNullOrEmpty(d.OptionalFeatureName)).ToList();
 
@@ -87,11 +87,11 @@ public class AppStatusDiscoveryService(
                 var installedPackageNames = await GetInstalledAppxPackageNamesAsync().ConfigureAwait(false);
                 foreach (var app in apps)
                 {
-                    if (installedPackageNames.Contains(app.AppxPackageName!))
+                    if (app.AppxPackageName!.Any(name => installedPackageNames.Contains(name)))
                     {
                         result[app.Id] = true;
                         appxCount++;
-                        logService.LogInformation($"Installed (AppX): {app.Name} ({app.AppxPackageName})");
+                        logService.LogInformation($"Installed (AppX): {app.Name} ({string.Join(", ", app.AppxPackageName)})");
                     }
                 }
 

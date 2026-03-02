@@ -70,10 +70,9 @@ public class SelectedAppsProviderTests : IDisposable
         string id,
         string name,
         bool isSelected = false,
-        string? appxPackageName = null,
+        string[]? appxPackageName = null,
         string? capabilityName = null,
-        string? optionalFeatureName = null,
-        string[]? subPackages = null)
+        string? optionalFeatureName = null)
     {
         var definition = new ItemDefinition
         {
@@ -83,7 +82,6 @@ public class SelectedAppsProviderTests : IDisposable
             AppxPackageName = appxPackageName,
             CapabilityName = capabilityName,
             OptionalFeatureName = optionalFeatureName,
-            SubPackages = subPackages
         };
 
         var vm = new AppItemViewModel(
@@ -149,7 +147,7 @@ public class SelectedAppsProviderTests : IDisposable
             "test-app",
             "Test App",
             isSelected: true,
-            appxPackageName: "Microsoft.TestApp");
+            appxPackageName: ["Microsoft.TestApp"]);
         vm.Items.Add(app);
 
         var sut = CreateSut(vm);
@@ -162,7 +160,7 @@ public class SelectedAppsProviderTests : IDisposable
         item.Name.Should().Be("Test App");
         item.IsSelected.Should().BeTrue();
         item.InputType.Should().Be(InputType.Toggle);
-        item.AppxPackageName.Should().Be("Microsoft.TestApp");
+        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.TestApp" });
     }
 
     [Fact]
@@ -180,7 +178,7 @@ public class SelectedAppsProviderTests : IDisposable
             "test-app",
             "Test App",
             isSelected: false,
-            appxPackageName: "Microsoft.TestApp");
+            appxPackageName: ["Microsoft.TestApp"]);
         vm.Items.Add(app);
 
         var sut = CreateSut(vm);
@@ -201,9 +199,9 @@ public class SelectedAppsProviderTests : IDisposable
 
         await vm.LoadItemsAsync();
 
-        var selectedApp = CreateAppItemViewModel("app1", "Selected App", isSelected: true, appxPackageName: "Microsoft.App1");
-        var unselectedApp = CreateAppItemViewModel("app2", "Unselected App", isSelected: false, appxPackageName: "Microsoft.App2");
-        var anotherSelectedApp = CreateAppItemViewModel("app3", "Another Selected", isSelected: true, appxPackageName: "Microsoft.App3");
+        var selectedApp = CreateAppItemViewModel("app1", "Selected App", isSelected: true, appxPackageName: ["Microsoft.App1"]);
+        var unselectedApp = CreateAppItemViewModel("app2", "Unselected App", isSelected: false, appxPackageName: ["Microsoft.App2"]);
+        var anotherSelectedApp = CreateAppItemViewModel("app3", "Another Selected", isSelected: true, appxPackageName: ["Microsoft.App3"]);
 
         vm.Items.Add(selectedApp);
         vm.Items.Add(unselectedApp);
@@ -290,7 +288,7 @@ public class SelectedAppsProviderTests : IDisposable
     // -------------------------------------------------------
 
     [Fact]
-    public async Task GetSelectedWindowsAppsAsync_WithAppxAndSubPackages_SetsSubPackages()
+    public async Task GetSelectedWindowsAppsAsync_WithAppxAndMultiplePackages_SetsAllPackageNames()
     {
         var vm = CreateWindowsAppsVm();
 
@@ -300,13 +298,11 @@ public class SelectedAppsProviderTests : IDisposable
 
         await vm.LoadItemsAsync();
 
-        var subPackages = new[] { "Microsoft.SubPackage1", "Microsoft.SubPackage2" };
         var app = CreateAppItemViewModel(
             "pkg-app",
             "Package App",
             isSelected: true,
-            appxPackageName: "Microsoft.MainPackage",
-            subPackages: subPackages);
+            appxPackageName: ["Microsoft.MainPackage", "Microsoft.SubPackage1", "Microsoft.SubPackage2"]);
         vm.Items.Add(app);
 
         var sut = CreateSut(vm);
@@ -315,12 +311,11 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().Be("Microsoft.MainPackage");
-        item.SubPackages.Should().BeEquivalentTo(subPackages);
+        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.MainPackage", "Microsoft.SubPackage1", "Microsoft.SubPackage2" });
     }
 
     [Fact]
-    public async Task GetSelectedWindowsAppsAsync_WithAppxAndNoSubPackages_DoesNotSetSubPackages()
+    public async Task GetSelectedWindowsAppsAsync_WithAppxAndSinglePackage_SetsSinglePackageName()
     {
         var vm = CreateWindowsAppsVm();
 
@@ -334,8 +329,7 @@ public class SelectedAppsProviderTests : IDisposable
             "pkg-app",
             "Package App",
             isSelected: true,
-            appxPackageName: "Microsoft.MainPackage",
-            subPackages: null);
+            appxPackageName: ["Microsoft.MainPackage"]);
         vm.Items.Add(app);
 
         var sut = CreateSut(vm);
@@ -344,12 +338,11 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().Be("Microsoft.MainPackage");
-        item.SubPackages.Should().BeNull();
+        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.MainPackage" });
     }
 
     [Fact]
-    public async Task GetSelectedWindowsAppsAsync_WithAppxAndEmptySubPackages_DoesNotSetSubPackages()
+    public async Task GetSelectedWindowsAppsAsync_WithNullAppxPackageName_DoesNotSetAppxPackageName()
     {
         var vm = CreateWindowsAppsVm();
 
@@ -363,8 +356,7 @@ public class SelectedAppsProviderTests : IDisposable
             "pkg-app",
             "Package App",
             isSelected: true,
-            appxPackageName: "Microsoft.MainPackage",
-            subPackages: Array.Empty<string>());
+            appxPackageName: null);
         vm.Items.Add(app);
 
         var sut = CreateSut(vm);
@@ -373,7 +365,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.SubPackages.Should().BeNull();
+        item.AppxPackageName.Should().BeNull();
     }
 
     // -------------------------------------------------------
@@ -399,7 +391,7 @@ public class SelectedAppsProviderTests : IDisposable
             Id = "dual-app",
             Name = "Dual App",
             Description = "Has both",
-            AppxPackageName = "Microsoft.DualApp",
+            AppxPackageName = ["Microsoft.DualApp"],
             CapabilityName = "DualApp.Capability~~~~0.0.1.0"
         };
 
@@ -416,7 +408,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().Be("Microsoft.DualApp");
+        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.DualApp" });
         // CapabilityName should NOT be set because the Appx branch ran
         item.CapabilityName.Should().BeNull();
     }
@@ -481,7 +473,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         await vm.LoadItemsAsync();
 
-        vm.Items.Add(CreateAppItemViewModel("a1", "App 1", isSelected: true, appxPackageName: "pkg1"));
+        vm.Items.Add(CreateAppItemViewModel("a1", "App 1", isSelected: true, appxPackageName: ["pkg1"]));
         vm.Items.Add(CreateAppItemViewModel("a2", "App 2", isSelected: true, capabilityName: "cap1"));
 
         var sut = CreateSut(vm);
