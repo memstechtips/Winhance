@@ -422,6 +422,38 @@ public class AppInstallationServiceTests
         result.ErrorMessage.Should().Contain("cancelled");
     }
 
+    // --- InstallAppAsync: DownloadUrl-only routes to external ---
+
+    [Fact]
+    public async Task InstallAppAsync_DownloadUrlOnly_RoutesToExternalAppsService()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "download-only-app",
+            Name = "Download Only App",
+            Description = "Has only a download URL, no WinGet or Store ID",
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/installer.exe"
+            }
+        };
+
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+
+        _externalAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _externalAppsService.Verify(
+            x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
+    }
+
     // --- InstallAppAsync: RequiresDirectDownload routes to external ---
 
     [Fact]

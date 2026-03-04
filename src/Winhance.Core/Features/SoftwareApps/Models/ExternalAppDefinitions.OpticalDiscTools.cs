@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -32,7 +33,11 @@ public static partial class ExternalAppDefinitions
                         Description = "Lightweight CD/DVD/Blu-ray burning software",
                         GroupName = "Optical Disc Tools",
                         WinGetPackageId = ["PowerSoftware.AnyBurn"],
-                        WebsiteUrl = "http://www.anyburn.com/"
+                        WebsiteUrl = "http://www.anyburn.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://www.anyburn.com/anyburn_setup.exe",
+                        }
                     },
                     new ItemDefinition
                     {

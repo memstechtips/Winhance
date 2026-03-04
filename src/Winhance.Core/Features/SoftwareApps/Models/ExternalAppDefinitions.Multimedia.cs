@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -173,7 +174,12 @@ public static partial class ExternalAppDefinitions
                         Description = "Video editor",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["ByteDance.CapCut"],
-                        WebsiteUrl = "https://www.capcut.com/"
+                        MsStoreId = "XP9KN75RRB9NHS",
+                        WebsiteUrl = "https://www.capcut.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://www.capcut.com/activity/download_pc",
+                        }
                     },
                     new ItemDefinition
                     {

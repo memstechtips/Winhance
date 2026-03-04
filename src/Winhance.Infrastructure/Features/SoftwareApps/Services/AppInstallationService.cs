@@ -126,7 +126,8 @@ public class AppInstallationService(
 
             if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
                 !string.IsNullOrEmpty(app?.MsStoreId) ||
-                (app?.ExternalApp?.RequiresDirectDownload == true))
+                app?.ExternalApp?.RequiresDirectDownload == true ||
+                app?.ExternalApp?.DownloadUrl != null)
             {
                 bool isWindowsStoreApp = app.AppxPackageName?.Length > 0;
 

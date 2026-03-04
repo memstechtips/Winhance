@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -73,7 +74,13 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "Hekasoft Backup & Restore {version}",
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Hekasoft.Backup-Restore"],
-                        WebsiteUrl = "https://hekasoft.com/hekasoft-backup-restore/"
+                        MsStoreId = "9NLJQ1B18MZT",
+                        WebsiteUrl = "https://hekasoft.com/hekasoft-backup-restore/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://hekasoft.com/?download=112",
+                            FallbackDownloadUrl = "https://hekasoft.com/?download=612",
+                        }
                     },
                 }
             };

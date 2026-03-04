@@ -29,6 +29,7 @@ public static partial class ExternalAppDefinitions
                         Name = "Wise Registry Cleaner",
                         Description = "Registry cleaning and optimization tool",
                         GroupName = "Other Utilities",
+                        WinGetPackageId = ["WiseCleaner.WiseRegistryCleaner"],
                         MsStoreId = "XPDLS1XBTXVPP4", // MS Store package
                         WebsiteUrl = "https://www.wisecleaner.com/wise-registry-cleaner.html"
                     },

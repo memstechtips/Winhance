@@ -101,9 +101,6 @@ public class ExternalAppsService(
                 }
             }
 
-            if (sources.Count == 0)
-                return OperationResult<bool>.Failed("No WinGet package ID or Store ID specified");
-
             // Chocolatey fallback for any WinGet/Store failure when ChocoPackageId is defined
             if (lastResult != null && lastResult.IsChocolateyFallbackCandidate && !string.IsNullOrEmpty(item.ChocoPackageId))
             {
@@ -112,25 +109,49 @@ public class ExternalAppsService(
                 var consented = await chocolateyConsentService.RequestConsentAsync().ConfigureAwait(false);
                 if (consented)
                 {
-                    if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false))
+                    var chocoReady = await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false)
+                        || await chocolateyService.InstallChocolateyAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (chocoReady)
                     {
-                        if (!await chocolateyService.InstallChocolateyAsync(cancellationToken).ConfigureAwait(false))
+                        var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken).ConfigureAwait(false);
+                        if (chocoSuccess)
                         {
-                            logService.LogError("Failed to install Chocolatey, cannot proceed with fallback");
-                            return OperationResult<bool>.Failed(lastResult.ErrorMessage ?? "Installation failed");
+                            if (IsChocoPortablePackage(item.ChocoPackageId))
+                                await CreateStartMenuShortcutForChocoPortableAppAsync(item).ConfigureAwait(false);
+
+                            return OperationResult<bool>.Succeeded(true);
                         }
-                    }
 
-                    var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken).ConfigureAwait(false);
-                    if (chocoSuccess)
+                        logService.LogWarning($"Chocolatey fallback also failed for '{item.Name}'");
+                    }
+                    else
                     {
-                        if (IsChocoPortablePackage(item.ChocoPackageId))
-                            await CreateStartMenuShortcutForChocoPortableAppAsync(item).ConfigureAwait(false);
-
-                        return OperationResult<bool>.Succeeded(true);
+                        logService.LogError("Failed to install Chocolatey, cannot proceed with Chocolatey fallback");
                     }
+                }
+            }
 
-                    logService.LogWarning($"Chocolatey fallback also failed for '{item.Name}'");
+            // Direct download fallback when WinGet/Store/Chocolatey all failed
+            if (item.ExternalApp?.DownloadUrl != null)
+            {
+                logService.LogInformation($"All package manager installs failed for '{item.Name}', attempting direct download fallback");
+
+                try
+                {
+                    var success = await directDownloadService.DownloadAndInstallAsync(item, progress, cancellationToken).ConfigureAwait(false);
+                    if (success)
+                        return OperationResult<bool>.Succeeded(true);
+
+                    logService.LogWarning($"Direct download fallback failed for '{item.Name}'");
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logService.LogWarning($"Direct download fallback failed for '{item.Name}': {ex.Message}");
                 }
             }
 

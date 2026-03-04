@@ -96,6 +96,14 @@ public class DirectDownloadService : IDirectDownloadService
             });
 
             var downloadedFile = await DownloadFileAsync(downloadUrl, tempPath, item.Name, progress, cancellationToken).ConfigureAwait(false);
+
+            // Try fallback download URL if primary download failed
+            if (string.IsNullOrEmpty(downloadedFile) && !string.IsNullOrEmpty(item.ExternalApp?.FallbackDownloadUrl))
+            {
+                _logService?.LogInformation($"Primary download failed for {item.Name}, trying fallback URL: {item.ExternalApp.FallbackDownloadUrl}");
+                downloadedFile = await DownloadFileAsync(item.ExternalApp.FallbackDownloadUrl, tempPath, item.Name, progress, cancellationToken).ConfigureAwait(false);
+            }
+
             if (string.IsNullOrEmpty(downloadedFile))
             {
                 progress?.Report(new TaskProgressDetail

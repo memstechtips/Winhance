@@ -179,7 +179,7 @@ public class ExternalAppsServiceTests
     // --- InstallAppAsync: no package IDs ---
 
     [Fact]
-    public async Task InstallAppAsync_NoPackageIds_ReturnsFailed()
+    public async Task InstallAppAsync_NoPackageIds_NoDownloadUrl_ReturnsFailed()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
@@ -192,7 +192,34 @@ public class ExternalAppsServiceTests
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("No WinGet package ID or Store ID specified");
+        result.ErrorMessage.Should().Contain("Installation failed");
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_NoPackageIds_WithDownloadUrl_FallsBackToDirectDownload()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "download-only-app",
+            Name = "Download Only App",
+            Description = "Has only a download URL",
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/installer.exe"
+            }
+        };
+
+        _directDownloadService
+            .Setup(x => x.DownloadAndInstallAsync(
+                item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
+            item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // --- InstallAppAsync: WinGet-first ordering ---
@@ -356,7 +383,7 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppAsync_ChocolateyInstallFails_ReturnsOriginalFailure()
+    public async Task InstallAppAsync_ChocolateyInstallFails_NoDownloadUrl_ReturnsOriginalFailure()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
@@ -394,6 +421,56 @@ public class ExternalAppsServiceTests
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("WinGet failed");
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_ChocolateyInstallFails_WithDownloadUrl_FallsBackToDirectDownload()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "choco-app",
+            Name = "Choco App",
+            Description = "App with choco and download fallback",
+            WinGetPackageId = new[] { "Publisher.ChocoApp" },
+            ChocoPackageId = "chocoapp",
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/chocoapp.exe"
+            }
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ChocoApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
+
+        _chocolateyConsentService
+            .Setup(x => x.RequestConsentAsync())
+            .ReturnsAsync(true);
+
+        _chocolateyService
+            .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _chocolateyService
+            .Setup(x => x.InstallChocolateyAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _directDownloadService
+            .Setup(x => x.DownloadAndInstallAsync(
+                item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
+            item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -457,6 +534,198 @@ public class ExternalAppsServiceTests
 
         result.Success.Should().BeFalse();
         _chocolateyConsentService.Verify(x => x.RequestConsentAsync(), Times.Never);
+    }
+
+    // --- InstallAppAsync: direct download fallback ---
+
+    [Fact]
+    public async Task InstallAppAsync_WinGetFails_FallsBackToDirectDownload()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "fallback-app",
+            Name = "Fallback App",
+            Description = "App with direct download fallback",
+            WinGetPackageId = new[] { "Publisher.FallbackApp" },
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/fallback.exe"
+            }
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.FallbackApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        // WinGet fails
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.FallbackApp", "winget", "Fallback App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
+
+        // Direct download succeeds
+        _directDownloadService
+            .Setup(x => x.DownloadAndInstallAsync(
+                item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
+            item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_AllSourcesFail_NoDownloadUrl_ReturnsFailed()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "all-fail-app",
+            Name = "All Fail App",
+            Description = "App without download fallback",
+            WinGetPackageId = new[] { "Publisher.AllFailApp" }
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.AllFailApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.AllFailApp", "winget", "All Fail App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Failed"));
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeFalse();
+        _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
+            It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_DirectDownloadFallbackFails_ReturnsFailed()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "fallback-fail-app",
+            Name = "Fallback Fail App",
+            Description = "App where direct download also fails",
+            WinGetPackageId = new[] { "Publisher.FallbackFailApp" },
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/failapp.exe"
+            }
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.FallbackFailApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.FallbackFailApp", "winget", "Fallback Fail App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
+
+        // Direct download also fails
+        _directDownloadService
+            .Setup(x => x.DownloadAndInstallAsync(
+                item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_DirectDownloadFallbackThrows_ReturnsFailed()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "fallback-throw-app",
+            Name = "Fallback Throw App",
+            Description = "App where direct download throws",
+            WinGetPackageId = new[] { "Publisher.FallbackThrowApp" },
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/throwapp.exe"
+            }
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.FallbackThrowApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.FallbackThrowApp", "winget", "Fallback Throw App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
+
+        _directDownloadService
+            .Setup(x => x.DownloadAndInstallAsync(
+                item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Network error"));
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_WinGetAndChocoFail_FallsBackToDirectDownload()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "full-fallback-app",
+            Name = "Full Fallback App",
+            Description = "App where WinGet and Choco fail but download works",
+            WinGetPackageId = new[] { "Publisher.FullFallbackApp" },
+            ChocoPackageId = "fullfallbackapp",
+            ExternalApp = new ExternalAppMetadata
+            {
+                DownloadUrl = "https://example.com/fullfallback.exe"
+            }
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.FullFallbackApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        // WinGet fails
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
+
+        // Choco consent given, installed, but package install fails
+        _chocolateyConsentService
+            .Setup(x => x.RequestConsentAsync())
+            .ReturnsAsync(true);
+        _chocolateyService
+            .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _chocolateyService
+            .Setup(x => x.InstallPackageAsync("fullfallbackapp", "Full Fallback App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        // Direct download succeeds
+        _directDownloadService
+            .Setup(x => x.DownloadAndInstallAsync(
+                item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
+            item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // --- InstallAppAsync: cancellation ---

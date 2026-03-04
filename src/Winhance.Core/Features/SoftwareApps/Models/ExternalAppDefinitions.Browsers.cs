@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -34,7 +35,11 @@ public static partial class ExternalAppDefinitions
                         Description = "Chromium-based browser with enhanced privacy features",
                         GroupName = "Browsers",
                         WinGetPackageId = ["Alex313031.Thorium"],
-                        WebsiteUrl = "https://thorium.rocks/"
+                        WebsiteUrl = "https://thorium.rocks/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://github.com/Alex313031/Thorium-Win/releases/latest/download/thorium_SSE3_mini_installer.exe",
+                        }
                     },
                     new ItemDefinition
                     {
@@ -122,7 +127,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         AppxPackageName = ["TheBrowserCompany.Arc"],
                         WinGetPackageId = ["TheBrowserCompany.Arc"],
-                        WebsiteUrl = "https://arc.net/"
+                        WebsiteUrl = "https://arc.net/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://releases.arc.net/windows/ArcInstaller.exe",
+                        }
                     },
                     new ItemDefinition
                     {
@@ -164,7 +173,11 @@ public static partial class ExternalAppDefinitions
                         Description = "Privacy-focused browser with built-in ad blocking",
                         GroupName = "Browsers",
                         WinGetPackageId = ["Zen-Team.Zen-Browser"],
-                        WebsiteUrl = "https://zen-browser.app/"
+                        WebsiteUrl = "https://zen-browser.app/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://github.com/zen-browser/desktop/releases/latest/download/zen.installer.exe",
+                        }
                     },
                     new ItemDefinition
                     {
@@ -173,7 +186,11 @@ public static partial class ExternalAppDefinitions
                         Description = "Privacy-focused browser designed to minimize tracking and fingerprints",
                         GroupName = "Browsers",
                         WinGetPackageId = ["MullvadVPN.MullvadBrowser"],
-                        WebsiteUrl = "https://mullvad.net/en/browser"
+                        WebsiteUrl = "https://mullvad.net/en/browser",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://mullvad.net/en/download/browser/win64/latest",
+                        }
                     },
                     new ItemDefinition
                     {
@@ -215,7 +232,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         AppxPackageName = ["DuckDuckGo.DesktopBrowser"],
                         WinGetPackageId = ["DuckDuckGo.DesktopBrowser"],
-                        WebsiteUrl = "https://duckduckgo.com/"
+                        WebsiteUrl = "https://duckduckgo.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://staticcdn.duckduckgo.com/windows-desktop-browser/installer/DuckDuckGo.Installer.exe",
+                        }
                     },
                     new ItemDefinition
                     {

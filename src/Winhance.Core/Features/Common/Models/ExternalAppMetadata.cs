@@ -6,6 +6,7 @@ namespace Winhance.Core.Features.Common.Models;
 public record ExternalAppMetadata
 {
     public string? DownloadUrl { get; init; }
+    public string? FallbackDownloadUrl { get; init; }
     public string? DownloadUrlArm64 { get; init; }
     public string? DownloadUrlX64 { get; init; }
     public string? DownloadUrlX86 { get; init; }

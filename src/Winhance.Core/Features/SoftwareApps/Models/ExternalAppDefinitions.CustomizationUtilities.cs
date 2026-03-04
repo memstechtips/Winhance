@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -92,7 +93,11 @@ public static partial class ExternalAppDefinitions
                         Description = "Utility that enhances the Windows Explorer experience",
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["valinet.ExplorerPatcher"],
-                        WebsiteUrl = "https://github.com/valinet/ExplorerPatcher"
+                        WebsiteUrl = "https://github.com/valinet/ExplorerPatcher",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://github.com/valinet/ExplorerPatcher/releases/latest/download/ep_setup.exe",
+                        }
                     },
                     new ItemDefinition
                     {
@@ -101,7 +106,11 @@ public static partial class ExternalAppDefinitions
                         Description = "The advanced docking system for Windows",
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["WinStep.Nexus"],
-                        WebsiteUrl = "https://www.winstep.net/nexus.asp"
+                        WebsiteUrl = "https://www.winstep.net/nexus.asp",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://www.winstep.net/nexus.zip",
+                        }
                     }
                 }
             };
