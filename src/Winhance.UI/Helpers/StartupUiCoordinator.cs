@@ -74,7 +74,12 @@ internal sealed class StartupUiCoordinator
             var logoUri = isDark
                 ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
                 : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
-            loadingLogo.Source = new BitmapImage(new Uri(logoUri));
+            var bitmapImage = new BitmapImage();
+            bitmapImage.DecodePixelWidth = 256;
+            bitmapImage.DecodePixelHeight = 256;
+            bitmapImage.DecodePixelType = DecodePixelType.Logical;
+            bitmapImage.UriSource = new Uri(logoUri);
+            loadingLogo.Source = bitmapImage;
         }
         catch (Exception ex)
         {

@@ -61,42 +61,53 @@ public class ExternalAppsService(
                     : OperationResult<bool>.Failed("Direct download installation failed");
             }
 
-            // Determine package ID and source
-            string? packageId = null;
-            string? source = null;
+            // Build ordered source list: WinGet → MsStore → Choco
+            var sources = new List<(string packageId, string source)>();
 
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+                sources.Add((item.WinGetPackageId[0], "winget"));
             if (!string.IsNullOrEmpty(item.MsStoreId))
+                sources.Add((item.MsStoreId, "msstore"));
+
+            PackageInstallResult? lastResult = null;
+
+            foreach (var (pkgId, src) in sources)
             {
-                packageId = item.MsStoreId;
-                source = "msstore";
+                try
+                {
+                    var installerType = await winGetDetectionService.GetInstallerTypeAsync(pkgId, cancellationToken).ConfigureAwait(false);
+                    var isPortable = IsPortableInstallerType(installerType);
+
+                    lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, cancellationToken).ConfigureAwait(false);
+
+                    if (lastResult.Success)
+                    {
+                        if (isPortable)
+                            await CreateStartMenuShortcutForPortableAppAsync(item).ConfigureAwait(false);
+
+                        return OperationResult<bool>.Succeeded(true);
+                    }
+
+                    logService.LogWarning($"Install failed for '{item.Name}' via {src}/{pkgId}: {lastResult.FailureReason}");
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logService.LogError($"Exception installing '{item.Name}' via {src}/{pkgId}: {ex.Message}");
+                    lastResult = PackageInstallResult.Failed(InstallFailureReason.Other, ex.Message);
+                }
             }
-            else if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
-            {
-                packageId = item.WinGetPackageId[0];
-                source = "winget";
-            }
-            else
-            {
+
+            if (sources.Count == 0)
                 return OperationResult<bool>.Failed("No WinGet package ID or Store ID specified");
-            }
 
-            var installerType = await winGetDetectionService.GetInstallerTypeAsync(packageId, cancellationToken).ConfigureAwait(false);
-            var isPortable = IsPortableInstallerType(installerType);
-
-            var wingetResult = await winGetPackageInstaller.InstallPackageAsync(packageId, source, item.Name, cancellationToken).ConfigureAwait(false);
-
-            if (wingetResult.Success)
+            // Chocolatey fallback for any WinGet/Store failure when ChocoPackageId is defined
+            if (lastResult != null && lastResult.IsChocolateyFallbackCandidate && !string.IsNullOrEmpty(item.ChocoPackageId))
             {
-                if (isPortable)
-                    await CreateStartMenuShortcutForPortableAppAsync(item).ConfigureAwait(false);
-
-                return OperationResult<bool>.Succeeded(true);
-            }
-
-            // Chocolatey fallback: only for eligible failures when a ChocoPackageId is defined
-            if (wingetResult.IsChocolateyFallbackCandidate && !string.IsNullOrEmpty(item.ChocoPackageId))
-            {
-                logService.LogInformation($"WinGet install failed for '{item.Name}' ({wingetResult.FailureReason}), attempting Chocolatey fallback with '{item.ChocoPackageId}'");
+                logService.LogInformation($"WinGet install failed for '{item.Name}' ({lastResult.FailureReason}), attempting Chocolatey fallback with '{item.ChocoPackageId}'");
 
                 var consented = await chocolateyConsentService.RequestConsentAsync().ConfigureAwait(false);
                 if (consented)
@@ -106,7 +117,7 @@ public class ExternalAppsService(
                         if (!await chocolateyService.InstallChocolateyAsync(cancellationToken).ConfigureAwait(false))
                         {
                             logService.LogError("Failed to install Chocolatey, cannot proceed with fallback");
-                            return OperationResult<bool>.Failed(wingetResult.ErrorMessage ?? "Installation failed");
+                            return OperationResult<bool>.Failed(lastResult.ErrorMessage ?? "Installation failed");
                         }
                     }
 
@@ -123,7 +134,7 @@ public class ExternalAppsService(
                 }
             }
 
-            return OperationResult<bool>.Failed(wingetResult.ErrorMessage ?? "Installation failed");
+            return OperationResult<bool>.Failed(lastResult?.ErrorMessage ?? "Installation failed");
         }
         catch (OperationCanceledException)
         {

@@ -18,7 +18,22 @@ public record ItemDefinition : BaseDefinition
     public bool CanBeReinstalled { get; init; } = true;
     public bool RequiresReboot { get; init; }
     public Func<string>? RemovalScript { get; init; }
+    /// <summary>
+    /// Pattern for registry DisplayName matching. Supports {version}, {arch}, {locale} placeholders.
+    /// When set, compared against registry DisplayNames.
+    /// </summary>
+    public string? RegistryDisplayName { get; init; }
+    /// <summary>
+    /// Pattern for registry SubKeyName matching. Supports {version}, {arch}, {locale} placeholders.
+    /// When set, compared against registry SubKeyNames (including SystemComponent=1 entries).
+    /// </summary>
+    public string? RegistrySubKeyName { get; init; }
     public string? RegistryUninstallSearchPattern { get; init; }
+    /// <summary>
+    /// Paths to check for existence (file or directory) as a detection fallback.
+    /// Supports environment variables (e.g. %USERPROFILE%).
+    /// </summary>
+    public string[]? DetectionPaths { get; init; }
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }

@@ -138,7 +138,7 @@ public class ChocolateyConsentServiceTests
     // ── RequestConsentAsync - exception handling ──
 
     [Fact]
-    public async Task RequestConsentAsync_WhenExceptionThrown_ReturnsFalse()
+    public async Task RequestConsentAsync_WhenExceptionThrown_ReturnsTrueAndAutoConsents()
     {
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("ChocolateyFallbackConsented", false))
@@ -146,12 +146,13 @@ public class ChocolateyConsentServiceTests
 
         var result = await _sut.RequestConsentAsync();
 
-        result.Should().BeFalse();
+        result.Should().BeTrue();
         _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Preferences error"))), Times.Once);
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Auto-consenting"))), Times.Once);
     }
 
     [Fact]
-    public async Task RequestConsentAsync_WhenDialogThrows_ReturnsFalse()
+    public async Task RequestConsentAsync_WhenDialogThrows_ReturnsTrueAndAutoConsents()
     {
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("ChocolateyFallbackConsented", false))
@@ -165,7 +166,8 @@ public class ChocolateyConsentServiceTests
 
         var result = await _sut.RequestConsentAsync();
 
-        result.Should().BeFalse();
+        result.Should().BeTrue();
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Auto-consenting"))), Times.Once);
     }
 
     // ── Localization ──

@@ -76,4 +76,26 @@ public class WinGetExitCodesTests
     {
         WinGetExitCodes.MapExitCode(99999).Should().Be(InstallFailureReason.Other);
     }
+
+    // --- IsSourceDatabaseError ---
+
+    [Theory]
+    [InlineData(WinGetExitCodes.SourceDatabaseCorrupt)]
+    [InlineData(WinGetExitCodes.FailedToOpenAllSources)]
+    public void IsSourceDatabaseError_WithDatabaseErrorCodes_ReturnsTrue(int exitCode)
+    {
+        WinGetExitCodes.IsSourceDatabaseError(exitCode).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(WinGetExitCodes.Ok)]
+    [InlineData(WinGetExitCodes.PackageNotFound)]
+    [InlineData(WinGetExitCodes.DownloadError)]
+    [InlineData(WinGetExitCodes.NetworkError)]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public void IsSourceDatabaseError_WithOtherCodes_ReturnsFalse(int exitCode)
+    {
+        WinGetExitCodes.IsSourceDatabaseError(exitCode).Should().BeFalse();
+    }
 }

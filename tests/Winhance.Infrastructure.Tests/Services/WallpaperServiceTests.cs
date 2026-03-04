@@ -93,19 +93,18 @@ public class WallpaperServiceTests
     [Fact]
     public async Task SetWallpaperAsync_WhenExceptionThrown_ReturnsFalseAndLogs()
     {
-        // Arrange — force an exception by passing null path which will fail in P/Invoke
-        // The service catches exceptions and returns false
-        // We simulate the P/Invoke failing by relying on the fact that SystemParametersInfo
-        // is a real native call that may fail in a test environment.
-        // Since we cannot mock static P/Invoke calls, we test the error handling path.
+        // Arrange — use OTS path so the registry mock is called before P/Invoke,
+        // then throw to exercise the catch block without invoking native APIs.
+        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
+        _mockRegistryService
+            .Setup(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<Microsoft.Win32.RegistryValueKind>()))
+            .Throws(new InvalidOperationException("simulated registry failure"));
 
         // Act
         var result = await _service.SetWallpaperAsync(@"C:\nonexistent\path\wallpaper.jpg");
 
-        // Assert — the P/Invoke call may succeed or fail depending on environment,
-        // but the method should not throw
-        // The method should not throw regardless of P/Invoke outcome
-        (result == true || result == false).Should().BeTrue();
+        // Assert
+        result.Should().BeFalse();
     }
 
     [Fact]

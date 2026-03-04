@@ -596,7 +596,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         {
             if (ViewModel != null)
             {
-                AppIcon.Source = new BitmapImage(new Uri(ViewModel.AppIconSource));
+                var bitmapImage = new BitmapImage();
+                bitmapImage.DecodePixelWidth = 40;
+                bitmapImage.DecodePixelHeight = 40;
+                bitmapImage.DecodePixelType = DecodePixelType.Logical;
+                bitmapImage.UriSource = new Uri(ViewModel.AppIconSource);
+                AppIcon.Source = bitmapImage;
             }
         }
         catch (Exception ex)

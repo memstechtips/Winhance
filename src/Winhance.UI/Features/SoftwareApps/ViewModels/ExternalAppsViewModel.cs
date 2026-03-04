@@ -107,7 +107,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             var displayName = _localizationService.GetString(locKey);
             if (string.IsNullOrEmpty(displayName))
                 displayName = group.Key;
-            result.Add(new AppCategory(group.Key, displayName, glyph, group.ToList()));
+            result.Add(new AppCategory(group.Key, displayName, glyph, group.OrderBy(a => a.Name).ToList()));
         }
         Categories = result;
     }

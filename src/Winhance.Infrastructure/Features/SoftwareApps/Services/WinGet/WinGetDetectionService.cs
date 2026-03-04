@@ -75,23 +75,18 @@ public class WinGetDetectionService : IWinGetDetectionService
                 var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 var catalogs = _comSession.PackageManager!.GetPackageCatalogs().ToArray();
-                var wingetCatalog = catalogs.FirstOrDefault(c =>
-                    c.Info.Name.Equals("winget", StringComparison.OrdinalIgnoreCase));
-
-                if (wingetCatalog == null && catalogs.Length > 0)
+                var compositeOptions = _comSession.Factory!.CreateCreateCompositePackageCatalogOptions();
+                foreach (var catalog in catalogs)
                 {
-                    wingetCatalog = catalogs[0];
-                    _logService?.LogInformation($"Using catalog: {wingetCatalog.Info.Name}");
+                    compositeOptions.Catalogs.Add(catalog);
+                    _logService?.LogInformation($"Added catalog: {catalog.Info.Name}");
                 }
 
-                if (wingetCatalog == null)
+                if (compositeOptions.Catalogs.Count == 0)
                 {
                     _logService?.LogWarning("No package catalogs available");
                     return installedPackageIds;
                 }
-
-                var compositeOptions = _comSession.Factory!.CreateCreateCompositePackageCatalogOptions();
-                compositeOptions.Catalogs.Add(wingetCatalog);
                 compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
 
                 var compositeCatalogRef = _comSession.PackageManager.CreateCompositePackageCatalog(compositeOptions);
@@ -123,6 +118,15 @@ public class WinGetDetectionService : IWinGetDetectionService
                 }
 
                 _logService?.LogInformation($"WinGet COM API: Found {installedPackageIds.Count} installed packages");
+
+                // If COM returns 0 packages despite catalogs being available,
+                // the database may be corrupted — signal caller to fall through to CLI
+                if (installedPackageIds.Count == 0)
+                {
+                    _logService?.LogWarning("COM returned 0 installed packages — possible database corruption, falling back to CLI");
+                    return null;
+                }
+
                 return installedPackageIds;
             }, timeoutCts.Token).ConfigureAwait(false);
         }

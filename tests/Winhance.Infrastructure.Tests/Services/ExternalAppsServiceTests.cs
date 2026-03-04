@@ -195,6 +195,76 @@ public class ExternalAppsServiceTests
         result.ErrorMessage.Should().Contain("No WinGet package ID or Store ID specified");
     }
 
+    // --- InstallAppAsync: WinGet-first ordering ---
+
+    [Fact]
+    public async Task InstallAppAsync_WithBothWinGetAndMsStore_TriesWinGetFirst()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "dual-source-app",
+            Name = "Dual Source App",
+            Description = "Has both WinGet and MsStore IDs",
+            WinGetPackageId = new[] { "Publisher.DualApp" },
+            MsStoreId = "9NBLGGH12345"
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.DualApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        // WinGet source should be tried (and succeed), MsStore should NOT be tried
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<CancellationToken>()), Times.Once);
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "9NBLGGH12345", "msstore", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_WinGetFailsWithBothSources_FallsToMsStore()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "dual-source-app",
+            Name = "Dual Source App",
+            Description = "Has both WinGet and MsStore IDs",
+            WinGetPackageId = new[] { "Publisher.DualApp" },
+            MsStoreId = "9NBLGGH12345"
+        };
+
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+
+        // WinGet fails
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
+
+        // MsStore succeeds
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // --- InstallAppAsync: Chocolatey fallback ---
 
     [Fact]
@@ -361,7 +431,7 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppAsync_WinGetFailsNotChocolateyCandidate_DoesNotFallback()
+    public async Task InstallAppAsync_WinGetFailsBlockedByPolicy_DoesNotFallbackToChocolatey()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
@@ -377,11 +447,11 @@ public class ExternalAppsServiceTests
             .Setup(x => x.GetInstallerTypeAsync("Publisher.ChocoApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
 
-        // PackageNotFound is NOT a chocolatey fallback candidate
+        // BlockedByPolicy is NOT a chocolatey fallback candidate
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.BlockedByPolicy, "Blocked"));
 
         var result = await sut.InstallAppAsync(item);
 

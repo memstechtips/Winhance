@@ -110,6 +110,9 @@ public static class DomainServicesExtensions
         services.AddSingleton<IAppInstallationService, AppInstallationService>();
         services.AddSingleton<IAppUninstallationService, AppUninstallationService>();
 
+        // AppX package source (PackageManager COM → WMI → PowerShell fallback)
+        services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
+
         // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();
 

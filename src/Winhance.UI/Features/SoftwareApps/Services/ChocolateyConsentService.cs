@@ -59,8 +59,10 @@ public class ChocolateyConsentService : IChocolateyConsentService
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error requesting Chocolatey consent: {ex.Message}");
-            return false;
+            _logService.LogError($"Error requesting Chocolatey consent ({ex.GetType().Name}): {ex.Message}\n{ex.StackTrace}");
+            // If the dialog cannot be shown, auto-consent to avoid blocking the install flow
+            _logService.LogWarning("Auto-consenting to Chocolatey fallback due to dialog failure");
+            return true;
         }
     }
 }

@@ -15,18 +15,22 @@ public class AppStatusDiscoveryServiceTests
     private readonly Mock<IWinGetDetectionService> _mockWinGetDetection = new();
     private readonly Mock<IChocolateyService> _mockChocolatey = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUser = new();
-    private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
+    private readonly Mock<IAppxPackageSource> _mockAppxPackageSource = new();
     private readonly AppStatusDiscoveryService _service;
 
     public AppStatusDiscoveryServiceTests()
     {
+        _mockAppxPackageSource
+            .Setup(a => a.GetInstalledPackageNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+
         _service = new AppStatusDiscoveryService(
             _mockLog.Object,
             _mockWinGetBootstrapper.Object,
             _mockWinGetDetection.Object,
             _mockChocolatey.Object,
             _mockInteractiveUser.Object,
-            _mockPowerShellRunner.Object);
+            _mockAppxPackageSource.Object);
     }
 
     private static ItemDefinition CreateAppxDefinition(string id, string appxName, string? name = null) => new()
@@ -58,7 +62,8 @@ public class AppStatusDiscoveryServiceTests
         string name,
         string[]? winGetPackageIds = null,
         string? msStoreId = null,
-        string? chocoPackageId = null) => new()
+        string? chocoPackageId = null,
+        string[]? detectionPaths = null) => new()
     {
         Id = id,
         Name = name,
@@ -66,6 +71,7 @@ public class AppStatusDiscoveryServiceTests
         WinGetPackageId = winGetPackageIds,
         MsStoreId = msStoreId,
         ChocoPackageId = chocoPackageId,
+        DetectionPaths = detectionPaths,
     };
 
     // --- GetInstallationStatusBatchAsync ---
@@ -367,5 +373,235 @@ public class AppStatusDiscoveryServiceTests
         _mockWinGetDetection.Verify(
             w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    // --- MatchesPattern ---
+
+    [Theory]
+    [InlineData("MediaMonkey 5", "MediaMonkey {version}", true)]
+    [InlineData("K-Lite Mega Codec Pack 19.5.0", "K-Lite Mega Codec Pack {version}", true)]
+    [InlineData("ONLYOFFICE 9.3.0 (x64)", "ONLYOFFICE {version} ({arch})", true)]
+    [InlineData("PuTTY release 0.83 (64-bit)", "PuTTY release {version} ({arch})", true)]
+    [InlineData("InputLeap 3.0.2-release", "InputLeap {version}-release", true)]
+    [InlineData("Zoom Workplace (64-bit)", "Zoom Workplace ({arch})", true)]
+    [InlineData("O365ProPlusRetail - en-us", "O365ProPlusRetail - {locale}", true)]
+    [InlineData("Mozilla Thunderbird (x64 en-US)", "Mozilla Thunderbird ({arch} {locale})", true)]
+    [InlineData("Krita (x64) 5.2.16 (git 7d9aefc)", "Krita ({arch}) {version}", true)]
+    [InlineData("Microsoft EdgeWebView2 Runtime", "Microsoft EdgeWebView{version}", true)]
+    [InlineData("Trillian Machine-Wide Installer", "Trillian Machine-Wide Installer", true)]
+    [InlineData("Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161", "Microsoft Visual C++ 2008 Redistributable - x64 {version}", true)]
+    [InlineData("Microsoft .NET Runtime - 3.1.32 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})", true)]
+    [InlineData("VLC media player", "VLC media player", true)]
+    // Negative cases
+    [InlineData("MediaMonkey 5", "VLC media player", false)]
+    [InlineData("GIMP 3.0.8-2", "Audacity {version}", false)]
+    [InlineData("Microsoft .NET Runtime - 5.0.17 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})", false)]
+    [InlineData("", "Foo {version}", false)]
+    public void MatchesPattern_ReturnsExpected(string input, string pattern, bool expected)
+    {
+        var result = AppStatusDiscoveryService.MatchesPattern(input, pattern);
+        result.Should().Be(expected);
+    }
+
+    // --- GetExternalAppsInstallationStatusAsync: AppX detection ---
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_AppXDetectsApp_ReturnsTrueWithDetectedViaAppX()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        _mockChocolatey
+            .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        _mockAppxPackageSource
+            .Setup(a => a.GetInstalledPackageNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Microsoft.WindowsCalculator" });
+
+        var definition = new ItemDefinition
+        {
+            Id = "ext-calc",
+            Name = "Windows Calculator",
+            Description = "Calculator",
+            AppxPackageName = new[] { "Microsoft.WindowsCalculator" }
+        };
+        var definitions = new List<ItemDefinition> { definition };
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        result.Should().ContainKey("ext-calc");
+        result["ext-calc"].Should().BeTrue();
+        definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.AppX);
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_AppXNotInstalled_ReturnsFalse()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        _mockChocolatey
+            .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+
+        var definition = CreateAppxDefinition("ext-fake", "Winhance.FakeTestApp.DoesNotExist_XYZ123",
+            name: "WinhanceFakeTestAppXYZ123_NotAReal_App");
+        var definitions = new List<ItemDefinition> { definition };
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        result.Should().ContainKey("ext-fake");
+        result["ext-fake"].Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetInstallationStatusBatchAsync_AppXDetectsApp_ReturnsTrue()
+    {
+        _mockAppxPackageSource
+            .Setup(a => a.GetInstalledPackageNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Microsoft.WindowsCalculator" });
+
+        var definitions = new List<ItemDefinition>
+        {
+            CreateAppxDefinition("calc", "Microsoft.WindowsCalculator")
+        };
+
+        var result = await _service.GetInstallationStatusBatchAsync(definitions);
+
+        result.Should().ContainKey("calc");
+        result["calc"].Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_AppXSkippedWhenAlreadyDetectedByWinGet()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string> { "WinhanceFake.Package" });
+
+        var definition = new ItemDefinition
+        {
+            Id = "ext-fake",
+            Name = "WinhanceFakeTestAppXYZ123_NotAReal_App",
+            Description = "Fake test app",
+            WinGetPackageId = new[] { "WinhanceFake.Package" },
+            AppxPackageName = new[] { "Winhance.FakeTestApp.DoesNotExist_XYZ123" }
+        };
+        var definitions = new List<ItemDefinition> { definition };
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        result["ext-fake"].Should().BeTrue();
+        // Should be detected via WinGet (higher priority), not AppX
+        definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.WinGet);
+    }
+
+    // --- GetExternalAppsInstallationStatusAsync: FileSystem detection ---
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_FileSystemDetectsExistingDirectory_ReturnsTrue()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        _mockChocolatey
+            .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+
+        // Use a path that is guaranteed to exist in any test environment
+        var tempDir = Path.GetTempPath();
+        var definitions = new List<ItemDefinition>
+        {
+            CreateExternalAppDefinition("ext-portable", "Portable App",
+                detectionPaths: new[] { tempDir })
+        };
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        result.Should().ContainKey("ext-portable");
+        result["ext-portable"].Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_FileSystemDetectsExistingDirectory_SetsDetectedVia()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        _mockChocolatey
+            .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+
+        var tempDir = Path.GetTempPath();
+        var definition = CreateExternalAppDefinition("ext-portable", "Portable App",
+            detectionPaths: new[] { tempDir });
+        var definitions = new List<ItemDefinition> { definition };
+
+        await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.FileSystem);
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_FileSystemNonExistentPath_ReturnsFalse()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        _mockChocolatey
+            .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+
+        var definitions = new List<ItemDefinition>
+        {
+            CreateExternalAppDefinition("ext-portable", "Portable App",
+                detectionPaths: new[] { @"C:\NonExistent\Path\That\Does\Not\Exist" })
+        };
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        result.Should().ContainKey("ext-portable");
+        result["ext-portable"].Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_FileSystemSkippedWhenAlreadyDetectedByWinGet()
+    {
+        _mockWinGetBootstrapper
+            .Setup(w => w.EnsureWinGetReadyAsync())
+            .ReturnsAsync(true);
+        _mockWinGetDetection
+            .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string> { "Portable.App" });
+
+        var tempDir = Path.GetTempPath();
+        var definition = CreateExternalAppDefinition("ext-portable", "Portable App",
+            winGetPackageIds: new[] { "Portable.App" },
+            detectionPaths: new[] { tempDir });
+        var definitions = new List<ItemDefinition> { definition };
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
+
+        result["ext-portable"].Should().BeTrue();
+        // Should be detected via WinGet, not FileSystem (WinGet has higher priority)
+        definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.WinGet);
     }
 }

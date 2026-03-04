@@ -209,6 +209,36 @@ public class ExternalAppsViewModelTests
         sut.Categories.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task LoadAppsAndCheckInstallationStatusAsync_SortsAppsAlphabeticallyWithinCategories()
+    {
+        // Provide apps in reverse alphabetical order
+        var items = new List<ItemDefinition>
+        {
+            CreateTestItem("app1", "Firefox", "Browsers"),
+            CreateTestItem("app2", "Arc", "Browsers"),
+            CreateTestItem("app3", "Chrome", "Browsers")
+        };
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(items);
+        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>
+            {
+                ["app1"] = false,
+                ["app2"] = false,
+                ["app3"] = false
+            });
+
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+
+        sut.Categories.Should().HaveCount(1);
+        var category = sut.Categories[0];
+        var names = category.Items.Select(i => i.Name).ToList();
+        names.Should().BeInAscendingOrder();
+        names.Should().ContainInOrder("Arc", "Chrome", "Firefox");
+    }
+
     // --- LoadItemsAsync ---
 
     [Fact]

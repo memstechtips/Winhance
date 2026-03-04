@@ -8,5 +8,7 @@ public enum DetectionSource
 {
     WinGet,
     Chocolatey,
-    Registry
+    AppX,
+    Registry,
+    FileSystem
 }

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -32,6 +33,7 @@ public class AppUninstallService(
             UninstallMethod.WinGet => await UninstallViaWinGetAsync(item, cancellationToken).ConfigureAwait(false),
             UninstallMethod.Chocolatey => await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false),
             UninstallMethod.Registry => await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false),
+            UninstallMethod.FileSystem => await UninstallViaFileSystemAsync(item, cancellationToken).ConfigureAwait(false),
             _ => OperationResult<bool>.Failed($"No uninstall method available for {item.Name}")
         };
     }
@@ -51,6 +53,9 @@ public class AppUninstallService(
                 if (regFound)
                     return UninstallMethod.Registry;
                 break;
+
+            case DetectionSource.FileSystem when item.DetectionPaths?.Length > 0:
+                return UninstallMethod.FileSystem;
         }
 
         // Default: prefer WinGet if available, then Registry
@@ -184,6 +189,55 @@ public class AppUninstallService(
         {
             logService.LogError($"Registry uninstall error for {item.Name}: {ex.Message}", ex);
             return OperationResult<bool>.Failed($"Uninstall failed: {ex.Message}");
+        }
+    }
+
+    private Task<OperationResult<bool>> UninstallViaFileSystemAsync(ItemDefinition item, CancellationToken cancellationToken)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (item.DetectionPaths == null || item.DetectionPaths.Length == 0)
+                return Task.FromResult(OperationResult<bool>.Failed($"No detection paths configured for {item.Name}"));
+
+            int deletedCount = 0;
+            foreach (var rawPath in item.DetectionPaths)
+            {
+                var expandedPath = Environment.ExpandEnvironmentVariables(rawPath);
+
+                if (Directory.Exists(expandedPath))
+                {
+                    logService.LogInformation($"Deleting directory for {item.Name}: {expandedPath}");
+                    Directory.Delete(expandedPath, recursive: true);
+                    deletedCount++;
+                }
+                else if (File.Exists(expandedPath))
+                {
+                    logService.LogInformation($"Deleting file for {item.Name}: {expandedPath}");
+                    File.Delete(expandedPath);
+                    deletedCount++;
+                }
+            }
+
+            if (deletedCount > 0)
+            {
+                logService.LogInformation($"FileSystem uninstall for {item.Name} completed ({deletedCount} path(s) removed)");
+                taskProgressService.UpdateProgress(100, $"Uninstall of {item.Name} completed successfully");
+                return Task.FromResult(OperationResult<bool>.Succeeded(true));
+            }
+
+            logService.LogWarning($"No detection paths found on disk for {item.Name}");
+            return Task.FromResult(OperationResult<bool>.Failed($"No files found to remove for {item.Name}"));
+        }
+        catch (OperationCanceledException)
+        {
+            return Task.FromResult(OperationResult<bool>.Cancelled("Uninstall cancelled"));
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"FileSystem uninstall error for {item.Name}: {ex.Message}", ex);
+            return Task.FromResult(OperationResult<bool>.Failed($"Uninstall failed: {ex.Message}"));
         }
     }
 
