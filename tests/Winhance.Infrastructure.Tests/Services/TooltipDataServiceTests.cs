@@ -127,7 +127,7 @@ public class TooltipDataServiceTests
         var result = await _service.GetTooltipDataAsync(new[] { setting });
 
         result.Should().ContainKey("null-val");
-        result["null-val"].DisplayValue.Should().Be("(not set)");
+        result["null-val"].DisplayValue.Should().BeEmpty();
     }
 
     [Fact]
@@ -319,7 +319,7 @@ public class TooltipDataServiceTests
 
         var result = await _service.GetTooltipDataAsync(new[] { setting });
 
-        result["nic-empty"].DisplayValue.Should().Be("(not set)");
+        result["nic-empty"].DisplayValue.Should().BeEmpty();
     }
 
     // ---------------------------------------------------------------

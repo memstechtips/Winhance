@@ -24,6 +24,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
+    private readonly TechnicalDetailLabels _labels;
     private ISubscriptionToken? _subscription;
 
     public IRelayCommand<string> OpenRegeditCommand { get; }
@@ -35,7 +36,8 @@ internal sealed class TechnicalDetailsManager : IDisposable
         ILogService logService,
         IDispatcherService dispatcherService,
         IRegeditLauncher? regeditLauncher,
-        IEventBus? eventBus)
+        IEventBus? eventBus,
+        TechnicalDetailLabels? labels = null)
     {
         _getSettingId = getSettingId;
         _details = details;
@@ -43,6 +45,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         _logService = logService;
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
+        _labels = labels ?? new TechnicalDetailLabels();
 
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
 
@@ -83,8 +86,14 @@ internal sealed class TechnicalDetailsManager : IDisposable
                     RegistryPath = reg.KeyPath,
                     ValueName = reg.ValueName ?? "(Default)",
                     ValueType = reg.ValueType.ToString(),
-                    CurrentValue = kvp.Value ?? "(not set)",
+                    CurrentValue = kvp.Value ?? _labels.ValueNotExist,
                     RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
+                    DefaultValue = reg.DefaultValue?.ToString() ?? _labels.ValueNotExist,
+                    PathLabel = _labels.Path,
+                    ValueLabel = _labels.Value,
+                    CurrentLabel = _labels.Current,
+                    RecommendedLabel = _labels.Recommended,
+                    DefaultLabel = _labels.Default,
                     OpenRegeditCommand = OpenRegeditCommand,
                     RegeditIconSource = RegeditIconProvider.CachedIcon,
                     CanOpenRegedit = keyExists

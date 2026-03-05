@@ -164,11 +164,11 @@
                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                            <Run FontWeight="SemiBold" Text="Path: "/><Run Text="{x:Bind RegistryPath}"/>
+                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
                                         </TextBlock>
                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                    IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="Value: "/><Run Text="{x:Bind ValueName}"/>
+                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
                                             <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
                                         </TextBlock>
                                     </StackPanel>
@@ -177,11 +177,15 @@
                                                 Margin="12,0,0,0" MinWidth="140">
                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                    IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="Current: "/><Run Text="{x:Bind CurrentValue}"/>
+                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
                                         </TextBlock>
                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                    IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="Recommended: "/><Run Text="{x:Bind RecommendedValue}"/>
+                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
+                                        </TextBlock>
+                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                   IsTextSelectionEnabled="True">
+                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
                                         </TextBlock>
                                     </StackPanel>
                                 </Grid>

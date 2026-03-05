@@ -11,10 +11,10 @@ public class TooltipDataService(
     private readonly IWindowsRegistryService _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
     private readonly ILogService _logService = logService ?? throw new ArgumentNullException(nameof(logService));
 
-    private static string FormatRegistryValue(object? value, RegistrySetting? registrySetting)
+    private static string? FormatRegistryValue(object? value, RegistrySetting? registrySetting)
     {
         if (value == null)
-            return "(not set)";
+            return null;
 
         if (value is byte[] bytes && registrySetting != null)
         {
@@ -37,7 +37,7 @@ public class TooltipDataService(
             return string.Join(" ", bytes);
         }
 
-        return value.ToString() ?? "(not set)";
+        return value.ToString()!;
     }
 
     public async Task<IReadOnlyDictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings)
@@ -123,7 +123,7 @@ public class TooltipDataService(
                 var registrySettings = setting.RegistrySettings!.ToList();
                 var individualValues = new Dictionary<RegistrySetting, string?>();
                 var primaryRegistrySetting = registrySettings.First();
-                string primaryDisplayValue = "(not set)";
+                string? primaryDisplayValue = null;
 
                 foreach (var registrySetting in registrySettings)
                 {
@@ -164,7 +164,7 @@ public class TooltipDataService(
                     }
                 }
 
-                displayValue = primaryDisplayValue;
+                displayValue = primaryDisplayValue ?? string.Empty;
                 individualRegistryValues = individualValues;
             }
 

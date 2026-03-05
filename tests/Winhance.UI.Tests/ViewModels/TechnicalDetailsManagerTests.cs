@@ -52,6 +52,16 @@ public class TechnicalDetailsManagerTests : IDisposable
             .Returns(_mockSubscriptionToken.Object);
     }
 
+    private static readonly TechnicalDetailLabels TestLabels = new()
+    {
+        Path = "Path",
+        Value = "Value",
+        Current = "Current",
+        Recommended = "Recommended",
+        Default = "Default",
+        ValueNotExist = "doesn't exist"
+    };
+
     private TechnicalDetailsManager CreateManager(
         IRegeditLauncher? regeditLauncher = null,
         IEventBus? eventBus = null,
@@ -65,7 +75,8 @@ public class TechnicalDetailsManagerTests : IDisposable
             _mockLogService.Object,
             _mockDispatcherService.Object,
             regeditLauncher ?? _mockRegeditLauncher.Object,
-            useDefaultEventBus ? (eventBus ?? _mockEventBus.Object) : null);
+            useDefaultEventBus ? (eventBus ?? _mockEventBus.Object) : null,
+            TestLabels);
         return _manager;
     }
 
@@ -228,6 +239,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _details[0].ValueType.Should().Be("DWord");
         _details[0].CurrentValue.Should().Be("0");
         _details[0].RecommendedValue.Should().Be("1");
+        _details[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
         _details[0].CanOpenRegedit.Should().BeTrue();
     }
 
@@ -432,7 +444,7 @@ public class TechnicalDetailsManagerTests : IDisposable
 
         // Assert
         _details[0].CanOpenRegedit.Should().BeFalse();
-        _details[0].CurrentValue.Should().Be("(not set)");
+        _details[0].CurrentValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     [Fact]
@@ -506,6 +518,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Assert
         _details[0].ValueName.Should().Be("(Default)");
         _details[0].RecommendedValue.Should().Be(string.Empty);
+        _details[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     [Fact]
@@ -523,6 +536,111 @@ public class TechnicalDetailsManagerTests : IDisposable
 
         // Assert
         _mockDispatcherService.Verify(d => d.RunOnUIThread(It.IsAny<Action>()), Times.Once);
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_RegistryWithExplicitDefaultValue_SetsDefaultValueToString()
+    {
+        // Arrange
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "TestValue",
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = 0,
+            DefaultValue = 1
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regSetting, "0" }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details[0].DefaultValue.Should().Be("1");
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_RegistryWithNullDefaultValue_UsesNotExistLabel()
+    {
+        // Arrange
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "TestValue",
+            ValueType = RegistryValueKind.DWord,
+            DefaultValue = null
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regSetting, "0" }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_NullCurrentValue_UsesNotExistLabel()
+    {
+        // Arrange
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "TestValue",
+            ValueType = RegistryValueKind.DWord
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regSetting, null }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details[0].CurrentValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     // ──────────────────────────────────────────────────

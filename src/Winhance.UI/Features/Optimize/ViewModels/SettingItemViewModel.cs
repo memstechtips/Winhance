@@ -337,7 +337,16 @@ public partial class SettingItemViewModel : BaseViewModel
             logService,
             dispatcherService,
             regeditLauncher,
-            eventBus);
+            eventBus,
+            new TechnicalDetailLabels
+            {
+                Path = _localizationService.GetString("TechnicalDetails_Path") ?? "Path",
+                Value = _localizationService.GetString("TechnicalDetails_Value") ?? "Value",
+                Current = _localizationService.GetString("TechnicalDetails_Current") ?? "Current",
+                Recommended = _localizationService.GetString("TechnicalDetails_Recommended") ?? "Recommended",
+                Default = _localizationService.GetString("TechnicalDetails_DefaultValue") ?? "Default",
+                ValueNotExist = _localizationService.GetString("TechnicalDetails_ValueNotExist") ?? "doesn't exist"
+            });
         OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
     }
 
