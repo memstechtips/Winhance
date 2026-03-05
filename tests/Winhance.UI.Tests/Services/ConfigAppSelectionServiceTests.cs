@@ -41,7 +41,7 @@ public class ConfigAppSelectionServiceTests
 
     private AppItemViewModel CreateAppItemViewModel(
         string id, string name,
-        string? appxPackageName = null,
+        string[]? appxPackageName = null,
         string? capabilityName = null,
         string? optionalFeatureName = null,
         string[]? winGetPackageId = null)
@@ -94,9 +94,9 @@ public class ConfigAppSelectionServiceTests
     [Fact]
     public async Task SelectWindowsAppsFromConfigAsync_ClearsAllSelectionsFirst()
     {
-        var app1 = CreateAppItemViewModel("app1", "App 1", appxPackageName: "Package1");
+        var app1 = CreateAppItemViewModel("app1", "App 1", appxPackageName: ["Package1"]);
         app1.IsSelected = true;
-        var app2 = CreateAppItemViewModel("app2", "App 2", appxPackageName: "Package2");
+        var app2 = CreateAppItemViewModel("app2", "App 2", appxPackageName: ["Package2"]);
         app2.IsSelected = true;
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
@@ -114,7 +114,7 @@ public class ConfigAppSelectionServiceTests
     [Fact]
     public async Task SelectWindowsAppsFromConfigAsync_MatchesByAppxPackageName()
     {
-        var app = CreateAppItemViewModel("app1", "App 1", appxPackageName: "Microsoft.TestApp");
+        var app = CreateAppItemViewModel("app1", "App 1", appxPackageName: ["Microsoft.TestApp"]);
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items)
@@ -128,7 +128,7 @@ public class ConfigAppSelectionServiceTests
                 {
                     Id = "different-id",
                     Name = "Different Name",
-                    AppxPackageName = "Microsoft.TestApp",
+                    AppxPackageName = new[] { "Microsoft.TestApp" },
                     IsSelected = true
                 }
             }
@@ -224,7 +224,7 @@ public class ConfigAppSelectionServiceTests
     [Fact]
     public async Task SelectWindowsAppsFromConfigAsync_RespectsIsSelectedFalse()
     {
-        var app = CreateAppItemViewModel("app1", "App 1", appxPackageName: "Package1");
+        var app = CreateAppItemViewModel("app1", "App 1", appxPackageName: ["Package1"]);
         app.IsSelected = true; // Start selected
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
@@ -239,7 +239,7 @@ public class ConfigAppSelectionServiceTests
                 {
                     Id = "app1",
                     Name = "App 1",
-                    AppxPackageName = "Package1",
+                    AppxPackageName = new[] { "Package1" },
                     IsSelected = false
                 }
             }

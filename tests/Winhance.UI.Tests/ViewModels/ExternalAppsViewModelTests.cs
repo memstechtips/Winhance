@@ -234,7 +234,7 @@ public class ExternalAppsViewModelTests
 
         sut.Categories.Should().HaveCount(1);
         var category = sut.Categories[0];
-        var names = category.Items.Select(i => i.Name).ToList();
+        var names = category.Apps.Select(i => i.Name).ToList();
         names.Should().BeInAscendingOrder();
         names.Should().ContainInOrder("Arc", "Chrome", "Firefox");
     }

@@ -287,7 +287,7 @@ public class AppItemViewModelTests
             Id = "x",
             Name = "x",
             Description = "x",
-            AppxPackageName = "SomePackage",
+            AppxPackageName = new[] { "SomePackage" },
         };
         var vm = CreateViewModel(def);
 
@@ -318,7 +318,7 @@ public class AppItemViewModelTests
             Description = "x",
             CapabilityName = "Cap",
             OptionalFeatureName = "Feat",
-            AppxPackageName = "Pkg",
+            AppxPackageName = new[] { "Pkg" },
         };
         var vm = CreateViewModel(def);
 

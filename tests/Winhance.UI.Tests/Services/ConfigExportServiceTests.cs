@@ -282,7 +282,7 @@ public class ConfigExportServiceTests
     private AppItemViewModel CreateAppItemViewModel(
         string id, string name,
         bool isInstalled = false, bool isSelected = false,
-        string? appxPackageName = null)
+        string[]? appxPackageName = null)
     {
         var definition = new ItemDefinition
         {
@@ -290,7 +290,7 @@ public class ConfigExportServiceTests
             Name = name,
             Description = "Test",
             IsInstalled = isInstalled,
-            AppxPackageName = appxPackageName ?? $"{id}.Package"
+            AppxPackageName = appxPackageName ?? new[] { $"{id}.Package" }
         };
 
         var vm = new AppItemViewModel(

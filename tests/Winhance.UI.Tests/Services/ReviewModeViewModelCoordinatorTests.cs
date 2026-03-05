@@ -137,7 +137,7 @@ public class ReviewModeViewModelCoordinatorTests
         Id = id,
         Name = name,
         Description = $"Description for {name}",
-        AppxPackageName = "Microsoft.Test",
+        AppxPackageName = new[] { "Microsoft.Test" },
         IsInstalled = isInstalled
     };
 

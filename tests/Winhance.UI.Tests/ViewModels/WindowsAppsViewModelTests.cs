@@ -47,12 +47,12 @@ public class WindowsAppsViewModelTests
         _dispatcherService.Object);
 
     private ItemDefinition CreateTestItem(string id, string name = "Test App",
-        string? appxPackageName = "Microsoft.Test", bool isInstalled = false) => new()
+        string[]? appxPackageName = null, bool isInstalled = false) => new()
     {
         Id = id,
         Name = name,
         Description = $"Description for {name}",
-        AppxPackageName = appxPackageName,
+        AppxPackageName = appxPackageName ?? new[] { "Microsoft.Test" },
         IsInstalled = isInstalled
     };
 
