@@ -18,12 +18,12 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 {
     private readonly IWimCustomizationService _wimCustomizationService;
+    private readonly ITaskProgressService _taskProgressService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
-    private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
     /// <summary>
@@ -39,6 +39,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 
     public WimStep3DriversViewModel(
         IWimCustomizationService wimCustomizationService,
+        ITaskProgressService taskProgressService,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
@@ -46,6 +47,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         ILogService logService)
     {
         _wimCustomizationService = wimCustomizationService;
+        _taskProgressService = taskProgressService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -95,11 +97,12 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             ExtractSystemDriversCard.IsProcessing = true;
             ExtractSystemDriversCard.IsEnabled = false;
 
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
+            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_ExportingDrivers"), true);
+            var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimCustomizationService.AddDriversAsync(WorkingDirectory, null, progress, _cancellationTokenSource.Token);
+            var success = await _wimCustomizationService.AddDriversAsync(
+                WorkingDirectory, null, progress,
+                _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             ExtractSystemDriversCard.IsProcessing = false;
             ExtractSystemDriversCard.IsEnabled = true;
@@ -110,14 +113,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 ExtractSystemDriversCard.IsComplete = true;
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_DriversSuccess"),
-                    "Success");
+                    _localizationService.GetString("Dialog_Success") ?? "Success");
             }
             else
             {
                 ExtractSystemDriversCard.HasFailed = true;
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_NoDriversFound"),
-                    "Warning");
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
             }
         }
         catch (Exception ex)
@@ -128,7 +131,11 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             ExtractSystemDriversCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DriverExtractionError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
+        }
+        finally
+        {
+            _taskProgressService.CompleteTask();
         }
     }
 
@@ -148,7 +155,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_InvalidFolder"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
                 return;
             }
 
@@ -158,7 +165,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_EmptyFolder"),
-                    "Warning");
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
                 return;
             }
 
@@ -166,11 +173,12 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             SelectCustomDriversCard.IsEnabled = false;
             SelectCustomDriversCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {selectedPath}";
 
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
+            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_AddingCustomDrivers"), true);
+            var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimCustomizationService.AddDriversAsync(WorkingDirectory, selectedPath, progress, _cancellationTokenSource.Token);
+            var success = await _wimCustomizationService.AddDriversAsync(
+                WorkingDirectory, selectedPath, progress,
+                _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             SelectCustomDriversCard.IsProcessing = false;
             SelectCustomDriversCard.IsEnabled = true;
@@ -181,14 +189,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 SelectCustomDriversCard.IsComplete = true;
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_DriverFilesAdded"),
-                    "Success");
+                    _localizationService.GetString("Dialog_Success") ?? "Success");
             }
             else
             {
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowWarningAsync(
                     string.Format(_localizationService.GetString("WIMUtil_Msg_NoCustomDrivers"), selectedPath),
-                    "Warning");
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
             }
         }
         catch (Exception ex)
@@ -199,7 +207,11 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             SelectCustomDriversCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DriverAdditionError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
+        }
+        finally
+        {
+            _taskProgressService.CompleteTask();
         }
     }
 
@@ -207,9 +219,6 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = null;
     }
 
     private static string GetResourceIconPath(string resourceKey)

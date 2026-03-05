@@ -96,7 +96,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             if (!string.Equals(fileName, "autounattend.xml", StringComparison.OrdinalIgnoreCase))
             {
                 var invalidMsg = _localizationService.GetString("AdvancedTools_Msg_InvalidFilename");
-                await _dialogService.ShowInformationAsync(invalidMsg, "Warning");
+                await _dialogService.ShowInformationAsync(invalidMsg, _localizationService.GetString("Dialog_Warning") ?? "Warning");
                 return;
             }
 
@@ -105,6 +105,18 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             try
             {
                 var selectedApps = await ExtractSelectedWindowsAppsAsync();
+
+                if (selectedApps.Count == 0)
+                {
+                    var continueAnyway = await _dialogService.ShowConfirmationAsync(
+                        _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
+                        _localizationService.GetString("Dialog_NoAppsSelected_Title"),
+                        _localizationService.GetString("Button_Yes") ?? "Yes",
+                        _localizationService.GetString("Button_No") ?? "No");
+                    if (!continueAnyway)
+                        return;
+                }
+
                 await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps);
             }
             finally

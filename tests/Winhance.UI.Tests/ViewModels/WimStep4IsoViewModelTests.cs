@@ -33,6 +33,18 @@ public class WimStep4IsoViewModelTests : IDisposable
             .Setup(f => f.GetFileName(It.IsAny<string>()))
             .Returns((string p) => System.IO.Path.GetFileName(p));
 
+        _mockTaskProgressService
+            .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns(new CancellationTokenSource());
+
+        _mockTaskProgressService
+            .Setup(t => t.CurrentTaskCancellationSource)
+            .Returns(new CancellationTokenSource());
+
+        _mockTaskProgressService
+            .Setup(t => t.CreatePowerShellProgress())
+            .Returns(new Progress<TaskProgressDetail>());
+
         _sut = new WimStep4IsoViewModel(
             _mockOscdimgToolManager.Object,
             _mockIsoService.Object,

@@ -13,6 +13,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 {
     private readonly Mock<IAutounattendXmlGeneratorService> _mockXmlGeneratorService = new();
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
+    private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -31,9 +32,15 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Setup(f => f.CombinePath(It.IsAny<string[]>()))
             .Returns((string[] parts) => string.Join("\\", parts));
 
+        // Default: return non-empty list so generate doesn't show warning
+        _mockSelectedAppsProvider
+            .Setup(p => p.GetSelectedWindowsAppsAsync())
+            .ReturnsAsync(new List<ConfigurationItem> { new ConfigurationItem { Id = "test" } });
+
         _sut = new WimStep2XmlViewModel(
             _mockXmlGeneratorService.Object,
             _mockWimCustomizationService.Object,
+            _mockSelectedAppsProvider.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
@@ -301,6 +308,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         var vm = new WimStep2XmlViewModel(
             _mockXmlGeneratorService.Object,
             _mockWimCustomizationService.Object,
+            _mockSelectedAppsProvider.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,

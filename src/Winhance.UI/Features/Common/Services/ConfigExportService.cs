@@ -64,6 +64,15 @@ public class ConfigExportService : IConfigExportService
 
             var config = await CreateConfigurationFromSystemAsync();
 
+            if (config.WindowsApps.Items.Count == 0)
+            {
+                var continueAnyway = await _dialogService.ShowConfirmationAsync(
+                    _localizationService.GetString("Dialog_NoAppsSelected_Config_Message"),
+                    _localizationService.GetString("Dialog_NoAppsSelected_Title"));
+                if (!continueAnyway)
+                    return;
+            }
+
             var window = GetMainWindow();
             if (window == null)
             {

@@ -19,6 +19,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
     private readonly IWimCustomizationService _wimCustomizationService;
+    private readonly ISelectedAppsProvider _selectedAppsProvider;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
@@ -48,6 +49,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     public WimStep2XmlViewModel(
         IAutounattendXmlGeneratorService xmlGeneratorService,
         IWimCustomizationService wimCustomizationService,
+        ISelectedAppsProvider selectedAppsProvider,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
@@ -56,6 +58,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     {
         _xmlGeneratorService = xmlGeneratorService;
         _wimCustomizationService = wimCustomizationService;
+        _selectedAppsProvider = selectedAppsProvider;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -115,6 +118,16 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 "Yes", "No");
             if (!confirmed) return;
 
+            var selectedApps = await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
+            if (selectedApps.Count == 0)
+            {
+                var continueAnyway = await _dialogService.ShowConfirmationAsync(
+                    _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
+                    _localizationService.GetString("Dialog_NoAppsSelected_Title"),
+                    "Yes", "No");
+                if (!continueAnyway) return;
+            }
+
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
             var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
             var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
@@ -132,7 +145,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             GenerateWinhanceXmlCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlGenError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
     }
 
@@ -167,7 +180,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAddFailed");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlAddFailed"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (Exception ex)
@@ -177,7 +190,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             DownloadXmlCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlDownloadError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
     }
 
@@ -202,7 +215,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlInvalid");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlInvalidError"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
                 return;
             }
 
@@ -222,7 +235,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidAddFailed");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlValidAddFailed"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (Exception ex)
@@ -232,7 +245,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             SelectXmlCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlSelectError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
     }
 

@@ -146,6 +146,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         IDialogService dialogService,
         ILogService logService,
         IAutounattendXmlGeneratorService xmlGeneratorService,
+        ISelectedAppsProvider selectedAppsProvider,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IProcessExecutor processExecutor,
@@ -167,12 +168,12 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             dispatcherService, localizationService, logService);
 
         Step2 = new WimStep2XmlViewModel(
-            xmlGeneratorService, wimCustomizationService,
+            xmlGeneratorService, wimCustomizationService, selectedAppsProvider,
             dialogService, localizationService, fileSystemService, filePickerService, logService);
 
         Step3 = new WimStep3DriversViewModel(
-            wimCustomizationService, dialogService, localizationService,
-            fileSystemService, filePickerService, logService);
+            wimCustomizationService, taskProgressService, dialogService,
+            localizationService, fileSystemService, filePickerService, logService);
 
         Step4 = new WimStep4IsoViewModel(
             oscdimgToolManager, isoService, taskProgressService, processExecutor,
@@ -186,6 +187,9 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4State = new WizardStepState();
 
         InitializeStepStates();
+
+        // Subscribe to language changes to update localized strings
+        _localizationService.LanguageChanged += OnLanguageChanged;
 
         // Subscribe to sub-VM property changes to update wizard states
         Step1.PropertyChanged += OnSubViewModelPropertyChanged;
@@ -426,12 +430,47 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        // Update step state titles and status text
+        Step1State.Title = _localizationService.GetString("WIMUtil_Step1_Title") ?? "Select ISO";
+        Step2State.Title = _localizationService.GetString("WIMUtil_Step2_Title") ?? "Add XML File";
+        Step3State.Title = _localizationService.GetString("WIMUtil_Step3_Title") ?? "Add Drivers";
+        Step4State.Title = _localizationService.GetString("WIMUtil_Step4_Title") ?? "Create ISO";
+        UpdateStepStates();
+
+        // Raise property changes for all localization label properties
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(CheckboxExtractedAlreadyText));
+        OnPropertyChanged(nameof(ButtonSelectFolderText));
+        OnPropertyChanged(nameof(ButtonStartExtractionText));
+        OnPropertyChanged(nameof(OptionalConvertText));
+        OnPropertyChanged(nameof(BothImagesTitle));
+        OnPropertyChanged(nameof(BothImagesDescription));
+        OnPropertyChanged(nameof(ButtonDeleteWimText));
+        OnPropertyChanged(nameof(ButtonDeleteEsdText));
+        OnPropertyChanged(nameof(DownloadIsoText));
+        OnPropertyChanged(nameof(ButtonWindows10Text));
+        OnPropertyChanged(nameof(ButtonWindows11Text));
+        OnPropertyChanged(nameof(TooltipDownloadWindows10));
+        OnPropertyChanged(nameof(TooltipDownloadWindows11));
+        OnPropertyChanged(nameof(SelectOneOptionText));
+        OnPropertyChanged(nameof(ButtonGenerateText));
+        OnPropertyChanged(nameof(GenerateXmlFilesText));
+        OnPropertyChanged(nameof(ButtonSchneegansText));
+        OnPropertyChanged(nameof(TooltipSchneegans));
+        OnPropertyChanged(nameof(ButtonCreateIsoText));
+    }
+
     // ── IDisposable ─────────────────────────────────────────────────
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
+
+        // Unsubscribe from language changes
+        _localizationService.LanguageChanged -= OnLanguageChanged;
 
         // Unsubscribe from sub-VM PropertyChanged events
         Step1.PropertyChanged -= OnSubViewModelPropertyChanged;

@@ -29,7 +29,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
-    private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
     /// <summary>
@@ -108,11 +107,11 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.IsProcessing = true;
             DownloadOscdimgCard.IsEnabled = false;
 
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<TaskProgressDetail>(detail => { });
+            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_InstallingOscdimg"), true);
+            var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _oscdimgToolManager.EnsureOscdimgAvailableAsync(progress, _cancellationTokenSource.Token);
+            var success = await _oscdimgToolManager.EnsureOscdimgAvailableAsync(
+                progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             DownloadOscdimgCard.IsProcessing = false;
 
@@ -126,7 +125,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.IconPath = GetResourceIconPath("CheckCircleIconPath");
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
-                    "Success");
+                    _localizationService.GetString("Dialog_Success") ?? "Success");
             }
             else
             {
@@ -134,7 +133,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.HasFailed = true;
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallFailed"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (Exception ex)
@@ -145,7 +144,11 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_AdkInstallError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
+        }
+        finally
+        {
+            _taskProgressService.CompleteTask();
         }
     }
 
@@ -172,7 +175,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_OscdimgRequired"),
-                    "Required");
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
                 return;
             }
 
@@ -180,7 +183,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_OutputRequired"),
-                    "Required");
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
                 return;
             }
 
@@ -217,7 +220,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 198, 40, 40));
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (OperationCanceledException)
@@ -243,7 +246,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreationError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
         finally
         {
@@ -275,9 +278,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = null;
     }
 
     private static string GetResourceIconPath(string resourceKey)

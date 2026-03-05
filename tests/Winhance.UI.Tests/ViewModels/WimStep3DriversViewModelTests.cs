@@ -13,6 +13,7 @@ namespace Winhance.UI.Tests.ViewModels;
 public class WimStep3DriversViewModelTests : IDisposable
 {
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
+    private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -27,8 +28,21 @@ public class WimStep3DriversViewModelTests : IDisposable
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
 
+        _mockTaskProgressService
+            .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns(new CancellationTokenSource());
+
+        _mockTaskProgressService
+            .Setup(t => t.CurrentTaskCancellationSource)
+            .Returns(new CancellationTokenSource());
+
+        _mockTaskProgressService
+            .Setup(t => t.CreatePowerShellProgress())
+            .Returns(new Progress<TaskProgressDetail>());
+
         _sut = new WimStep3DriversViewModel(
             _mockWimCustomizationService.Object,
+            _mockTaskProgressService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
@@ -332,6 +346,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         var vm = new WimStep3DriversViewModel(
             _mockWimCustomizationService.Object,
+            _mockTaskProgressService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
