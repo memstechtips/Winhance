@@ -441,9 +441,9 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
     private void EnsureScriptFileExists(RemovalScript script)
     {
-        if (!fileSystemService.FileExists(script.ActualScriptPath) && !string.IsNullOrEmpty(script.Content))
+        if (!fileSystemService.FileExists(script.ActualScriptPath!) && !string.IsNullOrEmpty(script.Content))
         {
-            string? directoryPath = fileSystemService.GetDirectoryName(script.ActualScriptPath);
+            string? directoryPath = fileSystemService.GetDirectoryName(script.ActualScriptPath!);
             if (directoryPath != null && !fileSystemService.DirectoryExists(directoryPath))
             {
                 fileSystemService.CreateDirectory(directoryPath);

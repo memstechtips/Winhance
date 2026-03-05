@@ -91,7 +91,7 @@ public class AppStatusDiscoveryService(
                     {
                         result[app.Id] = true;
                         appxCount++;
-                        logService.LogInformation($"Installed (AppX): {app.Name} ({string.Join(", ", app.AppxPackageName)})");
+                        logService.LogInformation($"Installed (AppX): {app.Name} ({string.Join(", ", app.AppxPackageName!)})");
                     }
                 }
 
@@ -426,7 +426,7 @@ public class AppStatusDiscoveryService(
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.AppX;
                         appxCount++;
-                        logService.LogInformation($"Installed (AppX): {def.Name} ({string.Join(", ", def.AppxPackageName)})");
+                        logService.LogInformation($"Installed (AppX): {def.Name} ({string.Join(", ", def.AppxPackageName!)})");
                     }
                 }
             }
