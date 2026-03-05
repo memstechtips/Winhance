@@ -28,12 +28,24 @@ public static partial class ExternalAppDefinitions
                     new ItemDefinition
                     {
                         Id = "external-app-startallback",
-                        Name = "StartAllBack",
+                        Name = "StartAllBack (Win 11)",
                         Description = "Windows 11 Start menu and taskbar customization",
+                        RegistryDisplayName = "StartAllBack",
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["StartIsBack.StartAllBack"],
                         ChocoPackageId = "startallback",
                         WebsiteUrl = "https://www.startallback.com/"
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-startisback",
+                        Name = "StartIsBack++ (Win 10)",
+                        Description = "Windows 10 Start menu and taskbar customization",
+                        RegistrySubKeyName = "StartIsBack",
+                        RegistryDisplayName = "StartIsBack++",
+                        GroupName = "Customization Utilities",
+                        WinGetPackageId = ["StartIsBack.StartIsBack"],
+                        WebsiteUrl = "https://www.startisback.com/"
                     },
                     new ItemDefinition
                     {
