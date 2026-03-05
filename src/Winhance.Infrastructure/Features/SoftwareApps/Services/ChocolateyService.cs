@@ -53,20 +53,44 @@ public class ChocolateyService : IChocolateyService
 
         try
         {
-            _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Choco_Installing"));
+            var statusText = _localization.GetString("Progress_Choco_Installing");
+            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+            {
+                Progress = 10,
+                StatusText = statusText,
+                TerminalOutput = "Installing Chocolatey package manager..."
+            });
             _logService.LogInformation("Installing Chocolatey package manager...");
 
             var arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"" +
                 "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; " +
                 "iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))\"";
 
-            var result = await _processExecutor.ExecuteAsync("powershell.exe", arguments, cancellationToken).ConfigureAwait(false);
+            var result = await _processExecutor.ExecuteWithStreamingAsync(
+                "powershell.exe",
+                arguments,
+                onOutputLine: line =>
+                {
+                    _logService.LogInformation($"[choco-bootstrap] {line}");
+                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                    {
+                        Progress = 50,
+                        StatusText = statusText,
+                        TerminalOutput = line
+                    });
+                },
+                ct: cancellationToken).ConfigureAwait(false);
 
             if (result.ExitCode == 0)
             {
                 lock (_installCheckLock) { _isInstalled = true; }
                 _logService.LogInformation("Chocolatey installed successfully");
-                _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_Choco_Installed"));
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    Progress = 100,
+                    StatusText = _localization.GetString("Progress_Choco_Installed"),
+                    TerminalOutput = "Chocolatey installed successfully"
+                });
                 return true;
             }
 

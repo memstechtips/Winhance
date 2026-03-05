@@ -235,6 +235,34 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-shotcut",
+                        Name = "Shotcut",
+                        Description = "Free, open-source, cross-platform video editor",
+                        RegistryDisplayName = "Shotcut",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["Meltytech.Shotcut"],
+                        ChocoPackageId = "Shotcut",
+                        MsStoreId = "9PLNFFL3P6LR",
+                        WebsiteUrl = "https://www.shotcut.org/"
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-fxsound",
+                        Name = "FxSound",
+                        Description = "Audio enhancer for boosting sound quality on Windows",
+                        RegistryDisplayName = "FxSound",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["FxSound.FxSound"],
+                        ChocoPackageId = "fxsound",
+                        MsStoreId = "XP8JK4TBQ03LZ4",
+                        WebsiteUrl = "https://www.fxsound.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://github.com/fxsound2/fxsound-app/releases/download/latest/fxsound_setup.exe",
+                        }
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-volume2",
                         Name = "Volume2",
                         Description = "Advanced Windows volume control",

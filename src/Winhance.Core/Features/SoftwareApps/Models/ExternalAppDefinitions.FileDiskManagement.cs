@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -109,6 +110,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "iobit-unlocker",
                         WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php"
                     },
+                    // HiBit is unavailable for download due to conflict in the region
                     /*
                     new ItemDefinition
                     {
@@ -120,6 +122,45 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.hibitsoft.ir/Uninstaller.html"
                     },
                     */
+                    new ItemDefinition
+                    {
+                        Id = "external-app-sandisk-dashboard",
+                        Name = "SanDisk Dashboard",
+                        Description = "Drive management tool for SanDisk SSDs and flash drives",
+                        RegistrySubKeyName = "SanDisk Dashboard",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["SanDisk.Dashboard"],
+                        ChocoPackageId = "sandisk-dashboard",
+                        WebsiteUrl = "https://support-en.sandisk.com/app/products/downloads/softwaredownloads",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://sddashboarddownloads.sandisk.com/wdDashboard/DashboardSetup.exe",
+                        }
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-rufus",
+                        Name = "Rufus",
+                        Description = "Utility to create bootable USB flash drives",
+                        RegistryDisplayName = "Rufus",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["Rufus.Rufus"],
+                        ChocoPackageId = "rufus",
+                        MsStoreId = "9PC3H3V7Q9CH",
+                        WebsiteUrl = "https://rufus.ie/en/"
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-advanced-renamer",
+                        Name = "Advanced Renamer",
+                        Description = "Batch file renaming utility with advanced options",
+                        RegistryDisplayName = "Advanced Renamer",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["HulubuluSoftware.AdvancedRenamer"],
+                        ChocoPackageId = "advanced-renamer",
+                        MsStoreId = "XP9MD3S1KFCPH1",
+                        WebsiteUrl = "https://www.advancedrenamer.com/"
+                    },
                     new ItemDefinition
                     {
                         Id = "external-app-ventoy",

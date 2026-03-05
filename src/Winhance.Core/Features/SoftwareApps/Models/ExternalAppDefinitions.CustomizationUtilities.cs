@@ -101,6 +101,29 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-johns-background-switcher",
+                        Name = "John's Background Switcher",
+                        Description = "Automatically changes your desktop wallpaper at regular intervals",
+                        RegistryDisplayName = "John's Background Switcher {version}",
+                        GroupName = "Customization Utilities",
+                        WinGetPackageId = ["johnsadventures.JohnsBackgroundSwitcher"],
+                        ChocoPackageId = "jbs",
+                        WebsiteUrl = "https://johnsad.ventures/software/backgroundswitcher/"
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-powertoys",
+                        Name = "Microsoft PowerToys",
+                        Description = "Set of utilities for power users to tune and streamline their Windows experience",
+                        RegistryDisplayName = "PowerToys (Preview) {arch}",
+                        GroupName = "Customization Utilities",
+                        WinGetPackageId = ["Microsoft.PowerToys"],
+                        ChocoPackageId = "powertoys",
+                        MsStoreId = "XP89DCGQ3K6VLD",
+                        WebsiteUrl = "https://github.com/microsoft/PowerToys"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-nexus-dock",
                         Name = "Nexus",
                         Description = "The advanced docking system for Windows",

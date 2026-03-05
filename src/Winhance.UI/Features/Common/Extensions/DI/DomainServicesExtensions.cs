@@ -130,7 +130,6 @@ public static class DomainServicesExtensions
 
         // Chocolatey Services (Fallback package manager)
         services.AddSingleton<IChocolateyService, ChocolateyService>();
-        services.AddSingleton<IChocolateyConsentService, ChocolateyConsentService>();
 
         // App Uninstall Service
         services.AddSingleton<IAppUninstallService, AppUninstallService>();

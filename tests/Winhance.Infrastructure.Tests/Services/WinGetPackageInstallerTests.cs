@@ -290,7 +290,6 @@ public class WinGetPackageInstallerTests
         result.Success.Should().BeTrue();
         result.FailureReason.Should().Be(InstallFailureReason.None);
         result.ErrorMessage.Should().BeNull();
-        result.IsChocolateyFallbackCandidate.Should().BeFalse();
     }
 
     [Fact]
@@ -301,25 +300,5 @@ public class WinGetPackageInstallerTests
         result.Success.Should().BeFalse();
         result.FailureReason.Should().Be(InstallFailureReason.PackageNotFound);
         result.ErrorMessage.Should().Be("Not found");
-        result.IsChocolateyFallbackCandidate.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData(InstallFailureReason.HashMismatchOrInstallError, true)]
-    [InlineData(InstallFailureReason.DownloadError, true)]
-    [InlineData(InstallFailureReason.Other, true)]
-    [InlineData(InstallFailureReason.PackageNotFound, true)]
-    [InlineData(InstallFailureReason.BlockedByPolicy, false)]
-    [InlineData(InstallFailureReason.UserCancelled, false)]
-    [InlineData(InstallFailureReason.WinGetNotAvailable, true)]
-    [InlineData(InstallFailureReason.NetworkError, true)]
-    [InlineData(InstallFailureReason.NoApplicableInstallers, true)]
-    [InlineData(InstallFailureReason.AgreementsNotAccepted, true)]
-    public void PackageInstallResult_IsChocolateyFallbackCandidate_CorrectForReason(
-        InstallFailureReason reason, bool expectedCandidate)
-    {
-        var result = PackageInstallResult.Failed(reason);
-
-        result.IsChocolateyFallbackCandidate.Should().Be(expectedCandidate);
     }
 }

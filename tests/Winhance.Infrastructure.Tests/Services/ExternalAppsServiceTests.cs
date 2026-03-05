@@ -20,7 +20,6 @@ public class ExternalAppsServiceTests
     private readonly Mock<IDirectDownloadService> _directDownloadService = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IChocolateyService> _chocolateyService = new();
-    private readonly Mock<IChocolateyConsentService> _chocolateyConsentService = new();
     private readonly Mock<IInteractiveUserService> _interactiveUserService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IProcessExecutor> _processExecutor = new();
@@ -35,7 +34,6 @@ public class ExternalAppsServiceTests
         _directDownloadService.Object,
         _taskProgressService.Object,
         _chocolateyService.Object,
-        _chocolateyConsentService.Object,
         _interactiveUserService.Object,
         _fileSystemService.Object,
         _processExecutor.Object);
@@ -295,7 +293,7 @@ public class ExternalAppsServiceTests
     // --- InstallAppAsync: Chocolatey fallback ---
 
     [Fact]
-    public async Task InstallAppAsync_WinGetFailsWithChocolateyCandidate_FallsBackToChocolatey()
+    public async Task InstallAppAsync_WinGetFailsWithChocolateyPackage_FallsBackToChocolatey()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
@@ -311,16 +309,11 @@ public class ExternalAppsServiceTests
             .Setup(x => x.GetInstallerTypeAsync("Publisher.ChocoApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
 
-        // WinGet fails with a chocolatey-fallback-eligible reason
+        // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.HashMismatchOrInstallError, "Hash mismatch"));
-
-        // User consents to Chocolatey
-        _chocolateyConsentService
-            .Setup(x => x.RequestConsentAsync())
-            .ReturnsAsync(true);
 
         // Chocolatey is already installed
         _chocolateyService
@@ -336,6 +329,62 @@ public class ExternalAppsServiceTests
 
         result.Success.Should().BeTrue();
         _chocolateyService.Verify(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_ChocoOnlyApp_InstallsViaChocolatey()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "choco-only-app",
+            Name = "Choco Only App",
+            Description = "App with only a choco package ID",
+            ChocoPackageId = "chocoonlyapp"
+        };
+
+        _chocolateyService
+            .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _chocolateyService
+            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _chocolateyService.Verify(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_ChocoOnlyApp_InstallsChocolateyFirst()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "choco-only-app",
+            Name = "Choco Only App",
+            Description = "App with only a choco package ID",
+            ChocoPackageId = "chocoonlyapp"
+        };
+
+        _chocolateyService
+            .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _chocolateyService
+            .Setup(x => x.InstallChocolateyAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _chocolateyService
+            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _chocolateyService.Verify(x => x.InstallChocolateyAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -360,10 +409,6 @@ public class ExternalAppsServiceTests
                 "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.DownloadError, "Download error"));
 
-        _chocolateyConsentService
-            .Setup(x => x.RequestConsentAsync())
-            .ReturnsAsync(true);
-
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -383,7 +428,7 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppAsync_ChocolateyInstallFails_NoDownloadUrl_ReturnsOriginalFailure()
+    public async Task InstallAppAsync_ChocolateyInstallFails_NoDownloadUrl_ReturnsFailed()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
@@ -404,10 +449,6 @@ public class ExternalAppsServiceTests
                 "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
-        _chocolateyConsentService
-            .Setup(x => x.RequestConsentAsync())
-            .ReturnsAsync(true);
-
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -420,7 +461,6 @@ public class ExternalAppsServiceTests
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("WinGet failed");
     }
 
     [Fact]
@@ -449,10 +489,6 @@ public class ExternalAppsServiceTests
                 "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
-        _chocolateyConsentService
-            .Setup(x => x.RequestConsentAsync())
-            .ReturnsAsync(true);
-
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -471,69 +507,6 @@ public class ExternalAppsServiceTests
         result.Success.Should().BeTrue();
         _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
             item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task InstallAppAsync_UserDeclinesChocolateyConsent_ReturnsFailed()
-    {
-        var sut = CreateSut();
-        var item = new ItemDefinition
-        {
-            Id = "choco-app",
-            Name = "Choco App",
-            Description = "App with choco fallback",
-            WinGetPackageId = new[] { "Publisher.ChocoApp" },
-            ChocoPackageId = "chocoapp"
-        };
-
-        _winGetDetectionService
-            .Setup(x => x.GetInstallerTypeAsync("Publisher.ChocoApp", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("exe");
-
-        _winGetPackageInstaller
-            .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.HashMismatchOrInstallError, "Hash mismatch"));
-
-        _chocolateyConsentService
-            .Setup(x => x.RequestConsentAsync())
-            .ReturnsAsync(false);
-
-        var result = await sut.InstallAppAsync(item);
-
-        result.Success.Should().BeFalse();
-        _chocolateyService.Verify(
-            x => x.InstallPackageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task InstallAppAsync_WinGetFailsBlockedByPolicy_DoesNotFallbackToChocolatey()
-    {
-        var sut = CreateSut();
-        var item = new ItemDefinition
-        {
-            Id = "choco-app",
-            Name = "Choco App",
-            Description = "App with choco fallback",
-            WinGetPackageId = new[] { "Publisher.ChocoApp" },
-            ChocoPackageId = "chocoapp"
-        };
-
-        _winGetDetectionService
-            .Setup(x => x.GetInstallerTypeAsync("Publisher.ChocoApp", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("exe");
-
-        // BlockedByPolicy is NOT a chocolatey fallback candidate
-        _winGetPackageInstaller
-            .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.BlockedByPolicy, "Blocked"));
-
-        var result = await sut.InstallAppAsync(item);
-
-        result.Success.Should().BeFalse();
-        _chocolateyConsentService.Verify(x => x.RequestConsentAsync(), Times.Never);
     }
 
     // --- InstallAppAsync: direct download fallback ---
@@ -704,10 +677,7 @@ public class ExternalAppsServiceTests
                 "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
-        // Choco consent given, installed, but package install fails
-        _chocolateyConsentService
-            .Setup(x => x.RequestConsentAsync())
-            .ReturnsAsync(true);
+        // Choco installed but package install fails
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);

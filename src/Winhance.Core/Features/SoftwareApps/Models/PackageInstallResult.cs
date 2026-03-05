@@ -24,9 +24,4 @@ public record PackageInstallResult(
 
     public static PackageInstallResult Failed(InstallFailureReason reason, string? message = null)
         => new(false, reason, message);
-
-    public bool IsChocolateyFallbackCandidate => !Success && FailureReason is not
-        (InstallFailureReason.None or
-         InstallFailureReason.UserCancelled or
-         InstallFailureReason.BlockedByPolicy);
 }

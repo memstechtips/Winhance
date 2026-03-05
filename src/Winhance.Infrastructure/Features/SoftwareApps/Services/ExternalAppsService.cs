@@ -21,7 +21,6 @@ public class ExternalAppsService(
     IDirectDownloadService directDownloadService,
     ITaskProgressService taskProgressService,
     IChocolateyService chocolateyService,
-    IChocolateyConsentService chocolateyConsentService,
     IInteractiveUserService interactiveUserService,
     IFileSystemService fileSystemService,
     IProcessExecutor processExecutor) : IExternalAppsService
@@ -101,13 +100,12 @@ public class ExternalAppsService(
                 }
             }
 
-            // Chocolatey fallback for any WinGet/Store failure when ChocoPackageId is defined
-            if (lastResult != null && lastResult.IsChocolateyFallbackCandidate && !string.IsNullOrEmpty(item.ChocoPackageId))
+            // Chocolatey fallback when ChocoPackageId is defined
+            if (!string.IsNullOrEmpty(item.ChocoPackageId))
             {
-                logService.LogInformation($"WinGet install failed for '{item.Name}' ({lastResult.FailureReason}), attempting Chocolatey fallback with '{item.ChocoPackageId}'");
+                logService.LogInformation($"Attempting Chocolatey install for '{item.Name}' with '{item.ChocoPackageId}'");
 
-                var consented = await chocolateyConsentService.RequestConsentAsync().ConfigureAwait(false);
-                if (consented)
+                try
                 {
                     var chocoReady = await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false)
                         || await chocolateyService.InstallChocolateyAsync(cancellationToken).ConfigureAwait(false);
@@ -123,12 +121,20 @@ public class ExternalAppsService(
                             return OperationResult<bool>.Succeeded(true);
                         }
 
-                        logService.LogWarning($"Chocolatey fallback also failed for '{item.Name}'");
+                        logService.LogWarning($"Chocolatey install failed for '{item.Name}'");
                     }
                     else
                     {
-                        logService.LogError("Failed to install Chocolatey, cannot proceed with Chocolatey fallback");
+                        logService.LogError("Failed to install Chocolatey, cannot proceed with Chocolatey install");
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logService.LogWarning($"Chocolatey install failed for '{item.Name}': {ex.Message}");
                 }
             }
 
