@@ -722,8 +722,7 @@ public static class PrivacyAndSecurityOptimizations
                     {
                         new RegistrySetting
                         {
-                            KeyPath =
-                                @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
                             ValueName = "Enabled",
                             RecommendedValue = 0,
                             EnabledValue = 1,
@@ -736,18 +735,17 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            EnabledValue = null,
+                            DisabledValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
-                            KeyPath =
-                                @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            EnabledValue = null,
+                            DisabledValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1233,7 +1231,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "PublishUserActivities",
                             RecommendedValue = 0,
                             EnabledValue = null,
-                            DisabledValue = null,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -1242,7 +1240,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "PublishUserActivities",
                             RecommendedValue = 0,
                             EnabledValue = null,
-                            DisabledValue = null,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

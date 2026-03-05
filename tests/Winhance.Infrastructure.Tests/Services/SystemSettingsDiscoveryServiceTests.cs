@@ -568,4 +568,153 @@ public class SystemSettingsDiscoveryServiceTests
         result.Should().ContainKey("reg1");
         result.Should().ContainKey("reg2");
     }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_EnabledValueNull_CurrentMatchesDisabledValue_ReturnsDisabled()
+    {
+        // When EnabledValue is null and current value matches DisabledValue, the setting is OFF.
+        // This covers settings like HttpAcceptLanguageOptOut where value=1 means disabled.
+        var setting = new SettingDefinition
+        {
+            Id = "test-null-enabled",
+            Name = "Null Enabled Setting",
+            Description = "Tests EnabledValue=null with DisabledValue match",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Test",
+                    ValueName = "OptOut",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = null,
+                    DisabledValue = 1,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_CURRENT_USER\Software\Test\OptOut", 1 },
+            });
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-null-enabled"].Success.Should().BeTrue();
+        result["test-null-enabled"].IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_EnabledValueNull_CurrentDoesNotMatchDisabledValue_ReturnsEnabled()
+    {
+        // When EnabledValue is null and current value does NOT match DisabledValue, the setting is ON.
+        var setting = new SettingDefinition
+        {
+            Id = "test-null-enabled-on",
+            Name = "Null Enabled Setting On",
+            Description = "Tests EnabledValue=null with non-matching DisabledValue",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Test",
+                    ValueName = "SomeValue",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = null,
+                    DisabledValue = 0,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_CURRENT_USER\Software\Test\SomeValue", 1 },
+            });
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-null-enabled-on"].Success.Should().BeTrue();
+        result["test-null-enabled-on"].IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_EnabledValueNull_ValueNotExists_ReturnsDisabled()
+    {
+        // When EnabledValue is null and the registry value doesn't exist, the setting is OFF.
+        var setting = new SettingDefinition
+        {
+            Id = "test-null-no-value",
+            Name = "Null Enabled No Value",
+            Description = "Tests EnabledValue=null with missing registry value",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Test",
+                    ValueName = "Missing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = null,
+                    DisabledValue = 1,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-null-no-value"].Success.Should().BeTrue();
+        result["test-null-no-value"].IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_MultipleRegistrySettings_AllMatchDisabledValue_ReturnsDisabled()
+    {
+        // When multiple registry settings all have EnabledValue=null and all current values
+        // match their DisabledValue, the setting should be OFF.
+        // This covers settings like privacy-settings-content with multiple SubscribedContent values.
+        var setting = new SettingDefinition
+        {
+            Id = "test-multi-disabled",
+            Name = "Multi Disabled Setting",
+            Description = "Tests multiple registry settings all matching DisabledValue",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Test",
+                    ValueName = "Value1",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = null,
+                    DisabledValue = 0,
+                },
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Test",
+                    ValueName = "Value2",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = null,
+                    DisabledValue = 0,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_CURRENT_USER\Software\Test\Value1", 0 },
+                { @"HKEY_CURRENT_USER\Software\Test\Value2", 0 },
+            });
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-multi-disabled"].Success.Should().BeTrue();
+        result["test-multi-disabled"].IsEnabled.Should().BeFalse();
+    }
 }

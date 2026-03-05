@@ -330,7 +330,7 @@ public static class TaskbarCustomizations
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
                             EnabledValue = null,
-                            DisabledValue = null,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -339,7 +339,7 @@ public static class TaskbarCustomizations
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
                             EnabledValue = null,
-                            DisabledValue = null,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
