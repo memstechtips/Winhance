@@ -41,6 +41,16 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-cdburnerxp",
+                        Name = "CDBurnerXP",
+                        Description = "Free CD/DVD/Blu-ray burning software",
+                        RegistryDisplayName = "CDBurnerXP",
+                        GroupName = "Optical Disc Tools",
+                        ChocoPackageId = "cdburnerxp",
+                        WebsiteUrl = "https://cdburnerxp.se/"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-makemkv",
                         Name = "MakeMKV",
                         Description = "DVD and Blu-ray to MKV converter and streaming tool",
