@@ -159,7 +159,16 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                 else if (wasRunning)
                 {
                     // Task just stopped running -- handle completion
-                    if (IsTaskFailed)
+                    var wasCancelled = _taskProgressService.CurrentTaskCancellationSource
+                        ?.IsCancellationRequested == true;
+
+                    if (wasCancelled)
+                    {
+                        // Cancelled by user: hide the control immediately
+                        IsTaskFailed = false;
+                        IsLoading = false;
+                    }
+                    else if (IsTaskFailed)
                     {
                         // Failed: keep the control visible with "click to see details"
                         IsLoading = true;

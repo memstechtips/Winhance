@@ -108,6 +108,13 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
             {
                 try
                 {
+                    // When ConPTY is active, winget's first progress bar render uses \r\n.
+                    // The \r fires onProgressLine (transient), then \n fires onOutputLine
+                    // (permanent) for the same content. Skip the permanent duplicate here
+                    // so the terminal doesn't show a frozen ghost progress bar.
+                    if (IsProgressBarLine(line))
+                        return;
+
                     var displayLine = WinGetProgressParser.TranslateLine(line);
 
                     var progress = WinGetProgressParser.ParseLine(line);
@@ -354,6 +361,10 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 {
                     try
                     {
+                        // Skip progress bar lines re-emitted as permanent output (see HandleOutputLine comment)
+                        if (IsProgressBarLine(line))
+                            return;
+
                         // Translate raw resource keys to human-readable text
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
@@ -590,6 +601,21 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
             // If the check fails, assume it's gone to avoid blocking
             return false;
         }
+    }
+
+    /// <summary>
+    /// Returns true if the line is a progress bar (contains Unicode block elements).
+    /// These lines arrive as permanent output via onOutputLine when ConPTY re-emits
+    /// a \r\n terminated progress bar, but they are already handled by onProgressLine.
+    /// </summary>
+    private static bool IsProgressBarLine(string line)
+    {
+        foreach (char c in line)
+        {
+            if (c >= '\u2588' && c <= '\u258F') return true;
+            if (c == '\u2591') return true;
+        }
+        return false;
     }
 
     private string GetInstallErrorMessageCli(string packageId, InstallFailureReason reason, int exitCode)

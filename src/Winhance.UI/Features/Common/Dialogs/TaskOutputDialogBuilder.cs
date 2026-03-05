@@ -55,8 +55,11 @@ internal class TaskOutputDialogBuilder
         _paragraph = new Paragraph();
         foreach (var line in logMessages)
         {
-            foreach (var run in TerminalLineRenderer.CreateLineRuns(line))
+            var runs = TerminalLineRenderer.CreateLineRuns(line);
+            foreach (var run in runs)
                 _paragraph.Inlines.Add(run);
+            _lastLineRunCount = runs.Length;
+            _lastLineWasProgress = TerminalLineRenderer.LooksLikeProgressBar(line);
         }
 
         var richTextBlock = new RichTextBlock

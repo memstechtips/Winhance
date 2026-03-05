@@ -44,12 +44,20 @@
                             AutomationProperties.Name="Show task output details"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
-                            Background="{ThemeResource LayerFillColorDefaultBrush}"
                             CornerRadius="3"
                             Height="30"
                             Margin="0,0,6,0"
                             Padding="0"
                             BorderThickness="0">
+                        <Button.Background>
+                            <SolidColorBrush Color="#FF1E1E1E"/>
+                        </Button.Background>
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FF2D2D2D"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#FF383838"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+                        </Button.Resources>
                         <RichTextBlock x:Name="TerminalLineRichText"
                                        FontFamily="Consolas, 'Courier New', monospace"
                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"

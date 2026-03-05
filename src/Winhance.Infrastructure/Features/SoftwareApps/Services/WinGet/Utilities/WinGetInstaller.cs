@@ -135,6 +135,10 @@ public class WinGetInstaller
                 {
                     try
                     {
+                        // Skip progress bar lines re-emitted as permanent output by ConPTY's \r\n handling
+                        if (IsProgressBarLine(line))
+                            return;
+
                         // Translate raw resource keys to human-readable text
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
@@ -224,6 +228,21 @@ public class WinGetInstaller
             _logService?.LogWarning($"Option 1 (bundled winget) failed: {ex.Message}");
             return (false, ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Returns true if the line is a progress bar (contains Unicode block elements).
+    /// These lines arrive as permanent output via onOutputLine when ConPTY re-emits
+    /// a \r\n terminated progress bar, but they are already handled by onProgressLine.
+    /// </summary>
+    private static bool IsProgressBarLine(string line)
+    {
+        foreach (char c in line)
+        {
+            if (c >= '\u2588' && c <= '\u258F') return true;
+            if (c == '\u2591') return true;
+        }
+        return false;
     }
 
     /// <summary>

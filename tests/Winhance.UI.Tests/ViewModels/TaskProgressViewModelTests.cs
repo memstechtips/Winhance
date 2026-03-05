@@ -205,6 +205,63 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.IsLoading.Should().BeTrue();
     }
 
+    [Fact]
+    public void OnProgressUpdated_TaskJustStopped_Cancelled_HidesImmediately()
+    {
+        // Simulate a running task that reports failure (Progress=0)
+        var cts = new CancellationTokenSource();
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
+        _mockTaskProgressService.Setup(s => s.CurrentTaskCancellationSource).Returns(cts);
+
+        _mockTaskProgressService.Raise(
+            s => s.ProgressUpdated += null,
+            this,
+            new TaskProgressDetail { Progress = 0, StatusText = "Cancelled" });
+
+        _sut.IsTaskFailed.Should().BeTrue();
+        _sut.IsLoading.Should().BeTrue();
+
+        // User cancels — token is now cancelled
+        cts.Cancel();
+
+        // Task stops
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
+        _mockTaskProgressService.Raise(
+            s => s.ProgressUpdated += null,
+            this,
+            new TaskProgressDetail { StatusText = "" });
+
+        // Should hide immediately, not show "click to see details"
+        _sut.IsLoading.Should().BeFalse();
+        _sut.IsTaskFailed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void OnProgressUpdated_TaskJustStopped_FailedNotCancelled_ShowsClickToSeeDetails()
+    {
+        // Simulate a running task with a non-cancelled CTS that reports failure
+        var cts = new CancellationTokenSource();
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
+        _mockTaskProgressService.Setup(s => s.CurrentTaskCancellationSource).Returns(cts);
+
+        _mockTaskProgressService.Raise(
+            s => s.ProgressUpdated += null,
+            this,
+            new TaskProgressDetail { Progress = 0, StatusText = "Error occurred" });
+
+        _sut.IsTaskFailed.Should().BeTrue();
+
+        // Task stops (NOT cancelled)
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
+        _mockTaskProgressService.Raise(
+            s => s.ProgressUpdated += null,
+            this,
+            new TaskProgressDetail { StatusText = "" });
+
+        // Failed task should stay visible
+        _sut.IsLoading.Should().BeTrue();
+    }
+
     // ── Progress Updates: Queue Display ──
 
     [Fact]
