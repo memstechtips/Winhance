@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Infrastructure.Features.Customize.Services;
@@ -12,6 +13,7 @@ public class WallpaperServiceTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IWindowsRegistryService> _mockRegistryService = new();
+    private readonly Mock<ISystemParametersService> _mockSystemParametersService = new();
     private readonly WallpaperService _service;
 
     public WallpaperServiceTests()
@@ -19,7 +21,8 @@ public class WallpaperServiceTests
         _service = new WallpaperService(
             _mockLogService.Object,
             _mockInteractiveUserService.Object,
-            _mockRegistryService.Object);
+            _mockRegistryService.Object,
+            _mockSystemParametersService.Object);
     }
 
     #region Constructor
@@ -30,7 +33,8 @@ public class WallpaperServiceTests
         var act = () => new WallpaperService(
             null!,
             _mockInteractiveUserService.Object,
-            _mockRegistryService.Object);
+            _mockRegistryService.Object,
+            _mockSystemParametersService.Object);
 
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("logService");
@@ -112,6 +116,9 @@ public class WallpaperServiceTests
     {
         // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
+        _mockSystemParametersService
+            .Setup(s => s.SystemParametersInfo(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<int>()))
+            .Returns(1);
         var wallpaperPath = @"C:\Windows\Web\Wallpaper\Windows\img0.jpg";
 
         // Act
@@ -132,6 +139,9 @@ public class WallpaperServiceTests
     {
         // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
+        _mockSystemParametersService
+            .Setup(s => s.SystemParametersInfo(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<int>()))
+            .Returns(1);
 
         // Act
         await _service.SetWallpaperAsync(@"C:\some\wallpaper.jpg");
@@ -140,6 +150,44 @@ public class WallpaperServiceTests
         _mockRegistryService.Verify(
             r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<Microsoft.Win32.RegistryValueKind>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task SetWallpaperAsync_Success_ReturnsTrueAndLogs()
+    {
+        // Arrange
+        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
+        _mockSystemParametersService
+            .Setup(s => s.SystemParametersInfo(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<int>()))
+            .Returns(1);
+
+        // Act
+        var result = await _service.SetWallpaperAsync(@"C:\some\wallpaper.jpg");
+
+        // Assert
+        result.Should().BeTrue();
+        _mockLogService.Verify(
+            l => l.Log(LogLevel.Info, It.Is<string>(msg => msg.Contains("Wallpaper set to"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SetWallpaperAsync_Failure_ReturnsFalseAndLogsError()
+    {
+        // Arrange
+        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
+        _mockSystemParametersService
+            .Setup(s => s.SystemParametersInfo(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<int>()))
+            .Returns(0);
+
+        // Act
+        var result = await _service.SetWallpaperAsync(@"C:\some\wallpaper.jpg");
+
+        // Assert
+        result.Should().BeFalse();
+        _mockLogService.Verify(
+            l => l.Log(LogLevel.Error, It.Is<string>(msg => msg.Contains("Failed to set wallpaper"))),
+            Times.Once);
     }
 
     #endregion

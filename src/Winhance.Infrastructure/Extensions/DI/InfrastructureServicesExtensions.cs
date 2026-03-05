@@ -58,6 +58,9 @@ public static class InfrastructureServicesExtensions
         // Explorer Window Manager (open/focus folders in Explorer)
         services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();
 
+        // System Parameters (wraps User32 SystemParametersInfo P/Invoke)
+        services.AddSingleton<ISystemParametersService, SystemParametersService>();
+
         // PowerShell Runner
         services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
 
