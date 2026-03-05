@@ -131,7 +131,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
                 await DetectImageFormatAsync();
                 await _dialogService.ShowInformationAsync(
                     string.Format(_localizationService.GetString("WIMUtil_Msg_ConversionSuccess"), targetFormatName),
-                    "Success");
+                    _localizationService.GetString("Dialog_Success") ?? "Success");
             }
             else
             {
@@ -139,7 +139,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
                 ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionFailed");
                 await _dialogService.ShowErrorAsync(
                     string.Format(_localizationService.GetString("WIMUtil_Msg_ConversionFailed"), targetFormatName),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (OperationCanceledException)
@@ -153,7 +153,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_ConversionError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
         finally
         {
@@ -235,7 +235,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_DeleteFailed"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (Exception ex)
@@ -243,7 +243,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             _logService.LogError($"Error deleting WIM: {ex.Message}", ex);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DeleteError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
     }
 
@@ -280,7 +280,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_DeleteFailed"),
-                    "Error");
+                    _localizationService.GetString("Dialog_Error") ?? "Error");
             }
         }
         catch (Exception ex)
@@ -288,7 +288,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             _logService.LogError($"Error deleting ESD: {ex.Message}", ex);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DeleteError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
     }
 

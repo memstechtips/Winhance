@@ -248,7 +248,7 @@ public partial class WimStep1ViewModel : ObservableObject
             SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message),
-                "Error");
+                _localizationService.GetString("Dialog_Error") ?? "Error");
         }
         finally
         {
