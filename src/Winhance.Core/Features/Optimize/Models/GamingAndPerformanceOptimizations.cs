@@ -71,7 +71,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize",
                             ValueName = "StartupDelayInMSec",
-                            RecommendedValue = 0,
+                            RecommendedValue = 10000,
                             EnabledValue = [10000], // When toggle is ON, startup delay is enabled (10 seconds)
                             DisabledValue = [0], // When toggle is OFF, startup delay is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
@@ -412,7 +412,7 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
                             ValueName = "DirectXUserGlobalSettings",
                             CompositeStringKey = "VRROptimizeEnable",
-                            RecommendedValue = "1",
+                            RecommendedValue = "0",
                             EnabledValue = ["1"],
                             DisabledValue = ["0"],
                             DefaultValue = "1",
@@ -480,7 +480,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\System\GameConfigStore",
                             ValueName = "GameDVR_FSEBehaviorMode",
-                            RecommendedValue = 2,
+                            RecommendedValue = 0,
                             EnabledValue = [0],
                             DisabledValue = [2],
                             DefaultValue = 0,
@@ -502,7 +502,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "CompositionPolicy",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [null], // When toggle is ON, desktop composition is enabled
                             DisabledValue = [0], // When toggle is OFF, desktop composition is disabled
                             ValueType = RegistryValueKind.DWord,
@@ -546,7 +546,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                             ValueName = "TcpAckFrequency",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             DefaultValue = null,
@@ -557,7 +557,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                             ValueName = "TCPNoDelay",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             DefaultValue = null,
@@ -667,7 +667,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control",
                             ValueName = "ServicesPipeTimeout",
-                            RecommendedValue = 60000,
+                            RecommendedValue = 30000,
                             EnabledValue = [30000], // When toggle is ON, services timeout is reduced (30 seconds)
                             DisabledValue = [60000], // When toggle is OFF, services timeout is default (60 seconds)
                             DefaultValue = 60000, // Default value when registry key exists but no value is set
@@ -772,7 +772,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSearch",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -842,7 +842,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\DiagTrack",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -877,7 +877,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PcaSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -912,7 +912,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WerSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -947,7 +947,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lfsvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -982,7 +982,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RetailDemo",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1017,7 +1017,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wisvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1052,7 +1052,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PhoneSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1087,7 +1087,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WalletService",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1122,21 +1122,21 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCardSvr",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\ScDeviceEnum",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCPolicySvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1276,7 +1276,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MixedRealityOpenXRSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1346,7 +1346,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SmsRouter",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1381,7 +1381,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WpcMonSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1416,7 +1416,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SEMgrSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1521,7 +1521,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasAuto",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1626,7 +1626,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -2222,6 +2222,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
                             ValueName = "VisualFXSetting",
+                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
                             IsPrimary = true,
@@ -2450,7 +2451,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "EnableAeroPeek",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -2658,7 +2659,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -2727,7 +2728,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ListviewAlphaSelect",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -2760,7 +2761,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "DragFullWindows",
-                            RecommendedValue = "0",
+                            RecommendedValue = "1",
                             EnabledValue = ["1"],
                             DisabledValue = ["0"],
                             DefaultValue = "1",

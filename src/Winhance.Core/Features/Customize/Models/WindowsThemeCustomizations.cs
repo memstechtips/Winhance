@@ -216,7 +216,7 @@ public static class WindowsThemeCustomizations
 
                             ValueName = "EnableTransparency",
 
-                            RecommendedValue = 1, // Enable transparency recommended
+                            RecommendedValue = 0, // Disable transparency recommended
 
                             EnabledValue = [1], // When toggle is ON, transparency effects are enabled
 

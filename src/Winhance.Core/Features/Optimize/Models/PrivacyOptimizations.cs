@@ -29,7 +29,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "ConsentPromptBehaviorAdmin",
-                            RecommendedValue = 5,
+                            RecommendedValue = 0,
                             EnabledValue = [5],
                             DisabledValue = [0],
                             DefaultValue = 5,
@@ -39,7 +39,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "PromptOnSecureDesktop",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -618,7 +618,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon",
                             ValueName = "DisableLockWorkstation",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [0],
                             DisabledValue = [1],
                             DefaultValue = 0,
@@ -764,7 +764,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International\User Profile",
                             ValueName = "HttpAcceptLanguageOptOut",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [null], // When toggle is ON, language list access is enabled
                             DisabledValue = [1], // When toggle is OFF, language list access is disabled
                             ValueType = RegistryValueKind.DWord,
@@ -894,7 +894,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\InputPersonalization",
                             ValueName = "AllowInputPersonalization",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -903,7 +903,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\InputPersonalization",
                             ValueName = "AllowInputPersonalization",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -1173,7 +1173,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CloudContent",
                             ValueName = "DisableTailoredExperiencesWithDiagnosticData",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -1182,7 +1182,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\CloudContent",
                             ValueName = "DisableTailoredExperiencesWithDiagnosticData",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -1424,7 +1424,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors",
                             ValueName = "DisableLocation",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -1433,7 +1433,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors",
                             ValueName = "DisableLocation",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -1454,7 +1454,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam",
                             ValueName = "Value",
-                            RecommendedValue = "Deny",
+                            RecommendedValue = "Allow",
                             EnabledValue = ["Allow"], // When toggle is ON, camera access is allowed
                             DisabledValue = ["Deny"], // When toggle is OFF, camera access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
@@ -1476,7 +1476,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone",
                             ValueName = "Value",
-                            RecommendedValue = "Deny",
+                            RecommendedValue = "Allow",
                             EnabledValue = ["Allow"], // When toggle is ON, microphone access is allowed
                             DisabledValue = ["Deny"], // When toggle is OFF, microphone access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set

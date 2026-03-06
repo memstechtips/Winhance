@@ -427,7 +427,7 @@ public static class NotificationOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance",
                             ValueName = "Enabled",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,

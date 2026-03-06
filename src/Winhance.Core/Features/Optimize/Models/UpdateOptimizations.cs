@@ -43,6 +43,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
+                            RecommendedValue = 2,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -50,6 +51,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
+                            RecommendedValue = 2,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -57,6 +59,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "BranchReadinessLevel",
+                            RecommendedValue = 20,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -64,6 +67,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferFeatureUpdates",
+                            RecommendedValue = 1,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -71,6 +75,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferFeatureUpdatesPeriodInDays",
+                            RecommendedValue = 365,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -78,6 +83,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferQualityUpdates",
+                            RecommendedValue = 1,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -85,6 +91,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferQualityUpdatesPeriodInDays",
+                            RecommendedValue = 7,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -515,7 +522,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "SetUpdateNotificationLevel",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [2],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
@@ -524,7 +531,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "SetUpdateNotificationLevel",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [2],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,

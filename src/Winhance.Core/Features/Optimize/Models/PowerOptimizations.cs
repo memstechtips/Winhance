@@ -210,7 +210,7 @@ public static class PowerOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power",
                             ValueName = "HibernateEnabled",
-                            RecommendedValue = null,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,

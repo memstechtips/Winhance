@@ -29,7 +29,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "link",
-                            RecommendedValue = new byte[] { 0x00, 0x00, 0x00, 0x00 },
+                            RecommendedValue = null,
                             EnabledValue = [new byte[] { 0x00, 0x00, 0x00, 0x00 }],
                             DisabledValue = [null],
                             DefaultValue = null,
@@ -336,7 +336,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
                             ValueName = "Settings",
-                            RecommendedValue = (byte)0x2A,
+                            RecommendedValue = (byte)0x0A,
                             DefaultValue = (byte)0x2A,
                             ValueType = RegistryValueKind.Binary,
                             ModifyByteOnly = true,
@@ -580,7 +580,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowTypeOverlay",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
@@ -603,7 +603,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "FolderContentsInfoTip",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
@@ -669,7 +669,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideDrivesWithNoMedia",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
@@ -880,7 +880,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowSuperHidden",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
@@ -902,7 +902,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "SeparateProcess",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
@@ -947,7 +947,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowDriveLettersFirst",
-                            RecommendedValue = 4,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [2],
                             ValueType = RegistryValueKind.DWord,
@@ -991,7 +991,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowInfoTip",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -1034,7 +1034,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowStatusBar",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -1240,7 +1240,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "NavPaneShowAllCloudStates",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
@@ -1262,7 +1262,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "NavPaneExpandToCurrentFolder",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 1,
@@ -1284,7 +1284,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "NavPaneShowAllFolders",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
@@ -1306,7 +1306,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
                             ValueName = "System.IsPinnedToNameSpaceTree",
-                            RecommendedValue = 1,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
