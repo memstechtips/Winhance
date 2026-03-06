@@ -359,7 +359,11 @@ public class DialogService : IDialogService
                 Child = listView,
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(8),
-                Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]
+                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    (XamlRoot?.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark
+                        ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black),
+                BorderThickness = new Thickness(1)
             };
 
             var contentPanel = new StackPanel { Spacing = 12 };

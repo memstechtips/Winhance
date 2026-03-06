@@ -66,7 +66,7 @@ internal class ConfigImportDialogBuilder
         var ownCard = CreateOptionCard(ownIcon,
             "Dialog_ImportConfig_Option_Own_Title",
             "Dialog_ImportConfig_Option_Own_Description",
-            ImportOption.ImportOwn);
+            ImportOption.ImportOwn, isDark);
 
         // Card 2: Import recommended config - Winhance logo
         var logoUri = isDark
@@ -82,21 +82,21 @@ internal class ConfigImportDialogBuilder
         var recCard = CreateOptionCard(recIcon,
             "Dialog_ImportConfig_Option_Recommended_Title",
             "Dialog_ImportConfig_Option_Recommended_Description",
-            ImportOption.ImportRecommended);
+            ImportOption.ImportRecommended, isDark);
 
         // Card 3: Import backup config - History icon
         var backupIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.History, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var backupCard = CreateOptionCard(backupIcon,
             "Dialog_ImportConfig_Option_Backup_Title",
             "Dialog_ImportConfig_Option_Backup_Description",
-            ImportOption.ImportBackup);
+            ImportOption.ImportBackup, isDark);
 
         // Card 4: Import Windows defaults - Refresh icon
         var defaultsIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.ArrowReset, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var defaultsCard = CreateOptionCard(defaultsIcon,
             "Dialog_ImportConfig_Option_Defaults_Title",
             "Dialog_ImportConfig_Option_Defaults_Description",
-            ImportOption.ImportWindowsDefaults, isLast: true);
+            ImportOption.ImportWindowsDefaults, isDark, isLast: true);
 
         var skipReviewText = _localization.GetString("Review_Mode_Skip_Checkbox") ?? "Skip review and apply immediately";
         _skipReviewCheckbox = new CheckBox
@@ -196,7 +196,7 @@ internal class ConfigImportDialogBuilder
         _cleanStartMenuCheckbox.IsEnabled = enabled;
     }
 
-    private Button CreateOptionCard(UIElement icon, string titleKey, string descKey, ImportOption option, bool isLast = false)
+    private Button CreateOptionCard(UIElement icon, string titleKey, string descKey, ImportOption option, bool isDark, bool isLast = false)
     {
         var titleText = _localization.GetString(titleKey);
         var descText = _localization.GetString(descKey);
@@ -220,11 +220,12 @@ internal class ConfigImportDialogBuilder
         contentPanel2.Children.Add(icon);
         contentPanel2.Children.Add(textPanel);
 
-        // Layer 0: Background fill (matches default Button rest state)
-        var defaultBg = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
+        // Layer 0: Background fill with subtle border
         var bgBorder = new Border
         {
-            Background = defaultBg,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderBrush = new SolidColorBrush(isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black),
+            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4)
         };
 
@@ -266,7 +267,7 @@ internal class ConfigImportDialogBuilder
 
             // Deselect previous card
             if (_selectedBgBorder != null)
-                _selectedBgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
+                _selectedBgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             if (_selectedAccentBorder != null)
                 _selectedAccentBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
@@ -290,25 +291,25 @@ internal class ConfigImportDialogBuilder
         cardButton.PointerEntered += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"];
+                bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
         };
 
         cardButton.PointerExited += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
+                bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         };
 
         // Show hover-like state on keyboard focus
         cardButton.GotFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"];
+                bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
         };
         cardButton.LostFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["ControlFillColorDefaultBrush"];
+                bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         };
 
         return cardButton;
