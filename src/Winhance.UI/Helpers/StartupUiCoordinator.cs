@@ -95,7 +95,7 @@ internal sealed class StartupUiCoordinator
         Frame contentFrame,
         NavSidebar navSidebar,
         Grid loadingOverlay,
-        MainWindowViewModel? viewModel,
+        Func<MainWindowViewModel?> getViewModel,
         Action markStartupComplete)
     {
         try
@@ -145,7 +145,7 @@ internal sealed class StartupUiCoordinator
 
         // Always complete startup on the UI thread so the app is usable
         _dispatcherQueue.TryEnqueue(() =>
-            _ = CompleteStartupAsync(contentFrame, navSidebar, loadingOverlay, viewModel, markStartupComplete));
+            _ = CompleteStartupAsync(contentFrame, navSidebar, loadingOverlay, getViewModel, markStartupComplete));
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ internal sealed class StartupUiCoordinator
         Frame contentFrame,
         NavSidebar navSidebar,
         Grid loadingOverlay,
-        MainWindowViewModel? viewModel,
+        Func<MainWindowViewModel?> getViewModel,
         Action markStartupComplete)
     {
         StartupLogger.Log("StartupUiCoordinator", "CompleteStartupAsync starting");
@@ -202,6 +202,7 @@ internal sealed class StartupUiCoordinator
 
         // Check for updates silently (only shows InfoBar if update available)
         // Ensure WinGet is ready (shows task progress if installation/update needed)
+        var viewModel = getViewModel();
         if (viewModel != null)
         {
             _ = viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync();
