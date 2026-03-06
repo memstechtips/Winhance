@@ -497,6 +497,7 @@ public static class WindowsAppDefinitions
                     Description = "Microsoft's web browser",
                     GroupName = "Browsers",
                     AppxPackageName = ["Microsoft.MicrosoftEdge.Stable"],
+                    WinGetPackageId = ["Microsoft.Edge"],
                     MsStoreId = "XPFFTQ037JWMHS",
                     CanBeReinstalled = true,
                     RemovalScript = () => EdgeRemovalScript.GetScript()
