@@ -254,8 +254,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             return true; // No diffs means already matching config
         }
 
-        // Must be visited AND all diffs explicitly reviewed (accept or reject)
-        if (!_visitedFeatures.ContainsKey(featureId)) return false;
+        // All diffs must be explicitly reviewed (accept or reject)
         return featureDiffs.All(d => d.IsReviewed);
     }
 

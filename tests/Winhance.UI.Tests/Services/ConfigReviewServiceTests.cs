@@ -911,14 +911,136 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        service.MarkFeatureVisited("Privacy");
-
-        // Has unreviewed diff
+        // Has unreviewed diff - not fully reviewed even without visiting
         service.IsFeatureFullyReviewed("Privacy").Should().BeFalse();
 
         // Review the diff
         service.SetSettingApproval("s1", true);
 
+        // Fully reviewed once all diffs are reviewed, regardless of visited state
+        service.IsFeatureFullyReviewed("Privacy").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsFeatureFullyReviewed_AllDiffsReviewed_WithoutVisiting_ReturnsTrue()
+    {
+        // Reproduces Bug: entering review mode while already on a sub-page
+        // means MarkFeatureVisited is never called, but reviewing all items
+        // should still mark the feature as fully reviewed.
+        var settingDef = new SettingDefinition
+        {
+            Id = "s1",
+            Name = "S1",
+            Description = "Test",
+            InputType = InputType.Toggle
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Privacy"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["s1"] = new SettingStateResult { IsEnabled = false }
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "s1",
+                                Name = "S1",
+                                IsSelected = true,
+                                InputType = InputType.Toggle
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        // Do NOT call MarkFeatureVisited - simulates entering review mode
+        // while already on the sub-page
+
+        // Review the diff
+        service.SetSettingApproval("s1", true);
+
+        // Should be fully reviewed even without visiting
+        service.IsFeatureFullyReviewed("Privacy").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsFeatureFullyReviewed_FiresBadgeStateChanged_WhenLastDiffReviewed()
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = "s1",
+            Name = "S1",
+            Description = "Test",
+            InputType = InputType.Toggle
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("Privacy"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["s1"] = new SettingStateResult { IsEnabled = false }
+            });
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "s1",
+                                Name = "S1",
+                                IsSelected = true,
+                                InputType = InputType.Toggle
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        int badgeChangedCount = 0;
+        service.BadgeStateChanged += (_, _) => badgeChangedCount++;
+
+        // Reviewing the last diff should fire BadgeStateChanged
+        service.SetSettingApproval("s1", true);
+
+        badgeChangedCount.Should().BeGreaterThan(0);
         service.IsFeatureFullyReviewed("Privacy").Should().BeTrue();
     }
 

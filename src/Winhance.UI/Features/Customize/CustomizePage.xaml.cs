@@ -115,6 +115,13 @@ public sealed partial class CustomizePage : Page
             // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
             ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            if (_configReviewService != null)
+            {
+                _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+                _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
+                _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+            }
             UpdateBreadcrumbMenuItems();
 
             // Ensure we're showing overview on initial navigation
@@ -143,6 +150,11 @@ public sealed partial class CustomizePage : Page
     {
         base.OnNavigatedFrom(e);
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        if (_configReviewService != null)
+        {
+            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+            _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
+        }
         ViewModel.OnNavigatedFrom();
     }
 

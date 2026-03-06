@@ -126,7 +126,7 @@ public class ReviewModeViewModelCoordinatorTests
         // mocking the feature VMs, which is covered below with null checks.
         var sut = new ReviewModeViewModelCoordinator(
             softVm, winVm, extVm,
-            null!, null!, _reviewDiffApplier.Object);
+            null!, null!, _reviewDiffApplier.Object, _winDispatcherService.Object);
 
         return (sut, winVm, extVm, softVm);
     }

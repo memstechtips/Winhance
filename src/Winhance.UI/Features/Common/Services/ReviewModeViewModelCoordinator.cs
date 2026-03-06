@@ -25,6 +25,7 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
     private readonly OptimizeViewModel _optimizeVM;
     private readonly CustomizeViewModel _customizeVM;
     private readonly ISettingReviewDiffApplier _reviewDiffApplier;
+    private readonly IDispatcherService _dispatcherService;
 
     public ReviewModeViewModelCoordinator(
         SoftwareAppsViewModel softwareAppsVM,
@@ -32,7 +33,8 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
         ExternalAppsViewModel externalAppsVM,
         OptimizeViewModel optimizeVM,
         CustomizeViewModel customizeVM,
-        ISettingReviewDiffApplier reviewDiffApplier)
+        ISettingReviewDiffApplier reviewDiffApplier,
+        IDispatcherService dispatcherService)
     {
         _softwareAppsVM = softwareAppsVM;
         _windowsAppsVM = windowsAppsVM;
@@ -40,6 +42,7 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
         _optimizeVM = optimizeVM;
         _customizeVM = customizeVM;
         _reviewDiffApplier = reviewDiffApplier;
+        _dispatcherService = dispatcherService;
     }
 
     public bool HasSelectedWindowsApps =>
@@ -72,35 +75,42 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
 
     public void ReapplyReviewDiffsToExistingSettings()
     {
-        void ReapplyToFeature(ISettingsFeatureViewModel featureVm)
+        // Must run on UI thread because this modifies ObservableProperty values
+        // on SettingItemViewModels that are bound to the UI. The ReviewModeChanged
+        // event can fire from a background thread due to ConfigureAwait(false) in
+        // ConfigReviewService.ComputeEagerDiffsAsync.
+        _dispatcherService.RunOnUIThread(() =>
         {
-            foreach (var setting in featureVm.Settings)
+            void ReapplyToFeature(ISettingsFeatureViewModel featureVm)
             {
-                // Clear any stale review state first
-                setting.ClearReviewState();
-                // Build currentState from the VM's actual displayed values
-                // so the fallback ComputeDiff sees accurate state, not defaults
-                var currentState = new SettingStateResult
+                foreach (var setting in featureVm.Settings)
                 {
-                    IsEnabled = setting.IsSelected,
-                    CurrentValue = setting.SelectedValue
-                };
-                // Re-apply the new diff
-                _reviewDiffApplier.ApplyReviewDiffToViewModel(setting, currentState);
+                    // Clear any stale review state first
+                    setting.ClearReviewState();
+                    // Build currentState from the VM's actual displayed values
+                    // so the fallback ComputeDiff sees accurate state, not defaults
+                    var currentState = new SettingStateResult
+                    {
+                        IsEnabled = setting.IsSelected,
+                        CurrentValue = setting.SelectedValue
+                    };
+                    // Re-apply the new diff
+                    _reviewDiffApplier.ApplyReviewDiffToViewModel(setting, currentState);
+                }
             }
-        }
 
-        ReapplyToFeature(_optimizeVM.SoundViewModel);
-        ReapplyToFeature(_optimizeVM.UpdateViewModel);
-        ReapplyToFeature(_optimizeVM.NotificationViewModel);
-        ReapplyToFeature(_optimizeVM.PrivacyViewModel);
-        ReapplyToFeature(_optimizeVM.PowerViewModel);
-        ReapplyToFeature(_optimizeVM.GamingViewModel);
+            ReapplyToFeature(_optimizeVM.SoundViewModel);
+            ReapplyToFeature(_optimizeVM.UpdateViewModel);
+            ReapplyToFeature(_optimizeVM.NotificationViewModel);
+            ReapplyToFeature(_optimizeVM.PrivacyViewModel);
+            ReapplyToFeature(_optimizeVM.PowerViewModel);
+            ReapplyToFeature(_optimizeVM.GamingViewModel);
 
-        ReapplyToFeature(_customizeVM.ExplorerViewModel);
-        ReapplyToFeature(_customizeVM.StartMenuViewModel);
-        ReapplyToFeature(_customizeVM.TaskbarViewModel);
-        ReapplyToFeature(_customizeVM.WindowsThemeViewModel);
+            ReapplyToFeature(_customizeVM.ExplorerViewModel);
+            ReapplyToFeature(_customizeVM.StartMenuViewModel);
+            ReapplyToFeature(_customizeVM.TaskbarViewModel);
+            ReapplyToFeature(_customizeVM.WindowsThemeViewModel);
+        });
     }
 
     public Task RemoveWindowsAppsAsync(bool skipConfirmation, bool saveRemovalScripts)
