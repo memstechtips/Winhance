@@ -131,7 +131,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             LoadingTitleText, LoadingTaglineText, LoadingStatusText, LoadingLogo, RootGrid);
 
         _ = _startupUiCoordinator.RunStartupAndCompleteAsync(
-            LoadingStatusText, ContentFrame, NavSidebar, LoadingOverlay, ViewModel,
+            LoadingStatusText, ContentFrame, NavSidebar, LoadingOverlay, () => ViewModel,
             markStartupComplete: () => _isStartupLoading = false);
     }
 
