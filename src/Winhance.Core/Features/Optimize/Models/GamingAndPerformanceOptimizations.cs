@@ -1633,41 +1633,6 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
-                    Id = "gaming-bits-service",
-                    Name = "Background Intelligent Transfer Service (BITS)",
-                    Description = "Transfers Windows Updates and downloads in the background. Setting to Manual allows updates to work while preventing constant background activity during gaming",
-                    GroupName = "System Services",
-                    Icon = "CloudDownload",
-                    InputType = InputType.Selection,
-                    RequiresRestart = true,
-                    ComboBox = new ComboBoxMetadata
-                    {
-                        DisplayNames = new string[]
-                        {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
-                        },
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\BITS",
-                            ValueName = "Start",
-                            RecommendedValue = 3,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
                     Id = "gaming-xbox-auth-manager",
                     Name = "Xbox Live Auth Manager",
                     Description = "Provides authentication and authorization services for Xbox Live. Safe to disable if you don't use Xbox Game Pass, Microsoft Store games, or Xbox features",
@@ -2111,24 +2076,6 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "StartupAppTask",
                             TaskPath = @"\Microsoft\Windows\Application Experience\StartupAppTask",
-                            RecommendedState = false
-                        }
-                    }
-                },
-                new SettingDefinition
-                {
-                    Id = "gaming-task-pca-patch",
-                    Name = "Program Compatibility Assistant Patch Task",
-                    Description = "Updates the Program Compatibility Assistant database. Works with the Program Compatibility Assistant Service. Disable both to prevent compatibility checking",
-                    GroupName = "Scheduled Tasks",
-                    Icon = "Update",
-                    InputType = InputType.Toggle,
-                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
-                    {
-                        new ScheduledTaskSetting
-                        {
-                            Id = "PcaPatchTask",
-                            TaskPath = @"\Microsoft\Windows\Application Experience\PcaPatchDbTask",
                             RecommendedState = false
                         }
                     }

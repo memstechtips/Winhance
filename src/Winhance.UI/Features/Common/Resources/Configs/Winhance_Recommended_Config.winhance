@@ -1330,12 +1330,6 @@
             "SelectedIndex": 1
           },
           {
-            "Id": "gaming-bits-service",
-            "Name": "Background Intelligent Transfer Service (BITS)",
-            "InputType": 1,
-            "SelectedIndex": 1
-          },
-          {
             "Id": "gaming-xbox-auth-manager",
             "Name": "Xbox Live Auth Manager",
             "InputType": 1,
@@ -1440,12 +1434,6 @@
           {
             "Id": "gaming-task-startup-app",
             "Name": "Startup App Task",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "gaming-task-pca-patch",
-            "Name": "Program Compatibility Assistant Patch Task",
             "IsSelected": false,
             "InputType": 0
           },
