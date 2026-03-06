@@ -85,13 +85,15 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedSettingsForDomainAsync_ToggleSetting_AppliesRecommendedValue()
     {
-        // Arrange
-        const string settingId = "toggle-setting";
-        SetupDomainService(settingId);
+        // Arrange: callerId is the setting that triggered the recommendation lookup,
+        // the returned setting has a different Id to avoid self-exclusion
+        const string callerId = "caller-setting";
+        const string targetId = "toggle-setting";
+        SetupDomainService(callerId);
 
-        var setting = CreateToggleSetting(settingId, recommendedValue: 1, enabledValue: [1]);
+        var setting = CreateToggleSetting(targetId, recommendedValue: 1, enabledValue: [1]);
         _mockRecommendedService
-            .Setup(s => s.GetRecommendedSettingsAsync(settingId))
+            .Setup(s => s.GetRecommendedSettingsAsync(callerId))
             .ReturnsAsync(new[] { setting });
 
         _mockAppService
@@ -99,11 +101,11 @@ public class RecommendedSettingsApplierTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         // Act
-        await _applier.ApplyRecommendedSettingsForDomainAsync(settingId, _mockAppService.Object);
+        await _applier.ApplyRecommendedSettingsForDomainAsync(callerId, _mockAppService.Object);
 
         // Assert
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == settingId &&
+            r.SettingId == targetId &&
             r.Enable == true &&
             r.Value != null && r.Value.Equals(1) &&
             r.SkipValuePrerequisites == true
@@ -114,12 +116,13 @@ public class RecommendedSettingsApplierTests
     public async Task ApplyRecommendedSettingsForDomainAsync_ToggleSetting_EnableFalse_WhenRecommendedNotEqualEnabled()
     {
         // Arrange: RecommendedValue = 0, EnabledValue = [1] => enableValue = false
-        const string settingId = "toggle-disable";
-        SetupDomainService(settingId);
+        const string callerId = "caller-disable";
+        const string targetId = "toggle-disable";
+        SetupDomainService(callerId);
 
-        var setting = CreateToggleSetting(settingId, recommendedValue: 0, enabledValue: [1]);
+        var setting = CreateToggleSetting(targetId, recommendedValue: 0, enabledValue: [1]);
         _mockRecommendedService
-            .Setup(s => s.GetRecommendedSettingsAsync(settingId))
+            .Setup(s => s.GetRecommendedSettingsAsync(callerId))
             .ReturnsAsync(new[] { setting });
 
         _mockAppService
@@ -127,11 +130,11 @@ public class RecommendedSettingsApplierTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         // Act
-        await _applier.ApplyRecommendedSettingsForDomainAsync(settingId, _mockAppService.Object);
+        await _applier.ApplyRecommendedSettingsForDomainAsync(callerId, _mockAppService.Object);
 
         // Assert
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == settingId &&
+            r.SettingId == targetId &&
             r.Enable == false &&
             r.Value != null && r.Value.Equals(0) &&
             r.SkipValuePrerequisites == true
@@ -177,8 +180,9 @@ public class RecommendedSettingsApplierTests
     public async Task ApplyRecommendedSettingsForDomainAsync_SelectionSetting_AppliesRecommendedIndex()
     {
         // Arrange
-        const string settingId = "selection-setting";
-        SetupDomainService(settingId);
+        const string callerId = "caller-selection";
+        const string targetId = "selection-setting";
+        SetupDomainService(callerId);
 
         // ComboBoxOptions are ordered alphabetically by key: "High"=3, "Low"=1, "Medium"=2
         // Sorted order: High(0), Low(1), Medium(2)
@@ -190,9 +194,9 @@ public class RecommendedSettingsApplierTests
             ["Medium"] = 2,
         };
 
-        var setting = CreateSelectionSetting(settingId, "Medium", comboBoxOptions);
+        var setting = CreateSelectionSetting(targetId, "Medium", comboBoxOptions);
         _mockRecommendedService
-            .Setup(s => s.GetRecommendedSettingsAsync(settingId))
+            .Setup(s => s.GetRecommendedSettingsAsync(callerId))
             .ReturnsAsync(new[] { setting });
 
         _mockAppService
@@ -200,11 +204,11 @@ public class RecommendedSettingsApplierTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         // Act
-        await _applier.ApplyRecommendedSettingsForDomainAsync(settingId, _mockAppService.Object);
+        await _applier.ApplyRecommendedSettingsForDomainAsync(callerId, _mockAppService.Object);
 
         // Assert: "Medium" is at index 2 (alphabetical: High=0, Low=1, Medium=2)
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == settingId &&
+            r.SettingId == targetId &&
             r.Enable == true &&
             r.Value != null && r.Value.Equals(2) &&
             r.SkipValuePrerequisites == true
@@ -216,12 +220,13 @@ public class RecommendedSettingsApplierTests
     {
         // Arrange: Selection setting without primary registry (no RecommendedOption),
         // so it falls through to the else branch using recommendedValue directly
-        const string settingId = "selection-fallback";
-        SetupDomainService(settingId);
+        const string callerId = "caller-fallback";
+        const string targetId = "selection-fallback";
+        SetupDomainService(callerId);
 
         var setting = new SettingDefinition
         {
-            Id = settingId,
+            Id = targetId,
             Name = "Fallback Selection",
             Description = "Test",
             InputType = InputType.Selection,
@@ -239,7 +244,7 @@ public class RecommendedSettingsApplierTests
         };
 
         _mockRecommendedService
-            .Setup(s => s.GetRecommendedSettingsAsync(settingId))
+            .Setup(s => s.GetRecommendedSettingsAsync(callerId))
             .ReturnsAsync(new[] { setting });
 
         _mockAppService
@@ -247,11 +252,11 @@ public class RecommendedSettingsApplierTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         // Act
-        await _applier.ApplyRecommendedSettingsForDomainAsync(settingId, _mockAppService.Object);
+        await _applier.ApplyRecommendedSettingsForDomainAsync(callerId, _mockAppService.Object);
 
         // Assert: Falls through to the else branch since GetRecommendedOptionFromSetting returns null
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == settingId &&
+            r.SettingId == targetId &&
             r.Enable == true &&
             r.Value != null && r.Value.Equals(42) &&
             r.SkipValuePrerequisites == true
@@ -370,12 +375,13 @@ public class RecommendedSettingsApplierTests
     public async Task ApplyRecommendedSettingsForDomainAsync_OtherInputType_AppliesWithRecommendedValue()
     {
         // Arrange: A setting with a non-Toggle, non-Selection input type (e.g., NumericRange)
-        const string settingId = "numeric-setting";
-        SetupDomainService(settingId);
+        const string callerId = "caller-numeric";
+        const string targetId = "numeric-setting";
+        SetupDomainService(callerId);
 
         var setting = new SettingDefinition
         {
-            Id = settingId,
+            Id = targetId,
             Name = "Numeric Setting",
             Description = "Test",
             InputType = InputType.NumericRange,
@@ -392,8 +398,47 @@ public class RecommendedSettingsApplierTests
         };
 
         _mockRecommendedService
-            .Setup(s => s.GetRecommendedSettingsAsync(settingId))
+            .Setup(s => s.GetRecommendedSettingsAsync(callerId))
             .ReturnsAsync(new[] { setting });
+
+        _mockAppService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        // Act
+        await _applier.ApplyRecommendedSettingsForDomainAsync(callerId, _mockAppService.Object);
+
+        // Assert: Falls through to the else branch, Enable=true, Value=75
+        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+            r.SettingId == targetId &&
+            r.Enable == true &&
+            r.Value != null && r.Value.Equals(75) &&
+            r.SkipValuePrerequisites == true
+        )), Times.Once);
+    }
+
+    // ---------------------------------------------------------------
+    // Test Case: Self-referencing setting is excluded to prevent recursion
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplyRecommendedSettingsForDomainAsync_ExcludesCallingSettingToPreventRecursion()
+    {
+        // Arrange: Simulate the updates-policy-mode scenario where the calling setting
+        // appears in its own domain's recommended settings list
+        const string settingId = "updates-policy-mode";
+        SetupDomainService(settingId, "Update");
+
+        var selfSetting = CreateSelectionSetting(settingId, "Paused", new Dictionary<string, int>
+        {
+            ["Normal"] = 0,
+            ["Paused"] = 2,
+        });
+        var otherSetting = CreateToggleSetting("other-update-setting", recommendedValue: 1, enabledValue: [1]);
+
+        _mockRecommendedService
+            .Setup(s => s.GetRecommendedSettingsAsync(settingId))
+            .ReturnsAsync(new[] { selfSetting, otherSetting });
 
         _mockAppService
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
@@ -402,12 +447,14 @@ public class RecommendedSettingsApplierTests
         // Act
         await _applier.ApplyRecommendedSettingsForDomainAsync(settingId, _mockAppService.Object);
 
-        // Assert: Falls through to the else branch, Enable=true, Value=75
+        // Assert: The self-referencing setting was NOT applied (prevents infinite recursion)
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == settingId &&
-            r.Enable == true &&
-            r.Value != null && r.Value.Equals(75) &&
-            r.SkipValuePrerequisites == true
+            r.SettingId == settingId
+        )), Times.Never);
+
+        // Assert: The other setting WAS applied
+        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+            r.SettingId == "other-update-setting" && r.Enable == true
         )), Times.Once);
     }
 }

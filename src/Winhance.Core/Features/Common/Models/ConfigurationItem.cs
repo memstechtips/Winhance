@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using Winhance.Core.Features.Common.Converters;
 using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Models;
@@ -16,6 +17,7 @@ public class ConfigurationItem
     public InputType InputType { get; set; } = InputType.Toggle;
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(StringOrStringArrayConverter))]
     public string[]? AppxPackageName { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

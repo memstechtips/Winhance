@@ -22,6 +22,7 @@ public class ConfigApplicationExecutionServiceTests
     private readonly Mock<IConfigAppSelectionService> _mockConfigAppSelectionService = new();
     private readonly Mock<IConfigLoadService> _mockConfigLoadService = new();
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
+    private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
 
     public ConfigApplicationExecutionServiceTests()
     {
@@ -48,7 +49,8 @@ public class ConfigApplicationExecutionServiceTests
             _mockConfigImportState.Object,
             _mockConfigAppSelectionService.Object,
             _mockConfigLoadService.Object,
-            _mockVmCoordinator.Object);
+            _mockVmCoordinator.Object,
+            _mockPolicyCleanupService.Object);
     }
 
     // -------------------------------------------------------
@@ -363,5 +365,107 @@ public class ConfigApplicationExecutionServiceTests
         _mockOverlayService.Verify(
             o => o.UpdateStatus(It.IsAny<string>(), It.IsAny<string?>()),
             Times.AtLeastOnce);
+    }
+
+    // -------------------------------------------------------
+    // Policy Cleanup on Windows Defaults Import
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task ExecuteConfigImportAsync_WindowsDefaults_CallsPolicyCleanup()
+    {
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "test-setting", Name = "Test", IsSelected = true }
+                        }
+                    }
+                }
+            }
+        };
+
+        var options = new ImportOptions { IsWindowsDefaults = true };
+
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Returns(new List<string>());
+
+        _mockBridgeService
+            .Setup(b => b.ApplyConfigurationSectionAsync(
+                It.IsAny<ConfigSection>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, object?, SettingDefinition, Task<(bool, bool)>>>()))
+            .ReturnsAsync(true);
+
+        _mockWindowsUIManagementService
+            .Setup(w => w.IsProcessRunning("explorer"))
+            .Returns(true);
+
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+        await service.ExecuteConfigImportAsync(config, options);
+
+        _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteConfigImportAsync_NonWindowsDefaults_DoesNotCallPolicyCleanup()
+    {
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "test-setting", Name = "Test", IsSelected = true }
+                        }
+                    }
+                }
+            }
+        };
+
+        var options = new ImportOptions { IsWindowsDefaults = false };
+
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Returns(new List<string>());
+
+        _mockBridgeService
+            .Setup(b => b.ApplyConfigurationSectionAsync(
+                It.IsAny<ConfigSection>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, object?, SettingDefinition, Task<(bool, bool)>>>()))
+            .ReturnsAsync(true);
+
+        _mockWindowsUIManagementService
+            .Setup(w => w.IsProcessRunning("explorer"))
+            .Returns(true);
+
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+        await service.ExecuteConfigImportAsync(config, options);
+
+        _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Never);
     }
 }

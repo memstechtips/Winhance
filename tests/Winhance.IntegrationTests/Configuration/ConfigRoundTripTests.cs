@@ -225,4 +225,106 @@ public class ConfigRoundTripTests
         deserialized.Customize.Should().NotBeNull();
         deserialized.Optimize.Should().NotBeNull();
     }
+
+    [Fact]
+    public void Deserialize_AppxPackageName_AsString_ConvertsToArray()
+    {
+        // Arrange — simulates legacy config format where AppxPackageName was a plain string
+        var json = """
+        {
+            "Version": "2.0",
+            "WindowsApps": {
+                "IsIncluded": true,
+                "Items": [
+                    {
+                        "Id": "app1",
+                        "Name": "Test App",
+                        "IsSelected": true,
+                        "InputType": 0,
+                        "AppxPackageName": "Microsoft.TestApp"
+                    }
+                ]
+            },
+            "ExternalApps": { "IsIncluded": false, "Items": [] },
+            "Customize": { "IsIncluded": false, "Features": {} },
+            "Optimize": { "IsIncluded": false, "Features": {} }
+        }
+        """;
+
+        // Act
+        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+
+        // Assert
+        config.Should().NotBeNull();
+        config!.WindowsApps.Items.Should().HaveCount(1);
+        config.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.TestApp" });
+    }
+
+    [Fact]
+    public void Deserialize_AppxPackageName_AsArray_WorksNormally()
+    {
+        // Arrange — current format where AppxPackageName is a string array
+        var json = """
+        {
+            "Version": "2.0",
+            "WindowsApps": {
+                "IsIncluded": true,
+                "Items": [
+                    {
+                        "Id": "app1",
+                        "Name": "Test App",
+                        "IsSelected": true,
+                        "InputType": 0,
+                        "AppxPackageName": ["Microsoft.TestApp", "Microsoft.TestApp.Sub1"]
+                    }
+                ]
+            },
+            "ExternalApps": { "IsIncluded": false, "Items": [] },
+            "Customize": { "IsIncluded": false, "Features": {} },
+            "Optimize": { "IsIncluded": false, "Features": {} }
+        }
+        """;
+
+        // Act
+        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+
+        // Assert
+        config.Should().NotBeNull();
+        config!.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(
+            new[] { "Microsoft.TestApp", "Microsoft.TestApp.Sub1" });
+    }
+
+    [Theory]
+    [InlineData("Winhance_Default_Config_Windows10_22H2.winhance")]
+    [InlineData("Winhance_Default_Config_Windows11_25H2.winhance")]
+    [InlineData("Winhance_Recommended_Config.winhance")]
+    public void EmbeddedConfigFile_DeserializesWithoutErrors(string fileName)
+    {
+        // Arrange — read embedded config files from disk (same files embedded in UI project)
+        var configDir = Path.Combine(
+            TestContext.SolutionDir,
+            "src", "Winhance.UI", "Features", "Common", "Resources", "Configs");
+        var filePath = Path.Combine(configDir, fileName);
+        var json = File.ReadAllText(filePath);
+
+        // Act
+        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+
+        // Assert
+        config.Should().NotBeNull();
+        config!.Version.Should().Be("2.0");
+
+        // Verify all AppxPackageName entries are arrays (not strings that failed to deserialize)
+        if (config.WindowsApps?.Items != null)
+        {
+            foreach (var item in config.WindowsApps.Items)
+            {
+                if (item.AppxPackageName != null)
+                {
+                    item.AppxPackageName.Should().NotBeEmpty(
+                        $"AppxPackageName for '{item.Name}' should be a non-empty array");
+                }
+            }
+        }
+    }
 }

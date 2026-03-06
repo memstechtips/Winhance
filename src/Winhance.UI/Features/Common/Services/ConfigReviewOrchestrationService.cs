@@ -23,6 +23,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IEventBus _eventBus;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
+    private readonly IPolicyCleanupService _policyCleanupService;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -37,7 +38,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IConfigLoadService configLoadService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
-        IReviewModeViewModelCoordinator vmCoordinator)
+        IReviewModeViewModelCoordinator vmCoordinator,
+        IPolicyCleanupService policyCleanupService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -52,6 +54,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _eventBus = eventBus;
         _vmCoordinator = vmCoordinator;
+        _policyCleanupService = policyCleanupService;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
@@ -84,7 +87,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     }
 
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config)
+    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
     {
         try
         {
@@ -101,7 +104,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _compatibleSettingsRegistry.SetFilterEnabled(true);
 
             // Enter review mode on the service (eagerly computes diffs and fires events)
-            await _configReviewModeService.EnterReviewModeAsync(config);
+            await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults);
 
             // Pre-select Windows Apps from config
             if (config.WindowsApps.Items.Count > 0)
@@ -259,6 +262,14 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             try
             {
                 await _configExecutionService.ApplyConfigurationWithOptionsAsync(filteredConfig, selectedSections, importOptions);
+
+                // When restoring Windows defaults, clean up all policy registry keys AFTER
+                // applying settings, because applying "disabled" values can re-create the keys
+                if (_configReviewModeService.IsWindowsDefaults)
+                {
+                    _logService.Log(LogLevel.Info, "Windows Defaults import (review mode): cleaning up policy registry keys");
+                    await Task.Run(() => _policyCleanupService.CleanupPolicyKeys());
+                }
             }
             catch (Exception ex)
             {

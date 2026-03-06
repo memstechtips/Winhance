@@ -122,6 +122,9 @@ public static class InfrastructureServicesExtensions
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
 
+        // Policy Cleanup Service (for Windows Defaults import)
+        services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
+
         // Configuration Migration (for backward-compatible config imports)
         services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
 

@@ -69,6 +69,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     }
 
     public bool IsInReviewMode { get; private set; }
+    public bool IsWindowsDefaults { get; private set; }
     public UnifiedConfigurationFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
     public int ApprovedChanges => _diffs.Values.Count(static d => d.IsReviewed && d.IsApproved);
@@ -80,9 +81,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public event EventHandler? ApprovalCountChanged;
     public event EventHandler? BadgeStateChanged;
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config)
+    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
     {
         ActiveConfig = config;
+        IsWindowsDefaults = isWindowsDefaults;
         _diffs.Clear();
         _configItemCounts.Clear();
         _featuresInConfig.Clear();
@@ -123,6 +125,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _visitedFeatures.Clear();
         TotalConfigItems = 0;
         IsInReviewMode = false;
+        IsWindowsDefaults = false;
         _logService.Log(LogLevel.Info, "[ConfigReviewService] Exited review mode");
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);

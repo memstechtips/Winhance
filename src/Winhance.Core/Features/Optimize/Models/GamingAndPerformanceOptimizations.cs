@@ -96,6 +96,7 @@ public static class GamingAndPerformanceOptimizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -105,6 +106,7 @@ public static class GamingAndPerformanceOptimizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -125,6 +127,7 @@ public static class GamingAndPerformanceOptimizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -134,6 +137,7 @@ public static class GamingAndPerformanceOptimizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -606,6 +610,7 @@ public static class GamingAndPerformanceOptimizations
                             DisabledValue = [0], // When toggle is OFF, Xbox Game DVR is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

@@ -419,6 +419,16 @@ public class SystemSettingsDiscoveryService(
                     continue;
 
                 bool valueExists = currentValue != null;
+
+                // Group policy enforcement-only keys (EnabledValue = [null]) are neutral
+                // when absent — they only matter when actively set. Skip them so they
+                // don't falsely report "enabled" when the policy key doesn't exist.
+                // Policy keys with real values in EnabledValue (e.g. [1, null]) are
+                // policy-only settings where absence is a meaningful "enabled" state.
+                if (registrySetting.IsGroupPolicy && !valueExists
+                    && registrySetting.EnabledValue is [null])
+                    continue;
+
                 if (registryService.IsRegistryValueInEnabledState(registrySetting, currentValue, valueExists))
                     return true;
             }

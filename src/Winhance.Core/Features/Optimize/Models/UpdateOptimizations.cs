@@ -31,6 +31,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAutoUpdate",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -38,6 +39,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAutoUpdate",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -46,6 +48,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 2,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -54,6 +57,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 2,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -164,6 +168,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAUShutdownOption",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -171,6 +176,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAUShutdownOption",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -178,6 +184,7 @@ public static class UpdateOptimizations
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -185,6 +192,7 @@ public static class UpdateOptimizations
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -192,6 +200,7 @@ public static class UpdateOptimizations
                             ValueName = "AutoInstallMinorUpdates",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -199,6 +208,7 @@ public static class UpdateOptimizations
                             ValueName = "AutoInstallMinorUpdates",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -206,6 +216,7 @@ public static class UpdateOptimizations
                             ValueName = "UseWUServer",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -213,6 +224,7 @@ public static class UpdateOptimizations
                             ValueName = "UseWUServer",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -373,6 +385,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 99,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -381,6 +394,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 99,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
@@ -496,6 +510,7 @@ public static class UpdateOptimizations
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -505,6 +520,7 @@ public static class UpdateOptimizations
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -526,6 +542,7 @@ public static class UpdateOptimizations
                             EnabledValue = [2],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -535,6 +552,7 @@ public static class UpdateOptimizations
                             EnabledValue = [2],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -600,6 +618,7 @@ public static class UpdateOptimizations
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -609,6 +628,7 @@ public static class UpdateOptimizations
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -631,6 +651,7 @@ public static class UpdateOptimizations
                             EnabledValue = [4, null],
                             DisabledValue = [2],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -640,6 +661,7 @@ public static class UpdateOptimizations
                             EnabledValue = [4, null],
                             DisabledValue = [2],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

@@ -81,10 +81,15 @@ public class ConfigurationService : IConfigurationService
             return;
         }
 
+        if (selectedOption == ImportOption.ImportWindowsDefaults)
+        {
+            importOptions = importOptions with { IsWindowsDefaults = true };
+        }
+
         if (!importOptions.ReviewBeforeApplying)
             await _configExecutionService.ExecuteConfigImportAsync(config, importOptions);
         else
-            await _configReviewOrchestrationService.EnterReviewModeAsync(config);
+            await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
     }
 
     public async Task ImportRecommendedConfigurationAsync()

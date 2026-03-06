@@ -383,6 +383,7 @@ public static class NotificationOptimizations
                             EnabledValue = [0, null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -392,6 +393,7 @@ public static class NotificationOptimizations
                             EnabledValue = [0, null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -401,6 +403,7 @@ public static class NotificationOptimizations
                             EnabledValue = [0, null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -410,6 +413,7 @@ public static class NotificationOptimizations
                             EnabledValue = [0, null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

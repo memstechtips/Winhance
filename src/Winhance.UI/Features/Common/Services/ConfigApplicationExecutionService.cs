@@ -20,6 +20,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private readonly IConfigAppSelectionService _configAppSelectionService;
     private readonly IConfigLoadService _configLoadService;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
+    private readonly IPolicyCleanupService _policyCleanupService;
 
     public ConfigApplicationExecutionService(
         ILogService logService,
@@ -33,7 +34,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         IConfigImportState configImportState,
         IConfigAppSelectionService configAppSelectionService,
         IConfigLoadService configLoadService,
-        IReviewModeViewModelCoordinator vmCoordinator)
+        IReviewModeViewModelCoordinator vmCoordinator,
+        IPolicyCleanupService policyCleanupService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -47,6 +49,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _configAppSelectionService = configAppSelectionService;
         _configLoadService = configLoadService;
         _vmCoordinator = vmCoordinator;
+        _policyCleanupService = policyCleanupService;
     }
 
     public async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config, ImportOptions dialogOptions)
@@ -132,6 +135,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 ApplyThemeWallpaper = dialogOptions.ApplyThemeWallpaper,
                 ApplyCleanTaskbar = dialogOptions.ApplyCleanTaskbar,
                 ApplyCleanStartMenu = dialogOptions.ApplyCleanStartMenu,
+                IsWindowsDefaults = dialogOptions.IsWindowsDefaults,
             };
 
             // Add action-only subsections for Customize actions that the user enabled
@@ -166,6 +170,14 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             try
             {
                 await ApplyConfigurationWithOptionsAsync(config, selectedSections, importOptions, saveRemovalScripts);
+
+                // When restoring Windows defaults, clean up all policy registry keys AFTER
+                // applying settings, because applying "disabled" values can re-create the keys
+                if (importOptions.IsWindowsDefaults)
+                {
+                    _logService.Log(LogLevel.Info, "Windows Defaults import: cleaning up policy registry keys");
+                    await Task.Run(() => _policyCleanupService.CleanupPolicyKeys());
+                }
             }
             finally
             {

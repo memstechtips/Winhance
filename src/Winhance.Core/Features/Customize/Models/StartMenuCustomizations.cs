@@ -109,6 +109,7 @@ public static class StartMenuCustomizations
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -116,6 +117,7 @@ public static class StartMenuCustomizations
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -347,6 +349,7 @@ public static class StartMenuCustomizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -357,6 +360,7 @@ public static class StartMenuCustomizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

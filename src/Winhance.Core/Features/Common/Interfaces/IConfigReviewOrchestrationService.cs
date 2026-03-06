@@ -5,7 +5,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IConfigReviewOrchestrationService
 {
-    Task EnterReviewModeAsync(UnifiedConfigurationFile config);
+    Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false);
     Task ApplyReviewedConfigAsync();
     Task CancelReviewModeAsync();
 }

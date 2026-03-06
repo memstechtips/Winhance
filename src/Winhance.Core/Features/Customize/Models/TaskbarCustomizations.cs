@@ -183,6 +183,7 @@ public static class TaskbarCustomizations
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -193,6 +194,7 @@ public static class TaskbarCustomizations
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -203,6 +205,7 @@ public static class TaskbarCustomizations
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -300,6 +303,7 @@ public static class TaskbarCustomizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -309,6 +313,7 @@ public static class TaskbarCustomizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -332,6 +337,7 @@ public static class TaskbarCustomizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -341,6 +347,7 @@ public static class TaskbarCustomizations
                             EnabledValue = [1, null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

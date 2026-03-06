@@ -107,6 +107,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -117,6 +118,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -218,6 +220,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -228,6 +231,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -732,12 +736,23 @@ public static class PrivacyAndSecurityOptimizations
                         },
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\AdvertisingInfo",
+                            ValueName = "Value",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -747,6 +762,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -898,6 +914,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -907,6 +924,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [1],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1035,6 +1053,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1045,6 +1064,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1055,6 +1075,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1065,6 +1086,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1075,6 +1097,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1085,6 +1108,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1094,6 +1118,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1103,6 +1128,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1177,6 +1203,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1186,6 +1213,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1208,6 +1236,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1217,6 +1246,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1240,6 +1270,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1249,6 +1280,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1388,6 +1420,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1397,6 +1430,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1428,6 +1462,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1437,6 +1472,7 @@ public static class PrivacyAndSecurityOptimizations
                             EnabledValue = [0],
                             DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1548,6 +1584,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -1558,6 +1595,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

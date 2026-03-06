@@ -24,6 +24,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
+    private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -53,7 +54,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockConfigLoadService.Object,
             _mockCompatibleSettingsRegistry.Object,
             _mockEventBus.Object,
-            _mockVmCoordinator.Object);
+            _mockVmCoordinator.Object,
+            _mockPolicyCleanupService.Object);
         return _service;
     }
 
@@ -495,5 +497,107 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             Times.Once);
         _mockVmCoordinator.Verify(v => v.ClearExternalAppSelections(), Times.Once);
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
+    }
+
+    // -------------------------------------------------------
+    // Policy Cleanup on Windows Defaults via Review Mode
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task ApplyReviewedConfigAsync_WindowsDefaults_CallsPolicyCleanup()
+    {
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "s1", Name = "S1" }
+                        }
+                    }
+                }
+            }
+        };
+
+        var approvedDiffs = new List<ConfigReviewDiff>
+        {
+            new ConfigReviewDiff
+            {
+                SettingId = "s1",
+                FeatureModuleId = "Privacy",
+                IsReviewed = true,
+                IsApproved = true,
+                InputType = InputType.Toggle
+            }
+        };
+
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.IsWindowsDefaults).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
+        _mockConfigReviewDiffService.Setup(d => d.GetApprovedDiffs()).Returns(approvedDiffs);
+        _mockVmCoordinator.Setup(v => v.HasSelectedWindowsApps).Returns(false);
+        _mockVmCoordinator.Setup(v => v.HasSelectedExternalApps).Returns(false);
+
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+        await service.ApplyReviewedConfigAsync();
+
+        _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyReviewedConfigAsync_NonWindowsDefaults_DoesNotCallPolicyCleanup()
+    {
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "s1", Name = "S1" }
+                        }
+                    }
+                }
+            }
+        };
+
+        var approvedDiffs = new List<ConfigReviewDiff>
+        {
+            new ConfigReviewDiff
+            {
+                SettingId = "s1",
+                FeatureModuleId = "Privacy",
+                IsReviewed = true,
+                IsApproved = true,
+                InputType = InputType.Toggle
+            }
+        };
+
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.IsWindowsDefaults).Returns(false);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
+        _mockConfigReviewDiffService.Setup(d => d.GetApprovedDiffs()).Returns(approvedDiffs);
+        _mockVmCoordinator.Setup(v => v.HasSelectedWindowsApps).Returns(false);
+        _mockVmCoordinator.Setup(v => v.HasSelectedExternalApps).Returns(false);
+
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+        await service.ApplyReviewedConfigAsync();
+
+        _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Never);
     }
 }

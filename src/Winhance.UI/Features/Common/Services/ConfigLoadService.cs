@@ -46,48 +46,57 @@ public class ConfigLoadService : IConfigLoadService
 
     public async Task<UnifiedConfigurationFile?> LoadAndValidateConfigurationFromFileAsync()
     {
-        var window = GetMainWindow();
-        if (window == null)
+        try
         {
-            _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-            await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+            var window = GetMainWindow();
+            if (window == null)
+            {
+                _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
+                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                return null;
+            }
+
+            var filePath = Win32FileDialogHelper.ShowOpenFilePicker(
+                window,
+                "Open Configuration",
+                ConfigFileConstants.FileFilter,
+                ConfigFileConstants.FilePattern);
+
+            if (string.IsNullOrEmpty(filePath))
+                return null;
+
+            var json = await _fileSystemService.ReadAllTextAsync(filePath);
+            var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
+
+            if (loadedConfig == null)
+            {
+                _dialogService.ShowMessage("Failed to load configuration file.", "Error");
+                return null;
+            }
+
+            // Migrate legacy config items (e.g. Toggle->Selection conversions)
+            _configMigrationService.MigrateConfig(loadedConfig);
+
+            if (loadedConfig.Version != "2.0")
+            {
+                var versionText = loadedConfig.Version ?? "unknown";
+                await _dialogService.ShowInformationAsync(
+                    _localizationService.GetString("Config_Unsupported_Message", versionText)
+                        ?? $"This configuration file version ({versionText}) is not compatible with this version of Winhance.",
+                    _localizationService.GetString("Config_Unsupported_Title") ?? "Incompatible Configuration");
+                _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
+                return null;
+            }
+
+            _logService.Log(LogLevel.Info, $"Loaded config v{loadedConfig.Version}");
+            return loadedConfig;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error loading configuration file: {ex.Message}");
+            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
             return null;
         }
-
-        var filePath = Win32FileDialogHelper.ShowOpenFilePicker(
-            window,
-            "Open Configuration",
-            ConfigFileConstants.FileFilter,
-            ConfigFileConstants.FilePattern);
-
-        if (string.IsNullOrEmpty(filePath))
-            return null;
-
-        var json = await _fileSystemService.ReadAllTextAsync(filePath);
-        var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
-
-        if (loadedConfig == null)
-        {
-            _dialogService.ShowMessage("Failed to load configuration file.", "Error");
-            return null;
-        }
-
-        // Migrate legacy config items (e.g. Toggle->Selection conversions)
-        _configMigrationService.MigrateConfig(loadedConfig);
-
-        if (loadedConfig.Version != "2.0")
-        {
-            var versionText = loadedConfig.Version ?? "unknown";
-            await _dialogService.ShowInformationAsync(
-                _localizationService.GetString("Config_Unsupported_Message", versionText)
-                    ?? $"This configuration file version ({versionText}) is not compatible with this version of Winhance.",
-                _localizationService.GetString("Config_Unsupported_Title") ?? "Incompatible Configuration");
-            _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
-            return null;
-        }
-
-        _logService.Log(LogLevel.Info, $"Loaded config v{loadedConfig.Version}");
-        return loadedConfig;
     }
 
     public async Task<UnifiedConfigurationFile?> LoadRecommendedConfigurationAsync()
