@@ -95,8 +95,7 @@ public static class StartMenuCustomizations
                 {
                     Id = "start-recommended-section",
                     Name = "Recommended section",
-                    Description =
-                        "Show or hide the lower section that displays recently opened files and suggested apps. Hiding this section also removes Windows Spotlight from the lock screen options",
+                    Description = "Show or hide the lower section that displays recently opened files and suggested apps. Hiding this section also removes Windows Spotlight from the lock screen and suggested content in the Settings app",
                     GroupName = "Layout",
                     InputType = InputType.Selection,
                     IsWindows11Only = true,
@@ -166,8 +165,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
                             ValueName = "ShowRecentList",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, recently added apps are shown
-                            DisabledValue = 0, // When toggle is OFF, recently added apps are hidden
+                            EnabledValue = [1, null], // When toggle is ON, recently added apps are shown
+                            DisabledValue = [0], // When toggle is OFF, recently added apps are hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -189,8 +188,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
                             ValueName = "ShowFrequentList",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
-                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            EnabledValue = [1], // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = [0], // When toggle is OFF, frequently used programs list is hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -213,8 +212,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackProgs",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
-                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            EnabledValue = [1], // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = [0], // When toggle is OFF, frequently used programs list is hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -247,8 +246,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-338388Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, suggestions are shown
-                            DisabledValue = 0, // When toggle is OFF, suggestions are hidden
+                            EnabledValue = [1], // When toggle is ON, suggestions are shown
+                            DisabledValue = [0], // When toggle is OFF, suggestions are hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -279,8 +278,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackDocs",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, recommended files are shown
-                            DisabledValue = 0, // When toggle is OFF, recommended files are hidden
+                            EnabledValue = [1, null], // When toggle is ON, recommended files are shown
+                            DisabledValue = [0], // When toggle is OFF, recommended files are hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -301,8 +300,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_IrisRecommendations",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -323,8 +322,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_AccountNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, account notifications are shown
-                            DisabledValue = 0, // When toggle is OFF, account notifications are hidden
+                            EnabledValue = [1, null], // When toggle is ON, account notifications are shown
+                            DisabledValue = [0], // When toggle is OFF, account notifications are hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -344,8 +343,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -354,8 +353,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
