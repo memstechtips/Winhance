@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Vyčistit nabídku Start",
   "Review_Mode_Status_AllMatch": "Všechna nastavení již odpovídají konfiguraci",
   "Review_Mode_Status_NoItems": "Žádné položky konfigurace k aplikování",
-  "Review_Mode_Action_ThemeWallpaper": "Použít výchozí tapetu pro tento motiv?",
+  "Review_Mode_Action_ThemeWallpaper": "Použít výchozí tapetu pro {0}?",
   "Review_Mode_Action_CleanTaskbar": "Vyčistit hlavní panel jako součást této konfigurace?",
   "Review_Mode_Action_CleanStartMenu": "Vyčistit nabídku Start jako součást této konfigurace?",
   "Startup_Backup_ConfigBackup": "• Záloha konfigurace: Snímek vašeho aktuálního nastavení Windows",

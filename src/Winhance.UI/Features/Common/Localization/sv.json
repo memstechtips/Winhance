@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Rensa startmenyn",
   "Review_Mode_Status_AllMatch": "Alla inställningar matchar redan konfigurationen",
   "Review_Mode_Status_NoItems": "Inga konfigurationsobjekt att tillämpa",
-  "Review_Mode_Action_ThemeWallpaper": "Tillämpa standardbakgrunden för detta tema?",
+  "Review_Mode_Action_ThemeWallpaper": "Tillämpa standard {0}-bakgrunden?",
   "Review_Mode_Action_CleanTaskbar": "Rensa aktivitetsfältet som en del av denna konfiguration?",
   "Review_Mode_Action_CleanStartMenu": "Rensa startmenyn som en del av denna konfiguration?",
   "Startup_Backup_ConfigBackup": "• Konfigurationssäkerhetskopia: En ögonblicksbild av dina nuvarande Windows-inställningar",

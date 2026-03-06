@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Startmenü bereinigen",
   "Review_Mode_Status_AllMatch": "Alle Einstellungen stimmen bereits mit der Konfiguration überein",
   "Review_Mode_Status_NoItems": "Keine Konfigurationselemente zum Anwenden",
-  "Review_Mode_Action_ThemeWallpaper": "Das Standard-Hintergrundbild für dieses Design anwenden?",
+  "Review_Mode_Action_ThemeWallpaper": "Das Standard-Hintergrundbild für {0} anwenden?",
   "Review_Mode_Action_CleanTaskbar": "Die Taskleiste als Teil dieser Konfiguration bereinigen?",
   "Review_Mode_Action_CleanStartMenu": "Das Startmenü als Teil dieser Konfiguration bereinigen?",
   "Startup_Backup_ConfigBackup": "• Konfigurationssicherung: Eine Momentaufnahme Ihrer aktuellen Windows-Einstellungen",

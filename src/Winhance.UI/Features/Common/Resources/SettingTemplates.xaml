@@ -279,6 +279,44 @@
                     </InfoBar.Content>
                 </InfoBar>
             </Border>
+
+            <!-- Review mode action banner (shown for action settings like wallpaper alongside a diff) -->
+            <Border Visibility="{x:Bind HasReviewAction, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <InfoBar
+                    IsOpen="{x:Bind HasReviewAction, Mode=OneWay}"
+                    Severity="Warning"
+                    IsClosable="False"
+                    AutomationProperties.LiveSetting="Off"
+                    Margin="0,-1,0,0"
+                    CornerRadius="0,0,4,4">
+                    <InfoBar.Content>
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="{x:Bind ReviewActionMessage, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="1"
+                                Content="Apply"
+                                GroupName="{x:Bind ReviewActionGroupName}"
+                                IsChecked="{x:Bind IsReviewActionApproved, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="2"
+                                Content="Don't apply"
+                                GroupName="{x:Bind ReviewActionGroupName}"
+                                IsChecked="{x:Bind IsReviewActionRejected, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                        </Grid>
+                    </InfoBar.Content>
+                </InfoBar>
+            </Border>
         </StackPanel>
     </DataTemplate>
 

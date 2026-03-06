@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "स्टार्ट मेनू साफ़ करें",
   "Review_Mode_Status_AllMatch": "सभी सेटिंग्स पहले से कॉन्फ़िग से मेल खाती हैं",
   "Review_Mode_Status_NoItems": "लागू करने के लिए कोई कॉन्फ़िगरेशन आइटम नहीं",
-  "Review_Mode_Action_ThemeWallpaper": "इस थीम के लिए डिफ़ॉल्ट वॉलपेपर लागू करें?",
+  "Review_Mode_Action_ThemeWallpaper": "डिफ़ॉल्ट {0} वॉलपेपर लागू करें?",
   "Review_Mode_Action_CleanTaskbar": "इस कॉन्फ़िगरेशन के हिस्से के रूप में टास्कबार साफ़ करें?",
   "Review_Mode_Action_CleanStartMenu": "इस कॉन्फ़िगरेशन के हिस्से के रूप में स्टार्ट मेनू साफ़ करें?",
   "Startup_Backup_ConfigBackup": "• कॉन्फ़िगरेशन बैकअप: आपकी वर्तमान Windows सेटिंग्स का एक स्नैपशॉट",

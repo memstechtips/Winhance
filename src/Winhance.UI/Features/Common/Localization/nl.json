@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Startmenu opschonen",
   "Review_Mode_Status_AllMatch": "Alle instellingen komen al overeen met de configuratie",
   "Review_Mode_Status_NoItems": "Geen configuratie-items om toe te passen",
-  "Review_Mode_Action_ThemeWallpaper": "De standaardachtergrond voor dit thema toepassen?",
+  "Review_Mode_Action_ThemeWallpaper": "De standaard {0} achtergrond toepassen?",
   "Review_Mode_Action_CleanTaskbar": "De taakbalk opschonen als onderdeel van deze configuratie?",
   "Review_Mode_Action_CleanStartMenu": "Het startmenu opschonen als onderdeel van deze configuratie?",
   "Startup_Backup_ConfigBackup": "• Configuratieback-up: Een momentopname van uw huidige Windows-instellingen",

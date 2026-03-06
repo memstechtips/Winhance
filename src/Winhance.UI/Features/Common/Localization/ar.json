@@ -1476,7 +1476,7 @@
     "Config_Import_Options_CleanStartMenu": "تنظيف قائمة ابدأ",
     "Review_Mode_Status_AllMatch": "جميع الإعدادات تتطابق مع التكوين",
     "Review_Mode_Status_NoItems": "لا توجد عناصر تكوين للتطبيق",
-    "Review_Mode_Action_ThemeWallpaper": "هل تريد تطبيق خلفية الشاشة الافتراضية لهذه السمة؟",
+    "Review_Mode_Action_ThemeWallpaper": "هل تريد تطبيق خلفية {0} الافتراضية؟",
     "Review_Mode_Action_CleanTaskbar": "هل تريد تنظيف شريط المهام كجزء من هذا التكوين؟",
     "Review_Mode_Action_CleanStartMenu": "هل تريد تنظيف قائمة ابدأ كجزء من هذا التكوين؟",
     "Startup_Backup_ConfigBackup": "• نسخة احتياطية للتكوين: لقطة من إعدادات Windows الحالية",

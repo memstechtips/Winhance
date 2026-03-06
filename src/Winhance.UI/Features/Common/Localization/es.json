@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Limpiar menú Inicio",
   "Review_Mode_Status_AllMatch": "Todos los ajustes ya coinciden con la configuración",
   "Review_Mode_Status_NoItems": "No hay elementos de configuración que aplicar",
-  "Review_Mode_Action_ThemeWallpaper": "¿Aplicar el fondo de pantalla predeterminado para este tema?",
+  "Review_Mode_Action_ThemeWallpaper": "¿Aplicar el fondo de pantalla predeterminado de {0}?",
   "Review_Mode_Action_CleanTaskbar": "¿Limpiar la barra de tareas como parte de esta configuración?",
   "Review_Mode_Action_CleanStartMenu": "¿Limpiar el menú Inicio como parte de esta configuración?",
   "Startup_Backup_ConfigBackup": "• Copia de Seguridad de Configuración: Una instantánea de sus ajustes actuales de Windows",

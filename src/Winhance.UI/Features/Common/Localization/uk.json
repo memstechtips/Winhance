@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Очистити меню Пуск",
   "Review_Mode_Status_AllMatch": "Усі налаштування вже відповідають конфігурації",
   "Review_Mode_Status_NoItems": "Немає елементів конфігурації для застосування",
-  "Review_Mode_Action_ThemeWallpaper": "Застосувати стандартні шпалери для цієї теми?",
+  "Review_Mode_Action_ThemeWallpaper": "Застосувати стандартні шпалери {0}?",
   "Review_Mode_Action_CleanTaskbar": "Очистити панель завдань як частину цієї конфігурації?",
   "Review_Mode_Action_CleanStartMenu": "Очистити меню Пуск як частину цієї конфігурації?",
   "Startup_Backup_ConfigBackup": "• Резервна копія конфігурації: Знімок ваших поточних налаштувань Windows",

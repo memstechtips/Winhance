@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "スタートメニューをクリーンアップ",
   "Review_Mode_Status_AllMatch": "すべての設定が既に設定と一致しています",
   "Review_Mode_Status_NoItems": "適用する設定項目がありません",
-  "Review_Mode_Action_ThemeWallpaper": "このテーマの既定の壁紙を適用しますか？",
+  "Review_Mode_Action_ThemeWallpaper": "既定の{0}壁紙を適用しますか？",
   "Review_Mode_Action_CleanTaskbar": "この設定の一部としてタスクバーをクリーンアップしますか？",
   "Review_Mode_Action_CleanStartMenu": "この設定の一部としてスタートメニューをクリーンアップしますか？",
   "Startup_Backup_ConfigBackup": "• 設定バックアップ: 現在の Windows 設定のスナップショット",

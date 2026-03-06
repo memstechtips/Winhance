@@ -141,7 +141,7 @@
   "Config_Import_Options_CleanStartMenu": "Başlat Menüsünü Temizle",
   "Review_Mode_Status_AllMatch": "Tüm ayarlar zaten yapılandırma ile eşleşiyor",
   "Review_Mode_Status_NoItems": "Uygulanacak yapılandırma öğesi yok",
-  "Review_Mode_Action_ThemeWallpaper": "Bu tema için varsayılan duvar kağıdı uygulansın mı?",
+  "Review_Mode_Action_ThemeWallpaper": "Varsayılan {0} duvar kağıdı uygulansın mı?",
   "Review_Mode_Action_CleanTaskbar": "Bu yapılandırmanın bir parçası olarak görev çubuğu temizlensin mi?",
   "Review_Mode_Action_CleanStartMenu": "Bu yapılandırmanın bir parçası olarak başlat menüsü temizlensin mi?",
   "Button_OK": "Tamam",

@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Maak beginkieslys skoon",
   "Review_Mode_Status_AllMatch": "Alle instellings stem reeds ooreen met konfigurasie",
   "Review_Mode_Status_NoItems": "Geen konfigurasie-items om toe te pas nie",
-  "Review_Mode_Action_ThemeWallpaper": "Pas die verstekmuurpapier vir hierdie tema toe?",
+  "Review_Mode_Action_ThemeWallpaper": "Pas die verstekagtergrond vir {0} toe?",
   "Review_Mode_Action_CleanTaskbar": "Maak die taakbalk skoon as deel van hierdie konfigurasie?",
   "Review_Mode_Action_CleanStartMenu": "Maak die beginkieslys skoon as deel van hierdie konfigurasie?",
   "Startup_Backup_ConfigBackup": "• Konfigurasie-rugsteun: 'n Momentopname van jou huidige Windows-instellings",

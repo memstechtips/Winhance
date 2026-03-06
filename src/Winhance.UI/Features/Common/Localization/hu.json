@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Start menü tisztítása",
   "Review_Mode_Status_AllMatch": "Minden beállítás már megegyezik a konfigurációval",
   "Review_Mode_Status_NoItems": "Nincsenek alkalmazandó konfigurációs elemek",
-  "Review_Mode_Action_ThemeWallpaper": "Alkalmazza az alapértelmezett háttérképet ehhez a témához?",
+  "Review_Mode_Action_ThemeWallpaper": "Alkalmazza az alapértelmezett {0} háttérképet?",
   "Review_Mode_Action_CleanTaskbar": "Tálca megtisztítása a konfiguráció részeként?",
   "Review_Mode_Action_CleanStartMenu": "Start menü megtisztítása a konfiguráció részeként?",
   "Startup_Backup_ConfigBackup": "• Konfigurációs biztonsági mentés: Pillanatkép a jelenlegi Windows beállításairól",

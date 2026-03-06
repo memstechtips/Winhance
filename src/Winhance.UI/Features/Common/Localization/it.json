@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Pulisci menu Start",
   "Review_Mode_Status_AllMatch": "Tutte le impostazioni corrispondono già alla configurazione",
   "Review_Mode_Status_NoItems": "Nessun elemento di configurazione da applicare",
-  "Review_Mode_Action_ThemeWallpaper": "Applicare lo sfondo predefinito per questo tema?",
+  "Review_Mode_Action_ThemeWallpaper": "Applicare lo sfondo predefinito {0}?",
   "Review_Mode_Action_CleanTaskbar": "Pulire la barra delle applicazioni come parte di questa configurazione?",
   "Review_Mode_Action_CleanStartMenu": "Pulire il menu Start come parte di questa configurazione?",
   "Startup_Backup_ConfigBackup": "• Backup configurazione: Un'istantanea delle impostazioni Windows attuali",

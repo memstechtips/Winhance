@@ -337,6 +337,76 @@ public class ConfigReviewServiceTests : IDisposable
         diff.ActionConfirmationMessage.Should().NotBeEmpty();
     }
 
+    [Theory]
+    [InlineData(0, "Light")]
+    [InlineData(1, "Dark")]
+    public async Task EnterReviewModeAsync_ThemeWallpaperAction_IncludesThemeName(int selectedIndex, string expectedThemeName)
+    {
+        var settingDef = new SettingDefinition
+        {
+            Id = SettingIds.ThemeModeWindows,
+            Name = "Choose your mode",
+            Description = "Test",
+            InputType = InputType.Selection
+        };
+
+        _mockCompatibleSettingsRegistry
+            .Setup(r => r.GetFilteredSettings("WindowsTheme"))
+            .Returns(new[] { settingDef });
+
+        _mockDiscoveryService
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
+            });
+
+        _mockLocalizationService
+            .Setup(l => l.GetString("Review_Mode_Action_ThemeWallpaper"))
+            .Returns("Apply the default {0} wallpaper?");
+
+        _mockLocalizationService
+            .Setup(l => l.GetString("Theme_LightNative"))
+            .Returns("Light");
+
+        _mockLocalizationService
+            .Setup(l => l.GetString("Theme_DarkNative"))
+            .Returns("Dark");
+
+        var config = new UnifiedConfigurationFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["WindowsTheme"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = SettingIds.ThemeModeWindows,
+                                Name = "Choose your mode",
+                                SelectedIndex = selectedIndex,
+                                InputType = InputType.Selection
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        var diff = service.GetDiffForSetting(SettingIds.ThemeModeWindows);
+        diff.Should().NotBeNull();
+        diff!.IsActionSetting.Should().BeTrue();
+        diff.ActionConfirmationMessage.Should().Be($"Apply the default {expectedThemeName} wallpaper?");
+    }
+
     [Fact]
     public async Task EnterReviewModeAsync_ClearsPreviousState()
     {
@@ -384,6 +454,55 @@ public class ConfigReviewServiceTests : IDisposable
         service.ExitReviewMode();
 
         eventFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExitReviewMode_FiresBadgeStateChangedEvent()
+    {
+        var service = CreateService();
+        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+
+        bool eventFired = false;
+        service.BadgeStateChanged += (_, _) => eventFired = true;
+
+        service.ExitReviewMode();
+
+        eventFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExitReviewMode_ClearsBadgeRelatedState()
+    {
+        var config = new UnifiedConfigurationFile
+        {
+            WindowsApps = new ConfigSection
+            {
+                IsIncluded = true,
+                Items = new List<ConfigurationItem>
+                {
+                    new ConfigurationItem { Id = "app1" }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        // Register diffs so badge queries return non-zero values
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
+
+        // Verify state exists before exit
+        service.GetFeatureDiffCount("Privacy").Should().Be(2);
+        service.IsFeatureInConfig(FeatureIds.WindowsApps).Should().BeTrue();
+
+        service.ExitReviewMode();
+
+        // After exit, all badge queries must return cleared/default values
+        service.GetFeatureDiffCount("Privacy").Should().Be(0);
+        service.GetFeaturePendingDiffCount("Privacy").Should().Be(0);
+        service.IsFeatureInConfig(FeatureIds.WindowsApps).Should().BeFalse();
+        service.IsFeatureFullyReviewed("Privacy").Should().BeFalse();
     }
 
     // -------------------------------------------------------

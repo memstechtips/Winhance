@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Dọn dẹp menu Start",
   "Review_Mode_Status_AllMatch": "Tất cả cài đặt đã khớp với cấu hình",
   "Review_Mode_Status_NoItems": "Không có mục cấu hình nào để áp dụng",
-  "Review_Mode_Action_ThemeWallpaper": "Áp dụng hình nền mặc định cho chủ đề này?",
+  "Review_Mode_Action_ThemeWallpaper": "Áp dụng hình nền mặc định {0}?",
   "Review_Mode_Action_CleanTaskbar": "Dọn dẹp thanh tác vụ như một phần của cấu hình này?",
   "Review_Mode_Action_CleanStartMenu": "Dọn dẹp menu Bắt đầu như một phần của cấu hình này?",
   "Startup_Backup_ConfigBackup": "• Sao lưu cấu hình: Bản chụp nhanh cài đặt Windows hiện tại của bạn",

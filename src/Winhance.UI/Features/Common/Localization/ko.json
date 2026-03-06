@@ -141,7 +141,7 @@
   "Config_Import_Options_CleanStartMenu": "시작 메뉴 정리",
   "Review_Mode_Status_AllMatch": "모든 설정이 이미 구성과 일치합니다",
   "Review_Mode_Status_NoItems": "적용할 구성 항목이 없습니다",
-  "Review_Mode_Action_ThemeWallpaper": "이 테마의 기본 배경화면을 적용하시겠습니까?",
+  "Review_Mode_Action_ThemeWallpaper": "기본 {0} 배경화면을 적용하시겠습니까?",
   "Review_Mode_Action_CleanTaskbar": "이 구성의 일부로 작업 표시줄을 정리하시겠습니까?",
   "Review_Mode_Action_CleanStartMenu": "이 구성의 일부로 시작 메뉴를 정리하시겠습니까?",
   "Button_OK": "확인",

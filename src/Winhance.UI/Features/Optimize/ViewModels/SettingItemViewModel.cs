@@ -198,6 +198,47 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public bool IsReviewDecisionMade => IsReviewApproved || IsReviewRejected;
 
+    // Review action properties (for action settings like wallpaper that appear alongside a diff)
+    [ObservableProperty]
+    public partial bool HasReviewAction { get; set; }
+
+    [ObservableProperty]
+    public partial string? ReviewActionMessage { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsReviewActionApproved { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsReviewActionRejected { get; set; }
+
+    public bool IsReviewActionDecisionMade => IsReviewActionApproved || IsReviewActionRejected;
+
+    public string ReviewActionGroupName => $"{SettingId}_action";
+
+    /// <summary>
+    /// Raised when the user changes the review action approval state.
+    /// </summary>
+    public event EventHandler<bool>? ReviewActionApprovalChanged;
+
+    partial void OnIsReviewActionApprovedChanged(bool value)
+    {
+        if (value && IsReviewActionRejected)
+            IsReviewActionRejected = false;
+
+        OnPropertyChanged(nameof(IsReviewActionDecisionMade));
+        ReviewActionApprovalChanged?.Invoke(this, value);
+    }
+
+    partial void OnIsReviewActionRejectedChanged(bool value)
+    {
+        if (value && IsReviewActionApproved)
+            IsReviewActionApproved = false;
+
+        OnPropertyChanged(nameof(IsReviewActionDecisionMade));
+        if (value)
+            ReviewActionApprovalChanged?.Invoke(this, false);
+    }
+
     partial void OnIsInReviewModeChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveIsEnabled));
@@ -241,12 +282,17 @@ public partial class SettingItemViewModel : BaseViewModel
         // OnIsReviewApprovedChanged/OnIsReviewRejectedChanged from
         // invoking stale subscribers during cleanup.
         ReviewApprovalChanged = null;
+        ReviewActionApprovalChanged = null;
 
         IsInReviewMode = false;
         HasReviewDiff = false;
         ReviewDiffMessage = null;
         IsReviewApproved = false;
         IsReviewRejected = false;
+        HasReviewAction = false;
+        ReviewActionMessage = null;
+        IsReviewActionApproved = false;
+        IsReviewActionRejected = false;
     }
 
     partial void OnIsEnabledChanged(bool value)

@@ -40,17 +40,28 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
         if (existingDiff != null)
         {
             // Use the pre-computed diff
-            if (existingDiff.IsActionSetting && !string.IsNullOrEmpty(existingDiff.ActionConfirmationMessage))
+            bool hasDiffValues = !string.IsNullOrEmpty(existingDiff.CurrentValueDisplay) && !string.IsNullOrEmpty(existingDiff.ConfigValueDisplay);
+            bool hasAction = existingDiff.IsActionSetting && !string.IsNullOrEmpty(existingDiff.ActionConfirmationMessage);
+
+            if (hasDiffValues)
             {
-                // Action settings show their custom confirmation message
-                viewModel.HasReviewDiff = true;
-                viewModel.ReviewDiffMessage = existingDiff.ActionConfirmationMessage;
-            }
-            else
-            {
+                // Show the value diff (e.g. "Current: Light Mode → Config: Dark Mode")
                 var diffFormat = _localizationService.GetString("Review_Mode_Diff_Toggle") ?? "Current: {0} \u2192 Config: {1}";
                 viewModel.HasReviewDiff = true;
                 viewModel.ReviewDiffMessage = string.Format(diffFormat, existingDiff.CurrentValueDisplay, existingDiff.ConfigValueDisplay);
+            }
+
+            if (hasAction && hasDiffValues)
+            {
+                // Show action as a separate infobar alongside the diff
+                viewModel.HasReviewAction = true;
+                viewModel.ReviewActionMessage = existingDiff.ActionConfirmationMessage;
+            }
+            else if (hasAction)
+            {
+                // Action-only settings (no value diff) show in the primary infobar
+                viewModel.HasReviewDiff = true;
+                viewModel.ReviewDiffMessage = existingDiff.ActionConfirmationMessage;
             }
 
             // Restore review decision state
@@ -62,10 +73,25 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                     viewModel.IsReviewRejected = true;
             }
 
+            // Restore action review decision state
+            if (existingDiff.IsActionReviewed)
+            {
+                if (existingDiff.IsActionApproved)
+                    viewModel.IsReviewActionApproved = true;
+                else
+                    viewModel.IsReviewActionRejected = true;
+            }
+
             // Subscribe to approval changes from this ViewModel
             viewModel.ReviewApprovalChanged += (sender, approved) =>
             {
                 _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
+            };
+
+            // Subscribe to action approval changes
+            viewModel.ReviewActionApprovalChanged += (sender, approved) =>
+            {
+                _configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
             };
             return;
         }

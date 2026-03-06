@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Καθαρισμός μενού Έναρξη",
   "Review_Mode_Status_AllMatch": "Όλες οι ρυθμίσεις ταιριάζουν ήδη με τη διαμόρφωση",
   "Review_Mode_Status_NoItems": "Δεν υπάρχουν στοιχεία διαμόρφωσης προς εφαρμογή",
-  "Review_Mode_Action_ThemeWallpaper": "Εφαρμογή της προεπιλεγμένης ταπετσαρίας για αυτό το θέμα;",
+  "Review_Mode_Action_ThemeWallpaper": "Εφαρμογή της προεπιλεγμένης ταπετσαρίας {0};",
   "Review_Mode_Action_CleanTaskbar": "Καθαρισμός της γραμμής εργασιών ως μέρος αυτής της διαμόρφωσης;",
   "Review_Mode_Action_CleanStartMenu": "Καθαρισμός του μενού Έναρξη ως μέρος αυτής της διαμόρφωσης;",
   "Startup_Backup_ConfigBackup": "• Αντίγραφο Ασφαλείας Διαμόρφωσης: Ένα στιγμιότυπο των τρεχουσών ρυθμίσεων Windows σας",

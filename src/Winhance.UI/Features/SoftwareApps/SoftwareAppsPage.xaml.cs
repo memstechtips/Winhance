@@ -2,10 +2,13 @@ using System.ComponentModel;
 using CommunityToolkit.WinUI.Collections;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.SoftwareApps;
@@ -20,6 +23,26 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel = App.Services.GetRequiredService<SoftwareAppsViewModel>();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateTabBadges();
+
+        // WinUI 3 InfoBar on a cached page does not re-evaluate its internal
+        // ThemeResource bindings when the app theme changes.  Work around this
+        // by closing and re-opening the visible banner on the next dispatcher
+        // tick so the control rebuilds its visual tree with the new brushes.
+        var themeService = App.Services.GetRequiredService<IThemeService>();
+        themeService.ThemeChanged += (_, _) =>
+        {
+            if (!ViewModel.IsInReviewMode)
+                return;
+
+            WindowsAppsReviewBanner.IsOpen = false;
+            ExternalAppsReviewBanner.IsOpen = false;
+
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                WindowsAppsReviewBanner.IsOpen = true;
+                ExternalAppsReviewBanner.IsOpen = true;
+            });
+        };
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

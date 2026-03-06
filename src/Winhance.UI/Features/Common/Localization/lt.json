@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Išvalyti pradžios meniu",
   "Review_Mode_Status_AllMatch": "Visi nustatymai jau atitinka konfigūraciją",
   "Review_Mode_Status_NoItems": "Nėra konfigūracijos elementų, kuriuos būtų galima pritaikyti",
-  "Review_Mode_Action_ThemeWallpaper": "Pritaikyti numatytąjį šios temos darbalaukio foną?",
+  "Review_Mode_Action_ThemeWallpaper": "Pritaikyti numatytąjį {0} darbalaukio foną?",
   "Review_Mode_Action_CleanTaskbar": "Išvalyti užduočių juostą kaip šios konfigūracijos dalį?",
   "Review_Mode_Action_CleanStartMenu": "Išvalyti pradžios meniu kaip šios konfigūracijos dalį?",
   "Startup_Backup_ConfigBackup": "• Konfigūracijos atsarginė kopija: dabartinių Windows nustatymų momentinė kopija",

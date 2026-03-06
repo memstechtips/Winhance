@@ -126,6 +126,13 @@ public sealed partial class OptimizePage : Page
             // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
             ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            if (_configReviewService != null)
+            {
+                _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+                _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
+                _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+            }
             UpdateBreadcrumbMenuItems();
 
             // Ensure we're showing overview on initial navigation
@@ -138,12 +145,9 @@ public sealed partial class OptimizePage : Page
             // Initialize technical details toggle state
             await InitializeTechnicalDetailsToggleAsync();
 
-            // Update badges if already in review mode (events fired before page existed)
-            if (_configReviewService?.IsInReviewMode == true)
-            {
-                UpdateOverviewBadges();
-                UpdateBreadcrumbBadges();
-            }
+            // Always update badges: shows them if in review mode, collapses them if not
+            UpdateOverviewBadges();
+            UpdateBreadcrumbBadges();
 
             StartupLogger.Log("OptimizePage", "OnNavigatedTo complete");
         }

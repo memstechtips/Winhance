@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Очистить меню Пуск",
   "Review_Mode_Status_AllMatch": "Все настройки уже соответствуют конфигурации",
   "Review_Mode_Status_NoItems": "Нет элементов конфигурации для применения",
-  "Review_Mode_Action_ThemeWallpaper": "Применить обои по умолчанию для этой темы?",
+  "Review_Mode_Action_ThemeWallpaper": "Применить обои по умолчанию для {0}?",
   "Review_Mode_Action_CleanTaskbar": "Очистить панель задач в рамках этой конфигурации?",
   "Review_Mode_Action_CleanStartMenu": "Очистить меню «Пуск» в рамках этой конфигурации?",
   "Startup_Backup_ConfigBackup": "• Резервная копия конфигурации: Снимок ваших текущих настроек Windows",

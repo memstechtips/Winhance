@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Wyczyść menu Start",
   "Review_Mode_Status_AllMatch": "Wszystkie ustawienia już odpowiadają konfiguracji",
   "Review_Mode_Status_NoItems": "Brak elementów konfiguracji do zastosowania",
-  "Review_Mode_Action_ThemeWallpaper": "Zastosować domyślną tapetę dla tego motywu?",
+  "Review_Mode_Action_ThemeWallpaper": "Zastosować domyślną tapetę {0}?",
   "Review_Mode_Action_CleanTaskbar": "Wyczyścić pasek zadań w ramach tej konfiguracji?",
   "Review_Mode_Action_CleanStartMenu": "Wyczyścić menu Start w ramach tej konfiguracji?",
   "Startup_Backup_ConfigBackup": "• Kopia zapasowa konfiguracji: Migawka bieżących ustawień Windows",

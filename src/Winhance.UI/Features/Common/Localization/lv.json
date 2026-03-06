@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Iztīrīt sākuma izvēlni",
   "Review_Mode_Status_AllMatch": "Visi iestatījumi jau atbilst konfigurācijai",
   "Review_Mode_Status_NoItems": "Nav konfigurācijas vienumu, ko lietot",
-  "Review_Mode_Action_ThemeWallpaper": "Lietot šīs tēmas noklusējuma fona attēlu?",
+  "Review_Mode_Action_ThemeWallpaper": "Lietot noklusējuma {0} fona attēlu?",
   "Review_Mode_Action_CleanTaskbar": "Iztīrīt uzdevumjoslu kā daļu no šīs konfigurācijas?",
   "Review_Mode_Action_CleanStartMenu": "Iztīrīt sākuma izvēlni kā daļu no šīs konfigurācijas?",
   "Startup_Backup_ConfigBackup": "• Konfigurācijas rezerves kopija: pašreizējo Windows iestatījumu momentuzņēmums",

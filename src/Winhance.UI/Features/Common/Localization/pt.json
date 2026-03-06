@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Limpar menu Iniciar",
   "Review_Mode_Status_AllMatch": "Todas as definições já correspondem à configuração",
   "Review_Mode_Status_NoItems": "Sem itens de configuração para aplicar",
-  "Review_Mode_Action_ThemeWallpaper": "Aplicar o papel de parede predefinido para este tema?",
+  "Review_Mode_Action_ThemeWallpaper": "Aplicar o papel de parede predefinido {0}?",
   "Review_Mode_Action_CleanTaskbar": "Limpar a barra de tarefas como parte desta configuração?",
   "Review_Mode_Action_CleanStartMenu": "Limpar o menu Iniciar como parte desta configuração?",
   "Startup_Backup_ConfigBackup": "• Cópia de Segurança da Configuração: Um instantâneo das suas definições atuais do Windows",

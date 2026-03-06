@@ -141,7 +141,7 @@
   "Config_Import_Options_CleanStartMenu": "Clean Start Menu",
   "Review_Mode_Status_AllMatch": "All settings already match config",
   "Review_Mode_Status_NoItems": "No configuration items to apply",
-  "Review_Mode_Action_ThemeWallpaper": "Apply the default wallpaper for this theme?",
+  "Review_Mode_Action_ThemeWallpaper": "Apply the default {0} wallpaper?",
   "Review_Mode_Action_CleanTaskbar": "Clean the taskbar as part of this configuration?",
   "Review_Mode_Action_CleanStartMenu": "Clean the start menu as part of this configuration?",
   "Button_OK": "OK",

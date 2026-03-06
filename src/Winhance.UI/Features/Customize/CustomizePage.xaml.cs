@@ -127,12 +127,9 @@ public sealed partial class CustomizePage : Page
             // Initialize technical details toggle state
             await InitializeTechnicalDetailsToggleAsync();
 
-            // Update badges if already in review mode (events fired before page existed)
-            if (_configReviewService?.IsInReviewMode == true)
-            {
-                UpdateOverviewBadges();
-                UpdateBreadcrumbBadges();
-            }
+            // Always update badges: shows them if in review mode, collapses them if not
+            UpdateOverviewBadges();
+            UpdateBreadcrumbBadges();
 
             StartupLogger.Log("CustomizePage", "OnNavigatedTo complete");
         }

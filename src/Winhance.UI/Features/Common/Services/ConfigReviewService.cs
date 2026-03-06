@@ -143,6 +143,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
+    public void SetActionApproval(string settingId, bool approved)
+    {
+        if (_diffs.TryGetValue(settingId, out var diff))
+        {
+            _diffs[settingId] = diff with { IsActionReviewed = true, IsActionApproved = approved };
+        }
+    }
+
     public IReadOnlyList<ConfigReviewDiff> GetApprovedDiffs()
     {
         return _diffs.Values.Where(d => d.IsReviewed && d.IsApproved).ToList().AsReadOnly();
@@ -395,7 +403,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                     if (isActionSetting)
                     {
-                        diff = diff with { ActionConfirmationMessage = GetActionConfirmationMessage(configItem.Id) };
+                        diff = diff with { ActionConfirmationMessage = GetActionConfirmationMessage(configItem) };
                     }
 
                     _diffs[configItem.Id] = diff;
@@ -413,12 +421,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
-    private string GetActionConfirmationMessage(string settingId)
+    private string GetActionConfirmationMessage(ConfigurationItem configItem)
     {
-        return settingId switch
+        return configItem.Id switch
         {
-            SettingIds.ThemeModeWindows => _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
-                ?? "Apply the default wallpaper for this theme? (Recommended)",
+            SettingIds.ThemeModeWindows => GetThemeWallpaperMessage(configItem),
             "taskbar-clean" => _localizationService.GetString("Review_Mode_Action_CleanTaskbar")
                 ?? "Clean the taskbar as part of this configuration?",
             "start-menu-clean-10" or "start-menu-clean-11" =>
@@ -426,6 +433,15 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 ?? "Clean the start menu as part of this configuration?",
             _ => string.Empty
         };
+    }
+
+    private string GetThemeWallpaperMessage(ConfigurationItem configItem)
+    {
+        var themeNameKey = configItem.SelectedIndex == 0 ? "Theme_LightNative" : "Theme_DarkNative";
+        var themeName = _localizationService.GetString(themeNameKey) ?? (configItem.SelectedIndex == 0 ? "Light" : "Dark");
+        var format = _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
+            ?? "Apply the default {0} wallpaper?";
+        return string.Format(format, themeName);
     }
 
     /// <summary>
@@ -643,8 +659,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 updated = updated with { CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey) };
             if (diff.ConfigDisplayKey != null)
                 updated = updated with { ConfigValueDisplay = LocalizeComboBoxDisplayText(diff.ConfigDisplayKey) };
-            if (diff.IsActionSetting)
-                updated = updated with { ActionConfirmationMessage = GetActionConfirmationMessage(diff.SettingId) };
+            if (diff.IsActionSetting && diff.ConfigItem != null)
+                updated = updated with { ActionConfirmationMessage = GetActionConfirmationMessage(diff.ConfigItem) };
             _diffs[key] = updated;
         }
     }

@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "清理開始功能表",
   "Review_Mode_Status_AllMatch": "所有設定已與設定檔一致",
   "Review_Mode_Status_NoItems": "沒有要套用的設定項目",
-  "Review_Mode_Action_ThemeWallpaper": "是否套用此佈景主題的預設桌布？",
+  "Review_Mode_Action_ThemeWallpaper": "是否套用預設的{0}桌布？",
   "Review_Mode_Action_CleanTaskbar": "是否在此設定中清理工作列？",
   "Review_Mode_Action_CleanStartMenu": "是否在此設定中清理開始功能表？",
   "Startup_Backup_ConfigBackup": "• 設定備份：目前 Windows 設定的快照",

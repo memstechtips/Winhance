@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "清理开始菜单",
   "Review_Mode_Status_AllMatch": "所有设置已与配置一致",
   "Review_Mode_Status_NoItems": "没有要应用的配置项",
-  "Review_Mode_Action_ThemeWallpaper": "是否应用此主题的默认壁纸？",
+  "Review_Mode_Action_ThemeWallpaper": "是否应用默认的{0}壁纸？",
   "Review_Mode_Action_CleanTaskbar": "是否在此配置中清理任务栏？",
   "Review_Mode_Action_CleanStartMenu": "是否在此配置中清理开始菜单？",
   "Startup_Backup_ConfigBackup": "• 配置备份：当前 Windows 设置的快照",

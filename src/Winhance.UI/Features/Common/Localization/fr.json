@@ -1476,7 +1476,7 @@
   "Config_Import_Options_CleanStartMenu": "Nettoyer le menu Démarrer",
   "Review_Mode_Status_AllMatch": "Tous les paramètres correspondent déjà à la configuration",
   "Review_Mode_Status_NoItems": "Aucun élément de configuration à appliquer",
-  "Review_Mode_Action_ThemeWallpaper": "Appliquer le fond d'écran par défaut pour ce thème ?",
+  "Review_Mode_Action_ThemeWallpaper": "Appliquer le fond d'écran {0} par défaut ?",
   "Review_Mode_Action_CleanTaskbar": "Nettoyer la barre des tâches dans le cadre de cette configuration ?",
   "Review_Mode_Action_CleanStartMenu": "Nettoyer le menu Démarrer dans le cadre de cette configuration ?",
   "Startup_Backup_ConfigBackup": "• Sauvegarde de Configuration : Un instantané de vos paramètres Windows actuels",
