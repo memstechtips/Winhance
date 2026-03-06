@@ -43,7 +43,7 @@ try {
     Write-Host ""
     Write-Host "Download completed successfully!" -ForegroundColor Green
     Write-Host "Launching Winhance Installer..." -ForegroundColor Cyan
-    Start-Process -FilePath $installerPath
+    Start-Process -FilePath $installerPath -ArgumentList "/SILENT /SUPPRESSMSGBOXES"
     Write-Host "Installer launched." -ForegroundColor Green
 } catch {
     Write-Host ""
