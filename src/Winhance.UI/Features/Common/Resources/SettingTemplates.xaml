@@ -174,7 +174,7 @@
                                     </StackPanel>
                                     <!-- Current + Recommended values -->
                                     <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                Margin="12,0,0,0" MinWidth="140">
+                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                    IsTextSelectionEnabled="True">
                                             <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
