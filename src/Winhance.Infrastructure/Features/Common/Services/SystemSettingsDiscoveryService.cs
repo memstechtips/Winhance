@@ -429,6 +429,16 @@ public class SystemSettingsDiscoveryService(
         {
             foreach (var registrySetting in setting.RegistrySettings)
             {
+                // ApplyPerNetworkInterface requires checking all sub-keys;
+                // batch-read values only contain the parent key, so delegate
+                // to IsSettingApplied which handles sub-key expansion.
+                if (registrySetting.ApplyPerNetworkInterface)
+                {
+                    if (registryService.IsSettingApplied(registrySetting))
+                        return true;
+                    continue;
+                }
+
                 var valueName = registrySetting.ValueName ?? "KeyExists";
                 if (!rawValues.TryGetValue(valueName, out var currentValue))
                     continue;

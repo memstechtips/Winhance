@@ -307,4 +307,76 @@ public class WindowsRegistryServiceTests
         var setting = CreateTestSetting(enabledValue: [1], disabledValue: [0]);
         _sut.IsRegistryValueInEnabledState(setting, 99, true).Should().BeFalse();
     }
+
+    // ── CompositeStringKey handling ──
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_CompositeStringKey_MatchesEnabled_ReturnsTrue()
+    {
+        var setting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "DirectXUserGlobalSettings",
+            CompositeStringKey = "SwapEffectUpgradeEnable",
+            EnabledValue = ["1"],
+            DisabledValue = ["0"],
+            DefaultValue = "1",
+            ValueType = Microsoft.Win32.RegistryValueKind.String,
+        };
+        _sut.IsRegistryValueInEnabledState(setting, "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;", true)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_CompositeStringKey_MatchesDisabled_ReturnsFalse()
+    {
+        var setting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "DirectXUserGlobalSettings",
+            CompositeStringKey = "SwapEffectUpgradeEnable",
+            EnabledValue = ["1"],
+            DisabledValue = ["0"],
+            DefaultValue = "1",
+            ValueType = Microsoft.Win32.RegistryValueKind.String,
+        };
+        _sut.IsRegistryValueInEnabledState(setting, "SwapEffectUpgradeEnable=0;VRROptimizeEnable=1;", true)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_CompositeStringKey_SubKeyAbsent_UsesDefaultValue()
+    {
+        var setting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "DirectXUserGlobalSettings",
+            CompositeStringKey = "SwapEffectUpgradeEnable",
+            EnabledValue = ["1"],
+            DisabledValue = ["0"],
+            DefaultValue = "1",
+            ValueType = Microsoft.Win32.RegistryValueKind.String,
+        };
+        // Composite string exists but doesn't contain our sub-key — DefaultValue "1" == EnabledValue "1"
+        _sut.IsRegistryValueInEnabledState(setting, "VRROptimizeEnable=0;", true)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_CompositeStringKey_NullValue_UsesDefaultValue()
+    {
+        var setting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "DirectXUserGlobalSettings",
+            CompositeStringKey = "SwapEffectUpgradeEnable",
+            EnabledValue = ["1"],
+            DisabledValue = ["0"],
+            DefaultValue = "1",
+            ValueType = Microsoft.Win32.RegistryValueKind.String,
+        };
+        // Value doesn't exist (key absent) — DefaultValue "1" == EnabledValue "1"
+        _sut.IsRegistryValueInEnabledState(setting, null, false)
+            .Should().BeTrue();
+    }
 }

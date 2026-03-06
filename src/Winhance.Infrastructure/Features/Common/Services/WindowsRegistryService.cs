@@ -222,6 +222,24 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         if (setting == null)
             return false;
 
+        // Handle CompositeStringKey — extract sub-value before comparing
+        if (setting.CompositeStringKey != null)
+        {
+            var compositeStr = currentValue?.ToString() ?? "";
+            var pairs = ParseCompositeString(compositeStr);
+
+            if (pairs.TryGetValue(setting.CompositeStringKey, out var subValue))
+            {
+                var enabledStr = GetWriteValue(setting.EnabledValue)?.ToString();
+                return string.Equals(subValue, enabledStr, StringComparison.OrdinalIgnoreCase);
+            }
+
+            // Sub-key absent — use DefaultValue to determine implied state
+            var defaultStr = setting.DefaultValue?.ToString();
+            var enabledStrFallback = GetWriteValue(setting.EnabledValue)?.ToString();
+            return string.Equals(defaultStr, enabledStrFallback, StringComparison.OrdinalIgnoreCase);
+        }
+
         // No EnabledValue defined at all — can only check DisabledValue
         if (setting.EnabledValue == null)
         {
@@ -291,12 +309,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             if (!KeyExists(setting.KeyPath))
             {
                 if (setting.CompositeStringKey != null)
-                {
-                    // Key absent (fresh Windows) — use DefaultValue to determine implied state
-                    var defaultStr = setting.DefaultValue?.ToString();
-                    var enabledStr = GetWriteValue(setting.EnabledValue)?.ToString();
-                    return string.Equals(defaultStr, enabledStr, StringComparison.OrdinalIgnoreCase);
-                }
+                    return IsRegistryValueInEnabledState(setting, null, false);
                 return setting.EnabledValue == null;
             }
 
@@ -305,19 +318,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 var compositeStr = ValueExists(setting.KeyPath, setting.ValueName!)
                     ? (GetValue(setting.KeyPath, setting.ValueName!)?.ToString() ?? "")
                     : "";
-
-                var pairs = ParseCompositeString(compositeStr);
-
-                if (pairs.TryGetValue(setting.CompositeStringKey, out var subValue))
-                {
-                    var enabledStr = GetWriteValue(setting.EnabledValue)?.ToString();
-                    return string.Equals(subValue, enabledStr, StringComparison.OrdinalIgnoreCase);
-                }
-
-                // Sub-key absent from string — use DefaultValue
-                var defaultStr2 = setting.DefaultValue?.ToString();
-                var enabledStr2 = GetWriteValue(setting.EnabledValue)?.ToString();
-                return string.Equals(defaultStr2, enabledStr2, StringComparison.OrdinalIgnoreCase);
+                return IsRegistryValueInEnabledState(setting, compositeStr, !string.IsNullOrEmpty(compositeStr));
             }
 
             if (!ValueExists(setting.KeyPath, setting.ValueName!))
