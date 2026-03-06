@@ -53,6 +53,7 @@ Uninstallable=WizardIsTaskSelected('regularinstall')
 ; Close applications before installation/uninstallation
 CloseApplications=yes
 CloseApplicationsFilter=*{#MyAppExeName}
+RestartIfNeededByRun=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -144,6 +145,7 @@ end;
 // This function runs right before the actual installation starts
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
+  NeedsRestart := False;
   // Clean up old installation files while preserving user data
   CleanupOldInstallation;
   Result := '';

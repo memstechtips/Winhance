@@ -30,8 +30,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation",
                             ValueName = "DisableStartupSound",
                             RecommendedValue = 1, // For backward compatibility
-                            EnabledValue = null, // When toggle is ON, startup sound is enabled
-                            DisabledValue = 1, // When toggle is OFF, startup sound is disabled
+                            EnabledValue = [0, null], // When toggle is ON, startup sound is enabled
+                            DisabledValue = [1], // When toggle is OFF, startup sound is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -39,8 +39,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\EditionOverrides",
                             ValueName = "UserSetting_DisableStartupSound",
                             RecommendedValue = 1, // For backward compatibility
-                            EnabledValue = null, // When toggle is ON, user startup sound is enabled
-                            DisabledValue = 1, // When toggle is OFF, user startup sound is disabled
+                            EnabledValue = [0, null], // When toggle is ON, user startup sound is enabled
+                            DisabledValue = [1], // When toggle is OFF, user startup sound is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -109,8 +109,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "DuckAudio",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -130,8 +130,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SpeechOneCore\Settings",
                             ValueName = "AgentActivationEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -151,8 +151,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SpeechOneCore\Settings",
                             ValueName = "AgentActivationLastUsed",
                             RecommendedValue = 0, // For backward compatibility
-                            EnabledValue = null, // When toggle is ON, last used voice activation is enabled
-                            DisabledValue = 0, // When toggle is OFF, last used voice activation is disabled
+                            EnabledValue = [1, null], // When toggle is ON, last used voice activation is enabled
+                            DisabledValue = [0], // When toggle is OFF, last used voice activation is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -172,8 +172,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility",
                             ValueName = "Sound on Activation",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -194,8 +194,8 @@ public static class SoundOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility",
                             ValueName = "Warning Sounds",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

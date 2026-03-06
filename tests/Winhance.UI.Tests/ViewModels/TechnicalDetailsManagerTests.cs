@@ -23,11 +23,10 @@ public class TechnicalDetailsManagerTests : IDisposable
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<ISubscriptionToken> _mockSubscriptionToken;
-    private readonly ObservableCollection<TechnicalDetailRow> _details;
+    private ObservableCollection<TechnicalDetailRow> _details;
     private readonly List<Action<TooltipUpdatedEvent>> _capturedHandlers;
 
     private string _currentSettingId = "TestSetting";
-    private bool _detailsChangedCalled;
     private TechnicalDetailsManager? _manager;
 
     public TechnicalDetailsManagerTests()
@@ -62,7 +61,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         Current = "Current",
         Recommended = "Recommended",
         Default = "Default",
-        ValueNotExist = "doesn't exist"
+        ValueNotExist = "doesn't exist",
+        On = "On",
+        Off = "Off"
     };
 
     private TechnicalDetailsManager CreateManager(
@@ -70,11 +71,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         IEventBus? eventBus = null,
         bool useDefaultEventBus = true)
     {
-        _detailsChangedCalled = false;
         _manager = new TechnicalDetailsManager(
             () => _currentSettingId,
-            _details,
-            () => _detailsChangedCalled = true,
+            newDetails => _details = newDetails,
             _mockLogService.Object,
             _mockDispatcherService.Object,
             regeditLauncher ?? _mockRegeditLauncher.Object,
@@ -371,14 +370,22 @@ public class TechnicalDetailsManagerTests : IDisposable
     }
 
     [Fact]
-    public void OnTooltipUpdated_ClearsExistingDetailsBeforePopulating()
+    public void OnTooltipUpdated_ReplacesExistingDetails()
     {
         // Arrange
         _currentSettingId = "MySetting";
         var manager = CreateManager();
 
-        // Pre-populate with a dummy row
-        _details.Add(new TechnicalDetailRow { RowType = DetailRowType.Registry, RegistryPath = "old" });
+        // Trigger a first update to set _details
+        var firstData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { new RegistrySetting { KeyPath = @"HKLM\Old", ValueType = RegistryValueKind.DWord }, "0" }
+            }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("MySetting", firstData));
 
         var tooltipData = new SettingTooltipData
         {
@@ -393,17 +400,18 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Act
         _capturedHandlers[0](evt);
 
-        // Assert
+        // Assert — new collection contains only the new data
         _details.Should().HaveCount(1);
         _details[0].TaskPath.Should().Be(@"\New\Task");
     }
 
     [Fact]
-    public void OnTooltipUpdated_CallsOnDetailsChanged()
+    public void OnTooltipUpdated_SwapsCollection()
     {
         // Arrange
         _currentSettingId = "MySetting";
         var manager = CreateManager();
+        var originalDetails = _details;
 
         var tooltipData = new SettingTooltipData { SettingId = "MySetting" };
         var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
@@ -411,8 +419,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Act
         _capturedHandlers[0](evt);
 
-        // Assert
-        _detailsChangedCalled.Should().BeTrue();
+        // Assert — the setter was called with a new collection
+        _details.Should().NotBeNull();
+        _details.Should().NotBeSameAs(originalDetails);
     }
 
     [Fact]
@@ -646,6 +655,120 @@ public class TechnicalDetailsManagerTests : IDisposable
 
         // Assert
         _details[0].CurrentValue.Should().Be(TestLabels.ValueNotExist);
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_NullValue_EnabledIncludesNull_ShowsNotExistOn()
+    {
+        // Arrange — Game Mode scenario: EnabledValue = [1, null], value doesn't exist
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "GameMode",
+            ValueType = RegistryValueKind.DWord,
+            EnabledValue = [1, null],
+            DisabledValue = [0],
+            DefaultValue = null
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regSetting, null }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details[0].CurrentValue.Should().Be("doesn't exist (On)");
+        _details[0].DefaultValue.Should().Be("doesn't exist (On)");
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_NullValue_DisabledIncludesNull_ShowsNotExistOff()
+    {
+        // Arrange — setting where absence means disabled
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "SomeValue",
+            ValueType = RegistryValueKind.DWord,
+            EnabledValue = [1],
+            DisabledValue = [0, null],
+            DefaultValue = null
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regSetting, null }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details[0].CurrentValue.Should().Be("doesn't exist (Off)");
+        _details[0].DefaultValue.Should().Be("doesn't exist (Off)");
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_NullValue_NoNullInEnabledOrDisabled_ShowsPlainNotExist()
+    {
+        // Arrange — neither EnabledValue nor DisabledValue contains null
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "SomeValue",
+            ValueType = RegistryValueKind.DWord,
+            EnabledValue = [1],
+            DisabledValue = [0],
+            DefaultValue = null
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regSetting, null }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details[0].CurrentValue.Should().Be("doesn't exist");
+        _details[0].DefaultValue.Should().Be("doesn't exist");
     }
 
     // ──────────────────────────────────────────────────

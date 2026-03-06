@@ -20,6 +20,8 @@ internal class RegistryCommandEmitter
     private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ILogService _logService;
 
+    private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
+
     public RegistryCommandEmitter(IComboBoxResolver comboBoxResolver, ILogService logService)
     {
         _comboBoxResolver = comboBoxResolver;
@@ -137,7 +139,7 @@ internal class RegistryCommandEmitter
             // Detection: ValueName is null or empty - these control registry KEY existence, not values
             if (string.IsNullOrEmpty(regSetting.ValueName))
             {
-                var keyValue = isEnabled == true ? regSetting.EnabledValue : regSetting.DisabledValue;
+                var keyValue = GetWriteValue(isEnabled == true ? regSetting.EnabledValue : regSetting.DisabledValue);
 
                 if (keyValue == null)
                 {
@@ -172,7 +174,7 @@ internal class RegistryCommandEmitter
             }
 
             // Fallback for when custom value is not available (should happen rarely if discovery worked)
-            var value = isEnabled == true ? regSetting.EnabledValue : regSetting.DisabledValue;
+            var value = GetWriteValue(isEnabled == true ? regSetting.EnabledValue : regSetting.DisabledValue);
 
             if (value is string strValue && strValue == "")
             {

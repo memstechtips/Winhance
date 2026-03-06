@@ -271,8 +271,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test\\Key",
                 ValueName = null,
                 ValueType = RegistryValueKind.String,
-                EnabledValue = null,
-                DisabledValue = ""
+                EnabledValue = [null],
+                DisabledValue = [""]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -293,8 +293,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test\\Key",
                 ValueName = null,
                 ValueType = RegistryValueKind.String,
-                EnabledValue = "",
-                DisabledValue = null
+                EnabledValue = [""],
+                DisabledValue = [null]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -317,8 +317,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test\\Key",
                 ValueName = null,
                 ValueType = RegistryValueKind.String,
-                EnabledValue = "exists",
-                DisabledValue = null
+                EnabledValue = ["exists"],
+                DisabledValue = [null]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -345,8 +345,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -367,8 +367,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -393,8 +393,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
         var configItem = new ConfigurationItem
@@ -421,8 +421,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
         var configItem = new ConfigurationItem
@@ -453,8 +453,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = null,
-                DisabledValue = 0
+                EnabledValue = [null],
+                DisabledValue = [0]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -479,8 +479,8 @@ public class RegistryCommandEmitterTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.String,
-                EnabledValue = "",
-                DisabledValue = "something"
+                EnabledValue = [""],
+                DisabledValue = ["something"]
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };

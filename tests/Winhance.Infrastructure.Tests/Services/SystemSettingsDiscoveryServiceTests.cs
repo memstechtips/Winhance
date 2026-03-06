@@ -29,7 +29,7 @@ public class SystemSettingsDiscoveryServiceTests
             _mockScheduledTask.Object);
     }
 
-    private static SettingDefinition CreateRegistrySetting(string id, string keyPath, string valueName, object? enabledValue = null)
+    private static SettingDefinition CreateRegistrySetting(string id, string keyPath, string valueName, object?[]? enabledValue = null)
     {
         return new SettingDefinition
         {
@@ -43,7 +43,7 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = keyPath,
                     ValueName = valueName,
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = enabledValue ?? 1,
+                    EnabledValue = enabledValue ?? [1],
                 },
             },
         };
@@ -339,14 +339,14 @@ public class SystemSettingsDiscoveryServiceTests
     [Fact]
     public async Task GetSettingStatesAsync_RegistrySetting_ReturnsCorrectState()
     {
-        var setting = CreateRegistrySetting("test-reg", @"HKEY_LOCAL_MACHINE\SOFTWARE\Test", "TestValue", enabledValue: 1);
+        var setting = CreateRegistrySetting("test-reg", @"HKEY_LOCAL_MACHINE\SOFTWARE\Test", "TestValue", enabledValue: [1]);
 
         _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
             .Returns(new Dictionary<string, object?>
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 1 },
             });
-        _mockRegistry.Setup(r => r.IsSettingApplied(It.IsAny<RegistrySetting>()))
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), 1, true))
             .Returns(true);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
@@ -366,7 +366,7 @@ public class SystemSettingsDiscoveryServiceTests
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 0 },
             });
-        _mockRegistry.Setup(r => r.IsSettingApplied(It.IsAny<RegistrySetting>()))
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), 0, true))
             .Returns(false);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
@@ -443,8 +443,6 @@ public class SystemSettingsDiscoveryServiceTests
 
         _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
             .Returns(new Dictionary<string, object?>());
-        _mockRegistry.Setup(r => r.IsSettingApplied(It.IsAny<RegistrySetting>()))
-            .Returns(false);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 
@@ -479,6 +477,8 @@ public class SystemSettingsDiscoveryServiceTests
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 1 },
             });
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), 1, true))
+            .Returns(true);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 
@@ -559,7 +559,7 @@ public class SystemSettingsDiscoveryServiceTests
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test1\Val1", 1 },
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test2\Val2", 0 },
             });
-        _mockRegistry.Setup(r => r.IsSettingApplied(It.IsAny<RegistrySetting>()))
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), It.IsAny<object?>(), true))
             .Returns(false);
 
         var result = await _service.GetSettingStatesAsync(settings);
@@ -570,15 +570,15 @@ public class SystemSettingsDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GetSettingStatesAsync_EnabledValueNull_CurrentMatchesDisabledValue_ReturnsDisabled()
+    public async Task GetSettingStatesAsync_EnabledValueNull_DelegatesToRegistryService_Disabled()
     {
-        // When EnabledValue is null and current value matches DisabledValue, the setting is OFF.
-        // This covers settings like HttpAcceptLanguageOptOut where value=1 means disabled.
+        // DetermineIfSettingIsEnabled delegates to IsRegistryValueInEnabledState.
+        // When the registry service returns false, the setting should be OFF.
         var setting = new SettingDefinition
         {
             Id = "test-null-enabled",
             Name = "Null Enabled Setting",
-            Description = "Tests EnabledValue=null with DisabledValue match",
+            Description = "Tests EnabledValue=[null] with DisabledValue match",
             InputType = InputType.Toggle,
             RegistrySettings = new[]
             {
@@ -587,8 +587,8 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_CURRENT_USER\Software\Test",
                     ValueName = "OptOut",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = null,
-                    DisabledValue = 1,
+                    EnabledValue = [null],
+                    DisabledValue = [1],
                 },
             },
         };
@@ -598,6 +598,8 @@ public class SystemSettingsDiscoveryServiceTests
             {
                 { @"HKEY_CURRENT_USER\Software\Test\OptOut", 1 },
             });
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), 1, true))
+            .Returns(false);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 
@@ -606,14 +608,14 @@ public class SystemSettingsDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GetSettingStatesAsync_EnabledValueNull_CurrentDoesNotMatchDisabledValue_ReturnsEnabled()
+    public async Task GetSettingStatesAsync_EnabledValueNull_DelegatesToRegistryService_Enabled()
     {
-        // When EnabledValue is null and current value does NOT match DisabledValue, the setting is ON.
+        // When the registry service returns true, the setting should be ON.
         var setting = new SettingDefinition
         {
             Id = "test-null-enabled-on",
             Name = "Null Enabled Setting On",
-            Description = "Tests EnabledValue=null with non-matching DisabledValue",
+            Description = "Tests EnabledValue=[null] with non-matching DisabledValue",
             InputType = InputType.Toggle,
             RegistrySettings = new[]
             {
@@ -622,8 +624,8 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_CURRENT_USER\Software\Test",
                     ValueName = "SomeValue",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = null,
-                    DisabledValue = 0,
+                    EnabledValue = [null],
+                    DisabledValue = [0],
                 },
             },
         };
@@ -633,6 +635,8 @@ public class SystemSettingsDiscoveryServiceTests
             {
                 { @"HKEY_CURRENT_USER\Software\Test\SomeValue", 1 },
             });
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), 1, true))
+            .Returns(true);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 
@@ -641,14 +645,15 @@ public class SystemSettingsDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GetSettingStatesAsync_EnabledValueNull_ValueNotExists_ReturnsDisabled()
+    public async Task GetSettingStatesAsync_EnabledValueNull_ValueNotExists_ReturnsEnabled()
     {
-        // When EnabledValue is null and the registry value doesn't exist, the setting is OFF.
+        // When EnabledValue is null and the registry value doesn't exist,
+        // absence means enabled — the registry service should be called with valueExists=false.
         var setting = new SettingDefinition
         {
             Id = "test-null-no-value",
             Name = "Null Enabled No Value",
-            Description = "Tests EnabledValue=null with missing registry value",
+            Description = "Tests EnabledValue=[null] with missing registry value",
             InputType = InputType.Toggle,
             RegistrySettings = new[]
             {
@@ -657,27 +662,31 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_CURRENT_USER\Software\Test",
                     ValueName = "Missing",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = null,
-                    DisabledValue = 1,
+                    EnabledValue = [null],
+                    DisabledValue = [1],
                 },
             },
         };
 
         _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
-            .Returns(new Dictionary<string, object?>());
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_CURRENT_USER\Software\Test\Missing", null },
+            });
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), null, false))
+            .Returns(true);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 
         result["test-null-no-value"].Success.Should().BeTrue();
-        result["test-null-no-value"].IsEnabled.Should().BeFalse();
+        result["test-null-no-value"].IsEnabled.Should().BeTrue();
     }
 
     [Fact]
     public async Task GetSettingStatesAsync_MultipleRegistrySettings_AllMatchDisabledValue_ReturnsDisabled()
     {
-        // When multiple registry settings all have EnabledValue=null and all current values
-        // match their DisabledValue, the setting should be OFF.
-        // This covers settings like privacy-settings-content with multiple SubscribedContent values.
+        // When multiple registry settings all return false from IsRegistryValueInEnabledState,
+        // the setting should be OFF.
         var setting = new SettingDefinition
         {
             Id = "test-multi-disabled",
@@ -691,16 +700,16 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_CURRENT_USER\Software\Test",
                     ValueName = "Value1",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = null,
-                    DisabledValue = 0,
+                    EnabledValue = [null],
+                    DisabledValue = [0],
                 },
                 new RegistrySetting
                 {
                     KeyPath = @"HKEY_CURRENT_USER\Software\Test",
                     ValueName = "Value2",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = null,
-                    DisabledValue = 0,
+                    EnabledValue = [null],
+                    DisabledValue = [0],
                 },
             },
         };
@@ -711,6 +720,8 @@ public class SystemSettingsDiscoveryServiceTests
                 { @"HKEY_CURRENT_USER\Software\Test\Value1", 0 },
                 { @"HKEY_CURRENT_USER\Software\Test\Value2", 0 },
             });
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(It.IsAny<RegistrySetting>(), 0, true))
+            .Returns(false);
 
         var result = await _service.GetSettingStatesAsync(new[] { setting });
 

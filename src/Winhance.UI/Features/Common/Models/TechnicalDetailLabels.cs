@@ -11,4 +11,6 @@ public record TechnicalDetailLabels
     public string Recommended { get; init; } = "Recommended";
     public string Default { get; init; } = "Default";
     public string ValueNotExist { get; init; } = "doesn't exist";
+    public string On { get; init; } = "On";
+    public string Off { get; init; } = "Off";
 }

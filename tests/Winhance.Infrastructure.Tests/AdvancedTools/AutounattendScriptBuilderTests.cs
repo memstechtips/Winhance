@@ -329,8 +329,8 @@ public class AutounattendScriptBuilderTests
                     KeyPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Test",
                     ValueName = "OptVal",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = 1,
-                    DisabledValue = 0
+                    EnabledValue = [1],
+                    DisabledValue = [0]
                 }
             }
         };
@@ -389,8 +389,8 @@ public class AutounattendScriptBuilderTests
                     KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
                     ValueName = "CustVal",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = 1,
-                    DisabledValue = 0
+                    EnabledValue = [1],
+                    DisabledValue = [0]
                 }
             }
         };

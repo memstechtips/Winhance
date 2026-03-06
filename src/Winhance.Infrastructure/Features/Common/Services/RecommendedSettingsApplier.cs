@@ -44,7 +44,7 @@ public class RecommendedSettingsApplier(
 
                         if (registrySetting != null && recommendedValue != null)
                         {
-                            enableValue = recommendedValue.Equals(registrySetting.EnabledValue);
+                            enableValue = registrySetting.EnabledValue?.Any(ev => ev != null && recommendedValue.Equals(ev)) == true;
                         }
 
                         await settingApplicationService.ApplySettingAsync(new ApplySettingRequest

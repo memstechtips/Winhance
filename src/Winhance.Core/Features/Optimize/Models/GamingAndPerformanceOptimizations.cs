@@ -30,8 +30,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "AutoGameModeEnabled",
                             RecommendedValue = 1,
-                            EnabledValue = null, // When toggle is ON, Game Mode is enabled
-                            DisabledValue = 0, // When toggle is OFF, Game Mode is disabled
+                            EnabledValue = [1, null], // When toggle is ON, Game Mode is enabled
+                            DisabledValue = [0], // When toggle is OFF, Game Mode is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -51,8 +51,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Mouse",
                             ValueName = "MouseSpeed",
                             RecommendedValue = "0",
-                            EnabledValue = "1",
-                            DisabledValue = "0",
+                            EnabledValue = ["1"],
+                            DisabledValue = ["0"],
                             DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                         },
@@ -72,8 +72,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize",
                             ValueName = "StartupDelayInMSec",
                             RecommendedValue = 0,
-                            EnabledValue = 10000, // When toggle is ON, startup delay is enabled (10 seconds)
-                            DisabledValue = 0, // When toggle is OFF, startup delay is disabled
+                            EnabledValue = [10000], // When toggle is ON, startup delay is enabled (10 seconds)
+                            DisabledValue = [0], // When toggle is OFF, startup delay is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -93,8 +93,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -102,8 +102,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -122,8 +122,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\StorageSense",
                             ValueName = "AllowStorageSenseGlobal",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -131,8 +131,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\StorageSense",
                             ValueName = "AllowStorageSenseGlobal",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -151,8 +151,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Search\Preferences",
                             ValueName = "WholeFileSystem",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, search includes whole file system
-                            DisabledValue = 0, // When toggle is OFF, search is limited to indexed locations
+                            EnabledValue = [1], // When toggle is ON, search includes whole file system
+                            DisabledValue = [0], // When toggle is OFF, search is limited to indexed locations
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -174,8 +174,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "JPEGImportQuality",
                             RecommendedValue = 100,
-                            EnabledValue = null,
-                            DisabledValue = 100,
+                            EnabledValue = [0, null],
+                            DisabledValue = [100],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -194,8 +194,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "MenuShowDelay",
                             RecommendedValue = "0",
-                            EnabledValue = "400", // When toggle is ON, menu show delay is enabled (default value)
-                            DisabledValue = "0", // When toggle is OFF, menu show delay is disabled
+                            EnabledValue = ["400"], // When toggle is ON, menu show delay is enabled (default value)
+                            DisabledValue = ["0"], // When toggle is OFF, menu show delay is disabled
                             DefaultValue = "400", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
                         },
@@ -215,8 +215,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "MultiTaskingAltTabFilter",
                             RecommendedValue = 3,
-                            EnabledValue = 3,
-                            DisabledValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
                             DefaultValue = 3, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -277,8 +277,8 @@ public static class GamingAndPerformanceOptimizations
                                 @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile",
                             ValueName = "SystemResponsiveness",
                             RecommendedValue = 10,
-                            EnabledValue = 10, // When toggle is ON, system responsiveness is optimized for games (10 = prioritize foreground)
-                            DisabledValue = 20, // When toggle is OFF, system responsiveness is balanced (20 = default Windows value)
+                            EnabledValue = [10], // When toggle is ON, system responsiveness is optimized for games (10 = prioritize foreground)
+                            DisabledValue = [20], // When toggle is OFF, system responsiveness is balanced (20 = default Windows value)
                             DefaultValue = 20, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -299,8 +299,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games",
                             ValueName = "Priority",
                             RecommendedValue = 6,
-                            EnabledValue = 6, // When toggle is ON, CPU priority is high (6 = high priority)
-                            DisabledValue = 2, // When toggle is OFF, CPU priority is normal (default Windows value)
+                            EnabledValue = [6], // When toggle is ON, CPU priority is high (6 = high priority)
+                            DisabledValue = [2], // When toggle is OFF, CPU priority is normal (default Windows value)
                             DefaultValue = 2, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -322,8 +322,8 @@ public static class GamingAndPerformanceOptimizations
                                 @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games",
                             ValueName = "Scheduling Category",
                             RecommendedValue = "High",
-                            EnabledValue = "High", // When toggle is ON, scheduling category is high
-                            DisabledValue = "Medium", // When toggle is OFF, scheduling category is medium (default Windows value)
+                            EnabledValue = ["High"], // When toggle is ON, scheduling category is high
+                            DisabledValue = ["Medium"], // When toggle is OFF, scheduling category is medium (default Windows value)
                             DefaultValue = "Medium", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
                         },
@@ -345,8 +345,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games",
                             ValueName = "GPU Priority",
                             RecommendedValue = 8,
-                            EnabledValue = 8, // When toggle is ON, GPU priority is high (8 = high priority)
-                            DisabledValue = 2, // When toggle is OFF, GPU priority is normal (default Windows value)
+                            EnabledValue = [8], // When toggle is ON, GPU priority is high (8 = high priority)
+                            DisabledValue = [2], // When toggle is OFF, GPU priority is normal (default Windows value)
                             DefaultValue = 2, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -368,8 +368,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers",
                             ValueName = "HwSchMode",
                             RecommendedValue = 2,
-                            EnabledValue = null,
-                            DisabledValue = 1,
+                            EnabledValue = [2, null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -390,8 +390,8 @@ public static class GamingAndPerformanceOptimizations
                             ValueName = "DirectXUserGlobalSettings",
                             CompositeStringKey = "SwapEffectUpgradeEnable",
                             RecommendedValue = "1",
-                            EnabledValue = "1",
-                            DisabledValue = "0",
+                            EnabledValue = ["1"],
+                            DisabledValue = ["0"],
                             DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                         },
@@ -413,8 +413,8 @@ public static class GamingAndPerformanceOptimizations
                             ValueName = "DirectXUserGlobalSettings",
                             CompositeStringKey = "VRROptimizeEnable",
                             RecommendedValue = "1",
-                            EnabledValue = "1",
-                            DisabledValue = "0",
+                            EnabledValue = ["1"],
+                            DisabledValue = ["0"],
                             DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                         },
@@ -437,8 +437,8 @@ public static class GamingAndPerformanceOptimizations
                             ValueName = "DirectXUserGlobalSettings",
                             CompositeStringKey = "AutoHDREnable",
                             RecommendedValue = "0",
-                            EnabledValue = "1",
-                            DisabledValue = "0",
+                            EnabledValue = ["1"],
+                            DisabledValue = ["0"],
                             DefaultValue = "0",
                             ValueType = RegistryValueKind.String,
                         },
@@ -459,8 +459,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\NVIDIA Corporation\Global\FTS",
                             ValueName = "EnableGR535",
                             RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -481,8 +481,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\System\GameConfigStore",
                             ValueName = "GameDVR_FSEBehaviorMode",
                             RecommendedValue = 2,
-                            EnabledValue = 0,
-                            DisabledValue = 2,
+                            EnabledValue = [0],
+                            DisabledValue = [2],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -503,8 +503,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "CompositionPolicy",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, desktop composition is enabled
-                            DisabledValue = 0, // When toggle is OFF, desktop composition is disabled
+                            EnabledValue = [null], // When toggle is ON, desktop composition is enabled
+                            DisabledValue = [0], // When toggle is OFF, desktop composition is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -525,8 +525,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile",
                             ValueName = "NetworkThrottlingIndex",
                             RecommendedValue = 10,
-                            EnabledValue = 10,
-                            DisabledValue = -1,
+                            EnabledValue = [10],
+                            DisabledValue = [-1],
                             DefaultValue = 10,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -547,8 +547,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                             ValueName = "TcpAckFrequency",
                             RecommendedValue = 1,
-                            EnabledValue = null,
-                            DisabledValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             ApplyPerNetworkInterface = true,
@@ -558,8 +558,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                             ValueName = "TCPNoDelay",
                             RecommendedValue = 1,
-                            EnabledValue = null,
-                            DisabledValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             ApplyPerNetworkInterface = true,
@@ -582,8 +582,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\System\GameConfigStore",
                             ValueName = "GameDVR_Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, Game DVR is enabled
-                            DisabledValue = 0, // When toggle is OFF, Game DVR is disabled
+                            EnabledValue = [1], // When toggle is ON, Game DVR is enabled
+                            DisabledValue = [0], // When toggle is OFF, Game DVR is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -592,8 +592,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\GameDVR",
                             ValueName = "AppCaptureEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, app capture is enabled
-                            DisabledValue = 0, // When toggle is OFF, app capture is disabled
+                            EnabledValue = [1], // When toggle is ON, app capture is enabled
+                            DisabledValue = [0], // When toggle is OFF, app capture is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -602,8 +602,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR",
                             ValueName = "AllowGameDVR",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, Xbox Game DVR is enabled
-                            DisabledValue = 0, // When toggle is OFF, Xbox Game DVR is disabled
+                            EnabledValue = [1], // When toggle is ON, Xbox Game DVR is enabled
+                            DisabledValue = [0], // When toggle is OFF, Xbox Game DVR is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -625,8 +625,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "UseNexusForGameBarEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, controller access is enabled
-                            DisabledValue = 0, // When toggle is OFF, controller access is disabled
+                            EnabledValue = [null], // When toggle is ON, controller access is enabled
+                            DisabledValue = [0], // When toggle is OFF, controller access is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -646,8 +646,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "ShowStartupPanel",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -668,8 +668,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control",
                             ValueName = "ServicesPipeTimeout",
                             RecommendedValue = 60000,
-                            EnabledValue = 30000, // When toggle is ON, services timeout is reduced (30 seconds)
-                            DisabledValue = 60000, // When toggle is OFF, services timeout is default (60 seconds)
+                            EnabledValue = [30000], // When toggle is ON, services timeout is reduced (30 seconds)
+                            DisabledValue = [60000], // When toggle is OFF, services timeout is default (60 seconds)
                             DefaultValue = 60000, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -735,8 +735,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters",
                             ValueName = "EnablePrefetcher",
                             RecommendedValue = 0,
-                            EnabledValue = 3, // When toggle is ON, prefetch is enabled (3 = both application and boot prefetching)
-                            DisabledValue = 0, // When toggle is OFF, prefetch is disabled
+                            EnabledValue = [3], // When toggle is ON, prefetch is enabled (3 = both application and boot prefetching)
+                            DisabledValue = [0], // When toggle is OFF, prefetch is disabled
                             DefaultValue = 3, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2350,8 +2350,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 4,
@@ -2385,8 +2385,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics",
                             ValueName = "MinAnimate",
                             RecommendedValue = "0",
-                            EnabledValue = "1",
-                            DisabledValue = "0",
+                            EnabledValue = ["1"],
+                            DisabledValue = ["0"],
                             DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                         },
@@ -2418,8 +2418,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarAnimations",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2451,8 +2451,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "EnableAeroPeek",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2484,8 +2484,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 0,
@@ -2519,8 +2519,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 1,
@@ -2555,8 +2555,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 1,
@@ -2591,8 +2591,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "AlwaysHibernateThumbnails",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2624,8 +2624,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 1,
@@ -2659,8 +2659,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 2,
@@ -2695,8 +2695,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "IconsOnly",
                             RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2728,8 +2728,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ListviewAlphaSelect",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2761,8 +2761,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "DragFullWindows",
                             RecommendedValue = "0",
-                            EnabledValue = "1",
-                            DisabledValue = "0",
+                            EnabledValue = ["1"],
+                            DisabledValue = ["0"],
                             DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                         },
@@ -2794,8 +2794,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 0,
@@ -2829,8 +2829,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "FontSmoothing",
                             RecommendedValue = "2",
-                            EnabledValue = "2",
-                            DisabledValue = "0",
+                            EnabledValue = ["2"],
+                            DisabledValue = ["0"],
                             DefaultValue = "0",
                             ValueType = RegistryValueKind.String,
                         },
@@ -2862,8 +2862,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "UserPreferencesMask",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 0,
@@ -2897,8 +2897,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ListviewShadow",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2920,8 +2920,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "WinEnterLaunchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -2941,8 +2941,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys",
                             ValueName = "Flags",
                             RecommendedValue = "2",
-                            EnabledValue = "510",
-                            DisabledValue = "2",
+                            EnabledValue = ["510"],
+                            DisabledValue = ["2"],
                             DefaultValue = "510",
                             ValueType = RegistryValueKind.String,
                         },
@@ -2963,8 +2963,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response",
                             ValueName = "Flags",
                             RecommendedValue = "2",
-                            EnabledValue = "126",
-                            DisabledValue = "2",
+                            EnabledValue = ["126"],
+                            DisabledValue = ["2"],
                             DefaultValue = "126",
                             ValueType = RegistryValueKind.String,
                         },
@@ -2985,8 +2985,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys",
                             ValueName = "Flags",
                             RecommendedValue = "34",
-                            EnabledValue = "62",
-                            DisabledValue = "34",
+                            EnabledValue = ["62"],
+                            DisabledValue = ["34"],
                             DefaultValue = "62",
                             ValueType = RegistryValueKind.String,
                         },
@@ -3007,8 +3007,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility\MouseKeys",
                             ValueName = "Flags",
                             RecommendedValue = "130",
-                            EnabledValue = "126",
-                            DisabledValue = "130",
+                            EnabledValue = ["126"],
+                            DisabledValue = ["130"],
                             DefaultValue = "126",
                             ValueType = RegistryValueKind.String,
                         },
@@ -3029,8 +3029,8 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility\HighContrast",
                             ValueName = "Flags",
                             RecommendedValue = "4194",
-                            EnabledValue = "126",
-                            DisabledValue = "4194",
+                            EnabledValue = ["126"],
+                            DisabledValue = ["4194"],
                             DefaultValue = "126",
                             ValueType = RegistryValueKind.String,
                         },

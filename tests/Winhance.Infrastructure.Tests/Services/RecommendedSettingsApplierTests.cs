@@ -28,7 +28,7 @@ public class RecommendedSettingsApplierTests
     private static SettingDefinition CreateToggleSetting(
         string id,
         object? recommendedValue,
-        object? enabledValue = null) => new()
+        object?[]? enabledValue = null) => new()
     {
         Id = id,
         Name = $"Setting {id}",
@@ -42,7 +42,7 @@ public class RecommendedSettingsApplierTests
                 ValueName = "TestValue",
                 ValueType = RegistryValueKind.DWord,
                 RecommendedValue = recommendedValue,
-                EnabledValue = enabledValue ?? recommendedValue,
+                EnabledValue = enabledValue ?? (recommendedValue != null ? [recommendedValue] : null),
             }
         }
     };
@@ -89,7 +89,7 @@ public class RecommendedSettingsApplierTests
         const string settingId = "toggle-setting";
         SetupDomainService(settingId);
 
-        var setting = CreateToggleSetting(settingId, recommendedValue: 1, enabledValue: 1);
+        var setting = CreateToggleSetting(settingId, recommendedValue: 1, enabledValue: [1]);
         _mockRecommendedService
             .Setup(s => s.GetRecommendedSettingsAsync(settingId))
             .ReturnsAsync(new[] { setting });
@@ -113,11 +113,11 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedSettingsForDomainAsync_ToggleSetting_EnableFalse_WhenRecommendedNotEqualEnabled()
     {
-        // Arrange: RecommendedValue = 0, EnabledValue = 1 => enableValue = false
+        // Arrange: RecommendedValue = 0, EnabledValue = [1] => enableValue = false
         const string settingId = "toggle-disable";
         SetupDomainService(settingId);
 
-        var setting = CreateToggleSetting(settingId, recommendedValue: 0, enabledValue: 1);
+        var setting = CreateToggleSetting(settingId, recommendedValue: 0, enabledValue: [1]);
         _mockRecommendedService
             .Setup(s => s.GetRecommendedSettingsAsync(settingId))
             .ReturnsAsync(new[] { setting });
@@ -145,8 +145,8 @@ public class RecommendedSettingsApplierTests
         const string settingId = "first-setting";
         SetupDomainService(settingId);
 
-        var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1, enabledValue: 1);
-        var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0, enabledValue: 1);
+        var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1, enabledValue: [1]);
+        var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0, enabledValue: [1]);
 
         _mockRecommendedService
             .Setup(s => s.GetRecommendedSettingsAsync(settingId))
@@ -336,8 +336,8 @@ public class RecommendedSettingsApplierTests
         const string settingId = "partial-fail";
         SetupDomainService(settingId);
 
-        var setting1 = CreateToggleSetting("fail-setting", recommendedValue: 1, enabledValue: 1);
-        var setting2 = CreateToggleSetting("succeed-setting", recommendedValue: 1, enabledValue: 1);
+        var setting1 = CreateToggleSetting("fail-setting", recommendedValue: 1, enabledValue: [1]);
+        var setting2 = CreateToggleSetting("succeed-setting", recommendedValue: 1, enabledValue: [1]);
 
         _mockRecommendedService
             .Setup(s => s.GetRecommendedSettingsAsync(settingId))

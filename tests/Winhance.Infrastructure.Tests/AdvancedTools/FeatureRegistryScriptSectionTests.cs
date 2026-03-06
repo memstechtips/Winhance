@@ -89,8 +89,8 @@ public class FeatureRegistryScriptSectionTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Test",
                 ValueName = "AllowTelemetry",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 0,
-                DisabledValue = 1
+                EnabledValue = [0],
+                DisabledValue = [1]
             }
         });
 
@@ -131,8 +131,8 @@ public class FeatureRegistryScriptSectionTests
                 KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
                 ValueName = "UserVal",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
 
@@ -167,8 +167,8 @@ public class FeatureRegistryScriptSectionTests
                 KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
                 ValueName = "UserVal",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
 
@@ -250,8 +250,8 @@ public class FeatureRegistryScriptSectionTests
                     KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                     ValueName = "TaskVal",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = 1,
-                    DisabledValue = 0
+                    EnabledValue = [1],
+                    DisabledValue = [0]
                 }
             },
             ScheduledTaskSettings = new[]
@@ -303,8 +303,8 @@ public class FeatureRegistryScriptSectionTests
                     KeyPath = "HKEY_LOCAL_MACHINE\\SYSTEM\\Test",
                     ValueName = "HibernateEnabled",
                     ValueType = RegistryValueKind.DWord,
-                    EnabledValue = 1,
-                    DisabledValue = 0
+                    EnabledValue = [1],
+                    DisabledValue = [0]
                 }
             }
         };
@@ -345,8 +345,8 @@ public class FeatureRegistryScriptSectionTests
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
-                EnabledValue = 1,
-                DisabledValue = 0
+                EnabledValue = [1],
+                DisabledValue = [0]
             }
         });
 

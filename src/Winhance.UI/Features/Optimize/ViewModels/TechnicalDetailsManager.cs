@@ -20,8 +20,7 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 internal sealed class TechnicalDetailsManager : IDisposable
 {
     private readonly Func<string> _getSettingId;
-    private readonly ObservableCollection<TechnicalDetailRow> _details;
-    private readonly Action _onDetailsChanged;
+    private readonly Action<ObservableCollection<TechnicalDetailRow>> _setDetails;
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
@@ -32,8 +31,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     public TechnicalDetailsManager(
         Func<string> getSettingId,
-        ObservableCollection<TechnicalDetailRow> details,
-        Action onDetailsChanged,
+        Action<ObservableCollection<TechnicalDetailRow>> setDetails,
         ILogService logService,
         IDispatcherService dispatcherService,
         IRegeditLauncher? regeditLauncher,
@@ -41,8 +39,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         TechnicalDetailLabels? labels = null)
     {
         _getSettingId = getSettingId;
-        _details = details;
-        _onDetailsChanged = onDetailsChanged;
+        _setDetails = setDetails;
         _logService = logService;
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
@@ -66,7 +63,11 @@ internal sealed class TechnicalDetailsManager : IDisposable
     {
         try
         {
-            _details.Clear();
+            // Build the new collection off-screen (no UI bindings yet),
+            // then swap it onto the ViewModel via PropertyChanged.
+            // This avoids the WinUI COMException that occurs when mutating
+            // a bound ObservableCollection during a layout pass or navigation.
+            var newDetails = new ObservableCollection<TechnicalDetailRow>();
 
             // Registry rows
             foreach (var kvp in tooltipData.IndividualRegistryValues)
@@ -83,15 +84,15 @@ internal sealed class TechnicalDetailsManager : IDisposable
                         $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
                 }
 
-                _details.Add(new TechnicalDetailRow
+                newDetails.Add(new TechnicalDetailRow
                 {
                     RowType = DetailRowType.Registry,
                     RegistryPath = reg.KeyPath,
                     ValueName = reg.ValueName ?? "(Default)",
                     ValueType = reg.ValueType.ToString(),
-                    CurrentValue = kvp.Value ?? _labels.ValueNotExist,
-                    RecommendedValue = reg.RecommendedValue?.ToString() ?? _labels.ValueNotExist,
-                    DefaultValue = reg.DefaultValue?.ToString() ?? _labels.ValueNotExist,
+                    CurrentValue = kvp.Value ?? FormatNotExist(reg),
+                    RecommendedValue = reg.RecommendedValue?.ToString() ?? FormatNotExist(reg),
+                    DefaultValue = reg.DefaultValue?.ToString() ?? FormatNotExist(reg),
                     PathLabel = _labels.Path,
                     ValueLabel = _labels.Value,
                     CurrentLabel = _labels.Current,
@@ -106,7 +107,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
             // Scheduled task rows
             foreach (var task in tooltipData.ScheduledTaskSettings)
             {
-                _details.Add(new TechnicalDetailRow
+                newDetails.Add(new TechnicalDetailRow
                 {
                     RowType = DetailRowType.ScheduledTask,
                     TaskPath = task.TaskPath,
@@ -117,7 +118,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
             // Power config rows
             foreach (var pcfg in tooltipData.PowerCfgSettings)
             {
-                _details.Add(new TechnicalDetailRow
+                newDetails.Add(new TechnicalDetailRow
                 {
                     RowType = DetailRowType.PowerConfig,
                     SubgroupGuid = pcfg.SubgroupGuid,
@@ -130,13 +131,22 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 });
             }
 
-            _onDetailsChanged();
+            _setDetails(newDetails);
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error,
                 $"[TechnicalDetails] UpdateTechnicalDetails failed for '{_getSettingId()}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
         }
+    }
+
+    private string FormatNotExist(RegistrySetting reg)
+    {
+        if (reg.EnabledValue?.Contains(null) == true)
+            return $"{_labels.ValueNotExist} ({_labels.On})";
+        if (reg.DisabledValue?.Contains(null) == true)
+            return $"{_labels.ValueNotExist} ({_labels.Off})";
+        return _labels.ValueNotExist;
     }
 
     private void OpenRegeditAtPath(string? path)

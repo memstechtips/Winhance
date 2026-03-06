@@ -2,6 +2,7 @@ using System.Reflection;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -217,5 +218,93 @@ public class WindowsRegistryServiceTests
         // Non-existent keys return true (nothing to delete)
         var result = _sut.DeleteKey(@"HKCU\Software\Winhance\TestKey\SubKey");
         result.Should().BeTrue();
+    }
+
+    // ── IsRegistryValueInEnabledState ──
+
+    private static RegistrySetting CreateTestSetting(
+        object?[]? enabledValue = null,
+        object?[]? disabledValue = null)
+    {
+        return new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "TestValue",
+            ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+            EnabledValue = enabledValue,
+            DisabledValue = disabledValue,
+        };
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_NullSetting_ReturnsFalse()
+    {
+        _sut.IsRegistryValueInEnabledState(null!, null, false).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_ValueNotExists_EnabledIncludesAbsence_ReturnsTrue()
+    {
+        // Game Mode scenario: value doesn't exist, EnabledValue=[1, null] → enabled (absence matches)
+        var setting = CreateTestSetting(enabledValue: [1, null], disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, null, false).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_ValueNotExists_EnabledValueSet_ReturnsFalse()
+    {
+        var setting = CreateTestSetting(enabledValue: [1], disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, null, false).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_EnabledValueNull_MatchesDisabledValue_ReturnsFalse()
+    {
+        var setting = CreateTestSetting(enabledValue: null, disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, 0, true).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_EnabledValueNull_DoesNotMatchDisabledValue_ReturnsTrue()
+    {
+        var setting = CreateTestSetting(enabledValue: null, disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, 1, true).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_EnabledValueNull_BoolFalse_ReturnsFalse()
+    {
+        // Pre-processed BitMask where false means "bit not set"
+        var setting = CreateTestSetting();
+        _sut.IsRegistryValueInEnabledState(setting, false, true).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_EnabledValueNull_BoolTrue_ReturnsTrue()
+    {
+        // Pre-processed BitMask where true means "bit is set"
+        var setting = CreateTestSetting();
+        _sut.IsRegistryValueInEnabledState(setting, true, true).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_MatchesEnabledValue_ReturnsTrue()
+    {
+        var setting = CreateTestSetting(enabledValue: [1], disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, 1, true).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_MatchesDisabledValue_ReturnsFalse()
+    {
+        var setting = CreateTestSetting(enabledValue: [1], disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, 0, true).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRegistryValueInEnabledState_MatchesNeither_ReturnsFalse()
+    {
+        var setting = CreateTestSetting(enabledValue: [1], disabledValue: [0]);
+        _sut.IsRegistryValueInEnabledState(setting, 99, true).Should().BeFalse();
     }
 }

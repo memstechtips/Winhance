@@ -332,8 +332,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _statusBannerManager = new SettingStatusBannerManager(localizationService);
         _technicalDetailsManager = new TechnicalDetailsManager(
             () => SettingId,
-            TechnicalDetails,
-            () => { OnPropertyChanged(nameof(HasTechnicalDetails)); OnPropertyChanged(nameof(ShowTechnicalDetailsBar)); },
+            newDetails => { TechnicalDetails = newDetails; OnPropertyChanged(nameof(HasTechnicalDetails)); OnPropertyChanged(nameof(ShowTechnicalDetailsBar)); },
             logService,
             dispatcherService,
             regeditLauncher,
@@ -345,7 +344,9 @@ public partial class SettingItemViewModel : BaseViewModel
                 Current = _localizationService.GetString("TechnicalDetails_Current") ?? "Current",
                 Recommended = _localizationService.GetString("TechnicalDetails_Recommended") ?? "Recommended",
                 Default = _localizationService.GetString("TechnicalDetails_DefaultValue") ?? "Default",
-                ValueNotExist = _localizationService.GetString("TechnicalDetails_ValueNotExist") ?? "doesn't exist"
+                ValueNotExist = _localizationService.GetString("TechnicalDetails_ValueNotExist") ?? "doesn't exist",
+                On = _localizationService.GetString("Common_On") ?? "On",
+                Off = _localizationService.GetString("Common_Off") ?? "Off"
             });
         OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
     }

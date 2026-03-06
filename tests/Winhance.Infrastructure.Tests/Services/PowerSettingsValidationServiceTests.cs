@@ -226,7 +226,7 @@ public class PowerSettingsValidationServiceTests
             KeyPath = @"HKLM\SYSTEM\CurrentControlSet\Control\Power",
             ValueName = "HiddenSetting",
             ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-            EnabledValue = 1
+            EnabledValue = [1]
         };
 
         _mockRegistry
