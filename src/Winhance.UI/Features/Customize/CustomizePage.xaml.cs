@@ -112,6 +112,11 @@ public sealed partial class CustomizePage : Page
             StartupLogger.Log("CustomizePage", "OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
+            // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
+            ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            UpdateBreadcrumbMenuItems();
+
             // Ensure we're showing overview on initial navigation
             ViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
@@ -140,6 +145,7 @@ public sealed partial class CustomizePage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         ViewModel.OnNavigatedFrom();
     }
 

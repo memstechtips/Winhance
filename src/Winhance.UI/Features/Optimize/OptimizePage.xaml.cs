@@ -123,6 +123,11 @@ public sealed partial class OptimizePage : Page
             StartupLogger.Log("OptimizePage", "OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
+            // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
+            ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            UpdateBreadcrumbMenuItems();
+
             // Ensure we're showing overview on initial navigation
             ViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
