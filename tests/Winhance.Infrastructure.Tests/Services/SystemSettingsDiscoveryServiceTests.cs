@@ -728,4 +728,122 @@ public class SystemSettingsDiscoveryServiceTests
         result["test-multi-disabled"].Success.Should().BeTrue();
         result["test-multi-disabled"].IsEnabled.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_CompositeStringKey_DelegatesToIsRegistryValueInEnabledState()
+    {
+        // CompositeStringKey settings pass the full composite string to IsRegistryValueInEnabledState,
+        // which extracts the sub-value internally.
+        var setting = new SettingDefinition
+        {
+            Id = "test-composite",
+            Name = "Composite Setting",
+            Description = "Tests CompositeStringKey detection",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
+                    ValueName = "DirectXUserGlobalSettings",
+                    CompositeStringKey = "SwapEffectUpgradeEnable",
+                    EnabledValue = ["1"],
+                    DisabledValue = ["0"],
+                    DefaultValue = "1",
+                    ValueType = RegistryValueKind.String,
+                },
+            },
+        };
+
+        var compositeString = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;";
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences\DirectXUserGlobalSettings", compositeString },
+            });
+        _mockRegistry.Setup(r => r.IsRegistryValueInEnabledState(
+                It.Is<RegistrySetting>(rs => rs.CompositeStringKey == "SwapEffectUpgradeEnable"),
+                compositeString,
+                true))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-composite"].Success.Should().BeTrue();
+        result["test-composite"].IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_ApplyPerNetworkInterface_DelegatesToIsSettingApplied()
+    {
+        // ApplyPerNetworkInterface settings bypass batch values and delegate
+        // to IsSettingApplied for correct sub-key expansion.
+        var setting = new SettingDefinition
+        {
+            Id = "test-network-interface",
+            Name = "Network Interface Setting",
+            Description = "Tests ApplyPerNetworkInterface detection",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
+                    ValueName = "TcpAckFrequency",
+                    EnabledValue = [null],
+                    DisabledValue = [1],
+                    ValueType = RegistryValueKind.DWord,
+                    ApplyPerNetworkInterface = true,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _mockRegistry.Setup(r => r.IsSettingApplied(
+                It.Is<RegistrySetting>(rs => rs.ApplyPerNetworkInterface)))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-network-interface"].Success.Should().BeTrue();
+        result["test-network-interface"].IsEnabled.Should().BeTrue();
+        _mockRegistry.Verify(r => r.IsSettingApplied(
+            It.Is<RegistrySetting>(rs => rs.ApplyPerNetworkInterface)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_ApplyPerNetworkInterface_NotApplied_ReturnsFalse()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "test-network-not-applied",
+            Name = "Network Interface Not Applied",
+            Description = "Tests ApplyPerNetworkInterface when not applied",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
+                    ValueName = "TcpAckFrequency",
+                    EnabledValue = [null],
+                    DisabledValue = [1],
+                    ValueType = RegistryValueKind.DWord,
+                    ApplyPerNetworkInterface = true,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _mockRegistry.Setup(r => r.IsSettingApplied(
+                It.Is<RegistrySetting>(rs => rs.ApplyPerNetworkInterface)))
+            .Returns(false);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-network-not-applied"].Success.Should().BeTrue();
+        result["test-network-not-applied"].IsEnabled.Should().BeFalse();
+    }
 }
