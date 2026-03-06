@@ -211,7 +211,7 @@ public class StartupNotificationServiceTests
             .ReturnsAsync((true, true)); // Checkbox checked
 
         _mockPrefsService
-            .Setup(p => p.SetPreferenceAsync("SkipSystemBackup", true))
+            .Setup(p => p.SetPreferenceAsync("SkipSystemBackup", "true"))
             .ReturnsAsync(OperationResult.Succeeded());
 
         var service = CreateService();
@@ -219,7 +219,7 @@ public class StartupNotificationServiceTests
         await service.ShowBackupNotificationAsync(result);
 
         _mockPrefsService.Verify(
-            p => p.SetPreferenceAsync("SkipSystemBackup", true),
+            p => p.SetPreferenceAsync("SkipSystemBackup", "true"),
             Times.Once);
     }
 
@@ -240,7 +240,7 @@ public class StartupNotificationServiceTests
             .ReturnsAsync((true, true));
 
         _mockPrefsService
-            .Setup(p => p.SetPreferenceAsync("SkipSystemBackup", true))
+            .Setup(p => p.SetPreferenceAsync("SkipSystemBackup", "true"))
             .ReturnsAsync(OperationResult.Succeeded());
 
         var service = CreateService();
@@ -273,7 +273,7 @@ public class StartupNotificationServiceTests
         await service.ShowBackupNotificationAsync(result);
 
         _mockPrefsService.Verify(
-            p => p.SetPreferenceAsync("SkipSystemBackup", It.IsAny<bool>()),
+            p => p.SetPreferenceAsync("SkipSystemBackup", It.IsAny<string>()),
             Times.Never);
     }
 
@@ -501,7 +501,7 @@ public class StartupNotificationServiceTests
             .ReturnsAsync((true, true)); // Checkbox checked
 
         _mockPrefsService
-            .Setup(p => p.SetPreferenceAsync("SkipSystemBackup", true))
+            .Setup(p => p.SetPreferenceAsync("SkipSystemBackup", "true"))
             .ThrowsAsync(new Exception("Save failed"));
 
         var service = CreateService();

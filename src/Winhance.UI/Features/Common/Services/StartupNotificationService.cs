@@ -73,7 +73,7 @@ public class StartupNotificationService : IStartupNotificationService
 
             if (dialogResult.CheckboxChecked)
             {
-                await _prefsService.SetPreferenceAsync("SkipSystemBackup", true);
+                await _prefsService.SetPreferenceAsync("SkipSystemBackup", "true");
                 _logService.Log(LogLevel.Info, "User opted to skip system backup check in future launches");
             }
 
