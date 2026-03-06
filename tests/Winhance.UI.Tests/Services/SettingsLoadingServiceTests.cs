@@ -3,7 +3,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Features;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -150,9 +150,10 @@ public class SettingsLoadingServiceTests
     }
 
     [Fact]
-    public async Task LoadConfiguredSettingsAsync_PublishesFeatureComposedEvent()
+    public async Task LoadConfiguredSettingsAsync_PublishesTooltipUpdatedEvents()
     {
         var domainService = new Mock<IDomainService>().Object;
+        var tooltipData = new SettingTooltipData { SettingId = "Setting1", DisplayValue = "test" };
         var settings = new List<SettingDefinition>
         {
             new() { Id = "Setting1", Name = "Setting 1", Description = "Desc 1", InputType = InputType.Toggle }
@@ -166,7 +167,7 @@ public class SettingsLoadingServiceTests
             .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                { "Setting1", new SettingStateResult { Success = true } }
+                { "Setting1", new SettingStateResult { Success = true, TooltipData = tooltipData } }
             });
 
         _mockUserPreferencesService
@@ -184,7 +185,9 @@ public class SettingsLoadingServiceTests
         await _sut.LoadConfiguredSettingsAsync(
             domainService, "TestFeature", "Loading...", null);
 
-        _mockEventBus.Verify(e => e.Publish(It.IsAny<FeatureComposedEvent>()), Times.Once);
+        _mockEventBus.Verify(
+            e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "Setting1")),
+            Times.Once);
     }
 
     [Fact]

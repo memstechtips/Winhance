@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Features;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -81,7 +81,14 @@ public class SettingsLoadingService : ISettingsLoadingService
                 settingViewModels.Add(viewModel);
             }
 
-            _eventBus.Publish(new FeatureComposedEvent(featureModuleId, settingsList));
+            // Publish tooltip updates from the already-read state data (no second registry read)
+            foreach (var kvp in batchStates)
+            {
+                if (kvp.Value.TooltipData != null)
+                {
+                    _eventBus.Publish(new TooltipUpdatedEvent(kvp.Key, kvp.Value.TooltipData));
+                }
+            }
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
             _initializationService.CompleteFeatureInitialization(featureModuleId);
 

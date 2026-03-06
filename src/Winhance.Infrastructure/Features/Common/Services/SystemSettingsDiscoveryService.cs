@@ -18,8 +18,14 @@ public class SystemSettingsDiscoveryService(
 {
     public async Task<Dictionary<string, Dictionary<string, object?>>> GetRawSettingsValuesAsync(IEnumerable<SettingDefinition> settings)
     {
+        var (perSettingValues, _) = await GetRawSettingsValuesWithBatchAsync(settings).ConfigureAwait(false);
+        return perSettingValues;
+    }
+
+    private async Task<(Dictionary<string, Dictionary<string, object?>> PerSettingValues, Dictionary<string, object?> BatchRegistryValues)> GetRawSettingsValuesWithBatchAsync(IEnumerable<SettingDefinition> settings)
+    {
         var results = new Dictionary<string, Dictionary<string, object?>>();
-        if (settings == null) return results;
+        if (settings == null) return (results, new Dictionary<string, object?>());
 
         var settingsList = settings.ToList();
         var powerCfgSettings = settingsList.Where(s => s.PowerCfgSettings?.Count > 0 && s.Id != SettingIds.PowerPlanSelection).ToList();
@@ -226,15 +232,15 @@ public class SystemSettingsDiscoveryService(
 
         var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
         logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
-        return results;
+        return (results, batchedRegistryValues);
     }
 
     public async Task<Dictionary<string, SettingStateResult>> GetSettingStatesAsync(IEnumerable<SettingDefinition> settings)
     {
         var settingsList = settings.ToList();
         logService.Log(LogLevel.Info, $"[SystemSettingsDiscoveryService] Getting interpreted states for {settingsList.Count} settings");
-        
-        var allRawValues = await GetRawSettingsValuesAsync(settingsList).ConfigureAwait(false);
+
+        var (allRawValues, batchRegistryValues) = await GetRawSettingsValuesWithBatchAsync(settingsList).ConfigureAwait(false);
         var results = new Dictionary<string, SettingStateResult>();
 
         foreach (var setting in settingsList)
@@ -298,8 +304,120 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
+        // Build tooltip data from the already-read batch registry values (single read)
+        foreach (var setting in settingsList)
+        {
+            if (!results.TryGetValue(setting.Id, out var stateResult) || !stateResult.Success)
+                continue;
+
+            if (setting.DisableTooltip)
+                continue;
+
+            var tooltipData = BuildTooltipData(setting, batchRegistryValues);
+            if (tooltipData != null)
+            {
+                results[setting.Id] = stateResult with { TooltipData = tooltipData };
+            }
+        }
+
         logService.Log(LogLevel.Info, $"[SystemSettingsDiscoveryService] Interpreted states completed for {results.Count} settings");
         return results;
+    }
+
+    private SettingTooltipData? BuildTooltipData(SettingDefinition setting, Dictionary<string, object?> batchRegistryValues)
+    {
+        bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
+        bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
+        bool hasPowerCfgSettings = setting.PowerCfgSettings?.Any() == true;
+
+        if (!hasRegistrySettings && !hasScheduledTaskSettings && !hasPowerCfgSettings)
+            return null;
+
+        try
+        {
+            string displayValue = string.Empty;
+            var individualValues = new Dictionary<RegistrySetting, string?>();
+
+            if (hasRegistrySettings)
+            {
+                var registrySettingsList = setting.RegistrySettings!.ToList();
+                string? primaryDisplayValue = null;
+
+                foreach (var rs in registrySettingsList)
+                {
+                    object? currentValue = null;
+
+                    if (rs.ApplyPerNetworkInterface)
+                    {
+                        // Network interface settings: read from first subkey
+                        var subKeys = registryService.GetSubKeyNames(rs.KeyPath);
+                        if (subKeys.Length > 0)
+                        {
+                            currentValue = registryService.GetValue(
+                                $@"{rs.KeyPath}\{subKeys[0]}", rs.ValueName!);
+                        }
+                    }
+                    else
+                    {
+                        var resultKey = rs.ValueName == null
+                            ? $"{rs.KeyPath}\\__KEY_EXISTS__"
+                            : $"{rs.KeyPath}\\{rs.ValueName}";
+                        batchRegistryValues.TryGetValue(resultKey, out currentValue);
+                    }
+
+                    var formattedValue = FormatRegistryValue(currentValue, rs);
+                    individualValues[rs] = formattedValue;
+
+                    if (rs == registrySettingsList[0])
+                        primaryDisplayValue = formattedValue;
+                }
+
+                displayValue = primaryDisplayValue ?? string.Empty;
+            }
+
+            return new SettingTooltipData
+            {
+                SettingId = setting.Id,
+                DisplayValue = displayValue,
+                IndividualRegistryValues = individualValues,
+                ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
+                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
+            };
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Warning, $"[SystemSettingsDiscoveryService] Error building tooltip data for '{setting.Id}': {ex.Message}");
+            return null;
+        }
+    }
+
+    private static string? FormatRegistryValue(object? value, RegistrySetting? registrySetting)
+    {
+        if (value == null)
+            return null;
+
+        if (value is byte[] bytes && registrySetting != null)
+        {
+            if (bytes.Length == 0)
+                return "(empty)";
+
+            if (registrySetting.BinaryByteIndex.HasValue && bytes.Length > registrySetting.BinaryByteIndex.Value)
+            {
+                var targetByte = bytes[registrySetting.BinaryByteIndex.Value];
+
+                if (registrySetting.BitMask.HasValue)
+                {
+                    var isSet = (targetByte & registrySetting.BitMask.Value) != 0;
+                    return isSet ? "1" : "0";
+                }
+
+                return targetByte.ToString();
+            }
+
+            return string.Join(" ", bytes);
+        }
+
+        return value.ToString()!;
     }
 
     private bool DetermineIfSettingIsEnabled(SettingDefinition setting, Dictionary<string, object?> rawValues)
@@ -309,29 +427,15 @@ public class SystemSettingsDiscoveryService(
 
         if (setting.RegistrySettings?.Count > 0)
         {
-            // Use the pre-fetched rawValues instead of re-reading registry individually
             foreach (var registrySetting in setting.RegistrySettings)
             {
                 var valueName = registrySetting.ValueName ?? "KeyExists";
                 if (!rawValues.TryGetValue(valueName, out var currentValue))
                     continue;
 
-                if (currentValue == null)
-                    continue;
-
-                // For BitMask/ModifyByteOnly the rawValues already contain the processed value
-                var enabledValue = registrySetting.EnabledValue;
-                if (enabledValue != null && ValuesAreEqual(currentValue, enabledValue))
+                bool valueExists = currentValue != null;
+                if (registryService.IsRegistryValueInEnabledState(registrySetting, currentValue, valueExists))
                     return true;
-
-                // If no enabled value defined, check against disabled value first
-                if (enabledValue == null)
-                {
-                    if (registrySetting.DisabledValue != null && ValuesAreEqual(currentValue, registrySetting.DisabledValue))
-                        continue;
-                    if (currentValue is not false)
-                        return true;
-                }
             }
             return false;
         }

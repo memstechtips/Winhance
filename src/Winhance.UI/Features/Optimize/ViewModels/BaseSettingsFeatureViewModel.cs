@@ -403,6 +403,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                     }
                 }
             });
+
+            // Publish tooltip updates from the already-read state data (no second registry read)
+            foreach (var kvp in states)
+            {
+                if (kvp.Value.TooltipData != null)
+                {
+                    _eventBus.Publish(new TooltipUpdatedEvent(kvp.Key, kvp.Value.TooltipData));
+                }
+            }
         }
         catch (Exception ex)
         {

@@ -9,4 +9,5 @@ public record SettingStateResult
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }
     public IReadOnlyDictionary<string, object?>? RawValues { get; init; }
+    public SettingTooltipData? TooltipData { get; init; }
 }

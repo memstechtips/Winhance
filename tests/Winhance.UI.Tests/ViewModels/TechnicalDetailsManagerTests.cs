@@ -44,6 +44,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
+        _mockDispatcherService
+            .Setup(d => d.RunOnUIThread(It.IsAny<Microsoft.UI.Dispatching.DispatcherQueuePriority>(), It.IsAny<Action>()))
+            .Callback<Microsoft.UI.Dispatching.DispatcherQueuePriority, Action>((_, action) => action());
 
         // Capture the event handler when Subscribe is called
         _mockEventBus
@@ -535,7 +538,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _mockDispatcherService.Verify(d => d.RunOnUIThread(It.IsAny<Action>()), Times.Once);
+        _mockDispatcherService.Verify(
+            d => d.RunOnUIThread(It.IsAny<Microsoft.UI.Dispatching.DispatcherQueuePriority>(), It.IsAny<Action>()),
+            Times.Once);
     }
 
     [Fact]

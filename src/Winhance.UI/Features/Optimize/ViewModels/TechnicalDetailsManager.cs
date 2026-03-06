@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Dispatching;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
@@ -56,7 +57,9 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private void OnTooltipUpdated(TooltipUpdatedEvent evt)
     {
         if (evt.SettingId != _getSettingId()) return;
-        _dispatcherService.RunOnUIThread(() => UpdateTechnicalDetails(evt.TooltipData));
+        // Use Low priority to defer to the next dispatcher cycle, avoiding
+        // WinUI COMException when the collection is modified during a layout pass.
+        _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low, () => UpdateTechnicalDetails(evt.TooltipData));
     }
 
     private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
@@ -87,7 +90,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
                     ValueName = reg.ValueName ?? "(Default)",
                     ValueType = reg.ValueType.ToString(),
                     CurrentValue = kvp.Value ?? _labels.ValueNotExist,
-                    RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
+                    RecommendedValue = reg.RecommendedValue?.ToString() ?? _labels.ValueNotExist,
                     DefaultValue = reg.DefaultValue?.ToString() ?? _labels.ValueNotExist,
                     PathLabel = _labels.Path,
                     ValueLabel = _labels.Value,

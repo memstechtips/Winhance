@@ -839,6 +839,48 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             Times.AtLeastOnce);
     }
 
+    [Fact]
+    public async Task RefreshSettingStatesAsync_PublishesTooltipUpdatedEvents()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<IDomainService>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        var tooltipData = new SettingTooltipData { SettingId = "s1", DisplayValue = "test" };
+        var stateResults = new Dictionary<string, SettingStateResult>
+        {
+            ["s1"] = new SettingStateResult
+            {
+                Success = true,
+                IsEnabled = true,
+                TooltipData = tooltipData
+            }
+        };
+
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(stateResults);
+
+        await vm.LoadSettingsAsync();
+        _mockEventBus.Invocations.Clear();
+
+        // Act
+        await vm.RefreshSettingStatesAsync();
+
+        // Assert - TooltipUpdatedEvent should be published directly from state results
+        _mockEventBus.Verify(
+            e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "s1")),
+            Times.Once);
+    }
+
     // ── ApplySearchFilter ──
 
     [Fact]

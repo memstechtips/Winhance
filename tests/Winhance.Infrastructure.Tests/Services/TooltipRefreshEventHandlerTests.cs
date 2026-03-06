@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
@@ -18,10 +17,8 @@ public class TooltipRefreshEventHandlerTests : IDisposable
     private readonly Mock<IGlobalSettingsRegistry> _mockSettingsRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<ISubscriptionToken> _mockSettingAppliedToken = new();
-    private readonly Mock<ISubscriptionToken> _mockFeatureComposedToken = new();
 
     private Func<SettingAppliedEvent, Task>? _capturedSettingAppliedHandler;
-    private Func<FeatureComposedEvent, Task>? _capturedFeatureComposedHandler;
 
     private readonly TooltipRefreshEventHandler _handler;
 
@@ -31,11 +28,6 @@ public class TooltipRefreshEventHandlerTests : IDisposable
             .Setup(e => e.SubscribeAsync<SettingAppliedEvent>(It.IsAny<Func<SettingAppliedEvent, Task>>()))
             .Callback<Func<SettingAppliedEvent, Task>>(h => _capturedSettingAppliedHandler = h)
             .Returns(_mockSettingAppliedToken.Object);
-
-        _mockEventBus
-            .Setup(e => e.SubscribeAsync<FeatureComposedEvent>(It.IsAny<Func<FeatureComposedEvent, Task>>()))
-            .Callback<Func<FeatureComposedEvent, Task>>(h => _capturedFeatureComposedHandler = h)
-            .Returns(_mockFeatureComposedToken.Object);
 
         _handler = new TooltipRefreshEventHandler(
             _mockEventBus.Object,
@@ -86,14 +78,6 @@ public class TooltipRefreshEventHandlerTests : IDisposable
     {
         _mockEventBus.Verify(
             e => e.SubscribeAsync<SettingAppliedEvent>(It.IsAny<Func<SettingAppliedEvent, Task>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public void Constructor_SubscribesToFeatureComposedEvent()
-    {
-        _mockEventBus.Verify(
-            e => e.SubscribeAsync<FeatureComposedEvent>(It.IsAny<Func<FeatureComposedEvent, Task>>()),
             Times.Once);
     }
 
@@ -163,14 +147,6 @@ public class TooltipRefreshEventHandlerTests : IDisposable
         _handler.Dispose();
 
         _mockSettingAppliedToken.Verify(t => t.Dispose(), Times.AtLeastOnce);
-    }
-
-    [Fact]
-    public void Dispose_UnsubscribesFeatureComposedToken()
-    {
-        _handler.Dispose();
-
-        _mockFeatureComposedToken.Verify(t => t.Dispose(), Times.AtLeastOnce);
     }
 
     // ---------------------------------------------------------------
@@ -293,97 +269,6 @@ public class TooltipRefreshEventHandlerTests : IDisposable
             Times.Once);
         _mockEventBus.Verify(
             e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "sibling")),
-            Times.Once);
-    }
-
-    // ---------------------------------------------------------------
-    // Feature composed triggers bulk tooltip processing
-    // ---------------------------------------------------------------
-
-    [Fact]
-    public async Task HandleFeatureComposed_PublishesTooltipUpdatedForEachSetting()
-    {
-        var s1 = CreateSetting("fs1");
-        var s2 = CreateSetting("fs2");
-        var settings = new[] { s1, s2 };
-
-        var tooltipMap = new Dictionary<string, SettingTooltipData>
-        {
-            ["fs1"] = new SettingTooltipData { SettingId = "fs1", DisplayValue = "A" },
-            ["fs2"] = new SettingTooltipData { SettingId = "fs2", DisplayValue = "B" },
-        };
-
-        _mockTooltipService
-            .Setup(s => s.GetTooltipDataAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(tooltipMap);
-
-        _capturedFeatureComposedHandler.Should().NotBeNull();
-        await _capturedFeatureComposedHandler!(
-            new FeatureComposedEvent("TestModule", settings));
-
-        _mockEventBus.Verify(
-            e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "fs1")),
-            Times.Once);
-        _mockEventBus.Verify(
-            e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "fs2")),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleFeatureComposed_EmptySettings_DoesNotCallService()
-    {
-        await _capturedFeatureComposedHandler!(
-            new FeatureComposedEvent("EmptyModule", Array.Empty<SettingDefinition>()));
-
-        _mockTooltipService.Verify(
-            s => s.GetTooltipDataAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
-            Times.Never);
-        _mockEventBus.Verify(
-            e => e.Publish(It.IsAny<TooltipUpdatedEvent>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task HandleFeatureComposed_LogsProcessedCount()
-    {
-        var s1 = CreateSetting("log1");
-        var tooltipMap = new Dictionary<string, SettingTooltipData>
-        {
-            ["log1"] = new SettingTooltipData { SettingId = "log1", DisplayValue = "X" },
-        };
-
-        _mockTooltipService
-            .Setup(s => s.GetTooltipDataAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(tooltipMap);
-
-        await _capturedFeatureComposedHandler!(
-            new FeatureComposedEvent("LogModule", new[] { s1 }));
-
-        _mockLog.Verify(
-            l => l.Log(
-                Core.Features.Common.Enums.LogLevel.Info,
-                It.Is<string>(msg => msg.Contains("1/1") && msg.Contains("LogModule")),
-                null),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleFeatureComposed_ServiceThrows_LogsError()
-    {
-        var s1 = CreateSetting("err1");
-
-        _mockTooltipService
-            .Setup(s => s.GetTooltipDataAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ThrowsAsync(new InvalidOperationException("test failure"));
-
-        await _capturedFeatureComposedHandler!(
-            new FeatureComposedEvent("FailModule", new[] { s1 }));
-
-        _mockLog.Verify(
-            l => l.Log(
-                Core.Features.Common.Enums.LogLevel.Error,
-                It.Is<string>(msg => msg.Contains("FailModule") && msg.Contains("test failure")),
-                null),
             Times.Once);
     }
 
