@@ -250,7 +250,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: re
 ; Install .NET 10 Runtime (always for regular installation, optional for portable)
 Filename: "{tmp}\{#DotNetRuntimeInstallerName}"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing .NET 10 Runtime..."; Flags: waituntilterminated; Check: ShouldInstallDotNetRuntime
 ; Launch application after installation
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: shellexec nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; Delete all files and directories that might remain after uninstallation
