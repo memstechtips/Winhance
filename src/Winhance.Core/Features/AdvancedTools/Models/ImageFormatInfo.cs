@@ -1,18 +1,17 @@
-namespace Winhance.Core.Features.AdvancedTools.Models
-{
-    public class ImageFormatInfo
-    {
-        public ImageFormat Format { get; set; }
-        public string FilePath { get; set; } = string.Empty;
-        public long FileSizeBytes { get; set; }
-        public int ImageCount { get; set; }
-        public List<string> EditionNames { get; set; } = new();
-    }
-
-    public enum ImageFormat
-    {
-        None,
-        Wim,
-        Esd
-    }
-}
+namespace Winhance.Core.Features.AdvancedTools.Models;
+
+public record ImageFormatInfo
+{
+    public ImageFormat Format { get; init; }
+    public string FilePath { get; init; } = string.Empty;
+    public long FileSizeBytes { get; init; }
+    public int ImageCount { get; init; }
+    public IReadOnlyList<string> EditionNames { get; init; } = new List<string>();
+}
+
+public enum ImageFormat
+{
+    None,
+    Wim,
+    Esd
+}

@@ -41,13 +41,17 @@
 #
 # # Create a beta version
 # .\build-and-package.ps1 -Beta
+#
+# # Skip running tests
+# .\build-and-package.ps1 -SkipTests
 param (
     [string]$Version = (Get-Date -Format "yy.MM.dd"),
     [string]$OutputDir = "$PSScriptRoot\..\installer-output",
     [string]$CertificateSubject = "",
     [string]$CertificateThumbprint = "",
     [switch]$SignApplication = $false,
-    [switch]$Beta = $false
+    [switch]$Beta = $false,
+    [switch]$SkipTests = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -288,7 +292,20 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Step 3.5: Sign the application executable
+# Step 3: Run tests
+if (-not $SkipTests) {
+    Write-Host "Running tests..." -ForegroundColor Green
+    & "$scriptRoot\run-winhance-tests.ps1"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Tests failed. Fix the failing tests before building the installer." -ForegroundColor Red
+        exit 1
+    }
+}
+else {
+    Write-Host "Skipping tests (-SkipTests)..." -ForegroundColor Yellow
+}
+
+# Step 4: Sign the application executable
 $mainExecutable = "$publishOutputPath\Winhance.exe"
 
 # Check if signing is requested
@@ -318,7 +335,7 @@ else {
     Write-Host "Skipping application signing..." -ForegroundColor Yellow
 }
 
-# Step 4: Update the InnoSetup script with correct paths
+# Step 5: Update the InnoSetup script with correct paths
 Write-Host "Preparing InnoSetup script..." -ForegroundColor Green
 $innoContent = Get-Content -Path $innoSetupScript -Raw
 
@@ -344,10 +361,15 @@ $innoContent = $innoContent -replace 'SetupIconFile=C:\\Winhance\\src\\Winhance\
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance\.UI\\bin\\x64\\Release\\net10\.0-windows10\.0\.19041\.0\\', "Source: `"$publishPath\\"
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\extras\\prerequisites\\', "Source: `"$scriptRoot\\prerequisites\\"
 
+# Add uninstaller signing directives if code signing is enabled
+if ($shouldSign -and $certificate) {
+    $innoContent = $innoContent -replace '(SolidCompression=yes)', "`$1`r`nSignTool=mysigntool`r`nSignedUninstaller=yes"
+}
+
 # Write the updated script to a temporary file
 Set-Content -Path $tempInnoScript -Value $innoContent
 
-# Step 5: Run the InnoSetup compiler
+# Step 6: Run the InnoSetup compiler
 Write-Host "Creating installer..." -ForegroundColor Green
 $innoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $innoCompiler)) {
@@ -359,7 +381,24 @@ if (-not (Test-Path $innoCompiler)) {
     }
 }
 
-& $innoCompiler $tempInnoScript
+if ($shouldSign -and $certificate) {
+    # Create a temporary batch file for the sign tool command
+    # This avoids quoting issues when passing the signtool path (which contains spaces) to ISCC
+    $signBatPath = "$env:TEMP\winhance-sign.bat"
+    $signtoolExe = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe"
+    if (-not (Test-Path $signtoolExe)) {
+        $possiblePaths = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue
+        if ($possiblePaths.Count -gt 0) {
+            $signtoolExe = $possiblePaths[0].FullName
+        }
+    }
+    Set-Content -Path $signBatPath -Value "@`"$signtoolExe`" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /sha1 $($certificate.Thumbprint) %1"
+
+    Write-Host "Creating installer with signed uninstaller..." -ForegroundColor Green
+    & $innoCompiler "/Smysigntool=$signBatPath `$f" $tempInnoScript
+} else {
+    & $innoCompiler $tempInnoScript
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to create installer" -ForegroundColor Red
     exit 1
@@ -367,6 +406,9 @@ if ($LASTEXITCODE -ne 0) {
 
 # Clean up
 Remove-Item $tempInnoScript -Force
+if ($signBatPath -and (Test-Path $signBatPath)) {
+    Remove-Item $signBatPath -Force
+}
 
 # Sign the installer if the executable was signed
 $installerFilename = if ($Beta) { "Winhance.Installer.Beta.exe" } else { "Winhance.Installer.exe" }
@@ -394,6 +436,7 @@ if ($shouldSign) {
     Write-Host "`nSigning Summary:" -ForegroundColor Cyan
     Write-Host "  Certificate: $($certificate.Subject)" -ForegroundColor Green
     Write-Host "  Executable: Signed" -ForegroundColor Green
+    Write-Host "  Uninstaller: Signed (embedded in installer)" -ForegroundColor Green
     if ($installerSignResult) {
         Write-Host "  Installer: Signed" -ForegroundColor Green
     }

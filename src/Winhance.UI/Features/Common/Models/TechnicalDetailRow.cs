@@ -20,6 +20,7 @@ public class TechnicalDetailRow
     public string ValueType { get; set; } = string.Empty;
     public string CurrentValue { get; set; } = string.Empty;
     public string RecommendedValue { get; set; } = string.Empty;
+    public string DefaultValue { get; set; } = string.Empty;
 
     // ScheduledTask fields
     public string TaskPath { get; set; } = string.Empty;
@@ -33,6 +34,13 @@ public class TechnicalDetailRow
     public string PowerUnits { get; set; } = string.Empty;
     public string RecommendedAC { get; set; } = string.Empty;
     public string RecommendedDC { get; set; } = string.Empty;
+
+    // Localized labels for XAML binding
+    public string PathLabel { get; set; } = "Path";
+    public string ValueLabel { get; set; } = "Value";
+    public string CurrentLabel { get; set; } = "Current";
+    public string RecommendedLabel { get; set; } = "Recommended";
+    public string DefaultLabel { get; set; } = "Default";
 
     // Computed bools for XAML visibility
     public bool IsRegistry => RowType == DetailRowType.Registry;
@@ -54,7 +62,7 @@ public class TechnicalDetailRow
     public string AccessibleSummary => RowType switch
     {
         DetailRowType.Registry =>
-            $"Registry. Path: {RegistryPath}, Value: {ValueName} ({ValueType}), Current: {CurrentValue}, Recommended: {RecommendedValue}",
+            $"Registry. Path: {RegistryPath}, Value: {ValueName} ({ValueType}), Current: {CurrentValue}, Recommended: {RecommendedValue}, Default: {DefaultValue}",
         DetailRowType.ScheduledTask =>
             $"Scheduled Task. TaskPath: {TaskPath}, Recommended: {RecommendedState}",
         DetailRowType.PowerConfig =>

@@ -1,11 +1,14 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
-    public const string ScriptVersion = "2.0";
+    public const string ScriptVersion = "2.2";
+    private static readonly ConcurrentDictionary<string, Regex> ArrayPatternCache = new();
 
     public static string GenerateScript(
         List<string> packages,
@@ -28,8 +31,12 @@ public static class BloatRemovalScriptGenerator
 
     public static List<string> ExtractArrayFromScript(string content, string arrayName)
     {
-        var pattern = $@"\${arrayName}\s*=\s*@\(\s*(.*?)\s*\)";
-        var match = Regex.Match(content, pattern, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        var regex = ArrayPatternCache.GetOrAdd(arrayName, name =>
+        {
+            var pattern = $@"\${name}\s*=\s*@\(\s*(.*?)\s*\)";
+            return new Regex(pattern, RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        });
+        var match = regex.Match(content);
 
         if (!match.Success) return new List<string>();
 
@@ -100,7 +107,7 @@ public static class BloatRemovalScriptGenerator
     private static void AppendLoggingSetup(StringBuilder sb)
     {
         sb.AppendLine("# Setup logging");
-        sb.AppendLine("$logFolder = \"C:\\ProgramData\\Winhance\\Logs\"");
+        sb.AppendLine($"$logFolder = \"{ScriptPaths.LogsDirectoryLiteral}\"");
         sb.AppendLine("$logFile = \"$logFolder\\BloatRemovalLog.txt\"");
         sb.AppendLine();
         sb.AppendLine("if (!(Test-Path $logFolder)) {");
@@ -226,14 +233,23 @@ if ($hasXboxPackages) {
 
             if ($loggedInUser -and $loggedInUser -ne ""NT AUTHORITY\SYSTEM"") {
                 $username = $loggedInUser.Split('\\')[1]
-                try {
-                    $sid = (New-Object System.Security.Principal.NTAccount($username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+                $sid = $null
+                $profListPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
+                foreach ($profKey in Get-ChildItem $profListPath -ErrorAction SilentlyContinue) {
+                    $profPath = (Get-ItemProperty $profKey.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
+                    if ($profPath -and $profPath.EndsWith(""\$username"")) {
+                        $sid = $profKey.PSChildName
+                        break
+                    }
+                }
+                if ($sid) {
                     Write-Log ""Applying settings for user: $username (SID: $sid)""
                     reg add ""HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
                     reg add ""HKU\$sid\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
+                    reg add ""HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR"" /f /t REG_DWORD /v ""AllowGameDVR"" /d 0 2>$null | Out-Null
                     Write-Log ""Xbox Game DVR registry settings applied successfully""
-                } catch {
-                    Write-Log ""Warning: Could not apply Xbox Game DVR registry settings: $($_.Exception.Message)""
+                } else {
+                    Write-Log ""Warning: Could not resolve SID for user: $username""
                 }
             } else {
                 Write-Log ""Warning: Could not detect logged-in user for registry settings""
@@ -242,6 +258,7 @@ if ($hasXboxPackages) {
             Write-Log ""Running as user - applying settings directly to HKCU""
             reg add ""HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
             reg add ""HKCU\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
+            reg add ""HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR"" /f /t REG_DWORD /v ""AllowGameDVR"" /d 0 2>$null | Out-Null
             Write-Log ""Xbox Game DVR registry settings applied successfully""
         }
     } catch {

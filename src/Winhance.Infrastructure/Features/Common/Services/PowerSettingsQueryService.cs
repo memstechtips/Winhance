@@ -9,17 +9,25 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
 {
-    private List<PowerPlan>? _cachedPlans;
+    private volatile List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
     private readonly TimeSpan _cacheTimeout = TimeSpan.FromSeconds(2);
+    private readonly object _cacheLock = new();
     private readonly Dictionary<string, (int? min, int? max)> _capabilityCache = new();
 
     public async Task<List<PowerPlan>> GetAvailablePowerPlansAsync()
     {
-        if (_cachedPlans != null && DateTime.UtcNow - _cacheTime < _cacheTimeout)
+        var cached = _cachedPlans;
+        if (cached != null)
         {
-            logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({_cachedPlans.Count} plans)");
-            return _cachedPlans;
+            lock (_cacheLock)
+            {
+                if (DateTime.UtcNow - _cacheTime < _cacheTimeout)
+                {
+                    logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({cached.Count} plans)");
+                    return cached;
+                }
+            }
         }
 
         try
@@ -67,13 +75,17 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                 Marshal.FreeHGlobal(buffer);
             }
 
-            _cachedPlans = plans.OrderByDescending(p => p.IsActive).ThenBy(p => p.Name).ToList();
-            _cacheTime = DateTime.UtcNow;
+            var sortedPlans = plans.OrderByDescending(p => p.IsActive).ThenBy(p => p.Name).ToList();
+            lock (_cacheLock)
+            {
+                _cachedPlans = sortedPlans;
+                _cacheTime = DateTime.UtcNow;
+            }
 
-            var activePlan = _cachedPlans.FirstOrDefault(p => p.IsActive);
-            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {_cachedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
-            
-            return _cachedPlans;
+            var activePlan = sortedPlans.FirstOrDefault(p => p.IsActive);
+            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {sortedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
+
+            return sortedPlans;
         }
         catch (Exception ex)
         {
@@ -129,8 +141,11 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
     public void InvalidateCache()
     {
-        _cachedPlans = null;
-        _capabilityCache.Clear();
+        lock (_cacheLock)
+        {
+            _cachedPlans = null;
+            _capabilityCache.Clear();
+        }
     }
 
     public async Task<PowerPlan> GetActivePowerPlanAsync()
@@ -158,74 +173,6 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
-    public async Task<PowerPlan?> GetPowerPlanByGuidAsync(string guid)
-    {
-        try
-        {
-            var availablePlans = await GetAvailablePowerPlansAsync();
-            return availablePlans.FirstOrDefault(p => string.Equals(p.Guid, guid, StringComparison.OrdinalIgnoreCase));
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"Error getting power plan by GUID: {ex.Message}");
-            return null;
-        }
-    }
-
-    public async Task<int> GetPowerPlanIndexAsync(string guid, List<string> options)
-    {
-        try
-        {
-            var availablePlans = await GetAvailablePowerPlansAsync();
-            var activePlanData = availablePlans.FirstOrDefault(p => p.IsActive);
-
-            if (activePlanData == null)
-                return 0;
-
-            for (int i = 0; i < options.Count; i++)
-            {
-                var optionName = options[i].Trim();
-                var matchingPlan = availablePlans.FirstOrDefault(p =>
-                    p.Name.Trim().Equals(optionName, StringComparison.OrdinalIgnoreCase));
-
-                if (matchingPlan != null && matchingPlan.Guid.Equals(activePlanData.Guid, StringComparison.OrdinalIgnoreCase))
-                    return i;
-            }
-
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"Error resolving power plan index: {ex.Message}");
-            return 0;
-        }
-    }
-
-    public async Task<int?> GetPowerSettingValueAsync(PowerCfgSetting powerCfgSetting)
-    {
-        try
-        {
-            return await Task.Run(() =>
-            {
-                var schemeGuid = GetActivePowerSchemeGuid();
-                if (schemeGuid == Guid.Empty) return (int?)null;
-
-                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
-
-                if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out uint acIndex) == PowerProf.ERROR_SUCCESS)
-                    return (int?)acIndex;
-
-                return null;
-            });
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error getting power setting value: {ex.Message}");
-            return null;
-        }
-    }
-
     public async Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting)
     {
         try
@@ -248,7 +195,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                     dc = (int)dcIndex;
 
                 return (ac, dc);
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -264,7 +211,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
             return await Task.Run(() =>
             {
                 var results = new Dictionary<string, (int? acValue, int? dcValue)>();
-                
+
                 Guid schemeGuid;
                 if (string.Equals(powerPlanGuid, "SCHEME_CURRENT", StringComparison.OrdinalIgnoreCase))
                 {
@@ -344,7 +291,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                 }
 
                 return results;
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -353,14 +300,17 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
-    public async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
+    private async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
     {
         var cacheKey = powerCfgSetting.SettingGuid;
 
-        if (_capabilityCache.TryGetValue(cacheKey, out var cached))
+        lock (_cacheLock)
         {
-            logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
-            return cached;
+            if (_capabilityCache.TryGetValue(cacheKey, out var cached))
+            {
+                logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
+                return cached;
+            }
         }
 
         try
@@ -379,9 +329,12 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                     max = (int)maxVal;
 
                 return (min, max);
-            });
+            }).ConfigureAwait(false);
 
-            _capabilityCache[cacheKey] = capabilities;
+            lock (_cacheLock)
+            {
+                _capabilityCache[cacheKey] = capabilities;
+            }
 
             logService.Log(LogLevel.Info,
                 $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");
@@ -398,7 +351,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
     public async Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting)
     {
-        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting);
+        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting).ConfigureAwait(false);
 
         bool isHardwareControlled = minValue == 0 && maxValue == 0;
 

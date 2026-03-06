@@ -14,7 +14,7 @@ namespace Winhance.UI.Features.Common.Controls;
 //
 // Also overrides arrow key behavior: when closed, Up/Down keys are not consumed
 // so they can bubble up to the parent ListView for item-to-item navigation.
-public class ComboBoxEx : ComboBox
+public partial class ComboBoxEx : ComboBox
 {
     private double _cachedWidth;
 

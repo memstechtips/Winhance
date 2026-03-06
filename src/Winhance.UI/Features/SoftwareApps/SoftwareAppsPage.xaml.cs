@@ -2,13 +2,14 @@ using System.ComponentModel;
 using CommunityToolkit.WinUI.Collections;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Winhance.UI.Features.Common.ViewModels;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
-using Winhance.UI.Features.SoftwareApps.Views;
 
 namespace Winhance.UI.Features.SoftwareApps;
 
@@ -22,6 +23,26 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel = App.Services.GetRequiredService<SoftwareAppsViewModel>();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateTabBadges();
+
+        // WinUI 3 InfoBar on a cached page does not re-evaluate its internal
+        // ThemeResource bindings when the app theme changes.  Work around this
+        // by closing and re-opening the visible banner on the next dispatcher
+        // tick so the control rebuilds its visual tree with the new brushes.
+        var themeService = App.Services.GetRequiredService<IThemeService>();
+        themeService.ThemeChanged += (_, _) =>
+        {
+            if (!ViewModel.IsInReviewMode)
+                return;
+
+            WindowsAppsReviewBanner.IsOpen = false;
+            ExternalAppsReviewBanner.IsOpen = false;
+
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                WindowsAppsReviewBanner.IsOpen = true;
+                ExternalAppsReviewBanner.IsOpen = true;
+            });
+        };
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -160,55 +181,4 @@ public sealed partial class SoftwareAppsPage : Page
         e.Column.SortDirection = newDirection;
     }
 
-    private async void HelpButton_Click(object sender, RoutedEventArgs e)
-    {
-        var localization = App.Services.GetRequiredService<Core.Features.Common.Interfaces.ILocalizationService>();
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            CloseButtonText = localization.GetString("Help_CloseHelp"),
-            DefaultButton = ContentDialogButton.Close,
-        };
-
-        // Set theme and semi-transparent background so Mica/Acrylic backdrop shows through
-        if (this.XamlRoot?.Content is FrameworkElement rootElement)
-        {
-            dialog.RequestedTheme = rootElement.ActualTheme == ElementTheme.Dark
-                ? ElementTheme.Dark
-                : ElementTheme.Light;
-        }
-        var baseColor = dialog.RequestedTheme == ElementTheme.Dark
-            ? Windows.UI.Color.FromArgb(255, 44, 44, 44)
-            : Windows.UI.Color.FromArgb(255, 243, 243, 243);
-        dialog.Background = new AcrylicBrush
-        {
-            TintColor = baseColor,
-            TintOpacity = 0.65,
-            TintLuminosityOpacity = 0.75,
-            FallbackColor = baseColor
-        };
-
-        if (ViewModel.IsWindowsAppsTabSelected)
-        {
-            dialog.Title = localization.GetString("Help_WindowsApps_Title");
-            var scheduledTaskService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.IScheduledTaskService>();
-            var logService = App.Services.GetRequiredService<Core.Features.Common.Interfaces.ILogService>();
-
-            var vm = new RemovalStatusContainerViewModel(scheduledTaskService, logService);
-            var content = new WindowsAppsHelpContent(localization);
-            content.DataContext = vm;
-            dialog.Content = content;
-
-            _ = vm.RefreshAllStatusesAsync();
-            await dialog.ShowAsync();
-            vm.Dispose();
-        }
-        else
-        {
-            dialog.Title = localization.GetString("Help_ExternalApps_Title");
-            dialog.Content = new ExternalAppsHelpContent(localization);
-            await dialog.ShowAsync();
-        }
-    }
 }

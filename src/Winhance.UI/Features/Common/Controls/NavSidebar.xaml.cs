@@ -27,6 +27,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     private Dictionary<string, NavButton>? _navButtons;
     private MoreMenuViewModel? _moreMenuViewModel;
+    private ILogService? _logService;
 
     #region Dependency Properties
 
@@ -112,6 +113,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     {
         // Get MoreMenuViewModel for flyout commands and text
         _moreMenuViewModel = App.Services.GetService<MoreMenuViewModel>();
+        _logService = App.Services.GetService<ILogService>();
 
         // Apply localized text to More menu flyout items
         ApplyMoreMenuLocalizedText();
@@ -192,7 +194,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            try { App.Services.GetService<ILogService>()?.LogDebug($"Error showing More menu flyout: {ex.Message}"); } catch { }
+            _logService?.LogDebug($"Error showing More menu flyout: {ex.Message}");
         }
     }
 
@@ -221,7 +223,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
                     _moreMenuViewModel.ReportBugCommand.Execute(null);
                     break;
                 case "CheckUpdates":
-                    ViewModel?.CheckForUpdatesCommand.Execute(null);
+                    ViewModel?.UpdateCheck.CheckForUpdatesCommand.Execute(null);
                     break;
                 case "OpenLogs":
                     _moreMenuViewModel.OpenLogsCommand.Execute(null);
@@ -304,20 +306,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     public void SetButtonLoading(string tag, bool isLoading)
     {
         if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
-        {
-            button.IsLoading = isLoading;
-        }
-    }
-
-    /// <summary>
-    /// Sets all buttons to loading or not loading state.
-    /// </summary>
-    /// <param name="isLoading">Whether all buttons should show loading state.</param>
-    public void SetAllButtonsLoading(bool isLoading)
-    {
-        if (_navButtons == null) return;
-
-        foreach (var button in _navButtons.Values)
         {
             button.IsLoading = isLoading;
         }

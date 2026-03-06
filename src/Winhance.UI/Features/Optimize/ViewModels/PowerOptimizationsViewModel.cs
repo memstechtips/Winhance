@@ -6,11 +6,10 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.ViewModels;
-
+using Winhance.UI.Features.Optimize.Interfaces;
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
+public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
 {
     private readonly IDialogService _dialogService;
     private readonly IPowerPlanComboBoxService _powerPlanComboBoxService;
@@ -30,9 +29,8 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         IEventBus eventBus,
-        IPowerPlanComboBoxService powerPlanComboBoxService,
-        MainWindowViewModel mainWindowViewModel)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus, mainWindowViewModel)
+        IPowerPlanComboBoxService powerPlanComboBoxService)
+        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
         _dialogService = dialogService;
         _powerPlanComboBoxService = powerPlanComboBoxService;
@@ -45,19 +43,19 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
         await base.LoadSettingsAsync();
 
         _powerPlanChangedSubscription?.Dispose();
-        _powerPlanChangedSubscription = _eventBus.Subscribe<PowerPlanChangedEvent>(HandlePowerPlanChanged);
+        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<PowerPlanChangedEvent>(HandlePowerPlanChangedAsync);
     }
 
-    private async void HandlePowerPlanChanged(PowerPlanChangedEvent evt)
+    private async Task HandlePowerPlanChangedAsync(PowerPlanChangedEvent evt)
     {
         try
         {
-            await Task.Delay(200);
+            await Task.Delay(200).ConfigureAwait(false);
             await RefreshPowerPlanComboBoxAsync();
 
             // Refresh all setting states to pick up the new plan's PowerCfg values
             // (display timeout, sleep timeout, etc. differ between plans)
-            await Task.Delay(500);
+            await Task.Delay(500).ConfigureAwait(false);
             await RefreshSettingStatesAsync();
         }
         catch (Exception ex)
@@ -71,7 +69,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
         try
         {
             var powerPlanSetting = Settings.FirstOrDefault(s =>
-                s.SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") == true);
+                s.SettingDefinition?.Recommendation?.LoadDynamicOptions == true);
 
             if (powerPlanSetting == null) return;
 
@@ -106,13 +104,11 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
                     displayName = _localizationService.GetString(displayName);
                 }
 
-                newItems.Add(new ComboBoxOption
-                {
-                    DisplayText = displayName,
-                    Value = options[i].Index,
-                    Description = options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
-                    Tag = options[i]
-                });
+                newItems.Add(new ComboBoxOption(
+                    displayName,
+                    options[i].Index,
+                    options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
+                    options[i]));
             }
 
             // Await the UI update to ensure it completes before returning

@@ -1,7 +1,7 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Customize.Models;
 
@@ -29,9 +29,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "link",
-                            RecommendedValue = new byte[] { 0x00, 0x00, 0x00, 0x00 },
-                            EnabledValue = new byte[] { 0x00, 0x00, 0x00, 0x00 },
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [new byte[] { 0x00, 0x00, 0x00, 0x00 }],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
                         },
@@ -55,8 +55,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32",
                             ValueName = "",
                             RecommendedValue = "",
-                            EnabledValue = "",
-                            DisabledValue = null,
+                            EnabledValue = [""],
+                            DisabledValue = [null],
                             DefaultValue = "",
                             ValueType = RegistryValueKind.String,
                         },
@@ -66,7 +66,7 @@ public static class ExplorerCustomizations
                 {
                     Id = "explorer-take-ownership",
                     Name = "Add 'Take Ownership' to Context Menu",
-                    Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation",
+                    Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
                     GroupName = "Context Menu",
                     InputType = InputType.Toggle,
                     Icon = "Security",
@@ -75,11 +75,12 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CLASSES_ROOT\*\shell\TakeOwnership",
-                            ValueName = null,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            ValueName = "",
+                            EnabledValue = ["Take Ownership"],
+                            DisabledValue = [null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            RecommendedValue = "Take Ownership",
+                            ValueType = RegistryValueKind.String,
                         }
                     },
                     RegContents = new List<RegContentSetting>
@@ -156,11 +157,12 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions",
-                            ValueName = null,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            ValueName = "ExplorerCommandHandler",
+                            EnabledValue = ["{4ac6c205-2853-4bf5-b47c-919a42a48a16}"],
+                            DisabledValue = [null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
                         }
                     },
                     RegContents = new List<RegContentSetting>
@@ -206,8 +208,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked",
                             ValueName = "{9F156763-7844-4DC4-B2B1-901F640F5155}",
                             RecommendedValue = null,
-                            EnabledValue = null,
-                            DisabledValue = "",
+                            EnabledValue = [null],
+                            DisabledValue = [""],
                             ValueType = RegistryValueKind.String,
                         },
                     },
@@ -228,8 +230,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Lighting",
                             ValueName = "AmbientLightingEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -251,8 +253,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Lighting",
                             ValueName = "ControlledByForegroundApp",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -272,8 +274,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\Windows",
                             ValueName = "LegacyDefaultPrinterMode",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -297,20 +299,17 @@ public static class ExplorerCustomizations
                             RecommendedValue = 1,
                             DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Home",
-                            },
+                            DefaultOption = "Home",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Home",
                             "This PC",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -339,21 +338,21 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
                             ValueName = "Settings",
-                            RecommendedValue = (byte)0x2A,
+                            RecommendedValue = (byte)0x0A,
                             DefaultValue = (byte)0x2A,
                             ValueType = RegistryValueKind.Binary,
                             ModifyByteOnly = true,
                             BinaryByteIndex = 4,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Open each folder in the same window",
                             "Open each folder in its own window",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -397,15 +396,15 @@ public static class ExplorerCustomizations
                             DefaultValue = 3,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Double-click to open an item (single-click to select)",
                             "Single-click to open (underline icon titles consistent with browser)",
                             "Single-click to open (underline icon titles only when pointing)",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -441,8 +440,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowRecent",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -450,8 +449,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowRecommendations",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -471,8 +470,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowFrequent",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -493,8 +492,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowCloudFilesInQuickAccess",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -514,8 +513,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "IconsOnly",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -538,8 +537,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "AlwaysShowMenus",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -561,8 +560,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "UseCompactMode",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -583,9 +582,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowTypeOverlay",
-                            RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 1,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -606,9 +605,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "FolderContentsInfoTip",
-                            RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -629,8 +628,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
                             ValueName = "FullPath",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -651,8 +650,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Hidden",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -672,9 +671,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideDrivesWithNoMedia",
-                            RecommendedValue = 1,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -695,8 +694,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideFileExt",
                             RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -716,8 +715,8 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\.bmp",
                             ValueName = "",
-                            EnabledValue = "PhotoViewer.FileAssoc.Tiff",
-                            DisabledValue = null,
+                            EnabledValue = ["PhotoViewer.FileAssoc.Tiff"],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         }
@@ -863,8 +862,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideMergeConflicts",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -883,9 +882,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowSuperHidden",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -905,9 +904,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "SeparateProcess",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -929,8 +928,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "PersistBrowsers",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -950,9 +949,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowDriveLettersFirst",
-                            RecommendedValue = 4,
-                            EnabledValue = null,
-                            DisabledValue = 2,
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [2],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -973,8 +972,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowEncryptCompressedColor",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -994,9 +993,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowInfoTip",
-                            RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 1,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1017,8 +1016,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowPreviewHandlers",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1037,9 +1036,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowStatusBar",
-                            RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 1,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1060,8 +1059,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowSyncProviderNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1081,8 +1080,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "AutoCheckSelect",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1104,8 +1103,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "SharingWizardOn",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1127,20 +1126,17 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Select the typed item in the view",
-                            },
+                            DefaultOption = "Select the typed item in the view",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Select the typed item in the view",
                             "Automatically type into the Search Box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -1169,8 +1165,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null, // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = null, // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            EnabledValue = [null], // When toggle is ON, 3D Objects folder is shown (key exists)
+                            DisabledValue = [null], // When toggle is OFF, 3D Objects folder is hidden (key removed)
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1179,8 +1175,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null, // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = null, // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            EnabledValue = [null], // When toggle is ON, 3D Objects folder is shown (key exists)
+                            DisabledValue = [null], // When toggle is OFF, 3D Objects folder is hidden (key removed)
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1202,8 +1198,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null, // When toggle is ON, Home Folder is shown (key exists)
-                            DisabledValue = null, // When toggle is OFF, Home Folder is hidden (key removed)
+                            EnabledValue = [null], // When toggle is ON, Home Folder is shown (key exists)
+                            DisabledValue = [null], // When toggle is OFF, Home Folder is hidden (key removed)
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1225,8 +1221,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1246,9 +1242,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "NavPaneShowAllCloudStates",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1268,9 +1264,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "NavPaneExpandToCurrentFolder",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1290,9 +1286,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "NavPaneShowAllFolders",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1312,9 +1308,9 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
                             ValueName = "System.IsPinnedToNameSpaceTree",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1335,8 +1331,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem",
                             ValueName = "LongPathsEnabled",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },

@@ -1,7 +1,7 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -29,9 +29,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "ConsentPromptBehaviorAdmin",
-                            RecommendedValue = 5,
-                            EnabledValue = 5,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [5],
+                            DisabledValue = [0],
                             DefaultValue = 5,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -39,16 +39,16 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "PromptOnSecureDesktop",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Prompt for Credentials",
                             "Always notify",
@@ -56,7 +56,7 @@ public static class PrivacyAndSecurityOptimizations
                             "Notify when apps try to make changes (no dim)",
                             "Never notify",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -84,8 +84,8 @@ public static class PrivacyAndSecurityOptimizations
                                 ["PromptOnSecureDesktop"] = 0,
                             },
                         },
-                        [CustomPropertyKeys.SupportsCustomState] = true,
-                        [CustomPropertyKeys.CustomStateDisplayName] = "Custom (User Defined)",
+                        SupportsCustomState = true,
+                        CustomStateDisplayName = "Custom (User Defined)",
                     },
                 },
                 new SettingDefinition
@@ -103,20 +103,22 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -137,8 +139,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\BitLocker",
                             ValueName = "PreventDeviceEncryption",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -159,8 +161,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting",
                             ValueName = "Value",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -169,8 +171,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots",
                             ValueName = "Value",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -191,8 +193,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance",
                             ValueName = "MaintenanceDisabled",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -214,20 +216,22 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting",
                             ValueName = "Disabled",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting",
                             ValueName = "Disabled",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -246,8 +250,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Remote Assistance",
                             ValueName = "fAllowToGetHelp",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -273,15 +277,15 @@ public static class PrivacyAndSecurityOptimizations
                             IsPrimary = true,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Allow",
                             "Deny",
                             "Custom",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -296,61 +300,58 @@ public static class PrivacyAndSecurityOptimizations
                                 ["AdsPromotionalContentMode"] = 2,
                             },
                         },
-                        [CustomPropertyKeys.SettingPresets] = new Dictionary<int, Dictionary<string, bool>>
+                    },
+                    SettingPresets = new Dictionary<int, Dictionary<string, bool>>
+                    {
+                        [0] = new Dictionary<string, bool>
                         {
-                            [0] = new Dictionary<string, bool>
-                            {
-                                ["privacy-content-delivery-allowed"] = true,
-                                ["privacy-subscribed-content"] = true,
-                                ["privacy-feature-management"] = true,
-                                ["privacy-soft-landing"] = true,
-                                ["privacy-oem-preinstalled-apps"] = true,
-                                ["privacy-preinstalled-apps"] = true,
-                                ["privacy-preinstalled-apps-ever"] = true,
-                                ["privacy-silent-installed-apps"] = true,
-                                ["privacy-rotating-lock-screen"] = true,
-                                ["privacy-lock-screen-overlay"] = true,
-                                ["privacy-lock-screen-slideshow"] = true,
-                                ["privacy-settings-content"] = true,
-                                ["privacy-timeline-suggestions"] = true,
-                                ["notifications-welcome-experience"] = true,
-                                ["notifications-tips-suggestions"] = true,
-                                ["notifications-system-pane-suggestions"] = true,
-                                ["start-show-suggestions"] = true,
-                            },
-                            [1] = new Dictionary<string, bool>
-                            {
-                                ["privacy-content-delivery-allowed"] = false,
-                                ["privacy-subscribed-content"] = false,
-                                ["privacy-feature-management"] = false,
-                                ["privacy-soft-landing"] = false,
-                                ["privacy-oem-preinstalled-apps"] = false,
-                                ["privacy-preinstalled-apps"] = false,
-                                ["privacy-preinstalled-apps-ever"] = false,
-                                ["privacy-silent-installed-apps"] = false,
-                                ["privacy-rotating-lock-screen"] = false,
-                                ["privacy-lock-screen-overlay"] = false,
-                                ["privacy-lock-screen-slideshow"] = false,
-                                ["privacy-settings-content"] = false,
-                                ["privacy-timeline-suggestions"] = false,
-                                ["notifications-welcome-experience"] = false,
-                                ["notifications-tips-suggestions"] = false,
-                                ["notifications-system-pane-suggestions"] = false,
-                                ["start-show-suggestions"] = false,
-                            },
+                            ["privacy-content-delivery-allowed"] = true,
+                            ["privacy-subscribed-content"] = true,
+                            ["privacy-feature-management"] = true,
+                            ["privacy-soft-landing"] = true,
+                            ["privacy-oem-preinstalled-apps"] = true,
+                            ["privacy-preinstalled-apps"] = true,
+                            ["privacy-preinstalled-apps-ever"] = true,
+                            ["privacy-silent-installed-apps"] = true,
+                            ["privacy-rotating-lock-screen"] = true,
+                            ["privacy-lock-screen-overlay"] = true,
+                            ["privacy-settings-content"] = true,
+                            ["privacy-timeline-suggestions"] = true,
+                            ["notifications-welcome-experience"] = true,
+                            ["notifications-tips-suggestions"] = true,
+                            ["notifications-system-pane-suggestions"] = true,
+                            ["start-show-suggestions"] = true,
                         },
-                        [CustomPropertyKeys.CrossGroupChildSettings] = new Dictionary<string, string>
+                        [1] = new Dictionary<string, bool>
                         {
-                            ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
-                            ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
-                            ["privacy-lock-screen-slideshow"] = "Setting_privacy-ads-promotional-master_Child_Slideshow",
-                            ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
-                            ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
-                            ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
-                            ["notifications-tips-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TipsSuggestions",
-                            ["notifications-system-pane-suggestions"] = "Setting_privacy-ads-promotional-master_Child_NotificationCenterSuggestions",
-                            ["start-show-suggestions"] = "Setting_privacy-ads-promotional-master_Child_StartSuggestions",
+                            ["privacy-content-delivery-allowed"] = false,
+                            ["privacy-subscribed-content"] = false,
+                            ["privacy-feature-management"] = false,
+                            ["privacy-soft-landing"] = false,
+                            ["privacy-oem-preinstalled-apps"] = false,
+                            ["privacy-preinstalled-apps"] = false,
+                            ["privacy-preinstalled-apps-ever"] = false,
+                            ["privacy-silent-installed-apps"] = false,
+                            ["privacy-rotating-lock-screen"] = false,
+                            ["privacy-lock-screen-overlay"] = false,
+                            ["privacy-settings-content"] = false,
+                            ["privacy-timeline-suggestions"] = false,
+                            ["notifications-welcome-experience"] = false,
+                            ["notifications-tips-suggestions"] = false,
+                            ["notifications-system-pane-suggestions"] = false,
+                            ["start-show-suggestions"] = false,
                         },
+                    },
+                    CrossGroupChildSettings = new Dictionary<string, string>
+                    {
+                        ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
+                        ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
+                        ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
+                        ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
+                        ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
+                        ["notifications-tips-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TipsSuggestions",
+                        ["notifications-system-pane-suggestions"] = "Setting_privacy-ads-promotional-master_Child_NotificationCenterSuggestions",
+                        ["start-show-suggestions"] = "Setting_privacy-ads-promotional-master_Child_StartSuggestions",
                     },
                 },
                 new SettingDefinition
@@ -378,8 +379,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "ContentDeliveryAllowed",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -410,8 +411,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContentEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -441,8 +442,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "FeatureManagementEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -473,8 +474,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SoftLandingEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -505,8 +506,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "OemPreInstalledAppsEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -537,8 +538,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "PreInstalledAppsEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -569,8 +570,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "PreInstalledAppsEverEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -600,8 +601,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SilentInstalledAppsEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -621,9 +622,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon",
                             ValueName = "DisableLockWorkstation",
-                            RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -633,7 +634,7 @@ public static class PrivacyAndSecurityOptimizations
                 {
                     Id = "privacy-rotating-lock-screen",
                     Name = "Windows Spotlight on Lock Screen",
-                    Description = "Displays rotating Windows Spotlight images on your lock screen instead of a static background",
+                    Description = "Displays rotating Windows Spotlight images on your lock screen instead of a static background. Winhance automatically sets the Start Menu Recommended Section to Show when this setting is enabled as it is required",
                     GroupName = "Lock Screen",
                     IconPack = "Fluent",
                     Icon = "ImageCircle",
@@ -648,6 +649,13 @@ public static class PrivacyAndSecurityOptimizations
                             RequiredSettingId = "privacy-ads-promotional-master",
                             RequiredValue = "Custom",
                         },
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresSpecificValue,
+                            DependentSettingId = "privacy-rotating-lock-screen",
+                            RequiredSettingId = "start-recommended-section",
+                            RequiredValue = "Show",
+                        },
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -656,8 +664,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "RotatingLockScreenEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -689,41 +697,19 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "RotatingLockScreenOverlayEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "privacy-lock-screen-slideshow",
-                    Name = "Lock Screen Slideshow",
-                    Description = "Enables slideshow option for lock screen background",
-                    GroupName = "Lock Screen",
-                    Icon = "TelevisionPlay",
-                    InputType = InputType.Toggle,
-                    ParentSettingId = "privacy-lock-screen",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresValueBeforeAnyChange,
-                            DependentSettingId = "privacy-lock-screen-slideshow",
-                            RequiredSettingId = "privacy-ads-promotional-master",
-                            RequiredValue = "Custom",
-                        },
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
-                            ValueName = "SlideshowEnabled",
+                            ValueName = "SubscribedContent-338387Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -740,12 +726,21 @@ public static class PrivacyAndSecurityOptimizations
                     {
                         new RegistrySetting
                         {
-                            KeyPath =
-                                @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo",
                             ValueName = "Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\AdvertisingInfo",
+                            ValueName = "Value",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -754,19 +749,20 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
-                            KeyPath =
-                                @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo",
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -784,9 +780,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International\User Profile",
                             ValueName = "HttpAcceptLanguageOptOut",
-                            RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, language list access is enabled
-                            DisabledValue = 1, // When toggle is OFF, language list access is disabled
+                            RecommendedValue = 1,
+                            EnabledValue = [null], // When toggle is ON, language list access is enabled
+                            DisabledValue = [1], // When toggle is OFF, language list access is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -806,8 +802,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackProgs",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, app launch tracking is enabled
-                            DisabledValue = 0, // When toggle is OFF, app launch tracking is disabled
+                            EnabledValue = [null], // When toggle is ON, app launch tracking is enabled
+                            DisabledValue = [0], // When toggle is OFF, app launch tracking is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -816,7 +812,7 @@ public static class PrivacyAndSecurityOptimizations
                 {
                     Id = "privacy-settings-content",
                     Name = "Show me suggested content in the Settings app",
-                    Description = "Microsoft displays promotional content, tips, and feature suggestions within the Windows Settings app to help you discover new features and functionality",
+                    Description = "Displays promotional content, tips, and feature suggestions within the Windows Settings app. Winhance automatically sets the Start Menu Recommended Section to Show when this setting is enabled as it is required",
                     GroupName = "General",
                     Icon = "StarCog",
                     InputType = InputType.Toggle,
@@ -829,6 +825,13 @@ public static class PrivacyAndSecurityOptimizations
                             RequiredSettingId = "privacy-ads-promotional-master",
                             RequiredValue = "Custom",
                         },
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresSpecificValue,
+                            DependentSettingId = "privacy-settings-content",
+                            RequiredSettingId = "start-recommended-section",
+                            RequiredValue = "Show",
+                        },
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -837,8 +840,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-338393Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -846,8 +849,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-353694Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -855,8 +858,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-353696Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -877,8 +880,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications",
                             ValueName = "EnableAccountNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, account notifications are enabled
-                            DisabledValue = 0, // When toggle is OFF, account notifications are disabled
+                            EnabledValue = [null], // When toggle is ON, account notifications are enabled
+                            DisabledValue = [0], // When toggle is OFF, account notifications are disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -898,8 +901,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy",
                             ValueName = "HasAccepted",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -907,19 +910,21 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\InputPersonalization",
                             ValueName = "AllowInputPersonalization",
-                            RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\InputPersonalization",
                             ValueName = "AllowInputPersonalization",
-                            RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -938,8 +943,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "OnlineServicesEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -959,8 +964,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "ScriptingEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -981,8 +986,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization",
                             ValueName = "Value",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, custom dictionary is enabled
-                            DisabledValue = 0, // When toggle is OFF, custom dictionary is disabled
+                            EnabledValue = [1], // When toggle is ON, custom dictionary is enabled
+                            DisabledValue = [0], // When toggle is OFF, custom dictionary is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -991,8 +996,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings",
                             ValueName = "AcceptedPrivacyPolicy",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, privacy policy is accepted
-                            DisabledValue = 0, // When toggle is OFF, privacy policy is not accepted
+                            EnabledValue = [1], // When toggle is ON, privacy policy is accepted
+                            DisabledValue = [0], // When toggle is OFF, privacy policy is not accepted
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1001,8 +1006,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization",
                             ValueName = "RestrictImplicitTextCollection",
                             RecommendedValue = 1,
-                            EnabledValue = 0, // When toggle is ON, text collection is not restricted
-                            DisabledValue = 1, // When toggle is OFF, text collection is restricted
+                            EnabledValue = [0], // When toggle is ON, text collection is not restricted
+                            DisabledValue = [1], // When toggle is OFF, text collection is restricted
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1011,8 +1016,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization\TrainedDataStore",
                             ValueName = "HarvestContacts",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, contacts harvesting is enabled
-                            DisabledValue = 0, // When toggle is OFF, contacts harvesting is disabled
+                            EnabledValue = [1], // When toggle is ON, contacts harvesting is enabled
+                            DisabledValue = [0], // When toggle is OFF, contacts harvesting is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1034,8 +1039,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack",
                             ValueName = "ShowedToastAtLevel",
                             RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = 1,
+                            EnabledValue = [3],
+                            DisabledValue = [1],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1043,59 +1048,87 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
                             ValueName = "AllowTelemetry",
-                            RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = null,
+                            RecommendedValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
+                            DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
                             ValueName = "AllowTelemetry",
-                            RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = 1,
+                            RecommendedValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
                             ValueName = "AllowTelemetry",
-                            RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = 1,
+                            RecommendedValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
                             ValueName = "MaxTelemetryAllowed",
-                            RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = 1,
+                            RecommendedValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
                             ValueName = "MaxTelemetryAllowed",
-                            RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = 1,
+                            RecommendedValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
                             DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
                             ValueName = "AllowTelemetry",
-                            RecommendedValue = 1,
-                            EnabledValue = 3,
-                            DisabledValue = null,
+                            RecommendedValue = 0,
+                            EnabledValue = [3],
+                            DisabledValue = [0],
+                            DefaultValue = 3,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppCompat",
+                            ValueName = "AITEnable",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppCompat",
+                            ValueName = "AITEnable",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1125,8 +1158,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Input\TIPC",
                             ValueName = "Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, inking and typing improvement is enabled
-                            DisabledValue = 0, // When toggle is OFF, inking and typing improvement is disabled
+                            EnabledValue = [1], // When toggle is ON, inking and typing improvement is enabled
+                            DisabledValue = [0], // When toggle is OFF, inking and typing improvement is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1135,8 +1168,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\ImproveInkingAndTyping",
                             ValueName = "Value",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, linguistic data collection is allowed
-                            DisabledValue = 0, // When toggle is OFF, linguistic data collection is not allowed
+                            EnabledValue = [1], // When toggle is ON, linguistic data collection is allowed
+                            DisabledValue = [0], // When toggle is OFF, linguistic data collection is not allowed
                             DefaultValue = 1, // Default value when registry key exists but no value is set,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1157,8 +1190,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Privacy",
                             ValueName = "TailoredExperiencesWithDiagnosticDataEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1166,19 +1199,21 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CloudContent",
                             ValueName = "DisableTailoredExperiencesWithDiagnosticData",
-                            RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [0],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\CloudContent",
                             ValueName = "DisableTailoredExperiencesWithDiagnosticData",
-                            RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [0],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1198,18 +1233,20 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
                             ValueName = "DoNotShowFeedbackNotifications",
                             RecommendedValue = 1,
-                            EnabledValue = null,
-                            DisabledValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
                             ValueName = "DoNotShowFeedbackNotifications",
                             RecommendedValue = 1,
-                            EnabledValue = null,
-                            DisabledValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1230,18 +1267,20 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\System",
                             ValueName = "PublishUserActivities",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System",
                             ValueName = "PublishUserActivities",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1271,8 +1310,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-353698Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1292,8 +1331,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsDeviceSearchHistoryEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, history is enabled
-                            DisabledValue = 0, // When toggle is OFF, history is disabled
+                            EnabledValue = [null], // When toggle is ON, history is enabled
+                            DisabledValue = [0], // When toggle is OFF, history is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1314,8 +1353,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsDynamicSearchBoxEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, search highlights is enabled
-                            DisabledValue = 0, // When toggle is OFF, search highlights is disabled
+                            EnabledValue = [null], // When toggle is ON, search highlights is enabled
+                            DisabledValue = [0], // When toggle is OFF, search highlights is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1335,8 +1374,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsMSACloudSearchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, cloud search is enabled
-                            DisabledValue = 0, // When toggle is OFF, cloud search is disabled
+                            EnabledValue = [null], // When toggle is ON, cloud search is enabled
+                            DisabledValue = [0], // When toggle is OFF, cloud search is disabled
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1356,8 +1395,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsAADCloudSearchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1378,18 +1417,20 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
                             ValueName = "AllowCortana",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
                             ValueName = "AllowCortana",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1408,8 +1449,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location",
                             ValueName = "Value",
                             RecommendedValue = "Deny",
-                            EnabledValue = "Allow",
-                            DisabledValue = "Deny",
+                            EnabledValue = ["Allow"],
+                            DisabledValue = ["Deny"],
                             DefaultValue = "Allow",
                             ValueType = RegistryValueKind.String,
                         },
@@ -1417,19 +1458,21 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors",
                             ValueName = "DisableLocation",
-                            RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [0],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors",
                             ValueName = "DisableLocation",
-                            RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [0],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -1447,9 +1490,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam",
                             ValueName = "Value",
-                            RecommendedValue = "Deny",
-                            EnabledValue = "Allow", // When toggle is ON, camera access is allowed
-                            DisabledValue = "Deny", // When toggle is OFF, camera access is denied
+                            RecommendedValue = "Allow",
+                            EnabledValue = ["Allow"], // When toggle is ON, camera access is allowed
+                            DisabledValue = ["Deny"], // When toggle is OFF, camera access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
                         },
@@ -1469,9 +1512,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone",
                             ValueName = "Value",
-                            RecommendedValue = "Deny",
-                            EnabledValue = "Allow", // When toggle is ON, microphone access is allowed
-                            DisabledValue = "Deny", // When toggle is OFF, microphone access is denied
+                            RecommendedValue = "Allow",
+                            EnabledValue = ["Allow"], // When toggle is ON, microphone access is allowed
+                            DisabledValue = ["Deny"], // When toggle is OFF, microphone access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
                         },
@@ -1492,8 +1535,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userAccountInformation",
                             ValueName = "Value",
                             RecommendedValue = "Deny",
-                            EnabledValue = "Allow", // When toggle is ON, account info access is allowed
-                            DisabledValue = "Deny", // When toggle is OFF, account info access is denied
+                            EnabledValue = ["Allow"], // When toggle is ON, account info access is allowed
+                            DisabledValue = ["Deny"], // When toggle is OFF, account info access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
                         },
@@ -1515,8 +1558,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appDiagnostics",
                             ValueName = "Value",
                             RecommendedValue = "Deny",
-                            EnabledValue = "Allow",
-                            DisabledValue = "Deny",
+                            EnabledValue = ["Allow"],
+                            DisabledValue = ["Deny"],
                             DefaultValue = "Allow",
                             ValueType = RegistryValueKind.String,
                         },
@@ -1537,20 +1580,22 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\OneDrive",
                             ValueName = "KFMBlockOptIn",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\OneDrive",
                             ValueName = "KFMBlockOptIn",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

@@ -13,9 +13,9 @@ public class OptionalFeatureService(
     ILogService logService,
     IWindowsAppsService windowsAppsService) : IOptionalFeatureService
 {
-    public async Task<bool> EnableFeatureAsync(
+    public Task<bool> EnableFeatureAsync(
         string featureName,
-        string displayName = null,
+        string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -32,17 +32,13 @@ public class OptionalFeatureService(
             });
 
             var psCommand = $"Enable-WindowsOptionalFeature -Online -FeatureName '{featureName}' -All -NoRestart";
-            var process = new Process
+            using var process = Process.Start(new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
-                    UseShellExecute = true,
-                    CreateNoWindow = false
-                }
-            };
-            process.Start();
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
+                UseShellExecute = true,
+                CreateNoWindow = false
+            });
 
             logService?.LogInformation($"PowerShell launched for feature '{featureName}'.");
 
@@ -52,7 +48,7 @@ public class OptionalFeatureService(
                 IsIndeterminate = false
             });
 
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -63,13 +59,13 @@ public class OptionalFeatureService(
                 IsIndeterminate = false,
                 LogLevel = Core.Features.Common.Enums.LogLevel.Error
             });
-            return false;
+            return Task.FromResult(false);
         }
     }
 
     public async Task<bool> DisableFeatureAsync(
         string featureName,
-        string displayName = null,
+        string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -87,7 +83,7 @@ public class OptionalFeatureService(
                 OptionalFeatureName = featureName
             };
 
-            var result = await windowsAppsService.DisableOptionalFeatureNativeAsync(item, cancellationToken);
+            var result = await windowsAppsService.DisableOptionalFeatureNativeAsync(item, cancellationToken).ConfigureAwait(false);
 
             if (result.Success)
             {

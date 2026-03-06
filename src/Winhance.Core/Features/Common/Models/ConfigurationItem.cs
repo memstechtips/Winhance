@@ -1,56 +1,54 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using Winhance.Core.Features.Common.Converters;
 using Winhance.Core.Features.Common.Enums;
 
-namespace Winhance.Core.Features.Common.Models
+namespace Winhance.Core.Features.Common.Models;
+
+public class ConfigurationItem
 {
-    public class ConfigurationItem
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public bool? IsSelected { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsSelected { get; set; }
 
-        public InputType InputType { get; set; } = InputType.Toggle;
+    public InputType InputType { get; set; } = InputType.Toggle;
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string AppxPackageName { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(StringOrStringArrayConverter))]
+    public string[]? AppxPackageName { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string WinGetPackageId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WinGetPackageId { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string CapabilityName { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CapabilityName { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string OptionalFeatureName { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? OptionalFeatureName { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string[] SubPackages { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? SelectedIndex { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public int? SelectedIndex { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, object>? CustomStateValues { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, object> CustomStateValues { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, object>? PowerSettings { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, object> PowerSettings { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PowerPlanGuid { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string PowerPlanGuid { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PowerPlanName { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string PowerPlanName { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("SelectedValue is only used for backward compatibility during migration. Use SelectedIndex instead.")]
+    public string? SelectedValue { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        [Obsolete("SelectedValue is only used for backward compatibility during migration. Use SelectedIndex instead.")]
-        public string SelectedValue { get; set; }
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        [Obsolete("CustomProperties is only used for backward compatibility during migration. Use specific properties instead.")]
-        public Dictionary<string, object> CustomProperties { get; set; }
-    }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("CustomProperties is only used for backward compatibility during migration. Use specific properties instead.")]
+    public Dictionary<string, object>? CustomProperties { get; set; }
 }

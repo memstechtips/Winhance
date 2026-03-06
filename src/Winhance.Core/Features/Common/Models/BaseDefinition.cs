@@ -15,9 +15,17 @@ public abstract record BaseDefinition
     public bool IsWindows10Only { get; init; }
     public int? MinimumBuildNumber { get; init; }
     public int? MaximumBuildNumber { get; init; }
-    public List<RegistrySetting> RegistrySettings { get; init; } = new();
-    public Dictionary<string, object> CustomProperties { get; init; } = new();
+    public IReadOnlyList<RegistrySetting> RegistrySettings { get; init; } = Array.Empty<RegistrySetting>();
     public string? RestartProcess { get; init; }
     public string? RestartService { get; init; }
     public bool RequiresRestart { get; init; }
+
+    // Typed metadata (replaces untyped CustomProperties dictionary)
+    public ComboBoxMetadata? ComboBox { get; init; }
+    public NumericRangeMetadata? NumericRange { get; init; }
+    public PowerRecommendation? Recommendation { get; init; }
+    public Dictionary<int, Dictionary<string, bool>>? SettingPresets { get; init; }
+    public Dictionary<string, string>? CrossGroupChildSettings { get; init; }
+    public string? VersionCompatibilityMessage { get; init; }
+    public bool DisableTooltip { get; init; }
 }

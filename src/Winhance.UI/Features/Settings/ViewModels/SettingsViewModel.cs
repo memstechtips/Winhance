@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
@@ -12,13 +13,15 @@ namespace Winhance.UI.Features.Settings.ViewModels;
 /// <summary>
 /// ViewModel for the Settings page.
 /// </summary>
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly ILocalizationService _localizationService;
     private readonly IThemeService _themeService;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IDialogService _dialogService;
     private readonly IConfigurationService _configurationService;
+    private readonly ILogService _logService;
 
     private ObservableCollection<ComboBoxOption> _languages = new();
     public ObservableCollection<ComboBoxOption> Languages
@@ -81,13 +84,15 @@ public partial class SettingsViewModel : ObservableObject
         IThemeService themeService,
         IUserPreferencesService preferencesService,
         IDialogService dialogService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        ILogService logService)
     {
         _localizationService = localizationService;
         _themeService = themeService;
         _preferencesService = preferencesService;
         _dialogService = dialogService;
         _configurationService = configurationService;
+        _logService = logService;
 
         // Initialize languages from StringKeys
         InitializeLanguages();
@@ -104,6 +109,13 @@ public partial class SettingsViewModel : ObservableObject
         _localizationService.LanguageChanged += OnLanguageChanged;
     }
 
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
+    }
+
     /// <summary>
     /// Initializes the language options from StringKeys.
     /// </summary>
@@ -112,7 +124,7 @@ public partial class SettingsViewModel : ObservableObject
         Languages.Clear();
         foreach (var lang in StringKeys.Languages.SupportedLanguages)
         {
-            Languages.Add(new ComboBoxOption { DisplayText = lang.Value, Value = lang.Key });
+            Languages.Add(new ComboBoxOption(lang.Value, lang.Key));
         }
     }
 
@@ -199,7 +211,7 @@ public partial class SettingsViewModel : ObservableObject
 
         if (_localizationService.SetLanguage(value))
         {
-            _ = _preferencesService.SetPreferenceAsync("Language", value);
+            _preferencesService.SetPreferenceAsync("Language", value).FireAndForget(_logService);
         }
     }
 

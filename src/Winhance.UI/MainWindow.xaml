@@ -51,8 +51,8 @@
                     Grid.Column="1"
                     Click="PaneToggleButton_Click"
                     Style="{StaticResource TitleBarButtonStyle}"
-                    ToolTipService.ToolTip="Toggle Navigation"
-                    AutomationProperties.Name="Toggle Navigation"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
                     Margin="4,0,0,0">
                 <fluentIcons:SymbolIcon Symbol="Navigation" IconVariant="Regular" FontSize="16"/>
             </Button>
@@ -70,12 +70,12 @@
                         VerticalAlignment="Center"
                         Spacing="6">
                 <TextBlock x:Name="AppTitleTextBlock"
-                           Text="Winhance"
+                           Text="{x:Bind ViewModel.AppTitle, Mode=OneWay}"
                            FontSize="12"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center"/>
                 <TextBlock x:Name="AppSubtitleTextBlock"
-                           Text="by Memory"
+                           Text="{x:Bind ViewModel.AppSubtitle, Mode=OneWay}"
                            FontSize="11"
                            Opacity="0.6"
                            VerticalAlignment="Center"/>
@@ -104,24 +104,25 @@
                 <!-- Save Configuration Button -->
                 <Button x:Name="SaveConfigButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Save Configuration"
-                        AutomationProperties.Name="Save Configuration">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.SaveConfigTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.SaveConfigTooltip, Mode=OneWay}">
                     <fluentIcons:SymbolIcon Symbol="DocumentSave" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Import Configuration Button -->
                 <Button x:Name="ImportConfigButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Import Configuration"
-                        AutomationProperties.Name="Import Configuration">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.ImportConfigTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.ImportConfigTooltip, Mode=OneWay}">
                     <fluentIcons:SymbolIcon Symbol="DocumentSettings" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Windows Version Filter Button -->
                 <Button x:Name="WindowsFilterButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Windows Version Filter"
-                        AutomationProperties.Name="Windows Version Filter">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.WindowsFilterTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.WindowsFilterTooltip, Mode=OneWay}"
+                        IsEnabled="{x:Bind ViewModel.IsWindowsFilterButtonEnabled, Mode=OneWay}">
                     <Viewbox Width="18" Height="18">
                         <PathIcon x:Name="WindowsFilterIcon" Data="{StaticResource FilterCheckIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                     </Viewbox>
@@ -130,24 +131,24 @@
                 <!-- Donate Button -->
                 <Button x:Name="DonateButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Donate"
-                        AutomationProperties.Name="Donate">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}">
                     <fluentIcons:SymbolIcon Symbol="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
                 </Button>
 
                 <!-- Bug Report Button -->
                 <Button x:Name="BugReportButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Report a Bug"
-                        AutomationProperties.Name="Report a Bug">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.BugReportTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.BugReportTooltip, Mode=OneWay}">
                     <fluentIcons:SymbolIcon Symbol="Bug" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Documentation Button -->
                 <Button x:Name="DocsButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Documentation"
-                        AutomationProperties.Name="Documentation">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.DocsTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.DocsTooltip, Mode=OneWay}">
                     <fluentIcons:SymbolIcon Symbol="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
                 </Button>
             </StackPanel>
@@ -157,12 +158,19 @@
         <InfoBar x:Name="OtsElevationInfoBar"
                  Grid.Row="1"
                  Severity="Warning"
+                 IsOpen="{x:Bind ViewModel.IsOtsInfoBarOpen, Mode=OneWay}"
+                 Title="{x:Bind ViewModel.OtsInfoBarTitle, Mode=OneWay}"
+                 Message="{x:Bind ViewModel.OtsInfoBarMessage, Mode=OneWay}"
                  IsClosable="True"
                  Closed="OtsElevationInfoBar_Closed"/>
 
         <!-- Update InfoBar -->
         <InfoBar x:Name="UpdateInfoBar"
                  Grid.Row="2"
+                 IsOpen="{x:Bind ViewModel.UpdateCheck.IsUpdateInfoBarOpen, Mode=OneWay}"
+                 Title="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarTitle, Mode=OneWay}"
+                 Message="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarMessage, Mode=OneWay}"
+                 Severity="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarSeverity, Mode=OneWay}"
                  IsClosable="True"
                  Closed="UpdateInfoBar_Closed"/>
 
@@ -190,7 +198,7 @@
 
             <TextBlock Grid.Column="1"
                        x:Name="ReviewModeTitleText"
-                       Text="Config Review Mode"
+                       Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeTitleText, Mode=OneWay}"
                        FontWeight="SemiBold"
                        FontSize="13"
                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
@@ -199,6 +207,7 @@
 
             <TextBlock Grid.Column="2"
                        x:Name="ReviewModeDescriptionText"
+                       Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeDescriptionText, Mode=OneWay}"
                        FontSize="12"
                        Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
                        VerticalAlignment="Center"
@@ -207,6 +216,7 @@
 
             <TextBlock Grid.Column="3"
                        x:Name="ReviewModeStatusText"
+                       Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeStatusText, Mode=OneWay}"
                        FontSize="12"
                        Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
                        VerticalAlignment="Center"
@@ -215,7 +225,8 @@
             <Button Grid.Column="4"
                     x:Name="ReviewModeApplyButton"
                     Click="ReviewModeApplyButton_Click"
-                    AutomationProperties.Name="Apply Config"
+                    IsEnabled="{x:Bind ViewModel.ReviewModeBar.CanApplyReviewedConfig, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"
                     Background="#40FFFFFF"
                     Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                     BorderThickness="0"
@@ -223,23 +234,25 @@
                     Margin="8,0,4,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock x:Name="ReviewModeApplyButtonText" Text="Apply Config"/>
+                    <TextBlock x:Name="ReviewModeApplyButtonText"
+                               Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
 
             <Button Grid.Column="5"
                     x:Name="ReviewModeCancelButton"
                     Click="ReviewModeCancelButton_Click"
-                    AutomationProperties.Name="Cancel review"
+                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"
                     Background="#40FFFFFF"
                     Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                     BorderThickness="0"
-                    ToolTipService.ToolTip="Cancel review"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"
                     VerticalAlignment="Center"
                     Margin="4,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock x:Name="ReviewModeCancelButtonText" Text="Cancel"/>
+                    <TextBlock x:Name="ReviewModeCancelButtonText"
+                               Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
         </Grid>

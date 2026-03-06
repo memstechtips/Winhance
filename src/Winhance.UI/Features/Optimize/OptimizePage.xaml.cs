@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using ILogService = Winhance.Core.Features.Common.Interfaces.ILogService;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -10,7 +11,7 @@ using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
 using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
-using Winhance.UI.Features.Optimize.Models;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.Pages;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -122,6 +123,18 @@ public sealed partial class OptimizePage : Page
             StartupLogger.Log("OptimizePage", "OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
+            // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
+            ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            if (_configReviewService != null)
+            {
+                _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+                _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
+                _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+            }
+            UpdateBreadcrumbMenuItems();
+
             // Ensure we're showing overview on initial navigation
             ViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
@@ -132,12 +145,9 @@ public sealed partial class OptimizePage : Page
             // Initialize technical details toggle state
             await InitializeTechnicalDetailsToggleAsync();
 
-            // Update badges if already in review mode (events fired before page existed)
-            if (_configReviewService?.IsInReviewMode == true)
-            {
-                UpdateOverviewBadges();
-                UpdateBreadcrumbBadges();
-            }
+            // Always update badges: shows them if in review mode, collapses them if not
+            UpdateOverviewBadges();
+            UpdateBreadcrumbBadges();
 
             StartupLogger.Log("OptimizePage", "OnNavigatedTo complete");
         }
@@ -150,6 +160,12 @@ public sealed partial class OptimizePage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        if (_configReviewService != null)
+        {
+            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+            _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
+        }
         ViewModel.OnNavigatedFrom();
     }
 
@@ -520,7 +536,7 @@ public sealed partial class OptimizePage : Page
                 stateText,
                 "TechnicalDetailsToggle");
         }
-        catch { }
+        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update technical details toggle visual: {ex.Message}"); }
     }
 
     // Search handlers

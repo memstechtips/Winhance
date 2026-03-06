@@ -6,14 +6,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.Win32;
+
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -29,48 +28,48 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
-    private readonly IInteractiveUserService? _interactiveUserService;
-    private readonly IEventBus? _eventBus;
-    private ISubscriptionToken? _tooltipUpdatedSubscription;
-    private bool _isUpdatingFromEvent;
+    private readonly SettingStatusBannerManager _statusBannerManager;
+    private readonly TechnicalDetailsManager _technicalDetailsManager;
+    private volatile bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
+    private object? _pendingValue;
 
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
 
     public SettingDefinition? SettingDefinition { get; set; }
 
     [ObservableProperty]
-    private string _settingId = string.Empty;
+    public partial string SettingId { get; set; }
 
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; }
 
     [ObservableProperty]
-    private string _description = string.Empty;
+    public partial string Description { get; set; }
 
     [ObservableProperty]
-    private string _groupName = string.Empty;
+    public partial string GroupName { get; set; }
 
     [ObservableProperty]
-    private string _icon = string.Empty;
+    public partial string Icon { get; set; }
 
     [ObservableProperty]
-    private string _iconPack = "Material";
+    public partial string IconPack { get; set; }
 
     [ObservableProperty]
-    private bool _isSelected;
+    public partial bool IsSelected { get; set; }
 
     [ObservableProperty]
-    private bool _isApplying;
+    public partial bool IsApplying { get; set; }
 
     [ObservableProperty]
-    private string _status = string.Empty;
+    public partial string Status { get; set; }
 
     [ObservableProperty]
-    private string? _statusBannerMessage;
+    public partial string? StatusBannerMessage { get; set; }
 
     [ObservableProperty]
-    private InfoBarSeverity _statusBannerSeverity = InfoBarSeverity.Informational;
+    public partial InfoBarSeverity StatusBannerSeverity { get; set; }
 
     public bool HasStatusBanner => !string.IsNullOrEmpty(StatusBannerMessage);
 
@@ -80,40 +79,40 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     [ObservableProperty]
-    private InputType _inputType;
+    public partial InputType InputType { get; set; }
 
     [ObservableProperty]
-    private object? _selectedValue;
+    public partial object? SelectedValue { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<ComboBoxOption> _comboBoxOptions = new();
+    public partial ObservableCollection<ComboBoxOption> ComboBoxOptions { get; set; }
 
     [ObservableProperty]
-    private int _numericValue;
+    public partial int NumericValue { get; set; }
 
     [ObservableProperty]
-    private int _acValue;
+    public partial int AcValue { get; set; }
 
     [ObservableProperty]
-    private int _dcValue;
+    public partial int DcValue { get; set; }
 
     [ObservableProperty]
-    private int _acNumericValue;
+    public partial int AcNumericValue { get; set; }
 
     [ObservableProperty]
-    private int _dcNumericValue;
+    public partial int DcNumericValue { get; set; }
 
     [ObservableProperty]
-    private bool _hasBattery;
+    public partial bool HasBattery { get; set; }
 
     [ObservableProperty]
-    private int _minValue;
+    public partial int MinValue { get; set; }
 
     [ObservableProperty]
-    private int _maxValue = 100;
+    public partial int MaxValue { get; set; }
 
     [ObservableProperty]
-    private string _units = string.Empty;
+    public partial string Units { get; set; }
 
     public string OnText { get; set; } = "On";
     public string OffText { get; set; } = "Off";
@@ -121,13 +120,13 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // Technical Details panel
     [ObservableProperty]
-    private bool _isTechnicalDetailsExpanded;
+    public partial bool IsTechnicalDetailsExpanded { get; set; }
 
     [ObservableProperty]
-    private bool _isTechnicalDetailsGloballyVisible;
+    public partial bool IsTechnicalDetailsGloballyVisible { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<TechnicalDetailRow> _technicalDetails = new();
+    public partial ObservableCollection<TechnicalDetailRow> TechnicalDetails { get; set; }
 
     public bool HasTechnicalDetails => TechnicalDetails.Count > 0;
 
@@ -165,17 +164,17 @@ public partial class SettingItemViewModel : BaseViewModel
     public IRelayCommand<string> OpenRegeditCommand { get; }
 
     [ObservableProperty]
-    private bool _isVisible = true;
+    public partial bool IsVisible { get; set; }
 
     [ObservableProperty]
-    private bool _isEnabled = true;
+    public partial bool IsEnabled { get; set; }
 
     // Pre-built message for cross-group child settings (built during initialization)
     public string? CrossGroupInfoMessage { get; set; }
 
     // Advanced unlock support
     [ObservableProperty]
-    private bool _isLocked;
+    public partial bool IsLocked { get; set; }
 
     public bool RequiresAdvancedUnlock => SettingDefinition?.RequiresAdvancedUnlock == true;
     public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
@@ -183,21 +182,62 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // Review mode properties
     [ObservableProperty]
-    private bool _isInReviewMode;
+    public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
-    private bool _hasReviewDiff;
+    public partial bool HasReviewDiff { get; set; }
 
     [ObservableProperty]
-    private string? _reviewDiffMessage;
+    public partial string? ReviewDiffMessage { get; set; }
 
     [ObservableProperty]
-    private bool _isReviewApproved = false;
+    public partial bool IsReviewApproved { get; set; }
 
     [ObservableProperty]
-    private bool _isReviewRejected = false;
+    public partial bool IsReviewRejected { get; set; }
 
     public bool IsReviewDecisionMade => IsReviewApproved || IsReviewRejected;
+
+    // Review action properties (for action settings like wallpaper that appear alongside a diff)
+    [ObservableProperty]
+    public partial bool HasReviewAction { get; set; }
+
+    [ObservableProperty]
+    public partial string? ReviewActionMessage { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsReviewActionApproved { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsReviewActionRejected { get; set; }
+
+    public bool IsReviewActionDecisionMade => IsReviewActionApproved || IsReviewActionRejected;
+
+    public string ReviewActionGroupName => $"{SettingId}_action";
+
+    /// <summary>
+    /// Raised when the user changes the review action approval state.
+    /// </summary>
+    public event EventHandler<bool>? ReviewActionApprovalChanged;
+
+    partial void OnIsReviewActionApprovedChanged(bool value)
+    {
+        if (value && IsReviewActionRejected)
+            IsReviewActionRejected = false;
+
+        OnPropertyChanged(nameof(IsReviewActionDecisionMade));
+        ReviewActionApprovalChanged?.Invoke(this, value);
+    }
+
+    partial void OnIsReviewActionRejectedChanged(bool value)
+    {
+        if (value && IsReviewActionApproved)
+            IsReviewActionApproved = false;
+
+        OnPropertyChanged(nameof(IsReviewActionDecisionMade));
+        if (value)
+            ReviewActionApprovalChanged?.Invoke(this, false);
+    }
 
     partial void OnIsInReviewModeChanged(bool value)
     {
@@ -234,15 +274,25 @@ public partial class SettingItemViewModel : BaseViewModel
     /// <summary>
     /// Clears all review mode state including event handlers.
     /// Used when exiting review mode to ensure clean state for subsequent imports.
+    /// Nulls event handler first to prevent stale notifications during property resets.
     /// </summary>
     public void ClearReviewState()
     {
+        // Clear event handler BEFORE resetting properties to prevent
+        // OnIsReviewApprovedChanged/OnIsReviewRejectedChanged from
+        // invoking stale subscribers during cleanup.
+        ReviewApprovalChanged = null;
+        ReviewActionApprovalChanged = null;
+
         IsInReviewMode = false;
         HasReviewDiff = false;
         ReviewDiffMessage = null;
         IsReviewApproved = false;
         IsReviewRejected = false;
-        ReviewApprovalChanged = null;
+        HasReviewAction = false;
+        ReviewActionMessage = null;
+        IsReviewActionApproved = false;
+        IsReviewActionRejected = false;
     }
 
     partial void OnIsEnabledChanged(bool value)
@@ -251,7 +301,7 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     [ObservableProperty]
-    private bool _parentIsEnabled = true;
+    public partial bool ParentIsEnabled { get; set; }
 
     partial void OnParentIsEnabledChanged(bool value)
     {
@@ -266,7 +316,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsCheckBoxType => InputType == InputType.CheckBox;
     public bool IsSubSetting => !string.IsNullOrEmpty(SettingDefinition?.ParentSettingId);
     public bool IsPowerPlanSetting => InputType == InputType.Selection &&
-        SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
+        SettingDefinition?.Recommendation?.LoadDynamicOptions == true;
 
     public bool SupportsSeparateACDC =>
         SettingDefinition?.PowerCfgSettings?.Any(p =>
@@ -280,6 +330,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public IAsyncRelayCommand ExecuteActionCommand { get; }
 
     public SettingItemViewModel(
+        SettingItemViewModelConfig config,
         ISettingApplicationService settingApplicationService,
         ILogService logService,
         IDispatcherService dispatcherService,
@@ -287,25 +338,63 @@ public partial class SettingItemViewModel : BaseViewModel
         ILocalizationService localizationService,
         IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
-        IInteractiveUserService? interactiveUserService = null)
+        IRegeditLauncher? regeditLauncher = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
-        _interactiveUserService = interactiveUserService;
+
+        // Unpack config data
+        SettingDefinition = config.SettingDefinition;
+        ParentFeatureViewModel = config.ParentFeatureViewModel;
+        SettingId = config.SettingId;
+        Name = config.Name;
+        Description = config.Description;
+        GroupName = config.GroupName;
+        Icon = config.Icon;
+        IconPack = config.IconPack;
+        InputType = config.InputType;
+        IsSelected = config.IsSelected;
+        OnText = config.OnText;
+        OffText = config.OffText;
+        ActionButtonText = config.ActionButtonText;
+
+        // Initialize remaining defaults
+        Status = string.Empty;
+        ComboBoxOptions = new ObservableCollection<ComboBoxOption>();
+        MaxValue = 100;
+        Units = string.Empty;
+        TechnicalDetails = new ObservableCollection<TechnicalDetailRow>();
+        IsVisible = true;
+        IsEnabled = true;
+        ParentIsEnabled = true;
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
-        OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
 
-        if (_eventBus != null)
-        {
-            _tooltipUpdatedSubscription = _eventBus.Subscribe<TooltipUpdatedEvent>(OnTooltipUpdated);
-        }
+        _statusBannerManager = new SettingStatusBannerManager(localizationService);
+        _technicalDetailsManager = new TechnicalDetailsManager(
+            () => SettingId,
+            newDetails => { TechnicalDetails = newDetails; OnPropertyChanged(nameof(HasTechnicalDetails)); OnPropertyChanged(nameof(ShowTechnicalDetailsBar)); },
+            logService,
+            dispatcherService,
+            regeditLauncher,
+            eventBus,
+            new TechnicalDetailLabels
+            {
+                Path = _localizationService.GetString("TechnicalDetails_Path") ?? "Path",
+                Value = _localizationService.GetString("TechnicalDetails_Value") ?? "Value",
+                Current = _localizationService.GetString("TechnicalDetails_Current") ?? "Current",
+                Recommended = _localizationService.GetString("TechnicalDetails_Recommended") ?? "Recommended",
+                Default = _localizationService.GetString("TechnicalDetails_DefaultValue") ?? "Default",
+                ValueNotExist = _localizationService.GetString("TechnicalDetails_ValueNotExist") ?? "doesn't exist",
+                On = _localizationService.GetString("Common_On") ?? "On",
+                Off = _localizationService.GetString("Common_Off") ?? "Off"
+            });
+        OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
     }
 
     public void UpdateVisibility(string searchText)
@@ -316,10 +405,9 @@ public partial class SettingItemViewModel : BaseViewModel
             return;
         }
 
-        var lowerSearch = searchText.ToLowerInvariant();
-        IsVisible = Name.ToLowerInvariant().Contains(lowerSearch) ||
-                   Description.ToLowerInvariant().Contains(lowerSearch) ||
-                   (!string.IsNullOrEmpty(GroupName) && GroupName.ToLowerInvariant().Contains(lowerSearch));
+        IsVisible = Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                   Description.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                   (!string.IsNullOrEmpty(GroupName) && GroupName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
     }
 
     // Updates setting state from external events (bypasses apply logic since change already happened)
@@ -362,10 +450,8 @@ public partial class SettingItemViewModel : BaseViewModel
                     break;
                 case InputType.Selection:
                     if (SupportsSeparateACDC && state.RawValues != null &&
-                        SettingDefinition?.CustomProperties?.TryGetValue(
-                            CustomPropertyKeys.ValueMappings, out var mappingsObj) == true)
+                        SettingDefinition?.ComboBox?.ValueMappings is { } mappings)
                     {
-                        var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
                         if (state.RawValues.TryGetValue("ACValue", out var acRaw) && acRaw != null)
                             AcValue = FindIndexForPowerCfgValue(mappings, Convert.ToInt32(acRaw));
                         if (state.RawValues.TryGetValue("DCValue", out var dcRaw) && dcRaw != null)
@@ -409,17 +495,8 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private int ConvertFromSystemUnits(int systemValue)
     {
-        var displayUnits = SettingDefinition?.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
-            ? unitsStr
-            : null;
-
-        return displayUnits?.ToLowerInvariant() switch
-        {
-            "minutes" => systemValue / 60,
-            "hours" => systemValue / 3600,
-            "milliseconds" => systemValue * 1000,
-            _ => systemValue
-        };
+        var displayUnits = SettingDefinition?.NumericRange?.Units;
+        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
     #region UI Event Handlers
@@ -427,13 +504,13 @@ public partial class SettingItemViewModel : BaseViewModel
     public void OnToggleSwitchToggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         if (sender is ToggleSwitch toggle)
-            _ = HandleToggleAsync(toggle.IsOn);
+            HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
     }
 
     public void OnCheckBoxClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         if (sender is CheckBox checkBox)
-            _ = HandleToggleAsync(checkBox.IsChecked == true);
+            HandleToggleAsync(checkBox.IsChecked == true).FireAndForget(_logService);
     }
 
     // Announce ComboBox option changes for screen readers (arrow key navigation on closed ComboBox)
@@ -459,27 +536,27 @@ public partial class SettingItemViewModel : BaseViewModel
     public void OnComboBoxDropDownClosed(object sender, object e)
     {
         if (sender is ComboBox comboBox && comboBox.SelectedValue is { } value)
-            _ = HandleValueChangedAsync(value);
+            HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
     public void ApplySelectionValue(object value)
     {
         _logService.LogDebug($"[SettingItemViewModel] ApplySelectionValue called with value={value}, SettingId={SettingId}");
-        _ = HandleValueChangedAsync(value);
+        HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
     public void OnNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
-            _ = HandleValueChangedAsync((int)e.NewValue);
+            HandleValueChangedAsync((int)e.NewValue).FireAndForget(_logService);
     }
 
     public void OnACComboBoxDropDownClosed(object sender, object e)
     {
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
-            _acValue = cb.SelectedIndex;
-            _ = HandleACDCSelectionChangedAsync();
+            AcValue = cb.SelectedIndex;
+            HandleACDCSelectionChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -487,8 +564,8 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
-            _dcValue = cb.SelectedIndex;
-            _ = HandleACDCSelectionChangedAsync();
+            DcValue = cb.SelectedIndex;
+            HandleACDCSelectionChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -496,8 +573,8 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (!double.IsNaN(e.NewValue))
         {
-            _acNumericValue = (int)e.NewValue;
-            _ = HandleACDCNumericChangedAsync();
+            AcNumericValue = (int)e.NewValue;
+            HandleACDCNumericChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -505,8 +582,8 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (!double.IsNaN(e.NewValue))
         {
-            _dcNumericValue = (int)e.NewValue;
-            _ = HandleACDCNumericChangedAsync();
+            DcNumericValue = (int)e.NewValue;
+            HandleACDCNumericChangedAsync().FireAndForget(_logService);
         }
     }
 
@@ -532,7 +609,14 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
-            await _settingApplicationService.ApplySettingAsync(SettingId, newValue, checkboxResult: checkboxChecked);
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, CheckboxResult = checkboxChecked });
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' apply failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(IsSelected));
+                return;
+            }
 
             IsSelected = newValue;
             _hasChangedThisSession = true;
@@ -554,9 +638,17 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
 
-        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null || value == null)
+        if (_isUpdatingFromEvent || SettingDefinition == null || value == null)
         {
-            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: IsApplying={IsApplying}, _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
+            return;
+        }
+
+        // Queue the value if another apply is in progress instead of dropping it
+        if (IsApplying)
+        {
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: queuing pending value {value} for {SettingId}");
+            _pendingValue = value;
             return;
         }
 
@@ -581,12 +673,19 @@ public partial class SettingItemViewModel : BaseViewModel
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
             _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
 
-            await _settingApplicationService.ApplySettingAsync(SettingId, true, value, checkboxResult: checkboxChecked);
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, CheckboxResult = checkboxChecked });
 
             _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
 
-            _selectedValue = value;
-            OnPropertyChanged(nameof(SelectedValue));
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' value change failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(SelectedValue));
+                OnPropertyChanged(nameof(NumericValue));
+                return;
+            }
+
+            SelectedValue = value;
 
             if (value is int intValue)
                 NumericValue = intValue;
@@ -607,6 +706,23 @@ public partial class SettingItemViewModel : BaseViewModel
         finally
         {
             IsApplying = false;
+            await ProcessPendingValueAsync();
+        }
+    }
+
+    /// <summary>
+    /// If a value change was queued while a previous apply was in progress,
+    /// drain and apply it now.
+    /// </summary>
+    private async Task ProcessPendingValueAsync()
+    {
+        var pending = _pendingValue;
+        _pendingValue = null;
+
+        if (pending != null && !Equals(pending, SelectedValue))
+        {
+            _logService.LogDebug($"[SettingItemViewModel] Processing pending value {pending} for {SettingId}");
+            await HandleValueChangedAsync(pending);
         }
     }
 
@@ -617,9 +733,18 @@ public partial class SettingItemViewModel : BaseViewModel
         try
         {
             IsApplying = true;
-            var dict = new Dictionary<string, object?> { ["ACValue"] = _acValue, ["DCValue"] = _dcValue };
-            _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={_acValue}, DC={_dcValue}");
-            await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
+            var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
+            _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' AC/DC selection failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(AcValue));
+                OnPropertyChanged(nameof(DcValue));
+                return;
+            }
+
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
         }
@@ -640,9 +765,18 @@ public partial class SettingItemViewModel : BaseViewModel
         try
         {
             IsApplying = true;
-            var dict = new Dictionary<string, object?> { ["ACValue"] = _acNumericValue, ["DCValue"] = _dcNumericValue };
-            _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={_acNumericValue}, DC={_dcNumericValue}");
-            await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
+            var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
+            _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' AC/DC numeric failed: {result.ErrorMessage}. Reverting UI state.");
+                OnPropertyChanged(nameof(AcNumericValue));
+                OnPropertyChanged(nameof(DcNumericValue));
+                return;
+            }
+
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
         }
@@ -669,13 +803,14 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Executing action for setting: {SettingId}");
 
-            await _settingApplicationService.ApplySettingAsync(
-                SettingId,
-                true,
-                value: null,
-                checkboxResult: checkboxChecked,
-                commandString: SettingDefinition.ActionCommand,
-                applyRecommended: checkboxChecked);
+            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+                CheckboxResult = checkboxChecked,
+                CommandString = SettingDefinition.ActionCommand,
+                ApplyRecommended = checkboxChecked
+            });
 
             _logService.Log(LogLevel.Info, $"Successfully executed action for setting {SettingId}");
 
@@ -704,7 +839,7 @@ public partial class SettingItemViewModel : BaseViewModel
         var message = _localizationService.GetString($"Setting_{SettingId}_ConfirmMessage");
         var checkboxText = _localizationService.GetString($"Setting_{SettingId}_ConfirmCheckbox");
 
-        if (SettingId == "theme-mode-windows" && value is int comboBoxIndex)
+        if (SettingId == SettingIds.ThemeModeWindows && value is int comboBoxIndex)
         {
             var themeMode = comboBoxIndex == 1
                 ? _localizationService.GetString("Setting_theme-mode-windows_Option_1")
@@ -771,120 +906,30 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #endregion
 
-    #region Status Banner Messages
+    #region Status Banner
 
-    // Initializes the compatibility banner from SettingDefinition (called once during loading)
     public void InitializeCompatibilityBanner()
     {
-        if (SettingDefinition?.CustomProperties?.TryGetValue(
-            CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
-            compatMessage is string messageText)
-        {
-            StatusBannerMessage = messageText;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
+        var banner = _statusBannerManager.GetCompatibilityBanner(SettingDefinition);
+        if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    // Updates status banner based on selected value, option warnings, or cross-group settings
     public void UpdateStatusBanner(object? value)
     {
-        if (SettingDefinition == null || value is not int selectedIndex)
-        {
-            // Keep existing compatibility banner if present, otherwise clear
-            if (SettingDefinition?.CustomProperties?.ContainsKey(CustomPropertyKeys.VersionCompatibilityMessage) != true)
-            {
-                ClearStatusBanner();
-            }
-            return;
-        }
-
-        // Check for option-specific warnings (e.g., update policy security warnings)
-        if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionWarnings, out var warnings) == true &&
-            warnings is Dictionary<int, string> warningDict &&
-            warningDict.TryGetValue(selectedIndex, out var warning))
-        {
-            StatusBannerMessage = warning;
-            StatusBannerSeverity = InfoBarSeverity.Error;
-            return;
-        }
-
-        // Check for cross-group child settings info (privacy promotional banner)
-        if (SettingDefinition.CustomProperties?.ContainsKey(CustomPropertyKeys.CrossGroupChildSettings) == true)
-        {
-            UpdateCrossGroupInfoMessage(selectedIndex);
-            return;
-        }
-
-        // No option-specific warning - check if we should keep compatibility message
-        if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
-            compatMessage is string messageText)
-        {
-            StatusBannerMessage = messageText;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
-        else
-        {
-            ClearStatusBanner();
-        }
+        var banner = _statusBannerManager.ComputeBannerForValue(SettingDefinition, value, CrossGroupInfoMessage);
+        if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    // Shows informational message for cross-group child settings when "Custom" is selected
-    private void UpdateCrossGroupInfoMessage(int selectedIndex)
-    {
-        var displayNames = SettingDefinition?.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var names) == true
-            ? names as string[]
-            : null;
-
-        if (displayNames == null)
-        {
-            ClearStatusBanner();
-            return;
-        }
-
-        // Check if "Custom" option is selected (last index or special custom state index)
-        var customOptionIndex = displayNames.Length - 1;
-        bool isCustomState = selectedIndex == customOptionIndex || selectedIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
-
-        if (!isCustomState)
-        {
-            ClearStatusBanner();
-            return;
-        }
-
-        // Use the pre-built message if available (built during initialization with full grouping)
-        if (!string.IsNullOrEmpty(CrossGroupInfoMessage))
-        {
-            StatusBannerMessage = CrossGroupInfoMessage;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-            return;
-        }
-
-        // Fallback: just show the header if pre-built message not available
-        var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
-        if (!string.IsNullOrEmpty(header))
-        {
-            StatusBannerMessage = header;
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
-    }
-
-    // Shows restart required banner after a setting that requires restart is changed
     private void ShowRestartBannerIfNeeded()
     {
-        if (!_hasChangedThisSession)
-            return;
-
-        if (SettingDefinition?.RequiresRestart == true)
-        {
-            StatusBannerMessage = _localizationService.GetString("Common_RestartRequired");
-            StatusBannerSeverity = InfoBarSeverity.Warning;
-        }
+        var banner = _statusBannerManager.GetRestartBanner(SettingDefinition, _hasChangedThisSession);
+        if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    private void ClearStatusBanner()
+    private void ApplyBanner(SettingStatusBannerManager.BannerState state)
     {
-        StatusBannerMessage = null;
-        StatusBannerSeverity = InfoBarSeverity.Informational;
+        StatusBannerMessage = state.Message;
+        StatusBannerSeverity = state.Severity;
     }
 
     #endregion
@@ -893,94 +938,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
 
-    private void OnTooltipUpdated(TooltipUpdatedEvent evt)
-    {
-        if (evt.SettingId != SettingId) return;
-        _dispatcherService.RunOnUIThread(() => UpdateTechnicalDetails(evt.TooltipData));
-    }
-
-    private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
-    {
-        try
-        {
-            TechnicalDetails.Clear();
-
-            // Registry rows
-            foreach (var kvp in tooltipData.IndividualRegistryValues)
-            {
-                var reg = kvp.Key;
-                var keyExists = false;
-                try
-                {
-                    keyExists = RegeditLauncher.KeyExists(reg.KeyPath, _interactiveUserService);
-                }
-                catch (Exception kex)
-                {
-                    _logService.Log(LogLevel.Warning, $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
-                }
-
-                TechnicalDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.Registry,
-                    RegistryPath = reg.KeyPath,
-                    ValueName = reg.ValueName ?? "(Default)",
-                    ValueType = reg.ValueType.ToString(),
-                    CurrentValue = kvp.Value ?? "(not set)",
-                    RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
-                    OpenRegeditCommand = OpenRegeditCommand,
-                    RegeditIconSource = RegeditIconProvider.CachedIcon,
-                    CanOpenRegedit = keyExists
-                });
-            }
-
-            // Scheduled task rows
-            foreach (var task in tooltipData.ScheduledTaskSettings)
-            {
-                TechnicalDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.ScheduledTask,
-                    TaskPath = task.TaskPath,
-                    RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
-                });
-            }
-
-            // Power config rows
-            foreach (var pcfg in tooltipData.PowerCfgSettings)
-            {
-                TechnicalDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.PowerConfig,
-                    SubgroupGuid = pcfg.SubgroupGuid,
-                    SettingGuid = pcfg.SettingGuid,
-                    SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
-                    SettingAlias = pcfg.SettingGUIDAlias,
-                    PowerUnits = pcfg.Units ?? "",
-                    RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
-                    RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
-                });
-            }
-
-            OnPropertyChanged(nameof(HasTechnicalDetails));
-            OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"[TechnicalDetails] UpdateTechnicalDetails failed for '{SettingId}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-        }
-    }
-
-    private void OpenRegeditAtPath(string? path)
-    {
-        if (!string.IsNullOrEmpty(path))
-            RegeditLauncher.OpenAtPath(path, _interactiveUserService);
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _tooltipUpdatedSubscription?.Dispose();
-            _tooltipUpdatedSubscription = null;
+            _technicalDetailsManager.Dispose();
         }
         base.Dispose(disposing);
     }

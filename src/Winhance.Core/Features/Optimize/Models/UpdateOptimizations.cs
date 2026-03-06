@@ -1,7 +1,7 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -31,6 +31,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAutoUpdate",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -38,25 +39,31 @@ public static class UpdateOptimizations
                             ValueName = "NoAutoUpdate",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
+                            RecommendedValue = 2,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
+                            RecommendedValue = 2,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "BranchReadinessLevel",
+                            RecommendedValue = 20,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -64,6 +71,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferFeatureUpdates",
+                            RecommendedValue = 1,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -71,6 +79,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferFeatureUpdatesPeriodInDays",
+                            RecommendedValue = 365,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -78,6 +87,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferQualityUpdates",
+                            RecommendedValue = 1,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -85,6 +95,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferQualityUpdatesPeriodInDays",
+                            RecommendedValue = 7,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -157,6 +168,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAUShutdownOption",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -164,6 +176,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAUShutdownOption",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -171,6 +184,7 @@ public static class UpdateOptimizations
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -178,6 +192,7 @@ public static class UpdateOptimizations
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -185,6 +200,7 @@ public static class UpdateOptimizations
                             ValueName = "AutoInstallMinorUpdates",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -192,6 +208,7 @@ public static class UpdateOptimizations
                             ValueName = "AutoInstallMinorUpdates",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -199,6 +216,7 @@ public static class UpdateOptimizations
                             ValueName = "UseWUServer",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -206,6 +224,7 @@ public static class UpdateOptimizations
                             ValueName = "UseWUServer",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -222,29 +241,29 @@ public static class UpdateOptimizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    DisableTooltip = true,
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.DisableTooltip] = true,
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Normal (Windows Default)",
                             "Security Updates Only (Recommended)",
                             "Paused for a long time (Unpause in Settings)",
                             "Disabled (NOT Recommended, Security Risk)",
                         },
-                        [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
+                        OptionWarnings = new Dictionary<int, string>
                         {
                             [2] = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
                             [3] = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk."
                         },
-                        [CustomPropertyKeys.OptionTooltips] = new string[]
+                        OptionTooltips = new string[]
                         {
                             "Windows default behavior - automatic updates enabled",
                             "Only install critical security updates, defer feature updates by 1 year",
                             "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
                             "Completely disable Windows Update services and block all updates - NOT RECOMMENDED"
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Normal
                             {
@@ -366,6 +385,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 99,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -374,18 +394,19 @@ public static class UpdateOptimizations
                             RecommendedValue = 99,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Windows Default",
                             "Devices on LAN Only",
                             "Devices on LAN and Internet",
                             "ServiceOption_Disabled",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?>
                             {
@@ -421,8 +442,8 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "IsContinuousInnovationOptedIn",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -442,8 +463,8 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "AllowMUUpdateService",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -464,8 +485,8 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "IsExpedited",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -486,18 +507,20 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -515,19 +538,21 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "SetUpdateNotificationLevel",
-                            RecommendedValue = 1,
-                            EnabledValue = 2,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [2],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "SetUpdateNotificationLevel",
-                            RecommendedValue = 1,
-                            EnabledValue = 2,
-                            DisabledValue = null,
+                            RecommendedValue = null,
+                            EnabledValue = [2],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -546,8 +571,8 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "RestartNotificationsAllowed2",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -568,8 +593,8 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "AllowAutoWindowsUpdateDownloadOverMeteredNetwork",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -590,18 +615,20 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "ExcludeWUDriversInQualityUpdate",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "ExcludeWUDriversInQualityUpdate",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -621,18 +648,20 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\WindowsStore",
                             ValueName = "AutoDownload",
                             RecommendedValue = 2,
-                            EnabledValue = null,
-                            DisabledValue = 2,
+                            EnabledValue = [4, null],
+                            DisabledValue = [2],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore",
                             ValueName = "AutoDownload",
                             RecommendedValue = 2,
-                            EnabledValue = null,
-                            DisabledValue = 2,
+                            EnabledValue = [4, null],
+                            DisabledValue = [2],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

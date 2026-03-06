@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
@@ -8,6 +7,7 @@ using Windows.System;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -221,6 +221,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private bool _isPointerOver;
     private bool _isFocused;
+    private ILogService? _logService;
 
     public NavButton()
     {
@@ -231,6 +232,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         KeyDown += NavButton_KeyDown;
         GotFocus += NavButton_GotFocus;
         LostFocus += NavButton_LostFocus;
+        Loaded += (_, _) => _logService = App.Services.GetService<ILogService>();
     }
 
     private void NavButton_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -324,7 +326,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            LogDebug($"Failed to apply badge style: {ex.Message}");
+            _logService?.LogDebug($"Failed to apply badge style: {ex.Message}");
         }
     }
 
@@ -346,7 +348,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
                 }
                 catch (Exception ex)
                 {
-                    LogDebug($"Failed to convert IconPath to Geometry: {ex.Message}");
+                    button._logService?.LogDebug($"Failed to convert IconPath to Geometry: {ex.Message}");
                 }
             }
         }
@@ -415,11 +417,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     }
 
     #endregion
-
-    private static void LogDebug(string message)
-    {
-        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
-    }
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
     {

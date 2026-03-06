@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,52 +19,55 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class StoreDownloadService : IStoreDownloadService
 {
     private readonly ITaskProgressService _taskProgressService;
-    private readonly ILogService _logService;
+    private readonly ILogService? _logService;
     private readonly ILocalizationService _localization;
+    private readonly IFileSystemService _fileSystemService;
     private readonly HttpClient _httpClient;
 
     private const string StoreApiUrl = "https://store.rg-adguard.net/api/GetFiles";
-    private static readonly string[] SupportedArchitectures = { "x64", "x86", "arm64", "neutral" };
+
+    private static readonly Regex DownloadLinkRegex = new(
+        @"<a\s+href=""(?<url>[^""]+)""\s*[^>]*>(?<filename>[^<]+)</a>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex FrameworkDependencyRegex = new(
+        @"Provide the framework ""([^""]+)""",
+        RegexOptions.Compiled);
+    private static readonly Regex AltFrameworkDependencyRegex = new(
+        @"framework that could not be found[.\s]*Provide the framework\s+""?([^""]+)""?",
+        RegexOptions.Singleline | RegexOptions.Compiled);
 
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
-        ILogService logService = null)
+        IFileSystemService fileSystemService,
+        HttpClient httpClient,
+        ILogService? logService = null)
     {
         _taskProgressService = taskProgressService;
         _localization = localization;
+        _fileSystemService = fileSystemService;
         _logService = logService;
-        _httpClient = new HttpClient
-        {
-            Timeout = TimeSpan.FromMinutes(10)
-        };
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     public async Task<bool> DownloadAndInstallPackageAsync(
         string productId,
-        string displayName = null,
+        string? displayName = null,
         CancellationToken cancellationToken = default)
     {
         displayName ??= productId;
-        var tempPath = Path.Combine(Path.GetTempPath(), $"Winhance_{productId}_{Guid.NewGuid():N}");
+        var tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"Winhance_{productId}_{Guid.NewGuid():N}");
 
         try
         {
             // Create temporary directory
-            Directory.CreateDirectory(tempPath);
+            _fileSystemService.CreateDirectory(tempPath);
             _logService?.LogInformation($"Created temporary directory: {tempPath}");
 
             // Download the package
             _taskProgressService?.UpdateProgress(5, _localization.GetString("Progress_Store_FetchingLinks", displayName));
-            var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken);
+            var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken).ConfigureAwait(false);
 
-            if (string.IsNullOrEmpty(packagePath))
-            {
-                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedDownload", displayName));
-                return false;
-            }
-
-            // packagePath is null if download failed, or contains the path if installation with dependencies already succeeded
             if (string.IsNullOrEmpty(packagePath))
             {
                 _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedDownload", displayName));
@@ -75,7 +77,7 @@ public class StoreDownloadService : IStoreDownloadService
             // If we reach here, the package was downloaded but not installed yet (no dependencies found)
             // This shouldn't happen with the new flow, but handle it just in case
             _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
-            var installSuccess = await InstallPackageAsync(packagePath, displayName, cancellationToken);
+            var installSuccess = await InstallPackageAsync(packagePath, displayName, cancellationToken).ConfigureAwait(false);
 
             if (installSuccess)
             {
@@ -102,9 +104,9 @@ public class StoreDownloadService : IStoreDownloadService
             // Cleanup temporary directory
             try
             {
-                if (Directory.Exists(tempPath))
+                if (_fileSystemService.DirectoryExists(tempPath))
                 {
-                    Directory.Delete(tempPath, true);
+                    _fileSystemService.DeleteDirectory(tempPath, true);
                     _logService?.LogInformation($"Cleaned up temporary directory: {tempPath}");
                 }
             }
@@ -115,10 +117,10 @@ public class StoreDownloadService : IStoreDownloadService
         }
     }
 
-    public async Task<string> DownloadPackageAsync(
+    private async Task<string?> DownloadPackageAsync(
         string productId,
         string downloadPath,
-        string displayName = null,
+        string? displayName = null,
         CancellationToken cancellationToken = default)
     {
         displayName ??= productId;
@@ -127,7 +129,7 @@ public class StoreDownloadService : IStoreDownloadService
         {
             // Step 1: Get download links from store.rg-adguard.net API
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Store_RequestingInfo", displayName));
-            var downloadLinks = await GetDownloadLinksAsync(productId, cancellationToken);
+            var downloadLinks = await GetDownloadLinksAsync(productId, cancellationToken).ConfigureAwait(false);
 
             // Check for cancellation after API call
             cancellationToken.ThrowIfCancellationRequested();
@@ -141,7 +143,7 @@ public class StoreDownloadService : IStoreDownloadService
             _logService?.LogInformation($"Found {downloadLinks.Count} package file(s) for {productId}");
 
             // Step 2: Separate main packages and dependencies
-            var currentArch = GetCurrentArchitecture();
+            var currentArch = Common.Utilities.ArchitectureHelper.GetCurrentArchitecture();
             var mainPackages = FilterPackageLinks(downloadLinks, currentArch, isDependency: false);
             var allDependencies = FilterPackageLinks(downloadLinks, currentArch, isDependency: true);
 
@@ -163,7 +165,7 @@ public class StoreDownloadService : IStoreDownloadService
                 downloadPath,
                 mainPackage.FileName,
                 displayName,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(downloadedFile))
             {
@@ -176,7 +178,7 @@ public class StoreDownloadService : IStoreDownloadService
             _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
             _logService?.LogInformation("Attempting installation without dependencies first...");
 
-            var (success, errorMessage) = await TryInstallPackageAsync(downloadedFile, displayName, cancellationToken);
+            var (success, errorMessage) = await TryInstallPackageAsync(downloadedFile, displayName, cancellationToken).ConfigureAwait(false);
 
             if (success)
             {
@@ -282,7 +284,7 @@ public class StoreDownloadService : IStoreDownloadService
                         downloadPath,
                         matchingDep.FileName,
                         displayName,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     if (!string.IsNullOrEmpty(depPath))
                     {
@@ -302,7 +304,7 @@ public class StoreDownloadService : IStoreDownloadService
                 // Try installing with all dependencies collected so far
                 _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_InstallingWithDependencies", displayName, allDownloadedDependencies.Count));
                 var (retrySuccess, retryError) = await TryInstallPackageWithDependenciesAsync(
-                    downloadedFile, allDownloadedDependencies, displayName, cancellationToken);
+                    downloadedFile, allDownloadedDependencies, displayName, cancellationToken).ConfigureAwait(false);
 
                 if (retrySuccess)
                 {
@@ -317,6 +319,10 @@ public class StoreDownloadService : IStoreDownloadService
 
             _logService?.LogError($"Installation failed after {maxDependencyRounds} dependency resolution rounds");
             return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -338,15 +344,13 @@ public class StoreDownloadService : IStoreDownloadService
 
         _logService?.LogInformation($"Requesting download links from store.rg-adguard.net API for {productId}");
 
-        var response = await _httpClient.PostAsync(StoreApiUrl, requestContent, cancellationToken);
+        using var response = await _httpClient.PostAsync(StoreApiUrl, requestContent, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var htmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        var htmlContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         // Parse HTML for download links
-        // Pattern: <a href="URL">FILENAME</a>
-        var pattern = @"<a\s+href=""(?<url>[^""]+)""\s*[^>]*>(?<filename>[^<]+)</a>";
-        var matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
+        var matches = DownloadLinkRegex.Matches(htmlContent);
 
         var links = new List<PackageLink>();
         foreach (Match match in matches)
@@ -405,26 +409,26 @@ public class StoreDownloadService : IStoreDownloadService
     }
 
 
-    private async Task<string> DownloadFileAsync(
+    private async Task<string?> DownloadFileAsync(
         string url,
         string downloadPath,
         string fileName,
         string displayName,
         CancellationToken cancellationToken)
     {
-        var filePath = Path.Combine(downloadPath, fileName);
+        var filePath = _fileSystemService.CombinePath(downloadPath, fileName);
 
         try
         {
             _logService?.LogInformation($"Downloading {fileName} from Microsoft CDN...");
 
-            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
             var totalMB = totalBytes / (1024.0 * 1024.0);
 
-            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             var buffer = new byte[8192];
@@ -432,9 +436,9 @@ public class StoreDownloadService : IStoreDownloadService
             int bytesRead;
             var lastProgress = 0;
 
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (totalBytes > 0)
@@ -461,6 +465,10 @@ public class StoreDownloadService : IStoreDownloadService
             _logService?.LogInformation($"Downloaded {fileName} successfully ({totalMB:F2} MB)");
             return filePath;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logService?.LogError($"Failed to download {fileName}: {ex.Message}");
@@ -479,10 +487,14 @@ public class StoreDownloadService : IStoreDownloadService
 
             var packageManager = new Windows.Management.Deployment.PackageManager();
             var packageUri = new Uri(packagePath);
-            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None);
+            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None).AsTask(cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation($"Successfully installed {displayName}");
             return (true, string.Empty);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -493,7 +505,7 @@ public class StoreDownloadService : IStoreDownloadService
 
     private async Task<bool> InstallPackageAsync(string packagePath, string displayName, CancellationToken cancellationToken)
     {
-        var (success, _) = await TryInstallPackageAsync(packagePath, displayName, cancellationToken);
+        var (success, _) = await TryInstallPackageAsync(packagePath, displayName, cancellationToken).ConfigureAwait(false);
         return success;
     }
 
@@ -511,10 +523,14 @@ public class StoreDownloadService : IStoreDownloadService
             var packageUri = new Uri(packagePath);
             var dependencyUris = dependencyPaths.Select(p => new Uri(p)).ToList();
 
-            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None);
+            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None).AsTask(cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation($"Successfully installed {displayName} with dependencies");
             return (true, string.Empty);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -572,8 +588,7 @@ public class StoreDownloadService : IStoreDownloadService
             return dependencies;
 
         // Pattern 1: "Provide the framework "Microsoft.UI.Xaml.2.3" published by"
-        var frameworkPattern = @"Provide the framework ""([^""]+)""";
-        var frameworkMatches = Regex.Matches(errorMessage, frameworkPattern);
+        var frameworkMatches = FrameworkDependencyRegex.Matches(errorMessage);
         foreach (Match match in frameworkMatches)
         {
             if (match.Success && match.Groups.Count > 1)
@@ -585,8 +600,7 @@ public class StoreDownloadService : IStoreDownloadService
         }
 
         // Pattern 2: "could not be found. Provide the framework" (alternative format)
-        var altFrameworkPattern = @"framework that could not be found[.\s]*Provide the framework\s+""?([^""]+)""?";
-        var altMatches = Regex.Matches(errorMessage, altFrameworkPattern, RegexOptions.Singleline);
+        var altMatches = AltFrameworkDependencyRegex.Matches(errorMessage);
         foreach (Match match in altMatches)
         {
             if (match.Success && match.Groups.Count > 1)
@@ -615,22 +629,10 @@ public class StoreDownloadService : IStoreDownloadService
                lower.EndsWith(".msixbundle");
     }
 
-    private static string GetCurrentArchitecture()
-    {
-        var arch = RuntimeInformation.OSArchitecture;
-        return arch switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm64 => "arm64",
-            Architecture.Arm => "arm",
-            _ => "x64" // Default to x64
-        };
-    }
 
     private class PackageLink
     {
-        public string Url { get; set; }
-        public string FileName { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
     }
 }

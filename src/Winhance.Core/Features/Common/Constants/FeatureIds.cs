@@ -1,3 +1,5 @@
+namespace Winhance.Core.Features.Common.Constants;
+
 public static class FeatureIds
 {
     public const string ExternalApps = "ExternalApps";
@@ -11,7 +13,6 @@ public static class FeatureIds
     public const string Privacy = "Privacy";
     public const string Sound = "Sound";
     public const string Update = "Update";
-    public const string Security = "Security";
 
     public const string WindowsTheme = "WindowsTheme";
     public const string StartMenu = "StartMenu";

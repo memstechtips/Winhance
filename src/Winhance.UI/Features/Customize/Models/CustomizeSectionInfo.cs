@@ -1,9 +1,12 @@
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Constants;
+
 namespace Winhance.UI.Features.Customize.Models;
 
 /// <summary>
 /// Contains metadata for a customization section.
 /// </summary>
-public class CustomizeSectionInfo
+public class CustomizeSectionInfo : ISectionInfo
 {
     /// <summary>
     /// Gets the unique key for the section (e.g., "Explorer", "StartMenu").
@@ -20,10 +23,16 @@ public class CustomizeSectionInfo
     /// </summary>
     public string DisplayName { get; }
 
-    public CustomizeSectionInfo(string key, string iconGlyphKey, string displayName)
+    /// <summary>
+    /// Gets the FeatureIds constant that identifies the ViewModel for this section.
+    /// </summary>
+    public string ModuleId { get; }
+
+    public CustomizeSectionInfo(string key, string iconGlyphKey, string displayName, string moduleId)
     {
         Key = key;
         IconGlyphKey = iconGlyphKey;
         DisplayName = displayName;
+        ModuleId = moduleId;
     }
 }

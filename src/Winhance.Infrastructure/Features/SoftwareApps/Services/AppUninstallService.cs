@@ -1,5 +1,5 @@
 using System;
-using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -14,29 +14,31 @@ using Winhance.Core.Features.SoftwareApps.Models;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppUninstallService(
-    IWinGetService winGetService,
+    IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,
     IInteractiveUserService interactiveUserService,
-    ITaskProgressService taskProgressService) : IAppUninstallService
+    ITaskProgressService taskProgressService,
+    IProcessExecutor processExecutor) : IAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var method = await DetermineUninstallMethodAsync(item);
+        var method = await DetermineUninstallMethodAsync(item).ConfigureAwait(false);
 
         return method switch
         {
-            UninstallMethod.WinGet => await UninstallViaWinGetAsync(item, cancellationToken),
-            UninstallMethod.Chocolatey => await UninstallViaChocolateyAsync(item, cancellationToken),
-            UninstallMethod.Registry => await UninstallViaRegistryAsync(item, cancellationToken),
+            UninstallMethod.WinGet => await UninstallViaWinGetAsync(item, cancellationToken).ConfigureAwait(false),
+            UninstallMethod.Chocolatey => await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false),
+            UninstallMethod.Registry => await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false),
+            UninstallMethod.FileSystem => await UninstallViaFileSystemAsync(item, cancellationToken).ConfigureAwait(false),
             _ => OperationResult<bool>.Failed($"No uninstall method available for {item.Name}")
         };
     }
 
-    public async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
+    private async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
     {
         // Use the detection source to pick the most appropriate uninstall method.
         // If the app was detected via Chocolatey, prefer Chocolatey uninstall
@@ -47,10 +49,13 @@ public class AppUninstallService(
                 return UninstallMethod.Chocolatey;
 
             case DetectionSource.Registry:
-                var (regFound, _) = await GetUninstallStringAsync(item.Name);
+                var (regFound, _) = await GetUninstallStringAsync(item.Name).ConfigureAwait(false);
                 if (regFound)
                     return UninstallMethod.Registry;
                 break;
+
+            case DetectionSource.FileSystem when item.DetectionPaths?.Length > 0:
+                return UninstallMethod.FileSystem;
         }
 
         // Default: prefer WinGet if available, then Registry
@@ -59,12 +64,12 @@ public class AppUninstallService(
 
         if (!string.IsNullOrEmpty(item.ChocoPackageId))
         {
-            var chocoIds = await chocolateyService.GetInstalledPackageIdsAsync();
+            var chocoIds = await chocolateyService.GetInstalledPackageIdsAsync().ConfigureAwait(false);
             if (chocoIds.Contains(item.ChocoPackageId))
                 return UninstallMethod.Chocolatey;
         }
 
-        var (found, _2) = await GetUninstallStringAsync(item.Name);
+        var (found, _2) = await GetUninstallStringAsync(item.Name).ConfigureAwait(false);
         if (found)
             return UninstallMethod.Registry;
 
@@ -89,7 +94,7 @@ public class AppUninstallService(
                 source = "winget";
             }
 
-            var success = await winGetService.UninstallPackageAsync(packageId!, source, item.Name, cancellationToken);
+            var success = await winGetPackageInstaller.UninstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
 
             if (!success)
             {
@@ -97,13 +102,13 @@ public class AppUninstallService(
                 if (!string.IsNullOrEmpty(item.ChocoPackageId))
                 {
                     logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting Chocolatey fallback");
-                    var chocoResult = await UninstallViaChocolateyAsync(item, cancellationToken);
+                    var chocoResult = await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false);
                     if (chocoResult.Success)
                         return chocoResult;
                 }
 
                 logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting registry fallback");
-                return await UninstallViaRegistryAsync(item, cancellationToken);
+                return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
             return OperationResult<bool>.Succeeded(true);
@@ -115,7 +120,7 @@ public class AppUninstallService(
         catch (Exception ex)
         {
             logService.LogError($"WinGet uninstall error for {item.Name}: {ex.Message}", ex);
-            return await UninstallViaRegistryAsync(item, cancellationToken);
+            return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -126,18 +131,18 @@ public class AppUninstallService(
             if (string.IsNullOrEmpty(item.ChocoPackageId))
                 return OperationResult<bool>.Failed($"No Chocolatey package ID for {item.Name}");
 
-            if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken))
+            if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false))
             {
                 logService.LogWarning($"Chocolatey not available for uninstalling {item.Name}");
                 return OperationResult<bool>.Failed($"Chocolatey is not installed");
             }
 
-            var success = await chocolateyService.UninstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken);
+            var success = await chocolateyService.UninstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken).ConfigureAwait(false);
 
             if (!success)
             {
                 logService.LogWarning($"Chocolatey uninstall failed for {item.Name}, attempting registry fallback");
-                return await UninstallViaRegistryAsync(item, cancellationToken);
+                return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
             return OperationResult<bool>.Succeeded(true);
@@ -149,7 +154,7 @@ public class AppUninstallService(
         catch (Exception ex)
         {
             logService.LogError($"Chocolatey uninstall error for {item.Name}: {ex.Message}", ex);
-            return await UninstallViaRegistryAsync(item, cancellationToken);
+            return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -157,7 +162,7 @@ public class AppUninstallService(
     {
         try
         {
-            var (found, uninstallString) = await GetUninstallStringAsync(item.Name);
+            var (found, uninstallString) = await GetUninstallStringAsync(item.Name).ConfigureAwait(false);
 
             if (!found || string.IsNullOrWhiteSpace(uninstallString))
             {
@@ -169,17 +174,7 @@ public class AppUninstallService(
 
             var (fileName, arguments) = ParseUninstallString(uninstallString);
 
-            var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = true
-            });
-
-            if (process != null)
-            {
-                await process.WaitForExitAsync(cancellationToken);
-            }
+            await processExecutor.ShellExecuteAsync(fileName, arguments, waitForExit: true, cancellationToken).ConfigureAwait(false);
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
             taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");
@@ -194,6 +189,55 @@ public class AppUninstallService(
         {
             logService.LogError($"Registry uninstall error for {item.Name}: {ex.Message}", ex);
             return OperationResult<bool>.Failed($"Uninstall failed: {ex.Message}");
+        }
+    }
+
+    private Task<OperationResult<bool>> UninstallViaFileSystemAsync(ItemDefinition item, CancellationToken cancellationToken)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (item.DetectionPaths == null || item.DetectionPaths.Length == 0)
+                return Task.FromResult(OperationResult<bool>.Failed($"No detection paths configured for {item.Name}"));
+
+            int deletedCount = 0;
+            foreach (var rawPath in item.DetectionPaths)
+            {
+                var expandedPath = Environment.ExpandEnvironmentVariables(rawPath);
+
+                if (Directory.Exists(expandedPath))
+                {
+                    logService.LogInformation($"Deleting directory for {item.Name}: {expandedPath}");
+                    Directory.Delete(expandedPath, recursive: true);
+                    deletedCount++;
+                }
+                else if (File.Exists(expandedPath))
+                {
+                    logService.LogInformation($"Deleting file for {item.Name}: {expandedPath}");
+                    File.Delete(expandedPath);
+                    deletedCount++;
+                }
+            }
+
+            if (deletedCount > 0)
+            {
+                logService.LogInformation($"FileSystem uninstall for {item.Name} completed ({deletedCount} path(s) removed)");
+                taskProgressService.UpdateProgress(100, $"Uninstall of {item.Name} completed successfully");
+                return Task.FromResult(OperationResult<bool>.Succeeded(true));
+            }
+
+            logService.LogWarning($"No detection paths found on disk for {item.Name}");
+            return Task.FromResult(OperationResult<bool>.Failed($"No files found to remove for {item.Name}"));
+        }
+        catch (OperationCanceledException)
+        {
+            return Task.FromResult(OperationResult<bool>.Cancelled("Uninstall cancelled"));
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"FileSystem uninstall error for {item.Name}: {ex.Message}", ex);
+            return Task.FromResult(OperationResult<bool>.Failed($"Uninstall failed: {ex.Message}"));
         }
     }
 
@@ -252,14 +296,14 @@ public class AppUninstallService(
                                 }
                             }
                         }
-                        catch { }
+                        catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
                     }
                 }
-                catch { }
+                catch (Exception ex) { logService.LogDebug($"Failed to open registry key for uninstall lookup: {ex.Message}"); }
             }
 
             return (false, string.Empty);
-        });
+        }).ConfigureAwait(false);
     }
 
     private bool IsFuzzyMatch(string searchName, string registryName)
@@ -280,13 +324,17 @@ public class AppUninstallService(
         return matchCount >= Math.Min(words1.Length, 2);
     }
 
-    private string NormalizeString(string input)
+    private static readonly Regex NonWordOrSpaceRegex = new(@"[^\w\s]", RegexOptions.Compiled);
+    private static readonly Regex MultipleSpacesRegex = new(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex MsiInstallToUninstallRegex = new(@"/I(\{[A-F0-9-]+\})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static string NormalizeString(string input)
     {
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
-        var normalized = Regex.Replace(input, @"[^\w\s]", "").ToLowerInvariant().Trim();
-        return Regex.Replace(normalized, @"\s+", " ");
+        var normalized = NonWordOrSpaceRegex.Replace(input, "").ToLowerInvariant().Trim();
+        return MultipleSpacesRegex.Replace(normalized, " ");
     }
 
     private (string FileName, string Arguments) ParseUninstallString(string uninstallString)
@@ -333,12 +381,7 @@ public class AppUninstallService(
 
         if (lower.Contains("msiexec"))
         {
-            existingArgs = Regex.Replace(
-                existingArgs,
-                @"/I(\{[A-F0-9-]+\})",
-                "/X$1",
-                RegexOptions.IgnoreCase
-            );
+            existingArgs = MsiInstallToUninstallRegex.Replace(existingArgs, "/X$1");
 
             if (!existingArgs.Contains("/quiet") && !existingArgs.Contains("/qn"))
                 return $"{existingArgs} /quiet /norestart".Trim();

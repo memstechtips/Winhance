@@ -15,7 +15,7 @@ public class PowerSettingsValidationService(
         var settingsList = settings.ToList();
         var originalCount = settingsList.Count;
 
-        var bulkPowerValues = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+        var bulkPowerValues = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT").ConfigureAwait(false);
 
         if (!bulkPowerValues.Any())
         {
@@ -53,8 +53,8 @@ public class PowerSettingsValidationService(
                     {
                         logService.Log(LogLevel.Info, $"Successfully enabled hidden power setting: {settingKey}");
 
-                        await Task.Delay(100);
-                        var updatedPowerValues = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+                        await Task.Delay(100).ConfigureAwait(false);
+                        var updatedPowerValues = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT").ConfigureAwait(false);
 
                         if (updatedPowerValues.ContainsKey(settingKey))
                         {
@@ -75,7 +75,7 @@ public class PowerSettingsValidationService(
 
                 foreach (var powerCfgSetting in setting.PowerCfgSettings.Where(p => p.CheckForHardwareControl))
                 {
-                    if (await powerSettingsQueryService.IsSettingHardwareControlledAsync(powerCfgSetting))
+                    if (await powerSettingsQueryService.IsSettingHardwareControlledAsync(powerCfgSetting).ConfigureAwait(false))
                     {
                         logService.Log(LogLevel.Info,
                             $"Filtering out hardware-controlled setting: {setting.Id} ({powerCfgSetting.SettingGUIDAlias})");
@@ -98,24 +98,5 @@ public class PowerSettingsValidationService(
         }
 
         return validatedSettings;
-    }
-
-    public Task<bool> IsHibernationEnabledAsync()
-    {
-        try
-        {
-            if (PowerProf.GetPwrCapabilities(out var caps))
-            {
-                return Task.FromResult(caps.SystemS4 && caps.HiberFilePresent);
-            }
-
-            logService.Log(LogLevel.Warning, "GetPwrCapabilities failed, falling back to hiberfil.sys check");
-            return Task.FromResult(System.IO.File.Exists(@"C:\hiberfil.sys"));
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error checking hibernation: {ex.Message}");
-            return Task.FromResult(false);
-        }
     }
 }

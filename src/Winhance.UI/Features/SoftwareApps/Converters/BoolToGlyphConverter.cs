@@ -5,7 +5,7 @@ namespace Winhance.UI.Features.SoftwareApps.Converters;
 /// <summary>
 /// Converts a boolean (CanBeReinstalled) to a glyph for the reinstallable icon.
 /// </summary>
-public class BoolToGlyphConverter : IValueConverter
+public partial class BoolToGlyphConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {

@@ -13,8 +13,23 @@ public class WizardStepState : INotifyPropertyChanged
     private bool _isComplete;
     private string _statusText = string.Empty;
 
+    private string _title = string.Empty;
+
     public int StepNumber { get; set; }
-    public string Title { get; set; } = string.Empty;
+
+    public string Title
+    {
+        get => _title;
+        set
+        {
+            if (_title != value)
+            {
+                _title = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public string Icon { get; set; } = string.Empty;
 
     public string StatusText

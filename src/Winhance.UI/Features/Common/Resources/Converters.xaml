@@ -18,13 +18,13 @@
 
     <!-- Null/Empty Converters -->
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+    <converters:NotNullToVisibilityConverter x:Key="NotNullToVisibilityConverter"/>
 
     <!-- Icon Converters -->
     <converters:IconConverter x:Key="IconConverter"/>
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- SoftwareApps Converters -->
-    <softwareConverters:BoolToColorConverter x:Key="BoolToColorConverter"/>
     <softwareConverters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>
     <softwareConverters:BoolToReinstallBrushConverter x:Key="BoolToReinstallBrushConverter"/>
     <softwareConverters:BoolToStatusBrushConverter x:Key="BoolToStatusBrushConverter"/>

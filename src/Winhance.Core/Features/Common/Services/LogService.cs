@@ -3,195 +3,235 @@ using System.IO;
 using System.Text;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 
-namespace Winhance.Core.Features.Common.Services
+namespace Winhance.Core.Features.Common.Services;
+
+public class LogService : ILogService, IDisposable
 {
-    public class LogService : ILogService
+    private string _logPath;
+    private StreamWriter? _logWriter;
+    private readonly object _lockObject = new object();
+    private IInteractiveUserService? _interactiveUserService;
+    private ISystemInfoProvider? _systemInfoProvider;
+
+    public LogService()
     {
-        private string _logPath;
-        private StreamWriter? _logWriter;
-        private readonly object _lockObject = new object();
-        private IWindowsVersionService _versionService;
-        private IInteractiveUserService? _interactiveUserService;
+        _logPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Winhance",
+            "Logs",
+            $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
+        );
+    }
 
-        public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
+    public void SetInteractiveUserService(IInteractiveUserService interactiveUserService)
+    {
+        _interactiveUserService = interactiveUserService;
+    }
 
-        public LogService()
+    public void SetSystemInfoProvider(ISystemInfoProvider systemInfoProvider)
+    {
+        _systemInfoProvider = systemInfoProvider;
+    }
+
+    public void Log(LogLevel level, string message, Exception? exception = null)
+    {
+        switch (level)
         {
-            _logPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Winhance",
-                "Logs",
-                $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
-            );
+            case LogLevel.Info:
+                LogInformation(message);
+                break;
+            case LogLevel.Warning:
+                LogWarning(message);
+                break;
+            case LogLevel.Error:
+                LogError(message, exception);
+                break;
+            case LogLevel.Success:
+                LogSuccess(message);
+                break;
+            case LogLevel.Debug:
+                LogDebug(message);
+                break;
+            default:
+                LogInformation(message);
+                break;
         }
 
-        public void Initialize(IWindowsVersionService versionService)
-        {
-            _versionService = versionService;
-        }
+    }
 
-        public void SetInteractiveUserService(IInteractiveUserService interactiveUserService)
+    public void StartLog()
+    {
+        try
         {
-            _interactiveUserService = interactiveUserService;
-        }
-
-        public void Log(LogLevel level, string message, Exception? exception = null)
-        {
-            switch (level)
+            // Ensure directory exists
+            var logDirectory = Path.GetDirectoryName(_logPath);
+            if (logDirectory != null)
             {
-                case LogLevel.Info:
-                    LogInformation(message);
-                    break;
-                case LogLevel.Warning:
-                    LogWarning(message);
-                    break;
-                case LogLevel.Error:
-                    LogError(message, exception);
-                    break;
-                case LogLevel.Success:
-                    LogSuccess(message);
-                    break;
-                case LogLevel.Debug:
-                    LogDebug(message);
-                    break;
-                default:
-                    LogInformation(message);
-                    break;
+                Directory.CreateDirectory(logDirectory);
+            }
+            else
+            {
+                throw new InvalidOperationException("Log directory path is null.");
             }
 
-            // Raise event for subscribers
-            LogMessageGenerated?.Invoke(this, new LogMessageEventArgs(level, message, exception));
-        }
+            // Clean up old log files before creating a new one
+            CleanupOldLogs(logDirectory, maxAgeDays: 30, maxFiles: 50);
 
-        public void StartLog()
+            // Create or overwrite log file
+            _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8)
+            {
+                AutoFlush = true
+            };
+
+            // Write initial log header with diagnostic info
+            if (_systemInfoProvider != null)
+            {
+                var info = _systemInfoProvider.Collect();
+                LogInformation($"==== Winhance {info.AppVersion} Log Started ====");
+                LogInformation($"OS:            {info.OperatingSystem}");
+                LogInformation($"Architecture:  {info.Architecture}");
+                LogInformation($"Device Type:   {info.DeviceType}");
+                LogInformation($"CPU:           {info.Cpu}");
+                LogInformation($"RAM:           {info.Ram}");
+                LogInformation($"GPU:           {info.Gpu}");
+                LogInformation($".NET Runtime:  {info.DotNetRuntime}");
+                LogInformation($"Elevation:     {info.Elevation}");
+                LogInformation($"Firmware:      {info.FirmwareType}");
+                LogInformation($"Secure Boot:   {info.SecureBoot}");
+                LogInformation($"TPM:           {info.Tpm}");
+                LogInformation($"Domain Joined: {info.DomainJoined}");
+            }
+            else
+            {
+                LogInformation("==== Winhance Log Started ====");
+                LogInformation("System info unavailable (provider not configured)");
+            }
+            LogInformation("=====================================");
+        }
+        catch (Exception ex)
+        {
+            // Re-throw so caller can handle/log the error
+            throw new InvalidOperationException($"Failed to start log at '{_logPath}': {ex.Message}", ex);
+        }
+    }
+
+    private void StopLog()
+    {
+        lock (_lockObject)
         {
             try
             {
-                // Ensure directory exists
-                var logDirectory = Path.GetDirectoryName(_logPath);
-                if (logDirectory != null)
-                {
-                    Directory.CreateDirectory(logDirectory);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Log directory path is null.");
-                }
-
-                // Create or overwrite log file
-                _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8)
-                {
-                    AutoFlush = true
-                };
-
-                // Write initial log header
-                LogInformation($"==== Winhance Log Started ====");
-                LogInformation($"Timestamp: {DateTime.Now}");
-                if (_interactiveUserService != null && _interactiveUserService.IsOtsElevation)
-                {
-                    LogInformation($"User: {_interactiveUserService.InteractiveUserName}");
-                    LogInformation($"Elevated User: {Environment.UserName}");
-                }
-                else
-                {
-                    LogInformation($"User: {Environment.UserName}");
-                }
-                LogInformation($"Machine: {Environment.MachineName}");
-
-                if (_versionService != null)
-                {
-                    LogInformation($"OS Version: {_versionService.GetOsVersionString()}");
-                    LogInformation($"OS Build: {_versionService.GetOsBuildString()}");
-                }
-                else
-                {
-                    LogInformation($"OS Version: {Environment.OSVersion}");
-                }
-                LogInformation("===========================");
+                LogInformation("==== Winhance Log Ended ====");
+                _logWriter?.Close();
+                _logWriter?.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Re-throw so caller can handle/log the error
-                throw new InvalidOperationException($"Failed to start log at '{_logPath}': {ex.Message}", ex);
+                // Error stopping log
             }
         }
+    }
 
-        public void StopLog()
+    public void LogInformation(string message)
+    {
+        WriteLog(message, "INFO");
+    }
+
+    public void LogWarning(string message)
+    {
+        WriteLog(message, "WARNING");
+    }
+
+    public void LogError(string message, Exception? exception = null)
+    {
+        string fullMessage = exception != null
+            ? $"{message} - Exception: {exception.Message}\n{exception.StackTrace}"
+            : message;
+        WriteLog(fullMessage, "ERROR");
+    }
+
+    public void LogDebug(string message)
+    {
+        WriteLog(message, "DEBUG");
+    }
+
+    private void LogSuccess(string message)
+    {
+        WriteLog(message, "SUCCESS");
+    }
+
+    public string GetLogPath()
+    {
+        return _logPath;
+    }
+
+    /// <summary>
+    /// Removes log files older than <paramref name="maxAgeDays"/> days and
+    /// caps the total number of log files to <paramref name="maxFiles"/>,
+    /// deleting the oldest files first.
+    /// </summary>
+    internal static void CleanupOldLogs(string logDirectory, int maxAgeDays = 30, int maxFiles = 50)
+    {
+        try
         {
-            lock (_lockObject)
+            if (!Directory.Exists(logDirectory))
+                return;
+
+            var logFiles = Directory.GetFiles(logDirectory, "Winhance_Log_*.log")
+                .Select(f => new FileInfo(f))
+                .OrderBy(f => f.CreationTimeUtc)
+                .ToList();
+
+            var cutoff = DateTime.UtcNow.AddDays(-maxAgeDays);
+
+            // Delete files older than maxAgeDays
+            for (int i = logFiles.Count - 1; i >= 0; i--)
             {
-                try
+                if (logFiles[i].CreationTimeUtc < cutoff)
                 {
-                    LogInformation("==== Winhance Log Ended ====");
-                    _logWriter?.Close();
-                    _logWriter?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // Error stopping log
+                    try { logFiles[i].Delete(); logFiles.RemoveAt(i); }
+                    catch { /* best-effort cleanup */ }
                 }
             }
-        }
 
-        public void LogInformation(string message)
-        {
-            WriteLog(message, "INFO");
-        }
-
-        public void LogWarning(string message)
-        {
-            WriteLog(message, "WARNING");
-        }
-
-        public void LogError(string message, Exception? exception = null)
-        {
-            string fullMessage = exception != null
-                ? $"{message} - Exception: {exception.Message}\n{exception.StackTrace}"
-                : message;
-            WriteLog(fullMessage, "ERROR");
-        }
-
-        public void LogDebug(string message)
-        {
-            WriteLog(message, "DEBUG");
-        }
-
-        public void LogSuccess(string message)
-        {
-            WriteLog(message, "SUCCESS");
-        }
-
-        public string GetLogPath()
-        {
-            return _logPath;
-        }
-
-        private void WriteLog(string message, string level)
-        {
-            lock (_lockObject)
+            // If still over maxFiles, delete the oldest
+            while (logFiles.Count > maxFiles)
             {
-                try
-                {
-                    string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
-
-                    // Write to file if log writer is available
-                    _logWriter?.WriteLine(logEntry);
-
-                }
-                catch (Exception ex)
-                {
-                    // Logging failed
-                }
+                try { logFiles[0].Delete(); }
+                catch { /* best-effort cleanup */ }
+                logFiles.RemoveAt(0);
             }
         }
-
-        // Implement IDisposable pattern to ensure logs are stopped
-        public void Dispose()
+        catch
         {
-            StopLog();
-            GC.SuppressFinalize(this);
+            // Cleanup is best-effort; don't let it prevent logging from starting
         }
+    }
+
+    private void WriteLog(string message, string level)
+    {
+        lock (_lockObject)
+        {
+            try
+            {
+                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
+
+                // Write to file if log writer is available
+                _logWriter?.WriteLine(logEntry);
+
+            }
+            catch (Exception)
+            {
+                // Logging failed
+            }
+        }
+    }
+
+    // Implement IDisposable pattern to ensure logs are stopped
+    public void Dispose()
+    {
+        StopLog();
+        GC.SuppressFinalize(this);
     }
 }

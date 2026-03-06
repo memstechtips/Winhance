@@ -1,8 +1,8 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -12,6 +12,7 @@ public class ApplicationCloseService : IApplicationCloseService
     private readonly ITaskProgressService _taskProgressService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IDialogService _dialogService;
+    private readonly IProcessExecutor _processExecutor;
 
     public Func<Task>? BeforeShutdown { get; set; }
 
@@ -19,15 +20,17 @@ public class ApplicationCloseService : IApplicationCloseService
         ILogService logService,
         ITaskProgressService taskProgressService,
         IUserPreferencesService userPreferencesService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IProcessExecutor processExecutor)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
         _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     }
 
-    public async Task<bool> CheckOperationsAndCloseAsync()
+    public async Task<OperationResult> CheckOperationsAndCloseAsync()
     {
         try
         {
@@ -60,7 +63,7 @@ public class ApplicationCloseService : IApplicationCloseService
                 if (!confirmed)
                 {
                     _logService.LogInformation("User cancelled application close due to running operation");
-                    return false;
+                    return OperationResult.Failed("User cancelled application close");
                 }
 
                 _logService.LogInformation("User confirmed close, cancelling operation...");
@@ -68,7 +71,7 @@ public class ApplicationCloseService : IApplicationCloseService
             }
 
             await CloseApplicationWithSupportDialogAsync();
-            return true;
+            return OperationResult.Succeeded();
         }
         catch (Exception ex)
         {
@@ -82,11 +85,11 @@ public class ApplicationCloseService : IApplicationCloseService
             {
                 Application.Current.Exit();
             }
-            return true;
+            return OperationResult.Succeeded();
         }
     }
 
-    public async Task CloseApplicationWithSupportDialogAsync()
+    private async Task CloseApplicationWithSupportDialogAsync()
     {
         try
         {
@@ -113,12 +116,7 @@ public class ApplicationCloseService : IApplicationCloseService
                     _logService.LogInformation("User clicked Yes, opening donation page");
                     try
                     {
-                        var psi = new ProcessStartInfo
-                        {
-                            FileName = "https://ko-fi.com/memstechtips",
-                            UseShellExecute = true,
-                        };
-                        Process.Start(psi);
+                        await _processExecutor.ShellExecuteAsync("https://ko-fi.com/memstechtips");
                         _logService.LogInformation("Donation page opened successfully");
                     }
                     catch (Exception openEx)
@@ -151,7 +149,7 @@ public class ApplicationCloseService : IApplicationCloseService
         }
     }
 
-    public async Task<bool> ShouldShowSupportDialogAsync()
+    private async Task<bool> ShouldShowSupportDialogAsync()
     {
         try
         {
@@ -174,15 +172,15 @@ public class ApplicationCloseService : IApplicationCloseService
         }
     }
 
-    public async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
+    private async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
     {
         try
         {
             _logService.LogInformation($"Saving DontShowSupport preference: {dontShow}");
 
-            bool success = await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
+            var result = await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
 
-            if (success)
+            if (result.Success)
             {
                 _logService.LogInformation("Successfully saved DontShowSupport preference");
             }

@@ -31,6 +31,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
     private const uint LWA_ALPHA = 0x2;
 
     private bool _configured;
+    private ILogService? _logService;
 
     public ConfigImportOverlayWindow(string statusText, string? detailText = null)
     {
@@ -64,6 +65,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
     {
         if (_configured) return;
         _configured = true;
+        _logService = App.Services.GetService<ILogService>();
 
         try
         {
@@ -89,11 +91,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
         }
         catch (Exception ex)
         {
-            try
-            {
-                App.Services.GetService<ILogService>()?.LogDebug($"Failed to configure overlay window: {ex.Message}");
-            }
-            catch { }
+            _logService?.LogDebug($"Failed to configure overlay window: {ex.Message}");
         }
 
         // Announce initial status text to Narrator

@@ -10,7 +10,7 @@ namespace Winhance.UI.Features.Common.TemplateSelectors;
 /// This ensures only the relevant control is created for each setting,
 /// rather than creating all controls and hiding the unused ones.
 /// </summary>
-public class SettingTemplateSelector : DataTemplateSelector
+public partial class SettingTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ToggleTemplate { get; set; }
     public DataTemplate? SelectionTemplate { get; set; }

@@ -1,15 +1,12 @@
-
-namespace Winhance.Core.Features.Common.Models
-{
-
-    public class SettingTooltipData
-    {
-        public string SettingId { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public RegistrySetting? RegistrySetting { get; set; }
-        public string DisplayValue { get; set; } = string.Empty;
-        public Dictionary<RegistrySetting, string?> IndividualRegistryValues { get; set; } = new Dictionary<RegistrySetting, string?>();
-        public List<ScheduledTaskSetting> ScheduledTaskSettings { get; set; } = new List<ScheduledTaskSetting>();
-        public List<PowerCfgSetting> PowerCfgSettings { get; set; } = new List<PowerCfgSetting>();
-    }
-}
+
+namespace Winhance.Core.Features.Common.Models;
+
+public record SettingTooltipData
+{
+    public string SettingId { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public string DisplayValue { get; init; } = string.Empty;
+    public IReadOnlyDictionary<RegistrySetting, string?> IndividualRegistryValues { get; init; } = new Dictionary<RegistrySetting, string?>();
+    public IReadOnlyList<ScheduledTaskSetting> ScheduledTaskSettings { get; init; } = new List<ScheduledTaskSetting>();
+    public IReadOnlyList<PowerCfgSetting> PowerCfgSettings { get; init; } = new List<PowerCfgSetting>();
+}

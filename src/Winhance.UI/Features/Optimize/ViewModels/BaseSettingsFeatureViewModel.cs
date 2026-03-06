@@ -1,14 +1,17 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -20,30 +23,32 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
     protected readonly IDispatcherService _dispatcherService;
-    protected readonly MainWindowViewModel? _mainWindowViewModel;
     protected readonly IEventBus _eventBus;
 
     private bool _settingsLoaded = false;
-    private readonly object _loadingLock = new();
+    private bool _isSubscribed = false;
+    private readonly SemaphoreSlim _loadingSemaphore = new(1, 1);
     private CancellationTokenSource? _searchDebounceTokenSource;
     private ISubscriptionToken? _settingAppliedSubscription;
-    private Dictionary<string, SettingItemViewModel> _settingsById = new();
-    private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
+    private ISubscriptionToken? _filterStateChangedSubscription;
+    private ISubscriptionToken? _reviewModeExitedSubscription;
+    private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
+    private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
     [ObservableProperty]
-    private ObservableCollection<SettingItemViewModel> _settings = new();
+    public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<SettingsGroup> _groupedSettings = new();
+    public partial ObservableCollection<SettingsGroup> GroupedSettings { get; set; }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private bool _isExpanded = true;
+    public partial bool IsExpanded { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
     public abstract string ModuleId { get; }
     public virtual string DisplayName => GetDisplayName();
@@ -82,8 +87,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    public event EventHandler<FeatureVisibilityChangedEventArgs>? VisibilityChanged;
-
     public IRelayCommand LoadSettingsCommand { get; }
     public IRelayCommand ToggleExpandCommand { get; }
 
@@ -93,8 +96,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IEventBus eventBus,
-        MainWindowViewModel? mainWindowViewModel = null)
+        IEventBus eventBus)
     {
         _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
@@ -102,20 +104,30 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        _mainWindowViewModel = mainWindowViewModel;
 
-        LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
+        // Initialize partial property defaults
+        Settings = new ObservableCollection<SettingItemViewModel>();
+        GroupedSettings = new ObservableCollection<SettingsGroup>();
+        IsExpanded = true;
+        SearchText = string.Empty;
+
+        LoadSettingsCommand = new RelayCommand(() => LoadSettingsAsync().FireAndForget(_logService));
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
+    }
+
+    /// <summary>
+    /// Subscribes to external events. Called from <see cref="LoadSettingsAsync"/> on first load
+    /// to avoid triggering side effects during DI construction.
+    /// </summary>
+    private void SubscribeToEvents()
+    {
+        if (_isSubscribed) return;
+        _isSubscribed = true;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
-
-        // Subscribe to setting applied events for cross-module dependency updates
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
-
-        if (_mainWindowViewModel != null)
-        {
-            _mainWindowViewModel.FilterStateChanged += OnFilterStateChanged;
-        }
+        _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
+        _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -155,18 +167,33 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private async void OnLanguageChanged(object? sender, EventArgs e)
     {
-        lock (_loadingLock)
+        try
         {
             _settingsLoaded = false;
-        }
 
-        OnPropertyChanged(nameof(DisplayName));
-        await LoadSettingsAsync();
+            OnPropertyChanged(nameof(DisplayName));
+            await LoadSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogDebug($"[{DisplayName}] Error handling language change: {ex.Message}");
+        }
     }
 
-    private async void OnFilterStateChanged(object? sender, FilterStateChangedEventArgs e)
+    private async Task OnFilterStateChangedAsync(FilterStateChangedEvent e)
     {
         await RefreshSettingsForFilterChangeAsync();
+    }
+
+    private void OnReviewModeExited(ReviewModeExitedEvent e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            foreach (var setting in Settings)
+            {
+                setting.ClearReviewState();
+            }
+        });
     }
 
     private async Task RefreshSettingsForFilterChangeAsync()
@@ -176,10 +203,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
 
             // Reset the loaded flag to allow reloading
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
 
             // Clear and reload settings
             if (Settings?.Any() == true)
@@ -193,7 +217,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             await LoadSettingsAsync();
 
-            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings.Count} settings for {DisplayName}");
+            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
         }
         catch (Exception ex)
         {
@@ -208,18 +232,20 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     partial void OnSearchTextChanged(string value)
     {
-        _searchDebounceTokenSource?.Cancel();
-        _searchDebounceTokenSource = new CancellationTokenSource();
-        var token = _searchDebounceTokenSource.Token;
+        var newCts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _searchDebounceTokenSource, newCts);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+        var token = newCts.Token;
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
                 token.ThrowIfCancellationRequested();
 
                 bool featureMatches = string.IsNullOrWhiteSpace(value) ||
-                    DisplayName.ToLowerInvariant().Contains(value.ToLowerInvariant());
+                    DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase);
 
                 _dispatcherService.RunOnUIThread(() =>
                 {
@@ -240,7 +266,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
                     OnPropertyChanged(nameof(HasVisibleSettings));
                     OnPropertyChanged(nameof(IsVisibleInSearch));
-                    VisibilityChanged?.Invoke(this, new FeatureVisibilityChangedEventArgs(ModuleId, IsVisibleInSearch, value));
                 });
             }
             catch (OperationCanceledException)
@@ -251,15 +276,18 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     public virtual async Task LoadSettingsAsync()
     {
-        lock (_loadingLock)
-        {
-            if (_settingsLoaded)
-                return;
-            _settingsLoaded = true;
-        }
+        SubscribeToEvents();
+
+        // SemaphoreSlim is async-safe. WaitAsync(0) returns false immediately
+        // if already held, preventing duplicate concurrent loads.
+        if (!await _loadingSemaphore.WaitAsync(0))
+            return;
 
         try
         {
+            if (_settingsLoaded)
+                return;
+
             IsLoading = true;
 
             if (Settings?.Any() == true)
@@ -278,29 +306,32 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 this
             );
 
-            var settingViewModels = loadedSettings.Cast<SettingItemViewModel>().ToList();
-            Settings = new ObservableCollection<SettingItemViewModel>(settingViewModels);
+            Settings = loadedSettings;
 
-            // Build dictionaries for O(1) lookups
-            _settingsById.Clear();
-            _childrenByParentId.Clear();
+            // Build new dictionaries and atomically swap references.
+            // Readers on other threads (OnSettingApplied) see either the old
+            // complete dictionary or the new complete one — never a partial build.
+            var newSettingsById = new Dictionary<string, SettingItemViewModel>();
+            var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
             foreach (var setting in Settings)
             {
                 if (!string.IsNullOrEmpty(setting.SettingId))
-                    _settingsById[setting.SettingId] = setting;
+                    newSettingsById[setting.SettingId] = setting;
 
                 // Index children by their parent ID for fast lookup when parent changes
                 var parentId = setting.SettingDefinition?.ParentSettingId;
                 if (!string.IsNullOrEmpty(parentId))
                 {
-                    if (!_childrenByParentId.TryGetValue(parentId, out var children))
+                    if (!newChildrenByParentId.TryGetValue(parentId, out var children))
                     {
                         children = new List<SettingItemViewModel>();
-                        _childrenByParentId[parentId] = children;
+                        newChildrenByParentId[parentId] = children;
                     }
                     children.Add(setting);
                 }
             }
+            _settingsById = newSettingsById;
+            _childrenByParentId = newChildrenByParentId;
 
             UpdateParentChildRelationships();
             RebuildGroupedSettings();
@@ -310,20 +341,19 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             OnPropertyChanged(nameof(SettingsCount));
             OnPropertyChanged(nameof(GroupDescriptionText));
 
+            _settingsLoaded = true;
             _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
         }
         catch (Exception ex)
         {
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
             _logService.Log(LogLevel.Error, $"Error loading {DisplayName} settings: {ex.Message}");
             throw;
         }
         finally
         {
             IsLoading = false;
+            _loadingSemaphore.Release();
         }
     }
 
@@ -333,10 +363,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName}");
 
-            lock (_loadingLock)
-            {
-                _settingsLoaded = false;
-            }
+            _settingsLoaded = false;
 
             if (Settings?.Any() == true)
             {
@@ -349,7 +376,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             await LoadSettingsAsync();
 
-            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings.Count} settings for {DisplayName}");
+            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
         }
         catch (Exception ex)
         {
@@ -376,16 +403,20 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                     }
                 }
             });
+
+            // Publish tooltip updates from the already-read state data (no second registry read)
+            foreach (var kvp in states)
+            {
+                if (kvp.Value.TooltipData != null)
+                {
+                    _eventBus.Publish(new TooltipUpdatedEvent(kvp.Key, kvp.Value.TooltipData));
+                }
+            }
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Warning, $"[{GetType().Name}] Error refreshing setting states: {ex.Message}");
         }
-    }
-
-    public virtual Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
-    {
-        return Task.FromResult(false);
     }
 
     private void UpdateParentChildRelationships()
@@ -451,12 +482,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _settingAppliedSubscription?.Dispose();
             _settingAppliedSubscription = null;
 
-            _localizationService.LanguageChanged -= OnLanguageChanged;
+            _filterStateChangedSubscription?.Dispose();
+            _filterStateChangedSubscription = null;
 
-            if (_mainWindowViewModel != null)
-            {
-                _mainWindowViewModel.FilterStateChanged -= OnFilterStateChanged;
-            }
+            _reviewModeExitedSubscription?.Dispose();
+            _reviewModeExitedSubscription = null;
+
+            _localizationService.LanguageChanged -= OnLanguageChanged;
 
             if (Settings != null)
             {
@@ -467,10 +499,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 Settings.Clear();
             }
 
-            _settingsById.Clear();
-            _childrenByParentId.Clear();
+            var cts = Interlocked.Exchange(ref _searchDebounceTokenSource, null);
+            cts?.Cancel();
+            cts?.Dispose();
+
+            _settingsById = new Dictionary<string, SettingItemViewModel>();
+            _childrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
             _settingsLoaded = false;
-            VisibilityChanged = null;
+            _loadingSemaphore.Dispose();
         }
 
         base.Dispose(disposing);

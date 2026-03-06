@@ -1,236 +1,88 @@
-using System;
-using System.Collections.Generic;
-
-namespace Winhance.Core.Features.Common.Models
-{
-    public class OperationResult<T>
-    {
-        public bool Success { get; set; }
-        public bool IsCancelled { get; set; }
-        public T? Result { get; set; }
-        public string? ErrorMessage { get; set; }
-        public Exception? Exception { get; set; }
-        public Dictionary<string, string>? ErrorDetails { get; set; }
-        public bool RequiresConfirmation { get; set; }
-        public ConfirmationRequest? ConfirmationRequest { get; set; }
-
-        public static OperationResult<T> CreateSuccess(T result)
-        {
-            return new OperationResult<T>
-            {
-                Success = true,
-                Result = result
-            };
-        }
-
-        public static OperationResult<T> CreateFailure(string errorMessage)
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                ErrorMessage = errorMessage
-            };
-        }
-
-        public static OperationResult<T> CreateFailure(Exception exception)
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                ErrorMessage = exception.Message,
-                Exception = exception
-            };
-        }
-
-        public static OperationResult<T> CreateFailure(string errorMessage, Exception exception)
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                ErrorMessage = errorMessage,
-                Exception = exception
-            };
-        }
-
-        public bool Succeeded()
-        {
-            return Success;
-        }
-
-        public static OperationResult<T> Succeeded(string message)
-        {
-            return new OperationResult<T>
-            {
-                Success = true,
-                ErrorMessage = message
-            };
-        }
-
-        public static OperationResult<T> Succeeded(T result)
-        {
-            return new OperationResult<T>
-            {
-                Success = true,
-                Result = result
-            };
-        }
-
-        public bool Failed()
-        {
-            return !Success;
-        }
-
-        public static OperationResult<T> Failed(string message)
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                ErrorMessage = message
-            };
-        }
-
-        public static OperationResult<T> Failed(string message, Exception exception)
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                ErrorMessage = message,
-                Exception = exception
-            };
-        }
-
-        public static OperationResult<T> Failed(string message, T result)
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                ErrorMessage = message,
-                Result = result
-            };
-        }
-
-        public static OperationResult<T> CreateConfirmationRequired(ConfirmationRequest confirmationRequest)
-        {
-            return new OperationResult<T>
-            {
-                RequiresConfirmation = true,
-                ConfirmationRequest = confirmationRequest
-            };
-        }
-
-        public static OperationResult<T> Cancelled(string message = "Operation was cancelled")
-        {
-            return new OperationResult<T>
-            {
-                Success = false,
-                IsCancelled = true,
-                ErrorMessage = message
-            };
-        }
-    }
-
-    public class OperationResult
-    {
-        public bool Success { get; set; }
-        public bool IsCancelled { get; set; }
-        public string? ErrorMessage { get; set; }
-        public Exception? Exception { get; set; }
-        public Dictionary<string, string>? ErrorDetails { get; set; }
-        public bool RequiresConfirmation { get; set; }
-        public ConfirmationRequest? ConfirmationRequest { get; set; }
-
-        public static OperationResult CreateSuccess()
-        {
-            return new OperationResult
-            {
-                Success = true
-            };
-        }
-
-        public static OperationResult CreateFailure(string errorMessage)
-        {
-            return new OperationResult
-            {
-                Success = false,
-                ErrorMessage = errorMessage
-            };
-        }
-
-        public static OperationResult CreateFailure(Exception exception)
-        {
-            return new OperationResult
-            {
-                Success = false,
-                ErrorMessage = exception.Message,
-                Exception = exception
-            };
-        }
-
-        public static OperationResult CreateFailure(string errorMessage, Exception exception)
-        {
-            return new OperationResult
-            {
-                Success = false,
-                ErrorMessage = errorMessage,
-                Exception = exception
-            };
-        }
-
-        public bool Succeeded()
-        {
-            return Success;
-        }
-
-        public static OperationResult Succeeded(string message)
-        {
-            return new OperationResult
-            {
-                Success = true,
-                ErrorMessage = message
-            };
-        }
-
-        public bool Failed()
-        {
-            return !Success;
-        }
-
-        public static OperationResult Failed(string message)
-        {
-            return new OperationResult
-            {
-                Success = false,
-                ErrorMessage = message
-            };
-        }
-
-        public static OperationResult Failed(string message, Exception exception)
-        {
-            return new OperationResult
-            {
-                Success = false,
-                ErrorMessage = message,
-                Exception = exception
-            };
-        }
-
-        public static OperationResult CreateConfirmationRequired(ConfirmationRequest confirmationRequest)
-        {
-            return new OperationResult
-            {
-                RequiresConfirmation = true,
-                ConfirmationRequest = confirmationRequest
-            };
-        }
-
-        public static OperationResult Cancelled(string message = "Operation was cancelled")
-        {
-            return new OperationResult
-            {
-                Success = false,
-                IsCancelled = true,
-                ErrorMessage = message
-            };
-        }
-    }
-}
+using System;
+
+namespace Winhance.Core.Features.Common.Models;
+
+public class OperationResult
+{
+    public bool Success { get; }
+    public string? ErrorMessage { get; }
+    public Exception? Exception { get; }
+
+    private OperationResult(bool success, string? errorMessage = null, Exception? exception = null)
+    {
+        Success = success;
+        ErrorMessage = errorMessage;
+        Exception = exception;
+    }
+
+    public static OperationResult Succeeded()
+    {
+        return new OperationResult(success: true);
+    }
+
+    public static OperationResult Failed(string message)
+    {
+        return new OperationResult(success: false, errorMessage: message);
+    }
+
+    public static OperationResult Failed(string message, Exception exception)
+    {
+        return new OperationResult(success: false, errorMessage: message, exception: exception);
+    }
+}
+
+public class OperationResult<T>
+{
+    public bool Success { get; }
+    public T? Result { get; }
+    public string? ErrorMessage { get; }
+    public Exception? Exception { get; }
+    public bool RequiresConfirmation { get; }
+    public string? InfoMessage { get; }
+
+    private OperationResult(
+        bool success,
+        T? result = default,
+        string? errorMessage = null,
+        Exception? exception = null,
+        bool requiresConfirmation = false,
+        string? infoMessage = null)
+    {
+        Success = success;
+        Result = result;
+        ErrorMessage = errorMessage;
+        Exception = exception;
+        RequiresConfirmation = requiresConfirmation;
+        InfoMessage = infoMessage;
+    }
+
+    public static OperationResult<T> Succeeded(T result)
+    {
+        return new OperationResult<T>(success: true, result: result);
+    }
+
+    public static OperationResult<T> Failed(string message)
+    {
+        return new OperationResult<T>(success: false, errorMessage: message);
+    }
+
+    public static OperationResult<T> Failed(string message, Exception exception)
+    {
+        return new OperationResult<T>(success: false, errorMessage: message, exception: exception);
+    }
+
+    public static OperationResult<T> Cancelled(string message = "Operation was cancelled")
+    {
+        return new OperationResult<T>(success: false, errorMessage: message);
+    }
+
+    public static OperationResult<T> ConfirmationRequired(string message)
+    {
+        return new OperationResult<T>(success: false, errorMessage: message, requiresConfirmation: true);
+    }
+
+    public static OperationResult<T> DeferredSuccess(T result, string infoMessage)
+    {
+        return new OperationResult<T>(success: true, result: result, infoMessage: infoMessage);
+    }
+}

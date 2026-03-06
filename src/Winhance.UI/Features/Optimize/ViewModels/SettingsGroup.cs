@@ -36,16 +36,6 @@ public class SettingsGroup : ObservableCollection<SettingItemViewModel>
     }
 
     /// <summary>
-    /// Creates a new settings group with the specified key.
-    /// </summary>
-    /// <param name="key">The group key (group name).</param>
-    public SettingsGroup(string key) : base()
-    {
-        Key = key ?? string.Empty;
-        CollectionChanged += OnCollectionChanged;
-    }
-
-    /// <summary>
     /// Creates a new settings group with the specified key and items.
     /// </summary>
     /// <param name="key">The group key (group name).</param>

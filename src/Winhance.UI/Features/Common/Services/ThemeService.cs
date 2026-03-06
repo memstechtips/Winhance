@@ -1,9 +1,11 @@
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Windows.UI.ViewManagement;
+
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -15,6 +17,7 @@ public class ThemeService : IThemeService
     private readonly IUserPreferencesService _userPreferences;
     private readonly IWindowsRegistryService _registryService;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IMainWindowProvider _mainWindowProvider;
     private readonly UISettings _uiSettings;
     private WinhanceTheme _currentTheme = WinhanceTheme.System;
 
@@ -28,11 +31,13 @@ public class ThemeService : IThemeService
         IUserPreferencesService userPreferences,
         IWindowsRegistryService registryService,
         IInteractiveUserService interactiveUserService,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        IMainWindowProvider mainWindowProvider)
     {
         _userPreferences = userPreferences;
         _registryService = registryService;
         _interactiveUserService = interactiveUserService;
+        _mainWindowProvider = mainWindowProvider;
         _uiSettings = new UISettings();
 
         // Listen for Windows theme changes to update System theme followers
@@ -105,7 +110,7 @@ public class ThemeService : IThemeService
 
     private void ApplyTheme(WinhanceTheme theme)
     {
-        if (App.MainWindow?.Content is not FrameworkElement rootElement)
+        if (_mainWindowProvider.MainWindow?.Content is not FrameworkElement rootElement)
             return;
 
         switch (theme)
@@ -184,10 +189,10 @@ public class ThemeService : IThemeService
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        if (evt.SettingId != "theme-mode-windows" || _currentTheme != WinhanceTheme.System)
+        if (evt.SettingId != SettingIds.ThemeModeWindows || _currentTheme != WinhanceTheme.System)
             return;
 
-        App.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+        _mainWindowProvider.MainWindow?.DispatcherQueue.TryEnqueue(() =>
         {
             ApplyTheme(WinhanceTheme.System);
             ThemeChanged?.Invoke(this, WinhanceTheme.System);
@@ -200,7 +205,7 @@ public class ThemeService : IThemeService
         if (_currentTheme == WinhanceTheme.System)
         {
             // Must dispatch to UI thread
-            App.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+            _mainWindowProvider.MainWindow?.DispatcherQueue.TryEnqueue(() =>
             {
                 // Under OTS, re-apply explicitly since ElementTheme.Default tracks the admin
                 if (_interactiveUserService.IsOtsElevation)

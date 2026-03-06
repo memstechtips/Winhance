@@ -1,9 +1,12 @@
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Constants;
+
 namespace Winhance.UI.Features.Optimize.Models;
 
 /// <summary>
 /// Contains metadata for an optimization section.
 /// </summary>
-public class OptimizeSectionInfo
+public class OptimizeSectionInfo : ISectionInfo
 {
     /// <summary>
     /// Gets the unique key for the section (e.g., "Sound", "Privacy").
@@ -20,10 +23,16 @@ public class OptimizeSectionInfo
     /// </summary>
     public string DisplayName { get; }
 
-    public OptimizeSectionInfo(string key, string iconGlyphKey, string displayName)
+    /// <summary>
+    /// Gets the FeatureIds constant that identifies the ViewModel for this section.
+    /// </summary>
+    public string ModuleId { get; }
+
+    public OptimizeSectionInfo(string key, string iconGlyphKey, string displayName, string moduleId)
     {
         Key = key;
         IconGlyphKey = iconGlyphKey;
         DisplayName = displayName;
+        ModuleId = moduleId;
     }
 }

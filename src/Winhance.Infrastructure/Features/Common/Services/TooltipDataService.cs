@@ -1,184 +1,161 @@
-using Winhance.Core.Features.Common.Constants;
+
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
-namespace Winhance.Infrastructure.Features.Common.Services
+namespace Winhance.Infrastructure.Features.Common.Services;
+
+public class TooltipDataService(
+    IWindowsRegistryService windowsRegistryService,
+    ILogService logService) : ITooltipDataService
 {
-    public class TooltipDataService(
-        IWindowsRegistryService windowsRegistryService,
-        ILogService logService) : ITooltipDataService
+    private readonly IWindowsRegistryService _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
+    private readonly ILogService _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+
+    private static string? FormatRegistryValue(object? value, RegistrySetting? registrySetting)
+        => RegistryValueFormatter.Format(value, registrySetting);
+
+    public async Task<IReadOnlyDictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings)
     {
-        private readonly IWindowsRegistryService _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
-        private readonly ILogService _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        var tooltipData = new Dictionary<string, SettingTooltipData>();
 
-        private static string FormatRegistryValue(object? value, RegistrySetting? registrySetting)
+        try
         {
-            if (value == null)
-                return "(not set)";
-
-            if (value is byte[] bytes && registrySetting != null)
+            foreach (var setting in settings)
             {
-                if (bytes.Length == 0)
-                    return "(empty)";
-
-                if (registrySetting.BinaryByteIndex.HasValue && bytes.Length > registrySetting.BinaryByteIndex.Value)
+                var data = await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
+                if (data != null)
                 {
-                    var targetByte = bytes[registrySetting.BinaryByteIndex.Value];
-
-                    if (registrySetting.BitMask.HasValue)
-                    {
-                        var isSet = (targetByte & registrySetting.BitMask.Value) != 0;
-                        return isSet ? "1" : "0";
-                    }
-
-                    return targetByte.ToString();
-                }
-
-                return string.Join(" ", bytes);
-            }
-
-            return value.ToString() ?? "(not set)";
-        }
-
-        public async Task<Dictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings)
-        {
-            var tooltipData = new Dictionary<string, SettingTooltipData>();
-
-            try
-            {
-                foreach (var setting in settings)
-                {
-                    var data = await GetTooltipDataForSettingAsync(setting);
-                    if (data != null)
-                    {
-                        tooltipData[setting.Id] = data;
-                    }
+                    tooltipData[setting.Id] = data;
                 }
             }
-            catch
-            {
-                // Silent failure for bulk operations
-            }
-
-            return tooltipData;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[TooltipDataService] Error fetching bulk tooltip data: {ex.Message}");
         }
 
-        public async Task<SettingTooltipData?> RefreshTooltipDataAsync(string settingId, SettingDefinition setting)
+        return tooltipData;
+    }
+
+    public async Task<SettingTooltipData?> RefreshTooltipDataAsync(string settingId, SettingDefinition setting)
+    {
+        try
         {
-            try
-            {
-                return await GetTooltipDataForSettingAsync(setting);
-            }
-            catch
-            {
-                return null;
-            }
+            return await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
         }
-
-        public async Task<Dictionary<string, SettingTooltipData>> RefreshMultipleTooltipDataAsync(IEnumerable<SettingDefinition> settings)
+        catch (Exception ex)
         {
-            var tooltipData = new Dictionary<string, SettingTooltipData>();
+            _logService.LogWarning($"[TooltipDataService] Error refreshing tooltip for '{settingId}': {ex.Message}");
+            return null;
+        }
+    }
 
-            try
+    public async Task<IReadOnlyDictionary<string, SettingTooltipData>> RefreshMultipleTooltipDataAsync(IEnumerable<SettingDefinition> settings)
+    {
+        var tooltipData = new Dictionary<string, SettingTooltipData>();
+
+        try
+        {
+            foreach (var setting in settings)
             {
-                foreach (var setting in settings)
+                var data = await GetTooltipDataForSettingAsync(setting).ConfigureAwait(false);
+                if (data != null)
                 {
-                    var data = await GetTooltipDataForSettingAsync(setting);
-                    if (data != null)
-                    {
-                        tooltipData[setting.Id] = data;
-                    }
+                    tooltipData[setting.Id] = data;
                 }
             }
-            catch
-            {
-                // Silent failure for bulk operations
-            }
-
-            return tooltipData;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[TooltipDataService] Error refreshing multiple tooltips: {ex.Message}");
         }
 
-        private async Task<SettingTooltipData?> GetTooltipDataForSettingAsync(SettingDefinition setting)
+        return tooltipData;
+    }
+
+    private async Task<SettingTooltipData?> GetTooltipDataForSettingAsync(SettingDefinition setting)
+    {
+        if (setting.DisableTooltip)
         {
-            if (setting.CustomProperties?.TryGetValue(CustomPropertyKeys.DisableTooltip, out var disableTooltipObj) == true
-                && disableTooltipObj is bool disableTooltip
-                && disableTooltip)
+            return null;
+        }
+
+        bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
+        bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
+        bool hasPowerCfgSettings = setting.PowerCfgSettings?.Any() == true;
+
+        if (!hasRegistrySettings && !hasScheduledTaskSettings && !hasPowerCfgSettings)
+            return null;
+
+        try
+        {
+            string displayValue = string.Empty;
+            IReadOnlyDictionary<RegistrySetting, string?> individualRegistryValues = new Dictionary<RegistrySetting, string?>();
+
+            if (hasRegistrySettings)
             {
-                return null;
-            }
+                var registrySettings = setting.RegistrySettings!.ToList();
+                var individualValues = new Dictionary<RegistrySetting, string?>();
+                var primaryRegistrySetting = registrySettings.First();
+                string? primaryDisplayValue = null;
 
-            bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
-            bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
-            bool hasPowerCfgSettings = setting.PowerCfgSettings?.Any() == true;
-
-            if (!hasRegistrySettings && !hasScheduledTaskSettings && !hasPowerCfgSettings)
-                return null;
-
-            try
-            {
-                var tooltipData = new SettingTooltipData
+                foreach (var registrySetting in registrySettings)
                 {
-                    SettingId = setting.Id,
-                    ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
-                    PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
-                };
-
-                if (hasRegistrySettings)
-                {
-                    var registrySettings = setting.RegistrySettings.ToList();
-                    var individualValues = new Dictionary<RegistrySetting, string?>();
-                    var primaryRegistrySetting = registrySettings.First();
-                    string primaryDisplayValue = "(not set)";
-
-                    foreach (var registrySetting in registrySettings)
+                    try
                     {
-                        try
+                        object? currentValue;
+                        if (registrySetting.ApplyPerNetworkInterface)
                         {
-                            object? currentValue;
-                            if (registrySetting.ApplyPerNetworkInterface)
+                            // Read from the first interface subkey as a representative value
+                            var subKeys = _registryService.GetSubKeyNames(registrySetting.KeyPath);
+                            if (subKeys.Length > 0)
                             {
-                                // Read from the first interface subkey as a representative value
-                                var subKeys = _registryService.GetSubKeyNames(registrySetting.KeyPath);
-                                if (subKeys.Length > 0)
-                                {
-                                    currentValue = _registryService.GetValue(
-                                        $@"{registrySetting.KeyPath}\{subKeys[0]}",
-                                        registrySetting.ValueName);
-                                }
-                                else
-                                {
-                                    currentValue = null;
-                                }
+                                currentValue = _registryService.GetValue(
+                                    $@"{registrySetting.KeyPath}\{subKeys[0]}",
+                                    registrySetting.ValueName!);
                             }
                             else
                             {
-                                currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName);
-                            }
-                            var formattedValue = FormatRegistryValue(currentValue, registrySetting);
-                            individualValues[registrySetting] = formattedValue;
-
-                            if (registrySetting == primaryRegistrySetting)
-                            {
-                                primaryDisplayValue = formattedValue;
+                                currentValue = null;
                             }
                         }
-                        catch
+                        else
                         {
-                            individualValues[registrySetting] = null;
+                            currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName!);
+                        }
+                        var formattedValue = FormatRegistryValue(currentValue, registrySetting);
+                        individualValues[registrySetting] = formattedValue;
+
+                        if (registrySetting == primaryRegistrySetting)
+                        {
+                            primaryDisplayValue = formattedValue;
                         }
                     }
-
-                    tooltipData.RegistrySetting = primaryRegistrySetting;
-                    tooltipData.DisplayValue = primaryDisplayValue;
-                    tooltipData.IndividualRegistryValues = individualValues;
+                    catch (Exception ex)
+                    {
+                        _logService.LogDebug($"[TooltipDataService] Error reading registry for tooltip '{registrySetting.KeyPath}\\{registrySetting.ValueName}': {ex.Message}");
+                        individualValues[registrySetting] = null;
+                    }
                 }
 
-                return tooltipData;
+                displayValue = primaryDisplayValue ?? string.Empty;
+                individualRegistryValues = individualValues;
             }
-            catch
+
+            return new SettingTooltipData
             {
-                return null;
-            }
+                SettingId = setting.Id,
+                DisplayValue = displayValue,
+                IndividualRegistryValues = individualRegistryValues,
+                ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
+                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[TooltipDataService] Error building tooltip data for '{setting.Id}': {ex.Message}");
+            return null;
         }
     }
 }

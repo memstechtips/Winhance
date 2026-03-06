@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Utils;
@@ -18,57 +19,53 @@ public record AppCategory(string GroupName, string DisplayName, string IconGlyph
 /// <summary>
 /// ViewModel for the External Apps tab in the SoftwareApps feature.
 /// </summary>
-public partial class ExternalAppsViewModel : BaseViewModel
+public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsProvider
 {
     private readonly IExternalAppsService _externalAppsService;
-    private readonly IAppOperationService _appOperationService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
-    private readonly IWinGetService _winGetService;
-    private readonly IAppStatusDiscoveryService _appStatusDiscoveryService;
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
-        IAppOperationService appOperationService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService,
-        IWinGetService winGetService,
-        IAppStatusDiscoveryService appStatusDiscoveryService)
+        IDispatcherService dispatcherService)
     {
         _externalAppsService = externalAppsService;
-        _appOperationService = appOperationService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
-        _winGetService = winGetService;
-        _appStatusDiscoveryService = appStatusDiscoveryService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
-        _winGetService.WinGetInstalled += OnWinGetInstalled;
+        _externalAppsService.WinGetReady += OnWinGetInstalled;
 
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
         ItemsView.Filter = FilterItem;
         ItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", SortDirection.Descending));
         ItemsView.SortDescriptions.Add(new SortDescription("Name", SortDirection.Ascending));
+
+        // Initialize partial property defaults (after Items/ItemsView,
+        // since OnSearchTextChanged uses ItemsView)
+        StatusText = "Ready";
+        SearchText = string.Empty;
     }
 
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
-    private List<AppCategory> _categories = new();
-    public List<AppCategory> Categories
+    private IReadOnlyList<AppCategory> _categories = new List<AppCategory>();
+    public IReadOnlyList<AppCategory> Categories
     {
         get => _categories;
         private set => SetProperty(ref _categories, value);
@@ -110,38 +107,72 @@ public partial class ExternalAppsViewModel : BaseViewModel
             var displayName = _localizationService.GetString(locKey);
             if (string.IsNullOrEmpty(displayName))
                 displayName = group.Key;
-            result.Add(new AppCategory(group.Key, displayName, glyph, group.ToList()));
+            result.Add(new AppCategory(group.Key, displayName, glyph, group.OrderBy(a => a.Name).ToList()));
         }
         Categories = result;
     }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private bool _isInitialized;
+    public partial bool IsInitialized { get; set; }
 
     [ObservableProperty]
-    private string _statusText = "Ready";
+    public partial string StatusText { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
-    [ObservableProperty]
-    private bool _isAllSelected;
+    public bool IsAllSelected =>
+        Items.Count > 0 && Items.All(a => a.IsSelected);
+    public bool IsAllSelectedInstalled =>
+        Items.Any(a => a.IsInstalled) && Items.Where(a => a.IsInstalled).All(a => a.IsSelected);
+    public bool IsAllSelectedNotInstalled =>
+        Items.Any(a => !a.IsInstalled) && Items.Where(a => !a.IsInstalled).All(a => a.IsSelected);
 
-    [ObservableProperty]
-    private bool _isAllSelectedInstalled;
+    [RelayCommand]
+    private void ToggleSelectAll()
+    {
+        var newValue = !IsAllSelected;
+        foreach (var item in Items)
+            item.IsSelected = newValue;
+        NotifySelectionStateChanged();
+    }
 
-    [ObservableProperty]
-    private bool _isAllSelectedNotInstalled;
+    [RelayCommand]
+    private void ToggleSelectAllInstalled()
+    {
+        var newValue = !IsAllSelectedInstalled;
+        foreach (var item in Items.Where(a => a.IsInstalled))
+            item.IsSelected = newValue;
+        NotifySelectionStateChanged();
+    }
+
+    [RelayCommand]
+    private void ToggleSelectAllNotInstalled()
+    {
+        var newValue = !IsAllSelectedNotInstalled;
+        foreach (var item in Items.Where(a => !a.IsInstalled))
+            item.IsSelected = newValue;
+        NotifySelectionStateChanged();
+    }
+
+    private void NotifySelectionStateChanged()
+    {
+        OnPropertyChanged(nameof(IsAllSelected));
+        OnPropertyChanged(nameof(IsAllSelectedInstalled));
+        OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+        OnPropertyChanged(nameof(HasSelectedItems));
+        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public string SelectAllLabel => _localizationService.GetString("Common_SelectAll") ?? "Select All";
     public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
     public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
 
     [ObservableProperty]
-    private bool _isTaskRunning;
+    public partial bool IsTaskRunning { get; set; }
 
     public event EventHandler? SelectedItemsChanged;
 
@@ -165,50 +196,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
         return true;
     }
 
-    partial void OnIsAllSelectedChanged(bool value)
-    {
-        foreach (var item in Items)
-        {
-            item.IsSelected = value;
-        }
-        IsAllSelectedInstalled = value;
-        IsAllSelectedNotInstalled = value;
-        OnPropertyChanged(nameof(HasSelectedItems));
-        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    partial void OnIsAllSelectedInstalledChanged(bool value)
-    {
-        foreach (var item in Items.Where(a => a.IsInstalled))
-        {
-            item.IsSelected = value;
-        }
-        UpdateIsAllSelectedState();
-        OnPropertyChanged(nameof(HasSelectedItems));
-        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    partial void OnIsAllSelectedNotInstalledChanged(bool value)
-    {
-        foreach (var item in Items.Where(a => !a.IsInstalled))
-        {
-            item.IsSelected = value;
-        }
-        UpdateIsAllSelectedState();
-        OnPropertyChanged(nameof(HasSelectedItems));
-        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void UpdateIsAllSelectedState()
-    {
-        var allSelected = Items.All(a => a.IsSelected);
-        if (_isAllSelected != allSelected)
-        {
-            _isAllSelected = allSelected;
-            OnPropertyChanged(nameof(IsAllSelected));
-        }
-    }
-
     /// <summary>
     /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
     /// </summary>
@@ -228,10 +215,12 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
+            foreach (var item in Items)
+                item.Dispose();
             Items.Clear();
 
             var allItems = await _externalAppsService.GetAppsAsync();
-            await LoadAppsIntoItemsAsync(allItems);
+            LoadAppsIntoItems(allItems);
         }
         catch (Exception ex)
         {
@@ -251,7 +240,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
-            IsAllSelected = false;
+            NotifySelectionStateChanged();
             IsInitialized = true;
             StatusText = $"Loaded {Items.Count} items";
             RebuildCategories();
@@ -266,31 +255,24 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadAppsIntoItemsAsync(IEnumerable<ItemDefinition> definitions)
+    private void LoadAppsIntoItems(IEnumerable<ItemDefinition> definitions)
     {
         foreach (var definition in definitions)
         {
             var viewModel = new AppItemViewModel(
                 definition,
-                _appOperationService,
-                _dialogService,
-                _logService,
                 _localizationService,
                 _dispatcherService);
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }
-
-        await Task.CompletedTask;
     }
 
     private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
         {
-            UpdateIsAllSelectedState();
-            OnPropertyChanged(nameof(HasSelectedItems));
-            SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+            NotifySelectionStateChanged();
         }
     }
 
@@ -336,7 +318,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
-            _appStatusDiscoveryService.InvalidateWinGetCache();
+            _externalAppsService.InvalidateStatusCache();
             await CheckInstallationStatusAsync();
             StatusText = $"Refreshed status for {Items.Count} items";
         }
@@ -353,15 +335,15 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     private void OnWinGetInstalled(object? sender, EventArgs e)
     {
-        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
+        _dispatcherService.RunOnUIThreadAsync(async () =>
         {
             if (IsInitialized)
             {
                 _logService.LogInformation("WinGet installed — refreshing External Apps installation status");
-                _appStatusDiscoveryService.InvalidateWinGetCache();
+                _externalAppsService.InvalidateStatusCache();
                 await CheckInstallationStatusAsync();
             }
-        });
+        }).FireAndForget(_logService);
     }
 
     /// <summary>
@@ -543,7 +525,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     private async Task RefreshAfterOperationAsync()
     {
-        _appStatusDiscoveryService.InvalidateWinGetCache();
+        _externalAppsService.InvalidateStatusCache();
         await CheckInstallationStatusAsync();
         ClearSelections();
     }
@@ -555,13 +537,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         {
             item.IsSelected = false;
         }
-        _isAllSelected = false;
-        _isAllSelectedInstalled = false;
-        _isAllSelectedNotInstalled = false;
-        OnPropertyChanged(nameof(IsAllSelected));
-        OnPropertyChanged(nameof(IsAllSelectedInstalled));
-        OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
-        OnPropertyChanged(nameof(HasSelectedItems));
+        NotifySelectionStateChanged();
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -577,9 +553,11 @@ public partial class ExternalAppsViewModel : BaseViewModel
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+            _externalAppsService.WinGetReady -= OnWinGetInstalled;
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;
+                item.Dispose();
             }
         }
         base.Dispose(disposing);

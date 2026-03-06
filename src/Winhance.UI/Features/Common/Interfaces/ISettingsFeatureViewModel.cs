@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -7,7 +8,7 @@ namespace Winhance.UI.Features.Common.Interfaces;
 /// <summary>
 /// Interface for feature ViewModels that display settings.
 /// </summary>
-public interface ISettingsFeatureViewModel : IDisposable
+public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
 {
     /// <summary>
     /// Module identifier for this feature.
@@ -45,6 +46,16 @@ public interface ISettingsFeatureViewModel : IDisposable
     int SettingsCount { get; }
 
     /// <summary>
+    /// Summary text listing the group names within this feature (for overview cards).
+    /// </summary>
+    string GroupDescriptionText { get; }
+
+    /// <summary>
+    /// Settings organized into groups for display in a grouped ListView.
+    /// </summary>
+    ObservableCollection<SettingsGroup> GroupedSettings { get; }
+
+    /// <summary>
     /// Loads all settings for this feature.
     /// </summary>
     Task LoadSettingsAsync();
@@ -64,25 +75,4 @@ public interface ISettingsFeatureViewModel : IDisposable
     /// </summary>
     void ApplySearchFilter(string searchText);
 
-    /// <summary>
-    /// Handles a domain-specific setting context change.
-    /// </summary>
-    Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false);
-}
-
-/// <summary>
-/// Event args for when a feature's visibility changes due to search.
-/// </summary>
-public class FeatureVisibilityChangedEventArgs : EventArgs
-{
-    public string FeatureId { get; }
-    public bool IsVisible { get; }
-    public string SearchText { get; }
-
-    public FeatureVisibilityChangedEventArgs(string featureId, bool isVisible, string searchText)
-    {
-        FeatureId = featureId;
-        IsVisible = isVisible;
-        SearchText = searchText;
-    }
 }

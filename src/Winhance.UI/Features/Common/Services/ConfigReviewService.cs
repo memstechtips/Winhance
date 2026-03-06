@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,8 +17,9 @@ namespace Winhance.UI.Features.Common.Services;
 /// Eagerly computes diffs when entering review mode so badge counts
 /// reflect actual changes from current system state.
 /// </summary>
-public class ConfigReviewService : IConfigReviewService
+public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IDisposable
 {
+    private bool _disposed;
     private readonly ILogService _logService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ISystemSettingsDiscoveryService _discoveryService;
@@ -25,15 +27,15 @@ public class ConfigReviewService : IConfigReviewService
     private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
-    private readonly Dictionary<string, ConfigReviewDiff> _diffs = new();
-    private readonly Dictionary<string, int> _configItemCounts = new();
-    private readonly HashSet<string> _featuresInConfig = new();
-    private readonly HashSet<string> _visitedFeatures = new();
+    private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
+    private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
+    private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
+    private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
 
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
     {
-        "theme-mode-windows",
+        SettingIds.ThemeModeWindows,
         "taskbar-clean",
         "start-menu-clean-10",
         "start-menu-clean-11"
@@ -59,11 +61,19 @@ public class ConfigReviewService : IConfigReviewService
         _localizationService.LanguageChanged += OnLanguageChanged;
     }
 
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
+    }
+
     public bool IsInReviewMode { get; private set; }
+    public bool IsWindowsDefaults { get; private set; }
     public UnifiedConfigurationFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
-    public int ApprovedChanges => _diffs.Values.Count(d => d.IsReviewed && d.IsApproved);
-    public int ReviewedChanges => _diffs.Values.Count(d => d.IsReviewed);
+    public int ApprovedChanges => _diffs.Values.Count(static d => d.IsReviewed && d.IsApproved);
+    public int ReviewedChanges => _diffs.Values.Count(static d => d.IsReviewed);
     public int TotalConfigItems { get; private set; }
     public bool IsSoftwareAppsReviewed { get; set; }
 
@@ -71,9 +81,10 @@ public class ConfigReviewService : IConfigReviewService
     public event EventHandler? ApprovalCountChanged;
     public event EventHandler? BadgeStateChanged;
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config)
+    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
     {
         ActiveConfig = config;
+        IsWindowsDefaults = isWindowsDefaults;
         _diffs.Clear();
         _configItemCounts.Clear();
         _featuresInConfig.Clear();
@@ -87,14 +98,14 @@ public class ConfigReviewService : IConfigReviewService
         await ComputeEagerDiffsAsync(config);
 
         // Auto-mark features with 0 diffs as visited (nothing to review)
-        foreach (var featureId in _featuresInConfig.ToList())
+        foreach (var featureId in _featuresInConfig.Keys)
         {
             if (FeatureDefinitions.OptimizeFeatures.Contains(featureId) ||
                 FeatureDefinitions.CustomizeFeatures.Contains(featureId))
             {
                 if (GetFeatureDiffCount(featureId) == 0)
                 {
-                    _visitedFeatures.Add(featureId);
+                    _visitedFeatures.TryAdd(featureId, 0);
                 }
             }
         }
@@ -114,6 +125,7 @@ public class ConfigReviewService : IConfigReviewService
         _visitedFeatures.Clear();
         TotalConfigItems = 0;
         IsInReviewMode = false;
+        IsWindowsDefaults = false;
         _logService.Log(LogLevel.Info, "[ConfigReviewService] Exited review mode");
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
@@ -128,21 +140,23 @@ public class ConfigReviewService : IConfigReviewService
     {
         if (_diffs.TryGetValue(settingId, out var diff))
         {
-            diff.IsReviewed = true;
-            diff.IsApproved = approved;
+            _diffs[settingId] = diff with { IsReviewed = true, IsApproved = approved };
             ApprovalCountChanged?.Invoke(this, EventArgs.Empty);
             BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void SetActionApproval(string settingId, bool approved)
+    {
+        if (_diffs.TryGetValue(settingId, out var diff))
+        {
+            _diffs[settingId] = diff with { IsActionReviewed = true, IsActionApproved = approved };
         }
     }
 
     public IReadOnlyList<ConfigReviewDiff> GetApprovedDiffs()
     {
         return _diffs.Values.Where(d => d.IsReviewed && d.IsApproved).ToList().AsReadOnly();
-    }
-
-    public IReadOnlyDictionary<string, ConfigReviewDiff> GetAllDiffs()
-    {
-        return _diffs;
     }
 
     public void RegisterDiff(ConfigReviewDiff diff)
@@ -163,7 +177,7 @@ public class ConfigReviewService : IConfigReviewService
 
     public void MarkFeatureVisited(string featureId)
     {
-        if (_visitedFeatures.Add(featureId))
+        if (_visitedFeatures.TryAdd(featureId, 0))
         {
             _logService.Log(LogLevel.Debug,
                 $"[ConfigReviewService] Feature '{featureId}' marked as visited");
@@ -187,7 +201,7 @@ public class ConfigReviewService : IConfigReviewService
         };
     }
 
-    public int GetFeatureConfigItemCount(string featureId)
+    private int GetFeatureConfigItemCount(string featureId)
     {
         return _configItemCounts.TryGetValue(featureId, out var count) ? count : 0;
     }
@@ -204,7 +218,7 @@ public class ConfigReviewService : IConfigReviewService
 
     public bool IsFeatureInConfig(string featureId)
     {
-        return _featuresInConfig.Contains(featureId);
+        return _featuresInConfig.ContainsKey(featureId);
     }
 
     public bool IsSectionFullyReviewed(string sectionTag)
@@ -225,7 +239,7 @@ public class ConfigReviewService : IConfigReviewService
         };
 
         // Only consider features that are in the config
-        var relevantFeatures = featureIds.Where(f => _featuresInConfig.Contains(f)).ToList();
+        var relevantFeatures = featureIds.Where(f => _featuresInConfig.ContainsKey(f)).ToList();
         if (relevantFeatures.Count == 0) return false;
 
         return relevantFeatures.All(IsFeatureFullyReviewed);
@@ -234,7 +248,7 @@ public class ConfigReviewService : IConfigReviewService
     public bool IsFeatureFullyReviewed(string featureId)
     {
         if (!IsInReviewMode) return false;
-        if (!_featuresInConfig.Contains(featureId)) return false;
+        if (!_featuresInConfig.ContainsKey(featureId)) return false;
 
         // Features with 0 diffs that are in config = fully reviewed (nothing to change)
         var featureDiffs = _diffs.Values.Where(d => d.FeatureModuleId == featureId).ToList();
@@ -243,8 +257,7 @@ public class ConfigReviewService : IConfigReviewService
             return true; // No diffs means already matching config
         }
 
-        // Must be visited AND all diffs explicitly reviewed (accept or reject)
-        if (!_visitedFeatures.Contains(featureId)) return false;
+        // All diffs must be explicitly reviewed (accept or reject)
         return featureDiffs.All(d => d.IsReviewed);
     }
 
@@ -256,7 +269,7 @@ public class ConfigReviewService : IConfigReviewService
         if (config.WindowsApps.IsIncluded && config.WindowsApps.Items.Count > 0)
         {
             _configItemCounts[FeatureIds.WindowsApps] = config.WindowsApps.Items.Count;
-            _featuresInConfig.Add(FeatureIds.WindowsApps);
+            _featuresInConfig.TryAdd(FeatureIds.WindowsApps, 0);
             total += config.WindowsApps.Items.Count;
         }
 
@@ -264,7 +277,7 @@ public class ConfigReviewService : IConfigReviewService
         if (config.ExternalApps.IsIncluded && config.ExternalApps.Items.Count > 0)
         {
             _configItemCounts[FeatureIds.ExternalApps] = config.ExternalApps.Items.Count;
-            _featuresInConfig.Add(FeatureIds.ExternalApps);
+            _featuresInConfig.TryAdd(FeatureIds.ExternalApps, 0);
             total += config.ExternalApps.Items.Count;
         }
 
@@ -274,7 +287,7 @@ public class ConfigReviewService : IConfigReviewService
             if (kvp.Value.IsIncluded && kvp.Value.Items.Count > 0)
             {
                 _configItemCounts[kvp.Key] = kvp.Value.Items.Count;
-                _featuresInConfig.Add(kvp.Key);
+                _featuresInConfig.TryAdd(kvp.Key, 0);
                 total += kvp.Value.Items.Count;
             }
         }
@@ -285,7 +298,7 @@ public class ConfigReviewService : IConfigReviewService
             if (kvp.Value.IsIncluded && kvp.Value.Items.Count > 0)
             {
                 _configItemCounts[kvp.Key] = kvp.Value.Items.Count;
-                _featuresInConfig.Add(kvp.Key);
+                _featuresInConfig.TryAdd(kvp.Key, 0);
                 total += kvp.Value.Items.Count;
             }
         }
@@ -319,7 +332,7 @@ public class ConfigReviewService : IConfigReviewService
 
     private async Task ComputeFeatureDiffsAsync(
         string featureId,
-        List<ConfigurationItem> configItems,
+        IReadOnlyList<ConfigurationItem> configItems,
         string onText,
         string offText)
     {
@@ -339,8 +352,8 @@ public class ConfigReviewService : IConfigReviewService
                 {
                     try
                     {
-                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues);
-                        state.CurrentValue = resolvedValue;
+                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
+                        batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
                     }
                     catch (Exception ex)
                     {
@@ -369,8 +382,8 @@ public class ConfigReviewService : IConfigReviewService
                     continue;
 
                 // Compute diff
-                var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = ComputeEagerDiff(
-                    settingDef, configItem, currentState, onText, offText);
+                var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = await ComputeEagerDiffAsync(
+                    settingDef, configItem, currentState, onText, offText).ConfigureAwait(false);
 
                 if (hasDiff || isActionSetting)
                 {
@@ -392,7 +405,7 @@ public class ConfigReviewService : IConfigReviewService
 
                     if (isActionSetting)
                     {
-                        diff.ActionConfirmationMessage = GetActionConfirmationMessage(configItem.Id);
+                        diff = diff with { ActionConfirmationMessage = GetActionConfirmationMessage(configItem) };
                     }
 
                     _diffs[configItem.Id] = diff;
@@ -410,12 +423,11 @@ public class ConfigReviewService : IConfigReviewService
         }
     }
 
-    private string GetActionConfirmationMessage(string settingId)
+    private string GetActionConfirmationMessage(ConfigurationItem configItem)
     {
-        return settingId switch
+        return configItem.Id switch
         {
-            "theme-mode-windows" => _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
-                ?? "Apply the default wallpaper for this theme? (Recommended)",
+            SettingIds.ThemeModeWindows => GetThemeWallpaperMessage(configItem),
             "taskbar-clean" => _localizationService.GetString("Review_Mode_Action_CleanTaskbar")
                 ?? "Clean the taskbar as part of this configuration?",
             "start-menu-clean-10" or "start-menu-clean-11" =>
@@ -425,12 +437,21 @@ public class ConfigReviewService : IConfigReviewService
         };
     }
 
+    private string GetThemeWallpaperMessage(ConfigurationItem configItem)
+    {
+        var themeNameKey = configItem.SelectedIndex == 0 ? "Theme_LightNative" : "Theme_DarkNative";
+        var themeName = _localizationService.GetString(themeNameKey) ?? (configItem.SelectedIndex == 0 ? "Light" : "Dark");
+        var format = _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
+            ?? "Apply the default {0} wallpaper?";
+        return string.Format(format, themeName);
+    }
+
     /// <summary>
     /// Computes diff between current system state and config value for a setting definition.
     /// Works with SettingDefinition + SettingStateResult (no ViewModel required).
     /// Returns display strings, plus raw keys for re-localization on language change.
     /// </summary>
-    private (bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey) ComputeEagerDiff(
+    private async Task<(bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey)> ComputeEagerDiffAsync(
         SettingDefinition settingDef,
         ConfigurationItem configItem,
         SettingStateResult currentState,
@@ -456,7 +477,7 @@ public class ConfigReviewService : IConfigReviewService
             case InputType.Selection:
             {
                 // Resolve the current index via combo box setup for accurate display
-                var comboResult = _comboBoxSetupService.SetupComboBoxOptions(settingDef, currentState.CurrentValue);
+                var comboResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
                 // Special handling: PowerPlan - compare by GUID from RawValues (locale-independent)
@@ -522,7 +543,7 @@ public class ConfigReviewService : IConfigReviewService
                         ? comboResult.Options[currentIndex].DisplayText : null;
                     var currentDisplayName = currentRawKey != null
                         ? LocalizeComboBoxDisplayText(currentRawKey)
-                        : GetComboBoxDisplayNameFromDef(settingDef, currentIndex, currentState);
+                        : await GetComboBoxDisplayNameFromDefAsync(settingDef, currentIndex, currentState).ConfigureAwait(false);
                     var configDisplayName = configItem.PowerPlanName ?? "Custom";
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
                         return (true, currentDisplayName, configDisplayName, currentRawKey, configDisplayName);
@@ -570,14 +591,14 @@ public class ConfigReviewService : IConfigReviewService
     /// <summary>
     /// Gets a display name for a combo box index using the setting definition's combo box setup.
     /// </summary>
-    private string GetComboBoxDisplayNameFromDef(
+    private async Task<string> GetComboBoxDisplayNameFromDefAsync(
         SettingDefinition settingDef,
         int index,
         SettingStateResult currentState)
     {
         try
         {
-            var result = _comboBoxSetupService.SetupComboBoxOptions(settingDef, currentState.CurrentValue);
+            var result = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
             if (index >= 0 && index < result.Options.Count)
             {
                 return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString());
@@ -631,14 +652,18 @@ public class ConfigReviewService : IConfigReviewService
     /// </summary>
     private void RelocalizeDisplayStrings()
     {
-        foreach (var diff in _diffs.Values)
+        foreach (var key in _diffs.Keys)
         {
+            if (!_diffs.TryGetValue(key, out var diff))
+                continue;
+            var updated = diff;
             if (diff.CurrentDisplayKey != null)
-                diff.CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey);
+                updated = updated with { CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey) };
             if (diff.ConfigDisplayKey != null)
-                diff.ConfigValueDisplay = LocalizeComboBoxDisplayText(diff.ConfigDisplayKey);
-            if (diff.IsActionSetting)
-                diff.ActionConfirmationMessage = GetActionConfirmationMessage(diff.SettingId);
+                updated = updated with { ConfigValueDisplay = LocalizeComboBoxDisplayText(diff.ConfigDisplayKey) };
+            if (diff.IsActionSetting && diff.ConfigItem != null)
+                updated = updated with { ActionConfirmationMessage = GetActionConfirmationMessage(diff.ConfigItem) };
+            _diffs[key] = updated;
         }
     }
 

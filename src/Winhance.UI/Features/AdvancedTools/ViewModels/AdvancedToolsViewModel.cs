@@ -7,12 +7,13 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 /// <summary>
 /// ViewModel for the AdvancedTools page, coordinating sub-feature navigation.
 /// </summary>
-public partial class AdvancedToolsViewModel : ObservableObject
+public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
 {
+    private bool _disposed;
     private readonly ILocalizationService _localizationService;
 
     [ObservableProperty]
-    private string _currentSectionKey = "Overview";
+    public partial string CurrentSectionKey { get; set; }
 
     /// <summary>
     /// Gets the localized page title.
@@ -62,7 +63,7 @@ public partial class AdvancedToolsViewModel : ObservableObject
     /// <summary>
     /// Section definitions for navigation.
     /// </summary>
-    public static readonly List<AdvancedToolsSectionInfo> Sections = new()
+    public static readonly IReadOnlyList<AdvancedToolsSectionInfo> Sections = new List<AdvancedToolsSectionInfo>()
     {
         new("WimUtil", "WimUtilIconPath", "WIMUtil"),
         new("AutounattendXml", "AutounattendXmlIconPath", "Create Autounattend XML"),
@@ -71,7 +72,15 @@ public partial class AdvancedToolsViewModel : ObservableObject
     public AdvancedToolsViewModel(ILocalizationService localizationService)
     {
         _localizationService = localizationService;
+        CurrentSectionKey = "Overview";
         _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

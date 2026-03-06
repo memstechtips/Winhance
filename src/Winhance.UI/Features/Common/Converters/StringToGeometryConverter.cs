@@ -7,7 +7,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// <summary>
 /// Converts a string path data value to a Geometry object for use with Path elements.
 /// </summary>
-public class StringToGeometryConverter : IValueConverter
+public partial class StringToGeometryConverter : IValueConverter
 {
     public object? Convert(object value, Type targetType, object parameter, string language)
     {

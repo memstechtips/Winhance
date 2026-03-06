@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Customize.Models;
 
@@ -62,22 +62,19 @@ public static class StartMenuCustomizations
                             RecommendedValue = 1, // More Pins
                             DefaultValue = 0, // Windows default is default layout
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Default",
-                                ["RecommendedOption"] = "More pins",
-                            },
+                            DefaultOption = "Default",
+                            RecommendedOption = "More pins",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Default",
                             "More pins",
                             "More recommendations",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Default
                             {
@@ -98,8 +95,7 @@ public static class StartMenuCustomizations
                 {
                     Id = "start-recommended-section",
                     Name = "Recommended section",
-                    Description =
-                        "Show or hide the lower section that displays recently opened files and suggested apps",
+                    Description = "Show or hide the lower section that displays recently opened files and suggested apps. Hiding this section also removes Windows Spotlight from the lock screen and suggested content in the Settings app",
                     GroupName = "Layout",
                     InputType = InputType.Selection,
                     IsWindows11Only = true,
@@ -113,6 +109,7 @@ public static class StartMenuCustomizations
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -120,6 +117,7 @@ public static class StartMenuCustomizations
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
@@ -136,50 +134,21 @@ public static class StartMenuCustomizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Show", "Hide" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        DisplayNames = new string[] { "Show", "Hide" },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Show (delete registry values)
                             {
                                 ["HideRecommendedSection"] = null, // Delete
-                                ["IsEducationEnvironment"] = null, // Delete 
+                                ["IsEducationEnvironment"] = null, // Delete
                             },
                             [1] = new Dictionary<string, object?> // Hide (set registry values)
                             {
                                 ["HideRecommendedSection"] = 1, // Set to 1
                                 ["IsEducationEnvironment"] = 1, // Set to 1
                             },
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "start-show-all-pins-by-default",
-                    Name = "Show all pins by default",
-                    Description = "Automatically expand to show all pinned apps instead of requiring you to click 'All apps'",
-                    GroupName = "Start Menu Settings",
-                    InputType = InputType.Toggle,
-                    IconPack = "Fluent",
-                    Icon = "PinOff",
-                    IsWindows11Only = true,
-                    SupportedBuildRanges = new List<(int, int)>
-                    {
-                        (26120, int.MaxValue), // Windows 11 24H2 build 26120.4250 and later
-                        (26200, int.MaxValue), // Windows 11 25H2 build 26200.5670 and later
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
-                            ValueName = "ShowAllPinsList",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, all pins are shown
-                            DisabledValue = 0, // When toggle is OFF, all pins are not shown
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -198,8 +167,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
                             ValueName = "ShowRecentList",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, recently added apps are shown
-                            DisabledValue = 0, // When toggle is OFF, recently added apps are hidden
+                            EnabledValue = [1, null], // When toggle is ON, recently added apps are shown
+                            DisabledValue = [0], // When toggle is OFF, recently added apps are hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -221,8 +190,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
                             ValueName = "ShowFrequentList",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
-                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            EnabledValue = [1], // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = [0], // When toggle is OFF, frequently used programs list is hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -245,8 +214,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackProgs",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
-                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            EnabledValue = [1], // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = [0], // When toggle is OFF, frequently used programs list is hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -279,8 +248,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-338388Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, suggestions are shown
-                            DisabledValue = 0, // When toggle is OFF, suggestions are hidden
+                            EnabledValue = [1], // When toggle is ON, suggestions are shown
+                            DisabledValue = [0], // When toggle is OFF, suggestions are hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -311,8 +280,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackDocs",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, recommended files are shown
-                            DisabledValue = 0, // When toggle is OFF, recommended files are hidden
+                            EnabledValue = [1, null], // When toggle is ON, recommended files are shown
+                            DisabledValue = [0], // When toggle is OFF, recommended files are hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -333,8 +302,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_IrisRecommendations",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -355,8 +324,8 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_AccountNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, account notifications are shown
-                            DisabledValue = 0, // When toggle is OFF, account notifications are hidden
+                            EnabledValue = [1, null], // When toggle is ON, account notifications are shown
+                            DisabledValue = [0], // When toggle is OFF, account notifications are hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -376,20 +345,22 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },

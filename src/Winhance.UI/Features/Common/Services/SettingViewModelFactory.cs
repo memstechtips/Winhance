@@ -1,0 +1,195 @@
+using System.Linq;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Features.Optimize.ViewModels;
+
+namespace Winhance.UI.Features.Common.Services;
+
+/// <summary>
+/// Creates fully-configured SettingItemViewModel instances from setting definitions.
+/// </summary>
+public class SettingViewModelFactory : ISettingViewModelFactory
+{
+    private readonly SettingViewModelDependencies _viewModelDeps;
+    private readonly ILogService _logService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService _userPreferencesService;
+    private readonly IComboBoxSetupService _comboBoxSetupService;
+    private readonly IComboBoxResolver _comboBoxResolver;
+    private readonly ISettingViewModelEnricher _enricher;
+
+    public SettingViewModelFactory(
+        SettingViewModelDependencies viewModelDeps,
+        ILogService logService,
+        ILocalizationService localizationService,
+        IUserPreferencesService userPreferencesService,
+        IComboBoxSetupService comboBoxSetupService,
+        IComboBoxResolver comboBoxResolver,
+        ISettingViewModelEnricher enricher)
+    {
+        _viewModelDeps = viewModelDeps;
+        _logService = logService;
+        _localizationService = localizationService;
+        _userPreferencesService = userPreferencesService;
+        _comboBoxSetupService = comboBoxSetupService;
+        _comboBoxResolver = comboBoxResolver;
+        _enricher = enricher;
+    }
+
+    /// <summary>
+    /// Creates a fully-configured SettingItemViewModel for the given setting definition and current state.
+    /// </summary>
+    public async Task<SettingItemViewModel> CreateAsync(
+        SettingDefinition setting,
+        SettingStateResult currentState,
+        ISettingsFeatureViewModel? parentViewModel)
+    {
+        var config = new SettingItemViewModelConfig
+        {
+            SettingDefinition = setting,
+            ParentFeatureViewModel = parentViewModel,
+            SettingId = setting.Id,
+            Name = setting.Name,
+            Description = setting.Description,
+            GroupName = setting.GroupName ?? string.Empty,
+            Icon = setting.Icon ?? string.Empty,
+            IconPack = setting.IconPack ?? "Material",
+            InputType = setting.InputType,
+            IsSelected = currentState.IsEnabled,
+            OnText = _localizationService.GetString("Common_On") ?? "On",
+            OffText = _localizationService.GetString("Common_Off") ?? "Off",
+            ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply"
+        };
+
+        var viewModel = new SettingItemViewModel(
+            config,
+            _viewModelDeps.SettingApplicationService,
+            _viewModelDeps.LogService,
+            _viewModelDeps.DispatcherService,
+            _viewModelDeps.DialogService,
+            _localizationService,
+            _viewModelDeps.EventBus,
+            _userPreferencesService,
+            _viewModelDeps.RegeditLauncher);
+
+        // Set lock state for advanced settings
+        if (setting.RequiresAdvancedUnlock)
+        {
+            var unlocked = await _userPreferencesService.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false);
+            viewModel.IsLocked = !unlocked;
+        }
+
+        // Populate AC/DC values for PowerModeSupport.Separate settings
+        if (viewModel.SupportsSeparateACDC)
+        {
+            await _enricher.DetectBatteryAsync(viewModel);
+
+            if (setting.InputType == InputType.NumericRange && currentState.RawValues != null)
+            {
+                if (currentState.RawValues.TryGetValue("ACValue", out var acVal) && acVal is int acInt)
+                    viewModel.AcNumericValue = ConvertFromSystemUnits(acInt, setting);
+                if (currentState.RawValues.TryGetValue("DCValue", out var dcVal) && dcVal is int dcInt)
+                    viewModel.DcNumericValue = ConvertFromSystemUnits(dcInt, setting);
+            }
+            // Note: AC/DC Selection values are set AFTER ComboBox options are populated (below)
+        }
+
+        if (setting.InputType != InputType.Selection)
+        {
+            viewModel.SelectedValue = currentState.CurrentValue;
+        }
+
+        // Set up numeric range settings
+        if (setting.InputType == InputType.NumericRange && setting.NumericRange != null)
+        {
+            viewModel.MaxValue = setting.NumericRange.MaxValue;
+            viewModel.MinValue = setting.NumericRange.MinValue;
+            viewModel.Units = setting.NumericRange.Units ?? "";
+
+            if (currentState.CurrentValue is int intValue)
+            {
+                viewModel.NumericValue = ConvertFromSystemUnits(intValue, setting);
+            }
+        }
+
+        // Set up combo box options for selection settings
+        if (setting.InputType == InputType.Selection)
+        {
+            try
+            {
+                var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
+                viewModel.ComboBoxOptions.Clear();
+
+                // Check if this is a PowerPlan setting that needs localization
+                var isPowerPlanSetting = setting.Recommendation?.LoadDynamicOptions == true;
+
+                foreach (var option in comboBoxResult.Options)
+                {
+                    // Translate PowerPlan localization keys
+                    if (isPowerPlanSetting && option.DisplayText.StartsWith("PowerPlan_"))
+                    {
+                        option.DisplayText = _localizationService.GetString(option.DisplayText);
+                    }
+
+                    viewModel.ComboBoxOptions.Add(option);
+                }
+
+                // Build cross-group info message if this setting has CrossGroupChildSettings
+                _enricher.SetCrossGroupInfoMessage(viewModel, setting);
+
+                // Set the selected value from the setup result or current state
+                if (comboBoxResult.SelectedValue != null)
+                {
+                    viewModel.SelectedValue = comboBoxResult.SelectedValue;
+                    viewModel.UpdateStatusBanner(comboBoxResult.SelectedValue);
+                }
+                else if (currentState.CurrentValue != null)
+                {
+                    viewModel.SelectedValue = currentState.CurrentValue;
+                    viewModel.UpdateStatusBanner(currentState.CurrentValue);
+                }
+
+                // Resolve AC/DC Selection values AFTER ComboBox options are populated
+                // (ComboBox needs items before SelectedValue can match)
+                if (viewModel.SupportsSeparateACDC && currentState.RawValues != null)
+                {
+                    var rawAcVal = currentState.RawValues.GetValueOrDefault("ACValue");
+                    var rawDcVal = currentState.RawValues.GetValueOrDefault("DCValue");
+
+                    var acRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); acRaw["PowerCfgValue"] = rawAcVal;
+                    var dcRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); dcRaw["PowerCfgValue"] = rawDcVal;
+                    var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
+                    var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
+
+                    viewModel.AcValue = acIndex is int ai ? ai : 0;
+                    viewModel.DcValue = dcIndex is int di ? di : 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"Failed to setup combo box for '{setting.Id}': {ex.Message}");
+            }
+        }
+        else
+        {
+            // For non-Selection types, initialize compatibility banner (Selection types handle this in UpdateStatusBanner)
+            viewModel.InitializeCompatibilityBanner();
+        }
+
+        // If in review mode, apply review diff to the newly created ViewModel
+        _enricher.ApplyReviewDiff(viewModel, currentState);
+
+        return viewModel;
+    }
+
+    private static int ConvertFromSystemUnits(int systemValue, SettingDefinition setting)
+    {
+        var displayUnits = setting.NumericRange?.Units;
+        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
+    }
+}

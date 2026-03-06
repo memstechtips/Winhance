@@ -1,49 +1,53 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
-using Winhance.Infrastructure.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.Utilities;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
 
 public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 {
-    private readonly IServiceProvider _serviceProvider;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ISystemSettingsDiscoveryService _discoveryService;
     private readonly ILogService _logService;
     private readonly AutounattendScriptBuilder _scriptBuilder;
+    private readonly IPowerShellRunner _powerShellRunner;
+    private readonly ISelectedAppsProvider _selectedAppsProvider;
 
     public AutounattendXmlGeneratorService(
-        IServiceProvider serviceProvider,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ISystemSettingsDiscoveryService discoveryService,
         ILogService logService,
-        AutounattendScriptBuilder scriptBuilder)
+        AutounattendScriptBuilder scriptBuilder,
+        IPowerShellRunner powerShellRunner,
+        ISelectedAppsProvider selectedAppsProvider)
     {
-        _serviceProvider = serviceProvider;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _discoveryService = discoveryService;
         _logService = logService;
         _scriptBuilder = scriptBuilder;
+        _powerShellRunner = powerShellRunner;
+        _selectedAppsProvider = selectedAppsProvider;
     }
 
-    public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath)
+    public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath,
+        IReadOnlyList<ConfigurationItem>? selectedWindowsApps = null)
     {
         try
         {
             _logService.Log(LogLevel.Info, "Starting autounattend.xml generation");
 
-            var config = await CreateConfigurationFromSystemAsync();
+            var apps = selectedWindowsApps
+                ?? await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
+
+            var config = await CreateConfigurationFromSystemAsync(apps);
 
             var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
 
@@ -56,7 +60,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             // Validate the final XML is well-formed
             try
             {
-                await PowerShellRunner.ValidateXmlSyntaxAsync(finalXml);
+                await _powerShellRunner.ValidateXmlSyntaxAsync(finalXml);
                 _logService.Log(LogLevel.Info, "autounattend.xml passed XML well-formedness validation");
             }
             catch (Exception ex)
@@ -79,7 +83,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         }
     }
 
-    private async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync()
+    private async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync(
+        IReadOnlyList<ConfigurationItem>? selectedWindowsApps)
     {
         var config = new UnifiedConfigurationFile
         {
@@ -88,7 +93,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         };
 
         await PopulateFeatureBasedSections(config);
-        await PopulateAppsSections(config);
+        PopulateAppsSections(config, selectedWindowsApps);
 
         return config;
     }
@@ -99,6 +104,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         int totalOptimizeSettings = 0;
         int totalCustomizeSettings = 0;
+        var optimizeFeatures = new Dictionary<string, ConfigSection>();
+        var customizeFeatures = new Dictionary<string, ConfigSection>();
 
         foreach (var kvp in allSettingsByFeature)
         {
@@ -138,7 +145,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 {
                     var (selectedIndex, customStateValues, powerPlanGuid, powerPlanName) = GetSelectionStateFromState(setting, state);
 
-                    if (setting.Id == "power-plan-selection")
+                    if (setting.Id == SettingIds.PowerPlanSelection)
                     {
                         item.PowerPlanGuid = powerPlanGuid;
                         item.PowerPlanName = powerPlanName;
@@ -159,9 +166,9 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
                 if (state?.RawValues != null && state.RawValues.Count > 0)
                 {
-                    item.CustomStateValues = state.RawValues.ToDictionary(
-                        k => k.Key,
-                        v => (object)v.Value);
+                    item.CustomStateValues = state.RawValues
+                        .Where(v => v.Value != null)
+                        .ToDictionary(k => k.Key, v => v.Value!);
                 }
 
                 return item;
@@ -175,64 +182,38 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
             if (isOptimize)
             {
-                config.Optimize.Features[featureId] = section;
+                optimizeFeatures[featureId] = section;
                 config.Optimize.IsIncluded = true;
                 totalOptimizeSettings += items.Count;
                 _logService.Log(LogLevel.Info, $"Exported {items.Count} settings from {featureId} (Optimize)");
             }
             else
             {
-                config.Customize.Features[featureId] = section;
+                customizeFeatures[featureId] = section;
                 config.Customize.IsIncluded = true;
                 totalCustomizeSettings += items.Count;
                 _logService.Log(LogLevel.Info, $"Exported {items.Count} settings from {featureId} (Customize)");
             }
         }
 
+        config.Optimize.Features = optimizeFeatures;
+        config.Customize.Features = customizeFeatures;
         _logService.Log(LogLevel.Info, $"Total exported: {totalOptimizeSettings} Optimize settings, {totalCustomizeSettings} Customize settings");
     }
 
-    private async Task PopulateAppsSections(UnifiedConfigurationFile config)
+    private void PopulateAppsSections(UnifiedConfigurationFile config,
+        IReadOnlyList<ConfigurationItem>? selectedWindowsApps)
     {
-        var windowsAppsVM = _serviceProvider.GetService<WindowsAppsViewModel>();
-        if (windowsAppsVM != null)
+        if (selectedWindowsApps != null && selectedWindowsApps.Count > 0)
         {
-            if (!windowsAppsVM.IsInitialized)
-                await windowsAppsVM.LoadItemsAsync();
-
             config.WindowsApps.IsIncluded = true;
-            config.WindowsApps.Items = windowsAppsVM.Items
-                .Where(item => item.IsSelected)
-                .Select(item =>
-                {
-                    var configItem = new ConfigurationItem
-                    {
-                        Id = item.Id,
-                        Name = item.Name,
-                        IsSelected = true,
-                        InputType = InputType.Toggle
-                    };
-
-                    if (!string.IsNullOrEmpty(item.Definition.AppxPackageName))
-                    {
-                        configItem.AppxPackageName = item.Definition.AppxPackageName;
-                        if (item.Definition.SubPackages?.Length > 0)
-                            configItem.SubPackages = item.Definition.SubPackages;
-                    }
-                    else if (!string.IsNullOrEmpty(item.Definition.CapabilityName))
-                        configItem.CapabilityName = item.Definition.CapabilityName;
-                    else if (!string.IsNullOrEmpty(item.Definition.OptionalFeatureName))
-                        configItem.OptionalFeatureName = item.Definition.OptionalFeatureName;
-
-                    return configItem;
-                }).ToList();
-
+            config.WindowsApps.Items = selectedWindowsApps.ToList();
             _logService.Log(LogLevel.Info, $"Exported {config.WindowsApps.Items.Count} checked Windows Apps");
         }
     }
 
-    private (int? selectedIndex, Dictionary<string, object> customStateValues, string powerPlanGuid, string powerPlanName)
-        GetSelectionStateFromState(SettingDefinition setting, SettingStateResult state)
+    private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
+        GetSelectionStateFromState(SettingDefinition setting, SettingStateResult? state)
     {
         if (setting.InputType != InputType.Selection)
             return (null, null, null, null);
@@ -240,7 +221,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         if (state?.CurrentValue is not int index)
             return (0, null, null, null);
 
-        if (setting.Id == "power-plan-selection" && state.RawValues != null)
+        if (setting.Id == SettingIds.PowerPlanSelection && state.RawValues != null)
         {
             var guid = state.RawValues.TryGetValue("ActivePowerPlanGuid", out var g) ? g?.ToString() : null;
             var name = state.RawValues.TryGetValue("ActivePowerPlan", out var n) ? n?.ToString() : null;
@@ -249,7 +230,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             return (index, null, guid, name);
         }
 
-        if (index == ComboBoxResolver.CUSTOM_STATE_INDEX)
+        if (index == ComboBoxConstants.CustomStateIndex)
         {
             var customValues = new Dictionary<string, object>();
 

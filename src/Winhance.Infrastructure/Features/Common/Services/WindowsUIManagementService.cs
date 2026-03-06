@@ -1,189 +1,147 @@
-using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
-
-namespace Winhance.Infrastructure.Features.Common.Services
-{
-    public class WindowsUIManagementService : IWindowsUIManagementService
-    {
-        private readonly ILogService _logService;
-
-        public bool IsConfigImportMode { get; set; }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        private const uint SPI_SETUIEFFECTS = 0x103F;
-        private const uint SPI_SETMENUANIMATION = 0x1003;
-        private const uint SPI_SETCOMBOBOXANIMATION = 0x1005;
-        private const uint SPI_SETLISTBOXSMOOTHSCROLLING = 0x1007;
-        private const uint SPI_SETDESKWALLPAPER = 0x0014;
-
-        private const int HWND_BROADCAST = 0xFFFF;
-        private const uint WM_SETTINGCHANGE = 0x001A;
-
-        private const uint SPIF_UPDATEINIFILE = 0x01;
-        private const uint SPIF_SENDCHANGE = 0x02;
-
-        public WindowsUIManagementService(ILogService logService)
-        {
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        }
-
-        public void RestartExplorer()
-        {
-            try
-            {
-                var explorerProcesses = Process.GetProcessesByName("explorer");
-                foreach (var process in explorerProcesses)
-                {
-                    process.Kill();
-                }
-
-                Thread.Sleep(1000);
-                Process.Start("explorer.exe");
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError("Failed to restart Explorer", ex);
-            }
-        }
-
-        public bool IsProcessRunning(string processName)
-        {
-            try
-            {
-                return Process.GetProcessesByName(processName).Length > 0;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error checking if process {processName} is running", ex);
-                return false;
-            }
-        }
-
-        public void KillProcess(string processName)
-        {
-            try
-            {
-                var processes = Process.GetProcessesByName(processName);
-                foreach (var process in processes)
-                {
-                    process.Kill();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Failed to kill process {processName}", ex);
-            }
-        }
-
-        public void RefreshDesktop()
-        {
-            try
-            {
-                SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, IntPtr.Zero, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError("Failed to refresh desktop", ex);
-            }
-        }
-
-        public async Task<bool> RefreshWindowsGUI(bool killExplorer = true)
-        {
-            try
-            {
-                const int HWND_BROADCAST = 0xffff;
-                const uint WM_SYSCOLORCHANGE = 0x0015;
-                const uint WM_SETTINGCHANGE = 0x001A;
-                const uint WM_THEMECHANGE = 0x031A;
-
-                [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-                static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam,
-                    uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
-
-                const uint SMTO_ABORTIFHUNG = 0x0002;
-
-                IntPtr result;
-                SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero,
-                    SMTO_ABORTIFHUNG, 1000, out result);
-                SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero,
-                    SMTO_ABORTIFHUNG, 1000, out result);
-
-                if (killExplorer)
-                {
-                    await Task.Delay(500);
-
-                    bool explorerWasRunning = IsProcessRunning("explorer");
-
-                    if (explorerWasRunning)
-                    {
-                        KillProcess("explorer");
-                        await Task.Delay(1000);
-
-                        int retryCount = 0;
-                        const int maxRetries = 5;
-                        bool explorerRestarted = false;
-
-                        while (retryCount < maxRetries && !explorerRestarted)
-                        {
-                            if (IsProcessRunning("explorer"))
-                            {
-                                explorerRestarted = true;
-                            }
-                            else
-                            {
-                                retryCount++;
-                                await Task.Delay(1000);
-                            }
-                        }
-
-                        if (!explorerRestarted)
-                        {
-                            try
-                            {
-                                Process.Start("explorer.exe");
-                                await Task.Delay(2000);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.LogError("Failed to start Explorer manually", ex);
-                                return false;
-                            }
-                        }
-                    }
-                }
-
-                string themeChanged = "ImmersiveColorSet";
-                IntPtr themeChangedPtr = Marshal.StringToHGlobalUni(themeChanged);
-
-                try
-                {
-                    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, themeChangedPtr,
-                        SMTO_ABORTIFHUNG, 1000, out result);
-
-                    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero,
-                        SMTO_ABORTIFHUNG, 1000, out result);
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(themeChangedPtr);
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError("Error refreshing Windows GUI", ex);
-                return false;
-            }
-        }
-    }
-}
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
+
+namespace Winhance.Infrastructure.Features.Common.Services;
+
+public class WindowsUIManagementService : IWindowsUIManagementService
+{
+    private readonly ILogService _logService;
+    private readonly IProcessExecutor _processExecutor;
+
+    public WindowsUIManagementService(ILogService logService, IProcessExecutor processExecutor)
+    {
+        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
+    }
+
+    public bool IsProcessRunning(string processName)
+    {
+        try
+        {
+            var processes = Process.GetProcessesByName(processName);
+            var isRunning = processes.Length > 0;
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+            return isRunning;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error checking if process {processName} is running", ex);
+            return false;
+        }
+    }
+
+    public void KillProcess(string processName)
+    {
+        try
+        {
+            var processes = Process.GetProcessesByName(processName);
+            foreach (var process in processes)
+            {
+                try
+                {
+                    process.Kill();
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to kill process {processName}", ex);
+        }
+    }
+
+    public async Task<OperationResult> RefreshWindowsGUI(bool killExplorer = true)
+    {
+        try
+        {
+            IntPtr result;
+            User32Api.SendMessageTimeout(
+                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SYSCOLORCHANGE,
+                IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+            User32Api.SendMessageTimeout(
+                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_THEMECHANGE,
+                IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+
+            if (killExplorer)
+            {
+                await Task.Delay(500).ConfigureAwait(false);
+
+                bool explorerWasRunning = IsProcessRunning("explorer");
+
+                if (explorerWasRunning)
+                {
+                    KillProcess("explorer");
+                    await Task.Delay(1000).ConfigureAwait(false);
+
+                    int retryCount = 0;
+                    const int maxRetries = 5;
+                    bool explorerRestarted = false;
+
+                    while (retryCount < maxRetries && !explorerRestarted)
+                    {
+                        if (IsProcessRunning("explorer"))
+                        {
+                            explorerRestarted = true;
+                        }
+                        else
+                        {
+                            retryCount++;
+                            await Task.Delay(1000).ConfigureAwait(false);
+                        }
+                    }
+
+                    if (!explorerRestarted)
+                    {
+                        try
+                        {
+                            await _processExecutor.ShellExecuteAsync("explorer.exe").ConfigureAwait(false);
+                            await Task.Delay(2000).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService.LogError("Failed to start Explorer manually", ex);
+                            return OperationResult.Failed("Failed to start Explorer manually", ex);
+                        }
+                    }
+                }
+            }
+
+            string themeChanged = "ImmersiveColorSet";
+            IntPtr themeChangedPtr = Marshal.StringToHGlobalUni(themeChanged);
+
+            try
+            {
+                User32Api.SendMessageTimeout(
+                    (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
+                    IntPtr.Zero, themeChangedPtr, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+
+                User32Api.SendMessageTimeout(
+                    (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
+                    IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(themeChangedPtr);
+            }
+
+            return OperationResult.Succeeded();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Error refreshing Windows GUI", ex);
+            return OperationResult.Failed("Error refreshing Windows GUI", ex);
+        }
+    }
+}

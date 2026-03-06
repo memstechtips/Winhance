@@ -1,7 +1,7 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Customize.Models;
 
@@ -45,22 +45,19 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0, // Hide
                             DefaultValue = 3, // Windows default is search box
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Search box",
-                            },
+                            DefaultOption = "Search box",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Hide",
                             "Search icon only",
                             "Search icon and label",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Hide
                             {
@@ -100,21 +97,18 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0, // Hide
                             DefaultValue = 2, // Windows default is search box
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Search box",
-                            },
+                            DefaultOption = "Search box",
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Hide",
                             "Search icon only",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Hide
                             {
@@ -151,10 +145,10 @@ public static class TaskbarCustomizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Left", "Center" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        DisplayNames = new string[] { "Left", "Center" },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Left
                             {
@@ -185,30 +179,33 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideSCAMeetNow",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
                             ValueName = "HideSCAMeetNow",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
                             ValueName = "HideSCAMeetNow",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -229,8 +226,8 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "EnableAutoTray",
                             RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -252,8 +249,8 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowTaskViewButton",
                             RecommendedValue = 0,
-                            EnabledValue = null, // When toggle is ON, Task View button is shown
-                            DisabledValue = 0, // When toggle is OFF, Task View button is hidden
+                            EnabledValue = [1, null], // When toggle is ON, Task View button is shown
+                            DisabledValue = [0], // When toggle is OFF, Task View button is hidden
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -280,8 +277,8 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowCopilotButton",
                             RecommendedValue = 0, // Hidden
-                            EnabledValue = null,  // Show
-                            DisabledValue = 0,    // Hide
+                            EnabledValue = [1, null],  // Show
+                            DisabledValue = [0],    // Hide
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -303,18 +300,20 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Dsh",
                             ValueName = "AllowNewsAndInterests",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Dsh",
                             ValueName = "AllowNewsAndInterests",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -335,18 +334,20 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Windows Feeds",
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Feeds",
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
-                            EnabledValue = null,
-                            DisabledValue = null,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
                         },
                     },
                 },
@@ -381,15 +382,15 @@ public static class TaskbarCustomizations
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                    CustomProperties = new Dictionary<string, object>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        DisplayNames = new string[]
                         {
                             "Windows default",
                             "Transparent",
                             "Opaque",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
                             [0] = new Dictionary<string, object?> // Windows default (delete registry value)
                             {
@@ -423,8 +424,8 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarSmallIcons",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -446,8 +447,8 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings",
                             ValueName = "TaskbarEndTask",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },

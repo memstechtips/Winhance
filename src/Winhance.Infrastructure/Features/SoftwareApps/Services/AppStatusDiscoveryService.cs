@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Management;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Enums;
@@ -18,13 +18,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppStatusDiscoveryService(
     ILogService logService,
-    IWinGetService winGetService,
+    IWinGetBootstrapper winGetBootstrapper,
+    IWinGetDetectionService winGetDetectionService,
     IChocolateyService chocolateyService,
-    IInteractiveUserService interactiveUserService) : IAppStatusDiscoveryService
+    IInteractiveUserService interactiveUserService,
+    IAppxPackageSource appxPackageSource) : IAppStatusDiscoveryService
 {
     private HashSet<string>? _cachedWinGetPackageIds;
 
-    public void InvalidateWinGetCache()
+    public void InvalidateCache()
     {
         _cachedWinGetPackageIds = null;
     }
@@ -38,7 +40,7 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            var apps = definitionList.Where(d => !string.IsNullOrEmpty(d.AppxPackageName)).ToList();
+            var apps = definitionList.Where(d => d.AppxPackageName?.Length > 0).ToList();
             var capabilities = definitionList.Where(d => !string.IsNullOrEmpty(d.CapabilityName)).ToList();
             var features = definitionList.Where(d => !string.IsNullOrEmpty(d.OptionalFeatureName)).ToList();
 
@@ -46,11 +48,11 @@ public class AppStatusDiscoveryService(
 
             if (capabilities.Any())
             {
-                var capabilityNames = capabilities.Select(c => c.CapabilityName).ToList();
-                var capabilityResults = await CheckCapabilitiesAsync(capabilityNames);
+                var capabilityNames = capabilities.Select(c => c.CapabilityName!).ToList();
+                var capabilityResults = await CheckCapabilitiesAsync(capabilityNames).ConfigureAwait(false);
                 foreach (var capability in capabilities)
                 {
-                    if (capabilityResults.TryGetValue(capability.CapabilityName, out bool isInstalled))
+                    if (capabilityResults.TryGetValue(capability.CapabilityName!, out bool isInstalled))
                     {
                         result[capability.Id] = isInstalled;
                         if (isInstalled)
@@ -64,11 +66,11 @@ public class AppStatusDiscoveryService(
 
             if (features.Any())
             {
-                var featureNames = features.Select(f => f.OptionalFeatureName).ToList();
-                var featureResults = await CheckFeaturesAsync(featureNames);
+                var featureNames = features.Select(f => f.OptionalFeatureName!).ToList();
+                var featureResults = await CheckFeaturesAsync(featureNames).ConfigureAwait(false);
                 foreach (var feature in features)
                 {
-                    if (featureResults.TryGetValue(feature.OptionalFeatureName, out bool isInstalled))
+                    if (featureResults.TryGetValue(feature.OptionalFeatureName!, out bool isInstalled))
                     {
                         result[feature.Id] = isInstalled;
                         if (isInstalled)
@@ -82,14 +84,14 @@ public class AppStatusDiscoveryService(
 
             if (apps.Any())
             {
-                var installedPackageNames = await GetInstalledAppxPackageNamesAsync();
+                var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
                 foreach (var app in apps)
                 {
-                    if (installedPackageNames.Contains(app.AppxPackageName))
+                    if (app.AppxPackageName!.Any(name => installedPackageNames.Contains(name)))
                     {
                         result[app.Id] = true;
                         appxCount++;
-                        logService.LogInformation($"Installed (AppX): {app.Name} ({app.AppxPackageName})");
+                        logService.LogInformation($"Installed (AppX): {app.Name} ({string.Join(", ", app.AppxPackageName!)})");
                     }
                 }
 
@@ -101,7 +103,7 @@ public class AppStatusDiscoveryService(
 
                 if (undetectedApps.Any())
                 {
-                    var winGetIds = await GetOrFetchWinGetPackageIdsAsync();
+                    var winGetIds = await GetOrFetchWinGetPackageIdsAsync().ConfigureAwait(false);
                     if (winGetIds != null)
                     {
                         foreach (var app in undetectedApps)
@@ -151,7 +153,7 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            var installedPackageNames = await GetInstalledAppxPackageNamesAsync();
+            var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
             foreach (var appId in appIdList)
             {
                 if (installedPackageNames.Contains(appId))
@@ -203,7 +205,7 @@ public class AppStatusDiscoveryService(
                 {
                     DismApi.DismDelete(capPtr);
                 }
-            });
+            }).ConfigureAwait(false);
 
             foreach (var capability in capabilities)
             {
@@ -253,7 +255,7 @@ public class AppStatusDiscoveryService(
                 {
                     DismApi.DismDelete(featPtr);
                 }
-            });
+            }).ConfigureAwait(false);
 
             foreach (var feature in features)
             {
@@ -272,129 +274,6 @@ public class AppStatusDiscoveryService(
         return result;
     }
 
-    private async Task<HashSet<string>> GetInstalledAppxPackageNamesAsync()
-    {
-        var packageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await Task.Run(() =>
-            {
-                var packageManager = new PackageManager();
-                foreach (var package in packageManager.FindPackagesForUser(""))
-                {
-                    cts.Token.ThrowIfCancellationRequested();
-                    try
-                    {
-                        packageNames.Add(package.Id.Name);
-                    }
-                    catch (Exception ex)
-                    {
-                        logService.LogWarning($"PackageManager enumeration skipped an entry: {ex.Message}");
-                    }
-                }
-            }, cts.Token);
-
-            logService.LogInformation($"AppX detection via PackageManager: found {packageNames.Count} packages");
-        }
-        catch (OperationCanceledException)
-        {
-            logService.LogWarning("PackageManager enumeration timed out after 15s, falling back to WMI");
-
-            // Tier 2: WMI (Win32_InstalledStoreProgram)
-            var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync();
-            if (wmiResult.Count > 0)
-                return wmiResult;
-
-            // Tier 3: Get-AppxPackage via PowerShell (last resort)
-            logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
-            return await GetInstalledAppxPackageNamesViaPowerShellAsync();
-        }
-        catch (Exception ex)
-        {
-            logService.LogWarning($"PackageManager failed ({ex.Message}), falling back to WMI");
-
-            // Tier 2: WMI (Win32_InstalledStoreProgram)
-            var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync();
-            if (wmiResult.Count > 0)
-                return wmiResult;
-
-            // Tier 3: Get-AppxPackage via PowerShell (last resort)
-            logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
-            return await GetInstalledAppxPackageNamesViaPowerShellAsync();
-        }
-
-        return packageNames;
-    }
-
-    private async Task<HashSet<string>> GetInstalledAppxPackageNamesViaWmiAsync()
-    {
-        var packageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            await Task.Run(() =>
-            {
-                using var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_InstalledStoreProgram");
-                foreach (var obj in searcher.Get())
-                {
-                    try
-                    {
-                        var name = obj["Name"]?.ToString();
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            // Name is the package family name (e.g., "Microsoft.BingSearch_8wekyb3d8bbwe")
-                            // Extract the package name before the publisher hash to match PackageManager.Id.Name
-                            var underscoreIndex = name.IndexOf('_');
-                            packageNames.Add(underscoreIndex > 0 ? name[..underscoreIndex] : name);
-                        }
-                    }
-                    catch { }
-                }
-            });
-
-            logService.LogInformation($"WMI InstalledStoreProgram: found {packageNames.Count} packages");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"WMI InstalledStoreProgram query also failed: {ex.Message}");
-        }
-
-        return packageNames;
-    }
-
-    private async Task<HashSet<string>> GetInstalledAppxPackageNamesViaPowerShellAsync()
-    {
-        var packageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            logService.LogInformation("Fetching installed AppX packages via Get-AppxPackage...");
-
-            var output = await PowerShellRunner.RunScriptAsync(
-                "Get-AppxPackage | Select-Object -ExpandProperty Name");
-
-            if (!string.IsNullOrWhiteSpace(output))
-            {
-                foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var name = line.Trim();
-                    if (!string.IsNullOrEmpty(name))
-                        packageNames.Add(name);
-                }
-            }
-
-            logService.LogInformation($"Get-AppxPackage: found {packageNames.Count} packages");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Get-AppxPackage also failed: {ex.Message}");
-        }
-
-        return packageNames;
-    }
-
     private async Task<HashSet<string>?> GetOrFetchWinGetPackageIdsAsync()
     {
         if (_cachedWinGetPackageIds != null)
@@ -402,14 +281,14 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            bool winGetReady = await winGetService.EnsureWinGetReadyAsync();
+            bool winGetReady = await winGetBootstrapper.EnsureWinGetReadyAsync().ConfigureAwait(false);
             if (!winGetReady)
             {
                 logService.LogWarning("WinGet unavailable - skipping WinGet detection");
                 return null;
             }
 
-            _cachedWinGetPackageIds = await winGetService.GetInstalledPackageIdsAsync();
+            _cachedWinGetPackageIds = await winGetDetectionService.GetInstalledPackageIdsAsync().ConfigureAwait(false);
             logService.LogInformation($"WinGet: Fetched {_cachedWinGetPackageIds.Count} installed package IDs");
             return _cachedWinGetPackageIds;
         }
@@ -418,6 +297,28 @@ public class AppStatusDiscoveryService(
             logService.LogWarning($"WinGet detection failed: {ex.Message}");
             return null;
         }
+    }
+
+    internal record RegistryUninstallInfo(
+        HashSet<string> KeyNames,
+        HashSet<string> DisplayNames,
+        HashSet<string> AllKeyNames);
+
+    /// <summary>
+    /// Tests whether input matches a pattern containing {version}, {arch}, {locale} placeholders.
+    /// Each placeholder is replaced by a non-greedy wildcard (.+?) for regex matching.
+    /// Patterns without placeholders perform exact case-insensitive comparison.
+    /// </summary>
+    internal static bool MatchesPattern(string input, string pattern)
+    {
+        if (string.IsNullOrEmpty(input))
+            return false;
+
+        var regexPattern = Regex.Escape(pattern)
+            .Replace(@"\{version}", ".+?")
+            .Replace(@"\{arch}", ".+?")
+            .Replace(@"\{locale}", ".+?");
+        return Regex.IsMatch(input, $"^{regexPattern}$", RegexOptions.IgnoreCase);
     }
 
     #region External Apps Detection
@@ -432,7 +333,7 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            int wingetCount = 0, chocoCount = 0, registryCount = 0;
+            int wingetCount = 0, chocoCount = 0, appxCount = 0, registryCount = 0, fileSystemCount = 0;
 
             // Phase 1: WinGet detection for apps with WinGetPackageId or MsStoreId
             var appsWithWinGetId = definitionList
@@ -441,7 +342,7 @@ public class AppStatusDiscoveryService(
 
             if (appsWithWinGetId.Any())
             {
-                var winGetIds = await GetOrFetchWinGetPackageIdsAsync();
+                var winGetIds = await GetOrFetchWinGetPackageIdsAsync().ConfigureAwait(false);
 
                 if (winGetIds != null)
                 {
@@ -481,7 +382,7 @@ public class AppStatusDiscoveryService(
             {
                 try
                 {
-                    var chocoPackageIds = await chocolateyService.GetInstalledPackageIdsAsync();
+                    var chocoPackageIds = await chocolateyService.GetInstalledPackageIdsAsync().ConfigureAwait(false);
 
                     if (chocoPackageIds.Count > 0)
                     {
@@ -509,52 +410,123 @@ public class AppStatusDiscoveryService(
                 }
             }
 
-            // Phase 3: Registry fallback for apps not detected via WinGet or Chocolatey
+            // Phase 3: AppX detection for apps with AppxPackageName
+            var appsWithAppxName = definitionList
+                .Where(d => d.AppxPackageName?.Length > 0)
+                .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
+                .ToList();
+
+            if (appsWithAppxName.Any())
+            {
+                var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
+                foreach (var def in appsWithAppxName)
+                {
+                    if (def.AppxPackageName!.Any(name => installedPackageNames.Contains(name)))
+                    {
+                        result[def.Id] = true;
+                        def.DetectedVia = DetectionSource.AppX;
+                        appxCount++;
+                        logService.LogInformation($"Installed (AppX): {def.Name} ({string.Join(", ", def.AppxPackageName!)})");
+                    }
+                }
+            }
+
+            // Phase 4: Registry fallback for apps not detected via WinGet, Chocolatey, or AppX
             var appsForRegistryCheck = definitionList
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
                 .ToList();
 
             if (appsForRegistryCheck.Any())
             {
-                var (registryKeyNames, registryDisplayNames) = await GetRegistryUninstallInfoAsync();
+                var regInfo = await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
 
-                // First pass: match by registry key name (more reliable, e.g. "7-Zip")
-                foreach (var def in appsForRegistryCheck)
+                // Pass 1: Exact def.Name match against KeyNames
+                foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
                 {
-                    if (registryKeyNames.Contains(def.Name))
+                    if (regInfo.KeyNames.Contains(def.Name))
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
                         registryCount++;
-                        logService.LogInformation($"Installed (Registry): {def.Name}");
+                        logService.LogInformation($"Installed (Registry Pass 1 - KeyName): {def.Name}");
                     }
                 }
 
-                // Second pass: for remaining undetected apps, fall back to DisplayName match
-                // (handles MSIs that use GUIDs as key names, e.g. Sniffnet)
-                var stillUndetected = appsForRegistryCheck
-                    .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
-                    .ToList();
-
-                foreach (var def in stillUndetected)
+                // Pass 2: Exact def.Name match against DisplayNames
+                foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
                 {
-                    if (registryDisplayNames.Contains(def.Name))
+                    if (regInfo.DisplayNames.Contains(def.Name))
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
                         registryCount++;
-                        logService.LogInformation($"Installed (Registry DisplayName): {def.Name}");
+                        logService.LogInformation($"Installed (Registry Pass 2 - DisplayName): {def.Name}");
                     }
-                    else if (!result.ContainsKey(def.Id))
+                }
+
+                // Pass 3: RegistrySubKeyName pattern match against AllKeyNames
+                foreach (var def in appsForRegistryCheck
+                    .Where(d => !string.IsNullOrEmpty(d.RegistrySubKeyName))
+                    .Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
+                {
+                    if (regInfo.AllKeyNames.Any(k => MatchesPattern(k, def.RegistrySubKeyName!)))
                     {
-                        result[def.Id] = false;
+                        result[def.Id] = true;
+                        def.DetectedVia = DetectionSource.Registry;
+                        registryCount++;
+                        logService.LogInformation($"Installed (Registry Pass 3 - SubKeyName pattern): {def.Name}");
+                    }
+                }
+
+                // Pass 4: RegistryDisplayName pattern match against DisplayNames
+                foreach (var def in appsForRegistryCheck
+                    .Where(d => !string.IsNullOrEmpty(d.RegistryDisplayName))
+                    .Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
+                {
+                    if (regInfo.DisplayNames.Any(dn => MatchesPattern(dn, def.RegistryDisplayName!)))
+                    {
+                        result[def.Id] = true;
+                        def.DetectedVia = DetectionSource.Registry;
+                        registryCount++;
+                        logService.LogInformation($"Installed (Registry Pass 4 - DisplayName pattern): {def.Name}");
+                    }
+                }
+
+                // Mark remaining undetected items as false
+                foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id)))
+                {
+                    result[def.Id] = false;
+                }
+            }
+
+            // Phase 5: File system path detection for portable apps
+            var appsWithDetectionPaths = definitionList
+                .Where(d => d.DetectionPaths?.Length > 0)
+                .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
+                .ToList();
+
+            if (appsWithDetectionPaths.Any())
+            {
+                foreach (var def in appsWithDetectionPaths)
+                {
+                    foreach (var rawPath in def.DetectionPaths!)
+                    {
+                        var expandedPath = Environment.ExpandEnvironmentVariables(rawPath);
+                        if (Directory.Exists(expandedPath) || File.Exists(expandedPath))
+                        {
+                            result[def.Id] = true;
+                            def.DetectedVia = DetectionSource.FileSystem;
+                            fileSystemCount++;
+                            logService.LogInformation($"Installed (FileSystem): {def.Name} ({expandedPath})");
+                            break;
+                        }
                     }
                 }
             }
 
             var totalFound = result.Count(kvp => kvp.Value);
             logService.LogInformation(
-                $"Status check complete: {totalFound}/{definitionList.Count} apps installed ({wingetCount} via WinGet, {chocoCount} via Chocolatey, {registryCount} via Registry)");
+                $"Status check complete: {totalFound}/{definitionList.Count} apps installed ({wingetCount} via WinGet, {chocoCount} via Chocolatey, {appxCount} via AppX, {registryCount} via Registry, {fileSystemCount} via FileSystem)");
 
             return result;
         }
@@ -565,10 +537,11 @@ public class AppStatusDiscoveryService(
         }
     }
 
-    private async Task<(HashSet<string> KeyNames, HashSet<string> DisplayNames)> GetRegistryUninstallInfoAsync()
+    private async Task<RegistryUninstallInfo> GetRegistryUninstallInfoAsync()
     {
         var keyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var displayNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var allKeyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         await Task.Run(() =>
         {
@@ -610,6 +583,9 @@ public class AppStatusDiscoveryService(
                             using var subKey = key.OpenSubKey(subKeyName);
                             if (subKey == null) continue;
 
+                            // Always add to AllKeyNames (includes SystemComponent=1)
+                            allKeyNames.Add(subKeyName);
+
                             var systemComponent = subKey.GetValue("SystemComponent");
                             if (systemComponent is int value && value == 1)
                                 continue;
@@ -620,14 +596,14 @@ public class AppStatusDiscoveryService(
                             if (!string.IsNullOrEmpty(displayName))
                                 displayNames.Add(displayName);
                         }
-                        catch { }
+                        catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
                     }
                 }
-                catch { }
+                catch (Exception ex) { logService.LogDebug($"Failed to open registry key for uninstall enumeration: {ex.Message}"); }
             }
-        });
+        }).ConfigureAwait(false);
 
-        return (keyNames, displayNames);
+        return new RegistryUninstallInfo(keyNames, displayNames, allKeyNames);
     }
 
     #endregion

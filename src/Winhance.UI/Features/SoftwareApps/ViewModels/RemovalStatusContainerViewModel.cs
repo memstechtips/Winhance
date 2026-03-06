@@ -7,7 +7,8 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
 public class RemovalStatusContainerViewModel(
     IScheduledTaskService scheduledTaskService,
-    ILogService logService) : INotifyPropertyChanged, IDisposable
+    ILogService logService,
+    IFileSystemService fileSystemService) : INotifyPropertyChanged, IDisposable
 {
     public ObservableCollection<RemovalStatusViewModel> RemovalStatusItems { get; } = new()
     {
@@ -18,7 +19,8 @@ public class RemovalStatusContainerViewModel(
             "BloatRemoval.ps1",
             "BloatRemoval",
             scheduledTaskService,
-            logService),
+            logService,
+            fileSystemService),
 
         new RemovalStatusViewModel(
             "Microsoft Edge",
@@ -27,7 +29,8 @@ public class RemovalStatusContainerViewModel(
             "EdgeRemoval.ps1",
             "EdgeRemoval",
             scheduledTaskService,
-            logService),
+            logService,
+            fileSystemService),
 
         new RemovalStatusViewModel(
             "OneDrive",
@@ -36,7 +39,8 @@ public class RemovalStatusContainerViewModel(
             "OneDriveRemoval.ps1",
             "OneDriveRemoval",
             scheduledTaskService,
-            logService)
+            logService,
+            fileSystemService)
     };
 
     public async Task RefreshAllStatusesAsync()

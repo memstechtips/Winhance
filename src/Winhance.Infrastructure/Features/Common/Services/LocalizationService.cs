@@ -11,17 +11,19 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class LocalizationService : ILocalizationService
 {
     private CultureInfo _currentCulture;
-    private Dictionary<string, string> _currentStrings;
-    private Dictionary<string, string> _fallbackStrings;
+    private volatile Dictionary<string, string> _currentStrings;
+    private volatile Dictionary<string, string> _fallbackStrings;
     private readonly string _localizationPath;
+    private readonly IFileSystemService _fileSystemService;
     private string _currentLanguageCode;
 
     public event EventHandler? LanguageChanged;
 
-    public LocalizationService()
+    public LocalizationService(IFileSystemService fileSystemService)
     {
+        _fileSystemService = fileSystemService;
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        _localizationPath = Path.Combine(baseDir, "Localization");
+        _localizationPath = _fileSystemService.CombinePath(baseDir, "Localization");
 
         _currentCulture = CultureInfo.CurrentUICulture;
         _fallbackStrings = LoadLanguageFile("en");
@@ -99,18 +101,18 @@ public class LocalizationService : ILocalizationService
         return "en";
     }
 
-    public IEnumerable<string> GetAvailableLanguages()
+    private IEnumerable<string> GetAvailableLanguages()
     {
         try
         {
-            if (!Directory.Exists(_localizationPath))
+            if (!_fileSystemService.DirectoryExists(_localizationPath))
             {
                 return new[] { "en" };
             }
 
-            var jsonFiles = Directory.GetFiles(_localizationPath, "*.json");
+            var jsonFiles = _fileSystemService.GetFiles(_localizationPath, "*.json");
             var languages = jsonFiles
-                .Select(Path.GetFileNameWithoutExtension)
+                .Select(_fileSystemService.GetFileNameWithoutExtension)
                 .Where(lang => !string.IsNullOrEmpty(lang))
                 .OrderBy(lang => lang)
                 .ToList();
@@ -132,14 +134,14 @@ public class LocalizationService : ILocalizationService
     {
         try
         {
-            var filePath = Path.Combine(_localizationPath, $"{languageCode}.json");
+            var filePath = _fileSystemService.CombinePath(_localizationPath, $"{languageCode}.json");
 
-            if (!File.Exists(filePath))
+            if (!_fileSystemService.FileExists(filePath))
             {
                 return new Dictionary<string, string>();
             }
 
-            var json = File.ReadAllText(filePath);
+            var json = _fileSystemService.ReadAllText(filePath);
             var dictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 
             return dictionary ?? new Dictionary<string, string>();

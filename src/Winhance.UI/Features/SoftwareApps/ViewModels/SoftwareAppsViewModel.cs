@@ -2,8 +2,11 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Views;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
@@ -11,87 +14,92 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 {
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
+    private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
-    private readonly IConfigReviewService _configReviewService;
+    private readonly IConfigReviewModeService _configReviewModeService;
+    private readonly IConfigReviewBadgeService _configReviewBadgeService;
+    private readonly IScheduledTaskService _scheduledTaskService;
+    private readonly IFileSystemService _fileSystemService;
+    private bool _isSubscribed;
 
     public SoftwareAppsViewModel(
         WindowsAppsViewModel windowsAppsViewModel,
         ExternalAppsViewModel externalAppsViewModel,
         ILocalizationService localizationService,
         ILogService logService,
+        IDialogService dialogService,
         IUserPreferencesService userPreferencesService,
-        IConfigReviewService configReviewService)
+        IConfigReviewModeService configReviewModeService,
+        IConfigReviewBadgeService configReviewBadgeService,
+        IScheduledTaskService scheduledTaskService,
+        IFileSystemService fileSystemService)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
         _localizationService = localizationService;
         _logService = logService;
+        _dialogService = dialogService;
         _userPreferencesService = userPreferencesService;
-        _configReviewService = configReviewService;
+        _configReviewModeService = configReviewModeService;
+        _configReviewBadgeService = configReviewBadgeService;
+        _scheduledTaskService = scheduledTaskService;
+        _fileSystemService = fileSystemService;
 
-        // Load saved view mode preference (default: Card)
-        var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
-        _isCardViewMode = savedViewMode == "Card";
-
-        WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-        ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-        WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
-        ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
-        _localizationService.LanguageChanged += OnLanguageChanged;
-        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
-
-        UpdateButtonStates();
+        // Initialize partial property defaults (SearchText first since
+        // tab-change handlers forward it to child ViewModels)
+        SearchText = string.Empty;
+        IsWindowsAppsTabSelected = true;
     }
 
     public WindowsAppsViewModel WindowsAppsViewModel { get; }
     public ExternalAppsViewModel ExternalAppsViewModel { get; }
 
     [ObservableProperty]
-    private bool _isWindowsAppsTabSelected = true;
+    public partial bool IsWindowsAppsTabSelected { get; set; }
 
     [ObservableProperty]
-    private bool _isExternalAppsTabSelected = false;
+    public partial bool IsExternalAppsTabSelected { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
     [ObservableProperty]
-    private bool _isCardViewMode = true;
+    public partial bool IsCardViewMode { get; set; }
 
     [ObservableProperty]
-    private bool _isInReviewMode = false;
+    public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
-    private int _windowsAppsSelectedCount = 0;
+    public partial int WindowsAppsSelectedCount { get; set; }
 
     [ObservableProperty]
-    private int _externalAppsSelectedCount = 0;
+    public partial int ExternalAppsSelectedCount { get; set; }
 
     // Action choice properties for review mode
     [ObservableProperty]
-    private bool _isWindowsAppsInstallAction = false;
+    public partial bool IsWindowsAppsInstallAction { get; set; }
 
     [ObservableProperty]
-    private bool _isWindowsAppsRemoveAction = false;
+    public partial bool IsWindowsAppsRemoveAction { get; set; }
 
     [ObservableProperty]
-    private bool _isExternalAppsInstallAction = false;
+    public partial bool IsExternalAppsInstallAction { get; set; }
 
     [ObservableProperty]
-    private bool _isExternalAppsRemoveAction = false;
+    public partial bool IsExternalAppsRemoveAction { get; set; }
 
     [ObservableProperty]
-    private bool _canInstallItems = false;
+    public partial bool CanInstallItems { get; set; }
 
     [ObservableProperty]
-    private bool _canRemoveItems = false;
+    public partial bool CanRemoveItems { get; set; }
 
     public bool IsWindowsAppsActionChosen => IsWindowsAppsInstallAction || IsWindowsAppsRemoveAction;
     public bool IsExternalAppsActionChosen => IsExternalAppsInstallAction || IsExternalAppsRemoveAction;
 
-    public bool HasWindowsAppsInConfig => _configReviewService.IsFeatureInConfig(
+    public bool HasWindowsAppsInConfig => _configReviewBadgeService.IsFeatureInConfig(
         FeatureIds.WindowsApps);
-    public bool HasExternalAppsInConfig => _configReviewService.IsFeatureInConfig(
+    public bool HasExternalAppsInConfig => _configReviewBadgeService.IsFeatureInConfig(
         FeatureIds.ExternalApps);
 
     /// <summary>
@@ -158,8 +166,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     private void SyncSoftwareAppsReviewedState()
     {
-        _configReviewService.IsSoftwareAppsReviewed = IsSoftwareAppsReviewed;
-        _configReviewService.NotifyBadgeStateChanged();
+        _configReviewBadgeService.IsSoftwareAppsReviewed = IsSoftwareAppsReviewed;
+        _configReviewBadgeService.NotifyBadgeStateChanged();
     }
 
     /// <summary>
@@ -207,9 +215,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
 
-    public string ReviewWindowsAppsBanner => ReviewWindowsAppsBannerText;
-    public string ReviewExternalAppsBanner => ReviewExternalAppsBannerText;
-
     public string ReviewWindowsAppsBannerText
     {
         get
@@ -242,7 +247,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     partial void OnIsCardViewModeChanged(bool value)
     {
-        _ = _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table");
+        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table").FireAndForget(_logService);
     }
 
     partial void OnSearchTextChanged(string value)
@@ -328,7 +333,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        IsInReviewMode = _configReviewService.IsInReviewMode;
+        IsInReviewMode = _configReviewModeService.IsInReviewMode;
 
         if (!IsInReviewMode)
         {
@@ -398,6 +403,25 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
         try
         {
+            // Subscribe to events and load preferences on first initialization
+            // (deferred from constructor to avoid side effects during construction)
+            if (!_isSubscribed)
+            {
+                _isSubscribed = true;
+
+                var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
+                IsCardViewMode = savedViewMode == "Card";
+
+                WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+                ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+                WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
+                ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
+                _localizationService.LanguageChanged += OnLanguageChanged;
+                _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+
+                UpdateButtonStates();
+            }
+
             if (!WindowsAppsViewModel.IsInitialized)
             {
                 _logService.LogInformation("[SoftwareAppsViewModel] Loading WindowsAppsViewModel");
@@ -460,6 +484,31 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task ShowHelpAsync()
+    {
+        var closeButtonText = _localizationService.GetString("Help_CloseHelp");
+
+        if (IsWindowsAppsTabSelected)
+        {
+            var vm = new RemovalStatusContainerViewModel(_scheduledTaskService, _logService, _fileSystemService);
+            var content = new WindowsAppsHelpContent(_localizationService) { DataContext = vm };
+            _ = vm.RefreshAllStatusesAsync();
+            await _dialogService.ShowCustomContentDialogAsync(
+                _localizationService.GetString("Help_WindowsApps_Title"),
+                content,
+                closeButtonText);
+            vm.Dispose();
+        }
+        else
+        {
+            await _dialogService.ShowCustomContentDialogAsync(
+                _localizationService.GetString("Help_ExternalApps_Title"),
+                new ExternalAppsHelpContent(_localizationService),
+                closeButtonText);
+        }
+    }
+
+    [RelayCommand]
     public void SelectWindowsAppsTab()
     {
         IsWindowsAppsTabSelected = true;
@@ -476,7 +525,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
-            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+            _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
             WindowsAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             WindowsAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;

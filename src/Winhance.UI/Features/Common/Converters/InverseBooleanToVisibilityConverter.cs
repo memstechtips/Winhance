@@ -7,7 +7,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// Converts a boolean value to a Visibility value, with the boolean value inverted.
 /// True becomes Collapsed, False becomes Visible.
 /// </summary>
-public class InverseBooleanToVisibilityConverter : IValueConverter
+public partial class InverseBooleanToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {

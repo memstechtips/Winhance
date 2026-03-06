@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ConfigurationApplicationBridgeService
+public class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
 {
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
@@ -46,7 +46,7 @@ public class ConfigurationApplicationBridgeService
         foreach (var wave in waves)
         {
             var tasks = wave.Select(tuple => ApplySettingItemAsync(tuple.item, tuple.setting, confirmationHandler));
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
             foreach (var result in results)
             {
@@ -83,7 +83,7 @@ public class ConfigurationApplicationBridgeService
 
     private object ResolveSelectionValue(SettingDefinition setting, ConfigurationItem item)
     {
-        if (setting.Id == "power-plan-selection")
+        if (setting.Id == SettingIds.PowerPlanSelection)
         {
             return ResolvePowerPlanValue(setting, item);
         }
@@ -125,7 +125,7 @@ public class ConfigurationApplicationBridgeService
         throw new InvalidOperationException("Configuration file is invalid or corrupted.");
     }
 
-    private object ResolveNumericRangeValue(ConfigurationItem item)
+    private object? ResolveNumericRangeValue(ConfigurationItem item)
     {
         if (item.PowerSettings == null || item.PowerSettings.Count == 0)
             return null;
@@ -175,7 +175,7 @@ public class ConfigurationApplicationBridgeService
         Failed
     }
 
-    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(List<ConfigurationItem> items)
+    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(IReadOnlyList<ConfigurationItem> items)
     {
         var waves = new List<List<(ConfigurationItem, SettingDefinition)>>();
         var processedIds = new HashSet<string>();
@@ -259,7 +259,7 @@ public class ConfigurationApplicationBridgeService
                     ? (object)ResolveSelectionValue(setting, item)
                     : (object)(item.IsSelected ?? false);
 
-                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting);
+                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting).ConfigureAwait(false);
 
                 if (!confirmed)
                 {
@@ -270,7 +270,7 @@ public class ConfigurationApplicationBridgeService
                 checkboxResult = checkbox;
             }
 
-            object valueToApply = null;
+            object? valueToApply = null;
 
             if (setting.InputType == InputType.Selection)
             {
@@ -285,23 +285,25 @@ public class ConfigurationApplicationBridgeService
             {
                 if (item.IsSelected ?? false)
                 {
-                    await _settingApplicationService.ApplySettingAsync(
-                        item.Id,
-                        false,
-                        null,
-                        false,
-                        setting.ActionCommand,
-                        skipValuePrerequisites: true);
+                    await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                    {
+                        SettingId = item.Id,
+                        Enable = false,
+                        CommandString = setting.ActionCommand,
+                        SkipValuePrerequisites = true
+                    }).ConfigureAwait(false);
                 }
             }
             else
             {
-                await _settingApplicationService.ApplySettingAsync(
-                    item.Id,
-                    item.IsSelected ?? false,
-                    valueToApply,
-                    checkboxResult,
-                    skipValuePrerequisites: true);
+                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                {
+                    SettingId = item.Id,
+                    Enable = item.IsSelected ?? false,
+                    Value = valueToApply,
+                    CheckboxResult = checkboxResult,
+                    SkipValuePrerequisites = true
+                }).ConfigureAwait(false);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");
@@ -314,7 +316,7 @@ public class ConfigurationApplicationBridgeService
         }
     }
 
-    private SettingDefinition FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    private SettingDefinition? FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
     {
         foreach (var featureSettings in allSettings.Values)
         {

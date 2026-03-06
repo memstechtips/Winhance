@@ -19,6 +19,8 @@
     <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Required for CommunityToolkit.Mvvm 8.4.0 partial property source generators on .NET 10 -->
+    <LangVersion>preview</LangVersion>
     <!-- MRT/PRI generation - requires Visual Studio MSBuild -->
     <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
     <AppxPackage>false</AppxPackage>
@@ -28,11 +30,16 @@
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
-    <Version>26.02.20</Version>
-    <FileVersion>26.02.20</FileVersion>
-    <AssemblyVersion>26.02.20</AssemblyVersion>
-    <InformationalVersion>v26.02.20</InformationalVersion>
+    <Version>26.03.06</Version>
+    <FileVersion>26.03.06</FileVersion>
+    <AssemblyVersion>26.03.06</AssemblyVersion>
+    <InformationalVersion>v26.03.06</InformationalVersion>
+    <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Winhance.UI.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Windows App SDK - Use 1.7.x for stability -->
@@ -110,6 +117,10 @@
     <AdditionalFiles Include="NativeMethods.txt" />
   </ItemGroup>
 </Project>
+
+
+
+
 
 
 
