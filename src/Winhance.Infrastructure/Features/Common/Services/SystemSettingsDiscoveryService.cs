@@ -417,6 +417,21 @@ public class SystemSettingsDiscoveryService(
             return string.Join(" ", bytes);
         }
 
+        // Extract sub-value for CompositeStringKey settings
+        if (registrySetting?.CompositeStringKey != null && value is string compositeStr)
+        {
+            foreach (var entry in compositeStr.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var eqIndex = entry.IndexOf('=');
+                if (eqIndex > 0 &&
+                    string.Equals(entry[..eqIndex], registrySetting.CompositeStringKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry[(eqIndex + 1)..];
+                }
+            }
+            return registrySetting.DefaultValue?.ToString();
+        }
+
         return value.ToString()!;
     }
 
