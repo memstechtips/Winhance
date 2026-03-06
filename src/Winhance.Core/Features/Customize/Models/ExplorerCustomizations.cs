@@ -75,11 +75,12 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CLASSES_ROOT\*\shell\TakeOwnership",
-                            ValueName = null,
-                            EnabledValue = [null],
+                            ValueName = "",
+                            EnabledValue = ["Take Ownership"],
                             DisabledValue = [null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            RecommendedValue = "Take Ownership",
+                            ValueType = RegistryValueKind.String,
                         }
                     },
                     RegContents = new List<RegContentSetting>
@@ -156,11 +157,12 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions",
-                            ValueName = null,
-                            EnabledValue = [null],
+                            ValueName = "ExplorerCommandHandler",
+                            EnabledValue = ["{4ac6c205-2853-4bf5-b47c-919a42a48a16}"],
                             DisabledValue = [null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
                         }
                     },
                     RegContents = new List<RegContentSetting>
