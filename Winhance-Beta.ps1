@@ -67,8 +67,13 @@ try {
     Write-Host ""
     Write-Host "Download completed successfully!" -ForegroundColor Green
     Write-Host "Launching Winhance Beta Installer..." -ForegroundColor Cyan
-    Start-Process -FilePath $installerPath
-    Write-Host "Installer launched." -ForegroundColor Green
+    Start-Process -FilePath $installerPath -ArgumentList "/SILENT /SUPPRESSMSGBOXES /MERGETASKS=`"regularinstall\desktopicon,regularinstall\startmenuicon`"" -Wait
+    Write-Host "Installation completed." -ForegroundColor Green
+    $appPath = Join-Path $env:ProgramFiles "Winhance\Winhance.exe"
+    if (Test-Path $appPath) {
+        Write-Host "Launching Winhance..." -ForegroundColor Cyan
+        Start-Process -FilePath $appPath
+    }
 } catch {
     Write-Host ""
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red

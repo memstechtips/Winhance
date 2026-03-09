@@ -175,83 +175,16 @@ internal class AppRemovalScriptSection
 
     public void AppendWinhanceInstallerScriptContent(StringBuilder sb, string indent = "")
     {
-        sb.AppendLine($"{indent}# Create WinhanceInstall.ps1 script");
-        sb.AppendLine($"{indent}$winhanceInstallContent = @'");
-        sb.AppendLine(@"
-function Get-FileFromWeb {
-    param ([Parameter(Mandatory)][string]$URL, [Parameter(Mandatory)][string]$File)
-    function Show-Progress {
-        param ([Parameter(Mandatory)][Single]$TotalValue, [Parameter(Mandatory)][Single]$CurrentValue, [Parameter(Mandatory)][string]$ProgressText, [Parameter()][int]$BarSize = 10, [Parameter()][switch]$Complete)
-        $percent = $CurrentValue / $TotalValue
-        $percentComplete = $percent * 100
-        if ($psISE) { Write-Progress ""$ProgressText"" -id 0 -percentComplete $percentComplete }
-        else { Write-Host -NoNewLine ""`r$ProgressText $(''.PadRight($BarSize * $percent, [char]9608).PadRight($BarSize, [char]9617)) $($percentComplete.ToString('##0.00').PadLeft(6)) % "" }
-    }
-    try {
-        $request = [System.Net.HttpWebRequest]::Create($URL)
-        $response = $request.GetResponse()
-        if ($response.StatusCode -eq 401 -or $response.StatusCode -eq 403 -or $response.StatusCode -eq 404) { throw ""Remote file either doesn't exist, is unauthorized, or is forbidden for '$URL'."" }
-        if ($File -match '^\.\\') { $File = Join-Path (Get-Location -PSProvider 'FileSystem') ($File -Split '^\.')[1] }
-        if ($File -and !(Split-Path $File)) { $File = Join-Path (Get-Location -PSProvider 'FileSystem') $File }
-        if ($File) { $fileDirectory = $([System.IO.Path]::GetDirectoryName($File)); if (!(Test-Path($fileDirectory))) { [System.IO.Directory]::CreateDirectory($fileDirectory) | Out-Null } }
-        [long]$fullSize = $response.ContentLength
-        [byte[]]$buffer = new-object byte[] 1048576
-        [long]$total = [long]$count = 0
-        $reader = $response.GetResponseStream()
-        $writer = new-object System.IO.FileStream $File, 'Create'
-        do {
-            $count = $reader.Read($buffer, 0, $buffer.Length)
-            $writer.Write($buffer, 0, $count)
-            $total += $count
-            if ($fullSize -gt 0) { Show-Progress -TotalValue $fullSize -CurrentValue $total -ProgressText "" Downloading Winhance Installer"" }
-        } while ($count -gt 0)
-    }
-    finally {
-        $reader.Close()
-        $writer.Close()
-    }
-}
-
-$installerPath = ""C:\ProgramData\Winhance\Unattend\WinhanceInstaller.exe""
-$downloadUrl = ""https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe""
-
-try {
-    Write-Host ""Downloading Winhance Installer from GitHub..."" -ForegroundColor Cyan
-    Get-FileFromWeb -URL $downloadUrl -File $installerPath
-    Write-Host """"
-    Write-Host ""Download completed successfully!"" -ForegroundColor Green
-    Write-Host ""Launching Winhance Installer..."" -ForegroundColor Cyan
-    Start-Process -FilePath $installerPath
-    Write-Host ""Installer launched."" -ForegroundColor Green
-} catch {
-    Write-Host """"
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    Write-Host """"
-    Write-Host ""Press any key to exit..."" -ForegroundColor Yellow
-    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-}
-");
-        sb.AppendLine("'@");
-        sb.AppendLine();
-        sb.AppendLine($"{indent}$winhanceInstallPath = Join-Path $scriptsDir \"WinhanceInstall.ps1\"");
-        sb.AppendLine($"{indent}try {{");
-        sb.AppendLine($"{indent}    $winhanceInstallContent | Out-File -FilePath $winhanceInstallPath -Encoding UTF8 -Force");
-        sb.AppendLine($"{indent}    Write-Log \"Created: WinhanceInstall.ps1\" \"SUCCESS\"");
-        sb.AppendLine($"{indent}}} catch {{");
-        sb.AppendLine($"{indent}    Write-Log \"Failed to create WinhanceInstall.ps1: $($_.Exception.Message)\" \"ERROR\"");
-        sb.AppendLine($"{indent}}}");
-        sb.AppendLine();
         sb.AppendLine($"{indent}# Create desktop shortcut for Winhance installer");
         sb.AppendLine($"{indent}try {{");
-        sb.AppendLine($"{indent}    $targetFile = Join-Path $scriptsDir \"WinhanceInstall.ps1\"");
         sb.AppendLine($"{indent}    $shortcutPath = \"C:\\Users\\Default\\Desktop\\Install Winhance.lnk\"");
         sb.AppendLine($"{indent}    $WshShell = New-Object -ComObject WScript.Shell");
         sb.AppendLine($"{indent}    $shortcut = $WshShell.CreateShortcut($shortcutPath)");
         sb.AppendLine($"{indent}    $shortcut.TargetPath = \"{ScriptPaths.PowerShellExePath}\"");
-        sb.AppendLine($"{indent}    $shortcut.Arguments = \"-ExecutionPolicy Bypass -NoProfile -File `\"$targetFile`\"\"");
+        sb.AppendLine($"{indent}    $shortcut.Arguments = \"-ExecutionPolicy Bypass -NoProfile -Command `\"irm 'https://get.winhance.net' | iex`\"\"");
         sb.AppendLine($"{indent}    $shortcut.IconLocation = \"C:\\Windows\\System32\\appwiz.cpl,0\"");
         sb.AppendLine($"{indent}    $shortcut.WorkingDirectory = \"C:\\Windows\\System32\"");
-        sb.AppendLine($"{indent}    $shortcut.Description = \"Launch Winhance Installer with Administrator Privileges\"");
+        sb.AppendLine($"{indent}    $shortcut.Description = \"Download and install Winhance from GitHub\"");
         sb.AppendLine($"{indent}    $shortcut.Save()");
         sb.AppendLine($"{indent}    $bytes = [System.IO.File]::ReadAllBytes($shortcutPath)");
         sb.AppendLine($"{indent}    $bytes[21] = 34");
