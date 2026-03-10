@@ -220,8 +220,8 @@ end;
 Name: "portableinstall"; Description: "Perform a portable installation"; GroupDescription: "Installation type:"; Flags: unchecked exclusive
 Name: "portableinstall\dotnetruntime"; Description: "Install .NET 10 Runtime (recommended)"; GroupDescription: "Portable options:"; Flags: unchecked
 Name: "regularinstall"; Description: "Perform a regular installation"; GroupDescription: "Installation type:"; Flags: exclusive
-Name: "regularinstall\desktopicon"; Description: "Create a shortcut on the Desktop"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
-Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Start menu"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+Name: "regularinstall\desktopicon"; Description: "Create a shortcut on the Desktop"; GroupDescription: "Additional shortcuts:"
+Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Start menu"; GroupDescription: "Additional shortcuts:"
 
 [Files]
 ; All application files and subdirectories (recursive)
