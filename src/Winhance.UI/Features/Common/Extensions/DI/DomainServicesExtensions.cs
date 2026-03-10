@@ -71,7 +71,8 @@ public static class DomainServicesExtensions
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
             sp.GetRequiredService<IProcessExecutor>(),
-            sp.GetRequiredService<IFileSystemService>()
+            sp.GetRequiredService<IFileSystemService>(),
+            sp.GetRequiredService<IPowerSchemeOperations>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
