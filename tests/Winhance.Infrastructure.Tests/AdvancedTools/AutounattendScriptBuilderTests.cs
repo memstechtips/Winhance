@@ -196,7 +196,7 @@ public class AutounattendScriptBuilderTests
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
 
-        result.Should().Contain("WinhanceInstall.ps1");
+        result.Should().Contain("Install Winhance.lnk");
     }
 
     // ---------------------------------------------------------------
