@@ -176,6 +176,8 @@ public class WinGetBootstrapper : IWinGetBootstrapper
 
     public async Task<bool> UpgradeAppInstallerAsync(CancellationToken cancellationToken = default)
     {
+        bool taskStarted = false;
+
         try
         {
             var bundledPath = WinGetCliRunner.GetBundledWinGetExePath();
@@ -193,26 +195,80 @@ public class WinGetBootstrapper : IWinGetBootstrapper
                 arguments,
                 onOutputLine: line =>
                 {
-                    if (!IsWinGetOutputNoise(line))
-                        _logService?.LogInformation($"[winget-upgrade] {line}");
+                    if (IsWinGetOutputNoise(line))
+                        return;
+
+                    _logService?.LogInformation($"[winget-upgrade] {line}");
+
+                    // Use the progress parser to detect the phase.
+                    // Only show TaskProgress when winget is doing real work
+                    // (Found / Downloading / Installing), not for informational
+                    // lines like "No applicable update found".
+                    var progress = WinGetProgressParser.ParseLine(line);
+                    if (!taskStarted
+                        && progress != null
+                        && progress.Phase is WinGetProgressParser.WinGetPhase.Found
+                            or WinGetProgressParser.WinGetPhase.Downloading
+                            or WinGetProgressParser.WinGetPhase.Installing)
+                    {
+                        taskStarted = true;
+                        _taskProgressService?.StartTask(
+                            _localization.GetString("Progress_WinGet_Updating") ?? "Updating WinGet...",
+                            isIndeterminate: true);
+                    }
+
+                    if (taskStarted)
+                    {
+                        _taskProgressService?.UpdateDetailedProgress(
+                            new Core.Features.Common.Models.TaskProgressDetail
+                            {
+                                TerminalOutput = line
+                            });
+                    }
                 },
                 onErrorLine: line => _logService?.LogWarning($"[winget-upgrade-err] {line}"),
                 cancellationToken: cancellationToken,
                 timeoutMs: 120_000,
                 exePathOverride: bundledPath).ConfigureAwait(false);
 
-            if (WinGetExitCodes.IsSuccess(result.ExitCode))
+            // Only return true when an upgrade was actually performed.
+            // UpdateNotApplicable / AlreadyInstalled mean no upgrade was needed.
+            bool actuallyUpgraded = result.ExitCode == WinGetExitCodes.Ok
+                                 || result.ExitCode == WinGetExitCodes.RestartRequired;
+
+            if (actuallyUpgraded)
             {
                 _logService?.LogInformation($"AppInstaller upgrade succeeded (exit code: 0x{result.ExitCode:X8})");
-                return true;
+
+                if (taskStarted)
+                {
+                    _taskProgressService?.UpdateProgress(100,
+                        _localization.GetString("Progress_WinGet_UpdateSuccess")
+                        ?? "WinGet updated successfully");
+                }
+            }
+            else if (result.ExitCode == WinGetExitCodes.UpdateNotApplicable
+                  || result.ExitCode == WinGetExitCodes.AlreadyInstalled)
+            {
+                _logService?.LogInformation($"AppInstaller is already up to date (exit code: 0x{result.ExitCode:X8})");
+            }
+            else
+            {
+                _logService?.LogWarning($"AppInstaller upgrade returned exit code: 0x{result.ExitCode:X8}");
             }
 
-            _logService?.LogWarning($"AppInstaller upgrade returned exit code: 0x{result.ExitCode:X8}");
-            return false;
+            if (taskStarted)
+                _taskProgressService?.CompleteTask();
+
+            return actuallyUpgraded;
         }
         catch (Exception ex)
         {
             _logService?.LogWarning($"AppInstaller upgrade failed: {ex.Message}");
+
+            if (taskStarted)
+                _taskProgressService?.CompleteTask();
+
             return false;
         }
     }
