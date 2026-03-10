@@ -1,0 +1,24 @@
+# Auto detect text files and ensure CRLF line endings
+* text=auto eol=crlf
+
+# Explicitly declare text files
+*.cs text eol=crlf
+*.xaml text eol=crlf
+*.csproj text eol=crlf
+*.sln text eol=crlf
+*.json text eol=crlf
+*.xml text eol=crlf
+*.md text eol=crlf
+*.txt text eol=crlf
+*.props text eol=crlf
+*.targets text eol=crlf
+
+# Denote binary files
+*.dll binary
+*.exe binary
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
