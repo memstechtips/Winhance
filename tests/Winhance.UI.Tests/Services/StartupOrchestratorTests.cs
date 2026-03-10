@@ -27,11 +27,11 @@ public class StartupOrchestratorTests
     {
         // Default preferences
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("true");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(true);
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("true");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(true);
     }
 
     private StartupOrchestrator CreateSut(TooltipRefreshEventHandler? tooltipHandler = null)
@@ -106,8 +106,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_WhenBackupAlreadyCompleted_SkipsBackupPhase()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("true");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(true);
 
         var sut = CreateSut();
         var (statusProgress, detailedProgress, _) = CreateProgressTracking();
@@ -121,8 +121,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_WhenBackupNotCompleted_CreatesBackup()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("false");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(false);
         _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
             .Returns(Task.CompletedTask);
 
@@ -138,8 +138,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_WhenBackupSucceeds_SetsPreferenceToTrue()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("false");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(false);
         _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
             .Returns(Task.CompletedTask);
 
@@ -149,15 +149,15 @@ public class StartupOrchestratorTests
         await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
 
         _preferencesService.Verify(p => p.SetPreferenceAsync(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "true"), Times.Once);
+            UserPreferenceKeys.InitialConfigBackupCompleted, true), Times.Once);
     }
 
     [Fact]
     public async Task RunStartupSequenceAsync_Phase2Failure_ContinuesToPhase3()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("false");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(false);
         _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
             .ThrowsAsync(new InvalidOperationException("Backup failed"));
 
@@ -177,8 +177,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_WhenSkipBackupTrue_SkipsSystemBackup()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("true");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(true);
 
         var sut = CreateSut();
         var (statusProgress, detailedProgress, _) = CreateProgressTracking();
@@ -193,8 +193,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_WhenSkipBackupFalse_RunsSystemBackup()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("false");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(false);
         var backupResult = new BackupResult { Success = true };
         _backupService.Setup(b => b.EnsureInitialBackupsAsync(
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
@@ -214,8 +214,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_Phase3Failure_ContinuesToPhase4()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("false");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(false);
         _backupService.Setup(b => b.EnsureInitialBackupsAsync(
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Backup failed"));
@@ -306,8 +306,8 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_WhenBackupSkipped_ReturnsNullBackupResult()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("true");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(true);
 
         var sut = CreateSut();
         var (statusProgress, detailedProgress, _) = CreateProgressTracking();
@@ -323,11 +323,11 @@ public class StartupOrchestratorTests
     public async Task RunStartupSequenceAsync_ExecutesAllPhasesInOrder()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("true");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(true);
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("true");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(true);
 
         var callOrder = new List<string>();
         _settingsRegistry.Setup(r => r.InitializeAsync())
@@ -363,13 +363,13 @@ public class StartupOrchestratorTests
         _settingsRegistry.Setup(r => r.InitializeAsync())
             .ThrowsAsync(new Exception("Phase 1 fail"));
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.InitialConfigBackupCompleted, "false"))
-            .Returns("false");
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(false);
         _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
             .ThrowsAsync(new Exception("Phase 2 fail"));
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, "false"))
-            .Returns("false");
+            UserPreferenceKeys.SkipSystemBackup, false))
+            .Returns(false);
         _backupService.Setup(b => b.EnsureInitialBackupsAsync(
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Phase 3 fail"));

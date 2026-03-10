@@ -81,8 +81,8 @@ public class StartupOrchestrator : IStartupOrchestrator
         try
         {
             var backupCompleted = _preferencesService.GetPreference(
-                UserPreferenceKeys.InitialConfigBackupCompleted, "false");
-            if (!string.Equals(backupCompleted, "true", StringComparison.OrdinalIgnoreCase))
+                UserPreferenceKeys.InitialConfigBackupCompleted, false);
+            if (!backupCompleted)
             {
                 statusProgress.Report("Loading_CreatingConfigBackup");
                 StartupLogger.Log("StartupOrchestrator", "Phase 2: Creating user backup config...");
@@ -95,7 +95,7 @@ public class StartupOrchestrator : IStartupOrchestrator
                 {
                     await backupTask; // observe exceptions
                     await _preferencesService.SetPreferenceAsync(
-                        UserPreferenceKeys.InitialConfigBackupCompleted, "true");
+                        UserPreferenceKeys.InitialConfigBackupCompleted, true);
                     StartupLogger.Log("StartupOrchestrator", "Phase 2: User backup config done");
                 }
                 else
@@ -120,8 +120,8 @@ public class StartupOrchestrator : IStartupOrchestrator
         // 3. System restore point (respects SkipSystemBackup preference)
         try
         {
-            var skipBackup = _preferencesService.GetPreference(UserPreferenceKeys.SkipSystemBackup, "false");
-            if (!string.Equals(skipBackup, "true", StringComparison.OrdinalIgnoreCase))
+            var skipBackup = _preferencesService.GetPreference(UserPreferenceKeys.SkipSystemBackup, false);
+            if (!skipBackup)
             {
                 statusProgress.Report("Loading_CheckingSystemProtection");
                 StartupLogger.Log("StartupOrchestrator", "Phase 3: Checking system protection...");
