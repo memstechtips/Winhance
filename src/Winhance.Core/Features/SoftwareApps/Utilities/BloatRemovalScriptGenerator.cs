@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
-    public const string ScriptVersion = "2.2";
+    public const string ScriptVersion = "2.3";
     private static readonly ConcurrentDictionary<string, Regex> ArrayPatternCache = new();
 
     public static string GenerateScript(
@@ -139,29 +139,39 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine("    )");
         sb.AppendLine("    if ($Items.Count -eq 0) { return }");
         sb.AppendLine();
-        sb.AppendLine("    $threadCount = [Math]::Min($Items.Count, $MaxThreads)");
-        sb.AppendLine("    Write-Log \"Removing $($Items.Count) $Label via runspace pool (threads=$threadCount)...\"");
-        sb.AppendLine("    $pool = [RunspaceFactory]::CreateRunspacePool(1, $threadCount)");
-        sb.AppendLine("    $pool.Open()");
-        sb.AppendLine("    $jobs = [System.Collections.Generic.List[object]]::new()");
+        sb.AppendLine("    try {");
+        sb.AppendLine("        $threadCount = [Math]::Min($Items.Count, $MaxThreads)");
+        sb.AppendLine("        Write-Log \"Removing $($Items.Count) $Label via runspace pool (threads=$threadCount)...\"");
+        sb.AppendLine("        $pool = [RunspaceFactory]::CreateRunspacePool(1, $threadCount)");
+        sb.AppendLine("        $pool.Open()");
+        sb.AppendLine("        $jobs = [System.Collections.Generic.List[object]]::new()");
         sb.AppendLine();
-        sb.AppendLine("    foreach ($item in $Items) {");
-        sb.AppendLine("        $ps = [PowerShell]::Create().AddScript($ScriptBlock).AddArgument($item)");
-        sb.AppendLine("        $ps.RunspacePool = $pool");
-        sb.AppendLine("        $jobs.Add(@{ Pipe = $ps; Handle = $ps.BeginInvoke() })");
-        sb.AppendLine("    }");
+        sb.AppendLine("        foreach ($item in $Items) {");
+        sb.AppendLine("            $ps = [PowerShell]::Create().AddScript($ScriptBlock).AddArgument($item)");
+        sb.AppendLine("            $ps.RunspacePool = $pool");
+        sb.AppendLine("            $jobs.Add(@{ Pipe = $ps; Handle = $ps.BeginInvoke() })");
+        sb.AppendLine("        }");
         sb.AppendLine();
-        sb.AppendLine("    foreach ($job in $jobs) {");
-        sb.AppendLine("        $result = $job.Pipe.EndInvoke($job.Handle)");
-        sb.AppendLine("        foreach ($r in $result) {");
+        sb.AppendLine("        foreach ($job in $jobs) {");
+        sb.AppendLine("            $result = $job.Pipe.EndInvoke($job.Handle)");
+        sb.AppendLine("            foreach ($r in $result) {");
+        sb.AppendLine("                if ($r.Success) { Write-Log ($SuccessFormat -f $r.Name) }");
+        sb.AppendLine("                else { Write-Log ($FailFormat -f $r.Name, $r.Error) }");
+        sb.AppendLine("            }");
+        sb.AppendLine("            $job.Pipe.Dispose()");
+        sb.AppendLine("        }");
+        sb.AppendLine("        $pool.Close()");
+        sb.AppendLine("        $pool.Dispose()");
+        sb.AppendLine("        Write-Log \"Parallel $Label removal completed\"");
+        sb.AppendLine("    } catch {");
+        sb.AppendLine("        Write-Log \"Parallel execution unavailable, falling back to sequential removal for $Label...\"");
+        sb.AppendLine("        foreach ($item in $Items) {");
+        sb.AppendLine("            $r = & $ScriptBlock $item");
         sb.AppendLine("            if ($r.Success) { Write-Log ($SuccessFormat -f $r.Name) }");
         sb.AppendLine("            else { Write-Log ($FailFormat -f $r.Name, $r.Error) }");
         sb.AppendLine("        }");
-        sb.AppendLine("        $job.Pipe.Dispose()");
+        sb.AppendLine("        Write-Log \"Sequential $Label removal completed\"");
         sb.AppendLine("    }");
-        sb.AppendLine("    $pool.Close()");
-        sb.AppendLine("    $pool.Dispose()");
-        sb.AppendLine("    Write-Log \"Parallel $Label removal completed\"");
         sb.AppendLine("}");
         sb.AppendLine();
     }
