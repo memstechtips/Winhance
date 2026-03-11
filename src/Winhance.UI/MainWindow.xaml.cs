@@ -499,7 +499,9 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         if (ViewModel == null) return;
 
         if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateActionButtonVisible)
-            || e.PropertyName == nameof(UpdateCheckViewModel.InstallNowButtonText))
+            || e.PropertyName == nameof(UpdateCheckViewModel.InstallNowButtonText)
+            || e.PropertyName == nameof(UpdateCheckViewModel.IsRelaunchButtonVisible)
+            || e.PropertyName == nameof(UpdateCheckViewModel.RelaunchButtonText))
         {
             DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
         }
@@ -574,7 +576,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         if (ViewModel == null) return;
         var uc = ViewModel.UpdateCheck;
 
-        if (uc.IsUpdateActionButtonVisible)
+        if (uc.IsRelaunchButtonVisible)
+        {
+            var button = new Button
+            {
+                Content = uc.RelaunchButtonText,
+                Command = uc.RelaunchCommand,
+                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+            };
+            UpdateInfoBar.ActionButton = button;
+        }
+        else if (uc.IsUpdateActionButtonVisible)
         {
             var button = new Button
             {

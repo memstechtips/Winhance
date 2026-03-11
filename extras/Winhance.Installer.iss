@@ -46,8 +46,8 @@ SetupIconFile=C:\Winhance\src\Winhance.UI\Assets\AppIcons\winhance-rocket.ico
 VersionInfoCopyright=Copyright © Marco du Plessis
 SolidCompression=yes
 WizardStyle=modern
-; Allow user to select installation type
-DisableDirPage=no
+; Dir page is replaced by a custom page that appears after task selection
+DisableDirPage=yes
 ; Only create uninstaller for regular installations
 Uninstallable=WizardIsTaskSelected('regularinstall')
 ; Close applications before installation/uninstallation
@@ -132,14 +132,21 @@ begin
 end;
 
 var
-  UserSelectedDir: String;
-  IsFirstRun: Boolean;
+  CustomDirPage: TInputDirWizardPage;
+  HasSetDefaultDir: Boolean;
 
 procedure InitializeWizard;
 begin
-  // Initialize variables
-  IsFirstRun := True;
-  UserSelectedDir := '';
+  HasSetDefaultDir := False;
+
+  // Create a custom directory page that appears AFTER the tasks page
+  CustomDirPage := CreateInputDirPage(wpSelectTasks,
+    SetupMessage(msgWizardSelectDir),
+    '',
+    'To continue, click Next. If you would like to select a different folder, click Browse.',
+    False, '');
+  CustomDirPage.Add('');
+  CustomDirPage.Values[0] := ExpandConstant('{autopf}\{#MyAppName}');
 end;
 
 // This function runs right before the actual installation starts
@@ -154,30 +161,24 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
-  
-  // Save user-selected directory when leaving the directory selection page
-  if CurPageID = wpSelectDir then
-  begin
-    UserSelectedDir := WizardForm.DirEdit.Text;
-  end;
-  
-  // Set default directory based on installation type when tasks page is shown for the first time
+
+  // After task selection, set the default directory based on installation type
   if CurPageID = wpSelectTasks then
   begin
-    if IsFirstRun then
+    if not HasSetDefaultDir then
     begin
-      IsFirstRun := False;
-      if WizardIsTaskSelected('portableinstall') and (UserSelectedDir = '') then
-        WizardForm.DirEdit.Text := ExpandConstant('{userdesktop}\{#MyAppName}')
-      else if WizardIsTaskSelected('regularinstall') and (UserSelectedDir = '') then
-        WizardForm.DirEdit.Text := ExpandConstant('{autopf}\{#MyAppName}');
+      HasSetDefaultDir := True;
+      if WizardIsTaskSelected('portableinstall') then
+        CustomDirPage.Values[0] := ExpandConstant('{userdesktop}\{#MyAppName}')
+      else
+        CustomDirPage.Values[0] := ExpandConstant('{autopf}\{#MyAppName}');
     end;
   end;
-  
-  // Restore user's custom directory selection after task selection
-  if (CurPageID = wpSelectTasks) and (UserSelectedDir <> '') then
+
+  // Sync the custom dir page value to the actual install directory
+  if CurPageID = CustomDirPage.ID then
   begin
-    WizardForm.DirEdit.Text := UserSelectedDir;
+    WizardForm.DirEdit.Text := CustomDirPage.Values[0];
   end;
 end;
 

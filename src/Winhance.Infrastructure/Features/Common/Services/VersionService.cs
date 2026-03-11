@@ -20,6 +20,7 @@ public class VersionService : IVersionService
     private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
     private readonly string _latestReleaseDownloadUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
     private readonly string _userAgent = "Winhance-Update-Checker";
+    private string? _downloadedInstallerPath;
 
     public VersionService(ILogService logService, IProcessExecutor processExecutor, IFileSystemService fileSystemService, HttpClient httpClient)
     {
@@ -154,16 +155,48 @@ public class VersionService : IVersionService
         using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-        await contentStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
+        // Use explicit block so streams are disposed before returning
+        {
+            await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+            await contentStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
+        }
 
-        _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}, launching installer...");
+        _downloadedInstallerPath = tempPath;
+        _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}");
+    }
 
-        // Launch the installer
-        await _processExecutor.ShellExecuteAsync(tempPath).ConfigureAwait(false);
+    public void LaunchInstallerAndRestart()
+    {
+        if (string.IsNullOrEmpty(_downloadedInstallerPath))
+            throw new InvalidOperationException("No update has been downloaded.");
 
-        _logService.Log(LogLevel.Info, "Installer launched successfully");
+        string appDir = AppContext.BaseDirectory;
+        bool isPortable = _fileSystemService.FileExists(_fileSystemService.CombinePath(appDir, "portable.marker"));
+        string appExePath = _fileSystemService.CombinePath(appDir, "Winhance.exe");
+
+        string installerArgs;
+        if (isPortable)
+        {
+            installerArgs = $"/SILENT /SUPPRESSMSGBOXES /DIR=\"{appDir.TrimEnd(Path.DirectorySeparatorChar)}\" /MERGETASKS=\"portableinstall\"";
+        }
+        else
+        {
+            installerArgs = "/SILENT /SUPPRESSMSGBOXES /MERGETASKS=\"regularinstall\\desktopicon,regularinstall\\startmenuicon\"";
+        }
+
+        _logService.Log(LogLevel.Info, $"Launching installer (portable: {isPortable}), app will restart after install...");
+
+        // Use cmd /c to: run installer (wait for it to finish) then relaunch the app.
+        // The caller should exit the application immediately after this call.
+        var cmdArgs = $"/c start /wait \"\" \"{_downloadedInstallerPath}\" {installerArgs} && start \"\" \"{appExePath}\"";
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = cmdArgs,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
     }
 
     private VersionInfo CreateDefaultVersion()
