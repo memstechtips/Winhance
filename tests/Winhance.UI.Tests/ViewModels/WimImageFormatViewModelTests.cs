@@ -95,6 +95,53 @@ public class WimImageFormatViewModelTests : IDisposable
         _sut.ConvertImageCard.IsEnabled.Should().BeFalse();
     }
 
+    // ── Empty WorkingDirectory guard ──
+
+    [Fact]
+    public async Task ConvertImageFormatCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        _sut.CurrentImageFormat = new ImageFormatInfo
+        {
+            Format = ImageFormat.Wim,
+            FileSizeBytes = 4_000_000_000L
+        };
+
+        await _sut.ConvertImageFormatCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimImageService.Verify(s => s.ConvertImageAsync(
+            It.IsAny<string>(), It.IsAny<ImageFormat>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteWimCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        await _sut.DeleteWimCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimImageService.Verify(s => s.DeleteImageFileAsync(
+            It.IsAny<string>(), It.IsAny<ImageFormat>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteEsdCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        await _sut.DeleteEsdCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimImageService.Verify(s => s.DeleteImageFileAsync(
+            It.IsAny<string>(), It.IsAny<ImageFormat>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     // ── DetectImageFormatAsync ──
 
     [Fact]
@@ -207,6 +254,7 @@ public class WimImageFormatViewModelTests : IDisposable
     [Fact]
     public async Task ConvertImageFormatCommand_WhenUserCancelsConfirmation_DoesNotConvert()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _sut.CurrentImageFormat = new ImageFormatInfo
         {
             Format = ImageFormat.Wim,
@@ -227,6 +275,7 @@ public class WimImageFormatViewModelTests : IDisposable
     [Fact]
     public async Task ConvertImageFormatCommand_OnSuccess_SetsConvertImageCardComplete()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _sut.CurrentImageFormat = new ImageFormatInfo
         {
             Format = ImageFormat.Wim,
@@ -272,6 +321,7 @@ public class WimImageFormatViewModelTests : IDisposable
     [Fact]
     public async Task ConvertImageFormatCommand_OnFailure_SetsConvertImageCardHasFailed()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _sut.CurrentImageFormat = new ImageFormatInfo
         {
             Format = ImageFormat.Wim,
@@ -310,6 +360,7 @@ public class WimImageFormatViewModelTests : IDisposable
     [Fact]
     public async Task DeleteWimCommand_WhenUserCancels_DoesNotDelete()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
@@ -324,6 +375,7 @@ public class WimImageFormatViewModelTests : IDisposable
     [Fact]
     public async Task DeleteWimCommand_OnSuccess_RedetectsFormats()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
@@ -348,6 +400,7 @@ public class WimImageFormatViewModelTests : IDisposable
     [Fact]
     public async Task DeleteEsdCommand_WhenUserCancels_DoesNotDelete()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);

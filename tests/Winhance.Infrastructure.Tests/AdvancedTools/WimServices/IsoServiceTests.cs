@@ -151,6 +151,19 @@ public class IsoServiceTests
 
     #region CreateIsoAsync
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task CreateIsoAsync_EmptyOrNullWorkingDirectory_ReturnsFalse(string? workingDirectory)
+    {
+        // Act
+        var result = await _service.CreateIsoAsync(workingDirectory!, @"C:\output.iso");
+
+        // Assert
+        result.Should().BeFalse();
+        _mockOscdimgManager.Verify(m => m.GetOscdimgPath(), Times.Never);
+    }
+
     [Fact]
     public async Task CreateIsoAsync_OscdimgNotAvailable_ReturnsFalse()
     {

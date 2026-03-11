@@ -38,6 +38,9 @@ public static class UIServicesExtensions
         // Main Window Provider (Singleton - Abstracts static App.MainWindow access)
         services.AddSingleton<IMainWindowProvider, MainWindowProvider>();
 
+        // Resource Service (Singleton - Abstracts XAML Application.Current.Resources access)
+        services.AddSingleton<IResourceService, ResourceService>();
+
         // Theme Service (Singleton - Application-wide theme management)
         services.AddSingleton<IThemeService, ThemeService>();
 

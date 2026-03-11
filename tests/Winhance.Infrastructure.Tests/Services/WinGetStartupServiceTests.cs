@@ -14,6 +14,10 @@ namespace Winhance.Infrastructure.Tests.Services;
 /// This service is fully testable because all its dependencies are interfaces.
 /// It orchestrates IWinGetBootstrapper, IInternetConnectivityService,
 /// ITaskProgressService, ILocalizationService, and ILogService.
+///
+/// Note: When system winget is available, the bootstrapper manages its own
+/// task progress internally (shows UI only when an actual upgrade runs).
+/// The service does NOT start/complete task progress for the upgrade path.
 /// </summary>
 public class WinGetStartupServiceTests
 {
@@ -138,7 +142,8 @@ public class WinGetStartupServiceTests
         // Act
         await _sut.EnsureWinGetReadyOnStartupAsync();
 
-        // Assert: should NOT start a progress task for upgrade path
+        // Assert: the service should NOT manage task progress for upgrades
+        // (the bootstrapper handles it internally)
         _mockTaskProgress.Verify(
             t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()),
             Times.Never);

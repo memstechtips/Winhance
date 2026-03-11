@@ -1,6 +1,5 @@
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Xaml.Media;
 
 namespace Winhance.UI.Features.AdvancedTools.Models;
 
@@ -34,9 +33,6 @@ public partial class WizardActionCard : ObservableObject
 
     [ObservableProperty]
     public partial string Description { get; set; }
-
-    [ObservableProperty]
-    public partial Brush? DescriptionForeground { get; set; }
 
     [ObservableProperty]
     public partial string ButtonText { get; set; }

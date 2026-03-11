@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Wystąpił błąd: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Najpierw pobierz oscdimg.exe, klikając przycisk 'Pobierz oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Wybierz lokalizację wyjściową dla pliku ISO.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Nie ustawiono katalogu roboczego. Proszę ukończyć Krok 1 (wyodrębnij lub wybierz ISO) przed utworzeniem ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Twój obraz ISO instalacyjny systemu Windows został pomyślnie utworzony!\n\nLokalizacja: {0}\n\nCzy chcesz otworzyć folder zawierający obraz ISO?",
   "WIMUtil_Msg_IsoCreationFailed": "Nie udało się utworzyć pliku ISO. Sprawdź logi, aby uzyskać szczegóły.",
   "WIMUtil_Msg_IsoCreationError": "Wystąpił błąd: {0}",

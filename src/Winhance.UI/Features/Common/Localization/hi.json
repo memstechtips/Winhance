@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "एक त्रुटि हुई: {0}",
   "WIMUtil_Msg_OscdimgRequired": "कृपया पहले 'Download oscdimg' बटन पर क्लिक करके oscdimg.exe डाउनलोड करें।",
   "WIMUtil_Msg_OutputRequired": "कृपया आईएसओ फ़ाइल के लिए आउटपुट स्थान चुनें।",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "कोई कार्यशील निर्देशिका सेट नहीं है। ISO बनाने से पहले कृपया चरण 1 पूरा करें (ISO निकालें या चुनें)।",
   "WIMUtil_Msg_IsoCreatedSuccess": "आपकी विंडोज इंस्टॉलेशन आईएसओ सफलतापूर्वक बन गई है!\n\nस्थान: {0}\n\nक्या आप आईएसओ युक्त फ़ोल्डर खोलना चाहेंगे?",
   "WIMUtil_Msg_IsoCreationFailed": "आईएसओ फ़ाइल बनाने में विफल। कृपया विवरण के लिए लॉग जांचें।",
   "WIMUtil_Msg_IsoCreationError": "एक त्रुटि हुई: {0}",

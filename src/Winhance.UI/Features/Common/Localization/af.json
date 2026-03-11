@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "'n Fout het voorgekom: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Laai asseblief oscdimg.exe eers af deur op die 'Laai oscdimg af' knoppie te klik.",
   "WIMUtil_Msg_OutputRequired": "Kies asseblief 'n uitvoerligging vir die ISO lêer.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Geen werkgids is gestel nie. Voltooi asseblief Stap 1 (onttrek of kies 'n ISO) voordat jy die ISO skep.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Jou Windows installasie ISO is suksesvol geskep!\n\nLigging: {0}\n\nWil jy die gids oopmaak wat die ISO bevat?",
   "WIMUtil_Msg_IsoCreationFailed": "Kon nie ISO lêer skep nie. Kontroleer asseblief die logboeke vir besonderhede.",
   "WIMUtil_Msg_IsoCreationError": "'n Fout het voorgekom: {0}",

@@ -38,9 +38,12 @@ public class WinGetStartupService : IWinGetStartupService
         {
             if (_winGetBootstrapper.IsSystemWinGetAvailable)
             {
-                // System winget already present -- silently attempt upgrade
+                // System winget already present -- attempt upgrade.
+                // The bootstrapper handles task progress internally: if no update
+                // is available the command returns instantly with no UI shown;
+                // if an actual upgrade runs it shows a TaskProgressControl.
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                    "Startup: System winget available, attempting silent AppInstaller upgrade...");
+                    "Startup: System winget available, attempting AppInstaller upgrade...");
 
                 bool upgraded = await _winGetBootstrapper.UpgradeAppInstallerAsync().ConfigureAwait(false);
                 if (upgraded)

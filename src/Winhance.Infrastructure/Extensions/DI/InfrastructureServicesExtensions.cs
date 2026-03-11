@@ -55,6 +55,9 @@ public static class InfrastructureServicesExtensions
         // File System Service
         services.AddSingleton<IFileSystemService, FileSystemService>();
 
+        // Power Scheme Operations (P/Invoke wrapper for plan-level power operations)
+        services.AddSingleton<IPowerSchemeOperations, PowerSchemeOperations>();
+
         // Explorer Window Manager (open/focus folders in Explorer)
         services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();
 

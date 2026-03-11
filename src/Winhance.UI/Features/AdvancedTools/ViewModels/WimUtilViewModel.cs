@@ -151,7 +151,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         IDispatcherService dispatcherService,
         IProcessExecutor processExecutor,
         IFileSystemService fileSystemService,
-        IFilePickerService filePickerService)
+        IFilePickerService filePickerService,
+        IResourceService resourceService)
     {
         _oscdimgToolManager = oscdimgToolManager;
         _localizationService = localizationService;
@@ -161,7 +162,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         // Create sub-ViewModels
         Step1 = new WimStep1ViewModel(
             isoService, taskProgressService, dialogService,
-            localizationService, fileSystemService, filePickerService, logService);
+            localizationService, fileSystemService, filePickerService, logService,
+            resourceService);
 
         ImageFormat = new WimImageFormatViewModel(
             wimImageService, taskProgressService, dialogService,
@@ -169,15 +171,18 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
         Step2 = new WimStep2XmlViewModel(
             xmlGeneratorService, wimCustomizationService, selectedAppsProvider,
-            dialogService, localizationService, fileSystemService, filePickerService, logService);
+            dialogService, localizationService, fileSystemService, filePickerService, logService,
+            resourceService);
 
         Step3 = new WimStep3DriversViewModel(
             wimCustomizationService, taskProgressService, dialogService,
-            localizationService, fileSystemService, filePickerService, logService);
+            localizationService, fileSystemService, filePickerService, logService,
+            resourceService);
 
         Step4 = new WimStep4IsoViewModel(
             oscdimgToolManager, isoService, taskProgressService, processExecutor,
-            dialogService, localizationService, fileSystemService, filePickerService, logService);
+            dialogService, localizationService, fileSystemService, filePickerService, logService,
+            resourceService);
 
         // Initialize wizard state
         CurrentStep = 1;
@@ -197,6 +202,15 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2.PropertyChanged += OnSubViewModelPropertyChanged;
         Step3.PropertyChanged += OnSubViewModelPropertyChanged;
         Step4.PropertyChanged += OnSubViewModelPropertyChanged;
+
+        // Propagate Step1's initial WorkingDirectory to sub-VMs.
+        // The constructor assignment above fires before subscriptions,
+        // so without this, sub-VMs never receive the default value.
+        var initialWorkingDir = Step1.WorkingDirectory;
+        ImageFormat.WorkingDirectory = initialWorkingDir;
+        Step2.WorkingDirectory = initialWorkingDir;
+        Step3.WorkingDirectory = initialWorkingDir;
+        Step4.WorkingDirectory = initialWorkingDir;
     }
 
     /// <summary>

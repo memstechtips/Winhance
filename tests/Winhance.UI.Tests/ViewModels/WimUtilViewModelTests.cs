@@ -24,6 +24,7 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
+    private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly WimUtilViewModel _sut;
 
@@ -68,7 +69,8 @@ public class WimUtilViewModelTests : IDisposable
             _mockDispatcherService.Object,
             _mockProcessExecutor.Object,
             _mockFileSystemService.Object,
-            _mockFilePickerService.Object);
+            _mockFilePickerService.Object,
+            _mockResourceService.Object);
     }
 
     public void Dispose()
@@ -78,7 +80,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── Constructor ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesSubViewModels()
     {
         _sut.Step1.Should().NotBeNull();
@@ -88,13 +90,28 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step4.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
+    public void Constructor_PropagatesStep1WorkingDirectoryToAllSubVMs()
+    {
+        // Step1 sets WorkingDirectory in its constructor to TempPath\WinhanceWIM.
+        // WimUtilViewModel must propagate this initial value to all sub-VMs,
+        // because PropertyChanged subscriptions aren't active during construction.
+        var expected = _sut.Step1.WorkingDirectory;
+        expected.Should().NotBeNullOrEmpty();
+
+        _sut.ImageFormat.WorkingDirectory.Should().Be(expected);
+        _sut.Step2.WorkingDirectory.Should().Be(expected);
+        _sut.Step3.WorkingDirectory.Should().Be(expected);
+        _sut.Step4.WorkingDirectory.Should().Be(expected);
+    }
+
+    [Fact]
     public void Constructor_InitializesCurrentStepToOne()
     {
         _sut.CurrentStep.Should().Be(1);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesAllStepStates()
     {
         _sut.Step1State.Should().NotBeNull();
@@ -103,7 +120,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step4State.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_Step1State_IsExpandedAndAvailable()
     {
         _sut.Step1State.IsExpanded.Should().BeTrue();
@@ -111,7 +128,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step1State.StepNumber.Should().Be(1);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_Step2Through4_AreNotExpandedOrAvailable()
     {
         _sut.Step2State.IsExpanded.Should().BeFalse();
@@ -126,13 +143,13 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── Localization labels ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Title_ReturnsLocalizationStringForWimUtilTitle()
     {
         _sut.Title.Should().Be("WIMUtil_Title");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void CheckboxExtractedAlreadyText_ReturnsLocalizedString()
     {
         _sut.CheckboxExtractedAlreadyText.Should().Be("WIMUtil_CheckboxExtractedAlready");
@@ -140,7 +157,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── NavigateToStep ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void NavigateToStepCommand_NullParameter_DoesNotChangeStep()
     {
         _sut.NavigateToStepCommand.Execute(null);
@@ -148,7 +165,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.CurrentStep.Should().Be(1);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void NavigateToStepCommand_EmptyString_DoesNotChangeStep()
     {
         _sut.NavigateToStepCommand.Execute("");
@@ -156,7 +173,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.CurrentStep.Should().Be(1);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void NavigateToStepCommand_NonNumericString_DoesNotChangeStep()
     {
         _sut.NavigateToStepCommand.Execute("abc");
@@ -164,7 +181,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.CurrentStep.Should().Be(1);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void NavigateToStepCommand_SameStep_CollapsesToZero()
     {
         _sut.NavigateToStepCommand.Execute("1");
@@ -172,7 +189,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.CurrentStep.Should().Be(0);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void NavigateToStepCommand_Step2WhenNotAvailable_DoesNotNavigate()
     {
         // Step2 is not available until extraction is complete
@@ -183,7 +200,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── OnNavigatedToAsync ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task OnNavigatedToAsync_ChecksOscdimgAvailabilityAndUpdatesStep4()
     {
         _mockOscdimgToolManager
@@ -195,7 +212,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step4.IsOscdimgAvailable.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task OnNavigatedToAsync_WhenOscdimgNotAvailable_Step4IsOscdimgAvailableIsFalse()
     {
         _mockOscdimgToolManager
@@ -209,7 +226,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── SetMainWindow ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SetMainWindow_IsNoOp_DoesNotThrow()
     {
         var act = () => _sut.SetMainWindow(null!);
@@ -219,25 +236,25 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── Forwarded properties ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectedIsoPath_ForwardsToStep1()
     {
         _sut.SelectedIsoPath.Should().Be(_sut.Step1.SelectedIsoPath);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void WorkingDirectory_ForwardsToStep1()
     {
         _sut.WorkingDirectory.Should().Be(_sut.Step1.WorkingDirectory);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void IsExtractionComplete_ForwardsToStep1()
     {
         _sut.IsExtractionComplete.Should().Be(_sut.Step1.IsExtractionComplete);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void OutputIsoPath_ForwardsToStep4()
     {
         _sut.OutputIsoPath.Should().Be(_sut.Step4.OutputIsoPath);
@@ -245,31 +262,31 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── Forwarded commands ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoFileCommand_ForwardsToStep1()
     {
         _sut.SelectIsoFileCommand.Should().BeSameAs(_sut.Step1.SelectIsoFileCommand);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void ConvertImageFormatCommand_ForwardsToImageFormat()
     {
         _sut.ConvertImageFormatCommand.Should().BeSameAs(_sut.ImageFormat.ConvertImageFormatCommand);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void GenerateWinhanceXmlCommand_ForwardsToStep2()
     {
         _sut.GenerateWinhanceXmlCommand.Should().BeSameAs(_sut.Step2.GenerateWinhanceXmlCommand);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void ExtractAndAddSystemDriversCommand_ForwardsToStep3()
     {
         _sut.ExtractAndAddSystemDriversCommand.Should().BeSameAs(_sut.Step3.ExtractAndAddSystemDriversCommand);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void CreateIsoCommand_ForwardsToStep4()
     {
         _sut.CreateIsoCommand.Should().BeSameAs(_sut.Step4.CreateIsoCommand);
@@ -277,7 +294,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── Property change propagation ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void WhenStep1WorkingDirectoryChanges_PropagatesWorkingDirectoryToAllSubViewModels()
     {
         _sut.Step1.WorkingDirectory = "C:\\NewWorkDir";
@@ -288,7 +305,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step4.WorkingDirectory.Should().Be("C:\\NewWorkDir");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void WhenStep1WorkingDirectoryChanges_RaisesPropertyChangedOnParent()
     {
         var raised = false;
@@ -305,7 +322,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── IDisposable ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
         var act = () =>
@@ -317,7 +334,7 @@ public class WimUtilViewModelTests : IDisposable
         act.Should().NotThrow();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Dispose_UnsubscribesFromSubVMPropertyChangedEvents()
     {
         // After dispose, changing Step1 properties should not propagate to parent
@@ -337,7 +354,7 @@ public class WimUtilViewModelTests : IDisposable
 
     // ── HasExtractedIsoAlready forwarding ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void HasExtractedIsoAlready_SetOnParent_SetsOnStep1()
     {
         _sut.HasExtractedIsoAlready = true;
@@ -345,7 +362,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step1.HasExtractedIsoAlready.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void HasExtractedIsoAlready_GetFromParent_ReturnsStep1Value()
     {
         _sut.Step1.HasExtractedIsoAlready = true;

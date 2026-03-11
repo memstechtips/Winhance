@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Ett fel inträffade: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Ladda ner oscdimg.exe först genom att klicka på knappen 'Ladda ner oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Välj en utdataplats för ISO-filen.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Ingen arbetskatalog är inställd. Slutför Steg 1 (extrahera eller välj en ISO) innan du skapar ISO:n.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Din Windows-installations-ISO har skapats framgångsrikt!\n\nPlats: {0}\n\nVill du öppna mappen som innehåller ISO:n?",
   "WIMUtil_Msg_IsoCreationFailed": "Misslyckades med att skapa ISO-fil. Kontrollera loggarna för detaljer.",
   "WIMUtil_Msg_IsoCreationError": "Ett fel inträffade: {0}",

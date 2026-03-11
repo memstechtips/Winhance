@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -28,6 +26,7 @@ public partial class WimStep1ViewModel : ObservableObject
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
+    private readonly IResourceService _resourceService;
 
     [ObservableProperty]
     public partial string SelectedIsoPath { get; set; }
@@ -57,7 +56,8 @@ public partial class WimStep1ViewModel : ObservableObject
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        ILogService logService)
+        ILogService logService,
+        IResourceService resourceService)
     {
         _isoService = isoService;
         _taskProgressService = taskProgressService;
@@ -66,6 +66,7 @@ public partial class WimStep1ViewModel : ObservableObject
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
+        _resourceService = resourceService;
 
         SelectedIsoPath = string.Empty;
         WorkingDirectory = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM");
@@ -87,7 +88,7 @@ public partial class WimStep1ViewModel : ObservableObject
 
         SelectDirectoryCard = new WizardActionCard
         {
-            IconPath = GetResourceIconPath("ExplorerIconPath"),
+            IconPath = _resourceService.GetResourceIconPath("ExplorerIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title"),
             Description = string.Format(
                 _localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"),
@@ -211,7 +212,6 @@ public partial class WimStep1ViewModel : ObservableObject
             {
                 SelectIsoCard.IsComplete = true;
                 SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionSuccess");
-                SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 27, 94, 32));
                 IsExtractionComplete = true;
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_ExtractionComplete"),
@@ -221,7 +221,6 @@ public partial class WimStep1ViewModel : ObservableObject
             {
                 SelectIsoCard.HasFailed = true;
                 SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionFailed");
-                SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 198, 40, 40));
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_ExtractionFailed"),
                     _localizationService.GetString("WIMUtil_Status_IsoExtractionFailed"));
@@ -284,12 +283,5 @@ public partial class WimStep1ViewModel : ObservableObject
         SelectDirectoryCard.Description = value
             ? _localizationService.GetString("WIMUtil_Label_SelectExtracted")
             : string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM"));
-    }
-
-    private static string GetResourceIconPath(string resourceKey)
-    {
-        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue(resourceKey, out var value) && value is string path)
-            return path;
-        return string.Empty;
     }
 }

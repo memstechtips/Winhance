@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Une erreur s'est produite : {0}",
   "WIMUtil_Msg_OscdimgRequired": "Veuillez d'abord télécharger oscdimg.exe en cliquant sur le bouton 'Télécharger oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Veuillez sélectionner un emplacement de sortie pour le fichier ISO.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Aucun répertoire de travail n'est défini. Veuillez terminer l'étape 1 (extraire ou sélectionner une ISO) avant de créer l'ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Votre ISO d'installation de Windows a été créée avec succès !\n\nEmplacement : {0}\n\nVoulez-vous ouvrir le dossier contenant l'ISO ?",
   "WIMUtil_Msg_IsoCreationFailed": "Échec de la création du fichier ISO. Veuillez consulter les journaux pour plus de détails.",
   "WIMUtil_Msg_IsoCreationError": "Une erreur s'est produite : {0}",

@@ -267,8 +267,8 @@ public class AppRemovalScriptSectionTests
         _sut.AppendWinhanceInstallerScriptContent(sb);
 
         var output = sb.ToString();
-        output.Should().Contain("WinhanceInstall.ps1");
-        output.Should().Contain("Get-FileFromWeb");
+        output.Should().Contain("Install Winhance.lnk");
+        output.Should().Contain("CreateShortcut");
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public class AppRemovalScriptSectionTests
 
         _sut.AppendWinhanceInstallerScriptContent(sb);
 
-        sb.ToString().Should().Contain("github.com/memstechtips/Winhance");
+        sb.ToString().Should().Contain("get.winhance.net");
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class AppRemovalScriptSectionTests
 
         _sut.AppendWinhanceInstallerScriptContent(sb, "        ");
 
-        sb.ToString().Should().Contain("        # Create WinhanceInstall.ps1 script");
+        sb.ToString().Should().Contain("        # Create desktop shortcut for Winhance installer");
     }
 
     [Fact]

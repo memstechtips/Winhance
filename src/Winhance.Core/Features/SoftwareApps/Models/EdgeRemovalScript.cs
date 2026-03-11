@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
-    public const string ScriptVersion = "1.1";
+    public const string ScriptVersion = "1.2";
 
     public static string GetScript()
     {
@@ -215,17 +215,6 @@ function Remove-EdgeShortcuts {
 }
 
 function Install-EdgeProtocolRedirect {
-    Write-Log ""Checking if Edge protocol redirect is needed""
-
-    $ifeoCheck = ""HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0""
-    if (Test-Path $ifeoCheck) {
-        $debugger = (Get-ItemProperty -Path $ifeoCheck -Name ""Debugger"" -ErrorAction SilentlyContinue).Debugger
-        if ($debugger -like ""*OpenWebSearch*"") {
-            Write-Log ""Edge protocol redirect already installed""
-            return
-        }
-    }
-
     Write-Log ""Installing Edge protocol redirect using OpenWebSearch""
     $scriptsDir = ""C:\ProgramData\Winhance\OpenWebSearch""
     New-Item -ItemType Directory -Path $scriptsDir -Force -ErrorAction SilentlyContinue | Out-Null
@@ -240,15 +229,24 @@ function Install-EdgeProtocolRedirect {
 @title OpenWebSearch 2023 & echo off
 for /f %%E in ('""prompt `$E`$S& for %%e in (1) do rem""') do echo;%%E[2t 2>nul
 
-call :reg_var ""HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"" ProgID ProgID
-if /i ""%ProgID%"" equ ""MSEdgeHTM"" exit /b
-
+call :reg_var ""HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoiceLatest\ProgId"" ProgID ProgID
+if not defined ProgID call :reg_var ""HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"" ProgID ProgID
+if /i ""%ProgID%"" neq ""MSEdgeHTM"" if defined ProgID goto :browser_found
+set ""Choice=""
+for %%R in (HKCU HKLM) do (
+    for /f ""delims="" %%K in ('reg query ""%%R\SOFTWARE\Clients\StartMenuInternet"" 2^>nul') do (
+        for /f ""skip=1 tokens=2*"" %%A in ('reg query ""%%K\shell\open\command"" /ve 2^>nul') do (
+            echo ""%%B"" | findstr /i ""msedge ie_to_edge_stub iexplore"" >nul || (set ""Choice=%%~B"" & goto :skip_browser)
+        )
+    )
+)
+if not defined Choice exit /b
+:browser_found
 call :reg_var ""HKCR\%ProgID%\shell\open\command"" """" Browser
 set Choice=& for %%. in (%Browser%) do if not defined Choice set ""Choice=%%~.""
+:skip_browser
 
-call :reg_var ""HKCR\MSEdgeMHT\shell\open\command"" """" FallBack
-set ""Edge="" & for %%. in (%FallBack%) do if not defined Edge set ""Edge=%%~.""
-set ""URI="" & set ""URL="" & set ""NOOP="" & set ""PassTrough=%Edge:msedge=edge%""
+set ""URI="" & set ""URL="" & set ""NOOP=""
 
 set ""CLI=%CMDCMDLINE:""=````%""
 if defined CLI set ""CLI=%CLI:*ie_to_edge_stub.exe```` =%""
@@ -259,13 +257,7 @@ set ""FIX=%CLI:~-1%""
 if defined CLI if ""%FIX%""=="" "" set ""CLI=%CLI:~0,-1%""
 if defined CLI set ""RED=%CLI:microsoft-edge=%""
 if defined CLI set ""URL=%CLI:http=%""
-if defined CLI set ""ARG=%CLI:````=""%""
-
 if ""%CLI%"" equ ""%RED%"" (set NOOP=1) else if ""%CLI%"" equ ""%URL%"" (set NOOP=1)
-if defined NOOP if not exist ""%PassTrough%"" echo;@mklink /h ""%PassTrough%"" ""%Edge%"" >""%Temp%\OpenWebSearchRepair.cmd""
-if defined NOOP if not exist ""%PassTrough%"" schtasks /run /tn OpenWebSearchRepair 2>nul >nul
-if defined NOOP if not exist ""%PassTrough%"" timeout /t 3 >nul
-if defined NOOP if exist ""%PassTrough%"" start """" ""%PassTrough%"" %ARG%
 if defined NOOP exit /b
 
 set ""URL=%CLI:*microsoft-edge=%""
@@ -294,13 +286,6 @@ set "".=!.:{=%%!"" & endlocal& set ""URL=%.:}=!%"" & exit /b
     $openWebSearchContent | Out-File -FilePath $openWebSearchPath -Encoding ASCII -Force
     Write-Log ""Created OpenWebSearch.cmd at $openWebSearchPath""
 
-    $msedgePath = ""${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe""
-    $edgePath = ""${env:ProgramFiles(x86)}\Microsoft\Edge\Application\edge.exe""
-    if ((Test-Path $msedgePath) -and !(Test-Path $edgePath)) {
-        cmd /c mklink /h ""$edgePath"" ""$msedgePath"" 2>&1 | Out-Null
-        Write-Log ""Created edge.exe hardlink at $edgePath""
-    }
-
     $buildNumber = [Environment]::OSVersion.Version.Build
     $conhostFlags = if ($buildNumber -gt 25179) { ""--width 1 --height 1"" } else { ""--headless"" }
     $conhostDebugger = ""$env:SystemRoot\system32\conhost.exe $conhostFlags $scriptsDir\OpenWebSearch.cmd""
@@ -315,26 +300,36 @@ set "".=!.:{=%%!"" & endlocal& set ""URL=%.:}=!%"" & exit /b
     reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe"" /f /v UseFilter /d 1 /t reg_dword 2>&1 | Out-Null
     reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0"" /f /v FilterFullPath /d ""$stubTargetPath"" 2>&1 | Out-Null
     reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0"" /f /v Debugger /d ""$conhostDebugger"" 2>&1 | Out-Null
-    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe"" /f /v UseFilter /d 1 /t reg_dword 2>&1 | Out-Null
-    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe\0"" /f /v FilterFullPath /d ""$msedgePath"" 2>&1 | Out-Null
-    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe\0"" /f /v Debugger /d ""$conhostDebugger"" 2>&1 | Out-Null
+    # Remove msedge.exe IFEO entries from previous versions to prevent Edge reinstall issues
+    reg.exe delete ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe"" /f 2>&1 | Out-Null
     Write-Log ""Registry configuration completed""
 
-    $repairScriptPath = ""$scriptsDir\OpenWebSearchRepair.cmd""
-    $repairScriptContent = ""@echo off`r`nmklink /h """"$edgePath"""" """"$msedgePath""""""
-    $repairScriptContent | Out-File -FilePath $repairScriptPath -Encoding ASCII -Force
-    Write-Log ""Created repair script at $repairScriptPath""
+    # Create repair script that re-sets protocol handler registry if Edge overwrites it
+    $repairContent = @""
+# OpenWebSearch Repair - re-sets protocol handler registry if Edge overwrites it
+`$stubPath = ""$stubTargetPath""
+`$owsPath = ""$openWebSearchPath""
+if (-not (Test-Path `$stubPath)) { exit }
+if (-not (Test-Path `$owsPath)) { exit }
+`$cmd = (Get-ItemProperty ""Registry::HKEY_CLASSES_ROOT\microsoft-edge\shell\open\command"" -ErrorAction SilentlyContinue).'(default)'
+if (`$cmd -and `$cmd -notlike ""*ie_to_edge_stub*"") {
+    reg.exe add ""HKCR\microsoft-edge\shell\open\command"" /f /ve /d ""`$stubPath %1"" 2>&1 | Out-Null
+    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d ""`$stubPath %1"" 2>&1 | Out-Null
+}
+""@
+    $repairScriptPath = ""$scriptsDir\OpenWebSearchRepair.ps1""
+    $repairContent | Out-File -FilePath $repairScriptPath -Encoding UTF8 -Force
+    Write-Log ""Created OpenWebSearchRepair.ps1 at $repairScriptPath""
 
-    Write-Log ""Creating OpenWebSearchRepair scheduled task""
-    try {
-        $taskAction = New-ScheduledTaskAction -Execute $repairScriptPath
-        $taskTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date
-        $taskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-        Register-ScheduledTask -TaskName 'OpenWebSearchRepair' -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -RunLevel Highest -Force | Out-Null
-        Write-Log ""OpenWebSearchRepair scheduled task created""
-    } catch {
-        Write-Log ""Failed to create OpenWebSearchRepair scheduled task: $($_.Exception.Message)""
-    }
+    # Register scheduled task to check and repair protocol handlers at logon
+    $repairTaskName = ""OpenWebSearchRepair""
+    $repairAction = New-ScheduledTaskAction -Execute ""powershell.exe"" -Argument ""-ExecutionPolicy Bypass -NoProfile -Command `""iex([IO.File]::ReadAllText('$repairScriptPath'))`""""
+    $repairTrigger = New-ScheduledTaskTrigger -AtLogon
+    $repairSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+    $repairPrincipal = New-ScheduledTaskPrincipal -UserId ""SYSTEM"" -LogonType ServiceAccount -RunLevel Highest
+    Register-ScheduledTask -TaskName $repairTaskName -TaskPath ""\Winhance\"" -Action $repairAction -Trigger $repairTrigger -Settings $repairSettings -Principal $repairPrincipal -Force | Out-Null
+    Write-Log ""Registered OpenWebSearchRepair scheduled task (runs at logon)""
+
 }
 
 # Function to remove Chromium Edge and EdgeUpdate
@@ -567,14 +562,12 @@ Write-Log ""Checking for Edge installations...""
 $legacyInstalled = Test-LegacyEdgeInstalled
 $chromiumInstalled = Test-ChromiumEdgeInstalled
 
-if (-not $legacyInstalled -and -not $chromiumInstalled) {
-    Write-Log ""No Edge installations detected. Exiting.""
-    Write-Host ""No Edge installations found. Script exiting.""
-    exit 0
-}
-
 $removedSomething = $false
 $stubPath = $null
+
+if (-not $legacyInstalled -and -not $chromiumInstalled) {
+    Write-Log ""No Edge installations detected. Skipping removal.""
+}
 
 if ($chromiumInstalled) {
     Write-Log ""Chromium Edge detected. Finding ie_to_edge_stub.exe before removal.""
@@ -637,8 +630,10 @@ if ($removedSomething) {
     Remove-EdgeShortcuts
     Remove-EdgeRegistryKeys
     Remove-AdditionalEdgeFolders
-    Install-EdgeProtocolRedirect
 }
+
+# Install or repair Edge protocol redirect (runs even if Edge was already removed, only acts if redirect is missing or broken)
+Install-EdgeProtocolRedirect
 
 # Always check for and delete Edge scheduled tasks
 Write-Log ""Checking for Edge scheduled tasks""

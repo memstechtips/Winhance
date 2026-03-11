@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
@@ -5,6 +6,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
@@ -19,6 +22,7 @@ public class PowerServiceTests
     private readonly Mock<IPowerPlanComboBoxService> _powerPlanComboBoxService;
     private readonly Mock<IProcessExecutor> _processExecutor;
     private readonly Mock<IFileSystemService> _fileSystemService;
+    private readonly Mock<IPowerSchemeOperations> _powerSchemeOperations;
     private readonly PowerService _sut;
 
     public PowerServiceTests()
@@ -30,6 +34,7 @@ public class PowerServiceTests
         _powerPlanComboBoxService = new Mock<IPowerPlanComboBoxService>();
         _processExecutor = new Mock<IProcessExecutor>();
         _fileSystemService = new Mock<IFileSystemService>();
+        _powerSchemeOperations = new Mock<IPowerSchemeOperations>();
 
         _sut = new PowerService(
             _logService.Object,
@@ -38,7 +43,8 @@ public class PowerServiceTests
             _eventBus.Object,
             _powerPlanComboBoxService.Object,
             _processExecutor.Object,
-            _fileSystemService.Object);
+            _fileSystemService.Object,
+            _powerSchemeOperations.Object);
     }
 
     private static SettingDefinition MakeSetting(string id, string? name = null, string? description = null) =>
@@ -313,5 +319,225 @@ public class PowerServiceTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task TryApplySpecialSettingAsync_CorruptWinhancePlan_DeletesGhostAndAttemptsImport()
+    {
+        // Arrange — ghost plan exists with Winhance GUID but wrong name
+        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
+        var setting = MakeSetting(SettingIds.PowerPlanSelection);
+
+        var ghostPlan = new PowerPlan
+        {
+            Name = "Unknown Power Plan",
+            Guid = winhanceGuid,
+            IsActive = false
+        };
+
+        _powerPlanComboBoxService
+            .Setup(s => s.ResolvePowerPlanByIndexAsync(4))
+            .ReturnsAsync(new PowerPlanResolutionResult
+            {
+                Success = true,
+                Guid = winhanceGuid,
+                DisplayName = "Winhance Power Plan"
+            });
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" });
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { ghostPlan });
+
+        _powerSchemeOperations
+            .Setup(s => s.DeleteScheme(It.IsAny<Guid>()))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        // powercfg /duplicatescheme — return output with the actual GUID assigned
+        var assignedGuid = "159d8424-9c94-4b24-ada1-b427b29e9b2e";
+        _processExecutor
+            .Setup(p => p.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), default))
+            .ReturnsAsync(new ProcessExecutionResult
+            {
+                ExitCode = 0,
+                StandardOutput = $"Power Scheme GUID: {assignedGuid}  (Ultimate Performance)"
+            });
+
+        _powerSchemeOperations
+            .Setup(s => s.SetActiveScheme(It.IsAny<Guid>()))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        _powerSchemeOperations
+            .Setup(s => s.WriteFriendlyName(It.IsAny<Guid>(), It.IsAny<string>()))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        _powerSchemeOperations
+            .Setup(s => s.WriteDescription(It.IsAny<Guid>(), It.IsAny<string>()))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        // Act
+        var result = await _sut.TryApplySpecialSettingAsync(setting, 4);
+
+        // Assert — ghost plan should be deleted
+        _powerSchemeOperations.Verify(
+            s => s.DeleteScheme(Guid.Parse(winhanceGuid)),
+            Times.AtLeastOnce);
+
+        // Should log about the corrupt plan
+        _logService.Verify(
+            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("corrupt Winhance plan"))),
+            Times.Once);
+
+        // Name should be set on the actual GUID powercfg assigned, not the requested one
+        _powerSchemeOperations.Verify(
+            s => s.WriteFriendlyName(Guid.Parse(assignedGuid), "Winhance Power Plan"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task TryApplySpecialSettingAsync_ValidWinhancePlan_DoesNotDelete()
+    {
+        // Arrange — valid Winhance plan exists with correct name
+        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
+        var setting = MakeSetting(SettingIds.PowerPlanSelection);
+
+        var validPlan = new PowerPlan
+        {
+            Name = "Winhance Power Plan",
+            Guid = winhanceGuid,
+            IsActive = false
+        };
+
+        _powerPlanComboBoxService
+            .Setup(s => s.ResolvePowerPlanByIndexAsync(4))
+            .ReturnsAsync(new PowerPlanResolutionResult
+            {
+                Success = true,
+                Guid = winhanceGuid,
+                DisplayName = "Winhance Power Plan"
+            });
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" });
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { validPlan });
+
+        _powerSchemeOperations
+            .Setup(s => s.SetActiveScheme(It.IsAny<Guid>()))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        // Act
+        var result = await _sut.TryApplySpecialSettingAsync(setting, 4);
+
+        // Assert — should NOT delete the valid plan
+        _powerSchemeOperations.Verify(
+            s => s.DeleteScheme(Guid.Parse(winhanceGuid)),
+            Times.Never);
+
+        // Should succeed by just activating the existing plan
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DiscoverSpecialSettingsAsync_CorruptWinhancePlanActive_DeletesGhostAndSwitchesToBalanced()
+    {
+        // Arrange — ghost Winhance plan is active with wrong name
+        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
+        var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+        var settings = new List<SettingDefinition> { MakeSetting(SettingIds.PowerPlanSelection) };
+
+        var ghostPlan = new PowerPlan
+        {
+            Name = "Unknown Power Plan",
+            Guid = winhanceGuid,
+            IsActive = true
+        };
+
+        var balancedPlan = new PowerPlan
+        {
+            Name = "Balanced",
+            Guid = balancedGuid,
+            IsActive = false
+        };
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { balancedPlan, ghostPlan });
+
+        // After cleanup, active plan is Balanced
+        _powerSettingsQueryService
+            .Setup(s => s.GetActivePowerPlanAsync())
+            .ReturnsAsync(balancedPlan);
+
+        _powerSchemeOperations
+            .Setup(s => s.SetActiveScheme(Guid.Parse(balancedGuid)))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        _powerSchemeOperations
+            .Setup(s => s.DeleteScheme(Guid.Parse(winhanceGuid)))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        // Act
+        var result = await _sut.DiscoverSpecialSettingsAsync(settings);
+
+        // Assert — should switch to Balanced before deleting
+        _powerSchemeOperations.Verify(
+            s => s.SetActiveScheme(Guid.Parse(balancedGuid)),
+            Times.Once);
+
+        // Should delete the ghost
+        _powerSchemeOperations.Verify(
+            s => s.DeleteScheme(Guid.Parse(winhanceGuid)),
+            Times.Once);
+
+        // Should invalidate cache
+        _powerSettingsQueryService.Verify(
+            s => s.InvalidateCache(),
+            Times.AtLeastOnce);
+
+        // Result should reflect Balanced as active
+        result.Should().ContainKey(SettingIds.PowerPlanSelection);
+        result[SettingIds.PowerPlanSelection]["ActivePowerPlan"].Should().Be("Balanced");
+    }
+
+    [Fact]
+    public async Task DiscoverSpecialSettingsAsync_ValidWinhancePlanActive_DoesNotDelete()
+    {
+        // Arrange — valid Winhance plan is active
+        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
+        var settings = new List<SettingDefinition> { MakeSetting(SettingIds.PowerPlanSelection) };
+
+        var validPlan = new PowerPlan
+        {
+            Name = "Winhance Power Plan",
+            Guid = winhanceGuid,
+            IsActive = true
+        };
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { validPlan });
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetActivePowerPlanAsync())
+            .ReturnsAsync(validPlan);
+
+        // Act
+        var result = await _sut.DiscoverSpecialSettingsAsync(settings);
+
+        // Assert — should NOT delete valid plan
+        _powerSchemeOperations.Verify(
+            s => s.DeleteScheme(It.IsAny<Guid>()),
+            Times.Never);
+
+        // Should report Winhance as active
+        result[SettingIds.PowerPlanSelection]["ActivePowerPlan"].Should().Be("Winhance Power Plan");
+        result[SettingIds.PowerPlanSelection]["ActivePowerPlanGuid"].Should().Be(winhanceGuid);
     }
 }

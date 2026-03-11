@@ -19,6 +19,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly WimStep3DriversViewModel _sut;
 
@@ -47,7 +48,8 @@ public class WimStep3DriversViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
     }
 
     public void Dispose()
@@ -57,37 +59,68 @@ public class WimStep3DriversViewModelTests : IDisposable
 
     // ── Constructor ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesAreDriversAddedToFalse()
     {
         _sut.AreDriversAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesActionCards()
     {
         _sut.ExtractSystemDriversCard.Should().NotBeNull();
         _sut.SelectCustomDriversCard.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_BothActionCardsAreEnabled()
     {
         _sut.ExtractSystemDriversCard.IsEnabled.Should().BeTrue();
         _sut.SelectCustomDriversCard.IsEnabled.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_WorkingDirectoryDefaultsToEmpty()
     {
         _sut.WorkingDirectory.Should().BeEmpty();
     }
 
+    // ── Empty WorkingDirectory guard ──
+
+    [Fact]
+    public async Task ExtractAndAddSystemDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.AreDriversAdded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SelectAndAddCustomDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.AreDriversAdded.Should().BeFalse();
+    }
+
     // ── ExtractAndAddSystemDrivers command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task ExtractAndAddSystemDriversCommand_WhenUserCancels_DoesNotExtract()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
@@ -100,7 +133,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.AreDriversAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task ExtractAndAddSystemDriversCommand_OnSuccess_SetsAreDriversAdded()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -120,7 +153,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task ExtractAndAddSystemDriversCommand_OnFailure_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -140,7 +173,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.AreDriversAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task ExtractAndAddSystemDriversCommand_OnException_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -161,7 +194,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.ExtractSystemDriversCard.IsEnabled.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task ExtractAndAddSystemDriversCommand_DisablesCardWhileProcessing()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -191,9 +224,10 @@ public class WimStep3DriversViewModelTests : IDisposable
 
     // ── SelectAndAddCustomDrivers command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_WhenCancelled_DoesNothing()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns((string?)null);
@@ -203,9 +237,10 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.AreDriversAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_WhenEmptyString_DoesNothing()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns(string.Empty);
@@ -215,9 +250,10 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.AreDriversAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_DirectoryDoesNotExist_SetsHasFailed()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns("C:\\DriverDir");
@@ -231,9 +267,10 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_EmptyDirectory_SetsHasFailed()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns("C:\\DriverDir");
@@ -255,7 +292,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_OnSuccess_SetsAreDriversAdded()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -283,7 +320,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.SelectCustomDriversCard.IsComplete.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_OnFailure_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -310,7 +347,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectAndAddCustomDriversCommand_OnException_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -341,7 +378,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
     // ── IDisposable ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
         var vm = new WimStep3DriversViewModel(
@@ -351,7 +388,8 @@ public class WimStep3DriversViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
 
         var act = () =>
         {
@@ -364,7 +402,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
     // ── Property change notifications ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingAreDriversAdded_RaisesPropertyChanged()
     {
         var raised = false;

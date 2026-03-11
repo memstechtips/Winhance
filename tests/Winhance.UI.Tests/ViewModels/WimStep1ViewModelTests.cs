@@ -17,6 +17,7 @@ public class WimStep1ViewModelTests
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly WimStep1ViewModel _sut;
 
@@ -45,61 +46,62 @@ public class WimStep1ViewModelTests
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
     }
 
     // ── Constructor ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesSelectedIsoPathToEmpty()
     {
         _sut.SelectedIsoPath.Should().BeEmpty();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesWorkingDirectoryToTempWinhanceWIM()
     {
         _sut.WorkingDirectory.Should().Be("C:\\Temp\\WinhanceWIM");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesActionCards()
     {
         _sut.SelectIsoCard.Should().NotBeNull();
         _sut.SelectDirectoryCard.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_SelectIsoCardIsEnabled()
     {
         _sut.SelectIsoCard.IsEnabled.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_SelectDirectoryCardIsEnabled()
     {
         _sut.SelectDirectoryCard.IsEnabled.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_DefaultsHasExtractedIsoAlreadyToFalse()
     {
         _sut.HasExtractedIsoAlready.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_DefaultsCanStartExtractionToFalse()
     {
         _sut.CanStartExtraction.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_DefaultsIsExtractingToFalse()
     {
         _sut.IsExtracting.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_DefaultsIsExtractionCompleteToFalse()
     {
         _sut.IsExtractionComplete.Should().BeFalse();
@@ -107,7 +109,7 @@ public class WimStep1ViewModelTests
 
     // ── SelectIsoFile command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoFileCommand_WhenFileSelected_SetsSelectedIsoPath()
     {
         _mockFilePickerService
@@ -119,7 +121,7 @@ public class WimStep1ViewModelTests
         _sut.SelectedIsoPath.Should().Be("C:\\ISOs\\windows.iso");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoFileCommand_WhenFileSelected_UpdatesSelectIsoCardDescription()
     {
         _mockFilePickerService
@@ -131,7 +133,7 @@ public class WimStep1ViewModelTests
         _sut.SelectIsoCard.Description.Should().Be("C:\\ISOs\\windows.iso");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoFileCommand_WhenFileSelected_SetsCanStartExtractionIfWorkingDirSet()
     {
         _mockFilePickerService
@@ -143,7 +145,7 @@ public class WimStep1ViewModelTests
         _sut.CanStartExtraction.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoFileCommand_WhenCancelled_DoesNotChangeSelectedIsoPath()
     {
         _mockFilePickerService
@@ -155,7 +157,7 @@ public class WimStep1ViewModelTests
         _sut.SelectedIsoPath.Should().BeEmpty();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoFileCommand_WhenEmptyString_DoesNotChangeSelectedIsoPath()
     {
         _mockFilePickerService
@@ -169,7 +171,7 @@ public class WimStep1ViewModelTests
 
     // ── SelectWorkingDirectory command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectWorkingDirectoryCommand_WhenCancelled_DoesNotChangeWorkingDirectory()
     {
         var originalDir = _sut.WorkingDirectory;
@@ -182,7 +184,7 @@ public class WimStep1ViewModelTests
         _sut.WorkingDirectory.Should().Be(originalDir);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectWorkingDirectoryCommand_WhenNotExtractedAlready_CreatesSubDirectory()
     {
         _mockFilePickerService
@@ -195,7 +197,7 @@ public class WimStep1ViewModelTests
         _sut.WorkingDirectory.Should().Be("D:\\WorkDir\\WinhanceWIM");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectWorkingDirectoryCommand_WhenExtractedAlready_ValidatesDirectoryStructure()
     {
         _sut.HasExtractedIsoAlready = true;
@@ -229,7 +231,7 @@ public class WimStep1ViewModelTests
         _sut.IsExtractionComplete.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectWorkingDirectoryCommand_WhenExtractedAlready_InvalidDirectory_ShowsError()
     {
         _sut.HasExtractedIsoAlready = true;
@@ -259,7 +261,7 @@ public class WimStep1ViewModelTests
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectWorkingDirectoryCommand_WhenCreateDirectoryFails_SetsWorkingDirectoryToEmpty()
     {
         _mockFilePickerService
@@ -277,7 +279,7 @@ public class WimStep1ViewModelTests
 
     // ── ValidateExtractedIsoDirectory ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task ValidateExtractedIsoDirectory_DriveRoot_ReturnsFalse()
     {
         _mockFileSystemService
@@ -291,7 +293,7 @@ public class WimStep1ViewModelTests
 
     // ── OnHasExtractedIsoAlreadyChanged ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void WhenHasExtractedIsoAlreadySetToTrue_UpdatesSelectDirectoryCardDescription()
     {
         _sut.HasExtractedIsoAlready = true;
@@ -299,7 +301,7 @@ public class WimStep1ViewModelTests
         _sut.SelectDirectoryCard.Description.Should().Be("WIMUtil_Label_SelectExtracted");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void WhenHasExtractedIsoAlreadySetToFalse_ResetsSelectDirectoryCardDescription()
     {
         _sut.HasExtractedIsoAlready = true;
@@ -310,7 +312,7 @@ public class WimStep1ViewModelTests
 
     // ── StartIsoExtraction command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task StartIsoExtractionCommand_OnSuccess_SetsIsExtractionComplete()
     {
         _sut.SelectedIsoPath = "C:\\test.iso";
@@ -339,7 +341,7 @@ public class WimStep1ViewModelTests
         _sut.IsExtracting.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task StartIsoExtractionCommand_OnFailure_DoesNotSetIsExtractionComplete()
     {
         _sut.SelectedIsoPath = "C:\\test.iso";
@@ -367,7 +369,7 @@ public class WimStep1ViewModelTests
         _sut.IsExtractionComplete.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task StartIsoExtractionCommand_DisablesCardsWhileExtracting()
     {
         _sut.SelectedIsoPath = "C:\\test.iso";
@@ -404,7 +406,7 @@ public class WimStep1ViewModelTests
         dirCardEnabledDuringExtraction.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task StartIsoExtractionCommand_AlwaysCallsCompleteTask()
     {
         _sut.SelectedIsoPath = "C:\\test.iso";
@@ -434,7 +436,7 @@ public class WimStep1ViewModelTests
 
     // ── Property change notifications ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingSelectedIsoPath_RaisesPropertyChanged()
     {
         var raised = false;
@@ -449,7 +451,7 @@ public class WimStep1ViewModelTests
         raised.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingIsExtracting_RaisesPropertyChanged()
     {
         var raised = false;

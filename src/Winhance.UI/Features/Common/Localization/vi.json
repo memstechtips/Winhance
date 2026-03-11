@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Đã xảy ra lỗi: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Vui lòng tải xuống oscdimg.exe trước bằng cách nhấp vào nút 'Tải xuống oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Vui lòng chọn một vị trí đầu ra cho tệp ISO.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Chưa đặt thư mục làm việc. Vui lòng hoàn thành Bước 1 (giải nén hoặc chọn ISO) trước khi tạo ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "ISO cài đặt Windows của bạn đã được tạo thành công!\n\nVị trí: {0}\n\nBạn có muốn mở thư mục chứa ISO không?",
   "WIMUtil_Msg_IsoCreationFailed": "Không thể tạo tệp ISO. Vui lòng kiểm tra nhật ký để biết chi tiết.",
   "WIMUtil_Msg_IsoCreationError": "Đã xảy ra lỗi: {0}",
