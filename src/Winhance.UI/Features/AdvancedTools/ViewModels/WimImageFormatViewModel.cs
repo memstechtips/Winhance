@@ -98,6 +98,14 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     {
         if (CurrentImageFormat == null) return;
 
+        if (string.IsNullOrEmpty(WorkingDirectory))
+        {
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                _localizationService.GetString("Dialog_Warning") ?? "Warning");
+            return;
+        }
+
         try
         {
             var targetFormat = CurrentImageFormat.Format == ImageFormat.Wim ? ImageFormat.Esd : ImageFormat.Wim;
@@ -205,6 +213,14 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task DeleteWim()
     {
+        if (string.IsNullOrEmpty(WorkingDirectory))
+        {
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                _localizationService.GetString("Dialog_Warning") ?? "Warning");
+            return;
+        }
+
         try
         {
             var confirmed = await _dialogService.ShowConfirmationAsync(
@@ -250,6 +266,14 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task DeleteEsd()
     {
+        if (string.IsNullOrEmpty(WorkingDirectory))
+        {
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                _localizationService.GetString("Dialog_Warning") ?? "Warning");
+            return;
+        }
+
         try
         {
             var confirmed = await _dialogService.ShowConfirmationAsync(

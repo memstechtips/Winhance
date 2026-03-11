@@ -192,6 +192,13 @@ public class WimCustomizationService : IWimCustomizationService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(destinationPath))
+            throw new ArgumentException("Destination path cannot be empty.", nameof(destinationPath));
+
+        var destinationDir = _fileSystemService.GetDirectoryName(destinationPath);
+        if (string.IsNullOrEmpty(destinationDir))
+            throw new ArgumentException("Destination path must include a directory.", nameof(destinationPath));
+
         try
         {
             progress?.Report(new TaskProgressDetail
@@ -202,7 +209,7 @@ public class WimCustomizationService : IWimCustomizationService
 
             var xmlContent = await _httpClient.GetStringAsync(UnattendedWinstallXmlUrl, cancellationToken).ConfigureAwait(false);
 
-            _fileSystemService.CreateDirectory(_fileSystemService.GetDirectoryName(destinationPath)!);
+            _fileSystemService.CreateDirectory(destinationDir);
             await _fileSystemService.WriteAllTextAsync(destinationPath, xmlContent, cancellationToken).ConfigureAwait(false);
 
             progress?.Report(new TaskProgressDetail

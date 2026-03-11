@@ -97,11 +97,58 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.WorkingDirectory.Should().BeEmpty();
     }
 
+    // ── Empty WorkingDirectory guard (Issue #506) ──
+
+    [Fact]
+    public async Task DownloadUnattendedWinstallXmlCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        // WorkingDirectory defaults to empty
+        await _sut.DownloadUnattendedWinstallXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.DownloadUnattendedWinstallXmlAsync(
+            It.IsAny<string>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsXmlAdded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        // WorkingDirectory defaults to empty
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockXmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
+            It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()), Times.Never);
+        _sut.IsXmlAdded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        // WorkingDirectory defaults to empty
+        await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.AddXmlToImageAsync(
+            It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _sut.IsXmlAdded.Should().BeFalse();
+    }
+
     // ── GenerateWinhanceXml command ──
 
     [Fact]
     public async Task GenerateWinhanceXmlCommand_WhenUserCancels_DoesNotGenerate()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
@@ -156,6 +203,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     [Fact]
     public async Task GenerateWinhanceXmlCommand_OnException_SetsHasFailed()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
@@ -232,11 +280,61 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.DownloadXmlCard.HasFailed.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task DownloadUnattendedWinstallXmlCommand_OnSuccess_ClearsOtherCardCompletions()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _sut.GenerateWinhanceXmlCard.IsComplete = true;
+        _sut.SelectXmlCard.IsComplete = true;
+
+        _mockWimCustomizationService
+            .Setup(s => s.DownloadUnattendedWinstallXmlAsync(
+                It.IsAny<string>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync("C:\\WorkDir\\autounattend.xml");
+
+        _mockWimCustomizationService
+            .Setup(s => s.AddXmlToImageAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        await _sut.DownloadUnattendedWinstallXmlCommand.ExecuteAsync(null);
+
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeFalse();
+        _sut.SelectXmlCard.IsComplete.Should().BeFalse();
+        _sut.DownloadXmlCard.IsComplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DownloadUnattendedWinstallXmlCommand_PassesCorrectDestinationPath()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+
+        _mockWimCustomizationService
+            .Setup(s => s.DownloadUnattendedWinstallXmlAsync(
+                It.IsAny<string>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync("C:\\WorkDir\\autounattend.xml");
+
+        _mockWimCustomizationService
+            .Setup(s => s.AddXmlToImageAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        await _sut.DownloadUnattendedWinstallXmlCommand.ExecuteAsync(null);
+
+        _mockWimCustomizationService.Verify(s => s.DownloadUnattendedWinstallXmlAsync(
+            "C:\\WorkDir\\autounattend.xml",
+            It.IsAny<IProgress<TaskProgressDetail>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // ── SelectXmlFile command ──
 
     [Fact]
     public async Task SelectXmlFileCommand_WhenCancelled_DoesNothing()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>()))
             .Returns((string?)null);
@@ -249,6 +347,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     [Fact]
     public async Task SelectXmlFileCommand_WhenEmptyString_DoesNothing()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>()))
             .Returns(string.Empty);

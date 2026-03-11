@@ -115,6 +115,14 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             GenerateWinhanceXmlCard.IsComplete = false;
             GenerateWinhanceXmlCard.HasFailed = false;
 
+            if (string.IsNullOrEmpty(WorkingDirectory))
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                return;
+            }
+
             var confirmed = await _dialogService.ShowConfirmationAsync(
                 _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
                 _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
@@ -160,6 +168,14 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             DownloadXmlCard.IsComplete = false;
             DownloadXmlCard.HasFailed = false;
 
+            if (string.IsNullOrEmpty(WorkingDirectory))
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                return;
+            }
+
             var destinationPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = new CancellationTokenSource();
@@ -204,6 +220,14 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         {
             SelectXmlCard.IsComplete = false;
             SelectXmlCard.HasFailed = false;
+
+            if (string.IsNullOrEmpty(WorkingDirectory))
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                return;
+            }
 
             var selectedPath = _filePickerService.PickFile(
                 ["XML Files", "*.xml"],

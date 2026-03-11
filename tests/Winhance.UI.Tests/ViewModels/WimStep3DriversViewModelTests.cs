@@ -85,11 +85,42 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.WorkingDirectory.Should().BeEmpty();
     }
 
+    // ── Empty WorkingDirectory guard ──
+
+    [Fact]
+    public async Task ExtractAndAddSystemDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.AreDriversAdded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SelectAndAddCustomDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
+    {
+        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Msg_WorkingDirectoryRequired",
+            It.IsAny<string>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.AreDriversAdded.Should().BeFalse();
+    }
+
     // ── ExtractAndAddSystemDrivers command ──
 
     [Fact]
     public async Task ExtractAndAddSystemDriversCommand_WhenUserCancels_DoesNotExtract()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
@@ -196,6 +227,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     [Fact]
     public async Task SelectAndAddCustomDriversCommand_WhenCancelled_DoesNothing()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns((string?)null);
@@ -208,6 +240,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     [Fact]
     public async Task SelectAndAddCustomDriversCommand_WhenEmptyString_DoesNothing()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns(string.Empty);
@@ -220,6 +253,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     [Fact]
     public async Task SelectAndAddCustomDriversCommand_DirectoryDoesNotExist_SetsHasFailed()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns("C:\\DriverDir");
@@ -236,6 +270,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     [Fact]
     public async Task SelectAndAddCustomDriversCommand_EmptyDirectory_SetsHasFailed()
     {
+        _sut.WorkingDirectory = "C:\\WorkDir";
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
             .Returns("C:\\DriverDir");

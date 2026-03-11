@@ -115,7 +115,7 @@ public class IsoService : IIsoService
                         throw new InvalidOperationException(
                             $"Could not delete the existing working directory '{workingDirectory}'. " +
                             "It may be open in Windows Explorer or being used by another process. " +
-                            "Please close delete it manually and try again."
+                            "Please close it or delete it manually and try again."
                         );
                     }
 

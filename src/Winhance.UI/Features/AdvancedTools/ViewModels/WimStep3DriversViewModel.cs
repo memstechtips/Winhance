@@ -91,6 +91,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             ExtractSystemDriversCard.IsComplete = false;
             ExtractSystemDriversCard.HasFailed = false;
 
+            if (string.IsNullOrEmpty(WorkingDirectory))
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                return;
+            }
+
             var confirmed = await _dialogService.ShowConfirmationAsync(
                 _localizationService.GetString("WIMUtil_Msg_ExtractDriversConfirm"),
                 _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
@@ -149,6 +157,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         {
             SelectCustomDriversCard.IsComplete = false;
             SelectCustomDriversCard.HasFailed = false;
+
+            if (string.IsNullOrEmpty(WorkingDirectory))
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                return;
+            }
 
             var selectedPath = _filePickerService.PickFolder(_localizationService.GetString("WIMUtil_FolderDialog_SelectDrivers"));
             if (string.IsNullOrEmpty(selectedPath)) return;
