@@ -51,8 +51,8 @@ public static class PowerTemplates
         DisplayNames = new string[] { "Template_OnOff_Option_0", "Template_OnOff_Option_1" },
         ValueMappings = new Dictionary<int, Dictionary<string, object?>>
         {
-            [0] = new Dictionary<string, object?> { ["Value"] = 0 },
-            [1] = new Dictionary<string, object?> { ["Value"] = 1 }
+            [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
+            [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
         }
     };
 
@@ -61,8 +61,8 @@ public static class PowerTemplates
         DisplayNames = new string[] { "Template_EnabledDisabled_Option_0", "Template_EnabledDisabled_Option_1" },
         ValueMappings = new Dictionary<int, Dictionary<string, object?>>
         {
-            [0] = new Dictionary<string, object?> { ["Value"] = 0 },
-            [1] = new Dictionary<string, object?> { ["Value"] = 1 }
+            [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
+            [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
         }
     };
 
