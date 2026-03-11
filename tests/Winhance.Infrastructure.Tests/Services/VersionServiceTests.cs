@@ -188,7 +188,7 @@ public class VersionServiceTests
             });
 
         _mockProcessExecutor.Setup(p => p.ShellExecuteAsync(
-                It.IsAny<string>(), null, false, It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<string>(), false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
 
         // Act — this will throw because FileStream opens a real file path,

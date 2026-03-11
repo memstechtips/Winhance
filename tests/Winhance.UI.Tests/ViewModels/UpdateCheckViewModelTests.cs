@@ -45,6 +45,7 @@ public class UpdateCheckViewModelTests : IDisposable
         _sut.UpdateInfoBarTitle.Should().BeEmpty();
         _sut.UpdateInfoBarMessage.Should().BeEmpty();
         _sut.IsUpdateActionButtonVisible.Should().BeFalse();
+        _sut.IsRelaunchButtonVisible.Should().BeFalse();
         _sut.IsUpdateCheckInProgress.Should().BeFalse();
     }
 
@@ -236,7 +237,7 @@ public class UpdateCheckViewModelTests : IDisposable
     // ── InstallUpdateCommand ──
 
     [Fact]
-    public async Task InstallUpdateCommand_Success_HidesActionButton()
+    public async Task InstallUpdateCommand_Success_ShowsRelaunchButton()
     {
         _mockVersionService
             .Setup(v => v.DownloadAndInstallUpdateAsync(It.IsAny<CancellationToken>()))
@@ -248,7 +249,10 @@ public class UpdateCheckViewModelTests : IDisposable
         await _sut.InstallUpdateCommand.ExecuteAsync(null);
 
         _sut.IsUpdateActionButtonVisible.Should().BeFalse();
-        _sut.UpdateInfoBarMessage.Should().Contain("Downloading");
+        _sut.IsRelaunchButtonVisible.Should().BeTrue();
+        _sut.UpdateInfoBarSeverity.Should().Be(InfoBarSeverity.Success);
+        _sut.UpdateInfoBarTitle.Should().Contain("Update Ready");
+        _sut.UpdateInfoBarMessage.Should().Contain("Relaunch");
     }
 
     [Fact]
@@ -263,6 +267,32 @@ public class UpdateCheckViewModelTests : IDisposable
         _sut.UpdateInfoBarSeverity.Should().Be(InfoBarSeverity.Error);
         _sut.UpdateInfoBarMessage.Should().Contain("Download failed");
         _sut.IsUpdateActionButtonVisible.Should().BeFalse();
+        _sut.IsRelaunchButtonVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task InstallUpdateCommand_ShowsDownloadingState_DuringExecution()
+    {
+        var tcs = new TaskCompletionSource();
+        _mockVersionService
+            .Setup(v => v.DownloadAndInstallUpdateAsync(It.IsAny<CancellationToken>()))
+            .Returns(tcs.Task);
+
+        _sut.IsUpdateActionButtonVisible = true;
+
+        var commandTask = _sut.InstallUpdateCommand.ExecuteAsync(null);
+
+        // During download: action button hidden, relaunch not yet visible
+        _sut.IsUpdateActionButtonVisible.Should().BeFalse();
+        _sut.IsRelaunchButtonVisible.Should().BeFalse();
+        _sut.UpdateInfoBarTitle.Should().Contain("Downloading");
+
+        tcs.SetResult();
+        await commandTask;
+
+        // After download: relaunch button visible
+        _sut.IsRelaunchButtonVisible.Should().BeTrue();
+        _sut.UpdateInfoBarTitle.Should().Contain("Update Ready");
     }
 
     // ── DismissUpdateInfoBar ──
@@ -285,6 +315,12 @@ public class UpdateCheckViewModelTests : IDisposable
         _sut.InstallNowButtonText.Should().Be("Install Now");
     }
 
+    [Fact]
+    public void RelaunchButtonText_ReturnsFallbackWhenLocalizationReturnsNull()
+    {
+        _sut.RelaunchButtonText.Should().Be("Relaunch");
+    }
+
     // ── Language Change ──
 
     [Fact]
@@ -296,6 +332,7 @@ public class UpdateCheckViewModelTests : IDisposable
         _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
 
         changedProperties.Should().Contain(nameof(_sut.InstallNowButtonText));
+        changedProperties.Should().Contain(nameof(_sut.RelaunchButtonText));
     }
 
     [Fact]

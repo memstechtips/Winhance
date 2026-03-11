@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -14,7 +15,8 @@ internal enum UpdateInfoBarState
     UpdateAvailable,
     NoUpdates,
     CheckError,
-    Downloading
+    Downloading,
+    UpdateDownloaded
 }
 
 /// <summary>
@@ -53,8 +55,14 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool IsUpdateCheckInProgress { get; set; }
 
+    [ObservableProperty]
+    public partial bool IsRelaunchButtonVisible { get; set; }
+
     public string InstallNowButtonText =>
         _localizationService.GetString("Dialog_Update_Button_InstallNow") ?? "Install Now";
+
+    public string RelaunchButtonText =>
+        _localizationService.GetString("Dialog_Update_Button_Relaunch") ?? "Relaunch";
 
     public UpdateCheckViewModel(
         IVersionService versionService,
@@ -83,6 +91,7 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(InstallNowButtonText));
+        OnPropertyChanged(nameof(RelaunchButtonText));
         if (IsUpdateInfoBarOpen)
         {
             RefreshUpdateInfoBarText();
@@ -150,8 +159,14 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
             _updateInfoBarState = UpdateInfoBarState.Downloading;
             RefreshUpdateInfoBarText();
             IsUpdateActionButtonVisible = false;
+            IsRelaunchButtonVisible = false;
 
             await _versionService.DownloadAndInstallUpdateAsync();
+
+            _updateInfoBarState = UpdateInfoBarState.UpdateDownloaded;
+            RefreshUpdateInfoBarText();
+            UpdateInfoBarSeverity = InfoBarSeverity.Success;
+            IsRelaunchButtonVisible = true;
         }
         catch (Exception ex)
         {
@@ -163,6 +178,21 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
             UpdateInfoBarMessage = errorMessage;
             UpdateInfoBarSeverity = InfoBarSeverity.Error;
             IsUpdateActionButtonVisible = false;
+            IsRelaunchButtonVisible = false;
+        }
+    }
+
+    [RelayCommand]
+    private void Relaunch()
+    {
+        try
+        {
+            _versionService.LaunchInstallerAndRestart();
+            Application.Current.Exit();
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error relaunching: {ex.Message}");
         }
     }
 
@@ -247,7 +277,13 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
                 break;
 
             case UpdateInfoBarState.Downloading:
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
+                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
+                UpdateInfoBarMessage = string.Empty;
+                break;
+
+            case UpdateInfoBarState.UpdateDownloaded:
+                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Installed_Title") ?? "Update Ready";
+                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_Installed_Message") ?? "The update has been downloaded. Click Relaunch to install and restart Winhance.";
                 break;
         }
     }

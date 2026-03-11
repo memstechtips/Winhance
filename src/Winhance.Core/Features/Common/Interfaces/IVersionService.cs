@@ -18,8 +18,13 @@ public interface IVersionService
     Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Downloads and launches the installer for the latest version
+    /// Downloads the installer for the latest version to a temp location.
     /// </summary>
-    /// <returns>A task that completes when the download is initiated</returns>
     Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Launches the downloaded installer and schedules the app to relaunch after installation.
+    /// The caller should exit the application immediately after calling this.
+    /// </summary>
+    void LaunchInstallerAndRestart();
 }
