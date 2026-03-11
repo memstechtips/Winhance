@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Er is een fout opgetreden: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Download eerst oscdimg.exe door op de \u0027oscdimg downloaden\u0027 knop te klikken.",
   "WIMUtil_Msg_OutputRequired": "Selecteer een uitvoerlocatie voor het ISO-bestand.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Er is geen werkmap ingesteld. Voltooi eerst Stap 1 (ISO uitpakken of selecteren) voordat u de ISO aanmaakt.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Uw Windows installatie-ISO is succesvol gemaakt!\n\nLocatie: {0}\n\nWilt u de map openen die de ISO bevat?",
   "WIMUtil_Msg_IsoCreationFailed": "Mislukt om ISO-bestand te maken. Controleer de logboeken voor details.",
   "WIMUtil_Msg_IsoCreationError": "Er is een fout opgetreden: {0}",

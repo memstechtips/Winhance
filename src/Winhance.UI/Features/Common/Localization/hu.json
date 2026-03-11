@@ -1259,6 +1259,7 @@
   "WIMUtil_Msg_AdkInstallError": "Hiba történt: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Kérjük, először töltse le az oscdimg.exe fájlt a 'oscdimg letöltése' gombra kattintva.",
   "WIMUtil_Msg_OutputRequired": "Kérjük, válasszon egy helyet az ISO-fájl mentéséhez.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Nincs beállítva munkakönyvtár. Kérjük, először végezze el az 1. lépést (ISO kicsomagolása vagy kiválasztása) az ISO létrehozása előtt.",
   "WIMUtil_Msg_IsoCreatedSuccess": "A Windows telepítő ISO-ja sikeresen elkészült!\n\nHelye: {0}\n\nSzeretné megnyitni azt a mappát, amely az ISO-t tartalmazza?",
   "WIMUtil_Msg_IsoCreationFailed": "Nem sikerült létrehozni az ISO fájlt. Kérjük, ellenőrizze a naplófájlokat a részletekért.",
   "WIMUtil_Msg_IsoCreationError": "Hiba történt: {0}",

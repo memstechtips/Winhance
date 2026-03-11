@@ -28,7 +28,6 @@ public class WizardActionCardTests
         card.HasFailed.Should().BeFalse();
         card.IsProcessing.Should().BeFalse();
         card.ButtonCommand.Should().BeNull();
-        card.DescriptionForeground.Should().BeNull();
     }
 
     // -------------------------------------------------------

@@ -274,6 +274,12 @@ public class IsoService : IIsoService
     {
         try
         {
+            if (string.IsNullOrEmpty(workingDirectory))
+            {
+                _logService.LogError("Working directory path is empty.");
+                return false;
+            }
+
             var oscdimgPath = _oscdimgToolManager.GetOscdimgPath();
 
             if (!await _oscdimgToolManager.IsOscdimgAvailableAsync().ConfigureAwait(false))

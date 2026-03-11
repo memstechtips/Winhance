@@ -25,6 +25,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
+    private readonly IResourceService _resourceService;
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
@@ -54,7 +55,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        ILogService logService)
+        ILogService logService,
+        IResourceService resourceService)
     {
         _xmlGeneratorService = xmlGeneratorService;
         _wimCustomizationService = wimCustomizationService;
@@ -64,6 +66,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
+        _resourceService = resourceService;
 
         SelectedXmlPath = string.Empty;
         XmlStatus = _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
@@ -85,7 +88,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
         DownloadXmlCard = new WizardActionCard
         {
-            IconPath = GetResourceIconPath("FileDownloadIconPath"),
+            IconPath = _resourceService.GetResourceIconPath("FileDownloadIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_DownloadXML_Title"),
             Description = _localizationService.GetString("WIMUtil_Card_DownloadXML_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadXML_Button"),
@@ -95,7 +98,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
         SelectXmlCard = new WizardActionCard
         {
-            IconPath = GetResourceIconPath("AutounattendXmlIconPath"),
+            IconPath = _resourceService.GetResourceIconPath("AutounattendXmlIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_SelectXML_Title"),
             Description = _localizationService.GetString("WIMUtil_Card_SelectXML_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_SelectXML_Button"),
@@ -282,10 +285,4 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         _cancellationTokenSource = null;
     }
 
-    private static string GetResourceIconPath(string resourceKey)
-    {
-        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue(resourceKey, out var value) && value is string path)
-            return path;
-        return string.Empty;
-    }
 }

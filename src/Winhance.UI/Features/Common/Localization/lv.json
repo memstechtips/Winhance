@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Radās kļūda: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Lūdzu, vispirms lejupielādējiet oscdimg.exe, noklikšķinot uz pogas 'Lejupielādēt oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Lūdzu, atlasiet ISO faila izvades vietu.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Nav iestatīta darba direktorija. Lūdzu, pabeidziet 1. soli (izvelciet vai atlasiet ISO), pirms veidojat ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Jūsu Windows instalācijas ISO ir veiksmīgi izveidots!\n\nAtrašanās vieta: {0}\n\nVai vēlaties atvērt mapi, kurā atrodas ISO?",
   "WIMUtil_Msg_IsoCreationFailed": "Neizdevās izveidot ISO failu. Lūdzu, pārbaudiet žurnālus, lai iegūtu sīkāku informāciju.",
   "WIMUtil_Msg_IsoCreationError": "Radās kļūda: {0}",

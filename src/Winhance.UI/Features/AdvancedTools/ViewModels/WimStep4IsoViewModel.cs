@@ -3,8 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Extensions;
@@ -29,6 +27,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
+    private readonly IResourceService _resourceService;
     private bool _disposed;
 
     /// <summary>
@@ -57,7 +56,8 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        ILogService logService)
+        ILogService logService,
+        IResourceService resourceService)
     {
         _oscdimgToolManager = oscdimgToolManager;
         _isoService = isoService;
@@ -68,6 +68,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
+        _resourceService = resourceService;
 
         OutputIsoPath = string.Empty;
 
@@ -78,7 +79,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     {
         DownloadOscdimgCard = new WizardActionCard
         {
-            IconPath = GetResourceIconPath("ToolBoxIconPath"),
+            IconPath = _resourceService.GetResourceIconPath("ToolBoxIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Title"),
             Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Button"),
@@ -122,7 +123,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.IsEnabled = false;
                 DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
                 DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
-                DownloadOscdimgCard.IconPath = GetResourceIconPath("CheckCircleIconPath");
+                DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("CheckCircleIconPath");
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
                     _localizationService.GetString("Dialog_Success") ?? "Success");
@@ -187,6 +188,14 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 return;
             }
 
+            if (string.IsNullOrEmpty(WorkingDirectory))
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                return;
+            }
+
             SelectOutputCard.IsEnabled = false;
             SelectOutputCard.Opacity = 0.5;
 
@@ -202,7 +211,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             {
                 IsIsoCreated = true;
                 SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
-                SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 27, 94, 32));
 
                 var openFolder = await _dialogService.ShowConfirmationAsync(
                     string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
@@ -217,7 +225,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             else
             {
                 SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
-                SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromArgb(255, 198, 40, 40));
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"),
                     _localizationService.GetString("Dialog_Error") ?? "Error");
@@ -262,7 +269,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.IsComplete = true;
             DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
             DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgFound");
-            DownloadOscdimgCard.IconPath = GetResourceIconPath("CheckCircleIconPath");
+            DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("CheckCircleIconPath");
         }
         else
         {
@@ -270,7 +277,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.IsComplete = false;
             DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_Download");
             DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description");
-            DownloadOscdimgCard.IconPath = GetResourceIconPath("ToolBoxIconPath");
+            DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("ToolBoxIconPath");
         }
     }
 
@@ -280,10 +287,4 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         _disposed = true;
     }
 
-    private static string GetResourceIconPath(string resourceKey)
-    {
-        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue(resourceKey, out var value) && value is string path)
-            return path;
-        return string.Empty;
-    }
 }

@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Došlo k chybě: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Nejprve si prosím stáhněte oscdimg.exe kliknutím na tlačítko 'Stáhnout oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Vyberte prosím výstupní umístění pro soubor ISO.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Pracovní adresář není nastaven. Nejprve dokončete krok 1 (extrahujte nebo vyberte ISO) před vytvořením ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Vaše instalační ISO systému Windows bylo úspěšně vytvořeno!\n\nUmístění: {0}\n\nChcete otevřít složku obsahující ISO?",
   "WIMUtil_Msg_IsoCreationFailed": "Nepodařilo se vytvořit soubor ISO. Podrobnosti naleznete v protokolech.",
   "WIMUtil_Msg_IsoCreationError": "Došlo k chybě: {0}",

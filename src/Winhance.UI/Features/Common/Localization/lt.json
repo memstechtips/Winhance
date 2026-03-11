@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Įvyko klaida: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Pirmiausia atsisiųskite oscdimg.exe, spustelėdami mygtuką „Atsisiųsti oscdimg“.",
   "WIMUtil_Msg_OutputRequired": "Pasirinkite išvesties vietą ISO failui.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Darbo katalogas nenustatytas. Prieš kurdami ISO, užbaikite 1 veiksmą (išskleiskite arba pasirinkite ISO).",
   "WIMUtil_Msg_IsoCreatedSuccess": "Jūsų Windows diegimo ISO sėkmingai sukurtas!\n\nVieta: {0}\n\nAr norėtumėte atidaryti aplanką, kuriame yra ISO?",
   "WIMUtil_Msg_IsoCreationFailed": "Nepavyko sukurti ISO failo. Išsamesnės informacijos ieškokite žurnaluose.",
   "WIMUtil_Msg_IsoCreationError": "Įvyko klaida: {0}",

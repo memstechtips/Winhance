@@ -1299,6 +1299,7 @@
   "WIMUtil_Msg_AdkInstallError": "Bir hata oluştu: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Lütfen önce \u0027oscdimg İndir\u0027 düğmesine tıklayarak oscdimg.exe dosyasını indirin.",
   "WIMUtil_Msg_OutputRequired": "Lütfen ISO dosyası için bir çıktı konumu seçin.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Çalışma dizini ayarlanmadı. ISO oluşturmadan önce lütfen Adım 1'i tamamlayın (ISO çıkarın veya seçin).",
   "WIMUtil_Msg_IsoCreatedSuccess": "Windows yükleme ISO\u0027nuz başarıyla oluşturuldu!\n\nKonum: {0}\n\nISO\u0027yu içeren klasörü açmak ister misiniz?",
   "WIMUtil_Msg_IsoCreationFailed": "ISO dosyası oluşturulamadı. Ayrıntılar için lütfen günlüklere bakın.",
   "WIMUtil_Msg_IsoCreationError": "Bir hata oluştu: {0}",

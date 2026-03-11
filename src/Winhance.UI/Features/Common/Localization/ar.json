@@ -1231,6 +1231,7 @@
     "WIMUtil_Msg_AdkInstallError": "حدث خطأ: {0}",
     "WIMUtil_Msg_OscdimgRequired": "يرجى تنزيل oscdimg.exe أولًا بالنقر على زر \"تنزيل oscdimg\".",
     "WIMUtil_Msg_OutputRequired": "يرجى تحديد موقع إخراج لملف ISO.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "لم يتم تعيين دليل العمل. يرجى إكمال الخطوة 1 (استخراج أو تحديد ملف ISO) قبل إنشاء ملف ISO.",
     "WIMUtil_Msg_IsoCreatedSuccess": "تم إنشاء ISO لتثبيت Windows بنجاح!\n\nالموقع: {0}\n\nهل ترغب في فتح المجلد الذي يحتوي على ملف ISO؟",
     "WIMUtil_Msg_IsoCreationFailed": "فشل إنشاء ملف ISO. يرجى التحقق من السجلات للتفاصيل.",
     "WIMUtil_Msg_IsoCreationError": "حدث خطأ: {0}",

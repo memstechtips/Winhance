@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "发生错误：{0}",
   "WIMUtil_Msg_OscdimgRequired": "请先通过单击“下载 oscdimg”按钮下载 oscdimg.exe。",
   "WIMUtil_Msg_OutputRequired": "请为 ISO 文件选择一个输出位置。",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "未设置工作目录。请先完成步骤 1（提取或选择 ISO），然后再创建 ISO。",
   "WIMUtil_Msg_IsoCreatedSuccess": "您的 Windows 安装 ISO 已成功创建！\n\n位置：{0}\n\n您想打开包含 ISO 的文件夹吗？",
   "WIMUtil_Msg_IsoCreationFailed": "创建 ISO 文件失败。请查看日志以获取详细信息。",
   "WIMUtil_Msg_IsoCreationError": "发生错误：{0}",

@@ -19,6 +19,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly WimStep2XmlViewModel _sut;
 
@@ -45,7 +46,8 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
     }
 
     public void Dispose()
@@ -55,25 +57,25 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── Constructor ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesSelectedXmlPathToEmpty()
     {
         _sut.SelectedXmlPath.Should().BeEmpty();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesXmlStatusFromLocalization()
     {
         _sut.XmlStatus.Should().Be("WIMUtil_Status_NoXmlAdded");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesIsXmlAddedToFalse()
     {
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesActionCards()
     {
         _sut.GenerateWinhanceXmlCard.Should().NotBeNull();
@@ -81,7 +83,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_AllActionCardsAreEnabled()
     {
         _sut.GenerateWinhanceXmlCard.IsEnabled.Should().BeTrue();
@@ -89,7 +91,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.IsEnabled.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_WorkingDirectoryDefaultsToEmpty()
     {
         _sut.WorkingDirectory.Should().BeEmpty();
@@ -97,7 +99,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── GenerateWinhanceXml command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task GenerateWinhanceXmlCommand_WhenUserCancels_DoesNotGenerate()
     {
         _mockDialogService
@@ -111,7 +113,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task GenerateWinhanceXmlCommand_OnSuccess_SetsIsXmlAdded()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -130,7 +132,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task GenerateWinhanceXmlCommand_OnSuccess_ClearsOtherCardCompletions()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -151,7 +153,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.IsComplete.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task GenerateWinhanceXmlCommand_OnException_SetsHasFailed()
     {
         _mockDialogService
@@ -169,7 +171,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── DownloadUnattendedWinstallXml command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task DownloadUnattendedWinstallXmlCommand_OnSuccess_SetsIsXmlAdded()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -191,7 +193,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.DownloadXmlCard.IsComplete.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task DownloadUnattendedWinstallXmlCommand_WhenAddFails_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -213,7 +215,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task DownloadUnattendedWinstallXmlCommand_OnException_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -232,7 +234,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── SelectXmlFile command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectXmlFileCommand_WhenCancelled_DoesNothing()
     {
         _mockFilePickerService
@@ -244,7 +246,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task SelectXmlFileCommand_WhenEmptyString_DoesNothing()
     {
         _mockFilePickerService
@@ -258,7 +260,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── ClearOtherXmlCardCompletions ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void ClearOtherXmlCardCompletions_ExceptGenerate_ClearsDownloadAndSelect()
     {
         _sut.GenerateWinhanceXmlCard.IsComplete = true;
@@ -272,7 +274,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.IsComplete.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void ClearOtherXmlCardCompletions_ExceptDownload_ClearsGenerateAndSelect()
     {
         _sut.GenerateWinhanceXmlCard.IsComplete = true;
@@ -286,7 +288,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.IsComplete.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void ClearOtherXmlCardCompletions_ExceptSelect_ClearsGenerateAndDownload()
     {
         _sut.GenerateWinhanceXmlCard.IsComplete = true;
@@ -302,7 +304,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── IDisposable ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
         var vm = new WimStep2XmlViewModel(
@@ -313,7 +315,8 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
 
         var act = () =>
         {
@@ -326,7 +329,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
     // ── Property change notifications ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingIsXmlAdded_RaisesPropertyChanged()
     {
         var raised = false;
@@ -341,7 +344,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingXmlStatus_RaisesPropertyChanged()
     {
         var raised = false;

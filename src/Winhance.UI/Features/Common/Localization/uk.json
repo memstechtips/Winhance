@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Сталася помилка: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Будь ласка, спочатку завантажте oscdimg.exe, натиснувши кнопку 'Завантажити oscdimg'.",
   "WIMUtil_Msg_OutputRequired": "Будь ласка, виберіть місце виведення для ISO-файлу.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Робочий каталог не встановлено. Будь ласка, завершіть Крок 1 (розпакуйте або виберіть ISO) перед створенням ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Ваш інсталяційний ISO Windows успішно створено!\n\nРозташування: {0}\n\nБажаєте відкрити папку, що містить ISO?",
   "WIMUtil_Msg_IsoCreationFailed": "Не вдалося створити ISO-файл. Перевірте журнали для отримання деталей.",
   "WIMUtil_Msg_IsoCreationError": "Сталася помилка: {0}",

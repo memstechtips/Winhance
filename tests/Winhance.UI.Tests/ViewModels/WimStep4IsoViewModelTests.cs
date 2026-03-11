@@ -20,6 +20,7 @@ public class WimStep4IsoViewModelTests : IDisposable
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly WimStep4IsoViewModel _sut;
 
@@ -54,7 +55,8 @@ public class WimStep4IsoViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
     }
 
     public void Dispose()
@@ -64,39 +66,39 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── Constructor ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesOutputIsoPathToEmpty()
     {
         _sut.OutputIsoPath.Should().BeEmpty();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesIsOscdimgAvailableToFalse()
     {
         _sut.IsOscdimgAvailable.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesIsIsoCreatedToFalse()
     {
         _sut.IsIsoCreated.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_InitializesActionCards()
     {
         _sut.DownloadOscdimgCard.Should().NotBeNull();
         _sut.SelectOutputCard.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_BothActionCardsAreEnabled()
     {
         _sut.DownloadOscdimgCard.IsEnabled.Should().BeTrue();
         _sut.SelectOutputCard.IsEnabled.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Constructor_WorkingDirectoryDefaultsToEmpty()
     {
         _sut.WorkingDirectory.Should().BeEmpty();
@@ -104,7 +106,7 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── DownloadOscdimg command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task DownloadOscdimgCommand_OnSuccess_SetsIsOscdimgAvailable()
     {
         _mockOscdimgToolManager
@@ -119,7 +121,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.DownloadOscdimgCard.IsEnabled.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task DownloadOscdimgCommand_OnFailure_SetsHasFailed()
     {
         _mockOscdimgToolManager
@@ -134,7 +136,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.IsOscdimgAvailable.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task DownloadOscdimgCommand_OnException_SetsHasFailed()
     {
         _mockOscdimgToolManager
@@ -151,7 +153,7 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── SelectIsoOutputLocation command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoOutputLocationCommand_WhenFileSelected_SetsOutputIsoPath()
     {
         _mockFilePickerService
@@ -163,7 +165,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.OutputIsoPath.Should().Be("D:\\Output\\Winhance_Windows.iso");
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoOutputLocationCommand_WhenCancelled_DoesNotChangeOutputPath()
     {
         _mockFilePickerService
@@ -175,7 +177,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.OutputIsoPath.Should().BeEmpty();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SelectIsoOutputLocationCommand_WhenFileSelected_UpdatesSelectOutputCardDescription()
     {
         _mockFilePickerService
@@ -189,7 +191,7 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── CreateIso command ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task CreateIsoCommand_WhenOscdimgNotAvailable_ShowsWarning()
     {
         _sut.IsOscdimgAvailable = false;
@@ -200,7 +202,7 @@ public class WimStep4IsoViewModelTests : IDisposable
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task CreateIsoCommand_WhenOutputPathEmpty_ShowsWarning()
     {
         _sut.IsOscdimgAvailable = true;
@@ -212,7 +214,24 @@ public class WimStep4IsoViewModelTests : IDisposable
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
+    public async Task CreateIsoCommand_WhenWorkingDirectoryEmpty_ShowsWarning()
+    {
+        _sut.IsOscdimgAvailable = true;
+        _sut.OutputIsoPath = "D:\\Output\\test.iso";
+        _sut.WorkingDirectory = string.Empty;
+
+        await _sut.CreateIsoCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockIsoService.Verify(i => i.CreateIsoAsync(
+            It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateIsoCommand_OnSuccess_SetsIsIsoCreated()
     {
         _sut.IsOscdimgAvailable = true;
@@ -247,7 +266,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.IsIsoCreated.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task CreateIsoCommand_OnFailure_DoesNotSetIsIsoCreated()
     {
         _sut.IsOscdimgAvailable = true;
@@ -277,7 +296,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.IsIsoCreated.Should().BeFalse();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task CreateIsoCommand_AlwaysCallsCompleteTask()
     {
         _sut.IsOscdimgAvailable = true;
@@ -311,7 +330,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.Once);
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public async Task CreateIsoCommand_DisablesSelectOutputCardDuringCreation()
     {
         _sut.IsOscdimgAvailable = true;
@@ -354,7 +373,7 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── UpdateDownloadOscdimgCardState ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void UpdateDownloadOscdimgCardState_WhenAvailable_DisablesAndMarkComplete()
     {
         _sut.IsOscdimgAvailable = true;
@@ -365,7 +384,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.DownloadOscdimgCard.IsComplete.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void UpdateDownloadOscdimgCardState_WhenNotAvailable_EnablesCard()
     {
         _sut.IsOscdimgAvailable = false;
@@ -378,7 +397,7 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── IDisposable ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
         var vm = new WimStep4IsoViewModel(
@@ -390,7 +409,8 @@ public class WimStep4IsoViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockResourceService.Object);
 
         var act = () =>
         {
@@ -403,7 +423,7 @@ public class WimStep4IsoViewModelTests : IDisposable
 
     // ── Property change notifications ──
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingIsOscdimgAvailable_RaisesPropertyChanged()
     {
         var raised = false;
@@ -418,7 +438,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingOutputIsoPath_RaisesPropertyChanged()
     {
         var raised = false;
@@ -433,7 +453,7 @@ public class WimStep4IsoViewModelTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    [Fact(Skip = "Requires WinUI runtime (Application.Current.Resources)")]
+    [Fact]
     public void SettingIsIsoCreated_RaisesPropertyChanged()
     {
         var raised = false;

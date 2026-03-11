@@ -24,6 +24,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
+    private readonly IResourceService _resourceService;
     private bool _disposed;
 
     /// <summary>
@@ -44,7 +45,8 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        ILogService logService)
+        ILogService logService,
+        IResourceService resourceService)
     {
         _wimCustomizationService = wimCustomizationService;
         _taskProgressService = taskProgressService;
@@ -53,6 +55,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
+        _resourceService = resourceService;
 
         CreateActionCards();
     }
@@ -61,7 +64,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     {
         ExtractSystemDriversCard = new WizardActionCard
         {
-            IconPath = GetResourceIconPath("MemoryArrowDownIconPath"),
+            IconPath = _resourceService.GetResourceIconPath("MemoryArrowDownIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
             Description = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Button"),
@@ -71,7 +74,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 
         SelectCustomDriversCard = new WizardActionCard
         {
-            IconPath = GetResourceIconPath("ExplorerIconPath"),
+            IconPath = _resourceService.GetResourceIconPath("ExplorerIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Title"),
             Description = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Button"),
@@ -221,10 +224,4 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         _disposed = true;
     }
 
-    private static string GetResourceIconPath(string resourceKey)
-    {
-        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue(resourceKey, out var value) && value is string path)
-            return path;
-        return string.Empty;
-    }
 }

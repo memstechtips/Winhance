@@ -1256,6 +1256,7 @@
   "WIMUtil_Msg_AdkInstallError": "Παρουσιάστηκε σφάλμα: {0}",
   "WIMUtil_Msg_OscdimgRequired": "Παρακαλώ κατεβάστε το oscdimg.exe πρώτα κάνοντας κλικ στο κουμπί \u0027Λήψη oscdimg\u0027.",
   "WIMUtil_Msg_OutputRequired": "Παρακαλώ επιλέξτε μια τοποθεσία εξόδου για το αρχείο ISO.",
+  "WIMUtil_Msg_WorkingDirectoryRequired": "Δεν έχει οριστεί κατάλογος εργασίας. Ολοκληρώστε το Βήμα 1 (εξαγωγή ή επιλογή ISO) πριν δημιουργήσετε το ISO.",
   "WIMUtil_Msg_IsoCreatedSuccess": "Το ISO εγκατάστασης Windows δημιουργήθηκε επιτυχώς!\n\nΤοποθεσία: {0}\n\nΘα θέλατε να ανοίξετε τον φάκελο που περιέχει το ISO;",
   "WIMUtil_Msg_IsoCreationFailed": "Αποτυχία δημιουργίας αρχείου ISO. Παρακαλώ ελέγξτε τα αρχεία καταγραφής για λεπτομέρειες.",
   "WIMUtil_Msg_IsoCreationError": "Παρουσιάστηκε σφάλμα: {0}",
