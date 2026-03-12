@@ -1,5 +1,6 @@
 # Custom project folders to ignore
 extras/prerequisites/
+!extras/prerequisites/portable.marker
 installer-output/
 .config/
 # Claude folder

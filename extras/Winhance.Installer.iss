@@ -6,8 +6,6 @@
 #define MyAppPublisher "Marco du Plessis"
 #define MyAppURL "https://www.winhance.net/"
 #define MyAppExeName "Winhance.exe"
-#define DotNetRuntimeVersion "10.0.2"
-#define DotNetRuntimeInstallerName "windowsdesktop-runtime-" + DotNetRuntimeVersion + "-win-x64.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".winhance"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -59,16 +57,6 @@ RestartIfNeededByRun=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Code]
-function ShouldInstallDotNetRuntime: Boolean;
-begin
-  // For regular installation, always install .NET Runtime
-  // For portable installation, check if the user wants to install it
-  if WizardIsTaskSelected('portableinstall') and not WizardIsTaskSelected('portableinstall\dotnetruntime') then
-    Result := False
-  else
-    Result := True;  // Always install for regular installation or if checkbox is selected
-end;
-
 function InitializeUninstall(): Boolean;
 var
   ErrorCode: Integer;
@@ -176,27 +164,27 @@ begin
   end;
 
   // Sync the custom dir page value to the actual install directory
+  // Append \Winhance if the path doesn't already end with it
   if CurPageID = CustomDirPage.ID then
   begin
+    if CompareText(ExtractFileName(RemoveBackslashUnlessRoot(CustomDirPage.Values[0])), '{#MyAppName}') <> 0 then
+      CustomDirPage.Values[0] := CustomDirPage.Values[0] + '\{#MyAppName}';
     WizardForm.DirEdit.Text := CustomDirPage.Values[0];
   end;
 end;
 
 [Tasks]
 Name: "portableinstall"; Description: "Perform a portable installation"; GroupDescription: "Installation type:"; Flags: unchecked exclusive
-Name: "portableinstall\dotnetruntime"; Description: "Install .NET 10 Runtime (recommended)"; GroupDescription: "Portable options:"; Flags: unchecked
 Name: "regularinstall"; Description: "Perform a regular installation"; GroupDescription: "Installation type:"; Flags: exclusive
 Name: "regularinstall\desktopicon"; Description: "Create a shortcut on the Desktop"; GroupDescription: "Additional shortcuts:"
 Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Start menu"; GroupDescription: "Additional shortcuts:"
 
 [Files]
-; All application files and subdirectories (recursive)
+; All application files and subdirectories (recursive) - includes self-contained .NET runtime
 ; Excludes "nul" - a zero-byte file with a Windows reserved device name created by MSBuild
-Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*"; Excludes: "nul"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Include .NET 10 Runtime installer
-Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\*"; Excludes: "nul"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Create a marker file for portable installations
-Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{app}"; DestName: "portable.marker"; Flags: ignoreversion; Tasks: portableinstall
+Source: "C:\Winhance\extras\prerequisites\portable.marker"; DestDir: "{app}"; Flags: ignoreversion; Tasks: portableinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -213,8 +201,6 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: r
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: regularinstall\desktopicon
 
 [Run]
-; Install .NET 10 Runtime (always for regular installation, optional for portable)
-Filename: "{tmp}\{#DotNetRuntimeInstallerName}"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing .NET 10 Runtime..."; Flags: waituntilterminated; Check: ShouldInstallDotNetRuntime
 ; Launch application after installation
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: shellexec nowait postinstall skipifsilent
 

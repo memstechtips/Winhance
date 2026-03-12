@@ -19,11 +19,7 @@
 #    Download: https://jrsoftware.org/isdl.php
 #    Expected at: "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 #
-# 4. .NET 10 Desktop Runtime installer (bundled into the installer for end users)
-#    Place at: extras\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe
-#    Download: https://dotnet.microsoft.com/download/dotnet/10.0
-#
-# 5. Windows SDK (only required for code signing)
+# 4. Windows SDK (only required for code signing)
 #    Provides signtool.exe. Install via VS Installer or standalone SDK installer.
 #
 # EXAMPLES:
@@ -186,9 +182,8 @@ function Set-FileSignature {
     }
 }
 
-$publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0"
+$publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64"
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
-$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
 
 # Declare certificate variable at script scope so it's accessible throughout
@@ -200,12 +195,48 @@ if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
 
-# Check for prerequisite installer files
-if (-not (Test-Path $dotNetRuntimePath)) {
-    Write-Host ".NET 10 Desktop Runtime installer not found at: $dotNetRuntimePath" -ForegroundColor Red
-    Write-Host "Download from: https://dotnet.microsoft.com/download/dotnet/10.0" -ForegroundColor Yellow
-    exit 1
+# Check for newer .NET SDK and Windows App SDK versions
+Write-Host "Checking for dependency updates..." -ForegroundColor Green
+try {
+    # Check installed .NET SDK version
+    $dotnetVersion = (& dotnet --version 2>$null)
+    if ($dotnetVersion) {
+        Write-Host "  Installed .NET SDK: $dotnetVersion" -ForegroundColor DarkGray
+        $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/dotnet/sdk/releases" -Headers @{ 'User-Agent' = 'Winhance-Build' } -ErrorAction Stop |
+            Where-Object { -not $_.prerelease -and $_.tag_name -match '^v10\.' } | Select-Object -First 1
+        if ($releaseInfo) {
+            $latestSdkTag = $releaseInfo.tag_name.TrimStart('v')
+            if ([version]$latestSdkTag -gt [version]$dotnetVersion) {
+                Write-Host "  WARNING: Newer .NET SDK available: $latestSdkTag (installed: $dotnetVersion)" -ForegroundColor Yellow
+                Write-Host "  Download from: https://dotnet.microsoft.com/download/dotnet/10.0" -ForegroundColor Yellow
+            } else {
+                Write-Host "  .NET SDK is up to date." -ForegroundColor DarkGray
+            }
+        }
+    }
+} catch {
+    Write-Host "  Could not check for .NET SDK updates: $($_.Exception.Message)" -ForegroundColor DarkGray
 }
+try {
+    # Check Windows App SDK version from csproj
+    $csprojXml = [xml](Get-Content -Path "$solutionDir\src\Winhance.UI\Winhance.UI.csproj")
+    $wasdk = $csprojXml.Project.ItemGroup.PackageReference | Where-Object { $_.Include -eq 'Microsoft.WindowsAppSDK' }
+    if ($wasdk) {
+        $currentWasdkVersion = $wasdk.Version
+        Write-Host "  Installed Windows App SDK: $currentWasdkVersion" -ForegroundColor DarkGray
+        $nugetInfo = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk/index.json" -ErrorAction Stop
+        $stableVersions = $nugetInfo.versions | Where-Object { $_ -notmatch '-' } | Select-Object -Last 1
+        if ($stableVersions -and [version]$stableVersions -gt [version]$currentWasdkVersion) {
+            Write-Host "  WARNING: Newer Windows App SDK available: $stableVersions (installed: $currentWasdkVersion)" -ForegroundColor Yellow
+            Write-Host "  Update the PackageReference in Winhance.UI.csproj" -ForegroundColor Yellow
+        } else {
+            Write-Host "  Windows App SDK is up to date." -ForegroundColor DarkGray
+        }
+    }
+} catch {
+    Write-Host "  Could not check for Windows App SDK updates: $($_.Exception.Message)" -ForegroundColor DarkGray
+}
+
 Write-Host "Building Winhance v$Version..." -ForegroundColor Cyan
 
 # Modify version if Beta flag is set
@@ -284,9 +315,9 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Step 2: Build the solution (WinUI3 - no separate publish step needed)
+# Step 2: Build the solution (self-contained: .NET runtime + Windows App SDK bundled with the app)
 Write-Host "Building solution..." -ForegroundColor Green
-& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 /p:WindowsAppSDKSelfContained=true -restore
+& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 -restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to build solution" -ForegroundColor Red
     exit 1
@@ -358,7 +389,7 @@ $iconPath = "$solutionDir\src\Winhance.UI\Assets\AppIcons\winhance-rocket.ico".R
 $innoContent = $innoContent -replace 'LicenseFile=C:\\Winhance\\LICENSE.txt', "LicenseFile=$licensePath"
 $innoContent = $innoContent -replace 'OutputDir=C:\\Winhance\\installer-output', "OutputDir=$outputPath"
 $innoContent = $innoContent -replace 'SetupIconFile=C:\\Winhance\\src\\Winhance\.UI\\Assets\\AppIcons\\winhance-rocket\.ico', "SetupIconFile=$iconPath"
-$innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance\.UI\\bin\\x64\\Release\\net10\.0-windows10\.0\.19041\.0\\', "Source: `"$publishPath\\"
+$innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance\.UI\\bin\\x64\\Release\\net10\.0-windows10\.0\.19041\.0\\win-x64\\', "Source: `"$publishPath\\"
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\extras\\prerequisites\\', "Source: `"$scriptRoot\\prerequisites\\"
 
 # Add uninstaller signing directives if code signing is enabled
