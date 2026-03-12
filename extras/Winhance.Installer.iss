@@ -184,7 +184,7 @@ Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Sta
 ; Excludes "nul" - a zero-byte file with a Windows reserved device name created by MSBuild
 Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\*"; Excludes: "nul"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Create a marker file for portable installations
-Source: "C:\Winhance\extras\prerequisites\portable.marker"; DestDir: "{app}"; Flags: ignoreversion; Tasks: portableinstall
+Source: "C:\Winhance\extras\portable.marker"; DestDir: "{app}"; Flags: ignoreversion; Tasks: portableinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
