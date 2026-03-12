@@ -83,18 +83,30 @@ public class AppUninstallService(
             string? packageId;
             string? source;
 
-            if (!string.IsNullOrEmpty(item.MsStoreId))
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            {
+                packageId = item.WinGetPackageId[0];
+                source = "winget";
+            }
+            else if (!string.IsNullOrEmpty(item.MsStoreId))
             {
                 packageId = item.MsStoreId;
                 source = "msstore";
             }
             else
             {
-                packageId = item.WinGetPackageId?[0];
-                source = "winget";
+                packageId = null;
+                source = null;
             }
 
-            var success = await winGetPackageInstaller.UninstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(packageId))
+            {
+                logService.LogWarning($"No WinGet package ID for {item.Name}, falling back to registry");
+                taskProgressService.UpdateProgress(0, $"No WinGet package ID for {item.Name}, trying registry fallback...");
+                return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
+            }
+
+            var success = await winGetPackageInstaller.UninstallPackageAsync(packageId, source, item.Name, cancellationToken).ConfigureAwait(false);
 
             if (!success)
             {
@@ -102,12 +114,14 @@ public class AppUninstallService(
                 if (!string.IsNullOrEmpty(item.ChocoPackageId))
                 {
                     logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting Chocolatey fallback");
+                    taskProgressService.UpdateProgress(0, $"WinGet uninstall failed for {item.Name}, trying Chocolatey...");
                     var chocoResult = await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false);
                     if (chocoResult.Success)
                         return chocoResult;
                 }
 
-                logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting registry fallback");
+                logService.LogWarning($"Uninstall failed for {item.Name}, attempting registry fallback");
+                taskProgressService.UpdateProgress(0, $"Trying registry fallback for {item.Name}...");
                 return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
@@ -142,6 +156,7 @@ public class AppUninstallService(
             if (!success)
             {
                 logService.LogWarning($"Chocolatey uninstall failed for {item.Name}, attempting registry fallback");
+                taskProgressService.UpdateProgress(0, $"Chocolatey uninstall failed for {item.Name}, trying registry fallback...");
                 return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 

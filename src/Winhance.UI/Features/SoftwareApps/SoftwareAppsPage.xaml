@@ -975,13 +975,11 @@
                                 </StackPanel>
 
                                 <!-- Categories -->
-                                <ItemsControl ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Spacing="8"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsRepeater.Layout>
+                                        <StackLayout Spacing="8"/>
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
                                         <DataTemplate>
                                             <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                                      AutomationProperties.Name="{Binding DisplayName}">
@@ -1022,8 +1020,8 @@
                                                 </Expander.Content>
                                             </Expander>
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
                             </StackPanel>
                         </ScrollViewer>
 

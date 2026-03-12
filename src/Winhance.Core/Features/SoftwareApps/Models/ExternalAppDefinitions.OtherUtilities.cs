@@ -15,6 +15,19 @@ public static partial class ExternalAppDefinitions
                 {
                     new ItemDefinition
                     {
+                        Id = "external-app-ccleaner",
+                        Name = "CCleaner",
+                        Description = "System optimization and cleaning tool",
+                        GroupName = "Other Utilities",
+                        RegistrySubKeyName = "CCleaner {version}",
+                        RegistryDisplayName = "CCleaner {version}",
+                        WinGetPackageId = ["Piriform.CCleaner"],
+                        ChocoPackageId = "ccleaner",
+                        MsStoreId = "XPFCWP0SQWXM3V",
+                        WebsiteUrl = "https://www.ccleaner.com/"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-snappy-driver-installer",
                         Name = "Snappy Driver Installer Origin",
                         Description = "Driver installer and updater",
