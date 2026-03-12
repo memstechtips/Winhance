@@ -390,7 +390,6 @@ $innoContent = $innoContent -replace 'LicenseFile=C:\\Winhance\\LICENSE.txt', "L
 $innoContent = $innoContent -replace 'OutputDir=C:\\Winhance\\installer-output', "OutputDir=$outputPath"
 $innoContent = $innoContent -replace 'SetupIconFile=C:\\Winhance\\src\\Winhance\.UI\\Assets\\AppIcons\\winhance-rocket\.ico', "SetupIconFile=$iconPath"
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance\.UI\\bin\\x64\\Release\\net10\.0-windows10\.0\.19041\.0\\win-x64\\', "Source: `"$publishPath\\"
-$innoContent = $innoContent -replace 'Source: "C:\\Winhance\\extras\\prerequisites\\', "Source: `"$scriptRoot\\prerequisites\\"
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\extras\\portable\.marker"', "Source: `"$scriptRoot\\portable.marker`""
 
 # Add uninstaller signing directives if code signing is enabled
