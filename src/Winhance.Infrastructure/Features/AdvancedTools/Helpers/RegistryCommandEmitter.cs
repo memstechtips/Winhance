@@ -52,8 +52,13 @@ internal class RegistryCommandEmitter
             }
             else if (regSetting.ModifyByteOnly)
             {
-                var byteValue = FormatValueForPowerShell(value, RegistryValueKind.DWord).Replace("0x", "").PadLeft(2, '0');
-                sb.AppendLine($"{indent}Set-BinaryByte -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue 0x{byteValue} -Description '{escapedDescription}'");
+                var byteValue = value switch
+                {
+                    byte b => $"0x{b:X2}",
+                    int i => $"0x{(byte)i:X2}",
+                    _ => "0x00"
+                };
+                sb.AppendLine($"{indent}Set-BinaryByte -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue {byteValue} -Description '{escapedDescription}'");
             }
             else
             {

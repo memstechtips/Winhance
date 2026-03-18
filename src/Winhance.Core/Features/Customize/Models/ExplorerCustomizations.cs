@@ -338,11 +338,11 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
                             ValueName = "Settings",
-                            RecommendedValue = (byte)0x0A,
-                            DefaultValue = (byte)0x2A,
+                            RecommendedValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.Binary,
-                            ModifyByteOnly = true,
                             BinaryByteIndex = 4,
+                            BitMask = 0x20,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
@@ -356,11 +356,11 @@ public static class ExplorerCustomizations
                         {
                             [0] = new Dictionary<string, object?>
                             {
-                                ["Settings"] = (byte)0x0A,
+                                ["Settings"] = 0,
                             },
                             [1] = new Dictionary<string, object?>
                             {
-                                ["Settings"] = (byte)0x2A,
+                                ["Settings"] = 1,
                             },
                         },
                     },
@@ -382,10 +382,10 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShellState",
                             ValueType = RegistryValueKind.Binary,
-                            ModifyByteOnly = true,
                             BinaryByteIndex = 4,
-                            RecommendedValue = (byte)0x3E,
-                            DefaultValue = (byte)0x3E,
+                            BitMask = 0x20,
+                            RecommendedValue = 1,
+                            DefaultValue = 1,
                         },
                         new RegistrySetting
                         {
@@ -408,17 +408,17 @@ public static class ExplorerCustomizations
                         {
                             [0] = new Dictionary<string, object?>
                             {
-                                ["ShellState"] = (byte)0x3E,
+                                ["ShellState"] = 1,
                                 ["IconUnderline"] = 3,
                             },
                             [1] = new Dictionary<string, object?>
                             {
-                                ["ShellState"] = (byte)0x1E,
+                                ["ShellState"] = 0,
                                 ["IconUnderline"] = 3,
                             },
                             [2] = new Dictionary<string, object?>
                             {
-                                ["ShellState"] = (byte)0x1E,
+                                ["ShellState"] = 0,
                                 ["IconUnderline"] = 2,
                             },
                         },

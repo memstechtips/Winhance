@@ -528,8 +528,15 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 if (!CreateKey(setting.KeyPath))
                     return false;
 
-                var result = ModifyBinaryBit(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value, isEnabled);
-                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified bit mask 0x{setting.BitMask.Value:X2} at byte index {setting.BinaryByteIndex.Value} to {isEnabled} - Success: {result}");
+                var setBit = specificValue switch
+                {
+                    bool b => b,
+                    int i => i != 0,
+                    byte b => b != 0,
+                    _ => isEnabled
+                };
+                var result = ModifyBinaryBit(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value, setBit);
+                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified bit mask 0x{setting.BitMask.Value:X2} at byte index {setting.BinaryByteIndex.Value} to {setBit} - Success: {result}");
                 return result;
             }
 

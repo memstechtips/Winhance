@@ -115,10 +115,26 @@ public class RegistryCommandEmitterTests
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryByte");
         output.Should().Contain("-ByteIndex 5");
-        // FormatValueForPowerShell(255, DWord) => "255", then Replace("0x","").PadLeft(2,'0') => "255"
-        // Actually, it calls FormatValueForPowerShell(value, RegistryValueKind.DWord) which returns "255"
-        // Then replaces "0x" (no-op) and PadLeft => "255". So "0x255" in the output.
-        output.Should().Contain("-ByteValue 0x");
+        output.Should().Contain("-ByteValue 0xFF");
+    }
+
+    [Fact]
+    public void EmitRegistryValue_BinaryModifyByteOnly_ByteValue_FormatsCorrectHex()
+    {
+        var sb = new StringBuilder();
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
+            ValueName = "ByteVal",
+            ValueType = RegistryValueKind.Binary,
+            BinaryByteIndex = 4,
+            ModifyByteOnly = true
+        };
+
+        _sut.EmitRegistryValue(sb, regSetting, (byte)0x3E, "Click Setting", "HKLM:\\Software\\Test", "ByteVal", "");
+
+        var output = sb.ToString();
+        output.Should().Contain("-ByteValue 0x3E");
     }
 
     // ---------------------------------------------------------------
