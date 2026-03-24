@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
-    public const string ScriptVersion = "1.2";
+    public const string ScriptVersion = "1.3";
 
     public static string GetScript()
     {
@@ -295,8 +295,6 @@ set "".=!.:{=%%!"" & endlocal& set ""URL=%.:}=!%"" & exit /b
     reg.exe add ""HKCR\microsoft-edge"" /f /v ""URL Protocol"" /d `""`"" 2>&1 | Out-Null
     reg.exe add ""HKCR\microsoft-edge"" /f /v ""NoOpenWith"" /d `""`"" 2>&1 | Out-Null
     reg.exe add ""HKCR\microsoft-edge\shell\open\command"" /f /ve /d ""$stubTargetPath %1"" 2>&1 | Out-Null
-    reg.exe add ""HKCR\MSEdgeHTM"" /f /v ""NoOpenWith"" /d `""`"" 2>&1 | Out-Null
-    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d ""$stubTargetPath %1"" 2>&1 | Out-Null
     reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe"" /f /v UseFilter /d 1 /t reg_dword 2>&1 | Out-Null
     reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0"" /f /v FilterFullPath /d ""$stubTargetPath"" 2>&1 | Out-Null
     reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0"" /f /v Debugger /d ""$conhostDebugger"" 2>&1 | Out-Null
@@ -314,7 +312,6 @@ if (-not (Test-Path `$owsPath)) { exit }
 `$cmd = (Get-ItemProperty ""Registry::HKEY_CLASSES_ROOT\microsoft-edge\shell\open\command"" -ErrorAction SilentlyContinue).'(default)'
 if (`$cmd -and `$cmd -notlike ""*ie_to_edge_stub*"") {
     reg.exe add ""HKCR\microsoft-edge\shell\open\command"" /f /ve /d ""`$stubPath %1"" 2>&1 | Out-Null
-    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d ""`$stubPath %1"" 2>&1 | Out-Null
 }
 ""@
     $repairScriptPath = ""$scriptsDir\OpenWebSearchRepair.ps1""
@@ -485,7 +482,6 @@ function Remove-EdgeRegistryKeys {
     Write-Log ""Removed $removedValuesCount registry value(s)""
 
     $patterns = @(
-        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""microsoft-edge""},
         @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MicrosoftEdgeUpdate*""},
         @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MSEdge*""},
         @{Root = ""HKLM:\SOFTWARE\Classes\WOW6432Node""; Pattern = ""MicrosoftEdgeUpdate*""},
@@ -631,6 +627,9 @@ if ($removedSomething) {
     Remove-EdgeRegistryKeys
     Remove-AdditionalEdgeFolders
 }
+
+# Clean up MSEdgeHTM from previous script versions (causes broken file associations)
+reg.exe delete ""HKCR\MSEdgeHTM"" /f 2>&1 | Out-Null
 
 # Install or repair Edge protocol redirect (runs even if Edge was already removed, only acts if redirect is missing or broken)
 Install-EdgeProtocolRedirect
