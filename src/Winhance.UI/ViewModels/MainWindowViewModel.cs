@@ -21,7 +21,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
     private readonly IInteractiveUserService _interactiveUserService;
-    private readonly IWinGetStartupService _winGetStartupService;
     private readonly IWindowsVersionFilterService _windowsVersionFilterService;
 
     /// <summary>Child ViewModel for task progress display.</summary>
@@ -61,7 +60,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         IVersionService versionService,
         ILogService logService,
         IInteractiveUserService interactiveUserService,
-        IWinGetStartupService winGetStartupService,
         IWindowsVersionFilterService windowsVersionFilterService,
         TaskProgressViewModel taskProgress,
         UpdateCheckViewModel updateCheck,
@@ -73,7 +71,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _versionService = versionService;
         _logService = logService;
         _interactiveUserService = interactiveUserService;
-        _winGetStartupService = winGetStartupService;
         _windowsVersionFilterService = windowsVersionFilterService;
 
         TaskProgress = taskProgress;
@@ -398,14 +395,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             _logService.LogDebug($"Failed to open documentation page: {ex.Message}");
         }
-    }
-
-    /// <summary>
-    /// Post-UI startup flow for WinGet / AppInstaller. Delegates to IWinGetStartupService.
-    /// </summary>
-    public Task EnsureWinGetReadyOnStartupAsync()
-    {
-        return _winGetStartupService.EnsureWinGetReadyOnStartupAsync();
     }
 
     #endregion

@@ -201,12 +201,10 @@ internal sealed class StartupUiCoordinator
         }
 
         // Check for updates silently (only shows InfoBar if update available)
-        // Ensure WinGet is ready (shows task progress if installation/update needed)
         var viewModel = getViewModel();
         if (viewModel != null)
         {
             _ = viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync();
-            _ = viewModel.EnsureWinGetReadyOnStartupAsync();
         }
     }
 }

@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
-    public const string ScriptVersion = "1.3";
+    public const string ScriptVersion = "1.4";
 
     public static string GetScript()
     {
@@ -232,6 +232,7 @@ for /f %%E in ('""prompt `$E`$S& for %%e in (1) do rem""') do echo;%%E[2t 2>nul
 call :reg_var ""HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoiceLatest\ProgId"" ProgID ProgID
 if not defined ProgID call :reg_var ""HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"" ProgID ProgID
 if /i ""%ProgID%"" neq ""MSEdgeHTM"" if defined ProgID goto :browser_found
+for %%P in (""%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"" ""%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"") do if exist %%P (set ""Choice=%%~P""& goto :skip_browser)
 set ""Choice=""
 for %%R in (HKCU HKLM) do (
     for /f ""delims="" %%K in ('reg query ""%%R\SOFTWARE\Clients\StartMenuInternet"" 2^>nul') do (
@@ -302,9 +303,9 @@ set "".=!.:{=%%!"" & endlocal& set ""URL=%.:}=!%"" & exit /b
     reg.exe delete ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe"" /f 2>&1 | Out-Null
     Write-Log ""Registry configuration completed""
 
-    # Create repair script that re-sets protocol handler registry if Edge overwrites it
+    # Create repair script that re-sets protocol handler and MSEdgeHTM registry if Edge overwrites them
     $repairContent = @""
-# OpenWebSearch Repair - re-sets protocol handler registry if Edge overwrites it
+# OpenWebSearch Repair - re-sets protocol handler and MSEdgeHTM registry if Edge overwrites them
 `$stubPath = ""$stubTargetPath""
 `$owsPath = ""$openWebSearchPath""
 if (-not (Test-Path `$stubPath)) { exit }
@@ -312,6 +313,10 @@ if (-not (Test-Path `$owsPath)) { exit }
 `$cmd = (Get-ItemProperty ""Registry::HKEY_CLASSES_ROOT\microsoft-edge\shell\open\command"" -ErrorAction SilentlyContinue).'(default)'
 if (`$cmd -and `$cmd -notlike ""*ie_to_edge_stub*"") {
     reg.exe add ""HKCR\microsoft-edge\shell\open\command"" /f /ve /d ""`$stubPath %1"" 2>&1 | Out-Null
+}
+`$htm = (Get-ItemProperty ""Registry::HKEY_CLASSES_ROOT\MSEdgeHTM\shell\open\command"" -ErrorAction SilentlyContinue).'(default)'
+if (`$htm -and `$htm -notlike ""*ie_to_edge_stub*"") {
+    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d ""```""`$stubPath```"" %1"" 2>&1 | Out-Null
 }
 ""@
     $repairScriptPath = ""$scriptsDir\OpenWebSearchRepair.ps1""
@@ -628,8 +633,15 @@ if ($removedSomething) {
     Remove-AdditionalEdgeFolders
 }
 
-# Clean up MSEdgeHTM from previous script versions (causes broken file associations)
-reg.exe delete ""HKCR\MSEdgeHTM"" /f 2>&1 | Out-Null
+# Redirect MSEdgeHTM to our stub so links resolving through it go to the default browser
+$stubPath = ""C:\ProgramData\Winhance\OpenWebSearch\ie_to_edge_stub.exe""
+if (Test-Path $stubPath) {
+    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d """"""`""$stubPath`"""""" %1"" 2>&1 | Out-Null
+    Write-Log ""Redirected MSEdgeHTM to ie_to_edge_stub.exe""
+} else {
+    reg.exe delete ""HKCR\MSEdgeHTM"" /f 2>&1 | Out-Null
+    Write-Log ""Removed MSEdgeHTM (stub not available)""
+}
 
 # Install or repair Edge protocol redirect (runs even if Edge was already removed, only acts if redirect is missing or broken)
 Install-EdgeProtocolRedirect

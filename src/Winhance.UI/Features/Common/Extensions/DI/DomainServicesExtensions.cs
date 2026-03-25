@@ -126,9 +126,6 @@ public static class DomainServicesExtensions
         services.AddSingleton<IWinGetDetectionService, WinGetDetectionService>();
         services.AddSingleton<IWinGetPackageInstaller, WinGetPackageInstaller>();
 
-        // WinGet Startup Service (Singleton - Handles WinGet/AppInstaller readiness on startup)
-        services.AddSingleton<IWinGetStartupService, WinGetStartupService>();
-
         // Chocolatey Services (Fallback package manager)
         services.AddSingleton<IChocolateyService, ChocolateyService>();
 
