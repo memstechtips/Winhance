@@ -126,6 +126,8 @@
   "Button_Download": "Lejupielādēt",
   "Common_On": "Ieslēgts",
   "Common_Off": "Izslēgts",
+  "Badge_New": "JAUNS",
+  "Badge_New_Dismiss": "Noraidīt",
   "PowerStatus_PluggedIn": "Pieslēgts",
   "PowerStatus_OnBattery": "Uz akumulatora",
   "Common_Search_Placeholder": "Rakstiet šeit, lai meklētu...",

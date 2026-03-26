@@ -19,6 +19,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService _userPreferencesService;
+    private readonly INewBadgeService _newBadgeService;
     private readonly IComboBoxSetupService _comboBoxSetupService;
     private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ISettingViewModelEnricher _enricher;
@@ -28,6 +29,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ILogService logService,
         ILocalizationService localizationService,
         IUserPreferencesService userPreferencesService,
+        INewBadgeService newBadgeService,
         IComboBoxSetupService comboBoxSetupService,
         IComboBoxResolver comboBoxResolver,
         ISettingViewModelEnricher enricher)
@@ -36,6 +38,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         _logService = logService;
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
+        _newBadgeService = newBadgeService;
         _comboBoxSetupService = comboBoxSetupService;
         _comboBoxResolver = comboBoxResolver;
         _enricher = enricher;
@@ -75,7 +78,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _localizationService,
             _viewModelDeps.EventBus,
             _userPreferencesService,
-            _viewModelDeps.RegeditLauncher);
+            _viewModelDeps.RegeditLauncher,
+            _newBadgeService);
 
         // Set lock state for advanced settings
         if (setting.RequiresAdvancedUnlock)

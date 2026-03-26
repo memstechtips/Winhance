@@ -126,6 +126,8 @@
   "Button_Download": "Stáhnout",
   "Common_On": "Zapnuto",
   "Common_Off": "Vypnuto",
+  "Badge_New": "NOVÉ",
+  "Badge_New_Dismiss": "Zavřít",
   "PowerStatus_PluggedIn": "Zapojeno",
   "PowerStatus_OnBattery": "Na baterii",
   "Common_Search_Placeholder": "Hledejte zde...",

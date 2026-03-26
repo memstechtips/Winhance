@@ -126,6 +126,8 @@
   "Button_Download": "ダウンロード",
   "Common_On": "オン",
   "Common_Off": "オフ",
+  "Badge_New": "新着",
+  "Badge_New_Dismiss": "非表示",
   "PowerStatus_PluggedIn": "電源接続時",
   "PowerStatus_OnBattery": "バッテリー使用時",
   "Common_Search_Placeholder": "ここで検索...",

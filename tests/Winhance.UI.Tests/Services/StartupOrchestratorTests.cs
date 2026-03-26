@@ -18,6 +18,7 @@ public class StartupOrchestratorTests
     private readonly Mock<ISystemBackupService> _backupService = new();
     private readonly Mock<IScriptMigrationService> _migrationService = new();
     private readonly Mock<IRemovalScriptUpdateService> _updateService = new();
+    private readonly Mock<INewBadgeService> _newBadgeService = new();
     private readonly Mock<ILogService> _logService = new();
 
     // TooltipRefreshEventHandler is a concrete class. We need to figure out its constructor.
@@ -48,6 +49,7 @@ public class StartupOrchestratorTests
             _backupService.Object,
             _migrationService.Object,
             _updateService.Object,
+            _newBadgeService.Object,
             _logService.Object);
     }
 

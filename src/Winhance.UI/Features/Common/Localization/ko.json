@@ -161,6 +161,8 @@
   "Button_Download": "다운로드",
   "Common_On": "켜짐",
   "Common_Off": "꺼짐",
+  "Badge_New": "신규",
+  "Badge_New_Dismiss": "닫기",
   "PowerStatus_PluggedIn": "전원 연결됨",
   "PowerStatus_OnBattery": "배터리 사용 중",
   "Common_Search_Placeholder": "검색어를 입력하십시오...",

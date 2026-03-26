@@ -126,6 +126,8 @@
   "Button_Download": "下載",
   "Common_On": "開啟",
   "Common_Off": "關閉",
+  "Badge_New": "新功能",
+  "Badge_New_Dismiss": "關閉",
   "PowerStatus_PluggedIn": "接通電源",
   "PowerStatus_OnBattery": "使用電池",
   "Common_Search_Placeholder": "在此輸入以搜尋...",

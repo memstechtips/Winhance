@@ -126,6 +126,8 @@
   "Button_Download": "Letöltés",
   "Common_On": "Be",
   "Common_Off": "Ki",
+  "Badge_New": "ÚJ",
+  "Badge_New_Dismiss": "Elvetés",
   "PowerStatus_PluggedIn": "Csatlakoztatva",
   "PowerStatus_OnBattery": "Akkumulátorról",
   "Common_Search_Placeholder": "Írjon ide a kereséshez...",

@@ -113,6 +113,8 @@
     "Button_Download": "تنزيل",
     "Common_On": "تشغيل",
     "Common_Off": "إيقاف",
+    "Badge_New": "جديد",
+    "Badge_New_Dismiss": "إخفاء",
     "PowerStatus_PluggedIn": "متصل بالكهرباء",
     "PowerStatus_OnBattery": "على البطارية",
     "Common_Search_Placeholder": "اكتب هنا للبحث...",

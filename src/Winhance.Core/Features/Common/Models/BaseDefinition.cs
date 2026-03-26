@@ -28,4 +28,5 @@ public abstract record BaseDefinition
     public Dictionary<string, string>? CrossGroupChildSettings { get; init; }
     public string? VersionCompatibilityMessage { get; init; }
     public bool DisableTooltip { get; init; }
+    public string? AddedInVersion { get; init; }
 }

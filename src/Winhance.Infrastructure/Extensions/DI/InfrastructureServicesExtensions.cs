@@ -37,6 +37,9 @@ public static class InfrastructureServicesExtensions
         // User Preferences Service
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
 
+        // New Badge Service (tracks which settings are new in current release)
+        services.AddSingleton<INewBadgeService, NewBadgeService>();
+
         // Localization Service
         services.AddSingleton<ILocalizationService, LocalizationService>();
 

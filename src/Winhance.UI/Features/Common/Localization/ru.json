@@ -126,6 +126,8 @@
   "Button_Download": "Скачать",
   "Common_On": "Вкл",
   "Common_Off": "Выкл",
+  "Badge_New": "НОВОЕ",
+  "Badge_New_Dismiss": "Скрыть",
   "PowerStatus_PluggedIn": "Подключено",
   "PowerStatus_OnBattery": "От батареи",
   "Common_Search_Placeholder": "Введите здесь для поиска...",

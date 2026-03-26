@@ -126,6 +126,8 @@
   "Button_Download": "Завантажити",
   "Common_On": "Увімк",
   "Common_Off": "Вимк",
+  "Badge_New": "НОВЕ",
+  "Badge_New_Dismiss": "Сховати",
   "PowerStatus_PluggedIn": "Підключено",
   "PowerStatus_OnBattery": "Від батареї",
   "Common_Search_Placeholder": "Введіть тут для пошуку...",

@@ -126,6 +126,8 @@
   "Button_Download": "डाउनलोड करें",
   "Common_On": "चालू",
   "Common_Off": "बंद",
+  "Badge_New": "नया",
+  "Badge_New_Dismiss": "छिपाएँ",
   "PowerStatus_PluggedIn": "प्लग इन",
   "PowerStatus_OnBattery": "बैटरी पर",
   "Common_Search_Placeholder": "खोजने के लिए यहां टाइप करें...",

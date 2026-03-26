@@ -126,6 +126,8 @@
   "Button_Download": "Télécharger",
   "Common_On": "Activé",
   "Common_Off": "Désactivé",
+  "Badge_New": "NOUVEAU",
+  "Badge_New_Dismiss": "Masquer",
   "PowerStatus_PluggedIn": "Branché",
   "PowerStatus_OnBattery": "Sur batterie",
   "Common_Search_Placeholder": "Tapez ici pour rechercher...",

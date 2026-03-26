@@ -23,6 +23,7 @@ public class SettingViewModelFactoryTests
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
+    private readonly Mock<INewBadgeService> _mockNewBadgeService = new();
     private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
     private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
     private readonly Mock<ISettingViewModelEnricher> _mockEnricher = new();
@@ -58,6 +59,7 @@ public class SettingViewModelFactoryTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockUserPreferencesService.Object,
+            _mockNewBadgeService.Object,
             _mockComboBoxSetupService.Object,
             _mockComboBoxResolver.Object,
             _mockEnricher.Object);

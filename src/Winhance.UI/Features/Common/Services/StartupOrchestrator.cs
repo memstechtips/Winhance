@@ -24,6 +24,7 @@ public class StartupOrchestrator : IStartupOrchestrator
     private readonly ISystemBackupService _backupService;
     private readonly IScriptMigrationService _migrationService;
     private readonly IRemovalScriptUpdateService _updateService;
+    private readonly INewBadgeService _newBadgeService;
     private readonly ILogService _logService;
 
     public StartupOrchestrator(
@@ -35,6 +36,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         ISystemBackupService backupService,
         IScriptMigrationService migrationService,
         IRemovalScriptUpdateService updateService,
+        INewBadgeService newBadgeService,
         ILogService logService)
     {
         _settingsRegistry = settingsRegistry;
@@ -45,6 +47,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         _backupService = backupService;
         _migrationService = migrationService;
         _updateService = updateService;
+        _newBadgeService = newBadgeService;
         _logService = logService;
     }
 
@@ -63,6 +66,16 @@ public class StartupOrchestrator : IStartupOrchestrator
             await _settingsRegistry.InitializeAsync().ConfigureAwait(false);
             await _settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
             StartupLogger.Log("StartupOrchestrator", "Phase 1: Settings registry initialized");
+
+        // Initialize new badge service (version comparison for "NEW" badges)
+        try
+        {
+            _newBadgeService.Initialize();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"New badge service init failed: {ex.Message}");
+        }
 
             // Initialize tooltip event handler (constructor subscribes to EventBus)
             // Accessing the injected instance ensures it's constructed and subscribed.

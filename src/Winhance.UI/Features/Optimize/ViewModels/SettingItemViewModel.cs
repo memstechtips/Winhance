@@ -28,6 +28,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
+    private readonly INewBadgeService? _newBadgeService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
     private volatile bool _isUpdatingFromEvent;
@@ -171,6 +172,15 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // Pre-built message for cross-group child settings (built during initialization)
     public string? CrossGroupInfoMessage { get; set; }
+
+    // New setting badge
+    [ObservableProperty]
+    public partial bool IsNew { get; set; }
+
+    public string NewBadgeText => _localizationService.GetString("Badge_New") ?? "NEW";
+    public string NewBadgeDismissTooltip => _localizationService.GetString("Badge_New_Dismiss") ?? "Dismiss";
+
+    public IRelayCommand DismissNewBadgeCommand { get; private set; } = null!;
 
     // Advanced unlock support
     [ObservableProperty]
@@ -338,7 +348,8 @@ public partial class SettingItemViewModel : BaseViewModel
         ILocalizationService localizationService,
         IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
-        IRegeditLauncher? regeditLauncher = null)
+        IRegeditLauncher? regeditLauncher = null,
+        INewBadgeService? newBadgeService = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
@@ -346,6 +357,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _dialogService = dialogService;
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
+        _newBadgeService = newBadgeService;
 
         // Unpack config data
         SettingDefinition = config.SettingDefinition;
@@ -374,6 +386,15 @@ public partial class SettingItemViewModel : BaseViewModel
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
+        DismissNewBadgeCommand = new RelayCommand(() =>
+        {
+            IsNew = false;
+            _newBadgeService?.DismissBadge(SettingId);
+        });
+
+        // Check if this setting is new in the current release
+        IsNew = _newBadgeService?.IsSettingNew(
+            config.SettingDefinition?.AddedInVersion, config.SettingId) == true;
 
         _statusBannerManager = new SettingStatusBannerManager(localizationService);
         _technicalDetailsManager = new TechnicalDetailsManager(

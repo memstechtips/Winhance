@@ -126,6 +126,8 @@
   "Button_Download": "Λήψη",
   "Common_On": "Ενεργό",
   "Common_Off": "Ανενεργό",
+  "Badge_New": "ΝΕΟ",
+  "Badge_New_Dismiss": "Απόρριψη",
   "PowerStatus_PluggedIn": "Συνδεδεμένο",
   "PowerStatus_OnBattery": "Σε μπαταρία",
   "Common_Search_Placeholder": "Πληκτρολογήστε για αναζήτηση...",
