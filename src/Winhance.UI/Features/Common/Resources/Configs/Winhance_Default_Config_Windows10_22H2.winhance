@@ -303,6 +303,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-shortcut-arrow",
+            "Name": "Remove Shortcut Arrow Icon",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-take-ownership",
             "Name": "Add \u0027Take Ownership\u0027 to Context Menu",
             "IsSelected": false,

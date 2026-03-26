@@ -552,6 +552,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-shortcut-arrow",
+            "Name": "Remove Shortcut Arrow Icon",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-context-menu",
             "Name": "Use Classic Context Menu",
             "IsSelected": true,
