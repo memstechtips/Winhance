@@ -237,14 +237,14 @@ if ($hasXboxPackages) {
     # Redirect ms-gamebar and ms-gamebarservices protocols to a no-op handler
     # to prevent Microsoft Store notification prompts after Game Bar removal
     try {
-        reg add ""HKCR\ms-gamebar"" /f /ve /d ""URL:ms-gamebar"" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebar"" /f /v ""URL Protocol"" /t REG_SZ /d """""""" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebar"" /f /v ""NoOpenWith"" /t REG_SZ /d """""""" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebar\shell\open\command"" /f /ve /d ""`""$env:SystemRoot\System32\systray.exe`"""" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebarservices"" /f /ve /d ""URL:ms-gamebarservices"" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebarservices"" /f /v ""URL Protocol"" /t REG_SZ /d """""""" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebarservices"" /f /v ""NoOpenWith"" /t REG_SZ /d """""""" 2>$null | Out-Null
-        reg add ""HKCR\ms-gamebarservices\shell\open\command"" /f /ve /d ""`""$env:SystemRoot\System32\systray.exe`"""" 2>$null | Out-Null
+        $output = reg add ""HKCR\ms-gamebar"" /f /ve /d ""URL:ms-gamebar"" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebar default failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebar"" /f /v ""URL Protocol"" /t REG_SZ /d """""""" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebar URL Protocol failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebar"" /f /v ""NoOpenWith"" /t REG_SZ /d """""""" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebar NoOpenWith failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebar\shell\open\command"" /f /ve /d ""`""$env:SystemRoot\System32\systray.exe`"""" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebar command failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebarservices"" /f /ve /d ""URL:ms-gamebarservices"" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebarservices default failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebarservices"" /f /v ""URL Protocol"" /t REG_SZ /d """""""" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebarservices URL Protocol failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebarservices"" /f /v ""NoOpenWith"" /t REG_SZ /d """""""" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebarservices NoOpenWith failed: $output"" }
+        $output = reg add ""HKCR\ms-gamebarservices\shell\open\command"" /f /ve /d ""`""$env:SystemRoot\System32\systray.exe`"""" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Log ""Warning: reg add ms-gamebarservices command failed: $output"" }
         Write-Log ""Game Bar protocol redirects applied successfully""
     } catch {
         Write-Log ""Warning: Could not apply Game Bar protocol redirects: $($_.Exception.Message)""
