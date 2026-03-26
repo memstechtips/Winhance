@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Dodaje opcję 'Zakończ zadanie' po kliknięciu prawym przyciskiem myszy na aplikacje na pasku zadań dla szybkiego zamknięcia",
   "Setting_explorer-customization-shortcut-suffix_Name": "Usuń sufiks '- Skrót' z nowych skrótów",
   "Setting_explorer-customization-shortcut-suffix_Description": "Zapobiega dodawaniu tekstu '- Skrót' do nazw nowo utworzonych plików skrótów przez system Windows",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Usu\u0144 ikon\u0119 strza\u0142ki skr\u00f3tu",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Usuwa ma\u0142\u0105 nak\u0142adk\u0119 strza\u0142ki z ikon skr\u00f3t\u00f3w na pulpicie dla czystszego wygl\u0105du",
   "Setting_explorer-customization-context-menu_Name": "Użyj klasycznego menu kontekstowego",
   "Setting_explorer-customization-context-menu_Description": "Użyj menu kontekstowego w stylu Windows 10 ze wszystkimi widocznymi opcjami zamiast uproszczonego menu Windows 11",
   "Setting_explorer-take-ownership_Name": "Dodaj 'Przejmij na własność' do menu kontekstowego",

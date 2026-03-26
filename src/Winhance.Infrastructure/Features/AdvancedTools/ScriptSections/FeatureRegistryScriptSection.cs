@@ -68,6 +68,11 @@ internal class FeatureRegistryScriptSection
                     hasEntriesForCurrentHive = true;
                 }
 
+                if (!isHkcu && settingDef.PowerShellScripts?.Count > 0)
+                {
+                    hasEntriesForCurrentHive = true;
+                }
+
                 if (!isHkcu && settingDef.Id == "power-hibernation-enable")
                 {
                     hasEntriesForCurrentHive = true;
@@ -110,6 +115,36 @@ internal class FeatureRegistryScriptSection
                 {
                     _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
+
+                // Emit PowerShell scripts for this setting (system pass only)
+                if (!isHkcu && settingDef.PowerShellScripts?.Count > 0)
+                {
+                    foreach (var scriptSetting in settingDef.PowerShellScripts)
+                    {
+                        var script = configItem.IsSelected == true ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+                        if (!string.IsNullOrEmpty(script))
+                        {
+                            var escapedDescription = EscapePowerShellString(settingDef.Description);
+                            sb.AppendLine();
+                            sb.AppendLine($"{indent}# PowerShell script for: {settingDef.Name}");
+                            sb.AppendLine($"{indent}try {{");
+                            foreach (var line in script.Split('\n'))
+                            {
+                                var trimmedLine = line.Trim();
+                                if (!string.IsNullOrEmpty(trimmedLine))
+                                {
+                                    sb.AppendLine($"{indent}    {trimmedLine}");
+                                }
+                            }
+                            sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                            sb.AppendLine($"{indent}}} catch {{");
+                            sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                            sb.AppendLine($"{indent}}}");
+                            sb.AppendLine();
+                        }
+                    }
+                }
+
             }
 
             if (!isHkcu)

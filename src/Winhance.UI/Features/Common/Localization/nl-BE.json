@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Voegt een optie \u0027Taak beëindigen\u0027 toe bij rechtsklikken op applicaties op de taakbalk voor snel afsluiten",
   "Setting_explorer-customization-shortcut-suffix_Name": "\u0027- Snelkoppeling\u0027 achtervoegsel verwijderen van nieuwe snelkoppelingen",
   "Setting_explorer-customization-shortcut-suffix_Description": "Voorkomt dat Windows de tekst \u0027- Snelkoppeling\u0027 toevoegt aan nieuw gemaakte snelkoppelingsbestandsnamen",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Snelkoppelingspijlpictogram verwijderen",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Verwijdert de kleine pijl-overlay van snelkoppelingspictogrammen op het bureaublad voor een properder uiterlijk",
   "Setting_explorer-customization-context-menu_Name": "Klassiek contextmenu gebruiken",
   "Setting_explorer-customization-context-menu_Description": "Gebruik het Windows 10-stijl rechtsklikmenu met alle opties zichtbaar in plaats van het vereenvoudigde Windows 11-menu",
   "Setting_explorer-take-ownership_Name": "\u0027Eigendom overnemen\u0027 toevoegen aan contextmenu",

@@ -342,6 +342,8 @@
   "Setting_taskbar-end-task_Description": "Adds an \u0027End Task\u0027 option when right-clicking applications on the taskbar for quick termination",
   "Setting_explorer-customization-shortcut-suffix_Name": "Remove \u0027- Shortcut\u0027 suffix from new shortcuts",
   "Setting_explorer-customization-shortcut-suffix_Description": "Prevents Windows from appending \u0027- Shortcut\u0027 text to newly created shortcut file names",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Remove Shortcut Arrow Icon",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Removes the small arrow overlay from desktop shortcut icons for a cleaner look",
   "Setting_explorer-customization-context-menu_Name": "Use Classic Context Menu",
   "Setting_explorer-customization-context-menu_Description": "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
   "Setting_explorer-take-ownership_Name": "Add \u0027Take Ownership\u0027 to Context Menu",

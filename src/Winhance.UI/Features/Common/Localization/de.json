@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Fügt eine Option 'Task beenden' hinzu, wenn Sie mit der rechten Maustaste auf Anwendungen in der Taskleiste klicken, um sie schnell zu beenden",
   "Setting_explorer-customization-shortcut-suffix_Name": "Suffix '- Verknüpfung' von neuen Verknüpfungen entfernen",
   "Setting_explorer-customization-shortcut-suffix_Description": "Verhindert, dass Windows den Text '- Verknüpfung' an neu erstellte Verknüpfungsdateinamen anhängt",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Verkn\u00fcpfungspfeil-Symbol entfernen",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Entfernt den kleinen Pfeil-Overlay von Desktop-Verkn\u00fcpfungssymbolen f\u00fcr ein saubereres Erscheinungsbild",
   "Setting_explorer-customization-context-menu_Name": "Klassisches Kontextmenü verwenden",
   "Setting_explorer-customization-context-menu_Description": "Das Rechtsklick-Menü im Stil von Windows 10 mit allen sichtbaren Optionen anstelle des vereinfachten Menüs von Windows 11 verwenden",
   "Setting_explorer-take-ownership_Name": "'Besitz übernehmen' zum Kontextmenü hinzufügen",

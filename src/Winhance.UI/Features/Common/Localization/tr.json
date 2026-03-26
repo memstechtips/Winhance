@@ -342,6 +342,8 @@
   "Setting_taskbar-end-task_Description": "Hızlı sonlandırma için görev çubuğundaki uygulamalara sağ tıklandığında \u0027Görevi Sonlandır\u0027 seçeneği ekler",
   "Setting_explorer-customization-shortcut-suffix_Name": "Yeni kısayollardan \u0027- Kısayol\u0027 ekini kaldır",
   "Setting_explorer-customization-shortcut-suffix_Description": "Windows\u0027un yeni oluşturulan kısayol dosyası adlarına \u0027- Kısayol\u0027 metni eklemesini engeller",
+  "Setting_explorer-customization-shortcut-arrow_Name": "K\u0131sayol ok simgesini kald\u0131r",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Daha temiz bir g\u00f6r\u00fcn\u00fcm i\u00e7in masa\u00fcst\u00fc k\u0131sayol simgelerindeki k\u00fc\u00e7\u00fck ok kaplamas\u0131n\u0131 kald\u0131r\u0131r",
   "Setting_explorer-customization-context-menu_Name": "Klasik Bağlam Menüsünü Kullan",
   "Setting_explorer-customization-context-menu_Description": "Basitleştirilmiş Windows 11 menüsü yerine tüm seçeneklerin görünür olduğu Windows 10 tarzı sağ tık menüsünü kullanın",
   "Setting_explorer-take-ownership_Name": "Bağlam Menüsüne \u0027Sahipliği Al\u0027 ekle",

@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Lägger till alternativet 'Avsluta aktivitet' när du högerklickar på program i Aktivitetsfältet för snabb avslutning",
   "Setting_explorer-customization-shortcut-suffix_Name": "Ta bort '- Genväg'-suffix från nya genvägar",
   "Setting_explorer-customization-shortcut-suffix_Description": "Förhindrar att Windows lägger till texten '- Genväg' i nyskapade genvägsfilnamn",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Ta bort genv\u00e4gspilikon",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Tar bort den lilla pil\u00f6verl\u00e4gget fr\u00e5n genv\u00e4gsikoner p\u00e5 skrivbordet f\u00f6r ett renare utseende",
   "Setting_explorer-customization-context-menu_Name": "Använd klassisk snabbmeny",
   "Setting_explorer-customization-context-menu_Description": "Använd snabbmenyn i Windows 10-stil med alla alternativ synliga istället för den förenklade Windows 11-menyn",
   "Setting_explorer-take-ownership_Name": "Lägg till 'Ta ägarskap' i snabbmenyn",

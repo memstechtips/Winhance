@@ -20,6 +20,7 @@ public static class ExplorerCustomizations
                     Id = "explorer-customization-shortcut-suffix",
                     Name = "Remove '- Shortcut' suffix from new shortcuts",
                     Description = "Prevents Windows from appending '- Shortcut' text to newly created shortcut file names",
+                    GroupName = "Desktop",
                     InputType = InputType.Toggle,
                     Icon = "LinkVariant",
                     RestartProcess = "Explorer",
@@ -34,6 +35,50 @@ public static class ExplorerCustomizations
                             DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-shortcut-arrow",
+                    Name = "Remove Shortcut Arrow Icon",
+                    Description = "Removes the small arrow overlay from desktop shortcut icons for a cleaner look",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "ArrowTopLeftBoldOutline",
+                    AddedInVersion = "26.03.26",
+                    RestartProcess = "Explorer",
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+$icoPath = ""$env:SystemRoot\blank.ico""
+if (-not (Test-Path $icoPath)) {
+    $b=[byte[]]::new(1150)
+    $h=[byte[]](0,0,1,0,1,0,16,16,0,0,1,0,32,0,104,4,0,0,22,0,0,0,40,0,0,0,16,0,0,0,32,0,0,0,1,0,32,0,0,0,0,0,64,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    [Array]::Copy($h,$b,$h.Length)
+    for($i=1086;$i-lt1150;$i++){$b[$i]=255}
+    [IO.File]::WriteAllBytes($icoPath,$b)
+}",
+                            // Don't delete blank.ico on disable — only the registry value is removed.
+                            // Deleting the file invalidates the Windows icon cache, causing black
+                            // squares on shortcut icons when the setting is re-enabled.
+                            DisabledScript = null,
+                            RequiresElevation = true,
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons",
+                            ValueName = "29",
+                            RecommendedValue = null,
+                            EnabledValue = [@"C:\Windows\blank.ico"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
                         },
                     },
                 },

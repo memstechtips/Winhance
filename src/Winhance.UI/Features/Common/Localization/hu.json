@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "A tálcán lévő alkalmazásokra jobb gombbal kattintva megjelenik a „Feladat befejezése” opció a gyors befejezéshez.",
   "Setting_explorer-customization-shortcut-suffix_Name": "Az új parancsikonokból eltávolítja a „Parancsikon” utótagot",
   "Setting_explorer-customization-shortcut-suffix_Description": "Megakadályozza, hogy a Windows „Parancsikon” szöveget fűzzön az újonnan létrehozott parancsikonfájlok nevéhez",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Parancsikon ny\u00edl ikon elt\u00e1vol\u00edt\u00e1sa",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Elt\u00e1vol\u00edtja a kis ny\u00edl fedv\u00e9nyt az asztali parancsikon ikonokr\u00f3l a tiszt\u00e1bb megjelen\u00e9s \u00e9rdek\u00e9ben",
   "Setting_explorer-customization-context-menu_Name": "Használja a klasszikus helyi menüt",
   "Setting_explorer-customization-context-menu_Description": "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
   "Setting_explorer-take-ownership_Name": "'Tulajdonba vétel' hozzáadása a helyi menühöz",

@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Thêm tùy chọn 'Kết thúc tác vụ' khi nhấp chuột phải vào các ứng dụng trên thanh tác vụ để chấm dứt nhanh chóng",
   "Setting_explorer-customization-shortcut-suffix_Name": "Xóa hậu tố '- Lối tắt' khỏi các lối tắt mới",
   "Setting_explorer-customization-shortcut-suffix_Description": "Ngăn Windows thêm văn bản '- Lối tắt' vào tên tệp lối tắt mới được tạo",
+  "Setting_explorer-customization-shortcut-arrow_Name": "X\u00f3a bi\u1ec3u t\u01b0\u1ee3ng m\u0169i t\u00ean l\u1ed1i t\u1eaft",
+  "Setting_explorer-customization-shortcut-arrow_Description": "X\u00f3a l\u1edbp ph\u1ee7 m\u0169i t\u00ean nh\u1ecf kh\u1ecfi bi\u1ec3u t\u01b0\u1ee3ng l\u1ed1i t\u1eaft tr\u00ean m\u00e0n h\u00ecnh n\u1ec1n \u0111\u1ec3 c\u00f3 giao di\u1ec7n g\u1ecdn g\u00e0ng h\u01a1n",
   "Setting_explorer-customization-context-menu_Name": "Sử dụng Menu ngữ cảnh cổ điển",
   "Setting_explorer-customization-context-menu_Description": "Sử dụng menu nhấp chuột phải kiểu Windows 10 với tất cả các tùy chọn hiển thị thay vì menu Windows 11 được đơn giản hóa",
   "Setting_explorer-take-ownership_Name": "Thêm 'Giành quyền sở hữu' vào Menu ngữ cảnh",

@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "त्वरित समाप्ति के लिए टास्कबार पर एप्लिकेशन पर राइट-क्लिक करने पर एक 'कार्य समाप्त करें' विकल्प जोड़ता है",
   "Setting_explorer-customization-shortcut-suffix_Name": "नए शॉर्टकट से '- शॉर्टकट' प्रत्यय हटाएँ",
   "Setting_explorer-customization-shortcut-suffix_Description": "विंडोज को नए बनाए गए शॉर्टकट फ़ाइल नामों में '- शॉर्टकट' टेक्स्ट जोड़ने से रोकता है",
+  "Setting_explorer-customization-shortcut-arrow_Name": "\u0936\u0949\u0930\u094d\u091f\u0915\u091f \u0924\u0940\u0930 \u0906\u0907\u0915\u0928 \u0939\u091f\u093e\u090f\u0902",
+  "Setting_explorer-customization-shortcut-arrow_Description": "\u0921\u0947\u0938\u094d\u0915\u091f\u0949\u092a \u0936\u0949\u0930\u094d\u091f\u0915\u091f \u0906\u0907\u0915\u0928 \u0938\u0947 \u091b\u094b\u091f\u0947 \u0924\u0940\u0930 \u0913\u0935\u0930\u0932\u0947 \u0915\u094b \u0939\u091f\u093e\u0924\u093e \u0939\u0948 \u0924\u093e\u0915\u093f \u0938\u093e\u092b\u093c-\u0938\u0941\u0925\u0930\u093e \u0926\u093f\u0916\u0947",
   "Setting_explorer-customization-context-menu_Name": "क्लासिक संदर्भ मेनू का उपयोग करें",
   "Setting_explorer-customization-context-menu_Description": "सरलीकृत विंडोज 11 मेनू के बजाय सभी विकल्पों के साथ विंडोज 10-शैली राइट-क्लिक मेनू का उपयोग करें",
   "Setting_explorer-take-ownership_Name": "संदर्भ मेनू में 'स्वामित्व लें' जोड़ें",

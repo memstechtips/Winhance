@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Voeg 'n 'Beëindig Taak' opsie by wanneer regs geklik word op toepassings op die taakbalk vir vinnige beëindiging",
   "Setting_explorer-customization-shortcut-suffix_Name": "Verwyder '- Kortpad' agtervoegsel van nuwe kortpaaie",
   "Setting_explorer-customization-shortcut-suffix_Description": "Verhoed dat Windows '- Kortpad' teks by nuutgeskepte kortpad lêername voeg",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Verwyder snelkoppelpyltjie-ikoon",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Verwyder die klein pyltjie-oorlegsel van snelkoppeling-ikone op die lessenaar vir \u0027n skoner voorkoms",
   "Setting_explorer-customization-context-menu_Name": "Gebruik Klassieke Kontekskieslys",
   "Setting_explorer-customization-context-menu_Description": "Gebruik die Windows 10-styl regskliek-kieslys met alle opsies sigbaar in plaas van die vereenvoudigde Windows 11 kieslys",
   "Setting_explorer-take-ownership_Name": "Voeg 'Neem Eienaarskap' by Kontekskieslys",

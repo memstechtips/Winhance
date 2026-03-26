@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Добавляет опцию 'Завершить задачу' при щелчке правой кнопкой мыши по приложениям на панели задач для быстрого завершения",
   "Setting_explorer-customization-shortcut-suffix_Name": "Удалить суффикс '- Ярлык' из новых ярлыков",
   "Setting_explorer-customization-shortcut-suffix_Description": "Запрещает Windows добавлять текст '- Ярлык' к именам вновь созданных файлов ярлыков",
+  "Setting_explorer-customization-shortcut-arrow_Name": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0437\u043d\u0430\u0447\u043e\u043a \u0441\u0442\u0440\u0435\u043b\u043a\u0438 \u044f\u0440\u043b\u044b\u043a\u0430",
+  "Setting_explorer-customization-shortcut-arrow_Description": "\u0423\u0434\u0430\u043b\u044f\u0435\u0442 \u043c\u0430\u043b\u0435\u043d\u044c\u043a\u0443\u044e \u0441\u0442\u0440\u0435\u043b\u043a\u0443 \u043d\u0430\u043b\u043e\u0436\u0435\u043d\u0438\u044f \u0441\u043e \u0437\u043d\u0430\u0447\u043a\u043e\u0432 \u044f\u0440\u043b\u044b\u043a\u043e\u0432 \u043d\u0430 \u0440\u0430\u0431\u043e\u0447\u0435\u043c \u0441\u0442\u043e\u043b\u0435 \u0434\u043b\u044f \u0431\u043e\u043b\u0435\u0435 \u0447\u0438\u0441\u0442\u043e\u0433\u043e \u0432\u0438\u0434\u0430",
   "Setting_explorer-customization-context-menu_Name": "Использовать классическое контекстное меню",
   "Setting_explorer-customization-context-menu_Description": "Использовать контекстное меню в стиле Windows 10 со всеми видимыми опциями вместо упрощенного меню Windows 11",
   "Setting_explorer-take-ownership_Name": "Добавить 'Стать владельцем' в контекстное меню",

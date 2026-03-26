@@ -342,6 +342,8 @@
   "Setting_taskbar-end-task_Description": "작업 표시줄에서 응용 프로그램을 마우스 오른쪽 버튼으로 클릭할 때 빠른 종료를 위한 \u0027작업 끝내기\u0027 옵션을 추가합니다",
   "Setting_explorer-customization-shortcut-suffix_Name": "새 바로 가기에서 \u0027- 바로 가기\u0027 접미사 제거",
   "Setting_explorer-customization-shortcut-suffix_Description": "새로 만든 바로 가기 파일 이름에 Windows가 \u0027- 바로 가기\u0027 텍스트를 추가하는 것을 방지합니다",
+  "Setting_explorer-customization-shortcut-arrow_Name": "\ubc14\ub85c \uac00\uae30 \ud654\uc0b4\ud45c \uc544\uc774\ucf58 \uc81c\uac70",
+  "Setting_explorer-customization-shortcut-arrow_Description": "\ubc14\ud0d5 \ud654\uba74 \ubc14\ub85c \uac00\uae30 \uc544\uc774\ucf58\uc5d0\uc11c \uc791\uc740 \ud654\uc0b4\ud45c \uc624\ubc84\ub808\uc774\ub97c \uc81c\uac70\ud558\uc5ec \ub354 \uae54\ub054\ud55c \ubaa8\uc591\uc744 \ub9cc\ub4ed\ub2c8\ub2e4",
   "Setting_explorer-customization-context-menu_Name": "클래식 상황에 맞는 메뉴 사용",
   "Setting_explorer-customization-context-menu_Description": "간소화된 Windows 11 메뉴 대신 모든 옵션이 표시되는 Windows 10 스타일의 마우스 오른쪽 클릭 메뉴를 사용합니다",
   "Setting_explorer-take-ownership_Name": "상황에 맞는 메뉴에 \u0027소유권 가져오기\u0027 추가",

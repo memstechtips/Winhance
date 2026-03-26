@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Ajoute une option 'Fin de tâche' lors d'un clic droit sur les applications de la barre des tâches pour une fermeture rapide",
   "Setting_explorer-customization-shortcut-suffix_Name": "Supprimer le suffixe '- Raccourci' des nouveaux raccourcis",
   "Setting_explorer-customization-shortcut-suffix_Description": "Empêche Windows d'ajouter le texte '- Raccourci' aux noms de fichiers de raccourcis nouvellement créés",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Supprimer l\u0027ic\u00f4ne de fl\u00e8che de raccourci",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Supprime la petite fl\u00e8che superpos\u00e9e des ic\u00f4nes de raccourcis du bureau pour un aspect plus propre",
   "Setting_explorer-customization-context-menu_Name": "Utiliser le menu contextuel classique",
   "Setting_explorer-customization-context-menu_Description": "Utiliser le menu contextuel de style Windows 10 avec toutes les options visibles au lieu du menu simplifié de Windows 11",
   "Setting_explorer-take-ownership_Name": "Ajouter 'Prendre possession' au menu contextuel",

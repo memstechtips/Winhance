@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Pievieno opciju 'Beigt uzdevumu', ar peles labo pogu noklikšķinot uz lietojumprogrammām uzdevumjoslā ātrai pārtraukšanai",
   "Setting_explorer-customization-shortcut-suffix_Name": "Noņemt '- Saīsne' piedēkli no jaunām saīsnēm",
   "Setting_explorer-customization-shortcut-suffix_Description": "Neļauj Windows pievienot '- Saīsne' tekstu jaunizveidotu saīšņu failu nosaukumiem",
+  "Setting_explorer-customization-shortcut-arrow_Name": "No\u0146emt sa\u012bsnes bulti\u0146as ikonu",
+  "Setting_explorer-customization-shortcut-arrow_Description": "No\u0146em mazo bulti\u0146as p\u0101rkl\u0101jumu no darbvirsmas sa\u012b\u0161\u0146u ikonam t\u012br\u0101kam izskatam",
   "Setting_explorer-customization-context-menu_Name": "Lietot klasisko konteksta izvēlni",
   "Setting_explorer-customization-context-menu_Description": "Lietot Windows 10 stila labās peles pogas izvēlni ar visām redzamām opcijām, nevis vienkāršoto Windows 11 izvēlni",
   "Setting_explorer-take-ownership_Name": "Pievienot 'Pārņemt īpašumtiesības' konteksta izvēlnei",

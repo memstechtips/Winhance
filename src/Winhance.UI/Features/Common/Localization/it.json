@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Aggiunge un'opzione 'Termina attività' quando si fa clic con il pulsante destro del mouse sulle applicazioni nella barra delle applicazioni per una terminazione rapida",
   "Setting_explorer-customization-shortcut-suffix_Name": "Rimuovi il suffisso '- Collegamento' dai nuovi collegamenti",
   "Setting_explorer-customization-shortcut-suffix_Description": "Impedisce a Windows di aggiungere il testo '- Collegamento' ai nomi dei file di collegamento appena creati",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Rimuovi icona freccia collegamento",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Rimuove la piccola freccia sovrapposta dalle icone dei collegamenti sul desktop per un aspetto pi\u00f9 pulito",
   "Setting_explorer-customization-context-menu_Name": "Usa menu contestuale classico",
   "Setting_explorer-customization-context-menu_Description": "Usa il menu contestuale in stile Windows 10 con tutte le opzioni visibili invece del menu semplificato di Windows 11",
   "Setting_explorer-take-ownership_Name": "Aggiungi 'Acquisisci proprietà' al menu contestuale",

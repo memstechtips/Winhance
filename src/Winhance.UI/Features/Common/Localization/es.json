@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Añade una opción 'Finalizar tarea' al hacer clic derecho en las aplicaciones de la barra de tareas para una terminación rápida",
   "Setting_explorer-customization-shortcut-suffix_Name": "Eliminar sufijo '- Acceso directo' de los nuevos accesos directos",
   "Setting_explorer-customization-shortcut-suffix_Description": "Evita que Windows añada el texto '- Acceso directo' a los nombres de los archivos de acceso directo recién creados",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Quitar icono de flecha de acceso directo",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Elimina la peque\u00f1a flecha superpuesta de los iconos de acceso directo del escritorio para una apariencia m\u00e1s limpia",
   "Setting_explorer-customization-context-menu_Name": "Usar Menú Contextual Clásico",
   "Setting_explorer-customization-context-menu_Description": "Usa el menú contextual de estilo Windows 10 con todas las opciones visibles en lugar del menú simplificado de Windows 11",
   "Setting_explorer-take-ownership_Name": "Añadir 'Tomar Propiedad' al Menú Contextual",

@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "在任务栏上右键单击应用程序时添加一个‘结束任务’选项，以便快速终止",
   "Setting_explorer-customization-shortcut-suffix_Name": "从新快捷方式中移除‘- 快捷方式’后缀",
   "Setting_explorer-customization-shortcut-suffix_Description": "阻止 Windows 在新创建的快捷方式文件名后附加‘- 快捷方式’文本",
+  "Setting_explorer-customization-shortcut-arrow_Name": "\u79fb\u9664\u5feb\u6377\u65b9\u5f0f\u7bad\u5934\u56fe\u6807",
+  "Setting_explorer-customization-shortcut-arrow_Description": "\u79fb\u9664\u684c\u9762\u5feb\u6377\u65b9\u5f0f\u56fe\u6807\u4e0a\u7684\u5c0f\u7bad\u5934\u53e0\u52a0\u5c42\uff0c\u4f7f\u5916\u89c2\u66f4\u6574\u6d01",
   "Setting_explorer-customization-context-menu_Name": "使用经典上下文菜单",
   "Setting_explorer-customization-context-menu_Description": "使用 Windows 10 样式的右键菜单，所有选项都可见，而不是简化的 Windows 11 菜单",
   "Setting_explorer-take-ownership_Name": "向上下文菜单添加‘取得所有权’",

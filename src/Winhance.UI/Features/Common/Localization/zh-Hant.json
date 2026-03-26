@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "在工作列應用程式的右鍵選單中新增「結束工作」選項，以便快速強制關閉程式",
   "Setting_explorer-customization-shortcut-suffix_Name": "移除新捷徑的「- 捷徑」後綴",
   "Setting_explorer-customization-shortcut-suffix_Description": "防止 Windows 在新建立的捷徑檔名後方自動加上「- 捷徑」文字",
+  "Setting_explorer-customization-shortcut-arrow_Name": "\u79fb\u9664\u6377\u5f91\u7bad\u982d\u5716\u793a",
+  "Setting_explorer-customization-shortcut-arrow_Description": "\u79fb\u9664\u684c\u9762\u6377\u5f91\u5716\u793a\u4e0a\u7684\u5c0f\u7bad\u982d\u758a\u52a0\u5c42\uff0c\u4f7f\u5916\u89c0\u66f4\u6574\u6f54",
   "Setting_explorer-customization-context-menu_Name": "使用傳統右鍵選單",
   "Setting_explorer-customization-context-menu_Description": "使用顯示所有選項的 Windows 10 風格右鍵選單，取代 Windows 11 的簡化選單",
   "Setting_explorer-take-ownership_Name": "新增「取得擁有權」至右鍵選單",

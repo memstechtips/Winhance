@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Adiciona uma opção 'Finalizar Tarefa' ao clicar com o botão direito nos aplicativos na barra de tarefas para terminação rápida",
   "Setting_explorer-customization-shortcut-suffix_Name": "Remover sufixo '- Atalho' de novos atalhos",
   "Setting_explorer-customization-shortcut-suffix_Description": "Impede que o Windows anexe o texto '- Atalho' aos nomes de arquivos de atalho recém-criados",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Remover \u00edcone de seta de atalho",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Remove a pequena seta sobreposta dos \u00edcones de atalho da \u00e1rea de trabalho para uma apar\u00eancia mais limpa",
   "Setting_explorer-customization-context-menu_Name": "Usar Menu de Contexto Clássico",
   "Setting_explorer-customization-context-menu_Description": "Usar o menu de clique com o botão direito no estilo do Windows 10 com todas as opções visíveis em vez do menu simplificado do Windows 11",
   "Setting_explorer-take-ownership_Name": "Adicionar 'Tomar Posse' ao Menu de Contexto",

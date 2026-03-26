@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Prideda parinktį „Užbaigti užduotį“ dešiniuoju pelės klavišu spustelėjus programas užduočių juostoje, kad būtų galima greitai nutraukti",
   "Setting_explorer-customization-shortcut-suffix_Name": "Pašalinti „- Nuoroda“ priedėlį iš naujų nuorodų",
   "Setting_explorer-customization-shortcut-suffix_Description": "Neleidžia Windows pridėti „- Nuoroda“ teksto prie naujai sukurtų nuorodų failų pavadinimų",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Pa\u0161alinti nuorodos rodykl\u0117s piktogram\u0105",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Pa\u0161alina ma\u017e\u0105 rodykl\u0117s perdang\u0105 i\u0161 darbalaukio nuorod\u0173 piktogram\u0173, kad b\u016bt\u0173 \u0161varesn\u0117 i\u0161vaizda",
   "Setting_explorer-customization-context-menu_Name": "Naudoti klasikinį kontekstinį meniu",
   "Setting_explorer-customization-context-menu_Description": "Naudoti Windows 10 stiliaus dešiniojo pelės klavišo meniu su visomis matomomis parinktimis vietoj supaprastinto Windows 11 meniu",
   "Setting_explorer-take-ownership_Name": "Pridėti „Perimti nuosavybę“ į kontekstinį meniu",

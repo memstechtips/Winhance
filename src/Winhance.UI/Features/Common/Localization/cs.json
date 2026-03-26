@@ -307,6 +307,8 @@
   "Setting_taskbar-end-task_Description": "Přidá možnost 'Ukončit úlohu' při kliknutí pravým tlačítkem na aplikace na hlavním panelu pro rychlé ukončení",
   "Setting_explorer-customization-shortcut-suffix_Name": "Odstranit příponu '- Zástupce' z nových zástupců",
   "Setting_explorer-customization-shortcut-suffix_Description": "Zabráni Windows přidávat text '- Zástupce' k názvům nově vytvořených souborů zástupců",
+  "Setting_explorer-customization-shortcut-arrow_Name": "Odstranit ikonu \u0161ipky z\u00e1stupce",
+  "Setting_explorer-customization-shortcut-arrow_Description": "Odstran\u00ed malou \u0161ipku p\u0159ekryt\u00ed z ikon z\u00e1stupc\u016f na plo\u0161e pro \u010dist\u0161\u00ed vzhled",
   "Setting_explorer-customization-context-menu_Name": "Použít klasickou kontextovou nabídku",
   "Setting_explorer-customization-context-menu_Description": "Použít kontextovou nabídku ve stylu Windows 10 se všemi viditelnými možnostmi místo zjednodušené nabídky Windows 11",
   "Setting_explorer-take-ownership_Name": "Přidat 'Převzít vlastnictví' do kontextové nabídky",
