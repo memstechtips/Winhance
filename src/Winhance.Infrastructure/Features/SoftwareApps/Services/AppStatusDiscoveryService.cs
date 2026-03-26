@@ -183,6 +183,7 @@ public class AppStatusDiscoveryService(
         {
             logService.LogInformation($"[DISM-Detect] CheckCapabilitiesAsync: checking {capabilities.Count} capabilities: [{string.Join(", ", capabilities)}]");
 
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var installedCapabilities = await DismSessionManager.ExecuteAsync<HashSet<string>>(session =>
             {
                 DismApi.ThrowIfFailed(
@@ -205,7 +206,7 @@ public class AppStatusDiscoveryService(
                 {
                     DismApi.DismDelete(capPtr);
                 }
-            }).ConfigureAwait(false);
+            }, cts.Token, msg => logService.LogDebug(msg)).ConfigureAwait(false);
 
             foreach (var capability in capabilities)
             {
@@ -214,6 +215,12 @@ public class AppStatusDiscoveryService(
                 result[capability] = match;
                 logService.LogInformation($"[DISM-Detect] Capability match: '{capability}' => {match}");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            logService.LogWarning("[DISM-Detect] CheckCapabilitiesAsync timed out after 30s — DISM may be unresponsive on this system. Marking all capabilities as unknown.");
+            foreach (var capability in capabilities)
+                result[capability] = false;
         }
         catch (Exception ex)
         {
@@ -233,6 +240,7 @@ public class AppStatusDiscoveryService(
         {
             logService.LogInformation($"[DISM-Detect] CheckFeaturesAsync: checking {features.Count} features: [{string.Join(", ", features)}]");
 
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var enabledFeatures = await DismSessionManager.ExecuteAsync<HashSet<string>>(session =>
             {
                 DismApi.ThrowIfFailed(
@@ -255,7 +263,7 @@ public class AppStatusDiscoveryService(
                 {
                     DismApi.DismDelete(featPtr);
                 }
-            }).ConfigureAwait(false);
+            }, cts.Token, msg => logService.LogDebug(msg)).ConfigureAwait(false);
 
             foreach (var feature in features)
             {
@@ -263,6 +271,12 @@ public class AppStatusDiscoveryService(
                 result[feature] = match;
                 logService.LogInformation($"[DISM-Detect] Feature match: '{feature}' => {match}");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            logService.LogWarning("[DISM-Detect] CheckFeaturesAsync timed out after 30s — DISM may be unresponsive on this system. Marking all features as unknown.");
+            foreach (var feature in features)
+                result[feature] = false;
         }
         catch (Exception ex)
         {
