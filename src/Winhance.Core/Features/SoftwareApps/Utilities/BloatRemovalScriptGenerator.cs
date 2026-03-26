@@ -234,6 +234,22 @@ $hasXboxPackages = $packages | Where-Object { $xboxPackages -contains $_ }
 if ($hasXboxPackages) {
     Write-Log ""Applying registry settings to prevent post-removal issues...""
 
+    # Redirect ms-gamebar and ms-gamebarservices protocols to a no-op handler
+    # to prevent Microsoft Store notification prompts after Game Bar removal
+    try {
+        reg add ""HKCR\ms-gamebar"" /f /ve /d ""URL:ms-gamebar"" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebar"" /f /v ""URL Protocol"" /d """" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebar"" /f /v ""NoOpenWith"" /d """" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebar\shell\open\command"" /f /ve /d ""`""$env:SystemRoot\System32\systray.exe`"""" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebarservices"" /f /ve /d ""URL:ms-gamebarservices"" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebarservices"" /f /v ""URL Protocol"" /d """" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebarservices"" /f /v ""NoOpenWith"" /d """" 2>$null | Out-Null
+        reg add ""HKCR\ms-gamebarservices\shell\open\command"" /f /ve /d ""`""$env:SystemRoot\System32\systray.exe`"""" 2>$null | Out-Null
+        Write-Log ""Game Bar protocol redirects applied successfully""
+    } catch {
+        Write-Log ""Warning: Could not apply Game Bar protocol redirects: $($_.Exception.Message)""
+    }
+
     try {
         $runningAsSystem = ($env:USERNAME -eq ""SYSTEM"" -or $env:USERPROFILE -like ""*\system32\config\systemprofile"")
 
