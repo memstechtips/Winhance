@@ -301,6 +301,8 @@
   "Setting_theme-mode-windows_CustomState": "Custom",
   "Setting_theme-transparency_Name": "Transparency effects",
   "Setting_theme-transparency_Description": "Enable translucent effects for the Start Menu, taskbar, and other Windows interface elements",
+  "Setting_gaming-auto-color-management_Name": "Automatically manage color for apps",
+  "Setting_gaming-auto-color-management_Description": "Allow Windows to automatically manage color profiles for all connected displays that support it",
   "Setting_taskbar-clean_Name": "Clean Taskbar",
   "Setting_taskbar-clean_Description": "Removes all pinned items from the Taskbar",
   "Setting_taskbar-clean_ConfirmTitle": "Taskbar Cleaning",

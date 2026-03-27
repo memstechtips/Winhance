@@ -105,9 +105,9 @@ public class TooltipDataService(
                     try
                     {
                         object? currentValue;
-                        if (registrySetting.ApplyPerNetworkInterface)
+                        if (registrySetting.ApplyPerNetworkInterface || registrySetting.ApplyPerMonitor)
                         {
-                            // Read from the first interface subkey as a representative value
+                            // Read from the first subkey as a representative value
                             var subKeys = _registryService.GetSubKeyNames(registrySetting.KeyPath);
                             if (subKeys.Length > 0)
                             {

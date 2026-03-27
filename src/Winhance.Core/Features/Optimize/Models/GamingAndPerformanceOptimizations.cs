@@ -513,6 +513,32 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-auto-color-management",
+                    Name = "Automatically manage color for apps",
+                    Description = "Allow Windows to automatically manage color profiles for all connected displays that support it",
+                    GroupName = "Graphics",
+                    Icon = "Color",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.03.27",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                            ValueName = "AutoColorManagementEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            ApplyPerMonitor = true,
+                        },
+                    },
+                },
                 // Network Group
                 new SettingDefinition
                 {

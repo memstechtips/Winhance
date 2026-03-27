@@ -1000,6 +1000,12 @@
             "Name": "Transparency effects",
             "IsSelected": false,
             "InputType": 0
+          },
+          {
+            "Id": "gaming-auto-color-management",
+            "Name": "Automatically manage color for apps",
+            "IsSelected": false,
+            "InputType": 0
           }
         ]
       }

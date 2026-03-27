@@ -37,7 +37,7 @@ internal class RegistryCommandEmitter
         RegistrySetting regSetting,
         object value,
         string escapedDescription,
-        string regPath,
+        string pathExpr,
         string escapedValueName,
         string indent)
     {
@@ -48,7 +48,7 @@ internal class RegistryCommandEmitter
             if (regSetting.BitMask.HasValue)
             {
                 var setBit = Convert.ToBoolean(value);
-                sb.AppendLine($"{indent}Set-BinaryBit -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -BitMask 0x{regSetting.BitMask.Value:X2} -SetBit ${setBit} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-BinaryBit -Path {pathExpr} -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -BitMask 0x{regSetting.BitMask.Value:X2} -SetBit ${setBit} -Description '{escapedDescription}'");
             }
             else if (regSetting.ModifyByteOnly)
             {
@@ -58,18 +58,18 @@ internal class RegistryCommandEmitter
                     int i => $"0x{(byte)i:X2}",
                     _ => "0x00"
                 };
-                sb.AppendLine($"{indent}Set-BinaryByte -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue {byteValue} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-BinaryByte -Path {pathExpr} -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue {byteValue} -Description '{escapedDescription}'");
             }
             else
             {
                 var formattedValue = FormatValueForPowerShell(value, regSetting.ValueType);
-                sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-RegistryValue -Path {pathExpr} -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
             }
         }
         else
         {
             var formattedValue = FormatValueForPowerShell(value, regSetting.ValueType);
-            sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+            sb.AppendLine($"{indent}Set-RegistryValue -Path {pathExpr} -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
         }
     }
 
@@ -84,7 +84,7 @@ internal class RegistryCommandEmitter
         object value,
         bool? isEnabled,
         string escapedDescription,
-        string regPath,
+        string pathExpr,
         string escapedValueName,
         string indent)
     {
@@ -95,7 +95,7 @@ internal class RegistryCommandEmitter
             if (regSetting.BitMask.HasValue)
             {
                 var setBit = isEnabled == true;
-                sb.AppendLine($"{indent}Set-BinaryBit -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -BitMask 0x{regSetting.BitMask.Value:X2} -SetBit ${setBit} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-BinaryBit -Path {pathExpr} -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -BitMask 0x{regSetting.BitMask.Value:X2} -SetBit ${setBit} -Description '{escapedDescription}'");
             }
             else if (regSetting.ModifyByteOnly)
             {
@@ -105,18 +105,18 @@ internal class RegistryCommandEmitter
                     int i => $"0x{(byte)i:X2}",
                     _ => "0x00"
                 };
-                sb.AppendLine($"{indent}Set-BinaryByte -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue {byteValue} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-BinaryByte -Path {pathExpr} -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue {byteValue} -Description '{escapedDescription}'");
             }
             else
             {
                 var formattedValue = FormatValueForPowerShell(value, regSetting.ValueType);
-                sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-RegistryValue -Path {pathExpr} -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
             }
         }
         else
         {
             var formattedValue = FormatValueForPowerShell(value, regSetting.ValueType);
-            sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+            sb.AppendLine($"{indent}Set-RegistryValue -Path {pathExpr} -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
         }
     }
 
@@ -135,6 +135,17 @@ internal class RegistryCommandEmitter
             var regPath = EscapePowerShellString(ConvertRegistryPath(regSetting.KeyPath));
             var escapedValueName = EscapePowerShellString(regSetting.ValueName);
 
+            // Per-subkey enumeration: wrap commands in a ForEach-Object loop
+            // so the script enumerates subkeys at install time, not build time
+            bool isPerSubkey = regSetting.ApplyPerNetworkInterface || regSetting.ApplyPerMonitor;
+            var effectivePath = isPerSubkey ? "$_.PSPath" : $"'{regPath}'";
+            var innerIndent = isPerSubkey ? indent + "    " : indent;
+
+            if (isPerSubkey)
+            {
+                sb.AppendLine($"{indent}Get-ChildItem -Path '{regPath}' -ErrorAction SilentlyContinue | ForEach-Object {{");
+            }
+
             // Check if we have a raw value from the registry to use instead of definitions
             var key = regSetting.ValueName ?? "KeyExists";
             object? customValue = null;
@@ -148,20 +159,19 @@ internal class RegistryCommandEmitter
 
                 if (keyValue == null)
                 {
-                    // Value is null = key should NOT exist in this state
-                    sb.AppendLine($"{indent}Remove-RegistryKey -Path '{regPath}' -Description '{escapedDescription}'");
+                    sb.AppendLine($"{innerIndent}Remove-RegistryKey -Path {effectivePath} -Description '{escapedDescription}'");
                 }
                 else if (keyValue is string keyStrValue && keyStrValue == "")
                 {
-                    // Empty string = key SHOULD exist with default value set to empty string
-                    sb.AppendLine($"{indent}New-RegistryKey -Path '{regPath}' -Description '{escapedDescription}'");
-                    sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '(Default)' -Type 'String' -Value '' -Description '{escapedDescription}'");
+                    sb.AppendLine($"{innerIndent}New-RegistryKey -Path {effectivePath} -Description '{escapedDescription}'");
+                    sb.AppendLine($"{innerIndent}Set-RegistryValue -Path {effectivePath} -Name '(Default)' -Type 'String' -Value '' -Description '{escapedDescription}'");
                 }
                 else
                 {
-                    // Value is non-null = key SHOULD exist in this state
-                    sb.AppendLine($"{indent}New-RegistryKey -Path '{regPath}' -Description '{escapedDescription}'");
+                    sb.AppendLine($"{innerIndent}New-RegistryKey -Path {effectivePath} -Description '{escapedDescription}'");
                 }
+
+                if (isPerSubkey) sb.AppendLine($"{indent}}}");
                 continue;
             }
 
@@ -169,12 +179,12 @@ internal class RegistryCommandEmitter
             {
                 if (customValue == null)
                 {
-                    // Value doesn't exist in registry, skip adding it
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
                     continue;
                 }
 
-                // Use the exact value found in registry
-                EmitRegistryValue(sb, regSetting, customValue, escapedDescription!, regPath!, escapedValueName!, indent);
+                EmitRegistryValue(sb, regSetting, customValue, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
+                if (isPerSubkey) sb.AppendLine($"{indent}}}");
                 continue;
             }
 
@@ -183,19 +193,22 @@ internal class RegistryCommandEmitter
 
             if (value is string strValue && strValue == "")
             {
-                sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type 'String' -Value '' -Description '{escapedDescription}'");
+                sb.AppendLine($"{innerIndent}Set-RegistryValue -Path {effectivePath} -Name '{escapedValueName}' -Type 'String' -Value '' -Description '{escapedDescription}'");
+                if (isPerSubkey) sb.AppendLine($"{indent}}}");
                 continue;
             }
 
             // Pattern 3: Null Value Deletion
             if (value == null)
             {
-                sb.AppendLine($"{indent}Remove-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Description '{escapedDescription}'");
+                sb.AppendLine($"{innerIndent}Remove-RegistryValue -Path {effectivePath} -Name '{escapedValueName}' -Description '{escapedDescription}'");
+                if (isPerSubkey) sb.AppendLine($"{indent}}}");
                 continue;
             }
 
             // Pattern 4: Regular Value Setting
-            EmitRegistryValueFromDefinition(sb, regSetting, value, isEnabled, escapedDescription!, regPath!, escapedValueName!, indent);
+            EmitRegistryValueFromDefinition(sb, regSetting, value, isEnabled, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
+            if (isPerSubkey) sb.AppendLine($"{indent}}}");
         }
 
         if (setting.RegContents?.Count > 0)
@@ -310,14 +323,26 @@ internal class RegistryCommandEmitter
                 var regPath = EscapePowerShellString(ConvertRegistryPath(regSetting.KeyPath));
                 var escapedValueName = EscapePowerShellString(regSetting.ValueName);
 
+                bool isPerSubkey = regSetting.ApplyPerNetworkInterface || regSetting.ApplyPerMonitor;
+                var effectivePath = isPerSubkey ? "$_.PSPath" : $"'{regPath}'";
+                var innerIndent = isPerSubkey ? indent + "    " : indent;
+
+                if (isPerSubkey)
+                {
+                    sb.AppendLine($"{indent}Get-ChildItem -Path '{regPath}' -ErrorAction SilentlyContinue | ForEach-Object {{");
+                }
+
                 if (kvp.Value == null)
                 {
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
                     continue;
                 }
                 else
                 {
-                    EmitRegistryValue(sb, regSetting, kvp.Value, escapedDescription!, regPath!, escapedValueName!, indent);
+                    EmitRegistryValue(sb, regSetting, kvp.Value, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
                 }
+
+                if (isPerSubkey) sb.AppendLine($"{indent}}}");
             }
         }
     }

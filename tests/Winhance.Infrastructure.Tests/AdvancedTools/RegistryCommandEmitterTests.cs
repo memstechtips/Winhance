@@ -36,7 +36,7 @@ public class RegistryCommandEmitterTests
             ValueType = RegistryValueKind.DWord
         };
 
-        _sut.EmitRegistryValue(sb, regSetting, 1, "Test Setting", "HKLM:\\Software\\Test", "TestValue", "    ");
+        _sut.EmitRegistryValue(sb, regSetting, 1, "Test Setting", "'HKLM:\\Software\\Test'", "TestValue", "    ");
 
         var output = sb.ToString();
         output.Should().Contain("Set-RegistryValue");
@@ -64,7 +64,7 @@ public class RegistryCommandEmitterTests
             BitMask = 0x04
         };
 
-        _sut.EmitRegistryValue(sb, regSetting, true, "Bit Setting", "HKLM:\\Software\\Test", "BinaryVal", "");
+        _sut.EmitRegistryValue(sb, regSetting, true, "Bit Setting", "'HKLM:\\Software\\Test'", "BinaryVal", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryBit");
@@ -86,7 +86,7 @@ public class RegistryCommandEmitterTests
             BitMask = 0x01
         };
 
-        _sut.EmitRegistryValue(sb, regSetting, false, "Bit Setting", "HKLM:\\Software\\Test", "BinaryVal", "");
+        _sut.EmitRegistryValue(sb, regSetting, false, "Bit Setting", "'HKLM:\\Software\\Test'", "BinaryVal", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryBit");
@@ -110,7 +110,7 @@ public class RegistryCommandEmitterTests
             ModifyByteOnly = true
         };
 
-        _sut.EmitRegistryValue(sb, regSetting, 255, "Byte Setting", "HKLM:\\Software\\Test", "ByteVal", "");
+        _sut.EmitRegistryValue(sb, regSetting, 255, "Byte Setting", "'HKLM:\\Software\\Test'", "ByteVal", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryByte");
@@ -131,7 +131,7 @@ public class RegistryCommandEmitterTests
             ModifyByteOnly = true
         };
 
-        _sut.EmitRegistryValue(sb, regSetting, (byte)0x3E, "Click Setting", "HKLM:\\Software\\Test", "ByteVal", "");
+        _sut.EmitRegistryValue(sb, regSetting, (byte)0x3E, "Click Setting", "'HKLM:\\Software\\Test'", "ByteVal", "");
 
         var output = sb.ToString();
         output.Should().Contain("-ByteValue 0x3E");
@@ -154,7 +154,7 @@ public class RegistryCommandEmitterTests
         };
 
         var bytes = new byte[] { 0x01, 0x02 };
-        _sut.EmitRegistryValue(sb, regSetting, bytes, "Plain Binary", "HKLM:\\Software\\Test", "PlainBinary", "");
+        _sut.EmitRegistryValue(sb, regSetting, bytes, "Plain Binary", "'HKLM:\\Software\\Test'", "PlainBinary", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-RegistryValue");
@@ -179,7 +179,7 @@ public class RegistryCommandEmitterTests
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, true, isEnabled: true,
-            "Def BitMask", "HKLM:\\Software\\Test", "Val", "");
+            "Def BitMask", "'HKLM:\\Software\\Test'", "Val", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryBit");
@@ -200,7 +200,7 @@ public class RegistryCommandEmitterTests
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, false, isEnabled: false,
-            "Def BitMask", "HKLM:\\Software\\Test", "Val", "");
+            "Def BitMask", "'HKLM:\\Software\\Test'", "Val", "");
 
         var output = sb.ToString();
         output.Should().Contain("-SetBit $False");
@@ -224,7 +224,7 @@ public class RegistryCommandEmitterTests
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, (byte)0xAB, isEnabled: true,
-            "Def Byte", "HKLM:\\Software\\Test", "Val", "");
+            "Def Byte", "'HKLM:\\Software\\Test'", "Val", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryByte");
@@ -245,7 +245,7 @@ public class RegistryCommandEmitterTests
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, 15, isEnabled: true,
-            "Def Int", "HKLM:\\Software\\Test", "Val", "");
+            "Def Int", "'HKLM:\\Software\\Test'", "Val", "");
 
         var output = sb.ToString();
         output.Should().Contain("Set-BinaryByte");
@@ -266,7 +266,7 @@ public class RegistryCommandEmitterTests
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, "unknown", isEnabled: true,
-            "Def Unknown", "HKLM:\\Software\\Test", "Val", "");
+            "Def Unknown", "'HKLM:\\Software\\Test'", "Val", "");
 
         var output = sb.ToString();
         output.Should().Contain("0x00");
@@ -644,6 +644,122 @@ public class RegistryCommandEmitterTests
             LogLevel.Warning,
             It.Is<string>(s => s.Contains("test-selection")),
             null), Times.Once);
+    }
+
+    // ---------------------------------------------------------------
+    // AppendToggleCommandsFiltered - ApplyPerMonitor wraps in ForEach
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void AppendToggleCommandsFiltered_ApplyPerMonitor_WrapsInForEachObject()
+    {
+        var sb = new StringBuilder();
+        var setting = CreateSettingDefinition("test-monitor", "Monitor Setting", new[]
+        {
+            new RegistrySetting
+            {
+                KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                ValueName = "AutoColorManagementEnabled",
+                ValueType = RegistryValueKind.DWord,
+                EnabledValue = [1],
+                DisabledValue = [0],
+                ApplyPerMonitor = true,
+            }
+        });
+        var configItem = new ConfigurationItem { Id = "test-monitor", IsSelected = true, InputType = InputType.Toggle };
+
+        _sut.AppendToggleCommandsFiltered(sb, setting, configItem, isHkcu: false);
+
+        var output = sb.ToString();
+        output.Should().Contain("Get-ChildItem");
+        output.Should().Contain("ForEach-Object");
+        output.Should().Contain("$_.PSPath");
+        output.Should().Contain("AutoColorManagementEnabled");
+    }
+
+    [Fact]
+    public void AppendToggleCommandsFiltered_ApplyPerNetworkInterface_WrapsInForEachObject()
+    {
+        var sb = new StringBuilder();
+        var setting = CreateSettingDefinition("test-interface", "Interface Setting", new[]
+        {
+            new RegistrySetting
+            {
+                KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
+                ValueName = "TcpAckFrequency",
+                ValueType = RegistryValueKind.DWord,
+                EnabledValue = [null],
+                DisabledValue = [1],
+                ApplyPerNetworkInterface = true,
+            }
+        });
+        var configItem = new ConfigurationItem { Id = "test-interface", IsSelected = true, InputType = InputType.Toggle };
+
+        _sut.AppendToggleCommandsFiltered(sb, setting, configItem, isHkcu: false);
+
+        var output = sb.ToString();
+        output.Should().Contain("Get-ChildItem");
+        output.Should().Contain("ForEach-Object");
+        output.Should().Contain("$_.PSPath");
+        output.Should().Contain("Remove-RegistryValue");
+    }
+
+    [Fact]
+    public void AppendToggleCommandsFiltered_NoPerSubkeyFlag_DoesNotWrapInForEach()
+    {
+        var sb = new StringBuilder();
+        var setting = CreateSettingDefinition("test-normal", "Normal Setting", new[]
+        {
+            new RegistrySetting
+            {
+                KeyPath = @"HKEY_LOCAL_MACHINE\Software\Test",
+                ValueName = "Val",
+                ValueType = RegistryValueKind.DWord,
+                EnabledValue = [1],
+                DisabledValue = [0],
+            }
+        });
+        var configItem = new ConfigurationItem { Id = "test-normal", IsSelected = true, InputType = InputType.Toggle };
+
+        _sut.AppendToggleCommandsFiltered(sb, setting, configItem, isHkcu: false);
+
+        var output = sb.ToString();
+        output.Should().NotContain("Get-ChildItem");
+        output.Should().NotContain("ForEach-Object");
+        output.Should().Contain("Set-RegistryValue");
+    }
+
+    // ---------------------------------------------------------------
+    // ApplyResolvedValues - ApplyPerMonitor wraps in ForEach
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void AppendSelectionCommandsFiltered_ApplyPerMonitor_WrapsInForEachObject()
+    {
+        var sb = new StringBuilder();
+        var setting = CreateSettingDefinition("test-monitor-sel", "Monitor Selection", new[]
+        {
+            new RegistrySetting
+            {
+                KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                ValueName = "SomeValue",
+                ValueType = RegistryValueKind.DWord,
+                ApplyPerMonitor = true,
+            }
+        });
+        var configItem = new ConfigurationItem
+        {
+            Id = "test-monitor-sel",
+            InputType = InputType.Selection,
+            CustomStateValues = new Dictionary<string, object> { { "SomeValue", 1 } }
+        };
+
+        _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);
+
+        var output = sb.ToString();
+        output.Should().Contain("Get-ChildItem");
+        output.Should().Contain("ForEach-Object");
+        output.Should().Contain("$_.PSPath");
     }
 
     // ---------------------------------------------------------------

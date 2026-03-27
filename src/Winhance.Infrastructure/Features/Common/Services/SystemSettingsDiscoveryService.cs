@@ -348,9 +348,9 @@ public class SystemSettingsDiscoveryService(
                 {
                     object? currentValue = null;
 
-                    if (rs.ApplyPerNetworkInterface)
+                    if (rs.ApplyPerNetworkInterface || rs.ApplyPerMonitor)
                     {
-                        // Network interface settings: read from first subkey
+                        // Per-interface/per-monitor settings: read from first subkey
                         var subKeys = registryService.GetSubKeyNames(rs.KeyPath);
                         if (subKeys.Length > 0)
                         {
@@ -404,10 +404,10 @@ public class SystemSettingsDiscoveryService(
         {
             foreach (var registrySetting in setting.RegistrySettings)
             {
-                // ApplyPerNetworkInterface requires checking all sub-keys;
+                // ApplyPerNetworkInterface/ApplyPerMonitor requires checking all sub-keys;
                 // batch-read values only contain the parent key, so delegate
                 // to IsSettingApplied which handles sub-key expansion.
-                if (registrySetting.ApplyPerNetworkInterface)
+                if (registrySetting.ApplyPerNetworkInterface || registrySetting.ApplyPerMonitor)
                 {
                     if (registryService.IsSettingApplied(registrySetting))
                         return true;

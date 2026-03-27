@@ -301,6 +301,8 @@
   "Setting_theme-mode-windows_CustomState": "사용자 지정",
   "Setting_theme-transparency_Name": "투명 효과",
   "Setting_theme-transparency_Description": "시작 메뉴, 작업 표시줄 및 기타 Windows 인터페이스 요소에 반투명 효과를 사용합니다",
+  "Setting_gaming-auto-color-management_Name": "앱의 색상을 자동으로 관리",
+  "Setting_gaming-auto-color-management_Description": "이 기능을 지원하는 연결된 모든 디스플레이의 색상 프로필을 Windows에서 자동으로 관리하도록 허용",
   "Setting_taskbar-clean_Name": "작업 표시줄 정리",
   "Setting_taskbar-clean_Description": "작업 표시줄의 모든 고정 항목을 제거합니다",
   "Setting_taskbar-clean_ConfirmTitle": "작업 표시줄 정리",

@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Pasgemaak",
   "Setting_theme-transparency_Name": "Deursigtigheidseffekte",
   "Setting_theme-transparency_Description": "Aktiveer deurskynende effekte vir die Beginlys, taakbalk, en ander Windows koppelvlakelemente",
+  "Setting_gaming-auto-color-management_Name": "Bestuur kleur vir programme outomaties",
+  "Setting_gaming-auto-color-management_Description": "Laat Windows toe om kleurprofiele outomaties te bestuur vir alle gekoppelde skerms wat dit ondersteun",
   "Setting_taskbar-clean_Name": "Skoon Taakbalk",
   "Setting_taskbar-clean_Description": "Verwyder alle vasgespelde items van die Taakbalk",
   "Setting_taskbar-clean_ConfirmTitle": "Taakbalk Skoonmaak",

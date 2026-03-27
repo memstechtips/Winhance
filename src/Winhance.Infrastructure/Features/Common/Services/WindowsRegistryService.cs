@@ -297,6 +297,25 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 return true;
             }
 
+            if (setting.ApplyPerMonitor)
+            {
+                var subKeys = GetSubKeyNames(setting.KeyPath);
+                if (subKeys.Length == 0)
+                    return false;
+
+                foreach (var subKey in subKeys)
+                {
+                    var expandedSetting = setting with
+                    {
+                        KeyPath = $@"{setting.KeyPath}\{subKey}",
+                        ApplyPerMonitor = false
+                    };
+                    if (!IsSettingApplied(expandedSetting))
+                        return false;
+                }
+                return true;
+            }
+
             // For settings that check the (Default) value with ValueName = null,
             // we need to check if both EnabledValue and DisabledValue are null.
             // If both are null, we're just checking key existence.
@@ -482,6 +501,29 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                     {
                         KeyPath = $@"{setting.KeyPath}\{subKey}",
                         ApplyPerNetworkInterface = false
+                    };
+                    if (!ApplySetting(expandedSetting, isEnabled, specificValue))
+                        allSucceeded = false;
+                }
+                return allSucceeded;
+            }
+
+            if (setting.ApplyPerMonitor)
+            {
+                var subKeys = GetSubKeyNames(setting.KeyPath);
+                if (subKeys.Length == 0)
+                {
+                    logService.Log(LogLevel.Warning, $"[WindowsRegistryService] No subkeys found under '{setting.KeyPath}' for per-monitor setting");
+                    return false;
+                }
+
+                var allSucceeded = true;
+                foreach (var subKey in subKeys)
+                {
+                    var expandedSetting = setting with
+                    {
+                        KeyPath = $@"{setting.KeyPath}\{subKey}",
+                        ApplyPerMonitor = false
                     };
                     if (!ApplySetting(expandedSetting, isEnabled, specificValue))
                         allSucceeded = false;

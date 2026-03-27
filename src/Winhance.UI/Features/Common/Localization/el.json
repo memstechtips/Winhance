@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Προσαρμοσμένο",
   "Setting_theme-transparency_Name": "Εφέ διαφάνειας",
   "Setting_theme-transparency_Description": "Ενεργοποίηση ημιδιαφανών εφέ για το Μενού Έναρξης, τη γραμμή εργασιών και άλλα στοιχεία διεπαφής των Windows",
+  "Setting_gaming-auto-color-management_Name": "Αυτόματη διαχείριση χρωμάτων για εφαρμογές",
+  "Setting_gaming-auto-color-management_Description": "Επιτρέψτε στα Windows να διαχειρίζονται αυτόματα τα προφίλ χρωμάτων για όλες τις συνδεδεμένες οθόνες που το υποστηρίζουν",
   "Setting_taskbar-clean_Name": "Καθαρισμός Γραμμής Εργασιών",
   "Setting_taskbar-clean_Description": "Αφαιρεί όλα τα καρφιτσωμένα αντικείμενα από τη Γραμμή Εργασιών",
   "Setting_taskbar-clean_ConfirmTitle": "Καθαρισμός Γραμμής Εργασιών",

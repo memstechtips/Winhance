@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "कस्टम",
   "Setting_theme-transparency_Name": "पारदर्शिता प्रभाव",
   "Setting_theme-transparency_Description": "स्टार्ट मेनू, टास्कबार और अन्य विंडोज इंटरफ़ेस तत्वों के लिए पारभासी प्रभाव सक्षम करें",
+  "Setting_gaming-auto-color-management_Name": "ऐप्स के लिए रंग स्वचालित रूप से प्रबंधित करें",
+  "Setting_gaming-auto-color-management_Description": "सभी कनेक्टेड डिस्प्ले जो इसका समर्थन करते हैं उनके लिए Windows को स्वचालित रूप से रंग प्रोफ़ाइल प्रबंधित करने दें",
   "Setting_taskbar-clean_Name": "टास्कबार साफ़ करें",
   "Setting_taskbar-clean_Description": "टास्कबार से सभी पिन किए गए आइटम हटाता है",
   "Setting_taskbar-clean_ConfirmTitle": "टास्कबार सफ़ाई",

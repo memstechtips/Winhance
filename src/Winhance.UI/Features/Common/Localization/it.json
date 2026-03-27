@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Personalizzato",
   "Setting_theme-transparency_Name": "Effetti di trasparenza",
   "Setting_theme-transparency_Description": "Abilita effetti traslucidi per il menu Start, la barra delle applicazioni e altri elementi dell'interfaccia di Windows",
+  "Setting_gaming-auto-color-management_Name": "Gestisci automaticamente il colore per le app",
+  "Setting_gaming-auto-color-management_Description": "Consenti a Windows di gestire automaticamente i profili colore per tutti i display collegati che lo supportano",
   "Setting_taskbar-clean_Name": "Pulisci barra delle applicazioni",
   "Setting_taskbar-clean_Description": "Rimuove tutti gli elementi aggiunti dalla barra delle applicazioni",
   "Setting_taskbar-clean_ConfirmTitle": "Pulizia della barra delle applicazioni",

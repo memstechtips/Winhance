@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "カスタム",
   "Setting_theme-transparency_Name": "透明効果",
   "Setting_theme-transparency_Description": "スタートメニュー、タスクバー、その他のWindowsインターフェイス要素に半透明効果を有効にする",
+  "Setting_gaming-auto-color-management_Name": "アプリの色を自動的に管理する",
+  "Setting_gaming-auto-color-management_Description": "この機能をサポートするすべての接続されたディスプレイのカラープロファイルを Windows が自動的に管理することを許可する",
   "Setting_taskbar-clean_Name": "タスクバーをクリーンにする",
   "Setting_taskbar-clean_Description": "タスクバーからすべてのピン留めされた項目を削除",
   "Setting_taskbar-clean_ConfirmTitle": "タスクバーのクリーニング",

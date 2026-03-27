@@ -846,4 +846,78 @@ public class SystemSettingsDiscoveryServiceTests
         result["test-network-not-applied"].Success.Should().BeTrue();
         result["test-network-not-applied"].IsEnabled.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_ApplyPerMonitor_DelegatesToIsSettingApplied()
+    {
+        // ApplyPerMonitor settings bypass batch values and delegate
+        // to IsSettingApplied for correct sub-key expansion.
+        var setting = new SettingDefinition
+        {
+            Id = "test-monitor",
+            Name = "Monitor Setting",
+            Description = "Tests ApplyPerMonitor detection",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                    ValueName = "AutoColorManagementEnabled",
+                    EnabledValue = [1],
+                    DisabledValue = [0],
+                    ValueType = RegistryValueKind.DWord,
+                    ApplyPerMonitor = true,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _mockRegistry.Setup(r => r.IsSettingApplied(
+                It.Is<RegistrySetting>(rs => rs.ApplyPerMonitor)))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-monitor"].Success.Should().BeTrue();
+        result["test-monitor"].IsEnabled.Should().BeTrue();
+        _mockRegistry.Verify(r => r.IsSettingApplied(
+            It.Is<RegistrySetting>(rs => rs.ApplyPerMonitor)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_ApplyPerMonitor_NotApplied_ReturnsFalse()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "test-monitor-not-applied",
+            Name = "Monitor Not Applied",
+            Description = "Tests ApplyPerMonitor when not applied",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                    ValueName = "AutoColorManagementEnabled",
+                    EnabledValue = [1],
+                    DisabledValue = [0],
+                    ValueType = RegistryValueKind.DWord,
+                    ApplyPerMonitor = true,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _mockRegistry.Setup(r => r.IsSettingApplied(
+                It.Is<RegistrySetting>(rs => rs.ApplyPerMonitor)))
+            .Returns(false);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-monitor-not-applied"].Success.Should().BeTrue();
+        result["test-monitor-not-applied"].IsEnabled.Should().BeFalse();
+    }
 }

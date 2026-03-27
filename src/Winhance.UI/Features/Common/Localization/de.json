@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Benutzerdefiniert",
   "Setting_theme-transparency_Name": "Transparenzeffekte",
   "Setting_theme-transparency_Description": "Durchscheinende Effekte für das Startmenü, die Taskleiste und andere Windows-Oberflächenelemente aktivieren",
+  "Setting_gaming-auto-color-management_Name": "Farben für Apps automatisch verwalten",
+  "Setting_gaming-auto-color-management_Description": "Windows erlauben, Farbprofile für alle angeschlossenen Bildschirme, die dies unterstützen, automatisch zu verwalten",
   "Setting_taskbar-clean_Name": "Taskleiste bereinigen",
   "Setting_taskbar-clean_Description": "Entfernt alle angehefteten Elemente von der Taskleiste",
   "Setting_taskbar-clean_ConfirmTitle": "Taskleisten-Bereinigung",

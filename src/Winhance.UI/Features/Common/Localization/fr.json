@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Personnalisé",
   "Setting_theme-transparency_Name": "Effets de transparence",
   "Setting_theme-transparency_Description": "Activer les effets de translucidité pour le menu Démarrer, la barre des tâches et d'autres éléments de l'interface Windows",
+  "Setting_gaming-auto-color-management_Name": "Gérer automatiquement les couleurs pour les applications",
+  "Setting_gaming-auto-color-management_Description": "Autoriser Windows à gérer automatiquement les profils de couleurs pour tous les écrans connectés qui le prennent en charge",
   "Setting_taskbar-clean_Name": "Nettoyer la barre des tâches",
   "Setting_taskbar-clean_Description": "Supprime tous les éléments épinglés de la barre des tâches",
   "Setting_taskbar-clean_ConfirmTitle": "Nettoyage de la barre des tâches",

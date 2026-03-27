@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Vlastní",
   "Setting_theme-transparency_Name": "Efekty průhlednosti",
   "Setting_theme-transparency_Description": "Povolit průsvitné efekty pro nabídku Start, hlavní panel a další prvky rozhraní Windows",
+  "Setting_gaming-auto-color-management_Name": "Automaticky spravovat barvy pro aplikace",
+  "Setting_gaming-auto-color-management_Description": "Povolit systému Windows automaticky spravovat barevné profily pro všechny připojené displeje, které to podporují",
   "Setting_taskbar-clean_Name": "Vyčistit hlavní panel",
   "Setting_taskbar-clean_Description": "Odstraní všechny připnuté položky z hlavního panelu",
   "Setting_taskbar-clean_ConfirmTitle": "Čištění hlavního panelu",

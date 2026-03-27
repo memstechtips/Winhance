@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Egyéni",
   "Setting_theme-transparency_Name": "Átlátszó hatások",
   "Setting_theme-transparency_Description": "Engedélyezze az áttetsző effektusokat a Start menüben, a tálcán és más Windows felületelemekben",
+  "Setting_gaming-auto-color-management_Name": "Színek automatikus kezelése az alkalmazásokhoz",
+  "Setting_gaming-auto-color-management_Description": "Engedélyezze a Windowsnak, hogy automatikusan kezelje a színprofilokat az összes csatlakoztatott kijelzőhöz, amely támogatja",
   "Setting_taskbar-clean_Name": "Tálca tisztítása",
   "Setting_taskbar-clean_Description": "Eltávolítja az összes rögzített elemet a tálcáról",
   "Setting_taskbar-clean_ConfirmTitle": "Tálca tisztítás indítása",

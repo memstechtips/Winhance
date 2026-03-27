@@ -21,5 +21,6 @@ public record RegistrySetting
     public byte? BitMask { get; init; }
     public string? CompositeStringKey { get; init; }
     public bool ApplyPerNetworkInterface { get; init; } = false;
+    public bool ApplyPerMonitor { get; init; } = false;
     public bool IsGroupPolicy { get; init; } = false;
 }

@@ -249,6 +249,8 @@
     "Setting_theme-mode-windows_CustomState": "مخصص",
     "Setting_theme-transparency_Name": "تأثيرات الشفافية",
     "Setting_theme-transparency_Description": "تمكين التأثيرات الشفافة لقائمة ابدأ وشريط المهام وعناصر واجهة Windows الأخرى",
+    "Setting_gaming-auto-color-management_Name": "إدارة الألوان تلقائيًا للتطبيقات",
+    "Setting_gaming-auto-color-management_Description": "السماح لـ Windows بإدارة ملفات تعريف الألوان تلقائيًا لجميع الشاشات المتصلة التي تدعم ذلك",
     "Setting_taskbar-clean_Name": "تنظيف شريط المهام",
     "Setting_taskbar-clean_Description": "إزالة كل العناصر المثبتة من شريط المهام",
     "Setting_taskbar-clean_ConfirmTitle": "تنظيف شريط المهام",

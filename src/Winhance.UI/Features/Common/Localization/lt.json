@@ -266,6 +266,8 @@
   "Setting_theme-mode-windows_CustomState": "Pasirinktinis",
   "Setting_theme-transparency_Name": "Skaidrumo efektai",
   "Setting_theme-transparency_Description": "Įjungti permatomus efektus paleidimo meniu, užduočių juostoje ir kituose Windows sąsajos elementuose",
+  "Setting_gaming-auto-color-management_Name": "Automatiškai valdyti spalvas programėlėms",
+  "Setting_gaming-auto-color-management_Description": "Leisti „Windows" automatiškai valdyti spalvų profilius visiems prijungtiems ekranams, kurie tai palaiko",
   "Setting_taskbar-clean_Name": "Išvalyti užduočių juostą",
   "Setting_taskbar-clean_Description": "Pašalina visus prisegtus elementus iš užduočių juostos",
   "Setting_taskbar-clean_ConfirmTitle": "Užduočių juostos valymas",
