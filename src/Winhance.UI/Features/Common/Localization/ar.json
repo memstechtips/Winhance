@@ -625,6 +625,8 @@
     "Setting_gaming-print-spooler-service_Description": "تدير مهام الطباعة المرسلة للطابعات. إذا كنت لا تستخدم طابعة، اضبطها على يدوي أو معطل لتوفير موارد النظام",
     "Setting_gaming-telemetry-service_Name": "خدمة تجارب المستخدم المتصل والقياس عن بُعد",
     "Setting_gaming-telemetry-service_Description": "ترسل بيانات الاستخدام والتشخيص إلى Microsoft. ضبطها على يدوي أو معطل يقلل استخدام الشبكة وCPU في الخلفية",
+    "Setting_gaming-connected-devices-platform-service_Name": "خدمة منصة الأجهزة المتصلة",
+    "Setting_gaming-connected-devices-platform-service_Description": "تمكّن تجارب الأجهزة المتعددة مثل ربط الهاتف والمشاركة القريبة. يؤدي التعطيل إلى تقليل النشاط في الخلفية وتسجيل تفاعلات الأجهزة",
     "Setting_gaming-compatibility-assistant-service_Name": "خدمة مساعد توافق البرامج",
     "Setting_gaming-compatibility-assistant-service_Description": "تراقب البرامج لمشاكل التوافق وتقترح إصلاحات. تعطيلها يمنع مطالبات التوافق ويوفر موارد بسيطة",
     "Setting_gaming-error-reporting-service_Name": "خدمة تقارير أخطاء Windows",

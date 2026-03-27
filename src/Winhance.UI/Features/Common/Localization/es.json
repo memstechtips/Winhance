@@ -642,6 +642,8 @@
   "Setting_gaming-print-spooler-service_Description": "Gestiona los trabajos de impresión enviados a las impresoras. Si no usas una impresora, configúralo en Manual o Deshabilitado para liberar recursos del sistema",
   "Setting_gaming-telemetry-service_Name": "Experiencias de Usuario Conectadas y Servicio de Telemetría",
   "Setting_gaming-telemetry-service_Description": "Envía datos de uso y diagnósticos a Microsoft. Configurar en Manual o Deshabilitado reduce el uso de red y CPU en segundo plano",
+  "Setting_gaming-connected-devices-platform-service_Name": "Servicio de plataforma de dispositivos conectados",
+  "Setting_gaming-connected-devices-platform-service_Description": "Habilita experiencias entre dispositivos como vinculaci\u00f3n de tel\u00e9fono y uso compartido en proximidad. Deshabilitarlo reduce la actividad en segundo plano y el registro de interacciones de dispositivos",
   "Setting_gaming-compatibility-assistant-service_Name": "Servicio Asistente de Compatibilidad de Programas",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitorea los programas en busca de problemas de compatibilidad y sugiere soluciones. Deshabilitarlo evita las indicaciones de compatibilidad y ahorra recursos menores del sistema",
   "Setting_gaming-error-reporting-service_Name": "Servicio de Informes de Errores de Windows",

@@ -642,6 +642,8 @@
   "Setting_gaming-print-spooler-service_Description": "Pārvalda drukas darbus, kas nosūtīti printeriem. Ja neizmantojat printeri, iestatiet uz Manuāli vai Atspējots, lai atbrīvotu sistēmas resursus",
   "Setting_gaming-telemetry-service_Name": "Savienoto lietotāju pieredzes un telemetrijas pakalpojums",
   "Setting_gaming-telemetry-service_Description": "Sūta lietošanas datus un diagnostiku Microsoft. Iestatīšana uz Manuāli vai Atspējots samazina fona tīkla un CPU lietojumu",
+  "Setting_gaming-connected-devices-platform-service_Name": "Savienoto ierīču platformas pakalpojums",
+  "Setting_gaming-connected-devices-platform-service_Description": "Iespējo starpierīču pieredzi, piemēram, tālruņa savienojumu un koplīgošanu tuvumā. Atspējošana samazina fona aktivitāti un ierīču mijiedarbības reģistrēšanu",
   "Setting_gaming-compatibility-assistant-service_Name": "Programmu saderības palīga pakalpojums",
   "Setting_gaming-compatibility-assistant-service_Description": "Uzrauga programmas saderības problēmām un iesaka labojumus. Atspējošana novērš saderības uzvednes un ietaupa nelielus sistēmas resursus",
   "Setting_gaming-error-reporting-service_Name": "Windows kļūdu ziņošanas pakalpojums",

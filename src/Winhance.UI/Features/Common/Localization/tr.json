@@ -677,6 +677,8 @@
   "Setting_gaming-print-spooler-service_Description": "Yazıcılara gönderilen yazdırma işlerini yönetir. Yazıcı kullanmıyorsanız, sistem kaynaklarını boşaltmak için Manuel veya Devre Dışı olarak ayarlayın",
   "Setting_gaming-telemetry-service_Name": "Bağlı Kullanıcı Deneyimleri ve Telemetri Hizmeti",
   "Setting_gaming-telemetry-service_Description": "Microsoft\u0027a kullanım verileri ve tanılamalar gönderir. Manuel veya Devre Dışı olarak ayarlanması arka plan ağ ve CPU kullanımını azaltır",
+  "Setting_gaming-connected-devices-platform-service_Name": "Ba\u011fl\u0131 Cihazlar Platform Hizmeti",
+  "Setting_gaming-connected-devices-platform-service_Description": "Telefon ba\u011flama ve yak\u0131n payla\u015f\u0131m gibi cihazlar aras\u0131 deneyimleri etkinle\u015ftirir. Devre d\u0131\u015f\u0131 b\u0131rakmak arka plan etkinli\u011fini ve cihaz etkile\u015fim g\u00fcnl\u00fck kayd\u0131n\u0131 azalt\u0131r",
   "Setting_gaming-compatibility-assistant-service_Name": "Program Uyumluluk Yardımcısı Hizmeti",
   "Setting_gaming-compatibility-assistant-service_Description": "Programları uyumluluk sorunları için izler ve düzeltmeler önerir. Devre dışı bırakmak uyumluluk istemlerini engeller ve küçük sistem kaynaklarından tasarruf sağlar",
   "Setting_gaming-error-reporting-service_Name": "Windows Hata Bildirme Hizmeti",

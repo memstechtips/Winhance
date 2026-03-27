@@ -642,6 +642,8 @@
   "Setting_gaming-print-spooler-service_Description": "Beheert afdruktaken die naar printers worden verzonden. Als u geen printer gebruikt, stel in op Handmatig of Uitgeschakeld om systeembronnen vrij te maken",
   "Setting_gaming-telemetry-service_Name": "Verbonden gebruikerservaringen en telemetrie-service",
   "Setting_gaming-telemetry-service_Description": "Stuurt gebruiksgegevens en diagnostiek naar Microsoft. Instellen op Handmatig of Uitgeschakeld vermindert achtergrondnetwerk- en CPU-gebruik",
+  "Setting_gaming-connected-devices-platform-service_Name": "Platform voor verbonden apparaten",
+  "Setting_gaming-connected-devices-platform-service_Description": "Schakelt cross-device-ervaringen in zoals telefoonkoppeling en delen in de buurt. Uitschakelen vermindert achtergrondactiviteit en logboekregistratie van apparaatinteracties",
   "Setting_gaming-compatibility-assistant-service_Name": "Programmacompatibiliteitsassistent Service",
   "Setting_gaming-compatibility-assistant-service_Description": "Bewaakt programma\u0027s op compatibiliteitsproblemen en stelt oplossingen voor. Uitschakelen voorkomt compatibiliteitsmeldingen en bespaart kleine systeembronnen",
   "Setting_gaming-error-reporting-service_Name": "Windows Foutrapportage Service",

@@ -677,6 +677,8 @@
   "Setting_gaming-print-spooler-service_Description": "Manages print jobs sent to printers. If you don\u0027t use a printer, set to Manual or Disabled to free up system resources",
   "Setting_gaming-telemetry-service_Name": "Connected User Experiences and Telemetry Service",
   "Setting_gaming-telemetry-service_Description": "Sends usage data and diagnostics to Microsoft. Setting to Manual or Disabled reduces background network and CPU usage",
+  "Setting_gaming-connected-devices-platform-service_Name": "Connected Devices Platform Service",
+  "Setting_gaming-connected-devices-platform-service_Description": "Enables cross-device experiences like phone linking and nearby sharing. Disabling reduces background activity and device interaction logging",
   "Setting_gaming-compatibility-assistant-service_Name": "Program Compatibility Assistant Service",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitors programs for compatibility issues and suggests fixes. Disabling prevents compatibility prompts and saves minor system resources",
   "Setting_gaming-error-reporting-service_Name": "Windows Error Reporting Service",

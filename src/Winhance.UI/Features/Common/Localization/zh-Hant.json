@@ -642,6 +642,8 @@
   "Setting_gaming-print-spooler-service_Description": "管理傳送到印表機的列印工作。如果您不使用印表機，設為手動或停用可釋放系統資源",
   "Setting_gaming-telemetry-service_Name": "連線使用者體驗與遙測服務",
   "Setting_gaming-telemetry-service_Description": "傳送使用資料與診斷資訊給 Microsoft。設為手動或停用可減少背景網路與 CPU 使用量",
+  "Setting_gaming-connected-devices-platform-service_Name": "\u9023\u7dda\u88dd\u7f6e\u5e73\u53f0\u670d\u52d9",
+  "Setting_gaming-connected-devices-platform-service_Description": "\u555f\u7528\u8de8\u88dd\u7f6e\u9ad4\u9a57\uff0c\u5982\u624b\u6a5f\u9023\u7d50\u548c\u9644\u8fd1\u5206\u4eab\u3002\u505c\u7528\u53ef\u6e1b\u5c11\u80cc\u666f\u6d3b\u52d5\u548c\u88dd\u7f6e\u4e92\u52d5\u65e5\u8a8c\u8a18\u9304",
   "Setting_gaming-compatibility-assistant-service_Name": "程式相容性助理服務",
   "Setting_gaming-compatibility-assistant-service_Description": "監控程式相容性問題並建議修正。停用可防止相容性提示並節省少量系統資源",
   "Setting_gaming-error-reporting-service_Name": "Windows Error Reporting 服務",

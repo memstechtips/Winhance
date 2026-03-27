@@ -677,6 +677,8 @@
   "Setting_gaming-print-spooler-service_Description": "프린터로 전송된 인쇄 작업을 관리합니다. 프린터를 사용하지 않는 경우 수동 또는 사용 안 함으로 설정하여 시스템 리소스를 확보하십시오",
   "Setting_gaming-telemetry-service_Name": "연결된 사용자 환경 및 원격 분석 서비스",
   "Setting_gaming-telemetry-service_Description": "사용 데이터 및 진단 정보를 Microsoft로 전송합니다. 수동 또는 사용 안 함으로 설정하면 백그라운드 네트워크 및 CPU 사용량이 줄어듭니다",
+  "Setting_gaming-connected-devices-platform-service_Name": "연결된 디바이스 플랫폼 서비스",
+  "Setting_gaming-connected-devices-platform-service_Description": "폰 연결 및 근처 공유와 같은 크로스 디바이스 경험을 활성화합니다. 비활성화하면 백그라운드 활동과 디바이스 상호작용 로깅이 줄어듭니다",
   "Setting_gaming-compatibility-assistant-service_Name": "프로그램 호환성 관리자 서비스",
   "Setting_gaming-compatibility-assistant-service_Description": "프로그램의 호환성 문제를 모니터링하고 수정 사항을 제안합니다. 비활성화하면 호환성 프롬프트가 표시되지 않으며 시스템 리소스가 약간 절약됩니다",
   "Setting_gaming-error-reporting-service_Name": "Windows 오류 보고 서비스",

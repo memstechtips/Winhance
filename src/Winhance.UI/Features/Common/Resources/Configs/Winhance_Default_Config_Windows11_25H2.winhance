@@ -931,6 +931,12 @@
             "SelectedIndex": 2
           },
           {
+            "Id": "gaming-connected-devices-platform-service",
+            "Name": "Connected Devices Platform Service",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
             "Id": "gaming-compatibility-assistant-service",
             "Name": "Program Compatibility Assistant Service",
             "InputType": 1,

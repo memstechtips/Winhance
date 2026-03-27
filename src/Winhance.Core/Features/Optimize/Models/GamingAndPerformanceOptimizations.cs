@@ -854,6 +854,49 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "gaming-connected-devices-platform-service",
+                    Name = "Connected Devices Platform Service",
+                    Description = "Enables cross-device experiences like phone linking and nearby sharing. Disabling reduces background activity and device interaction logging",
+                    GroupName = "System Services",
+                    Icon = "CellphoneLink",
+                    InputType = InputType.Selection,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.03.27",
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CDPSvc",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CDPUserSvc",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "gaming-compatibility-assistant-service",
                     Name = "Program Compatibility Assistant Service",
                     Description = "Monitors programs for compatibility issues and suggests fixes. Disabling prevents compatibility prompts and saves minor system resources",
