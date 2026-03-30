@@ -38,6 +38,16 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-wise-disk-cleaner",
+                        Name = "Wise Disk Cleaner",
+                        Description = "Free Disk Cleanup and Defragment Tool",
+                        GroupName = "Other Utilities",
+                        WinGetPackageId = ["WiseCleaner.WiseDiskCleaner"],
+                        MsStoreId = "XP9CW3GPQQS852", // MS Store package
+                        WebsiteUrl = "https://www.wisecleaner.com/wise-disk-cleaner.html"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-wise-registry-cleaner",
                         Name = "Wise Registry Cleaner",
                         Description = "Registry cleaning and optimization tool",
