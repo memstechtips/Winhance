@@ -99,6 +99,26 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-iobit-uninstaller",
+                        Name = "IObit Uninstaller",
+                        Description = "Completely Uninstall Unwanted Software, Windows Apps & Browser Plug-ins",
+                        GroupName = "Other Utilities",
+                        WinGetPackageId = ["IObit.Uninstaller"],
+                        ChocoPackageId = "iobit-uninstaller",
+                        WebsiteUrl = "https://www.iobit.com/en/advanceduninstaller.php"
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-revo-uninstaller",
+                        Name = "Revo Uninstaller",
+                        Description = "Revo Uninstaller helps you to uninstall software and remove unwanted programs easily.",
+                        GroupName = "Other Utilities",
+                        WinGetPackageId = ["RevoUninstaller.RevoUninstaller"],
+                        ChocoPackageId = "revo-uninstaller",
+                        WebsiteUrl = "https://www.revouninstaller.com/products/revo-uninstaller-free/"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-virtualbox",
                         Name = "Oracle VirtualBox",
                         Description = "Free and open-source virtualization software",
