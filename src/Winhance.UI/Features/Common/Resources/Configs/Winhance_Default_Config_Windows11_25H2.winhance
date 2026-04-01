@@ -1802,6 +1802,12 @@
             "InputType": 0
           },
           {
+            "Id": "security-smart-app-control",
+            "Name": "Smart App Control",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
             "Id": "privacy-ads-promotional-master",
             "Name": "Ads, Suggestions and Promotional Content",
             "InputType": 1,

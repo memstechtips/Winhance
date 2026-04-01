@@ -259,6 +259,53 @@ public static class PrivacyAndSecurityOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "security-smart-app-control",
+                    Name = "Smart App Control",
+                    Description = "Controls the Smart App Control feature which blocks untrusted and potentially dangerous applications",
+                    GroupName = "Security",
+                    Icon = "ShieldCheck",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.04.01",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Policy",
+                            ValueName = "VerifiedAndReputablePolicyState",
+                            RecommendedValue = 0,
+                            EnabledValue = [2],
+                            DisabledValue = [0],
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Off",
+                            "On (Enforced)",
+                            "Evaluation Mode",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["VerifiedAndReputablePolicyState"] = 0,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["VerifiedAndReputablePolicyState"] = 1,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["VerifiedAndReputablePolicyState"] = 2,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "privacy-ads-promotional-master",
                     Name = "Ads, Suggestions and Promotional Content",
                     Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
