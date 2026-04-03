@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -610,6 +612,12 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 return result;
             }
 
+            // Unlock the key first if LockKeyAccess is set, so we can write to it
+            if (setting.LockKeyAccess)
+            {
+                UnlockRegistryKey(setting.KeyPath);
+            }
+
             var oldValue = GetValue(setting.KeyPath, setting.ValueName);
             var valueToSet = specificValue ?? (isEnabled
                 ? GetWriteValue(setting.EnabledValue)
@@ -630,11 +638,156 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var setResult = SetValue(setting.KeyPath, setting.ValueName, valueToSet, setting.ValueType);
 
             logService.Log(LogLevel.Info, $"[WindowsRegistryService] Set value '{setting.ValueName}' = '{valueToSet}' in '{setting.KeyPath}' - Success: {setResult}");
+
+            if (setResult && setting.LockKeyAccess)
+            {
+                // Determine if the value being written means "disabled" (service Start = 4)
+                // Lock the key only when disabling; unlock was already done above for enabling
+                var writtenValue = specificValue ?? (isEnabled
+                    ? GetWriteValue(setting.EnabledValue)
+                    : GetWriteValue(setting.DisabledValue));
+
+                // Lock the key if the written value equals the disabled/locked state (e.g., Start = 4)
+                if (!isEnabled || (writtenValue is int intVal && intVal == 4))
+                {
+                    LockRegistryKey(setting.KeyPath);
+                }
+            }
+
             return setResult;
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error applying setting '{setting.KeyPath}\\{setting.ValueName}': {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Locks a registry key to read-only for SYSTEM and TrustedInstaller,
+    /// preventing Windows from resetting the value.
+    /// Administrators retain full control to allow Winhance to unlock later.
+    /// </summary>
+    private bool LockRegistryKey(string keyPath)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(
+                subKeyPath,
+                RegistryKeyPermissionCheck.ReadWriteSubTree,
+                RegistryRights.ChangePermissions | RegistryRights.ReadKey | RegistryRights.TakeOwnership);
+
+            if (key == null)
+            {
+                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot lock key '{keyPath}': key not found");
+                return false;
+            }
+
+            var security = key.GetAccessControl();
+
+            // Ensure Administrators own the key
+            var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            security.SetOwner(adminsSid);
+
+            // Disable inheritance and convert existing rules to explicit
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+
+            // Remove all existing access rules
+            foreach (RegistryAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
+            {
+                security.RemoveAccessRule(rule);
+            }
+
+            // Grant Administrators full control (so Winhance can unlock later)
+            security.AddAccessRule(new RegistryAccessRule(
+                adminsSid,
+                RegistryRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            // Grant SYSTEM read-only (prevents Windows from writing)
+            var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            security.AddAccessRule(new RegistryAccessRule(
+                systemSid,
+                RegistryRights.ReadKey,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            key.SetAccessControl(security);
+
+            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Locked registry key '{keyPath}' to read-only for SYSTEM");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to lock registry key '{keyPath}': {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Restores default permissions on a registry key, re-enabling
+    /// inheritance and granting SYSTEM full control again.
+    /// </summary>
+    private bool UnlockRegistryKey(string keyPath)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(
+                subKeyPath,
+                RegistryKeyPermissionCheck.ReadWriteSubTree,
+                RegistryRights.ChangePermissions | RegistryRights.ReadKey | RegistryRights.TakeOwnership);
+
+            if (key == null)
+            {
+                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot unlock key '{keyPath}': key not found");
+                return false;
+            }
+
+            var security = key.GetAccessControl();
+
+            // Ensure Administrators own the key
+            var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            security.SetOwner(adminsSid);
+
+            // Remove all explicit rules
+            foreach (RegistryAccessRule rule in security.GetAccessRules(true, false, typeof(SecurityIdentifier)))
+            {
+                security.RemoveAccessRule(rule);
+            }
+
+            // Re-enable inheritance
+            security.SetAccessRuleProtection(isProtected: false, preserveInheritance: false);
+
+            // Grant SYSTEM full control
+            var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            security.AddAccessRule(new RegistryAccessRule(
+                systemSid,
+                RegistryRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            // Grant Administrators full control
+            security.AddAccessRule(new RegistryAccessRule(
+                adminsSid,
+                RegistryRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            key.SetAccessControl(security);
+
+            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Unlocked registry key '{keyPath}' - restored SYSTEM full control");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to unlock registry key '{keyPath}': {ex.Message}");
             return false;
         }
     }
