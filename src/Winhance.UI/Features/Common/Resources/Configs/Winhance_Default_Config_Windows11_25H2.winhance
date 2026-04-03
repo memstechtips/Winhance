@@ -500,6 +500,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-legacy-notepad",
+            "Name": "Use Legacy Notepad for text files",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-hide-merge-conflicts",
             "Name": "Hide folder merge conflicts",
             "IsSelected": true,
@@ -716,6 +722,12 @@
             "Name": "Enable 'End Task' in Taskbar",
             "IsSelected": false,
             "InputType": 0
+          },
+          {
+            "Id": "taskbar-extended-hover-time",
+            "Name": "Taskbar Auto-Hide Hover Delay",
+            "IsSelected": false,
+            "InputType": 1
           }
         ]
       },
@@ -755,6 +767,12 @@
             "Name": "Enhance Pointer Precision",
             "IsSelected": true,
             "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-mouse-hover-time",
+            "Name": "Mouse Hover Time",
+            "IsSelected": false,
+            "InputType": 1
           },
           {
             "Id": "gaming-performance-autostart-delay",

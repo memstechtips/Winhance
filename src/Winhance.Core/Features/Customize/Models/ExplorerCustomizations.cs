@@ -891,6 +891,52 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-legacy-notepad",
+                    Name = "Use Legacy Notepad for text files",
+                    Description = "Makes legacy Notepad available as a file handler and disables the Store Notepad redirect. Requires Notepad (Legacy) capability to be installed",
+                    GroupName = "File Associations",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "NotepadEdit",
+                    IsWindows11Only = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Applications\notepad.exe",
+                            ValueName = "NoOpenWith",
+                            EnabledValue = [null],
+                            DisabledValue = [""],
+                            DefaultValue = "",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe",
+                            ValueName = "UseFilter",
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+$appPathsKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\notepad.exe'
+if (Test-Path $appPathsKey) {
+    Remove-Item -Path $appPathsKey -Force
+}",
+                            DisabledScript = null,
+                            RequiresElevation = false,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-hide-merge-conflicts",
                     Name = "Hide folder merge conflicts",
                     Description = "Automatically merges folders with same name without confirmation dialog",
