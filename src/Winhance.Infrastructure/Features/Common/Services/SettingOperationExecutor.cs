@@ -142,7 +142,17 @@ public class SettingOperationExecutor(
 
             foreach (var scriptSetting in setting.PowerShellScripts)
             {
-                var script = enable ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+                // For Selection types with ScriptMappings, resolve which script to run from the selected index
+                var useEnabled = enable;
+                if (setting.InputType == InputType.Selection
+                    && setting.ComboBox?.ScriptMappings != null
+                    && value is int scriptIndex
+                    && setting.ComboBox.ScriptMappings.TryGetValue(scriptIndex, out var scriptOption))
+                {
+                    useEnabled = scriptOption == ScriptOption.Enabled;
+                }
+
+                var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
 
                 if (!string.IsNullOrEmpty(script))
                 {

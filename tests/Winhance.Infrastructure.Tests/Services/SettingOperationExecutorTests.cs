@@ -371,6 +371,105 @@ public class SettingOperationExecutorTests
     }
 
     // ---------------------------------------------------------------
+    // 4b. ScriptMappings resolves correct script for Selection types
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_ScriptMappings_DisabledIndex_RunsDisabledScript()
+    {
+        var setting = CreateSetting("ps-scriptmap", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = new[] { "Off", "On" },
+                ScriptMappings = new Dictionary<int, ScriptOption>
+                {
+                    [0] = ScriptOption.Disabled,
+                    [1] = ScriptOption.Enabled,
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    Id = "script1",
+                    EnabledScript = "Enable-Thing",
+                    DisabledScript = "Disable-Thing",
+                },
+            },
+        };
+
+        // enable=true (always true for Selection), value=0 (Disabled index)
+        await _executor.ApplySettingOperationsAsync(setting, true, 0);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptAsync("Disable-Thing", null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_ScriptMappings_EnabledIndex_RunsEnabledScript()
+    {
+        var setting = CreateSetting("ps-scriptmap-en", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = new[] { "Off", "Manual", "Auto" },
+                ScriptMappings = new Dictionary<int, ScriptOption>
+                {
+                    [0] = ScriptOption.Disabled,
+                    [1] = ScriptOption.Enabled,
+                    [2] = ScriptOption.Enabled,
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    Id = "script1",
+                    EnabledScript = "Enable-Thing",
+                    DisabledScript = "Disable-Thing",
+                },
+            },
+        };
+
+        // enable=true, value=2 (Automatic index → ScriptOption.Enabled)
+        await _executor.ApplySettingOperationsAsync(setting, true, 2);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptAsync("Enable-Thing", null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_NoScriptMappings_Selection_FallsBackToEnableFlag()
+    {
+        var setting = CreateSetting("ps-no-scriptmap", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                DisplayNames = new[] { "Off", "On" },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    Id = "script1",
+                    EnabledScript = "Enable-Thing",
+                    DisabledScript = "Disable-Thing",
+                },
+            },
+        };
+
+        // No ScriptMappings → falls back to enable flag (true)
+        await _executor.ApplySettingOperationsAsync(setting, true, 0);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptAsync("Enable-Thing", null, default),
+            Times.Once);
+    }
+
+    // ---------------------------------------------------------------
     // 5. Power config operations delegated to PowerCfgApplier
     // ---------------------------------------------------------------
 

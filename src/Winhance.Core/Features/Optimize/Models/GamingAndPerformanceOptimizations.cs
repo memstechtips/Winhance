@@ -2099,7 +2099,7 @@ public static class GamingAndPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "KeyboardOutline",
                     InputType = InputType.Selection,
-                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
                     ComboBox = new ComboBoxMetadata
                     {
                         DisplayNames = new string[]
@@ -2113,6 +2113,20 @@ public static class GamingAndPerformanceOptimizations
                             [0] = new Dictionary<string, object?> { ["Start"] = 4, ["IsInputAppPreloadEnabled"] = 0 },
                             [1] = new Dictionary<string, object?> { ["Start"] = 3, ["IsInputAppPreloadEnabled"] = 1 },
                             [2] = new Dictionary<string, object?> { ["Start"] = 2, ["IsInputAppPreloadEnabled"] = 1 },
+                        },
+                        ScriptMappings = new Dictionary<int, ScriptOption>
+                        {
+                            [0] = ScriptOption.Disabled,
+                            [1] = ScriptOption.Enabled,
+                            [2] = ScriptOption.Enabled,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            DisabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue",
+                            EnabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>

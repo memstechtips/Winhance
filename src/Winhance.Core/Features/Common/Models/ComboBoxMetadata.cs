@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Enums;
+
 namespace Winhance.Core.Features.Common.Models;
 
 /// <summary>
@@ -9,6 +11,7 @@ public record ComboBoxMetadata
     public Dictionary<int, Dictionary<string, object?>>? ValueMappings { get; init; }
     public Dictionary<int, int>? SimpleValueMappings { get; init; }
     public Dictionary<int, bool>? CommandValueMappings { get; init; }
+    public Dictionary<int, ScriptOption>? ScriptMappings { get; init; }
     public bool SupportsCustomState { get; init; }
     public string? CustomStateDisplayName { get; init; }
     public string[]? OptionTooltips { get; init; }
