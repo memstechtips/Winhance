@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Libera automaticamente spazio su disco rimuovendo i file temporanei, svuotando il cestino e gestendo i download",
   "Setting_gaming-performance-explorer-search_Name": "Cerca in tutto il file system",
   "Setting_gaming-performance-explorer-search_Description": "Cerca in tutto il file system invece che solo nelle posizioni indicizzate. Ciò fornisce risultati più completi ma è notevolmente più lento della ricerca indicizzata e aumenta l'attività del disco",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 nella Ricerca di Windows",
+  "Setting_gaming-performance-search-webview2_Description": "Consenti alla Ricerca di Windows di utilizzare WebView2 (Edge) per il rendering dei risultati di ricerca. La disattivazione rimuove i processi Edge avviati da SearchHost.exe, riducendo l\u0027utilizzo delle risorse. Utilizza un override non documentato della gestione funzionalit\u00e0 di Windows che potrebbe cambiare nei futuri aggiornamenti",
   "Setting_gaming-performance-wallpaper-compression_Name": "Consenti la compressione dello sfondo del desktop",
   "Setting_gaming-performance-wallpaper-compression_Description": "Consenti a Windows di comprimere gli sfondi per risparmiare spazio su disco e migliorare le prestazioni. Influisce solo sulle immagini in formato JPEG.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Ritardo visualizzazione menu",

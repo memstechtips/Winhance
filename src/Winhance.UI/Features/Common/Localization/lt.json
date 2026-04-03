@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Automatiškai atlaisvinti disko vietą, pašalinant laikinus failus, ištuštinant šiukšliadėžę ir valdant atsisiuntimus",
   "Setting_gaming-performance-explorer-search_Name": "Ieškoti visoje failų sistemoje",
   "Setting_gaming-performance-explorer-search_Description": "Ieškoti visoje failų sistemoje vietoj tik indeksuotų vietų. Tai suteikia išsamesnius rezultatus, bet yra žymiai lėtesnis nei indeksuota paieška ir padidina disko aktyvumą",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 Windows paie\u0161koje",
+  "Setting_gaming-performance-search-webview2_Description": "Leisti Windows paie\u0161kai naudoti WebView2 (Edge) paie\u0161kos rezultat\u0173 rodymui. I\u0161jungimas pa\u0161alina Edge procesus, kuriuos paleid\u017eia SearchHost.exe, suma\u017eindant i\u0161tekli\u0173 naudojim\u0105. Naudoja nedokumentuot\u0105 Windows funkcij\u0173 valdymo nepaisym\u0105, kuris gali pasikeisti b\u016bsimuose Windows atnaujinimuose",
   "Setting_gaming-performance-wallpaper-compression_Name": "Leisti darbalaukio fono paveikslėlių suspaudimą",
   "Setting_gaming-performance-wallpaper-compression_Description": "Leisti Windows suspausti fono paveikslėlius, kad būtų sutaupyta disko vietos ir pagerintas našumas. Paveikia tik JPEG formato vaizdus.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Meniu rodymo delsa",

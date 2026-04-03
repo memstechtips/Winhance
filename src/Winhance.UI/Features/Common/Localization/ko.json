@@ -633,6 +633,8 @@
   "Setting_gaming-storage-sense_Description": "임시 파일 제거, 휴지통 비우기 및 다운로드 관리를 통해 디스크 공간을 자동으로 확보합니다",
   "Setting_gaming-performance-explorer-search_Name": "전체 파일 시스템 검색",
   "Setting_gaming-performance-explorer-search_Description": "인덱싱된 위치만이 아닌 전체 파일 시스템을 검색합니다. 보다 완전한 결과를 제공하지만 인덱싱된 검색보다 현저히 느리며 디스크 활동이 증가합니다",
+  "Setting_gaming-performance-search-webview2_Name": "Windows \uac80\uc0c9\uc758 WebView2",
+  "Setting_gaming-performance-search-webview2_Description": "Windows \uac80\uc0c9\uc5d0\uc11c WebView2(Edge)\ub97c \uc0ac\uc6a9\ud558\uc5ec \uac80\uc0c9 \uacb0\uacfc\ub97c \ub80c\ub354\ub9c1\ud560 \uc218 \uc788\ub3c4\ub85d \ud5c8\uc6a9\ud569\ub2c8\ub2e4. \ube44\ud65c\uc131\ud654\ud558\uba74 SearchHost.exe\uac00 \uc2dc\uc791\ud55c Edge \ud504\ub85c\uc138\uc2a4\uac00 \uc81c\uac70\ub418\uc5b4 \ub9ac\uc18c\uc2a4 \uc0ac\uc6a9\ub7c9\uc774 \uc904\uc5b4\ub4ed\ub2c8\ub2e4. \ud5a5\ud6c4 Windows \uc5c5\ub370\uc774\ud2b8\uc5d0\uc11c \ubcc0\uacbd\ub420 \uc218 \uc788\ub294 \ubb38\uc11c\ud654\ub418\uc9c0 \uc54a\uc740 Windows \uae30\ub2a5 \uad00\ub9ac \uc7ac\uc815\uc758\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4",
   "Setting_gaming-performance-wallpaper-compression_Name": "바탕화면 배경 압축 허용",
   "Setting_gaming-performance-wallpaper-compression_Description": "Windows에서 디스크 공간을 절약하고 성능을 향상시키기 위해 배경화면을 압축하도록 허용합니다. JPEG 형식의 이미지에만 적용됩니다.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "메뉴 표시 지연",

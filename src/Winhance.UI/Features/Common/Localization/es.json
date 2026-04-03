@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Libera automáticamente espacio en disco eliminando archivos temporales, vaciando la papelera de reciclaje y gestionando las descargas",
   "Setting_gaming-performance-explorer-search_Name": "Buscar en todo el sistema de archivos",
   "Setting_gaming-performance-explorer-search_Description": "Busca en todo tu sistema de archivos en lugar de solo en ubicaciones indexadas. Esto proporciona resultados más completos, pero es significativamente más lento que la búsqueda indexada y aumenta la actividad del disco",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 en la B\u00fasqueda de Windows",
+  "Setting_gaming-performance-search-webview2_Description": "Permitir que la B\u00fasqueda de Windows use WebView2 (Edge) para mostrar los resultados de b\u00fasqueda. Desactivarlo elimina los procesos de Edge iniciados por SearchHost.exe, reduciendo el uso de recursos. Utiliza una anulaci\u00f3n no documentada de administraci\u00f3n de caracter\u00edsticas de Windows que puede cambiar en futuras actualizaciones",
   "Setting_gaming-performance-wallpaper-compression_Name": "Permitir la compresión del fondo de escritorio",
   "Setting_gaming-performance-wallpaper-compression_Description": "Permite que Windows comprima los fondos de pantalla para ahorrar espacio en disco y mejorar el rendimiento. Solo afecta a las imágenes en formato JPEG.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Retraso de visualización del menú",

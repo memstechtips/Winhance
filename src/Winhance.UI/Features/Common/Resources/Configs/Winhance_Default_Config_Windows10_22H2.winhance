@@ -695,6 +695,12 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-performance-search-webview2",
+            "Name": "WebView2 in Windows Search",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "gaming-performance-wallpaper-compression",
             "Name": "Allow Desktop Wallpaper Compression",
             "IsSelected": true,

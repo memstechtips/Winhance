@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Tự động giải phóng dung lượng đĩa bằng cách xóa các tệp tạm thời, làm trống thùng rác và quản lý các bản tải xuống",
   "Setting_gaming-performance-explorer-search_Name": "Tìm kiếm toàn bộ hệ thống tệp",
   "Setting_gaming-performance-explorer-search_Description": "Tìm kiếm toàn bộ hệ thống tệp của bạn thay vì chỉ các vị trí được lập chỉ mục. Điều này cung cấp kết quả đầy đủ hơn nhưng chậm hơn đáng kể so với tìm kiếm được lập chỉ mục và làm tăng hoạt động của đĩa",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 trong T\u00ecm ki\u1ebfm Windows",
+  "Setting_gaming-performance-search-webview2_Description": "Cho ph\u00e9p T\u00ecm ki\u1ebfm Windows s\u1eed d\u1ee5ng WebView2 (Edge) \u0111\u1ec3 hi\u1ec3n th\u1ecb k\u1ebft qu\u1ea3 t\u00ecm ki\u1ebfm. V\u00f4 hi\u1ec7u h\u00f3a s\u1ebd lo\u1ea1i b\u1ecf c\u00e1c ti\u1ebfn tr\u00ecnh Edge do SearchHost.exe kh\u1edfi ch\u1ea1y, gi\u1ea3m m\u1ee9c s\u1eed d\u1ee5ng t\u00e0i nguy\u00ean. S\u1eed d\u1ee5ng ghi \u0111\u00e8 qu\u1ea3n l\u00fd t\u00ednh n\u0103ng Windows ch\u01b0a \u0111\u01b0\u1ee3c ghi nh\u1eadn c\u00f3 th\u1ec3 thay \u0111\u1ed5i trong c\u00e1c b\u1ea3n c\u1eadp nh\u1eadt Windows t\u01b0\u01a1ng lai",
   "Setting_gaming-performance-wallpaper-compression_Name": "Cho phép nén hình nền màn hình",
   "Setting_gaming-performance-wallpaper-compression_Description": "Cho phép Windows nén hình nền để tiết kiệm dung lượng đĩa và cải thiện hiệu suất. Chỉ ảnh hưởng đến hình ảnh ở định dạng JPEG.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Độ trễ hiển thị menu",

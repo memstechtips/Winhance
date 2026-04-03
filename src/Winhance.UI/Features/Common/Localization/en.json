@@ -633,6 +633,8 @@
   "Setting_gaming-storage-sense_Description": "Automatically free up disk space by removing temporary files, emptying the recycle bin, and managing downloads",
   "Setting_gaming-performance-explorer-search_Name": "Search Entire File System",
   "Setting_gaming-performance-explorer-search_Description": "Search your entire file system instead of only indexed locations. This provides more complete results but is significantly slower than indexed search and increases disk activity",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 in Windows Search",
+  "Setting_gaming-performance-search-webview2_Description": "Allow Windows Search to use WebView2 (Edge) for rendering search results. Disabling removes Edge processes spawned by SearchHost.exe, reducing resource usage. Uses an undocumented Windows Feature Management override that may change in future Windows updates",
   "Setting_gaming-performance-wallpaper-compression_Name": "Allow Desktop Wallpaper Compression",
   "Setting_gaming-performance-wallpaper-compression_Description": "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Menu Show Delay",

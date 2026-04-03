@@ -164,6 +164,64 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "gaming-performance-search-webview2",
+                    Name = "WebView2 in Windows Search",
+                    Description = "Allow Windows Search to use WebView2 (Edge) for rendering search results. Disabling removes Edge processes spawned by SearchHost.exe, reducing resource usage. Uses an undocumented Windows Feature Management override (feature ID 37926450) that may change in future Windows updates",
+                    Icon = "WebSearch",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "EnabledState",
+                            RecommendedValue = 1,
+                            EnabledValue = [2], // When toggle is ON, WebView2 search is enabled
+                            DisabledValue = [1], // When toggle is OFF, WebView2 search is disabled (EnabledState=1 means feature disabled in CFR)
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "EnabledStateOptions",
+                            RecommendedValue = 0,
+                            EnabledValue = [0, null],
+                            DisabledValue = [0],
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "Variant",
+                            RecommendedValue = 0,
+                            EnabledValue = [0, null],
+                            DisabledValue = [0],
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "VariantPayload",
+                            RecommendedValue = 0,
+                            EnabledValue = [0, null],
+                            DisabledValue = [0],
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "VariantPayloadKind",
+                            RecommendedValue = 0,
+                            EnabledValue = [0, null],
+                            DisabledValue = [0],
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "gaming-performance-wallpaper-compression",
                     Name = "Allow Desktop Wallpaper Compression",
                     Description = "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",

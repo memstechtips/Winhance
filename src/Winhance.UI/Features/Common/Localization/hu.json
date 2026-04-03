@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Automatikusan felszabadíthat lemezterületet az ideiglenes fájlok eltávolításával, a Lomtár ürítésével és a letöltések kezelésével",
   "Setting_gaming-performance-explorer-search_Name": "Keresés az egész fájlrendszerben",
   "Setting_gaming-performance-explorer-search_Description": "A teljes fájlrendszerben kereshet, ne csak az indexelt helyeken. Ez teljesebb eredményeket biztosít, de jelentősen lassabb, mint az indexelt keresés, és növeli a lemez terhelését.",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 a Windows Keresésben",
+  "Setting_gaming-performance-search-webview2_Description": "Engedélyezze a Windows Keresésnek a WebView2 (Edge) használatát a keresési eredmények megjelenítéséhez. A letiltás eltávolítja a SearchHost.exe által indított Edge-folyamatokat, csökkentve az erőforrás-használatot. Egy nem dokumentált Windows szolgáltatáskezelési felülírást használ, amely a jövőbeli Windows-frissítésekben megváltozhat",
   "Setting_gaming-performance-wallpaper-compression_Name": "Asztali háttérkép tömörítés engedélyezése",
   "Setting_gaming-performance-wallpaper-compression_Description": "Engedélyezze a Windows számára a háttérképek tömörítését a lemezterület megtakarítása és a teljesítmény javítása érdekében. Csak a JPEG formátumú képekre vonatkozik.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Menü megjelenítési késleltetés",

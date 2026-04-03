@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "通过移除临时文件、清空回收站和管理下载来自动释放磁盘空间",
   "Setting_gaming-performance-explorer-search_Name": "搜索整个文件系统",
   "Setting_gaming-performance-explorer-search_Description": "搜索整个文件系统，而不仅仅是索引位置。这提供了更完整的结果，但比索引搜索慢得多，并增加了磁盘活动",
+  "Setting_gaming-performance-search-webview2_Name": "Windows\u641c\u7d22\u4e2d\u7684WebView2",
+  "Setting_gaming-performance-search-webview2_Description": "\u5141\u8bb8Windows\u641c\u7d22\u4f7f\u7528WebView2\uff08Edge\uff09\u6765\u5448\u73b0\u641c\u7d22\u7ed3\u679c\u3002\u7981\u7528\u540e\u5c06\u79fb\u9664\u7531SearchHost.exe\u542f\u52a8\u7684Edge\u8fdb\u7a0b\uff0c\u51cf\u5c11\u8d44\u6e90\u4f7f\u7528\u3002\u4f7f\u7528\u672a\u8bb0\u5f55\u7684Windows\u529f\u80fd\u7ba1\u7406\u8986\u76d6\uff0c\u53ef\u80fd\u5728\u672a\u6765\u7684Windows\u66f4\u65b0\u4e2d\u53d1\u751f\u53d8\u5316",
   "Setting_gaming-performance-wallpaper-compression_Name": "允许桌面壁纸压缩",
   "Setting_gaming-performance-wallpaper-compression_Description": "允许 Windows 压缩壁纸以节省磁盘空间并提高性能。仅影响 JPEG 格式的图像。",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "菜单显示延迟",

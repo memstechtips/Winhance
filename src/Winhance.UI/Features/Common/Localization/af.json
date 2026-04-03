@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Maak outomaties skyfspasie vry deur tydelike lêers te verwyder, die asblik leeg te maak, en aflaaie te bestuur",
   "Setting_gaming-performance-explorer-search_Name": "Soek Hele Lêerstelsel",
   "Setting_gaming-performance-explorer-search_Description": "Soek jou hele lêerstelsel in plaas van slegs geïndekseerde liggings. Dit bied meer volledige resultate maar is aansienlik stadiger as geïndekseerde soek en verhoog skyfaktiwiteit",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 in Windows-soektog",
+  "Setting_gaming-performance-search-webview2_Description": "Laat Windows-soektog toe om WebView2 (Edge) te gebruik vir die weergawe van soekresultate. Deaktivering verwyder Edge-prosesse wat deur SearchHost.exe begin word, wat hulpbronverbruik verminder. Gebruik \u0027n ongedokumenteerde Windows-kenmerkbestuur-oorskryf wat in toekomstige Windows-opdaterings kan verander",
   "Setting_gaming-performance-wallpaper-compression_Name": "Laat Lessenaar Muurpapier Kompressie Toe",
   "Setting_gaming-performance-wallpaper-compression_Description": "Laat Windows toe om muurpapiere saam te pers om skyfspasie te bespaar en verrigting te verbeter. Beïnvloed slegs beelde in JPEG formaat.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Kieslys Wys Vertraging",

@@ -633,6 +633,8 @@
   "Setting_gaming-storage-sense_Description": "Geçici dosyaları kaldırarak, geri dönüşüm kutusunu boşaltarak ve indirmeleri yöneterek disk alanını otomatik olarak boşaltın",
   "Setting_gaming-performance-explorer-search_Name": "Tüm Dosya Sistemini Ara",
   "Setting_gaming-performance-explorer-search_Description": "Yalnızca dizine eklenmiş konumlar yerine tüm dosya sisteminizi arayın. Bu daha eksiksiz sonuçlar sağlar ancak dizine eklenmiş aramadan önemli ölçüde daha yavaştır ve disk etkinliğini artırır",
+  "Setting_gaming-performance-search-webview2_Name": "Windows Arama\u0027da WebView2",
+  "Setting_gaming-performance-search-webview2_Description": "Windows Arama\u0027n\u0131n arama sonu\u00e7lar\u0131n\u0131 g\u00f6r\u00fcnt\u00fclemek i\u00e7in WebView2 (Edge) kullanmas\u0131na izin verin. Devre d\u0131\u015f\u0131 b\u0131rakmak SearchHost.exe taraf\u0131ndan ba\u015flat\u0131lan Edge i\u015flemlerini kald\u0131r\u0131r ve kaynak kullan\u0131m\u0131n\u0131 azalt\u0131r. Gelecekteki Windows g\u00fcncellemelerinde de\u011fi\u015febilecek belgelenmemi\u015f bir Windows \u00f6zellik y\u00f6netimi ge\u00e7ersiz k\u0131lma kullan\u0131r",
   "Setting_gaming-performance-wallpaper-compression_Name": "Masaüstü Duvar Kağıdı Sıkıştırmasına İzin Ver",
   "Setting_gaming-performance-wallpaper-compression_Description": "Disk alanından tasarruf etmek ve performansı artırmak için Windows'un duvar kağıtlarını sıkıştırmasına izin verin. Yalnızca JPEG formatındaki resimleri etkiler.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Menü Gösterme Gecikmesi",

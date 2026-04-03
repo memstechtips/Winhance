@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Frigör automatiskt diskutrymme genom att ta bort temporära filer, tömma papperskorgen och hantera nedladdningar",
   "Setting_gaming-performance-explorer-search_Name": "Sök i hela filsystemet",
   "Setting_gaming-performance-explorer-search_Description": "Sök i hela ditt filsystem istället för endast indexerade platser. Detta ger mer kompletta resultat men är betydligt långsammare än indexerad sökning och ökar diskaktiviteten",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 i Windows-s\u00f6kning",
+  "Setting_gaming-performance-search-webview2_Description": "Till\u00e5t Windows-s\u00f6kning att anv\u00e4nda WebView2 (Edge) f\u00f6r att rendera s\u00f6kresultat. Inaktivering tar bort Edge-processer som startas av SearchHost.exe, vilket minskar resursanv\u00e4ndningen. Anv\u00e4nder en odokumenterad Windows-funktionshanteringsf\u00f6rbig\u00e5ng som kan \u00e4ndras i framtida Windows-uppdateringar",
   "Setting_gaming-performance-wallpaper-compression_Name": "Tillåt komprimering av skrivbordsbakgrund",
   "Setting_gaming-performance-wallpaper-compression_Description": "Tillåt Windows att komprimera bakgrundsbilder för att spara diskutrymme och förbättra prestanda. Påverkar endast bilder i JPEG-format.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Fördröjning för menyvisning",

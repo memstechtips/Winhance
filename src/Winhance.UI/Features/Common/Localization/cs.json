@@ -598,6 +598,8 @@
   "Setting_gaming-storage-sense_Description": "Automaticky uvolnit místo na disku odstraněním dočasných souborů, vyprázdněním koše a správou stahování",
   "Setting_gaming-performance-explorer-search_Name": "Prohledat celý souborový systém",
   "Setting_gaming-performance-explorer-search_Description": "Prohledat celý souborový systém místo pouze indexovaných umístění. To poskytuje úplnější výsledky, ale je výrazně pomalejší než indexované vyhledávání a zvyšuje aktivitu disku",
+  "Setting_gaming-performance-search-webview2_Name": "WebView2 ve Vyhled\u00e1v\u00e1n\u00ed Windows",
+  "Setting_gaming-performance-search-webview2_Description": "Povolit Vyhled\u00e1v\u00e1n\u00ed Windows pou\u017e\u00edvat WebView2 (Edge) pro zobrazov\u00e1n\u00ed v\u00fdsledk\u016f hled\u00e1n\u00ed. Vypnut\u00ed odstran\u00ed procesy Edge spou\u0161t\u011bn\u00e9 SearchHost.exe, \u010d\u00edm\u017e se sn\u00ed\u017e\u00ed spot\u0159eba prost\u0159edk\u016f. Pou\u017e\u00edv\u00e1 nedokumentovan\u00e9 p\u0159eps\u00e1n\u00ed spr\u00e1vy funkc\u00ed Windows, kter\u00e9 se m\u016f\u017ee v budouc\u00edch aktualizac\u00edch Windows zm\u011bnit",
   "Setting_gaming-performance-wallpaper-compression_Name": "Povolit kompresi tapet na ploše",
   "Setting_gaming-performance-wallpaper-compression_Description": "Povolit Windows komprimovat tapety, aby se ušetřilo místo na disku a zlepšil výkon. Ovlivňuje pouze obrázky ve formátu JPEG.",
   "Setting_gaming-performance-explorer-menu-show-delay_Name": "Zpoždění zobrazení nabídky",
