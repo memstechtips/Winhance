@@ -749,7 +749,7 @@
   "Setting_gaming-biometric-service_Name": "Windows Biyometrik Hizmeti",
   "Setting_gaming-biometric-service_Description": "Windows Hello aracılığıyla parmak izi ve yüz tanıma ile oturum açmayı etkinleştirir. Biyometrik donanımı olmayan masaüstü sistemlerde devre dışı bırakılması güvenlidir",
   "Setting_gaming-touch-keyboard-service_Name": "Dokunmatik Klavye ve El Yazısı Paneli Hizmeti",
-  "Setting_gaming-touch-keyboard-service_Description": "Dokunmatik klavye ve kalem girişi işlevselliğini etkinleştirir. Dokunmatik ekranı veya kalemi olmayan masaüstü sistemlerde devre dışı bırakılması güvenlidir",
+  "Setting_gaming-touch-keyboard-service_Description": "Dokunmatik klavye, kalem/stylus girişi, el yazısı paneli, emoji paneli (Win+.) ve Xbox oyun kolu klavyesi dahil Windows Giriş Deneyimini yönetir. Devre dışı bırakılması tüm sanal/yazılım klavye girişini bozar ancak dokunmatik ekran, kalem veya oyun kolu olmayan masaüstü sistemlerde güvenlidir",
   "Setting_gaming-sensor-monitoring-service_Name": "Sensör İzleme Hizmeti",
   "Setting_gaming-sensor-monitoring-service_Description": "Ortam ışığı ve yönlendirme gibi çeşitli sensörleri izler. Sensör donanımı olmayan masaüstü sistemlerde devre dışı bırakılması güvenlidir",
   "Setting_gaming-sensor-data-service_Name": "Sensör Veri Hizmeti",

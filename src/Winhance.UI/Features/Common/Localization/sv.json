@@ -714,7 +714,7 @@
   "Setting_gaming-biometric-service_Name": "Windows Biometrisk Tjänst",
   "Setting_gaming-biometric-service_Description": "Aktiverar inloggning med fingeravtryck och ansiktsigenkänning via Windows Hello. Säkert att inaktivera på stationära system utan biometrisk hårdvara",
   "Setting_gaming-touch-keyboard-service_Name": "Tjänst för pektangentbord och handskriftspanel",
-  "Setting_gaming-touch-keyboard-service_Description": "Aktiverar funktionalitet för pektangentbord och penninmatning. Säkert att inaktivera på stationära system utan pekskärm eller penna",
+  "Setting_gaming-touch-keyboard-service_Description": "Hanterar Windows Input Experience inklusive pektangentbord, penn-/styluseinmatning, handskriftspanel, emojipanel (Win+.) och Xbox-kontrollertangentbord. Inaktivering kommer att bryta all virtuell/programvarubaserad tangentbordsinmatning men är säkert på stationära system utan pekskärm, penna eller gamepad",
   "Setting_gaming-sensor-monitoring-service_Name": "Sensorövervakningstjänst",
   "Setting_gaming-sensor-monitoring-service_Description": "Övervakar olika sensorer som omgivande ljus och orientering. Säkert att inaktivera på stationära system utan sensorhårdvara",
   "Setting_gaming-sensor-data-service_Name": "Sensordatatjänst",

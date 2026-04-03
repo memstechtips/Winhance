@@ -714,7 +714,7 @@
   "Setting_gaming-biometric-service_Name": "Dịch vụ sinh trắc học Windows",
   "Setting_gaming-biometric-service_Description": "Bật đăng nhập bằng vân tay và nhận dạng khuôn mặt qua Windows Hello. An toàn để tắt trên các hệ thống máy tính để bàn không có phần cứng sinh trắc học",
   "Setting_gaming-touch-keyboard-service_Name": "Dịch vụ bàn phím cảm ứng và bảng viết tay",
-  "Setting_gaming-touch-keyboard-service_Description": "Bật chức năng bàn phím cảm ứng và nhập bằng bút. An toàn để tắt trên các hệ thống máy tính để bàn không có màn hình cảm ứng hoặc bút stylus",
+  "Setting_gaming-touch-keyboard-service_Description": "Quản lý Windows Input Experience bao gồm bàn phím cảm ứng, nhập liệu bằng bút/stylus, bảng viết tay, bảng emoji (Win+.) và bàn phím tay cầm Xbox. Tắt sẽ làm hỏng tất cả đầu vào bàn phím ảo/phần mềm nhưng an toàn trên các hệ thống máy tính để bàn không có màn hình cảm ứng, bút hoặc tay cầm chơi game",
   "Setting_gaming-sensor-monitoring-service_Name": "Dịch vụ giám sát cảm biến",
   "Setting_gaming-sensor-monitoring-service_Description": "Giám sát các cảm biến khác nhau như ánh sáng xung quanh và hướng. An toàn để tắt trên các hệ thống máy tính để bàn không có phần cứng cảm biến",
   "Setting_gaming-sensor-data-service_Name": "Dịch vụ dữ liệu cảm biến",

@@ -2125,6 +2125,13 @@ public static class GamingAndPerformanceOptimizations
                         },
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
                             ValueName = "IsInputAppPreloadEnabled",
                             RecommendedValue = 1,

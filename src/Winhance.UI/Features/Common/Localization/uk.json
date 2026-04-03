@@ -714,7 +714,7 @@
   "Setting_gaming-biometric-service_Name": "Служба біометрії Windows",
   "Setting_gaming-biometric-service_Description": "Вмикає вхід за відбитком пальця та розпізнаванням обличчя через Windows Hello. Безпечно вимикати на настільних системах без біометричного обладнання",
   "Setting_gaming-touch-keyboard-service_Name": "Служба сенсорної клавіатури та панелі рукописного вводу",
-  "Setting_gaming-touch-keyboard-service_Description": "Вмикає функціональність сенсорної клавіатури та введення пером. Безпечно вимикати на настільних системах без сенсорного екрана або стилуса",
+  "Setting_gaming-touch-keyboard-service_Description": "Керує Windows Input Experience, включаючи сенсорну клавіатуру, введення пером/стилусом, панель рукописного введення, панель емодзі (Win+.) та клавіатуру контролера Xbox. Вимкнення порушить роботу всіх віртуальних/програмних клавіатур, але безпечне на настільних системах без сенсорного екрана, пера або геймпада",
   "Setting_gaming-sensor-monitoring-service_Name": "Служба моніторингу датчиків",
   "Setting_gaming-sensor-monitoring-service_Description": "Відстежує різні датчики, такі як датчик освітленості та орієнтації. Безпечно вимикати на настільних системах без сенсорного обладнання",
   "Setting_gaming-sensor-data-service_Name": "Служба даних датчиків",

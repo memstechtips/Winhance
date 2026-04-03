@@ -714,7 +714,7 @@
   "Setting_gaming-biometric-service_Name": "Windows 生物识别服务",
   "Setting_gaming-biometric-service_Description": "通过 Windows Hello 启用指纹和面部识别登录。在没有生物识别硬件的台式机系统上可以安全禁用",
   "Setting_gaming-touch-keyboard-service_Name": "触摸键盘和手写面板服务",
-  "Setting_gaming-touch-keyboard-service_Description": "启用触摸键盘和笔输入功能。在没有触摸屏或手写笔的台式机系统上可以安全禁用",
+  "Setting_gaming-touch-keyboard-service_Description": "管理 Windows 输入体验，包括触摸键盘、笔/触控笔输入、手写面板、表情符号面板 (Win+.) 和 Xbox 控制器键盘。禁用将导致所有虚拟/软件键盘输入失效，但在没有触摸屏、笔或游戏手柄的桌面系统上是安全的",
   "Setting_gaming-sensor-monitoring-service_Name": "传感器监视服务",
   "Setting_gaming-sensor-monitoring-service_Description": "监视各种传感器，如环境光和方向。在没有传感器硬件的台式机系统上可以安全禁用",
   "Setting_gaming-sensor-data-service_Name": "传感器数据服务",
