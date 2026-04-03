@@ -596,6 +596,103 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                // Security Group
+                new SettingDefinition
+                {
+                    Id = "gaming-virtualization-based-security",
+                    Name = "Virtualization Based Security (VBS)",
+                    Description = "Isolates parts of memory to protect the system from vulnerabilities. Disabling can improve gaming performance but reduces system security",
+                    GroupName = "Security",
+                    Icon = "ShieldLock",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.01",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard",
+                            ValueName = "EnableVirtualizationBasedSecurity",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard",
+                            ValueName = "RequirePlatformSecurityFeatures",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard",
+                            ValueName = "Locked",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-memory-integrity",
+                    Name = "Memory Integrity (HVCI)",
+                    Description = "Prevents malicious code from being inserted into high-security processes. Disabling can improve gaming performance but reduces system security",
+                    GroupName = "Security",
+                    Icon = "MemoryArrowDown",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.01",
+                    ParentSettingId = "gaming-virtualization-based-security",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "gaming-memory-integrity",
+                            RequiredSettingId = "gaming-virtualization-based-security",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity",
+                            ValueName = "Enabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity",
+                            ValueName = "Locked",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity",
+                            ValueName = "WasEnabledBy",
+                            RecommendedValue = 0,
+                            EnabledValue = [2],
+                            DisabledValue = [0],
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
                 // Xbox Group
                 new SettingDefinition
                 {

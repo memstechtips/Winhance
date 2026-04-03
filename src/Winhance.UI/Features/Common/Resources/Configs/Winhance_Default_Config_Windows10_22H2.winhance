@@ -785,6 +785,18 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-virtualization-based-security",
+            "Name": "Virtualization Based Security (VBS)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-memory-integrity",
+            "Name": "Memory Integrity (HVCI)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "gaming-xbox-game-dvr",
             "Name": "Xbox Game DVR",
             "IsSelected": true,
