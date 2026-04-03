@@ -617,7 +617,7 @@
   "Setting_gaming-scheduling-category_Name": "Hohe Planungskategorie für Spiele",
   "Setting_gaming-scheduling-category_Description": "Weisen Sie eine hochpriore Planungskategorie zu, um sicherzustellen, dass Spiele eine bevorzugte Zuteilung von Systemressourcen erhalten",
   "Setting_gaming-performance-svchost-split-threshold_Name": "Svchost-Aufteilungsschwellenwert",
-  "Setting_gaming-performance-svchost-split-threshold_Description": "Legen Sie den Speicherschwellenwert fest, der bestimmt, wann Windows Dienste in separate svchost.exe-Prozesse aufteilt. H\u00f6here Werte gruppieren mehr Dienste zusammen und reduzieren die Prozessanzahl. W\u00e4hlen Sie den Wert passend zu Ihrem System-RAM",
+  "Setting_gaming-performance-svchost-split-threshold_Description": "Legen Sie den Speicherschwellenwert fest, der bestimmt, wann Windows Dienste in separate svchost.exe-Prozesse aufteilt. Höhere Werte gruppieren mehr Dienste zusammen und reduzieren die Prozessanzahl. Wählen Sie den Wert passend zu Ihrem System-RAM",
   "Setting_gaming-performance-svchost-split-threshold_Option_0": "Default",
   "Setting_gaming-performance-svchost-split-threshold_Option_1": "4 GB",
   "Setting_gaming-performance-svchost-split-threshold_Option_2": "6 GB",

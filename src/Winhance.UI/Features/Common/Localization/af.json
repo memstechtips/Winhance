@@ -617,7 +617,7 @@
   "Setting_gaming-scheduling-category_Name": "Hoë Skeduleringskategorie vir Speletjies",
   "Setting_gaming-scheduling-category_Description": "Wys hoë-prioriteit skeduleringskategorie toe om te verseker dat speletjies voorkeurstelselhulpbrontoewysing ontvang",
   "Setting_gaming-performance-svchost-split-threshold_Name": "Svchost Verdeeldrempel",
-  "Setting_gaming-performance-svchost-split-threshold_Description": "Stel die geheuedrempel in wat bepaal wanneer Windows dienste in afsonderlike svchost.exe-prosesse verdeel. Ho\u00ebr waardes groepeer meer dienste saam en verminder die prosestelling. Kies die waarde wat by jou stelsel-RAM pas",
+  "Setting_gaming-performance-svchost-split-threshold_Description": "Stel die geheuedrempel in wat bepaal wanneer Windows dienste in afsonderlike svchost.exe-prosesse verdeel. Hoër waardes groepeer meer dienste saam en verminder die prosestelling. Kies die waarde wat by jou stelsel-RAM pas",
   "Setting_gaming-performance-svchost-split-threshold_Option_0": "Default",
   "Setting_gaming-performance-svchost-split-threshold_Option_1": "4 GB",
   "Setting_gaming-performance-svchost-split-threshold_Option_2": "6 GB",

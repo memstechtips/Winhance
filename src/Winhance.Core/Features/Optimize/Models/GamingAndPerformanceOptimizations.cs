@@ -167,7 +167,8 @@ public static class GamingAndPerformanceOptimizations
                     Id = "gaming-performance-search-webview2",
                     Name = "WebView2 in Windows Search",
                     Description = "Allow Windows Search to use WebView2 (Edge) for rendering search results. Disabling removes Edge processes spawned by SearchHost.exe, reducing resource usage. Uses an undocumented Windows Feature Management override (feature ID 37926450) that may change in future Windows updates",
-                    Icon = "WebSearch",
+                    IconPack = "Fluent",
+                    Icon = "GlobeSearch",
                     InputType = InputType.Toggle,
                     AddedInVersion = "26.04.03",
                     RegistrySettings = new List<RegistrySetting>
@@ -397,6 +398,7 @@ public static class GamingAndPerformanceOptimizations
                     Name = "Svchost Split Threshold",
                     Description = "Set the memory threshold that determines when Windows splits services into separate svchost.exe processes. Higher values group more services together, reducing process count. Select the value matching your system RAM",
                     GroupName = "Processor",
+                    IconPack = "Fluent",
                     Icon = "BranchCompare",
                     InputType = InputType.Selection,
                     AddedInVersion = "25.04.03",

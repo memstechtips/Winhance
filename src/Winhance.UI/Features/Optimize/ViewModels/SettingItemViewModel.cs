@@ -709,7 +709,18 @@ public partial class SettingItemViewModel : BaseViewModel
             SelectedValue = value;
 
             if (value is int intValue)
+            {
                 NumericValue = intValue;
+
+                // Remove the Custom option once the user picks a defined value
+                if (intValue != ComboBoxConstants.CustomStateIndex)
+                {
+                    var customOption = ComboBoxOptions.FirstOrDefault(
+                        o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
+                    if (customOption != null)
+                        ComboBoxOptions.Remove(customOption);
+                }
+            }
 
             _hasChangedThisSession = true;
             UpdateStatusBanner(value);

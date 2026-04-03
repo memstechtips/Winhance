@@ -617,7 +617,7 @@
   "Setting_gaming-scheduling-category_Name": "Categoria di pianificazione alta per i giochi",
   "Setting_gaming-scheduling-category_Description": "Assegna una categoria di pianificazione ad alta priorità per garantire che i giochi ricevano un'allocazione preferenziale delle risorse di sistema",
   "Setting_gaming-performance-svchost-split-threshold_Name": "Soglia di divisione Svchost",
-  "Setting_gaming-performance-svchost-split-threshold_Description": "Imposta la soglia di memoria che determina quando Windows divide i servizi in processi svchost.exe separati. Valori pi\u00f9 alti raggruppano pi\u00f9 servizi insieme, riducendo il numero di processi. Seleziona il valore corrispondente alla RAM del tuo sistema",
+  "Setting_gaming-performance-svchost-split-threshold_Description": "Imposta la soglia di memoria che determina quando Windows divide i servizi in processi svchost.exe separati. Valori più alti raggruppano più servizi insieme, riducendo il numero di processi. Seleziona il valore corrispondente alla RAM del tuo sistema",
   "Setting_gaming-performance-svchost-split-threshold_Option_0": "Default",
   "Setting_gaming-performance-svchost-split-threshold_Option_1": "4 GB",
   "Setting_gaming-performance-svchost-split-threshold_Option_2": "6 GB",

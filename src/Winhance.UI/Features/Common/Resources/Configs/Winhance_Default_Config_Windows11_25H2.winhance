@@ -835,6 +835,12 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-performance-svchost-split-threshold",
+            "Name": "Svchost Split Threshold",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "gaming-gpu-priority",
             "Name": "GPU Priority for Gaming",
             "IsSelected": true,
