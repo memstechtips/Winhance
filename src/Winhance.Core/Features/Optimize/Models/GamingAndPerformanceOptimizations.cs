@@ -391,6 +391,89 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-performance-svchost-split-threshold",
+                    Name = "Svchost Split Threshold",
+                    Description = "Set the memory threshold that determines when Windows splits services into separate svchost.exe processes. Higher values group more services together, reducing process count. Select the value matching your system RAM",
+                    GroupName = "Processor",
+                    Icon = "BranchCompare",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "25.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control",
+                            ValueName = "SvcHostSplitThresholdInKB",
+                            RecommendedValue = 380000,
+                            DefaultValue = 380000,
+                            DefaultOption = "Default",
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Default",
+                            "4 GB",
+                            "6 GB",
+                            "8 GB",
+                            "12 GB",
+                            "16 GB",
+                            "24 GB",
+                            "32 GB",
+                            "64 GB",
+                            "128 GB",
+                        },
+                        SupportsCustomState = true,
+                        CustomStateDisplayName = "Custom",
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 380000,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 327680,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 491520,
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 655360,
+                            },
+                            [4] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 983040,
+                            },
+                            [5] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 1310720,
+                            },
+                            [6] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 1966080,
+                            },
+                            [7] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 2621440,
+                            },
+                            [8] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 5242880,
+                            },
+                            [9] = new Dictionary<string, object?>
+                            {
+                                ["SvcHostSplitThresholdInKB"] = 10485760,
+                            },
+                        },
+                    },
+                },
                 // Graphics Group
                 new SettingDefinition
                 {
@@ -2010,7 +2093,7 @@ public static class GamingAndPerformanceOptimizations
                 {
                     Id = "gaming-touch-keyboard-service",
                     Name = "Touch Keyboard and Handwriting Panel Service",
-                    Description = "Enables touch keyboard and pen input functionality. Safe to disable on desktop systems without touchscreen or stylus",
+                    Description = "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad",
                     GroupName = "System Services",
                     Icon = "KeyboardOutline",
                     InputType = InputType.Selection,
@@ -2025,9 +2108,9 @@ public static class GamingAndPerformanceOptimizations
                         },
                         ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4, ["IsInputAppPreloadEnabled"] = 0 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3, ["IsInputAppPreloadEnabled"] = 1 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2, ["IsInputAppPreloadEnabled"] = 1 },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -2037,6 +2120,14 @@ public static class GamingAndPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService",
                             ValueName = "Start",
                             RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                            LockKeyAccess = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
+                            ValueName = "IsInputAppPreloadEnabled",
+                            RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

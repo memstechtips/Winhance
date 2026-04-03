@@ -749,7 +749,7 @@
   "Setting_gaming-biometric-service_Name": "Windows Biometric Service",
   "Setting_gaming-biometric-service_Description": "Enables fingerprint and facial recognition login via Windows Hello. Safe to disable on desktop systems without biometric hardware",
   "Setting_gaming-touch-keyboard-service_Name": "Touch Keyboard and Handwriting Panel Service",
-  "Setting_gaming-touch-keyboard-service_Description": "Enables touch keyboard and pen input functionality. Safe to disable on desktop systems without touchscreen or stylus",
+  "Setting_gaming-touch-keyboard-service_Description": "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad",
   "Setting_gaming-sensor-monitoring-service_Name": "Sensor Monitoring Service",
   "Setting_gaming-sensor-monitoring-service_Description": "Monitors various sensors like ambient light and orientation. Safe to disable on desktop systems without sensor hardware",
   "Setting_gaming-sensor-data-service_Name": "Sensor Data Service",
