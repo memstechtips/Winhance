@@ -606,6 +606,7 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "ShieldLock",
                     InputType = InputType.Toggle,
                     AddedInVersion = "26.04.01",
+                    RequiresRestart = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -649,6 +650,7 @@ public static class GamingAndPerformanceOptimizations
                     Icon = "MemoryArrowDown",
                     InputType = InputType.Toggle,
                     AddedInVersion = "26.04.01",
+                    RequiresRestart = true,
                     ParentSettingId = "gaming-virtualization-based-security",
                     Dependencies = new List<SettingDependency>
                     {
