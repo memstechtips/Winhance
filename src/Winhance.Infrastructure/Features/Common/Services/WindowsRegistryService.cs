@@ -916,6 +916,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         return current switch
         {
             null => desired == null,
+            bool b when desired is int d => (b ? 1 : 0) == d,
             int i when desired is int d => i == d,
             int i when desired is long d => i == d,
             long l when desired is long d => l == d,
