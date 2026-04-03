@@ -344,6 +344,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "Zobrazuje vaše nejčastěji otevírané složky v sekci Rychlý přístup",
   "Setting_explorer-customization-show-office-files_Name": "Zobrazovat soubory z Office.com",
   "Setting_explorer-customization-show-office-files_Description": "Zobrazuje cloudové soubory z vašeho účtu Office.com v Rychlém přístupu",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "Zobrazit mo\u017enost automatick\u00e9ho p\u0159ihl\u00e1\u0161en\u00ed v U\u017eivatelsk\u00fdch \u00fa\u010dtech",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "Zobraz\u00ed klasick\u00e9 za\u0161krt\u00e1vac\u00ed pol\u00ed\u010dko \u0027U\u017eivatel\u00e9 mus\u00ed zadat u\u017eivatelsk\u00e9 jm\u00e9no a heslo pro pou\u017eit\u00ed tohoto po\u010d\u00edta\u010de\u0027 v okn\u011b U\u017eivatelsk\u00e9 \u00fa\u010dty (netplwiz), co v\u00e1m umo\u017en\u00ed nakonfigurovat automatick\u00e9 p\u0159ihl\u00e1\u0161en\u00ed prost\u0159ednictv\u00edm standardn\u00edho rozhran\u00ed Windows",
   "Setting_explorer-customization-show-thumbnails_Name": "Vždy zobrazovat ikony, nikdy miniatury",
   "Setting_explorer-customization-show-thumbnails_Description": "Zobrazuje obecné ikony souborů místo náhledů obrázků/dokumentů",
   "Setting_explorer-customization-show-menus_Name": "Vždy zobrazovat nabídky",

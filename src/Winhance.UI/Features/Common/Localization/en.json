@@ -379,6 +379,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "Displays your most accessed folders in Quick Access section",
   "Setting_explorer-customization-show-office-files_Name": "Show files from Office.com",
   "Setting_explorer-customization-show-office-files_Description": "Displays cloud files from your Office.com account in Quick Access",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "Show Auto-Login Option in User Accounts",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "Shows the classic \u0027Users must enter a user name and password to use this computer\u0027 checkbox in the User Accounts (netplwiz) window, allowing you to configure automatic logon through the standard Windows UI",
   "Setting_explorer-customization-show-thumbnails_Name": "Always show icons, never thumbnails",
   "Setting_explorer-customization-show-thumbnails_Description": "Displays generic file icons instead of image/document previews",
   "Setting_explorer-customization-show-menus_Name": "Always show menus",

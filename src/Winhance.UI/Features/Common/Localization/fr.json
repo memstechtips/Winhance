@@ -344,6 +344,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "Affiche vos dossiers les plus consultés dans la section Accès rapide",
   "Setting_explorer-customization-show-office-files_Name": "Afficher les fichiers d'Office.com",
   "Setting_explorer-customization-show-office-files_Description": "Affiche les fichiers cloud de votre compte Office.com dans Accès rapide",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "Afficher l\u0027option de connexion automatique dans les comptes d\u0027utilisateurs",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "Affiche la case \u00e0 cocher classique \u0027Les utilisateurs doivent entrer un nom d\u0027utilisateur et un mot de passe pour utiliser cet ordinateur\u0027 dans la fen\u00eatre Comptes d\u0027utilisateurs (netplwiz), vous permettant de configurer la connexion automatique via l\u0027interface Windows standard",
   "Setting_explorer-customization-show-thumbnails_Name": "Toujours afficher les icônes, jamais les miniatures",
   "Setting_explorer-customization-show-thumbnails_Description": "Affiche des icônes de fichiers génériques au lieu de prévisualisations d'images/documents",
   "Setting_explorer-customization-show-menus_Name": "Toujours afficher les menus",

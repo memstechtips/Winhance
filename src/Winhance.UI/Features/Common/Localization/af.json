@@ -344,6 +344,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "Vertoon jou mees besoekte gidse in Vinnige Toegang afdeling",
   "Setting_explorer-customization-show-office-files_Name": "Wys lêers van Office.com",
   "Setting_explorer-customization-show-office-files_Description": "Vertoon wolklêers van jou Office.com rekening in Vinnige Toegang",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "Wys outomatiese aanmeld-opsie in gebruikersrekeninge",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "Wys die klassieke \u0027Gebruikers moet \u0027n gebruikersnaam en wagwoord invoer om hierdie rekenaar te gebruik\u0027 merkblokkie in die Gebruikersrekeninge (netplwiz) venster, wat jou toelaat om outomatiese aanmelding deur die standaard Windows-koppelvlak te konfigureer",
   "Setting_explorer-customization-show-thumbnails_Name": "Wys altyd ikone, nooit duimnaels nie",
   "Setting_explorer-customization-show-thumbnails_Description": "Vertoon generiese lêerikone in plaas van beeld/dokument voorskoue",
   "Setting_explorer-customization-show-menus_Name": "Wys altyd kieslyste",

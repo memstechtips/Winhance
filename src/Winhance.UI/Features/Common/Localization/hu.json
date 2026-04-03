@@ -344,6 +344,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "Megjeleníti a leggyakrabban használt mappákat a Gyorselérés részben",
   "Setting_explorer-customization-show-office-files_Name": "Fájlok megjelenítése az Office.com webhelyről",
   "Setting_explorer-customization-show-office-files_Description": "Megjeleníti az Office.com-fiókjából származó felhőfájlokat a Gyorselérésben",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "Automatikus bejelentkezési lehetőség megjelenítése a Felhasználói fiókokban",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "Megjeleníti a klasszikus \u0027A felhasználóknak meg kell adniuk a felhasználónevüket és jelszavukat a számítógép használatához\u0027 jelölőnégyzetet a Felhasználói fiókok (netplwiz) ablakban, lehetővé téve az automatikus bejelentkezés beállítását a szabványos Windows felületen keresztül",
   "Setting_explorer-customization-show-thumbnails_Name": "Mindig mutasson ikonokat, soha ne miniatűröket",
   "Setting_explorer-customization-show-thumbnails_Description": "Általános fájlikonokat jelenít meg a kép/dokumentum előnézete helyett",
   "Setting_explorer-customization-show-menus_Name": "Mindig mutassa a menüket",

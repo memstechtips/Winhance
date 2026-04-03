@@ -636,6 +636,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-netplwiz-auto-login",
+            "Name": "Show Auto-Login Option in User Accounts",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-show-thumbnails",
             "Name": "Always show icons, never thumbnails",
             "IsSelected": false,

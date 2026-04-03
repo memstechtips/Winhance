@@ -1380,6 +1380,30 @@ if (-not (Test-Path $icoPath)) {
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-netplwiz-auto-login",
+                    Name = "Show Auto-Login Option in User Accounts",
+                    Description = "Shows the classic 'Users must enter a user name and password to use this computer' checkbox in the User Accounts (netplwiz) window, allowing you to configure automatic logon through the standard Windows UI",
+                    GroupName = "Network",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "PersonKey",
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device",
+                            ValueName = "DevicePasswordLessBuildVersion",
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [2],
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
             },
         };
     }

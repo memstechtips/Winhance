@@ -344,6 +344,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "Rodo jūsų dažniausiai pasiekiamus aplankus Greitosios prieigos skyriuje",
   "Setting_explorer-customization-show-office-files_Name": "Rodyti failus iš Office.com",
   "Setting_explorer-customization-show-office-files_Description": "Rodo debesies failus iš jūsų Office.com paskyros Greitojoje prieigoje",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "Rodyti automatinio prisijungimo parinktį Vartotojų paskyrose",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "Rodo klasikinį \u0027Vartotojai turi įvesti vartotojo vardą ir slaptažodį, kad galėtų naudoti šį kompiuterį\u0027 žymės langelį Vartotojų paskyrų (netplwiz) lange, leidžiantį sukonfigūruoti automatinį prisijungimą per standartinę Windows sąsają",
   "Setting_explorer-customization-show-thumbnails_Name": "Visada rodyti piktogramas, niekada miniatiūrų",
   "Setting_explorer-customization-show-thumbnails_Description": "Rodo bendras failų piktogramas vietoj vaizdų/dokumentų peržiūrų",
   "Setting_explorer-customization-show-menus_Name": "Visada rodyti meniu",

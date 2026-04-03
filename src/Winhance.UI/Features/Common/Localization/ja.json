@@ -344,6 +344,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "クイックアクセスセクションに最もアクセスしたフォルダーを表示",
   "Setting_explorer-customization-show-office-files_Name": "Office.comのファイルを表示",
   "Setting_explorer-customization-show-office-files_Description": "Office.comアカウントのクラウドファイルをクイックアクセスに表示",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "ユーザーアカウントに自動ログインオプションを表示",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "ユーザーアカウント (netplwiz) ウィンドウにクラシックな\u0027このコンピューターを使うには、ユーザー名とパスワードの入力が必要\u0027チェックボックスを表示し、標準のWindows UIを通じて自動ログオンを設定できます",
   "Setting_explorer-customization-show-thumbnails_Name": "常にアイコンを表示し、サムネイルは表示しない",
   "Setting_explorer-customization-show-thumbnails_Description": "画像/ドキュメントのプレビューの代わりに汎用ファイルアイコンを表示",
   "Setting_explorer-customization-show-menus_Name": "常にメニューを表示",

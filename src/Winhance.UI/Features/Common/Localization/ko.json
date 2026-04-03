@@ -379,6 +379,8 @@
   "Setting_explorer-customization-show-frequent-folders_Description": "빠른 실행 섹션에 가장 자주 액세스하는 폴더를 표시합니다",
   "Setting_explorer-customization-show-office-files_Name": "Office.com 파일 표시",
   "Setting_explorer-customization-show-office-files_Description": "빠른 실행에서 Office.com 계정의 클라우드 파일을 표시합니다",
+  "Setting_explorer-customization-netplwiz-auto-login_Name": "사용자 계정에서 자동 로그인 옵션 표시",
+  "Setting_explorer-customization-netplwiz-auto-login_Description": "사용자 계정(netplwiz) 창에서 클래식 \u0027이 컴퓨터를 사용하려면 사용자 이름과 암호를 입력해야 합니다\u0027 확인란을 표시하여 표준 Windows UI를 통해 자동 로그온을 구성할 수 있습니다",
   "Setting_explorer-customization-show-thumbnails_Name": "항상 아이콘 표시, 미리 보기 이미지 표시 안 함",
   "Setting_explorer-customization-show-thumbnails_Description": "이미지/문서 미리 보기 대신 일반 파일 아이콘을 표시합니다",
   "Setting_explorer-customization-show-menus_Name": "항상 메뉴 표시",
