@@ -60,6 +60,67 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "gaming-performance-mouse-hover-time",
+                    Name = "Mouse Hover Time",
+                    Description = "Controls how long you must hover over an element before it activates (in milliseconds). Lower values make tooltips, menus, and hover effects appear faster. Default is 400ms",
+                    Icon = "Mouse",
+                    InputType = InputType.Selection,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Mouse",
+                            ValueName = "MouseHoverTime",
+                            RecommendedValue = "400",
+                            DefaultValue = "400",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = "400ms (Default)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "1ms (Instant)",
+                            "10ms (Very Fast)",
+                            "50ms (Fast)",
+                            "100ms (Moderate)",
+                            "200ms",
+                            "400ms (Default)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["MouseHoverTime"] = "1",
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["MouseHoverTime"] = "10",
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["MouseHoverTime"] = "50",
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["MouseHoverTime"] = "100",
+                            },
+                            [4] = new Dictionary<string, object?>
+                            {
+                                ["MouseHoverTime"] = "200",
+                            },
+                            [5] = new Dictionary<string, object?>
+                            {
+                                ["MouseHoverTime"] = "400",
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "gaming-performance-autostart-delay",
                     Name = "Startup Delay for Apps",
                     Description = "Delay startup applications by 10 seconds after boot to improve initial system responsiveness. Windows becomes usable faster, but your startup apps take longer to load",

@@ -454,6 +454,69 @@ public static class TaskbarCustomizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "taskbar-extended-hover-time",
+                    Name = "Taskbar Auto-Hide Hover Delay",
+                    Description = "Controls how long you must hover at the screen edge before the auto-hidden taskbar appears (in milliseconds). Lower values make the taskbar appear faster when using auto-hide. Default is 400ms",
+                    GroupName = "Taskbar Behavior",
+                    InputType = InputType.Selection,
+                    Icon = "DockBottom",
+                    RequiresRestart = true,
+                    RestartProcess = "Explorer",
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ExtendedUIHoverTime",
+                            RecommendedValue = 400,
+                            DefaultValue = 400,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultOption = "400ms (Default)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "1ms (Instant)",
+                            "10ms (Very Fast)",
+                            "50ms (Fast)",
+                            "100ms (Moderate)",
+                            "200ms",
+                            "400ms (Default)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["ExtendedUIHoverTime"] = 1,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["ExtendedUIHoverTime"] = 10,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["ExtendedUIHoverTime"] = 50,
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["ExtendedUIHoverTime"] = 100,
+                            },
+                            [4] = new Dictionary<string, object?>
+                            {
+                                ["ExtendedUIHoverTime"] = 200,
+                            },
+                            [5] = new Dictionary<string, object?>
+                            {
+                                ["ExtendedUIHoverTime"] = 400,
+                            },
+                        },
+                    },
+                },
             },
         };
     }
