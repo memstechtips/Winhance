@@ -682,6 +682,64 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-disable-mpo",
+                    Name = "Disable Multi-Plane Overlay (MPO)",
+                    Description = "Disables Multi-Plane Overlay, a Windows graphics feature that allows the GPU to composite multiple display layers in hardware. Disabling MPO can fix screen flickering, black screens, stuttering, and frame pacing issues, especially on multi-monitor setups. May slightly increase CPU and GPU overhead for desktop composition",
+                    GroupName = "Graphics",
+                    Icon = "MonitorDashboard",
+                    InputType = InputType.Toggle,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Dwm",
+                            ValueName = "OverlayTestMode",
+                            RecommendedValue = null,
+                            EnabledValue = [5],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers",
+                            ValueName = "DisableOverlays",
+                            RecommendedValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-disable-mpo-min-fps",
+                    Name = "Disable MPO Minimum Frame Rate Requirement",
+                    Description = "Prevents the Desktop Window Manager from dynamically switching apps between overlay modes based on frame rate. This fixes stuttering and freezing in apps like browsers and Discord without fully disabling Multi-Plane Overlay. A lighter alternative to fully disabling MPO",
+                    GroupName = "Graphics",
+                    Icon = "MonitorDashboard",
+                    InputType = InputType.Toggle,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Dwm",
+                            ValueName = "OverlayMinFPS",
+                            RecommendedValue = null,
+                            EnabledValue = [0],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
                 // Network Group
                 new SettingDefinition
                 {

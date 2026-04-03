@@ -733,12 +733,6 @@
             "Name": "Transparency effects",
             "IsSelected": true,
             "InputType": 0
-          },
-          {
-            "Id": "gaming-auto-color-management",
-            "Name": "Automatically manage color for apps",
-            "IsSelected": false,
-            "InputType": 0
           }
         ]
       }
@@ -886,6 +880,24 @@
             "Id": "gaming-performance-desktop-composition",
             "Name": "Desktop Composition Effects",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-disable-mpo",
+            "Name": "Disable Multi-Plane Overlay (MPO)",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-disable-mpo-min-fps",
+            "Name": "Disable MPO Minimum Frame Rate Requirement",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-auto-color-management",
+            "Name": "Automatically manage color for apps",
+            "IsSelected": false,
             "InputType": 0
           },
           {
