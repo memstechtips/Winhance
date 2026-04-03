@@ -115,7 +115,7 @@
   "Config_Import_Progress_Refresh": "Refreshing Windows UI...",
   "Config_Import_Status_RestartingExplorer": "Restarting Explorer...",
   "Config_Import_Success_Title": "Configuration Applied",
-  "Config_Import_Success_Message": "Your configuration has been applied successfully.",
+  "Config_Import_Success_Message": "Your configuration has been applied successfully. Some settings may only take effect after a system restart. A restart is recommended.",
   "Config_Import_Error_NoSelection": "Please select at least one section to import.",
   "Config_Import_Error_NoSelection_Title": "No Sections Selected",
   "Loading_CreatingConfigBackup": "Creating configuration backup...",

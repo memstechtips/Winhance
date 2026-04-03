@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "विंडोज UI रीफ्रेश कर रहा है...",
   "Config_Import_Status_RestartingExplorer": "एक्सप्लोरर पुनः प्रारंभ हो रहा है...",
   "Config_Import_Success_Title": "कॉन्फ़िगरेशन लागू किया गया",
-  "Config_Import_Success_Message": "आपकी कॉन्फ़िगरेशन सफलतापूर्वक लागू हो गई है।",
+  "Config_Import_Success_Message": "आपकी कॉन्फ़िगरेशन सफलतापूर्वक लागू हो गई है। कुछ सेटिंग्स सिस्टम पुनरारंभ के बाद ही प्रभावी हो सकती हैं। पुनरारंभ करने की अनुशंसा की जाती है।",
   "Config_Import_Error_NoSelection": "आयात करने के लिए कृपया कम से कम एक अनुभाग चुनें।",
   "Config_Import_Error_NoSelection_Title": "कोई अनुभाग नहीं चुना गया",
   "Button_OK": "ठीक है",

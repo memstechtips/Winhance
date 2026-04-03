@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Aggiornamento dell'interfaccia utente di Windows in corso...",
   "Config_Import_Status_RestartingExplorer": "Riavvio di Esplora risorse...",
   "Config_Import_Success_Title": "Configurazione applicata",
-  "Config_Import_Success_Message": "La tua configurazione è stata applicata con successo.",
+  "Config_Import_Success_Message": "La tua configurazione è stata applicata con successo. Alcune impostazioni potrebbero richiedere un riavvio del sistema per avere effetto. Si consiglia di riavviare.",
   "Config_Import_Error_NoSelection": "Seleziona almeno una sezione da importare.",
   "Config_Import_Error_NoSelection_Title": "Nessuna sezione selezionata",
   "Button_OK": "OK",

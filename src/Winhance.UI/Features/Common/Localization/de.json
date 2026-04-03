@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Windows-Benutzeroberfläche wird aktualisiert...",
   "Config_Import_Status_RestartingExplorer": "Explorer wird neu gestartet...",
   "Config_Import_Success_Title": "Konfiguration angewendet",
-  "Config_Import_Success_Message": "Ihre Konfiguration wurde erfolgreich angewendet.",
+  "Config_Import_Success_Message": "Ihre Konfiguration wurde erfolgreich angewendet. Einige Einstellungen werden möglicherweise erst nach einem Systemneustart wirksam. Ein Neustart wird empfohlen.",
   "Config_Import_Error_NoSelection": "Bitte wählen Sie mindestens einen Abschnitt zum Importieren aus.",
   "Config_Import_Error_NoSelection_Title": "Keine Abschnitte ausgewählt",
   "Button_OK": "OK",

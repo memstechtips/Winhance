@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Actualisation de l'interface utilisateur de Windows...",
   "Config_Import_Status_RestartingExplorer": "Redémarrage de l'Explorateur...",
   "Config_Import_Success_Title": "Configuration appliquée",
-  "Config_Import_Success_Message": "Votre configuration a été appliquée avec succès.",
+  "Config_Import_Success_Message": "Votre configuration a été appliquée avec succès. Certains paramètres peuvent nécessiter un redémarrage du système pour prendre effet. Un redémarrage est recommandé.",
   "Config_Import_Error_NoSelection": "Veuillez sélectionner au moins une section à importer.",
   "Config_Import_Error_NoSelection_Title": "Aucune section sélectionnée",
   "Button_OK": "OK",

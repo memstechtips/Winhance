@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "正在刷新 Windows UI...",
   "Config_Import_Status_RestartingExplorer": "正在重启资源管理器...",
   "Config_Import_Success_Title": "配置已应用",
-  "Config_Import_Success_Message": "您的配置已成功应用。",
+  "Config_Import_Success_Message": "您的配置已成功应用。某些设置可能需要重新启动系统后才能生效。建议重新启动。",
   "Config_Import_Error_NoSelection": "请至少选择一个部分进行导入。",
   "Config_Import_Error_NoSelection_Title": "未选择任何部分",
   "Button_OK": "确定",

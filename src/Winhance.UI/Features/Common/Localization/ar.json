@@ -97,7 +97,7 @@
     "Config_Import_Progress_Refresh": "جارٍ تحديث واجهة Windows...",
     "Config_Import_Status_RestartingExplorer": "جارٍ إعادة تشغيل المستكشف...",
     "Config_Import_Success_Title": "تم تطبيق الإعدادات",
-    "Config_Import_Success_Message": "تم تطبيق إعداداتك بنجاح.",
+    "Config_Import_Success_Message": "تم تطبيق إعداداتك بنجاح. قد تحتاج بعض الإعدادات إلى إعادة تشغيل النظام لتصبح سارية المفعول. يُوصى بإعادة التشغيل.",
     "Config_Import_Error_NoSelection": "يرجى تحديد قسم واحد على الأقل للاستيراد.",
     "Config_Import_Error_NoSelection_Title": "لم يتم تحديد أقسام",
     "Button_OK": "موافق",

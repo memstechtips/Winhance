@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Odświeżanie interfejsu Windows...",
   "Config_Import_Status_RestartingExplorer": "Ponowne uruchamianie Eksploratora...",
   "Config_Import_Success_Title": "Konfiguracja zastosowana",
-  "Config_Import_Success_Message": "Twoja konfiguracja została pomyślnie zastosowana.",
+  "Config_Import_Success_Message": "Twoja konfiguracja została pomyślnie zastosowana. Niektóre ustawienia mogą zacząć obowiązywać dopiero po ponownym uruchomieniu systemu. Zalecane jest ponowne uruchomienie.",
   "Config_Import_Error_NoSelection": "Wybierz przynajmniej jedną sekcję do importowania.",
   "Config_Import_Error_NoSelection_Title": "Nie wybrano sekcji",
   "Button_OK": "OK",

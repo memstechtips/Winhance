@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Atnaujinama Windows vartotojo sąsaja...",
   "Config_Import_Status_RestartingExplorer": "Paleidžiama iš naujo Naršyklė...",
   "Config_Import_Success_Title": "Konfigūracija pritaikyta",
-  "Config_Import_Success_Message": "Jūsų konfigūracija sėkmingai pritaikyta.",
+  "Config_Import_Success_Message": "Jūsų konfigūracija sėkmingai pritaikyta. Kai kurie nustatymai gali įsigalioti tik iš naujo paleidus sistemą. Rekomenduojama paleisti iš naujo.",
   "Config_Import_Error_NoSelection": "Prašome pasirinkti bent vieną skyrių importuoti.",
   "Config_Import_Error_NoSelection_Title": "Nepasirinkta jokių skyrių",
   "Button_OK": "Gerai",

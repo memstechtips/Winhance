@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Verfris Windows UI...",
   "Config_Import_Status_RestartingExplorer": "Herbegin Verkenner...",
   "Config_Import_Success_Title": "Konfigurasie Toegepas",
-  "Config_Import_Success_Message": "Jou konfigurasie is suksesvol toegepas.",
+  "Config_Import_Success_Message": "Jou konfigurasie is suksesvol toegepas. Sommige instellings mag dalk eers na 'n stelselherbegin in werking tree. 'n Herbegin word aanbeveel.",
   "Config_Import_Error_NoSelection": "Kies asseblief ten minste een afdeling om in te voer.",
   "Config_Import_Error_NoSelection_Title": "Geen Afdelings Gekies",
   "Button_OK": "OK",

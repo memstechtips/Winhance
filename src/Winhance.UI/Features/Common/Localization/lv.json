@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Atsvaidzina Windows lietotāja saskarni...",
   "Config_Import_Status_RestartingExplorer": "Pārstartē Pārlūku...",
   "Config_Import_Success_Title": "Konfigurācija lietota",
-  "Config_Import_Success_Message": "Jūsu konfigurācija ir veiksmīgi lietota.",
+  "Config_Import_Success_Message": "Jūsu konfigurācija ir veiksmīgi lietota. Daži iestatījumi var stāties spēkā tikai pēc sistēmas restartēšanas. Ieteicams veikt restartēšanu.",
   "Config_Import_Error_NoSelection": "Lūdzu, atlasiet vismaz vienu sadaļu, ko importēt.",
   "Config_Import_Error_NoSelection_Title": "Nav atlasītu sadaļu",
   "Button_OK": "Labi",

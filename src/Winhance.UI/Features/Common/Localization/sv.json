@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Uppdaterar Windows UI...",
   "Config_Import_Status_RestartingExplorer": "Startar om Utforskaren...",
   "Config_Import_Success_Title": "Konfigurationen har tillämpats",
-  "Config_Import_Success_Message": "Din konfiguration har tillämpats framgångsrikt.",
+  "Config_Import_Success_Message": "Din konfiguration har tillämpats framgångsrikt. Vissa inställningar kan kräva en omstart av systemet för att träda i kraft. En omstart rekommenderas.",
   "Config_Import_Error_NoSelection": "Välj minst en sektion att importera.",
   "Config_Import_Error_NoSelection_Title": "Inga sektioner valda",
   "Button_OK": "OK",

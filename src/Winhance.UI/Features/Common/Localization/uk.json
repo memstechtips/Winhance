@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Оновлення інтерфейсу Windows...",
   "Config_Import_Status_RestartingExplorer": "Перезапуск Провідника...",
   "Config_Import_Success_Title": "Конфігурацію застосовано",
-  "Config_Import_Success_Message": "Вашу конфігурацію успішно застосовано.",
+  "Config_Import_Success_Message": "Вашу конфігурацію успішно застосовано. Деякі налаштування можуть набути чинності лише після перезавантаження системи. Рекомендується перезавантажити комп'ютер.",
   "Config_Import_Error_NoSelection": "Будь ласка, виберіть принаймні один розділ для імпорту.",
   "Config_Import_Error_NoSelection_Title": "Не вибрано жодного розділу",
   "Button_OK": "OK",

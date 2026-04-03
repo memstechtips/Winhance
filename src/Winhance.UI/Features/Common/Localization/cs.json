@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Aktualizace uživatelského rozhraní Windows...",
   "Config_Import_Status_RestartingExplorer": "Restartování Průzkumníka...",
   "Config_Import_Success_Title": "Konfigurace použita",
-  "Config_Import_Success_Message": "Vaše konfigurace byla úspěšně použita.",
+  "Config_Import_Success_Message": "Vaše konfigurace byla úspěšně použita. Některá nastavení se mohou projevit až po restartování systému. Doporučuje se restartovat.",
   "Config_Import_Error_NoSelection": "Pro import prosím vyberte alespoň jednu sekci.",
   "Config_Import_Error_NoSelection_Title": "Nebyly vybrány žádné sekce",
   "Button_OK": "OK",

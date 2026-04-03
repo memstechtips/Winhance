@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Windows UI frissítése...",
   "Config_Import_Status_RestartingExplorer": "Az Intéző újraindítása...",
   "Config_Import_Success_Title": "Konfiguráció alkalmazva",
-  "Config_Import_Success_Message": "A konfiguráció alkalmazása sikeresen megtörtént.",
+  "Config_Import_Success_Message": "A konfiguráció alkalmazása sikeresen megtörtént. Egyes beállítások csak a rendszer újraindítása után lépnek érvénybe. Az újraindítás ajánlott.",
   "Config_Import_Error_NoSelection": "Kérjük, válasszon legalább egy részt az importáláshoz.",
   "Config_Import_Error_NoSelection_Title": "Nincs kijelölt rész",
   "Button_OK": "OK",

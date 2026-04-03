@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Windows UI vernieuwen...",
   "Config_Import_Status_RestartingExplorer": "Verkenner wordt opnieuw gestart...",
   "Config_Import_Success_Title": "Configuratie Toegepast",
-  "Config_Import_Success_Message": "Uw configuratie is succesvol toegepast.",
+  "Config_Import_Success_Message": "Uw configuratie is succesvol toegepast. Sommige instellingen worden mogelijk pas van kracht na een herstart van het systeem. Een herstart wordt aanbevolen.",
   "Config_Import_Error_NoSelection": "Selecteer ten minste één sectie om te importeren.",
   "Config_Import_Error_NoSelection_Title": "Geen Secties Geselecteerd",
   "Button_OK": "OK",

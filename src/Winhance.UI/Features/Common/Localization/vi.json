@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Đang làm mới giao diện người dùng Windows...",
   "Config_Import_Status_RestartingExplorer": "Đang khởi động lại Explorer...",
   "Config_Import_Success_Title": "Đã áp dụng cấu hình",
-  "Config_Import_Success_Message": "Cấu hình của bạn đã được áp dụng thành công.",
+  "Config_Import_Success_Message": "Cấu hình của bạn đã được áp dụng thành công. Một số cài đặt có thể chỉ có hiệu lực sau khi khởi động lại hệ thống. Khuyến nghị khởi động lại.",
   "Config_Import_Error_NoSelection": "Vui lòng chọn ít nhất một phần để nhập.",
   "Config_Import_Error_NoSelection_Title": "Không có phần nào được chọn",
   "Button_OK": "OK",

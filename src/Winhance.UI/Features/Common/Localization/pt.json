@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "A atualizar a interface do Windows...",
   "Config_Import_Status_RestartingExplorer": "A reiniciar o Explorador...",
   "Config_Import_Success_Title": "Configuração Aplicada",
-  "Config_Import_Success_Message": "A sua configuração foi aplicada com sucesso.",
+  "Config_Import_Success_Message": "A sua configuração foi aplicada com sucesso. Algumas definições podem só ter efeito após um reinício do sistema. Recomenda-se reiniciar.",
   "Config_Import_Error_NoSelection": "Por favor, selecione pelo menos uma secção para importar.",
   "Config_Import_Error_NoSelection_Title": "Nenhuma Secção Selecionada",
   "Button_OK": "OK",

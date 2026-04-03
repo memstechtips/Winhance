@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Обновление интерфейса Windows...",
   "Config_Import_Status_RestartingExplorer": "Перезапуск Проводника...",
   "Config_Import_Success_Title": "Конфигурация применена",
-  "Config_Import_Success_Message": "Ваша конфигурация была успешно применена.",
+  "Config_Import_Success_Message": "Ваша конфигурация была успешно применена. Некоторые настройки могут вступить в силу только после перезагрузки системы. Рекомендуется выполнить перезагрузку.",
   "Config_Import_Error_NoSelection": "Пожалуйста, выберите хотя бы один раздел для импорта.",
   "Config_Import_Error_NoSelection_Title": "Разделы не выбраны",
   "Button_OK": "ОК",

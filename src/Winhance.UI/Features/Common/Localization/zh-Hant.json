@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "正在重新整理 Windows UI...",
   "Config_Import_Status_RestartingExplorer": "正在重新啟動檔案總管...",
   "Config_Import_Success_Title": "設定已套用",
-  "Config_Import_Success_Message": "您的設定已成功套用。",
+  "Config_Import_Success_Message": "您的設定已成功套用。某些設定可能需要重新啟動系統後才會生效。建議重新啟動。",
   "Config_Import_Error_NoSelection": "請至少選擇一個要匯入的區塊。",
   "Config_Import_Error_NoSelection_Title": "未選擇任何區塊",
   "Button_OK": "確定",

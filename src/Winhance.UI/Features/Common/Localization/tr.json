@@ -115,7 +115,7 @@
   "Config_Import_Progress_Refresh": "Windows Arayüzü Yenileniyor...",
   "Config_Import_Status_RestartingExplorer": "Gezgin Yeniden Başlatılıyor...",
   "Config_Import_Success_Title": "Yapılandırma Uygulandı",
-  "Config_Import_Success_Message": "Yapılandırmanız başarıyla uygulandı.",
+  "Config_Import_Success_Message": "Yapılandırmanız başarıyla uygulandı. Bazı ayarların geçerli olması için sistemin yeniden başlatılması gerekebilir. Yeniden başlatma önerilir.",
   "Config_Import_Error_NoSelection": "İçe aktarmak için lütfen en az bir bölüm seçin.",
   "Config_Import_Error_NoSelection_Title": "Bölüm Seçilmedi",
   "Loading_CreatingConfigBackup": "Yapılandırma yedeği oluşturuluyor...",

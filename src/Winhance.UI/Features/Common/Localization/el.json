@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Ανανέωση Περιβάλλοντος Εργασίας Windows...",
   "Config_Import_Status_RestartingExplorer": "Επανεκκίνηση της Εξερεύνησης...",
   "Config_Import_Success_Title": "Η Διαμόρφωση Εφαρμόστηκε",
-  "Config_Import_Success_Message": "Η διαμόρφωσή σας εφαρμόστηκε με επιτυχία.",
+  "Config_Import_Success_Message": "Η διαμόρφωσή σας εφαρμόστηκε με επιτυχία. Ορισμένες ρυθμίσεις ενδέχεται να τεθούν σε ισχύ μόνο μετά από επανεκκίνηση του συστήματος. Συνιστάται επανεκκίνηση.",
   "Config_Import_Error_NoSelection": "Παρακαλώ επιλέξτε τουλάχιστον μία ενότητα για εισαγωγή.",
   "Config_Import_Error_NoSelection_Title": "Δεν Επιλέχθηκαν Ενότητες",
   "Button_OK": "OK",

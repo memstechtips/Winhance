@@ -109,7 +109,7 @@
   "Config_Import_Progress_Refresh": "Windows UIを更新中...",
   "Config_Import_Status_RestartingExplorer": "エクスプローラーを再起動しています...",
   "Config_Import_Success_Title": "構成が適用されました",
-  "Config_Import_Success_Message": "構成が正常に適用されました。",
+  "Config_Import_Success_Message": "構成が正常に適用されました。一部の設定はシステムの再起動後に有効になる場合があります。再起動をお勧めします。",
   "Config_Import_Error_NoSelection": "インポートするセクションを少なくとも1つ選択してください。",
   "Config_Import_Error_NoSelection_Title": "セクションが選択されていません",
   "Button_OK": "OK",

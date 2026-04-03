@@ -115,7 +115,7 @@
   "Config_Import_Progress_Refresh": "Windows UI 새로고침 중...",
   "Config_Import_Status_RestartingExplorer": "탐색기 다시 시작 중...",
   "Config_Import_Success_Title": "구성 적용 완료",
-  "Config_Import_Success_Message": "구성이 성공적으로 적용되었습니다.",
+  "Config_Import_Success_Message": "구성이 성공적으로 적용되었습니다. 일부 설정은 시스템을 다시 시작한 후에 적용될 수 있습니다. 다시 시작하는 것이 좋습니다.",
   "Config_Import_Error_NoSelection": "가져올 섹션을 하나 이상 선택하십시오.",
   "Config_Import_Error_NoSelection_Title": "선택된 섹션 없음",
   "Loading_CreatingConfigBackup": "구성 백업 생성 중...",
