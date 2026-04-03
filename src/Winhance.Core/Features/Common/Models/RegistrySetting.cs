@@ -23,4 +23,5 @@ public record RegistrySetting
     public bool ApplyPerNetworkInterface { get; init; } = false;
     public bool ApplyPerMonitor { get; init; } = false;
     public bool IsGroupPolicy { get; init; } = false;
+    public bool LockKeyAccess { get; init; } = false;
 }
