@@ -91,8 +91,8 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-workplace-join-messages",
-                    Name = "Block Workplace Join Messages",
-                    Description = "Blocks the 'Allow my organization to manage my device' and 'No, sign in to this app only' pop-up messages",
+                    Name = "Workplace Join Message Prompts",
+                    Description = "Show 'Allow my organization to manage my device' prompts throughout Windows",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
                     Icon = "OfficeBuilding",
@@ -102,9 +102,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -113,9 +113,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -125,8 +125,8 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-bitlocker-auto-encryption",
-                    Name = "Prevent BitLocker Auto Encryption",
-                    Description = "Prevents Windows from automatically encrypting your device with BitLocker without user consent",
+                    Name = "BitLocker Auto Encryption",
+                    Description = "Controls whether Windows can automatically encrypt drives with BitLocker. Has no effect if BitLocker encryption is already active on your device",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
@@ -138,9 +138,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\BitLocker",
                             ValueName = "PreventDeviceEncryption",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [0],
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1615,8 +1615,8 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-onedrive-auto-backup",
-                    Name = "Disable OneDrive Automatic Backups",
-                    Description = "Prevents OneDrive from automatically backing up important folders (Documents, Pictures, Desktop, etc.)",
+                    Name = "OneDrive Automatic Backups",
+                    Description = "Controls whether OneDrive automatically backs up your Documents, Pictures, and Desktop folders. Has no effect if OneDrive backups are already active on your device",
                     GroupName = "App Permissions",
                     InputType = InputType.Toggle,
                     Icon = "CloudOff",
@@ -1626,9 +1626,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\OneDrive",
                             ValueName = "KFMBlockOptIn",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -1637,9 +1637,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\OneDrive",
                             ValueName = "KFMBlockOptIn",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,

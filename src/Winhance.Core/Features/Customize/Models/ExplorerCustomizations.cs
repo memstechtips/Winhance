@@ -18,10 +18,10 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-shortcut-suffix",
-                    Name = "Remove '- Shortcut' suffix from new shortcuts",
-                    Description = "Prevents Windows from appending '- Shortcut' text to newly created shortcut file names",
+                    Name = "Shortcut Naming",
+                    Description = "Controls whether Windows appends '- Shortcut' text to newly created shortcut file names",
                     GroupName = "Desktop",
-                    InputType = InputType.Toggle,
+                    InputType = InputType.Selection,
                     Icon = "LinkVariant",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -31,20 +31,38 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "link",
                             RecommendedValue = null,
-                            EnabledValue = [new byte[] { 0x00, 0x00, 0x00, 0x00 }],
-                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
+                            DefaultOption = "Keep '- Shortcut' suffix",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Keep '- Shortcut' suffix",
+                            "Remove '- Shortcut' suffix",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["link"] = null,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["link"] = new byte[] { 0x00, 0x00, 0x00, 0x00 },
+                            },
                         },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "explorer-customization-shortcut-arrow",
-                    Name = "Remove Shortcut Arrow Icon",
-                    Description = "Removes the small arrow overlay from desktop shortcut icons for a cleaner look",
+                    Name = "Shortcut Arrow Icon",
+                    Description = "Controls the small arrow overlay on desktop shortcut icons",
                     GroupName = "Desktop",
-                    InputType = InputType.Toggle,
+                    InputType = InputType.Selection,
                     Icon = "ArrowTopLeftBoldOutline",
                     AddedInVersion = "26.03.26",
                     RestartProcess = "Explorer",
@@ -72,10 +90,33 @@ if (-not (Test-Path $icoPath)) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons",
                             ValueName = "29",
                             RecommendedValue = null,
-                            EnabledValue = [@"C:\Windows\blank.ico"],
-                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
+                            DefaultOption = "Show arrow icon",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Show arrow icon",
+                            "Remove arrow icon",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["29"] = null,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["29"] = @"C:\Windows\blank.ico",
+                            },
+                        },
+                        ScriptMappings = new Dictionary<int, ScriptOption>
+                        {
+                            [0] = ScriptOption.Disabled,
+                            [1] = ScriptOption.Enabled,
                         },
                     },
                 },
@@ -304,8 +345,8 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "devices-default-printer-management",
-                    Name = "Disable Automatic Default Printer Management",
-                    Description = "Prevents Windows from automatically changing your default printer based on location or last used printer",
+                    Name = "Automatic Default Printer Management",
+                    Description = "Let Windows automatically set your default printer based on your location or last used printer",
                     GroupName = "Devices and Peripherals",
                     InputType = InputType.Toggle,
                     Icon = "PrinterOff",
@@ -315,9 +356,9 @@ if (-not (Test-Path $icoPath)) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\Windows",
                             ValueName = "LegacyDefaultPrinterMode",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [0],
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },

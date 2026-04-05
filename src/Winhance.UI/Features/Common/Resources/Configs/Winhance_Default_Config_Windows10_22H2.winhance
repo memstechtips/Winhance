@@ -298,15 +298,15 @@
         "Items": [
           {
             "Id": "explorer-customization-shortcut-suffix",
-            "Name": "Remove \u0027- Shortcut\u0027 suffix from new shortcuts",
-            "IsSelected": false,
-            "InputType": 0
+            "Name": "Shortcut Naming",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-shortcut-arrow",
-            "Name": "Remove Shortcut Arrow Icon",
-            "IsSelected": false,
-            "InputType": 0
+            "Name": "Shortcut Arrow Icon",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "explorer-take-ownership",
@@ -322,8 +322,8 @@
           },
           {
             "Id": "devices-default-printer-management",
-            "Name": "Disable Automatic Default Printer Management",
-            "IsSelected": false,
+            "Name": "Automatic Default Printer Management",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -566,8 +566,8 @@
           },
           {
             "Id": "start-disable-bing-search-results",
-            "Name": "Disable Bing search results",
-            "IsSelected": false,
+            "Name": "Bing Search Results in Start Menu",
+            "IsSelected": true,
             "InputType": 0
           }
         ]
@@ -798,14 +798,14 @@
           },
           {
             "Id": "gaming-disable-mpo",
-            "Name": "Disable Multi-Plane Overlay (MPO)",
-            "IsSelected": false,
+            "Name": "Multi-Plane Overlay (MPO)",
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-disable-mpo-min-fps",
-            "Name": "Disable MPO Minimum Frame Rate Requirement",
-            "IsSelected": false,
+            "Name": "MPO Minimum Frame Rate Requirement",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1667,8 +1667,8 @@
           },
           {
             "Id": "power-throttling",
-            "Name": "Disable Power Throttling",
-            "IsSelected": false,
+            "Name": "Power Throttling",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1723,8 +1723,8 @@
           },
           {
             "Id": "security-workplace-join-messages",
-            "Name": "Block Workplace Join Messages",
-            "IsSelected": false,
+            "Name": "Workplace Join Message Prompts",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1975,8 +1975,8 @@
           },
           {
             "Id": "privacy-onedrive-auto-backup",
-            "Name": "Disable OneDrive Automatic Backups",
-            "IsSelected": false,
+            "Name": "OneDrive Automatic Backups",
+            "IsSelected": true,
             "InputType": 0
           }
         ]
@@ -2063,8 +2063,8 @@
           },
           {
             "Id": "updates-restart-options",
-            "Name": "Prevent Automatic Restarts",
-            "IsSelected": false,
+            "Name": "Automatic Restart After Updates",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2087,8 +2087,8 @@
           },
           {
             "Id": "updates-driver-controls",
-            "Name": "Do Not Include Drivers with Updates",
-            "IsSelected": false,
+            "Name": "Driver Updates via Windows Update",
+            "IsSelected": true,
             "InputType": 0
           },
           {

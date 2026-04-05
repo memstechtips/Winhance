@@ -495,8 +495,8 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-restart-options",
-                    Name = "Prevent Automatic Restarts",
-                    Description = "Prevents automatic restarts after installing updates when users are logged on",
+                    Name = "Automatic Restart After Updates",
+                    Description = "Allow Windows to automatically restart your PC after installing updates when you are logged in",
                     GroupName = "Update Behavior",
                     Icon = "RestartOff",
                     InputType = InputType.Toggle,
@@ -506,9 +506,9 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -516,9 +516,9 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -603,8 +603,8 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-driver-controls",
-                    Name = "Do Not Include Drivers with Updates",
-                    Description = "Prevent Windows from automatically downloading and installing hardware driver updates",
+                    Name = "Driver Updates via Windows Update",
+                    Description = "Include hardware driver updates when downloading and installing Windows Updates",
                     GroupName = "Update Behavior",
                     Icon = "PackageVariantClosedMinus",
                     InputType = InputType.Toggle,
@@ -614,9 +614,9 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "ExcludeWUDriversInQualityUpdate",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -624,9 +624,9 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "ExcludeWUDriversInQualityUpdate",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },

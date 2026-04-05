@@ -333,8 +333,8 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-disable-bing-search-results",
-                    Name = "Disable Bing search results",
-                    Description = "Prevent web results from Bing from appearing when searching in the Start Menu, showing only local files and apps",
+                    Name = "Bing Search Results in Start Menu",
+                    Description = "Show web results from Bing alongside local files and apps when searching in the Start Menu",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
                     Icon = "MicrosoftBing",
@@ -344,9 +344,9 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -355,9 +355,9 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,

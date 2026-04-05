@@ -946,8 +946,8 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-throttling",
-                    Name = "Disable Power Throttling",
-                    Description = "Automatically reduces CPU performance for background processes to improve battery life and reduce heat generation",
+                    Name = "Power Throttling",
+                    Description = "Allow Windows to reduce CPU performance for background processes to save power",
                     GroupName = "Processor Power Management",
                     Icon = "SelectOff",
                     InputType = InputType.Toggle,
@@ -957,9 +957,9 @@ public static class PowerOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling",
                             ValueName = "PowerThrottlingOff",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [0],
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
