@@ -102,7 +102,7 @@ public class StartupOrchestrator : IStartupOrchestrator
 
                 var backupTask = _configurationService.CreateUserBackupConfigAsync();
                 var completed = await Task.WhenAny(
-                    backupTask, Task.Delay(TimeSpan.FromSeconds(90))).ConfigureAwait(false);
+                    backupTask, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
 
                 if (completed == backupTask)
                 {
@@ -116,7 +116,7 @@ public class StartupOrchestrator : IStartupOrchestrator
                     StartupLogger.Log("StartupOrchestrator",
                         "Phase 2: User backup config TIMED OUT (will retry next launch)");
                     _logService.LogWarning(
-                        "User backup config timed out after 90s — will retry next launch");
+                        "User backup config timed out after 30s — will retry next launch");
                 }
             }
             else
