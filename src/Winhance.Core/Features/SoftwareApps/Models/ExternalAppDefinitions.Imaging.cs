@@ -145,7 +145,9 @@ public static partial class ExternalAppDefinitions
                         Name = "ImageGlass",
                         Description = "Lightweight, versatile image viewer",
                         GroupName = "Imaging",
+                        RegistryDisplayName = "ImageGlass",
                         WinGetPackageId = ["DuongDieuPhap.ImageGlass"],
+                        MsStoreId = "9N33VZK3C7TH",
                         ChocoPackageId = "imageglass",
                         WebsiteUrl = "https://imageglass.org/"
                     }
