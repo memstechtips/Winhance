@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Wybierz, co się dzieje po otwarciu Eksploratora plików",
   "Setting_explorer-customization-launch-to_Option_0": "Start",
   "Setting_explorer-customization-launch-to_Option_1": "Ten komputer",
+  "Setting_explorer-customization-launch-to_Option_2": "Pobrane",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (je\u015bli dost\u0119pny)",
   "Setting_explorer-customization-browse-folders_Name": "Przeglądaj foldery",
   "Setting_explorer-customization-browse-folders_Description": "Wybierz, czy każdy folder otwiera się w tym samym oknie, czy we własnym oknie",
   "Setting_explorer-customization-browse-folders_Option_0": "Otwieraj każdy folder w tym samym oknie",

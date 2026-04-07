@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Välj vad som händer när Utforskaren öppnas",
   "Setting_explorer-customization-launch-to_Option_0": "Hem",
   "Setting_explorer-customization-launch-to_Option_1": "Den här datorn",
+  "Setting_explorer-customization-launch-to_Option_2": "Nedladdningar",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (om tillg\u00e4ngligt)",
   "Setting_explorer-customization-browse-folders_Name": "Bläddra i mappar",
   "Setting_explorer-customization-browse-folders_Description": "Välj om varje mapp öppnas i samma fönster eller i sitt eget fönster",
   "Setting_explorer-customization-browse-folders_Option_0": "Öppna varje mapp i samma fönster",

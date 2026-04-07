@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Wählen Sie, was passiert, wenn der Datei-Explorer geöffnet wird",
   "Setting_explorer-customization-launch-to_Option_0": "Startseite",
   "Setting_explorer-customization-launch-to_Option_1": "Dieser PC",
+  "Setting_explorer-customization-launch-to_Option_2": "Downloads",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (falls verfügbar)",
   "Setting_explorer-customization-browse-folders_Name": "Ordner durchsuchen",
   "Setting_explorer-customization-browse-folders_Description": "Wählen Sie, ob jeder Ordner im selben Fenster oder in einem eigenen Fenster geöffnet wird",
   "Setting_explorer-customization-browse-folders_Option_0": "Jeden Ordner im selben Fenster öffnen",

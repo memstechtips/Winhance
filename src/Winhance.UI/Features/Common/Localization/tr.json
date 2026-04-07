@@ -381,6 +381,8 @@
   "Setting_explorer-customization-launch-to_Description": "Dosya Gezgini açıldığında ne olacağını seçin",
   "Setting_explorer-customization-launch-to_Option_0": "Giriş",
   "Setting_explorer-customization-launch-to_Option_1": "Bu Bilgisayar",
+  "Setting_explorer-customization-launch-to_Option_2": "\u0130ndirilenler",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (varsa)",
   "Setting_explorer-customization-browse-folders_Name": "Klasörlere göz at",
   "Setting_explorer-customization-browse-folders_Description": "Her klasörün aynı pencerede mi yoksa kendi penceresinde mi açılacağını seçin",
   "Setting_explorer-customization-browse-folders_Option_0": "Her klasörü aynı pencerede aç",

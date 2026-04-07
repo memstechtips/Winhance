@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "चुनें कि फ़ाइल एक्सप्लोरर खुलने पर क्या होता है",
   "Setting_explorer-customization-launch-to_Option_0": "होम",
   "Setting_explorer-customization-launch-to_Option_1": "यह पीसी",
+  "Setting_explorer-customization-launch-to_Option_2": "डाउनलोड",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (यदि उपलब्ध हो)",
   "Setting_explorer-customization-browse-folders_Name": "फ़ोल्डर ब्राउज़ करें",
   "Setting_explorer-customization-browse-folders_Description": "चुनें कि क्या प्रत्येक फ़ोल्डर एक ही विंडो में खुलता है या अपनी खिड़की में",
   "Setting_explorer-customization-browse-folders_Option_0": "प्रत्येक फ़ोल्डर को एक ही विंडो में खोलें",

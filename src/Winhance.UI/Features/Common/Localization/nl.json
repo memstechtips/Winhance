@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Kies wat er gebeurt wanneer Verkenner wordt geopend",
   "Setting_explorer-customization-launch-to_Option_0": "Thuis",
   "Setting_explorer-customization-launch-to_Option_1": "Deze pc",
+  "Setting_explorer-customization-launch-to_Option_2": "Downloads",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (indien beschikbaar)",
   "Setting_explorer-customization-browse-folders_Name": "Mappen bladeren",
   "Setting_explorer-customization-browse-folders_Description": "Kies of elke map in hetzelfde venster of in een eigen venster wordt geopend",
   "Setting_explorer-customization-browse-folders_Option_0": "Elke map in hetzelfde venster openen",

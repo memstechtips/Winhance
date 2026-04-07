@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Válassza ki, mi történjen, amikor a Fájlkezelő megnyílik",
   "Setting_explorer-customization-launch-to_Option_0": "Kezdőképernyő",
   "Setting_explorer-customization-launch-to_Option_1": "Ez a gép",
+  "Setting_explorer-customization-launch-to_Option_2": "Letöltések",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (ha elérhető)",
   "Setting_explorer-customization-browse-folders_Name": "Mappák böngészése",
   "Setting_explorer-customization-browse-folders_Description": "Válassza ki, hogy az egyes mappák ugyanabban az ablakban vagy saját ablakukban nyíljanak-e meg",
   "Setting_explorer-customization-browse-folders_Option_0": "Nyissa meg az egyes mappákat ugyanabban az ablakban",

@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Scegli cosa succede quando viene aperto Esplora file",
   "Setting_explorer-customization-launch-to_Option_0": "Home",
   "Setting_explorer-customization-launch-to_Option_1": "Questo PC",
+  "Setting_explorer-customization-launch-to_Option_2": "Download",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (se disponibile)",
   "Setting_explorer-customization-browse-folders_Name": "Sfoglia cartelle",
   "Setting_explorer-customization-browse-folders_Description": "Scegli se ogni cartella si apre nella stessa finestra o in una finestra separata",
   "Setting_explorer-customization-browse-folders_Option_0": "Apri ogni cartella nella stessa finestra",

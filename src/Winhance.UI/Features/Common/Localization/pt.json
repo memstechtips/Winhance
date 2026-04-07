@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Escolha o que acontece quando o Explorador de Ficheiros é aberto",
   "Setting_explorer-customization-launch-to_Option_0": "Início",
   "Setting_explorer-customization-launch-to_Option_1": "Este PC",
+  "Setting_explorer-customization-launch-to_Option_2": "Transferências",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (se disponível)",
   "Setting_explorer-customization-browse-folders_Name": "Procurar pastas",
   "Setting_explorer-customization-browse-folders_Description": "Escolha se cada pasta abre na mesma janela ou na sua própria janela",
   "Setting_explorer-customization-browse-folders_Option_0": "Abrir cada pasta na mesma janela",

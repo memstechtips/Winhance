@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Izvēlieties, kas notiek, atverot Failu pārlūku",
   "Setting_explorer-customization-launch-to_Option_0": "Sākums",
   "Setting_explorer-customization-launch-to_Option_1": "Šis dators",
+  "Setting_explorer-customization-launch-to_Option_2": "Lejupiel\u0101des",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (ja pieejams)",
   "Setting_explorer-customization-browse-folders_Name": "Pārlūkot mapes",
   "Setting_explorer-customization-browse-folders_Description": "Izvēlieties, vai katra mape tiek atvērta tajā pašā logā vai savā logā",
   "Setting_explorer-customization-browse-folders_Option_0": "Atvērt katru mapi tajā pašā logā",

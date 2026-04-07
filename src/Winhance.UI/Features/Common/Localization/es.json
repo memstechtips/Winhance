@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Elige qué sucede cuando se abre el Explorador de Archivos",
   "Setting_explorer-customization-launch-to_Option_0": "Inicio",
   "Setting_explorer-customization-launch-to_Option_1": "Este PC",
+  "Setting_explorer-customization-launch-to_Option_2": "Descargas",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (si está disponible)",
   "Setting_explorer-customization-browse-folders_Name": "Explorar carpetas",
   "Setting_explorer-customization-browse-folders_Description": "Elige si cada carpeta se abre en la misma ventana o en su propia ventana",
   "Setting_explorer-customization-browse-folders_Option_0": "Abrir cada carpeta en la misma ventana",

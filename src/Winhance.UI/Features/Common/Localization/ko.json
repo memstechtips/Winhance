@@ -381,6 +381,8 @@
   "Setting_explorer-customization-launch-to_Description": "파일 탐색기를 열 때 표시할 항목을 선택하십시오",
   "Setting_explorer-customization-launch-to_Option_0": "홈",
   "Setting_explorer-customization-launch-to_Option_1": "내 PC",
+  "Setting_explorer-customization-launch-to_Option_2": "다운로드",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (사용 가능한 경우)",
   "Setting_explorer-customization-browse-folders_Name": "폴더 찾아보기",
   "Setting_explorer-customization-browse-folders_Description": "각 폴더를 같은 창에서 열지 자체 창에서 열지 선택하십시오",
   "Setting_explorer-customization-browse-folders_Option_0": "같은 창에서 각 폴더 열기",

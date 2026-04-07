@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Pasirinkite, kas atsitiks atidarius failų naršyklę",
   "Setting_explorer-customization-launch-to_Option_0": "Pagrindinis",
   "Setting_explorer-customization-launch-to_Option_1": "Šis kompiuteris",
+  "Setting_explorer-customization-launch-to_Option_2": "Atsisiuntimai",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (jei pasiekiamas)",
   "Setting_explorer-customization-browse-folders_Name": "Naršyti aplankus",
   "Setting_explorer-customization-browse-folders_Description": "Pasirinkite, ar kiekvienas aplankas atidaromas tame pačiame lange, ar savo lange",
   "Setting_explorer-customization-browse-folders_Option_0": "Atidaryti kiekvieną aplanką tame pačiame lange",

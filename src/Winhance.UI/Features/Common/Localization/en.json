@@ -381,6 +381,8 @@
   "Setting_explorer-customization-launch-to_Description": "Choose what happens when File Explorer is opened",
   "Setting_explorer-customization-launch-to_Option_0": "Home",
   "Setting_explorer-customization-launch-to_Option_1": "This PC",
+  "Setting_explorer-customization-launch-to_Option_2": "Downloads",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (If Available)",
   "Setting_explorer-customization-browse-folders_Name": "Browse folders",
   "Setting_explorer-customization-browse-folders_Description": "Choose whether each folder opens in the same window or in its own window",
   "Setting_explorer-customization-browse-folders_Option_0": "Open each folder in the same window",

@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Kies wat gebeur wanneer Lêerverkenner oopgemaak word",
   "Setting_explorer-customization-launch-to_Option_0": "Tuis",
   "Setting_explorer-customization-launch-to_Option_1": "Hierdie Rekenaar",
+  "Setting_explorer-customization-launch-to_Option_2": "Aflaaie",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (indien beskikbaar)",
   "Setting_explorer-customization-browse-folders_Name": "Blaai deur gidse",
   "Setting_explorer-customization-browse-folders_Description": "Kies of elke gids in dieselfde venster of in sy eie venster oopmaak",
   "Setting_explorer-customization-browse-folders_Option_0": "Maak elke gids in dieselfde venster oop",

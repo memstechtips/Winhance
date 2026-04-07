@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "ファイルエクスプローラーを開いたときに何が起こるかを選択",
   "Setting_explorer-customization-launch-to_Option_0": "ホーム",
   "Setting_explorer-customization-launch-to_Option_1": "このPC",
+  "Setting_explorer-customization-launch-to_Option_2": "ダウンロード",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (利用可能な場合)",
   "Setting_explorer-customization-browse-folders_Name": "フォルダーの参照",
   "Setting_explorer-customization-browse-folders_Description": "各フォルダーを同じウィンドウで開くか、独自のウィンドウで開くかを選択",
   "Setting_explorer-customization-browse-folders_Option_0": "各フォルダーを同じウィンドウで開く",

@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "選擇開啟檔案總管時顯示的內容",
   "Setting_explorer-customization-launch-to_Option_0": "首頁",
   "Setting_explorer-customization-launch-to_Option_1": "本機",
+  "Setting_explorer-customization-launch-to_Option_2": "\u4e0b\u8f09",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (\u5982\u679c\u53ef\u7528)",
   "Setting_explorer-customization-browse-folders_Name": "瀏覽資料夾",
   "Setting_explorer-customization-browse-folders_Description": "選擇要在同一個視窗中開啟每個資料夾，還是在其自己的視窗中開啟",
   "Setting_explorer-customization-browse-folders_Option_0": "在同一個視窗中開啟每個資料夾",

@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "选择打开文件资源管理器时发生的情况",
   "Setting_explorer-customization-launch-to_Option_0": "主页",
   "Setting_explorer-customization-launch-to_Option_1": "此电脑",
+  "Setting_explorer-customization-launch-to_Option_2": "\u4e0b\u8f7d",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (\u5982\u679c\u53ef\u7528)",
   "Setting_explorer-customization-browse-folders_Name": "浏览文件夹",
   "Setting_explorer-customization-browse-folders_Description": "选择每个文件夹是在同一个窗口中打开还是在自己的窗口中打开",
   "Setting_explorer-customization-browse-folders_Option_0": "在同一个窗口中打开每个文件夹",

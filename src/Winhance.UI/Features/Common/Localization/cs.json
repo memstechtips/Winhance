@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Zvolte, co se stane po otevření Průzkumníka souborů",
   "Setting_explorer-customization-launch-to_Option_0": "Domů",
   "Setting_explorer-customization-launch-to_Option_1": "Tento počítač",
+  "Setting_explorer-customization-launch-to_Option_2": "Stažené soubory",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (je-li k dispozici)",
   "Setting_explorer-customization-browse-folders_Name": "Procházet složky",
   "Setting_explorer-customization-browse-folders_Description": "Zvolte, zda se každá složka otevře ve stejném okně nebo ve vlastním okně",
   "Setting_explorer-customization-browse-folders_Option_0": "Otevřít každou složku ve stejném okně",

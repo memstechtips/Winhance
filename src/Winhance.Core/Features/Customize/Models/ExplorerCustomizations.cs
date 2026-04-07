@@ -391,6 +391,8 @@ if (-not (Test-Path $icoPath)) {
                         {
                             "Home",
                             "This PC",
+                            "Downloads",
+                            "OneDrive (If Available)",
                         },
                         ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -401,6 +403,14 @@ if (-not (Test-Path $icoPath)) {
                             [1] = new Dictionary<string, object?>
                             {
                                 ["LaunchTo"] = 1,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["LaunchTo"] = 3,
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["LaunchTo"] = 4,
                             },
                         },
                     },

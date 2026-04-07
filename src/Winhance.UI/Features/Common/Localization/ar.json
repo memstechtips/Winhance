@@ -329,6 +329,8 @@
     "Setting_explorer-customization-launch-to_Description": "اختر ما يحدث عند فتح مستكشف الملفات",
     "Setting_explorer-customization-launch-to_Option_0": "الرئيسية",
     "Setting_explorer-customization-launch-to_Option_1": "هذا الكمبيوتر",
+    "Setting_explorer-customization-launch-to_Option_2": "التنزيلات",
+    "Setting_explorer-customization-launch-to_Option_3": "OneDrive (إذا كان متاحًا)",
     "Setting_explorer-customization-browse-folders_Name": "استعراض المجلدات",
     "Setting_explorer-customization-browse-folders_Description": "اختر ما إذا كان كل مجلد يفتح في نفس النافذة أو في نافذة جديدة",
     "Setting_explorer-customization-browse-folders_Option_0": "فتح كل مجلد في نفس النافذة",

@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Επιλέξτε τι συμβαίνει όταν ανοίγει η Εξερεύνηση Αρχείων",
   "Setting_explorer-customization-launch-to_Option_0": "Αρχική",
   "Setting_explorer-customization-launch-to_Option_1": "Αυτός ο υπολογιστής",
+  "Setting_explorer-customization-launch-to_Option_2": "Λήψεις",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (εάν είναι διαθέσιμο)",
   "Setting_explorer-customization-browse-folders_Name": "Περιήγηση φακέλων",
   "Setting_explorer-customization-browse-folders_Description": "Επιλέξτε αν κάθε φάκελος ανοίγει στο ίδιο παράθυρο ή στο δικό του παράθυρο",
   "Setting_explorer-customization-browse-folders_Option_0": "Άνοιγμα κάθε φακέλου στο ίδιο παράθυρο",

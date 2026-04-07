@@ -346,6 +346,8 @@
   "Setting_explorer-customization-launch-to_Description": "Chọn điều gì sẽ xảy ra khi File Explorer được mở",
   "Setting_explorer-customization-launch-to_Option_0": "Trang chủ",
   "Setting_explorer-customization-launch-to_Option_1": "PC này",
+  "Setting_explorer-customization-launch-to_Option_2": "T\u1ea3i xu\u1ed1ng",
+  "Setting_explorer-customization-launch-to_Option_3": "OneDrive (n\u1ebfu c\u00f3 s\u1eb5n)",
   "Setting_explorer-customization-browse-folders_Name": "Duyệt thư mục",
   "Setting_explorer-customization-browse-folders_Description": "Chọn xem mỗi thư mục mở trong cùng một cửa sổ hay trong cửa sổ riêng của nó",
   "Setting_explorer-customization-browse-folders_Option_0": "Mở mỗi thư mục trong cùng một cửa sổ",
