@@ -1916,6 +1916,18 @@
             "SelectedIndex": 2
           },
           {
+            "Id": "security-developer-mode",
+            "Name": "Developer Mode",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "security-powershell-execution-policy",
+            "Name": "PowerShell Execution Policy",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "privacy-ads-promotional-master",
             "Name": "Ads, Suggestions and Promotional Content",
             "InputType": 1,

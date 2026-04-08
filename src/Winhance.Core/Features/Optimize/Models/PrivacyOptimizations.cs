@@ -306,6 +306,96 @@ public static class PrivacyAndSecurityOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "security-developer-mode",
+                    Name = "Developer Mode",
+                    Description = "Allows the installation of apps from any source, including loose files",
+                    GroupName = "Security",
+                    Icon = "CodeBraces",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\AppModelUnlock",
+                            ValueName = "AllowDevelopmentWithoutDevLicense",
+                            RecommendedValue = null,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "security-powershell-execution-policy",
+                    Name = "PowerShell Execution Policy",
+                    Description = "Controls whether PowerShell scripts are allowed to run and under what conditions for both the current user and the local machine",
+                    GroupName = "Security",
+                    Icon = "PowerShell",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.04.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell",
+                            ValueName = "ExecutionPolicy",
+                            RecommendedValue = "RemoteSigned",
+                            EnabledValue = ["Restricted"],
+                            DisabledValue = ["RemoteSigned"],
+                            DefaultValue = "Restricted",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell",
+                            ValueName = "ExecutionPolicy",
+                            RecommendedValue = "RemoteSigned",
+                            EnabledValue = ["Restricted"],
+                            DisabledValue = ["RemoteSigned"],
+                            DefaultValue = "Restricted",
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Restricted",
+                            "AllSigned",
+                            "RemoteSigned",
+                            "Unrestricted",
+                            "Bypass",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["ExecutionPolicy"] = "Restricted",
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["ExecutionPolicy"] = "AllSigned",
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["ExecutionPolicy"] = "RemoteSigned",
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["ExecutionPolicy"] = "Unrestricted",
+                            },
+                            [4] = new Dictionary<string, object?>
+                            {
+                                ["ExecutionPolicy"] = "Bypass",
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "privacy-ads-promotional-master",
                     Name = "Ads, Suggestions and Promotional Content",
                     Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
@@ -1294,6 +1384,16 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = [1],
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Siuf\Rules",
+                            ValueName = "NumberOfSIUFInPeriod",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
