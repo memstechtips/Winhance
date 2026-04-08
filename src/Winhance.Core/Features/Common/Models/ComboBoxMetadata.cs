@@ -17,4 +17,5 @@ public record ComboBoxMetadata
     public string[]? OptionTooltips { get; init; }
     public Dictionary<int, string>? OptionWarnings { get; init; }
     public Dictionary<int, (string Title, string Message)>? OptionConfirmations { get; init; }
+    public Dictionary<int, Dictionary<string, string>>? ScriptVariables { get; init; }
 }

@@ -1246,6 +1246,12 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-dns-server",
+            "Name": "DNS Server",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "gaming-virtualization-based-security",
             "Name": "Virtualization Based Security (VBS)",
             "IsSelected": false,

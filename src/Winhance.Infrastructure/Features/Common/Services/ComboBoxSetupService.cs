@@ -73,7 +73,7 @@ public class ComboBoxSetupService(
 
         if (comboBox.ValueMappings == null)
         {
-            if (comboBox.SimpleValueMappings != null || comboBox.CommandValueMappings != null)
+            if (comboBox.SimpleValueMappings != null || comboBox.CommandValueMappings != null || comboBox.ScriptMappings != null)
             {
                 return SetupFromMappings(setting, currentIndex, result, displayNames);
             }

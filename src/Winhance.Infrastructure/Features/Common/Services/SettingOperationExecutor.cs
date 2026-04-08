@@ -169,6 +169,18 @@ public class SettingOperationExecutor(
 
                 var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
 
+                // Substitute ScriptVariables placeholders for the selected index
+                if (!string.IsNullOrEmpty(script)
+                    && setting.ComboBox?.ScriptVariables != null
+                    && value is int varIndex
+                    && setting.ComboBox.ScriptVariables.TryGetValue(varIndex, out var variables))
+                {
+                    foreach (var kvp in variables)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+                    }
+                }
+
                 if (!string.IsNullOrEmpty(script))
                 {
                     await powerShellRunner.RunScriptAsync(script).ConfigureAwait(false);

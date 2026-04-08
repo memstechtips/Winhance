@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Text;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -200,6 +202,25 @@ public class SystemSettingsDiscoveryService(
             {
                 logService.Log(LogLevel.Warning, $"Exception getting scheduled task state for '{setting.Id}': {ex.Message}");
                 results[setting.Id] = new Dictionary<string, object?>();
+            }
+        }
+
+        var dnsSettings = settingsList
+            .Where(s => s.DetectionType == DetectionType.DnsServer)
+            .ToList();
+
+        foreach (var setting in dnsSettings)
+        {
+            try
+            {
+                var rawValues = new Dictionary<string, object?>();
+                rawValues["DetectedIndex"] = DetectDnsServerIndex(setting);
+                results[setting.Id] = rawValues;
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning,
+                    $"Exception detecting DNS state for '{setting.Id}': {ex.Message}");
             }
         }
 
@@ -450,6 +471,12 @@ public class SystemSettingsDiscoveryService(
             }
             return false;
         }
+        else if (setting.DetectionType == DetectionType.DnsServer)
+        {
+            if (rawValues.TryGetValue("DetectedIndex", out var detectedIdx) && detectedIdx is int idx)
+                return idx != 0; // 0 = Automatic/DHCP = default state
+            return false;
+        }
 
         return false;
     }
@@ -457,6 +484,10 @@ public class SystemSettingsDiscoveryService(
     // Need this private function as we can't inject IComboboxResolver here, it creates a circular dependency issue
     private int ResolveRawValuesToIndex(SettingDefinition setting, Dictionary<string, object?> rawValues)
     {
+        // Handle DetectedIndex from custom detection (e.g., DnsServer)
+        if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
+            return di;
+
         if (setting.ComboBox?.ValueMappings == null)
         {
             return 0;
@@ -529,4 +560,29 @@ public class SystemSettingsDiscoveryService(
 
     private static bool ValuesAreEqual(object? value1, object? value2)
         => Utilities.ValueComparer.ValuesAreEqual(value1, value2);
+
+    private int DetectDnsServerIndex(SettingDefinition setting)
+    {
+        var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
+            .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
+                && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+
+        if (activeAdapter == null)
+            return 0;
+
+        var primaryDns = activeAdapter.GetIPProperties().DnsAddresses
+            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
+            .ToString();
+
+        if (string.IsNullOrEmpty(primaryDns) || setting.ComboBox?.ScriptVariables == null)
+            return 0;
+
+        foreach (var (index, variables) in setting.ComboBox.ScriptVariables)
+        {
+            if (variables.TryGetValue("primary", out var primary) && primary == primaryDns)
+                return index;
+        }
+
+        return ComboBoxConstants.CustomStateIndex;
+    }
 }

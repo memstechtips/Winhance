@@ -29,4 +29,5 @@ public abstract record BaseDefinition
     public string? VersionCompatibilityMessage { get; init; }
     public bool DisableTooltip { get; init; }
     public string? AddedInVersion { get; init; }
+    public DetectionType? DetectionType { get; init; }
 }

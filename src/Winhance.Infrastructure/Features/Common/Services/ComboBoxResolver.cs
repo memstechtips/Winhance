@@ -70,6 +70,10 @@ public class ComboBoxResolver(
 
     public int ResolveRawValuesToIndex(SettingDefinition setting, Dictionary<string, object?> rawValues)
     {
+        // Handle DetectedIndex from custom detection (e.g., DnsServer)
+        if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
+            return di;
+
         if (setting.ComboBox?.ValueMappings == null)
         {
             return 0;

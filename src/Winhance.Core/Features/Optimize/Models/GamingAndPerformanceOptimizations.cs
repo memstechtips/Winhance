@@ -858,6 +858,60 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-dns-server",
+                    Name = "DNS Server",
+                    Description = "Select a DNS server for all network adapters. Changes apply to every adapter on your system (Wi-Fi and Ethernet). Use Automatic to restore your default ISP/router DNS",
+                    GroupName = "Network",
+                    Icon = "Dns",
+                    InputType = InputType.Selection,
+                    DetectionType = DetectionType.DnsServer,
+                    AddedInVersion = "26.04.08",
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Setting_gaming-dns-server_Option_0",
+                            "Setting_gaming-dns-server_Option_1",
+                            "Setting_gaming-dns-server_Option_2",
+                            "Setting_gaming-dns-server_Option_3",
+                            "Setting_gaming-dns-server_Option_4",
+                            "Setting_gaming-dns-server_Option_5",
+                            "Setting_gaming-dns-server_Option_6",
+                        },
+                        ScriptMappings = new Dictionary<int, ScriptOption>
+                        {
+                            [0] = ScriptOption.Disabled,
+                            [1] = ScriptOption.Enabled,
+                            [2] = ScriptOption.Enabled,
+                            [3] = ScriptOption.Enabled,
+                            [4] = ScriptOption.Enabled,
+                            [5] = ScriptOption.Enabled,
+                            [6] = ScriptOption.Enabled,
+                        },
+                        ScriptVariables = new Dictionary<int, Dictionary<string, string>>
+                        {
+                            [1] = new() { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" },
+                            [2] = new() { ["primary"] = "1.1.1.2", ["secondary"] = "1.0.0.2" },
+                            [3] = new() { ["primary"] = "1.1.1.3", ["secondary"] = "1.0.0.3" },
+                            [4] = new() { ["primary"] = "8.8.8.8", ["secondary"] = "8.8.4.4" },
+                            [5] = new() { ["primary"] = "9.9.9.9", ["secondary"] = "149.112.112.112" },
+                            [6] = new() { ["primary"] = "208.67.222.222", ["secondary"] = "208.67.220.220" },
+                        },
+                        SupportsCustomState = true,
+                        CustomStateDisplayName = "Setting_gaming-dns-server_Option_Custom",
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }",
+                            DisabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
+                            RequiresElevation = true,
+                        },
+                    },
+                },
                 // Security Group
                 new SettingDefinition
                 {

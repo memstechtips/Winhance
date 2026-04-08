@@ -121,7 +121,30 @@ internal class FeatureRegistryScriptSection
                 {
                     foreach (var scriptSetting in settingDef.PowerShellScripts)
                     {
-                        var script = configItem.IsSelected == true ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+                        // For Selection types with ScriptMappings, resolve which script to use from the selected index
+                        var useEnabled = configItem.IsSelected == true;
+                        if (settingDef.InputType == InputType.Selection
+                            && settingDef.ComboBox?.ScriptMappings != null
+                            && configItem.SelectedIndex.HasValue
+                            && settingDef.ComboBox.ScriptMappings.TryGetValue(configItem.SelectedIndex.Value, out var scriptOption))
+                        {
+                            useEnabled = scriptOption == ScriptOption.Enabled;
+                        }
+
+                        var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+
+                        // Substitute ScriptVariables placeholders for the selected index
+                        if (!string.IsNullOrEmpty(script)
+                            && settingDef.ComboBox?.ScriptVariables != null
+                            && configItem.SelectedIndex.HasValue
+                            && settingDef.ComboBox.ScriptVariables.TryGetValue(configItem.SelectedIndex.Value, out var variables))
+                        {
+                            foreach (var kvp in variables)
+                            {
+                                script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+                            }
+                        }
+
                         if (!string.IsNullOrEmpty(script))
                         {
                             var escapedDescription = EscapePowerShellString(settingDef.Description);
