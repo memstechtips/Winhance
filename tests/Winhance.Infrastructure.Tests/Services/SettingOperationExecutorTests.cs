@@ -153,6 +153,35 @@ public class SettingOperationExecutorTests
     }
 
     [Fact]
+    public async Task ApplySettingOperationsAsync_ResetToDefault_WritesDefaultValueInsteadOfDisabledValue()
+    {
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "ResetMe",
+            ValueType = RegistryValueKind.DWord,
+            DefaultValue = null, // null means delete the value
+        };
+        var setting = CreateSetting("reset-default") with
+        {
+            RegistrySettings = new[] { regSetting },
+        };
+
+        // Setup mock for the 4-param call with useDefaultValue: true
+        _mockRegistry
+            .Setup(r => r.ApplySetting(It.IsAny<RegistrySetting>(), It.IsAny<bool>(), It.IsAny<object?>(), true))
+            .Returns(true);
+
+        var result = await _executor.ApplySettingOperationsAsync(setting, false, null, resetToDefault: true);
+
+        result.Success.Should().BeTrue();
+        // Should call with useDefaultValue: true instead of the normal disable path
+        _mockRegistry.Verify(
+            r => r.ApplySetting(regSetting, false, null, true),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ApplySettingOperationsAsync_MultipleRegistrySettings_AppliesAll()
     {
         var reg1 = new RegistrySetting

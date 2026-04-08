@@ -1425,10 +1425,10 @@ if (Test-Path $appPathsKey) {
                         "explorer-customization-nav-saf-desktop",
                         "explorer-customization-nav-saf-documents",
                         "explorer-customization-nav-saf-downloads",
-                        "explorer-customization-nav-saf-libraries",
                         "explorer-customization-nav-saf-music",
                         "explorer-customization-nav-saf-pictures",
                         "explorer-customization-nav-saf-videos",
+                        "explorer-customization-nav-show-libraries",
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1454,15 +1454,6 @@ if (Test-Path $appPathsKey) {
                     ParentSettingId = "explorer-customization-nav-show-all-folders",
                     AddedInVersion = "26.04.07",
                     Icon = "Monitor",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-desktop",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1471,7 +1462,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1481,7 +1472,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1497,15 +1488,6 @@ if (Test-Path $appPathsKey) {
                     ParentSettingId = "explorer-customization-nav-show-all-folders",
                     AddedInVersion = "26.04.07",
                     Icon = "FileDocument",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-documents",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1514,7 +1496,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1524,7 +1506,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1540,15 +1522,6 @@ if (Test-Path $appPathsKey) {
                     ParentSettingId = "explorer-customization-nav-show-all-folders",
                     AddedInVersion = "26.04.07",
                     Icon = "Download",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-downloads",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1557,7 +1530,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{374DE290-123F-4565-9164-39C4925E467B}",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1567,50 +1540,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
-                            DefaultValue = null,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-nav-saf-libraries",
-                    Name = "Show Libraries",
-                    Description = "Shows the Libraries folder in the navigation pane",
-                    GroupName = "Navigation Pane",
-                    InputType = InputType.Toggle,
-                    ParentSettingId = "explorer-customization-nav-show-all-folders",
-                    AddedInVersion = "26.04.07",
-                    Icon = "Bookshelf",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-libraries",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
-                            ValueName = "{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
-                            RecommendedValue = 1,
-                            EnabledValue = [null],
-                            DisabledValue = [1],
-                            DefaultValue = null,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
-                            ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
-                            EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1626,15 +1556,6 @@ if (Test-Path $appPathsKey) {
                     ParentSettingId = "explorer-customization-nav-show-all-folders",
                     AddedInVersion = "26.04.07",
                     Icon = "Music",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-music",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1643,7 +1564,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1653,7 +1574,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1669,15 +1590,6 @@ if (Test-Path $appPathsKey) {
                     ParentSettingId = "explorer-customization-nav-show-all-folders",
                     AddedInVersion = "26.04.07",
                     Icon = "Image",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-pictures",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1686,7 +1598,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1696,7 +1608,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1712,15 +1624,6 @@ if (Test-Path $appPathsKey) {
                     ParentSettingId = "explorer-customization-nav-show-all-folders",
                     AddedInVersion = "26.04.07",
                     Icon = "Video",
-                    Dependencies = new List<SettingDependency>
-                    {
-                        new SettingDependency
-                        {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "explorer-customization-nav-saf-videos",
-                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
-                        },
-                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1729,7 +1632,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1739,7 +1642,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [null],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -1748,8 +1651,8 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-show-libraries",
-                    Name = "Show libraries",
-                    Description = "Displays Libraries container grouping Documents, Music, Pictures, and Videos",
+                    Name = "Show Libraries",
+                    Description = "Pins the Libraries folder as a top-level item in the navigation pane. Has no effect when Show All Folders is enabled, as Libraries becomes part of the folder tree instead",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
                     Icon = "FolderTable",
@@ -1764,6 +1667,26 @@ if (Test-Path $appPathsKey) {
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

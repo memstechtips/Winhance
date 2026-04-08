@@ -60,7 +60,9 @@ public class DependencyManager : IDependencyManager
             {
                 try
                 {
-                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false }).ConfigureAwait(false);
+                    _logService.Log(LogLevel.Info,
+                        $"[DependencyManager] Resetting dependent '{dependentSetting.Id}' to default values (parent '{settingId}' was disabled)");
+                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false, ResetToDefault = true }).ConfigureAwait(false);
                     await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
                 }
                 catch (ArgumentException ex) when (ex.Message.Contains("not found"))
@@ -93,7 +95,9 @@ public class DependencyManager : IDependencyManager
             {
                 try
                 {
-                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false }).ConfigureAwait(false);
+                    _logService.Log(LogLevel.Info,
+                        $"[DependencyManager] Resetting dependent '{dependentSetting.Id}' to default values (required value for '{settingId}' no longer satisfied)");
+                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false, ResetToDefault = true }).ConfigureAwait(false);
                     await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
                 }
                 catch (ArgumentException ex) when (ex.Message.Contains("not found"))

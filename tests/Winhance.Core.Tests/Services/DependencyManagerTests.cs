@@ -114,7 +114,7 @@ public class DependencyManagerTests
             "parent", settings, _mockSettingApp.Object, _mockDiscovery.Object);
 
         _mockSettingApp.Verify(s => s.ApplySettingAsync(
-            It.Is<ApplySettingRequest>(r => r.SettingId == "child" && r.Enable == false)),
+            It.Is<ApplySettingRequest>(r => r.SettingId == "child" && r.Enable == false && r.ResetToDefault == true)),
             Times.Once);
     }
 

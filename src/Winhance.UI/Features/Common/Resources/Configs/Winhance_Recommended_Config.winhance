@@ -840,12 +840,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-nav-saf-libraries",
-            "Name": "Show Libraries",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-nav-saf-music",
             "Name": "Show Music folder",
             "IsSelected": false,

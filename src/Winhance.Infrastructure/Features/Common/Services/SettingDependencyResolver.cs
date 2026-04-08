@@ -14,6 +14,7 @@ public class SettingDependencyResolver(
     IGlobalSettingsRegistry globalSettingsRegistry,
     ISystemSettingsDiscoveryService discoveryService,
     IWindowsCompatibilityFilter compatibilityFilter,
+    IProcessRestartManager processRestartManager,
     ILogService logService) : ISettingDependencyResolver
 {
     public async Task HandleDependenciesAsync(
@@ -38,20 +39,25 @@ public class SettingDependencyResolver(
                     throw new InvalidOperationException($"Cannot enable '{settingId}' due to unsatisfied dependencies");
             }
 
-            // Auto-enable associated settings when this setting is enabled
+            // Auto-enable associated settings when this setting is enabled.
+            // Suppress process/service restarts during this loop — the parent's own
+            // apply will trigger its restart, covering all children in a single restart.
             if (setting?.AutoEnableSettingIds?.Count > 0)
             {
-                foreach (var autoEnableId in setting.AutoEnableSettingIds)
+                using (processRestartManager.SuppressRestarts())
                 {
-                    try
+                    foreach (var autoEnableId in setting.AutoEnableSettingIds)
                     {
-                        var autoEnableDef = allSettings.FirstOrDefault(s => s.Id == autoEnableId)
-                            ?? globalSettingsRegistry.GetSetting(autoEnableId) as SettingDefinition;
-                        if (autoEnableDef != null)
+                        try
                         {
-                            var states = await discoveryService.GetSettingStatesAsync(new[] { autoEnableDef }).ConfigureAwait(false);
-                            if (states.TryGetValue(autoEnableId, out var st) && st.Success && !st.IsEnabled)
+                            var autoEnableDef = allSettings.FirstOrDefault(s => s.Id == autoEnableId)
+                                ?? globalSettingsRegistry.GetSetting(autoEnableId) as SettingDefinition;
+                            if (autoEnableDef != null)
                             {
+                                // Always apply the auto-enable even if the child is already in the
+                                // enabled registry state (e.g. value absent = enabled by default).
+                                // This ensures a SettingAppliedEvent fires so the UI reflects the
+                                // correct toggle state for children whose default is "enabled".
                                 logService.Log(LogLevel.Info,
                                     $"[SettingDependencyResolver] Auto-enabling '{autoEnableId}' because '{settingId}' was enabled");
                                 await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
@@ -62,11 +68,11 @@ public class SettingDependencyResolver(
                                 }).ConfigureAwait(false);
                             }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        logService.Log(LogLevel.Warning,
-                            $"[SettingDependencyResolver] Failed to auto-enable '{autoEnableId}': {ex.Message}");
+                        catch (Exception ex)
+                        {
+                            logService.Log(LogLevel.Warning,
+                                $"[SettingDependencyResolver] Failed to auto-enable '{autoEnableId}': {ex.Message}");
+                        }
                     }
                 }
             }

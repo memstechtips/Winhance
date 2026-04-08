@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.ServiceProcess;
+using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -23,11 +24,37 @@ public class ProcessRestartManager(
     /// <summary>Number of retry attempts if Explorer doesn't respawn.</summary>
     private const int ExplorerMaxRetries = 2;
 
+    private int _suppressCount;
+
+    /// <inheritdoc />
+    public IDisposable SuppressRestarts()
+    {
+        Interlocked.Increment(ref _suppressCount);
+        return new SuppressScope(this);
+    }
+
+    private sealed class SuppressScope(ProcessRestartManager owner) : IDisposable
+    {
+        private bool _disposed;
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                Interlocked.Decrement(ref owner._suppressCount);
+            }
+        }
+    }
+
     public async Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
     {
         if (!string.IsNullOrEmpty(setting.RestartProcess))
         {
-            if (configImportState.IsActive)
+            if (_suppressCount > 0)
+            {
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (restarts suppressed - parent will restart)");
+            }
+            else if (configImportState.IsActive)
             {
                 logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
             }
@@ -51,6 +78,12 @@ public class ProcessRestartManager(
 
         if (!string.IsNullOrEmpty(setting.RestartService))
         {
+            if (_suppressCount > 0)
+            {
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (restarts suppressed - parent will restart)");
+                return;
+            }
+
             logService.Log(LogLevel.Info, $"[ProcessRestartManager] Restarting service '{setting.RestartService}' for setting '{setting.Id}'");
             try
             {

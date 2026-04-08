@@ -16,6 +16,17 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 {
     private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
 
+    /// <summary>
+    /// Gets the value to write when a parent cascades a disable to this setting.
+    /// If DisabledValue has a second element, use it (even if null, which means delete).
+    /// Otherwise, fall back to the normal first-non-null disabled value.
+    /// This allows settings to declare e.g. DisabledValue = [1, null] where:
+    ///   - Index 0 (1): written when the user explicitly disables the setting
+    ///   - Index 1 (null): written when the parent cascades a disable (deletes the value)
+    /// </summary>
+    private static object? GetParentDisableValue(object?[]? disabledValues) =>
+        disabledValues?.Length > 1 ? disabledValues[1] : GetWriteValue(disabledValues);
+
     private bool CreateKey(string keyPath)
     {
         try
@@ -480,7 +491,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    public bool ApplySetting(RegistrySetting setting, bool isEnabled, object? specificValue = null)
+    public bool ApplySetting(RegistrySetting setting, bool isEnabled, object? specificValue = null, bool useDefaultValue = false)
     {
         if (setting == null)
             return false;
@@ -619,11 +630,13 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             }
 
             var oldValue = GetValue(setting.KeyPath, setting.ValueName);
-            var valueToSet = specificValue ?? (isEnabled
-                ? GetWriteValue(setting.EnabledValue)
-                : GetWriteValue(setting.DisabledValue));
+            var valueToSet = useDefaultValue
+                ? GetParentDisableValue(setting.DisabledValue)
+                : specificValue ?? (isEnabled
+                    ? GetWriteValue(setting.EnabledValue)
+                    : GetWriteValue(setting.DisabledValue));
 
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Setting '{setting.KeyPath}\\{setting.ValueName}' - Old: {oldValue}, New: {valueToSet}");
+            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Setting '{setting.KeyPath}\\{setting.ValueName}' - Old: {oldValue}, New: {valueToSet}{(useDefaultValue ? " (parent cascade disable)" : "")}");
 
             if (valueToSet == null)
             {
@@ -643,9 +656,11 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             {
                 // Determine if the value being written means "disabled" (service Start = 4)
                 // Lock the key only when disabling; unlock was already done above for enabling
-                var writtenValue = specificValue ?? (isEnabled
-                    ? GetWriteValue(setting.EnabledValue)
-                    : GetWriteValue(setting.DisabledValue));
+                var writtenValue = useDefaultValue
+                    ? GetParentDisableValue(setting.DisabledValue)
+                    : specificValue ?? (isEnabled
+                        ? GetWriteValue(setting.EnabledValue)
+                        : GetWriteValue(setting.DisabledValue));
 
                 // Lock the key if the written value equals the disabled/locked state (e.g., Start = 4)
                 if (!isEnabled || (writtenValue is int intVal && intVal == 4))

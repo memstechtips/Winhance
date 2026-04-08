@@ -16,16 +16,26 @@ public class SettingDependencyResolverTests
     private readonly Mock<IWindowsCompatibilityFilter> _mockCompatibilityFilter = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ISettingApplicationService> _mockSettingAppService = new();
+    private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
     private readonly SettingDependencyResolver _resolver;
 
     public SettingDependencyResolverTests()
     {
+        _mockProcessRestartManager.Setup(p => p.SuppressRestarts())
+            .Returns(new NoOpDisposable());
+
         _resolver = new SettingDependencyResolver(
             _mockDependencyManager.Object,
             _mockGlobalRegistry.Object,
             _mockDiscoveryService.Object,
             _mockCompatibilityFilter.Object,
+            _mockProcessRestartManager.Object,
             _mockLogService.Object);
+    }
+
+    private sealed class NoOpDisposable : IDisposable
+    {
+        public void Dispose() { }
     }
 
     private static SettingDefinition CreateSetting(
@@ -171,12 +181,6 @@ public class SettingDependencyResolverTests
         var setting = CreateSetting("setting1", autoEnableSettingIds: new[] { "auto1" });
         var allSettings = new[] { setting, autoEnableDef };
 
-        var states = new Dictionary<string, SettingStateResult>
-        {
-            ["auto1"] = new() { Success = true, IsEnabled = false },
-        };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
@@ -190,25 +194,24 @@ public class SettingDependencyResolverTests
     }
 
     [Fact]
-    public async Task HandleDependenciesAsync_Enable_AutoEnableSettingAlreadyEnabled_DoesNotApply()
+    public async Task HandleDependenciesAsync_Enable_AutoEnableSettingAlreadyEnabled_StillApplies()
     {
+        // Auto-enable always fires regardless of current state, so the UI gets
+        // a SettingAppliedEvent even for children whose default is "enabled".
         var autoEnableDef = CreateSetting("auto1");
         var setting = CreateSetting("setting1", autoEnableSettingIds: new[] { "auto1" });
         var allSettings = new[] { setting, autoEnableDef };
 
-        var states = new Dictionary<string, SettingStateResult>
-        {
-            ["auto1"] = new() { Success = true, IsEnabled = true },
-        };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(states);
+        _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
 
         await _resolver.HandleDependenciesAsync(
             "setting1", allSettings, enable: true, value: null, _mockSettingAppService.Object);
 
         _mockSettingAppService.Verify(
-            s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()),
-            Times.Never);
+            s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.SettingId == "auto1" && r.Enable == true && r.SkipValuePrerequisites == true)),
+            Times.Once);
     }
 
     [Fact]
@@ -221,12 +224,6 @@ public class SettingDependencyResolverTests
         _mockGlobalRegistry.Setup(r => r.GetSetting("auto1", null))
             .Returns(autoEnableDef);
 
-        var states = new Dictionary<string, SettingStateResult>
-        {
-            ["auto1"] = new() { Success = true, IsEnabled = false },
-        };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
@@ -262,14 +259,9 @@ public class SettingDependencyResolverTests
         var autoEnableDef2 = CreateSetting("auto2");
         var allSettings = new[] { setting, autoEnableDef, autoEnableDef2 };
 
-        // First auto-enable throws
-        _mockDiscoveryService.SetupSequence(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ThrowsAsync(new Exception("Discovery failed"))
-            .ReturnsAsync(new Dictionary<string, SettingStateResult>
-            {
-                ["auto2"] = new() { Success = true, IsEnabled = false },
-            });
-        _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+        // First auto-enable throws, second succeeds
+        _mockSettingAppService.SetupSequence(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ThrowsAsync(new Exception("Apply failed"))
             .ReturnsAsync(OperationResult.Succeeded());
 
         var act = () => _resolver.HandleDependenciesAsync(
@@ -279,6 +271,24 @@ public class SettingDependencyResolverTests
 
         _mockLogService.Verify(
             l => l.Log(LogLevel.Warning, It.Is<string>(m => m.Contains("auto1")), null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleDependenciesAsync_Enable_WithAutoEnableIds_SuppressesRestartsDuringAutoEnable()
+    {
+        var autoEnableDef = CreateSetting("auto1");
+        var setting = CreateSetting("setting1", autoEnableSettingIds: new[] { "auto1" });
+        var allSettings = new[] { setting, autoEnableDef };
+
+        _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _resolver.HandleDependenciesAsync(
+            "setting1", allSettings, enable: true, value: null, _mockSettingAppService.Object);
+
+        _mockProcessRestartManager.Verify(
+            p => p.SuppressRestarts(),
             Times.Once);
     }
 
