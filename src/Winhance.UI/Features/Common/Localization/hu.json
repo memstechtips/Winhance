@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Engedélyezze a Windowsnak a frissítések letöltését mobil hotspotok vagy adatkorlátozott kapcsolatok használatakor",
   "Setting_updates-driver-controls_Name": "Illesztőprogram-frissítések a Windows Update-en keresztül",
   "Setting_updates-driver-controls_Description": "Hardveres illeszt\u0151program-friss\u00edt\u00e9sek bevon\u00e1sa a Windows friss\u00edt\u00e9sek let\u00f6lt\u00e9se \u00e9s telep\u00edt\u00e9se sor\u00e1n",
+  "Setting_updates-driver-coinstallers_Name": "Illeszt\u0151program t\u00e1rstelep\u00edt\u0151k",
+  "Setting_updates-driver-coinstallers_Description": "Lehet\u0151v\u00e9 teszi a hardvergy\u00e1rt\u00f3k sz\u00e1m\u00e1ra, hogy k\u00eds\u00e9r\u0151 szoftvereket telep\u00edtsenek az eszk\u00f6zilleszt\u0151-programok mell\u00e9. Kikapcsol\u00e1sa megakad\u00e1lyozza a bloatware, p\u00e9ld\u00e1ul a Razer Synapse, nyomtat\u00f3seg\u00e9dprogramok \u00e9s m\u00e1s gy\u00e1rt\u00f3i szoftverek automatikus telep\u00edt\u00e9s\u00e9t eszk\u00f6z\u00f6k csatlakoztat\u00e1sakor. A hardver tov\u00e1bbra is norm\u00e1lisan m\u0171k\u00f6dik a szabv\u00e1nyos illeszt\u0151programokkal.",
   "Setting_updates-store-auto-download_Name": "Microsoft Store-alkalmazások automatikus frissítése",
   "Setting_updates-store-auto-download_Description": "Az alkalmazások frissítéseinek automatikus letöltése és telepítése a Microsoft Store-ból",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker automatikus titkosítás",

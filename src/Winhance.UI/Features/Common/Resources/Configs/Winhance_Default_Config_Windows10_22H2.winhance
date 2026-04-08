@@ -2134,6 +2134,12 @@
             "InputType": 0
           },
           {
+            "Id": "updates-driver-coinstallers",
+            "Name": "Driver Co-Installers",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "updates-store-auto-download",
             "Name": "Auto Update Microsoft Store Apps",
             "IsSelected": true,

@@ -634,6 +634,29 @@ public static class UpdateOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "updates-driver-coinstallers",
+                    Name = "Driver Co-Installers",
+                    Description = "Allows hardware vendors to install companion software alongside device drivers. Disabling this prevents bloatware like Razer Synapse, printer utilities, and other vendor software from being automatically installed when you plug in devices. Your hardware will still work normally with standard drivers.",
+                    GroupName = "Update Behavior",
+                    Icon = "PackageVariantRemove",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "25.04.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Installer",
+                            ValueName = "DisableCoInstallers",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "updates-store-auto-download",
                     Name = "Auto Update Microsoft Store Apps",
                     Description = "Automatically download and install updates for apps from the Microsoft Store",

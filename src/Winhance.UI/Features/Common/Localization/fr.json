@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Autoriser Windows à télécharger les mises à jour lors de l'utilisation de points d'accès mobiles ou de connexions à données limitées",
   "Setting_updates-driver-controls_Name": "Mises \u00e0 jour de pilotes via Windows Update",
   "Setting_updates-driver-controls_Description": "Inclure les mises \u00e0 jour de pilotes mat\u00e9riels lors du t\u00e9l\u00e9chargement et de l\u0027installation des mises \u00e0 jour Windows",
+  "Setting_updates-driver-coinstallers_Name": "Co-installateurs de pilotes",
+  "Setting_updates-driver-coinstallers_Description": "Permet aux fabricants de mat\u00e9riel d\u0027installer des logiciels compagnons avec les pilotes de p\u00e9riph\u00e9riques. La d\u00e9sactivation emp\u00eache les logiciels ind\u00e9sirables comme Razer Synapse, les utilitaires d\u0027imprimante et autres logiciels de fabricants d\u0027\u00eatre install\u00e9s automatiquement lorsque vous branchez des p\u00e9riph\u00e9riques. Votre mat\u00e9riel fonctionnera toujours normalement avec les pilotes standard.",
   "Setting_updates-store-auto-download_Name": "Mise à jour automatique des applications du Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Télécharger et installer automatiquement les mises à jour pour les applications du Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Chiffrement automatique BitLocker",

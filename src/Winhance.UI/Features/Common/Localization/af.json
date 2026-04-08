@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Laat Windows toe om opdaterings af te laai wanneer mobiele hotspots of data-beperkte verbindings gebruik word",
   "Setting_updates-driver-controls_Name": "Bestuurder-opdaterings via Windows Update",
   "Setting_updates-driver-controls_Description": "Sluit hardewarebestuurder-opdaterings in wanneer Windows Updates afgelaai en ge\u00efnstalleer word",
+  "Setting_updates-driver-coinstallers_Name": "Bestuurder-mede-installeerders",
+  "Setting_updates-driver-coinstallers_Description": "Laat hardewarevervaardigers toe om metgeselsagteware saam met toestelbestuurders te installeer. As dit gedeaktiveer word, word bloatware soos Razer Synapse, drukkernutsprogramme en ander vervaardigersagteware nie outomaties ge\u00efnstalleer wanneer u toestelle koppel nie. U hardeware sal steeds normaal werk met standaardbestuurders.",
   "Setting_updates-store-auto-download_Name": "Outo-opdateer Microsoft Store Toepassings",
   "Setting_updates-store-auto-download_Description": "Laai outomaties opdaterings vir toepassings van die Microsoft Store af en installeer dit",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker Outo-enkripsie",

@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Tillåt Windows att ladda ner uppdateringar när du använder mobila hotspots eller anslutningar med begränsad data",
   "Setting_updates-driver-controls_Name": "Drivrutinsuppdateringar via Windows Update",
   "Setting_updates-driver-controls_Description": "Inkludera uppdateringar f\u00f6r maskinvarudrivrutiner vid nedladdning och installation av Windows Update",
+  "Setting_updates-driver-coinstallers_Name": "Drivrutinsmedinstallerare",
+  "Setting_updates-driver-coinstallers_Description": "Till\u00e5ter maskinvarutillverkare att installera kompletterande programvara tillsammans med enhetsdrivrutiner. Inaktivering f\u00f6rhindrar att bloatware som Razer Synapse, skrivarverktyg och annan tillverkarprogramvara installeras automatiskt n\u00e4r du ansluter enheter. Din maskinvara kommer fortfarande att fungera normalt med standarddrivrutiner.",
   "Setting_updates-store-auto-download_Name": "Uppdatera Microsoft Store-appar automatiskt",
   "Setting_updates-store-auto-download_Description": "Ladda ner och installera automatiskt uppdateringar för appar från Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker Auto-kryptering",

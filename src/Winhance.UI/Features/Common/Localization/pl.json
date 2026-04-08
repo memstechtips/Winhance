@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Zezwalaj systemowi Windows na pobieranie aktualizacji podczas korzystania z mobilnych hotspotów lub połączeń z ograniczoną ilością danych",
   "Setting_updates-driver-controls_Name": "Aktualizacje sterownik\u00f3w przez Windows Update",
   "Setting_updates-driver-controls_Description": "Do\u0142\u0105czaj aktualizacje sterownik\u00f3w sprz\u0119tu podczas pobierania i instalowania aktualizacji Windows Update",
+  "Setting_updates-driver-coinstallers_Name": "Wsp\u00f3\u0142instalatory sterownik\u00f3w",
+  "Setting_updates-driver-coinstallers_Description": "Pozwala producentom sprz\u0119tu instalowa\u0107 oprogramowanie towarzysz\u0105ce wraz ze sterownikami urz\u0105dze\u0144. Wy\u0142\u0105czenie tego zapobiega automatycznej instalacji bloatware, takiego jak Razer Synapse, narz\u0119dzia drukarki i inne oprogramowanie producent\u00f3w podczas pod\u0142\u0105czania urz\u0105dze\u0144. Sprz\u0119t b\u0119dzie nadal dzia\u0142a\u0107 normalnie ze standardowymi sterownikami.",
   "Setting_updates-store-auto-download_Name": "Automatyczna aktualizacja aplikacji Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Automatycznie pobieraj i instaluj aktualizacje dla aplikacji z Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Automatyczne szyfrowanie BitLocker",

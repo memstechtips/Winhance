@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "मोबाइल हॉटस्पॉट या डेटा-सीमित कनेक्शन का उपयोग करते समय विंडोज को अपडेट डाउनलोड करने की अनुमति दें",
   "Setting_updates-driver-controls_Name": "Windows Update के माध्यम से ड्राइवर अपडेट",
   "Setting_updates-driver-controls_Description": "Windows अपडेट डाउनलोड और इंस्टॉल करते समय हार्डवेयर ड्राइवर अपडेट शामिल करें",
+  "Setting_updates-driver-coinstallers_Name": "ड्राइवर को-इंस्टॉलर",
+  "Setting_updates-driver-coinstallers_Description": "हार्डवेयर निर्माताओं को डिवाइस ड्राइवरों के साथ सहायक सॉफ्टवेयर इंस्टॉल करने की अनुमति देता है। इसे अक्षम करने से Razer Synapse, प्रिंटर यूटिलिटीज और अन्य निर्माता सॉफ्टवेयर जैसे ब्लोटवेयर को डिवाइस कनेक्ट करते समय स्वचालित रूप से इंस्टॉल होने से रोका जा सकता है। आपका हार्डवेयर मानक ड्राइवरों के साथ सामान्य रूप से काम करता रहेगा।",
   "Setting_updates-store-auto-download_Name": "माइक्रोसॉफ्ट स्टोर ऐप्स को ऑटो अपडेट करें",
   "Setting_updates-store-auto-download_Description": "माइक्रोसॉफ्ट स्टोर से ऐप्स के लिए अपडेट स्वचालित रूप से डाउनलोड और इंस्टॉल करें",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker स्वचालित एन्क्रिप्शन",

@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "モバイルホットスポットやデータ制限のある接続を使用しているときにWindowsがアップデートをダウンロードできるようにする",
   "Setting_updates-driver-controls_Name": "Windows Update経由のドライバー更新",
   "Setting_updates-driver-controls_Description": "Windows Updateのダウンロードとインストール時にハードウェアドライバーの更新を含めます",
+  "Setting_updates-driver-coinstallers_Name": "ドライバー共同インストーラー",
+  "Setting_updates-driver-coinstallers_Description": "ハードウェアメーカーがデバイスドライバーと一緒に付属ソフトウェアをインストールすることを許可します。無効にすると、Razer Synapse、プリンターユーティリティ、その他のメーカーソフトウェアなどのブロートウェアがデバイス接続時に自動インストールされなくなります。ハードウェアは標準ドライバーで正常に動作し続けます。",
   "Setting_updates-store-auto-download_Name": "Microsoft Storeアプリを自動更新",
   "Setting_updates-store-auto-download_Description": "Microsoft Storeのアプリのアップデートを自動的にダウンロードしてインストールする",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker自動暗号化",

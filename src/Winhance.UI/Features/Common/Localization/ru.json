@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Разрешить Windows загружать обновления при использовании мобильных точек доступа или подключений с ограниченным трафиком",
   "Setting_updates-driver-controls_Name": "Обновления драйверов через Windows Update",
   "Setting_updates-driver-controls_Description": "Включать обновления драйверов оборудования при загрузке и установке обновлений Windows Update",
+  "Setting_updates-driver-coinstallers_Name": "Совместные установщики драйверов",
+  "Setting_updates-driver-coinstallers_Description": "Позволяет производителям оборудования устанавливать сопутствующее программное обеспечение вместе с драйверами устройств. Отключение предотвращает автоматическую установку нежелательного ПО, такого как Razer Synapse, утилиты принтеров и другое ПО производителей при подключении устройств. Ваше оборудование продолжит нормально работать со стандартными драйверами.",
   "Setting_updates-store-auto-download_Name": "Автоматически обновлять приложения из Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Автоматически загружать и устанавливать обновления для приложений из Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Автоматическое шифрование BitLocker",

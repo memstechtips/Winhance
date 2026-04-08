@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Cho phép Windows tải xuống các bản cập nhật khi sử dụng điểm phát sóng di động hoặc kết nối có giới hạn dữ liệu",
   "Setting_updates-driver-controls_Name": "Cập nhật trình điều khiển qua Windows Update",
   "Setting_updates-driver-controls_Description": "Bao gồm bản cập nhật trình điều khiển phần cứng khi tải xuống và cài đặt Windows Update",
+  "Setting_updates-driver-coinstallers_Name": "Trình đồng cài đặt trình điều khiển",
+  "Setting_updates-driver-coinstallers_Description": "Cho phép nhà sản xuất phần cứng cài đặt phần mềm đi kèm cùng với trình điều khiển thiết bị. Vô hiệu hóa tính năng này ngăn chặn việc cài đặt tự động các phần mềm không mong muốn như Razer Synapse, tiện ích máy in và phần mềm khác của nhà sản xuất khi bạn kết nối thiết bị. Phần cứng của bạn vẫn hoạt động bình thường với trình điều khiển tiêu chuẩn.",
   "Setting_updates-store-auto-download_Name": "Tự động cập nhật ứng dụng Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Tự động tải xuống và cài đặt các bản cập nhật cho các ứng dụng từ Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Mã hóa tự động BitLocker",

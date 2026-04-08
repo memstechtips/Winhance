@@ -543,6 +543,8 @@
   "Setting_updates-metered-connection_Description": "모바일 핫스팟 또는 데이터 제한 연결을 사용할 때 Windows가 업데이트를 다운로드하도록 허용합니다",
   "Setting_updates-driver-controls_Name": "Windows Update를 통한 드라이버 업데이트",
   "Setting_updates-driver-controls_Description": "Windows Update를 다운로드하고 설치할 때 하드웨어 드라이버 업데이트를 포함합니다",
+  "Setting_updates-driver-coinstallers_Name": "드라이버 공동 설치 프로그램",
+  "Setting_updates-driver-coinstallers_Description": "하드웨어 제조업체가 장치 드라이버와 함께 동반 소프트웨어를 설치할 수 있도록 허용합니다. 비활성화하면 Razer Synapse, 프린터 유틸리티 및 기타 제조업체 소프트웨어와 같은 블로트웨어가 장치 연결 시 자동으로 설치되지 않습니다. 하드웨어는 표준 드라이버로 정상적으로 작동합니다.",
   "Setting_updates-store-auto-download_Name": "Microsoft Store 앱 자동 업데이트",
   "Setting_updates-store-auto-download_Description": "Microsoft Store의 앱 업데이트를 자동으로 다운로드하고 설치합니다",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker 자동 암호화",

@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "允许 Windows 在使用移动热点或数据受限的连接时下载更新",
   "Setting_updates-driver-controls_Name": "通过 Windows 更新安装驱动程序",
   "Setting_updates-driver-controls_Description": "在下载和安装 Windows 更新时包含硬件驱动程序更新",
+  "Setting_updates-driver-coinstallers_Name": "驱动程序协同安装程序",
+  "Setting_updates-driver-coinstallers_Description": "允许硬件制造商在安装设备驱动程序时同时安装配套软件。禁用此项可防止在连接设备时自动安装 Razer Synapse、打印机实用程序和其他制造商软件等臃肿软件。您的硬件将继续使用标准驱动程序正常工作。",
   "Setting_updates-store-auto-download_Name": "自动更新 Microsoft Store 应用",
   "Setting_updates-store-auto-download_Description": "自动下载和安装来自 Microsoft Store 的应用更新",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker 自动加密",

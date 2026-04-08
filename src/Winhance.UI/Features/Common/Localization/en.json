@@ -543,6 +543,8 @@
   "Setting_updates-metered-connection_Description": "Allow Windows to download updates when using mobile hotspots or data-limited connections",
   "Setting_updates-driver-controls_Name": "Driver Updates via Windows Update",
   "Setting_updates-driver-controls_Description": "Include hardware driver updates when downloading and installing Windows Updates",
+  "Setting_updates-driver-coinstallers_Name": "Driver Co-Installers",
+  "Setting_updates-driver-coinstallers_Description": "Allows hardware vendors to install companion software alongside device drivers. Disabling this prevents bloatware like Razer Synapse, printer utilities, and other vendor software from being automatically installed when you plug in devices. Your hardware will still work normally with standard drivers.",
   "Setting_updates-store-auto-download_Name": "Auto Update Microsoft Store Apps",
   "Setting_updates-store-auto-download_Description": "Automatically download and install updates for apps from the Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker Auto Encryption",

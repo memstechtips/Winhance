@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Permitir que o Windows baixe atualizações ao usar hotspots móveis ou conexões com dados limitados",
   "Setting_updates-driver-controls_Name": "Atualiza\u00e7\u00f5es de drivers via Windows Update",
   "Setting_updates-driver-controls_Description": "Incluir atualiza\u00e7\u00f5es de drivers de hardware ao baixar e instalar atualiza\u00e7\u00f5es do Windows Update",
+  "Setting_updates-driver-coinstallers_Name": "Co-instaladores de drivers",
+  "Setting_updates-driver-coinstallers_Description": "Permite que fabricantes de hardware instalem software complementar junto com os drivers de dispositivos. Desativar isso impede que bloatware como Razer Synapse, utilit\u00e1rios de impressora e outros softwares de fabricantes sejam instalados automaticamente ao conectar dispositivos. Seu hardware continuar\u00e1 funcionando normalmente com os drivers padr\u00e3o.",
   "Setting_updates-store-auto-download_Name": "Atualizar Automaticamente Aplicativos da Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Baixar e instalar automaticamente atualizações para aplicativos da Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Criptografia autom\u00e1tica do BitLocker",

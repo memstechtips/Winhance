@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Sta Windows toe updates te downloaden bij gebruik van mobiele hotspots of verbindingen met datalimiet",
   "Setting_updates-driver-controls_Name": "Stuurprogramma-updates via Windows Update",
   "Setting_updates-driver-controls_Description": "Hardware-stuurprogramma-updates opnemen bij het downloaden en installeren van Windows Updates",
+  "Setting_updates-driver-coinstallers_Name": "Driver co-installatieprogramma\u0027s",
+  "Setting_updates-driver-coinstallers_Description": "Staat hardwarefabrikanten toe om begeleidende software samen met apparaatstuurprogramma\u0027s te installeren. Het uitschakelen hiervan voorkomt dat bloatware zoals Razer Synapse, printertools en andere fabrikantsoftware automatisch wordt ge\u00efnstalleerd wanneer u apparaten aansluit. Uw hardware blijft normaal werken met standaard stuurprogramma\u0027s.",
   "Setting_updates-store-auto-download_Name": "Microsoft Store Apps automatisch updaten",
   "Setting_updates-store-auto-download_Description": "Download en installeer updates voor apps uit de Microsoft Store automatisch",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker Automatische Versleuteling",

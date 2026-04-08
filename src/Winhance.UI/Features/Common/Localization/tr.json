@@ -543,6 +543,8 @@
   "Setting_updates-metered-connection_Description": "Mobil erişim noktaları veya veri sınırlı bağlantılar kullanırken Windows'un güncellemeleri indirmesine izin ver",
   "Setting_updates-driver-controls_Name": "Windows Update \u00dczerinden S\u00fcr\u00fcc\u00fc G\u00fcncellemeleri",
   "Setting_updates-driver-controls_Description": "Windows Güncellemeleri indirilirken ve yüklenirken donanım sürücü güncellemelerini dahil edin",
+  "Setting_updates-driver-coinstallers_Name": "Sürücü ortak yükleyicileri",
+  "Setting_updates-driver-coinstallers_Description": "Donanım üreticilerinin aygıt sürücüleriyle birlikte yardımcı yazılım yüklemesine izin verir. Devre dışı bırakıldığında Razer Synapse, yazıcı araçları ve diğer üretici yazılımları gibi gereksiz yazılımların aygıt bağlandığında otomatik olarak yüklenmesi engellenir. Donanımınız standart sürücülerle normal çalışmaya devam edecektir.",
   "Setting_updates-store-auto-download_Name": "Microsoft Store Uygulamalarını Otomatik Güncelle",
   "Setting_updates-store-auto-download_Description": "Microsoft Store'daki uygulamalar için güncellemeleri otomatik olarak indir ve yükle",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker Otomatik \u015eifreleme",

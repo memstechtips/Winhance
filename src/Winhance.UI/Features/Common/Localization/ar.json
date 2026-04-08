@@ -491,6 +491,8 @@
     "Setting_updates-metered-connection_Description": "السماح لـ Windows بتنزيل التحديثات عند استخدام نقاط اتصال الهاتف أو الاتصالات محدودة البيانات",
     "Setting_updates-driver-controls_Name": "تحديثات برامج التشغيل عبر Windows Update",
     "Setting_updates-driver-controls_Description": "تضمين تحديثات برامج تشغيل الأجهزة عند تنزيل وتثبيت تحديثات Windows",
+    "Setting_updates-driver-coinstallers_Name": "مثبّتات برامج التشغيل المرافقة",
+    "Setting_updates-driver-coinstallers_Description": "يسمح لمصنّعي الأجهزة بتثبيت برامج مرافقة مع برامج تشغيل الأجهزة. تعطيل هذا يمنع البرامج غير المرغوبة مثل Razer Synapse وأدوات الطابعة وبرامج المصنّعين الأخرى من التثبيت تلقائيًا عند توصيل الأجهزة. ستظل أجهزتك تعمل بشكل طبيعي مع برامج التشغيل القياسية.",
     "Setting_updates-store-auto-download_Name": "تحديث تطبيقات Microsoft Store تلقائيًا",
     "Setting_updates-store-auto-download_Description": "تنزيل وتثبيت تحديثات التطبيقات من Microsoft Store تلقائيًا",
     "Setting_security-bitlocker-auto-encryption_Name": "التشفير التلقائي لـ BitLocker",

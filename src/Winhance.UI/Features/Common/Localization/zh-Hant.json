@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "允許 Windows 在使用行動熱點或有流量限制的連線時下載更新",
   "Setting_updates-driver-controls_Name": "透過 Windows 更新安裝驅動程式",
   "Setting_updates-driver-controls_Description": "在下載和安裝 Windows 更新時包含硬體驅動程式更新",
+  "Setting_updates-driver-coinstallers_Name": "驅動程式協同安裝程式",
+  "Setting_updates-driver-coinstallers_Description": "允許硬體製造商在安裝裝置驅動程式時同時安裝配套軟體。停用此項可防止在連接裝置時自動安裝 Razer Synapse、印表機公用程式和其他製造商軟體等臃腫軟體。您的硬體將繼續使用標準驅動程式正常運作。",
   "Setting_updates-store-auto-download_Name": "自動更新 Microsoft Store 應用程式",
   "Setting_updates-store-auto-download_Description": "自動下載並安裝 Microsoft Store 應用程式的更新",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker 自動加密",

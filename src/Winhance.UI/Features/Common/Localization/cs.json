@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Povolit Windows stahovat aktualizace při použití mobilních hotspotů nebo připojení s omezenými daty",
   "Setting_updates-driver-controls_Name": "Aktualizace ovlada\u010d\u016f p\u0159es Windows Update",
   "Setting_updates-driver-controls_Description": "Zahrnout aktualizace hardwarov\u00fdch ovlada\u010d\u016f p\u0159i stahov\u00e1n\u00ed a instalaci aktualizac\u00ed Windows",
+  "Setting_updates-driver-coinstallers_Name": "Spoluinstal\u00e1tory ovlada\u010d\u016f",
+  "Setting_updates-driver-coinstallers_Description": "Umo\u017e\u0148uje v\u00fdrobc\u016fm hardwaru instalovat doprovodn\u00fd software spolu s ovlada\u010di za\u0159\u00edzen\u00ed. Deaktivace zabr\u00e1n\u00ed automatick\u00e9 instalaci bloatwaru jako Razer Synapse, tisk\u00e1rnov\u00fdch n\u00e1stroj\u016f a dal\u0161\u00edho softwaru v\u00fdrobc\u016f p\u0159i p\u0159ipojen\u00ed za\u0159\u00edzen\u00ed. V\u00e1\u0161 hardware bude nad\u00e1le fungovat norm\u00e1ln\u011b se standardn\u00edmi ovlada\u010di.",
   "Setting_updates-store-auto-download_Name": "Automaticky aktualizovat aplikace z Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Automaticky stahovat a instalovat aktualizace pro aplikace z Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Automatick\u00e9 \u0161ifrov\u00e1n\u00ed BitLocker",

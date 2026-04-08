@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Leisti Windows atsisiųsti naujinimus naudojant mobiliuosius viešosios interneto prieigos taškus arba duomenų ribojamus ryšius",
   "Setting_updates-driver-controls_Name": "Tvarkyklių naujinimai per Windows Update",
   "Setting_updates-driver-controls_Description": "\u012etraukti aparat\u016brin\u0117s \u012frangos tvarkykli\u0173 naujinimus atsisiun\u010diant ir diegiant Windows naujinimus",
+  "Setting_updates-driver-coinstallers_Name": "Tvarkykli\u0173 bendrainstaliatoriami",
+  "Setting_updates-driver-coinstallers_Description": "Leid\u017eia aparat\u016bros gamintojams \u012fdiegti papildom\u0105 programin\u0119 \u012frang\u0105 kartu su \u012frenginių tvarkykl\u0117mis. I\u0161jungus tai neleid\u017eia automati\u0161kai \u012fdiegti nepageidaujamos programin\u0117s \u012frangos, tokios kaip Razer Synapse, spausdintuvo \u012frankiai ir kita gamintoj\u0173 programin\u0117 \u012franga prijungiant \u012frenginius. J\u016bs\u0173 aparat\u016bra ir toliau veiks normaliai su standartiniais tvarkykl\u0117mis.",
   "Setting_updates-store-auto-download_Name": "Automatiškai atnaujinti Microsoft parduotuvės programas",
   "Setting_updates-store-auto-download_Description": "Automatiškai atsisiųsti ir įdiegti programų naujinimus iš Microsoft parduotuvės",
   "Setting_security-bitlocker-auto-encryption_Name": "Automatinis BitLocker šifravimas",

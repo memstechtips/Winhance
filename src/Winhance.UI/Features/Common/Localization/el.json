@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Να επιτρέπεται στα Windows να κατεβάζουν ενημερώσεις κατά τη χρήση hotspot κινητής τηλεφωνίας ή συνδέσεων με περιορισμό δεδομένων",
   "Setting_updates-driver-controls_Name": "Ενημερώσεις Προγραμμάτων Οδήγησης μέσω Windows Update",
   "Setting_updates-driver-controls_Description": "Συμπερίληψη ενημερώσεων προγραμμάτων οδήγησης υλικού κατά τη λήψη και εγκατάσταση ενημερώσεων Windows",
+  "Setting_updates-driver-coinstallers_Name": "Συν-εγκαταστάτες οδηγών",
+  "Setting_updates-driver-coinstallers_Description": "Επιτρέπει στους κατασκευαστές υλικού να εγκαθιστούν συνοδευτικό λογισμικό μαζί με τα προγράμματα οδήγησης συσκευών. Η απενεργοποίηση αποτρέπει την αυτόματη εγκατάσταση ανεπιθύμητου λογισμικού όπως το Razer Synapse, βοηθητικά προγράμματα εκτυπωτή και άλλο λογισμικό κατασκευαστών κατά τη σύνδεση συσκευών. Το υλικό σας θα συνεχίσει να λειτουργεί κανονικά με τα τυπικά προγράμματα οδήγησης.",
   "Setting_updates-store-auto-download_Name": "Αυτόματη Ενημέρωση Εφαρμογών Microsoft Store",
   "Setting_updates-store-auto-download_Description": "Αυτόματη λήψη και εγκατάσταση ενημερώσεων για εφαρμογές από το Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "Αυτόματη Κρυπτογράφηση BitLocker",

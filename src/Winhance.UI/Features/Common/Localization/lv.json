@@ -508,6 +508,8 @@
   "Setting_updates-metered-connection_Description": "Atļaut Windows lejupielādēt atjauninājumus, izmantojot mobilos tīklājus vai datu ierobežotus savienojumus",
   "Setting_updates-driver-controls_Name": "Draiveru atjauninājumi caur Windows Update",
   "Setting_updates-driver-controls_Description": "Iek\u013caut aparat\u016bras draiveru atjaunin\u0101jumus, lejupiel\u0101d\u0113jot un instal\u0113jot Windows atjaunin\u0101jumus",
+  "Setting_updates-driver-coinstallers_Name": "Draiveru l\u012bdzinstal\u0113t\u0101ji",
+  "Setting_updates-driver-coinstallers_Description": "\u013bauj aparat\u016bras ra\u017eot\u0101jiem instal\u0113t papildu programmat\u016bru kop\u0101 ar ier\u012b\u010du draiveriem. Atsp\u0113jo\u0161ana ne\u013cauj autom\u0101tiski instal\u0113t nev\u0113lamu programmat\u016bru, piem\u0113ram, Razer Synapse, printera util\u012btprogrammas un citu ra\u017eot\u0101ju programmat\u016bru, pievienojot ier\u012bces. J\u016bsu aparat\u016bra turpin\u0101s darboties norm\u0101li ar standarta draiveriem.",
   "Setting_updates-store-auto-download_Name": "Automātiski atjaunināt Microsoft Store lietotnes",
   "Setting_updates-store-auto-download_Description": "Automātiski lejupielādēt un instalēt atjauninājumus lietotnēm no Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "BitLocker automātiskā šifrēšana",
