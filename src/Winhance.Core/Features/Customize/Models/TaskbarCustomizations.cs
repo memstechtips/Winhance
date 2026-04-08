@@ -213,7 +213,7 @@ public static class TaskbarCustomizations
                 {
                     Id = "taskbar-system-tray-icons",
                     Name = "Always show all system tray icons",
-                    Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu (up arrow)",
+                    Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. To control individual icon visibility, go to Taskbar Settings and select which icons appear on the taskbar",
                     GroupName = "System Tray",
                     InputType = InputType.Toggle,
                     Icon = "TrayFull",
@@ -230,6 +230,40 @@ public static class TaskbarCustomizations
                             DisabledValue = [1],
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "taskbar-system-tray-icons-11",
+                    Name = "Always show all system tray icons",
+                    Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. When disabled, all icons will be hidden in the overflow menu. To control individual icon visibility, go to Windows Settings > Personalization > Taskbar > Other system tray icons",
+                    GroupName = "System Tray",
+                    InputType = InputType.Toggle,
+                    Icon = "TrayFull",
+                    IsWindows11Only = true,
+                    AddedInVersion = "25.04.08",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify",
+                            ValueName = "SystemTrayChevronVisibility",
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }",
+                            DisabledScript = @"Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 0 -Type DWord }",
+                            RequiresElevation = false,
                         },
                     },
                 },

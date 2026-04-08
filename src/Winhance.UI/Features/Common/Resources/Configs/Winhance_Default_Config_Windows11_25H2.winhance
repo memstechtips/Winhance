@@ -742,6 +742,12 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "taskbar-system-tray-icons-11",
+            "Name": "Always show all system tray icons",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "taskbar-task-view",
             "Name": "Show Task View button",
             "IsSelected": true,

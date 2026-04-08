@@ -991,6 +991,12 @@
             "InputType": 0
           },
           {
+            "Id": "taskbar-system-tray-icons-11",
+            "Name": "Always show all system tray icons",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "taskbar-task-view",
             "Name": "Show Task View button",
             "IsSelected": false,
