@@ -355,6 +355,560 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- Template for parent settings that have children - renders as SettingsExpander -->
+    <DataTemplate x:Key="SettingExpanderItemTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Margin="0,0,0,2">
+            <!-- Parent setting card with expand/collapse chevron -->
+            <Grid>
+                <controls:SettingsCard
+                    Description="{x:Bind Description}"
+                    IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
+                    IsClickEnabled="True"
+                    Click="{x:Bind ToggleExpander}"
+                    IsTabStop="False"
+                    AutomationProperties.LocalizedControlType="setting"
+                    HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    CornerRadius="4,4,0,0"
+                    Padding="{StaticResource SettingsCardPadding}">
+                    <!-- Hide the built-in > action icon that appears with IsClickEnabled -->
+                    <controls:SettingsCard.Resources>
+                        <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                        <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                    </controls:SettingsCard.Resources>
+
+                    <controls:SettingsCard.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
+                            <Button
+                                Visibility="{x:Bind IsNew, Mode=OneWay}"
+                                Command="{x:Bind DismissNewBadgeCommand}"
+                                Padding="5,1"
+                                MinHeight="0"
+                                MinWidth="0"
+                                CornerRadius="3"
+                                BorderThickness="0"
+                                Background="#E81123"
+                                ToolTipService.ToolTip="{x:Bind NewBadgeDismissTooltip}"
+                                VerticalAlignment="Center">
+                                <Button.Resources>
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Light">
+                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Black"/>
+                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="Black"/>
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="White"/>
+                                            </ResourceDictionary>
+                                        </ResourceDictionary.ThemeDictionaries>
+                                        <SolidColorBrush x:Key="ButtonForeground" Color="White"/>
+                                    </ResourceDictionary>
+                                </Button.Resources>
+                                <TextBlock
+                                    Text="{x:Bind NewBadgeText}"
+                                    FontSize="10"
+                                    FontWeight="SemiBold"/>
+                            </Button>
+                        </StackPanel>
+                    </controls:SettingsCard.Header>
+
+                    <!-- Parent's input control + expand/collapse chevron -->
+                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
+                            AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
+                        <Grid Width="20" Height="20">
+                            <FontIcon Glyph="&#xE70E;" FontSize="16"
+                                      Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            <FontIcon Glyph="&#xE70D;" FontSize="16"
+                                      Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                      Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
+
+                </controls:SettingsCard>
+
+                <!-- Applying overlay with spinner -->
+                <Border
+                    Visibility="{x:Bind IsApplying, Mode=OneWay}"
+                    Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                    CornerRadius="4">
+                    <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
+                </Border>
+
+                <!-- Lock overlay covering entire SettingsExpander -->
+                <Grid Visibility="{x:Bind IsLocked, Mode=OneWay}">
+                    <Grid.Transitions>
+                        <TransitionCollection>
+                            <AddDeleteThemeTransition/>
+                        </TransitionCollection>
+                    </Grid.Transitions>
+                    <!-- Semi-transparent background layer -->
+                    <Border
+                        Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                        CornerRadius="4"/>
+                    <!-- Button layer with full opacity -->
+                    <Button
+                        Command="{x:Bind UnlockCommand}"
+                        AutomationProperties.Name="{x:Bind ClickToUnlockText}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="12,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Viewbox Width="16" Height="16">
+                                <Path
+                                    Data="{StaticResource PrivacyIconPath}"
+                                    Fill="#FFA500"
+                                    Stretch="Uniform"/>
+                            </Viewbox>
+                            <TextBlock
+                                Text="{x:Bind ClickToUnlockText}"
+                                VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Grid>
+
+            <!-- Technical Details toggle button -->
+            <Border Visibility="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1,0,1,1"
+                    CornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
+                    Margin="0,-1,0,0">
+                <Button
+                    Click="{x:Bind ToggleTechnicalDetails}"
+                    AutomationProperties.Name="{x:Bind TechnicalDetailsLabel}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Padding="10,4"
+                    Background="Transparent"
+                    BorderThickness="0">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <FontIcon Grid.Column="0" Glyph="&#xE946;" FontSize="12" Margin="0,0,6,0"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Column="1" Text="{x:Bind TechnicalDetailsLabel}" FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <FontIcon Grid.Column="2" Glyph="&#xE70D;" FontSize="9"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                        <FontIcon Grid.Column="2" Glyph="&#xE70E;" FontSize="9"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"/>
+                    </Grid>
+                </Button>
+            </Border>
+
+            <!-- Technical Details expandable content -->
+            <Border Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
+                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1,0,1,1"
+                    CornerRadius="0,0,4,4"
+                    Padding="12,6"
+                    Margin="0,0,0,0">
+                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetails, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="6"/>
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:TechnicalDetailRow">
+                            <ContentControl IsTabStop="True"
+                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
+                                            AutomationProperties.LocalizedControlType="detail"
+                                            HorizontalContentAlignment="Stretch">
+                            <Grid>
+                                <!-- Registry row -->
+                                <Grid Visibility="{x:Bind IsRegistry}"
+                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
+                                            CommandParameter="{x:Bind RegistryPath}"
+                                            IsEnabled="{x:Bind CanOpenRegedit}"
+                                            ToolTipService.ToolTip="Open in Registry Editor"
+                                            AutomationProperties.Name="{x:Bind RegistryPath}"
+                                            Padding="4" Margin="0,0,8,0"
+                                            Background="Transparent" BorderThickness="0"
+                                            VerticalAlignment="Center">
+                                        <Grid Width="16" Height="16">
+                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
+                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
+                                        </Grid>
+                                    </Button>
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
+                                        </TextBlock>
+                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                   IsTextSelectionEnabled="True">
+                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
+                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                   IsTextSelectionEnabled="True">
+                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
+                                        </TextBlock>
+                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                   IsTextSelectionEnabled="True">
+                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
+                                        </TextBlock>
+                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                   IsTextSelectionEnabled="True">
+                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- ScheduledTask row -->
+                                <StackPanel Visibility="{x:Bind IsScheduledTask}"
+                                            Orientation="Horizontal" Spacing="8" Padding="4,4">
+                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
+                                        <Run FontWeight="SemiBold" Text="TaskPath: "/><Run Text="{x:Bind TaskPath}"/>
+                                    </TextBlock>
+                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
+                                        <Run FontWeight="SemiBold" Text="Recommended: "/><Run Text="{x:Bind RecommendedState}"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <!-- PowerConfig row -->
+                                <StackPanel Visibility="{x:Bind IsPowerConfig}"
+                                            Spacing="2" Padding="4,4">
+                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
+                                        <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                        <Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}"/><Run Text=")"/>
+                                    </TextBlock>
+                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                               IsTextSelectionEnabled="True">
+                                        <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                        <Run Text=" ("/><Run Text="{x:Bind SettingGuid}"/><Run Text=")"/>
+                                        <Run Text="  AC: "/><Run Text="{x:Bind RecommendedAC}"/>
+                                        <Run Text="  DC: "/><Run Text="{x:Bind RecommendedDC}"/>
+                                        <Run Text="  "/><Run Text="{x:Bind PowerUnits}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                            </ContentControl>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Border>
+
+            <!-- Status banner -->
+            <Border Visibility="{x:Bind HasStatusBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <commonControls:QuietInfoBar
+                    IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
+                    Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
+                    Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
+                    IsClosable="False"
+                    IsTabStop="True"
+                    UseSystemFocusVisuals="True"
+                    Margin="0,-1,0,0"
+                    CornerRadius="0,0,4,4"/>
+            </Border>
+
+            <!-- Review mode diff banner -->
+            <Border Visibility="{x:Bind HasReviewDiff, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <InfoBar
+                    IsOpen="{x:Bind HasReviewDiff, Mode=OneWay}"
+                    Severity="Warning"
+                    IsClosable="False"
+                    AutomationProperties.LiveSetting="Off"
+                    Margin="0,-1,0,0"
+                    CornerRadius="0,0,4,4">
+                    <InfoBar.Content>
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="{x:Bind ReviewDiffMessage, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="1"
+                                Content="Apply"
+                                GroupName="{x:Bind SettingId}"
+                                IsChecked="{x:Bind IsReviewApproved, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="2"
+                                Content="Don't apply"
+                                GroupName="{x:Bind SettingId}"
+                                IsChecked="{x:Bind IsReviewRejected, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                        </Grid>
+                    </InfoBar.Content>
+                </InfoBar>
+            </Border>
+
+            <!-- Review mode action banner -->
+            <Border Visibility="{x:Bind HasReviewAction, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <InfoBar
+                    IsOpen="{x:Bind HasReviewAction, Mode=OneWay}"
+                    Severity="Warning"
+                    IsClosable="False"
+                    AutomationProperties.LiveSetting="Off"
+                    Margin="0,-1,0,0"
+                    CornerRadius="0,0,4,4">
+                    <InfoBar.Content>
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="{x:Bind ReviewActionMessage, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="1"
+                                Content="Apply"
+                                GroupName="{x:Bind ReviewActionGroupName}"
+                                IsChecked="{x:Bind IsReviewActionApproved, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="2"
+                                Content="Don't apply"
+                                GroupName="{x:Bind ReviewActionGroupName}"
+                                IsChecked="{x:Bind IsReviewActionRejected, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                        </Grid>
+                    </InfoBar.Content>
+                </InfoBar>
+            </Border>
+
+            <!-- Children rendered below the expander with full template support (tech details, banners) -->
+            <ItemsRepeater ItemsSource="{x:Bind Children}"
+                           Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Spacing="0"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:SettingItemViewModel">
+                        <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <controls:SettingsCard
+                                    Description="{x:Bind Description}"
+                                    IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
+                                    IsTabStop="False"
+                                    AutomationProperties.LocalizedControlType="setting"
+                                    HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
+                                    CornerRadius="{x:Bind ChildCornerRadius, Mode=OneWay}"
+                                    BorderThickness="1,0,1,1"
+                                    Padding="54,12,52,12">
+                                    <controls:SettingsCard.Header>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
+                                            <Button
+                                                Visibility="{x:Bind IsNew, Mode=OneWay}"
+                                                Command="{x:Bind DismissNewBadgeCommand}"
+                                                Padding="5,1"
+                                                MinHeight="0"
+                                                MinWidth="0"
+                                                CornerRadius="3"
+                                                BorderThickness="0"
+                                                Background="#E81123"
+                                                ToolTipService.ToolTip="{x:Bind NewBadgeDismissTooltip}"
+                                                VerticalAlignment="Center">
+                                                <Button.Resources>
+                                                    <ResourceDictionary>
+                                                        <ResourceDictionary.ThemeDictionaries>
+                                                            <ResourceDictionary x:Key="Light">
+                                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Black"/>
+                                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="Black"/>
+                                                            </ResourceDictionary>
+                                                            <ResourceDictionary x:Key="Dark">
+                                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White"/>
+                                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="White"/>
+                                                            </ResourceDictionary>
+                                                        </ResourceDictionary.ThemeDictionaries>
+                                                        <SolidColorBrush x:Key="ButtonForeground" Color="White"/>
+                                                    </ResourceDictionary>
+                                                </Button.Resources>
+                                                <TextBlock
+                                                    Text="{x:Bind NewBadgeText}"
+                                                    FontSize="10"
+                                                    FontWeight="SemiBold"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </controls:SettingsCard.Header>
+                                    <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
+                                        AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
+                                </controls:SettingsCard>
+
+                                <!-- Applying overlay -->
+                                <Border
+                                    Visibility="{x:Bind IsApplying, Mode=OneWay}"
+                                    Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                                    CornerRadius="4">
+                                    <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
+                                </Border>
+                            </Grid>
+
+                            <!-- Technical Details toggle button -->
+                            <Border Visibility="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1,0,1,1"
+                                    CornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
+                                    Margin="0,-1,0,0">
+                                <Button
+                                    Click="{x:Bind ToggleTechnicalDetails}"
+                                    AutomationProperties.Name="{x:Bind TechnicalDetailsLabel}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    Padding="10,4"
+                                    Background="Transparent"
+                                    BorderThickness="0">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <FontIcon Grid.Column="0" Glyph="&#xE946;" FontSize="12" Margin="0,0,6,0"
+                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="{x:Bind TechnicalDetailsLabel}" FontSize="11"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <FontIcon Grid.Column="2" Glyph="&#xE70D;" FontSize="9"
+                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                        <FontIcon Grid.Column="2" Glyph="&#xE70E;" FontSize="9"
+                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"/>
+                                    </Grid>
+                                </Button>
+                            </Border>
+
+                            <!-- Technical Details expandable content -->
+                            <Border Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
+                                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1,0,1,1"
+                                    CornerRadius="0,0,4,4"
+                                    Padding="12,6"
+                                    Margin="0,0,0,0">
+                                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetails, Mode=OneWay}">
+                                    <ItemsRepeater.Layout>
+                                        <StackLayout Spacing="6"/>
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
+                                            <ContentControl IsTabStop="True"
+                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
+                                                            AutomationProperties.LocalizedControlType="detail"
+                                                            HorizontalContentAlignment="Stretch">
+                                            <Grid>
+                                                <Grid Visibility="{x:Bind IsRegistry}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
+                                                            CommandParameter="{x:Bind RegistryPath}"
+                                                            IsEnabled="{x:Bind CanOpenRegedit}"
+                                                            ToolTipService.ToolTip="Open in Registry Editor"
+                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
+                                                            Padding="4" Margin="0,0,8,0"
+                                                            Background="Transparent" BorderThickness="0"
+                                                            VerticalAlignment="Center">
+                                                        <Grid Width="16" Height="16">
+                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
+                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
+                                                        </Grid>
+                                                    </Button>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
+                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <StackPanel Visibility="{x:Bind IsScheduledTask}"
+                                                            Orientation="Horizontal" Spacing="8" Padding="4,4">
+                                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
+                                                        <Run FontWeight="SemiBold" Text="TaskPath: "/><Run Text="{x:Bind TaskPath}"/>
+                                                    </TextBlock>
+                                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
+                                                        <Run FontWeight="SemiBold" Text="Recommended: "/><Run Text="{x:Bind RecommendedState}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <StackPanel Visibility="{x:Bind IsPowerConfig}"
+                                                            Spacing="2" Padding="4,4">
+                                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
+                                                        <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                        <Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}"/><Run Text=")"/>
+                                                    </TextBlock>
+                                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                                               IsTextSelectionEnabled="True">
+                                                        <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                        <Run Text=" ("/><Run Text="{x:Bind SettingGuid}"/><Run Text=")"/>
+                                                        <Run Text="  AC: "/><Run Text="{x:Bind RecommendedAC}"/>
+                                                        <Run Text="  DC: "/><Run Text="{x:Bind RecommendedDC}"/>
+                                                        <Run Text="  "/><Run Text="{x:Bind PowerUnits}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                            </ContentControl>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </Border>
+
+                            <!-- Status banner -->
+                            <Border Visibility="{x:Bind HasStatusBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Margin="0,0,0,8">
+                                <commonControls:QuietInfoBar
+                                    IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
+                                    Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
+                                    Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
+                                    IsClosable="False"
+                                    IsTabStop="True"
+                                    UseSystemFocusVisuals="True"
+                                    Margin="0,-1,0,0"
+                                    CornerRadius="0,0,4,4"/>
+                            </Border>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </StackPanel>
+    </DataTemplate>
+
     <!-- ListViewItem container style for settings lists - removes default padding/margins -->
     <Style x:Key="SettingsListViewItemContainerStyle" TargetType="ListViewItem">
         <Setter Property="Padding" Value="0"/>

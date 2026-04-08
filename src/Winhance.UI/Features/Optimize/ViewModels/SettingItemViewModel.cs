@@ -325,6 +325,25 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsActionType => InputType == InputType.Action;
     public bool IsCheckBoxType => InputType == InputType.CheckBox;
     public bool IsSubSetting => !string.IsNullOrEmpty(SettingDefinition?.ParentSettingId);
+
+    [ObservableProperty]
+    public partial ObservableCollection<SettingItemViewModel>? Children { get; set; }
+
+    public bool IsParentSetting => Children != null && Children.Count > 0;
+
+    [ObservableProperty]
+    public partial bool IsExpanderExpanded { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IsLastChild { get; set; }
+
+    public Microsoft.UI.Xaml.CornerRadius ChildCornerRadius =>
+        IsLastChild ? new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4) : new Microsoft.UI.Xaml.CornerRadius(0);
+
+    partial void OnIsLastChildChanged(bool value) => OnPropertyChanged(nameof(ChildCornerRadius));
+
+    public void ToggleExpander(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => IsExpanderExpanded = !IsExpanderExpanded;
+
     public bool IsPowerPlanSetting => InputType == InputType.Selection &&
         SettingDefinition?.Recommendation?.LoadDynamicOptions == true;
 

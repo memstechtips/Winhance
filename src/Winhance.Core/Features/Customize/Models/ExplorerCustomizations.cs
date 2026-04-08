@@ -1419,6 +1419,17 @@ if (Test-Path $appPathsKey) {
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
                     Icon = "FolderMultiple",
+                    RestartProcess = "Explorer",
+                    AutoEnableSettingIds = new List<string>
+                    {
+                        "explorer-customization-nav-saf-desktop",
+                        "explorer-customization-nav-saf-documents",
+                        "explorer-customization-nav-saf-downloads",
+                        "explorer-customization-nav-saf-libraries",
+                        "explorer-customization-nav-saf-music",
+                        "explorer-customization-nav-saf-pictures",
+                        "explorer-customization-nav-saf-videos",
+                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1435,12 +1446,314 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-nav-saf-desktop",
+                    Name = "Show Desktop folder",
+                    Description = "Shows the Desktop folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Monitor",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-desktop",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-documents",
+                    Name = "Show Documents folder",
+                    Description = "Shows the Documents folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "FileDocument",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-documents",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-downloads",
+                    Name = "Show Downloads folder",
+                    Description = "Shows the Downloads folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Download",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-downloads",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{374DE290-123F-4565-9164-39C4925E467B}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{374DE290-123F-4565-9164-39C4925E467B}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-libraries",
+                    Name = "Show Libraries",
+                    Description = "Shows the Libraries folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Bookshelf",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-libraries",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-music",
+                    Name = "Show Music folder",
+                    Description = "Shows the Music folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Music",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-music",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-pictures",
+                    Name = "Show Pictures folder",
+                    Description = "Shows the Pictures folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Image",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-pictures",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-videos",
+                    Name = "Show Videos folder",
+                    Description = "Shows the Videos folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Video",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-customization-nav-saf-videos",
+                            RequiredSettingId = "explorer-customization-nav-show-all-folders",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-nav-show-libraries",
                     Name = "Show libraries",
                     Description = "Displays Libraries container grouping Documents, Music, Pictures, and Videos",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
                     Icon = "FolderTable",
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

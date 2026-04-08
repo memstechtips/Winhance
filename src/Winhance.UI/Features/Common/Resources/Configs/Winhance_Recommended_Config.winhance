@@ -822,6 +822,48 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-nav-saf-desktop",
+            "Name": "Show Desktop folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-saf-documents",
+            "Name": "Show Documents folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-saf-downloads",
+            "Name": "Show Downloads folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-saf-libraries",
+            "Name": "Show Libraries",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-saf-music",
+            "Name": "Show Music folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-saf-pictures",
+            "Name": "Show Pictures folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-saf-videos",
+            "Name": "Show Videos folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-nav-show-libraries",
             "Name": "Show libraries",
             "IsSelected": false,

@@ -262,6 +262,26 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                         {
                             setting.UpdateVisibility(value);
                         }
+
+                        // If parent matches search, show all its children too
+                        foreach (var kvp in _childrenByParentId)
+                        {
+                            if (_settingsById.TryGetValue(kvp.Key, out var parent) && parent.IsVisible)
+                            {
+                                foreach (var child in kvp.Value)
+                                    child.IsVisible = true;
+                            }
+                        }
+
+                        // If any child matches search, ensure its parent is visible
+                        foreach (var kvp in _childrenByParentId)
+                        {
+                            if (kvp.Value.Any(c => c.IsVisible))
+                            {
+                                if (_settingsById.TryGetValue(kvp.Key, out var parent))
+                                    parent.IsVisible = true;
+                            }
+                        }
                     }
 
                     OnPropertyChanged(nameof(HasVisibleSettings));
@@ -332,6 +352,18 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             }
             _settingsById = newSettingsById;
             _childrenByParentId = newChildrenByParentId;
+
+            // Populate Children collections on parent ViewModels for SettingsExpander rendering
+            foreach (var kvp in newChildrenByParentId)
+            {
+                if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
+                {
+                    var childList = kvp.Value;
+                    if (childList.Count > 0)
+                        childList[^1].IsLastChild = true;
+                    parentVm.Children = new ObservableCollection<SettingItemViewModel>(childList);
+                }
+            }
 
             UpdateParentChildRelationships();
             RebuildGroupedSettings();
@@ -457,6 +489,10 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         foreach (var setting in Settings)
         {
+            // Children render inside their parent's SettingsExpander, not in the flat list
+            if (setting.IsSubSetting)
+                continue;
+
             var groupName = string.IsNullOrEmpty(setting.GroupName) ? otherGroupName : setting.GroupName;
 
             if (!groupedDict.ContainsKey(groupName))
