@@ -143,31 +143,57 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-background-apps",
-                    Name = "Let Apps Run in Background",
-                    Description = "Allow apps to receive notifications, update data, and perform tasks even when not actively in use",
+                    Name = "Background App Permissions",
+                    Description = "Control whether apps can run in the background via Group Policy. Force Deny removes per-app background settings from Windows Settings. Use User in Control if you need apps like Teams, Zoom, or WhatsApp",
                     Icon = "Apps",
-                    InputType = InputType.Toggle,
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.04.08",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
-                            RecommendedValue = 0,
-                            EnabledValue = [1, null],
-                            DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
+                            DefaultOption = "User in Control (Default)",
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
-                            RecommendedValue = 0,
-                            EnabledValue = [1, null],
-                            DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "User in Control (Default)",
+                            "Force Allow",
+                            "Force Deny",
+                        },
+                        OptionWarnings = new Dictionary<int, string>
+                        {
+                            [2] = "WARNING: Force Deny removes background app permissions from Windows Settings entirely. Apps requiring background access (Teams, Zoom, WhatsApp, etc.) may not function correctly.",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["LetAppsRunInBackground"] = null,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["LetAppsRunInBackground"] = 1,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["LetAppsRunInBackground"] = 2,
+                            },
                         },
                     },
                 },

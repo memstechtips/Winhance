@@ -824,9 +824,9 @@
           },
           {
             "Id": "gaming-background-apps",
-            "Name": "Let Apps Run in Background",
-            "IsSelected": true,
-            "InputType": 0
+            "Name": "Background App Permissions",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "gaming-storage-sense",
