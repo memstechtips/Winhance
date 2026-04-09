@@ -73,6 +73,9 @@ public static class StringKeys
         public const string ThemeDescription = "Tooltip_ToggleTheme";
         public const string BackupRestoreTitle = "Settings_BackupRestore_Title";
         public const string BackupRestoreDescription = "Settings_BackupRestore_Description";
+        public const string SystemProtectionTitle = "Settings_SystemProtection_Title";
+        public const string SystemProtectionDescription = "Settings_SystemProtection_Description";
+        public const string CreateRestorePointButton = "Settings_CreateRestorePoint_Button";
     }
 
     /// <summary>
@@ -82,6 +85,7 @@ public static class StringKeys
     {
         public const string General = "Category_General";
         public const string Configuration = "Category_Configuration";
+        public const string SystemProtection = "Category_SystemProtection";
     }
 
     /// <summary>

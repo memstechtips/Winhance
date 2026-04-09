@@ -13,14 +13,28 @@ public class StartupNotificationServiceTests
 {
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<IUserPreferencesService> _mockPrefsService = new();
+    private readonly Mock<ISystemBackupService> _mockBackupService = new();
+    private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+
+    public StartupNotificationServiceTests()
+    {
+        _mockTaskProgressService
+            .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns(new CancellationTokenSource());
+        _mockTaskProgressService
+            .Setup(t => t.CreateDetailedProgress())
+            .Returns(new Progress<TaskProgressDetail>());
+    }
 
     private StartupNotificationService CreateService()
     {
         return new StartupNotificationService(
             _mockDialogService.Object,
             _mockPrefsService.Object,
+            _mockBackupService.Object,
+            _mockTaskProgressService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object);
     }
@@ -33,99 +47,23 @@ public class StartupNotificationServiceTests
     }
 
     // -------------------------------------------------------
-    // Null / failed result early returns
+    // Already offered - early return
     // -------------------------------------------------------
 
     [Fact]
-    public async Task ShowBackupNotificationAsync_WithNullResult_ReturnsImmediately()
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenAlreadyOffered_ReturnsImmediately()
     {
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(true);
+
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(null!);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
+            d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WithFailedResult_DoesNotShowDialog()
-    {
-        var result = BackupResult.CreateFailure("Something went wrong");
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WithFailedResultAndErrorMessage_LogsFailure()
-    {
-        var result = BackupResult.CreateFailure("Disk full");
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Backup failed") && s.Contains("Disk full"))),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WithFailedResultAndEmptyErrorMessage_DoesNotLogFailure()
-    {
-        var result = new BackupResult { Success = false, ErrorMessage = "" };
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Backup failed"))),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WithFailedResultAndNullErrorMessage_DoesNotLogFailure()
-    {
-        var result = new BackupResult { Success = false, ErrorMessage = null };
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Backup failed"))),
-            Times.Never);
-    }
-
-    // -------------------------------------------------------
-    // Success but no restore point created
-    // -------------------------------------------------------
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_SuccessButNoRestorePointCreated_DoesNotShowDialog()
-    {
-        var result = BackupResult.CreateSuccess(restorePointCreated: false);
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()),
@@ -133,255 +71,238 @@ public class StartupNotificationServiceTests
     }
 
     // -------------------------------------------------------
-    // Success with restore point created - dialog shown
+    // First launch - dialog shown
     // -------------------------------------------------------
 
     [Fact]
-    public async Task ShowBackupNotificationAsync_WithRestorePointCreated_ShowsDialog()
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenFirstLaunch_ShowsConfirmationDialog()
     {
         SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
-            .ReturnsAsync((true, false));
+            .ReturnsAsync(false);
 
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
+            d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()),
             Times.Once);
     }
 
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WithRestorePointCreated_LogsDialogShown()
-    {
-        SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
-
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, false));
-
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Backup notification dialog shown"))),
-            Times.Once);
-    }
-
     // -------------------------------------------------------
-    // Don't-show-again checkbox
+    // Sets preference before showing dialog
     // -------------------------------------------------------
 
     [Fact]
-    public async Task ShowBackupNotificationAsync_WhenCheckboxChecked_SavesSkipSystemBackupPreference()
+    public async Task ShowFirstLaunchRestoreOfferAsync_SetsInitialRestorePointOfferedBeforeDialog()
     {
         SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
-            .ReturnsAsync((true, true)); // Checkbox checked
-
-        _mockPrefsService
-            .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.SkipSystemBackup, true))
-            .ReturnsAsync(OperationResult.Succeeded());
+            .ReturnsAsync(false);
 
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockPrefsService.Verify(
-            p => p.SetPreferenceAsync(UserPreferenceKeys.SkipSystemBackup, true),
+            p => p.SetPreferenceAsync(UserPreferenceKeys.InitialRestorePointOffered, true),
             Times.Once);
     }
 
+    // -------------------------------------------------------
+    // User clicks Create - calls backup service
+    // -------------------------------------------------------
+
     [Fact]
-    public async Task ShowBackupNotificationAsync_WhenCheckboxChecked_LogsUserOptedOut()
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenUserClicksCreate_CallsCreateRestorePointAsync()
     {
         SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
-            .ReturnsAsync((true, true));
+            .ReturnsAsync(true);
 
-        _mockPrefsService
-            .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.SkipSystemBackup, true))
-            .ReturnsAsync(OperationResult.Succeeded());
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BackupResult.CreateSuccess(restorePointCreated: true));
 
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
-        _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("skip system backup"))),
+        _mockBackupService.Verify(
+            b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
+    // -------------------------------------------------------
+    // Restore point succeeds - shows success dialog
+    // -------------------------------------------------------
+
     [Fact]
-    public async Task ShowBackupNotificationAsync_WhenCheckboxNotChecked_DoesNotSavePreference()
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenRestorePointSucceeds_ShowsInformationDialog()
     {
         SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
-            .ReturnsAsync((true, false)); // Checkbox not checked
+            .ReturnsAsync(true);
+
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BackupResult.CreateSuccess(restorePointCreated: true));
 
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
-        _mockPrefsService.Verify(
-            p => p.SetPreferenceAsync(UserPreferenceKeys.SkipSystemBackup, It.IsAny<bool>()),
+        _mockDialogService.Verify(
+            d => d.ShowInformationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
+            Times.Once);
+    }
+
+    // -------------------------------------------------------
+    // Restore point fails - shows warning dialog
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenRestorePointFails_ShowsWarningDialog()
+    {
+        SetupLocalizationDefaults();
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
+
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BackupResult.CreateFailure("Something went wrong"));
+
+        var service = CreateService();
+
+        await service.ShowFirstLaunchRestoreOfferAsync();
+
+        _mockDialogService.Verify(
+            d => d.ShowWarningAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
+            Times.Once);
+    }
+
+    // -------------------------------------------------------
+    // User clicks Skip - does NOT call backup service
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenUserClicksSkip_DoesNotCallBackupService()
+    {
+        SetupLocalizationDefaults();
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
+
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        var service = CreateService();
+
+        await service.ShowFirstLaunchRestoreOfferAsync();
+
+        _mockBackupService.Verify(
+            b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    // -------------------------------------------------------
-    // Dialog dismissed / cancelled
-    // -------------------------------------------------------
-
     [Fact]
-    public async Task ShowBackupNotificationAsync_WhenDialogDismissed_StillLogsDialogShown()
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenUserClicksSkip_LogsSkip()
     {
         SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
-            .ReturnsAsync((false, false)); // Dismissed / cancelled
+            .ReturnsAsync(false);
 
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Backup notification dialog shown"))),
-            Times.Once);
-    }
-
-    // -------------------------------------------------------
-    // SystemRestoreWasDisabled flag in message
-    // -------------------------------------------------------
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WhenSystemRestoreWasDisabled_IncludesRestoreEnabledMessage()
-    {
-        _mockLocalizationService
-            .Setup(l => l.GetString("Startup_Backup_RestoreEnabled"))
-            .Returns("System Restore was re-enabled");
-        _mockLocalizationService
-            .Setup(l => l.GetString(It.Is<string>(s => s != "Startup_Backup_RestoreEnabled")))
-            .Returns("text");
-
-        var result = BackupResult.CreateSuccess(
-            restorePointCreated: true,
-            systemRestoreWasDisabled: true);
-
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.Is<string>(s => s.Contains("System Restore was re-enabled")),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, false));
-
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.Is<string>(s => s.Contains("System Restore was re-enabled")),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WhenSystemRestoreWasNotDisabled_DoesNotIncludeRestoreEnabledMessage()
-    {
-        _mockLocalizationService
-            .Setup(l => l.GetString("Startup_Backup_RestoreEnabled"))
-            .Returns("System Restore was re-enabled");
-        _mockLocalizationService
-            .Setup(l => l.GetString(It.Is<string>(s => s != "Startup_Backup_RestoreEnabled")))
-            .Returns("text");
-
-        var result = BackupResult.CreateSuccess(
-            restorePointCreated: true,
-            systemRestoreWasDisabled: false);
-
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, false));
-
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.Is<string>(s => !s.Contains("System Restore was re-enabled")),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("skipped"))),
             Times.Once);
     }
 
@@ -390,69 +311,34 @@ public class StartupNotificationServiceTests
     // -------------------------------------------------------
 
     [Fact]
-    public async Task ShowBackupNotificationAsync_UsesCorrectLocalizationKeys()
+    public async Task ShowFirstLaunchRestoreOfferAsync_UsesCorrectLocalizationKeys()
     {
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
-
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns("text");
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
-            .ReturnsAsync((true, false));
+            .ReturnsAsync(false);
 
         var service = CreateService();
 
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
-        // Verify all expected localization keys are requested
         _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Intro"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Created"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_RestorePoint"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_ConfigBackup"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_ToRestore"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_RestoreInstructions_RestorePoint"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_RestoreInstructions_ConfigBackup"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Note"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Checkbox_DontCreate"), Times.Once);
+        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_ConfigCreated"), Times.Once);
+        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_RestoreOffer"), Times.Once);
+        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_SkipWarning"), Times.Once);
         _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Title"), Times.Once);
-        _mockLocalizationService.Verify(l => l.GetString("Button_OK"), Times.Once);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_PassesEmptyCancelButtonText()
-    {
-        SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
-
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                ""))
-            .ReturnsAsync((true, false));
-
-        var service = CreateService();
-
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                ""),
-            Times.Once);
+        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Button_Create"), Times.Once);
+        _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Button_Skip"), Times.Once);
     }
 
     // -------------------------------------------------------
@@ -460,16 +346,16 @@ public class StartupNotificationServiceTests
     // -------------------------------------------------------
 
     [Fact]
-    public async Task ShowBackupNotificationAsync_WhenDialogThrows_LogsErrorAndDoesNotRethrow()
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenDialogThrows_LogsErrorAndDoesNotRethrow()
     {
         SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
+            .Setup(d => d.ShowConfirmationAsync(
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>()))
@@ -478,40 +364,10 @@ public class StartupNotificationServiceTests
         var service = CreateService();
 
         // Should not throw
-        await service.ShowBackupNotificationAsync(result);
+        await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing backup notification"))),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ShowBackupNotificationAsync_WhenPreferencesSaveThrows_LogsError()
-    {
-        SetupLocalizationDefaults();
-
-        var result = BackupResult.CreateSuccess(restorePointCreated: true);
-
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, true)); // Checkbox checked
-
-        _mockPrefsService
-            .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.SkipSystemBackup, true))
-            .ThrowsAsync(new Exception("Save failed"));
-
-        var service = CreateService();
-
-        // The exception from SetPreferenceAsync propagates to the catch block
-        await service.ShowBackupNotificationAsync(result);
-
-        _mockLogService.Verify(
-            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing backup notification"))),
+            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing first launch restore offer"))),
             Times.Once);
     }
 }

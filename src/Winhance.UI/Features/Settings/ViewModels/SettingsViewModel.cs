@@ -22,6 +22,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogService;
     private readonly IConfigurationService _configurationService;
     private readonly ILogService _logService;
+    private readonly ISystemBackupService _backupService;
+    private readonly ITaskProgressService _taskProgressService;
+
+    [ObservableProperty]
+    public partial bool IsCreatingRestorePoint { get; set; }
 
     private ObservableCollection<ComboBoxOption> _languages = new();
     public ObservableCollection<ComboBoxOption> Languages
@@ -85,7 +90,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         IUserPreferencesService preferencesService,
         IDialogService dialogService,
         IConfigurationService configurationService,
-        ILogService logService)
+        ILogService logService,
+        ISystemBackupService backupService,
+        ITaskProgressService taskProgressService)
     {
         _localizationService = localizationService;
         _themeService = themeService;
@@ -93,6 +100,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _dialogService = dialogService;
         _configurationService = configurationService;
         _logService = logService;
+        _backupService = backupService;
+        _taskProgressService = taskProgressService;
 
         // Initialize languages from StringKeys
         InitializeLanguages();
@@ -174,6 +183,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BackupRestoreDescription));
         OnPropertyChanged(nameof(ImportButtonText));
         OnPropertyChanged(nameof(ExportButtonText));
+        OnPropertyChanged(nameof(SystemProtectionLabel));
+        OnPropertyChanged(nameof(SystemProtectionHeader));
+        OnPropertyChanged(nameof(SystemProtectionDescription));
+        OnPropertyChanged(nameof(CreateRestorePointButtonText));
     }
 
     // Localized string properties for x:Bind
@@ -189,6 +202,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public string BackupRestoreDescription => _localizationService.GetString(StringKeys.Settings.BackupRestoreDescription) ?? "Import or export your settings configuration";
     public string ImportButtonText => _localizationService.GetString(StringKeys.Buttons.Import) ?? "Import";
     public string ExportButtonText => _localizationService.GetString(StringKeys.Buttons.Export) ?? "Export";
+    public string SystemProtectionLabel => _localizationService.GetString(StringKeys.Categories.SystemProtection) ?? "System Protection";
+    public string SystemProtectionHeader => _localizationService.GetString(StringKeys.Settings.SystemProtectionTitle) ?? "System Restore Point";
+    public string SystemProtectionDescription => _localizationService.GetString(StringKeys.Settings.SystemProtectionDescription) ?? "Create a Windows System Restore point to allow rolling back system changes";
+    public string CreateRestorePointButtonText => _localizationService.GetString(StringKeys.Settings.CreateRestorePointButton) ?? "Create Restore Point";
 
     /// <summary>
     /// Called when the selected theme changes.
@@ -231,6 +248,54 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private async Task ExportConfigAsync()
     {
         await _configurationService.ExportConfigurationAsync();
+    }
+
+    /// <summary>
+    /// Command to create a system restore point.
+    /// </summary>
+    [RelayCommand]
+    private async Task CreateRestorePointAsync()
+    {
+        IsCreatingRestorePoint = true;
+        var cts = _taskProgressService.StartTask(
+            _localizationService.GetString("Progress_CreatingRestorePoint") ?? "Creating system restore point...",
+            isIndeterminate: true);
+        var progress = _taskProgressService.CreateDetailedProgress();
+
+        try
+        {
+            var result = await _backupService.CreateRestorePointAsync(
+                progress: progress, cancellationToken: cts.Token);
+
+            _taskProgressService.CompleteTask();
+
+            if (result.Success && result.RestorePointCreated)
+            {
+                var successMsg = _localizationService.GetString("Settings_RestorePoint_Success")
+                    ?? "System Restore point created successfully.";
+                await _dialogService.ShowInformationAsync(successMsg);
+            }
+            else
+            {
+                var failMsg = _localizationService.GetString("Settings_RestorePoint_Fail")
+                    ?? "Failed to create System Restore point.";
+                if (!string.IsNullOrEmpty(result.ErrorMessage))
+                    failMsg += $"\n\n{result.ErrorMessage}";
+                await _dialogService.ShowWarningAsync(failMsg);
+            }
+        }
+        catch (Exception ex)
+        {
+            _taskProgressService.CompleteTask();
+            _logService.LogWarning($"Failed to create restore point from Settings: {ex.Message}");
+            await _dialogService.ShowErrorAsync(
+                _localizationService.GetString("Settings_RestorePoint_Fail")
+                    ?? "Failed to create System Restore point.");
+        }
+        finally
+        {
+            IsCreatingRestorePoint = false;
+        }
     }
 }
 

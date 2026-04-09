@@ -17,6 +17,8 @@ public class SettingsViewModelTests
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<IConfigurationService> _mockConfigurationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<ISystemBackupService> _mockBackupService = new();
+    private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
 
     public SettingsViewModelTests()
     {
@@ -39,7 +41,9 @@ public class SettingsViewModelTests
             _mockPreferencesService.Object,
             _mockDialogService.Object,
             _mockConfigurationService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockBackupService.Object,
+            _mockTaskProgressService.Object);
     }
 
     // -------------------------------------------------------

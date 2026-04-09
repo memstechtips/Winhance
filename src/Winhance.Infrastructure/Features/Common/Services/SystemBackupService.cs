@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Management;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,6 @@ public class SystemBackupService : ISystemBackupService
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
 
-    private const string RestorePointName = "Winhance Initial Restore Point";
     private const int VerificationMaxRetries = 10;
     private static readonly TimeSpan VerificationRetryDelay = TimeSpan.FromSeconds(3);
 
@@ -29,86 +29,61 @@ public class SystemBackupService : ISystemBackupService
         _processExecutor = processExecutor;
     }
 
-    public async Task<BackupResult> EnsureInitialBackupsAsync(
+    public async Task<BackupResult> CreateRestorePointAsync(
+        string? name = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logService.Log(LogLevel.Info, "Starting backup process - checking for existing restore point...");
+            var restorePointName = name
+                ?? $"Winhance Restore Point - {DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}";
 
-            // Report: Checking restore point
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = _localization.GetString("Progress_CheckingRestorePoint"),
-                IsIndeterminate = true
-            });
+            _logService.Log(LogLevel.Info, $"Creating restore point '{restorePointName}'...");
 
-            var existingPoint = await FindRestorePointAsync(RestorePointName).ConfigureAwait(false);
-            if (existingPoint != null)
-            {
-                _logService.Log(LogLevel.Info, $"Restore point '{RestorePointName}' already exists (created: {existingPoint.Value}). Skipping creation.");
-                return BackupResult.CreateSuccess(restorePointDate: existingPoint.Value);
-            }
-
-            _logService.Log(LogLevel.Info, $"No existing restore point found with name '{RestorePointName}'");
-
-            // Report: Checking if System Restore is enabled
+            // Check if System Restore is enabled
             progress?.Report(new TaskProgressDetail
             {
                 StatusText = _localization.GetString("Progress_CheckingRestoreStatus"),
                 IsIndeterminate = true
             });
 
-            bool systemRestoreWasDisabled = false;
             var isEnabled = await CheckSystemRestoreEnabledAsync().ConfigureAwait(false);
             if (!isEnabled)
             {
-                _logService.Log(LogLevel.Warning, "System Restore is currently disabled");
-                systemRestoreWasDisabled = true;
+                _logService.Log(LogLevel.Warning, "System Restore is currently disabled, enabling...");
 
-                // Report: Enabling System Restore
                 progress?.Report(new TaskProgressDetail
                 {
                     StatusText = _localization.GetString("Progress_EnablingRestore"),
                     IsIndeterminate = true
                 });
 
-                _logService.Log(LogLevel.Info, "Attempting to enable System Restore...");
                 var enabled = await EnableSystemRestoreAsync().ConfigureAwait(false);
                 if (!enabled)
                 {
-                    _logService.Log(LogLevel.Error, "Failed to enable System Restore - cannot create restore point");
+                    _logService.Log(LogLevel.Error, "Failed to enable System Restore");
                     return BackupResult.CreateFailure(
-                        "Failed to enable System Restore - cannot create restore point",
-                        systemRestoreWasDisabled: true);
+                        "Failed to enable System Restore - cannot create restore point");
                 }
 
                 _logService.Log(LogLevel.Info, "System Restore enabled successfully");
             }
-            else
-            {
-                _logService.Log(LogLevel.Info, "System Restore is already enabled");
-            }
 
-            // Report: Creating restore point
+            // Create the restore point
             progress?.Report(new TaskProgressDetail
             {
                 StatusText = _localization.GetString("Progress_CreatingRestorePoint"),
                 IsIndeterminate = true
             });
 
-            _logService.Log(LogLevel.Info, $"Creating new restore point with name '{RestorePointName}'...");
-
-            var (apiSuccess, statusCode) = await CreateRestorePointAsync(RestorePointName).ConfigureAwait(false);
+            var (apiSuccess, statusCode) = await CreateRestorePointNativeAsync(restorePointName).ConfigureAwait(false);
 
             if (!apiSuccess)
             {
                 var statusDesc = SrClientApi.GetStatusDescription(statusCode);
-                _logService.Log(LogLevel.Error, $"Failed to create restore point '{RestorePointName}'. Status: {statusCode} ({statusDesc})");
-                return BackupResult.CreateFailure(
-                    $"Failed to create system restore point: {statusDesc}",
-                    systemRestoreWasDisabled: systemRestoreWasDisabled);
+                _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({statusDesc})");
+                return BackupResult.CreateFailure($"Failed to create system restore point: {statusDesc}");
             }
 
             if (statusCode != SrClientApi.ERROR_SUCCESS)
@@ -117,30 +92,27 @@ public class SystemBackupService : ISystemBackupService
                 _logService.Log(LogLevel.Warning, $"SRSetRestorePointW returned success but status code is {statusCode} ({statusDesc})");
             }
 
-            // Verify the restore point was actually created by polling WMI
+            // Verify creation
             _logService.Log(LogLevel.Info, "Restore point API call succeeded, verifying creation...");
 
-            var verifiedDate = await VerifyRestorePointCreatedAsync(RestorePointName, cancellationToken).ConfigureAwait(false);
+            var verifiedDate = await VerifyRestorePointCreatedAsync(restorePointName, cancellationToken).ConfigureAwait(false);
 
             if (verifiedDate != null)
             {
-                _logService.Log(LogLevel.Info, $"Successfully verified restore point '{RestorePointName}' exists (created: {verifiedDate.Value})");
+                _logService.Log(LogLevel.Info, $"Successfully verified restore point '{restorePointName}' (created: {verifiedDate.Value})");
                 return BackupResult.CreateSuccess(
                     restorePointDate: verifiedDate.Value,
-                    restorePointCreated: true,
-                    systemRestoreWasDisabled: systemRestoreWasDisabled);
+                    restorePointCreated: true);
             }
             else
             {
-                _logService.Log(LogLevel.Error, $"Restore point '{RestorePointName}' could not be verified after creation. The API reported success but the point was not found via WMI query.");
-                return BackupResult.CreateFailure(
-                    "System restore point creation could not be verified",
-                    systemRestoreWasDisabled: systemRestoreWasDisabled);
+                _logService.Log(LogLevel.Error, $"Restore point '{restorePointName}' could not be verified after creation.");
+                return BackupResult.CreateFailure("System restore point creation could not be verified");
             }
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error ensuring initial backups: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error creating restore point: {ex.Message}");
             return BackupResult.CreateFailure(ex.Message);
         }
     }
@@ -226,7 +198,7 @@ public class SystemBackupService : ISystemBackupService
         }).ConfigureAwait(false);
     }
 
-    private async Task<(bool Success, int StatusCode)> CreateRestorePointAsync(string description)
+    private async Task<(bool Success, int StatusCode)> CreateRestorePointNativeAsync(string description)
     {
         return await Task.Run(() =>
         {

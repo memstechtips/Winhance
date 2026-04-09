@@ -9,8 +9,8 @@ public static class UserPreferenceKeys
     public const string WindowLeft = "WindowLeft";
     public const string WindowTop = "WindowTop";
     public const string WindowMaximized = "WindowMaximized";
-    public const string SkipSystemBackup = "SkipSystemBackup";
     public const string InitialConfigBackupCompleted = "InitialConfigBackupCompleted";
+    public const string InitialRestorePointOffered = "InitialRestorePointOffered";
     public const string ShowTechnicalDetails = "ShowTechnicalDetails";
 }
 

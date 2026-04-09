@@ -27,14 +27,14 @@ public class SystemBackupServiceTests
             _mockProcessExecutor.Object);
     }
 
-    // ── EnsureInitialBackupsAsync ──
+    // ── CreateRestorePointAsync ──
 
     [Fact]
-    public async Task EnsureInitialBackupsAsync_WhenExceptionThrown_ReturnsFailureResult()
+    public async Task CreateRestorePointAsync_WhenExceptionThrown_ReturnsFailureResult()
     {
         // The WMI calls in FindRestorePointAsync will throw on non-admin / test environments.
         // This exercises the outer catch block.
-        var result = await _sut.EnsureInitialBackupsAsync();
+        var result = await _sut.CreateRestorePointAsync();
 
         // The service catches all exceptions and returns a failure result
         // (on a test machine, WMI calls typically fail)
@@ -42,34 +42,34 @@ public class SystemBackupServiceTests
     }
 
     [Fact]
-    public async Task EnsureInitialBackupsAsync_ReportsProgressViaCallback()
+    public async Task CreateRestorePointAsync_ReportsProgressViaCallback()
     {
         var progressReports = new List<TaskProgressDetail>();
         var progress = new Progress<TaskProgressDetail>(detail => progressReports.Add(detail));
 
         // This will fail on WMI (expected in test env), but progress should be reported
-        await _sut.EnsureInitialBackupsAsync(progress);
+        await _sut.CreateRestorePointAsync(progress: progress);
 
         // At minimum, the first progress report (checking restore point) should have been sent
         // (Progress<T> may not have delivered synchronously, so we just validate no throw)
     }
 
     [Fact]
-    public async Task EnsureInitialBackupsAsync_WithCancellationToken_AcceptsToken()
+    public async Task CreateRestorePointAsync_WithCancellationToken_AcceptsToken()
     {
         using var cts = new CancellationTokenSource();
 
         // Verify the method signature accepts a CancellationToken
-        var result = await _sut.EnsureInitialBackupsAsync(cancellationToken: cts.Token);
+        var result = await _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
 
         result.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task EnsureInitialBackupsAsync_FailureResult_ContainsErrorMessage()
+    public async Task CreateRestorePointAsync_FailureResult_ContainsErrorMessage()
     {
         // On a test environment, WMI calls will fail, producing a failure with an error message
-        var result = await _sut.EnsureInitialBackupsAsync();
+        var result = await _sut.CreateRestorePointAsync();
 
         // The service either succeeds or returns a failure with a message
         if (!result.Success)
@@ -79,14 +79,29 @@ public class SystemBackupServiceTests
     }
 
     [Fact]
-    public async Task EnsureInitialBackupsAsync_LogsStartOfBackupProcess()
+    public async Task CreateRestorePointAsync_LogsStartOfProcess()
     {
-        await _sut.EnsureInitialBackupsAsync();
+        await _sut.CreateRestorePointAsync();
 
         _mockLog.Verify(
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Info,
-                It.Is<string>(s => s.Contains("Starting backup process")),
+                It.Is<string>(s => s.Contains("Creating restore point")),
+                It.IsAny<Exception?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_WithCustomName_UsesProvidedName()
+    {
+        var customName = "My Custom Restore Point";
+
+        await _sut.CreateRestorePointAsync(name: customName);
+
+        _mockLog.Verify(
+            l => l.Log(
+                Core.Features.Common.Enums.LogLevel.Info,
+                It.Is<string>(s => s.Contains(customName)),
                 It.IsAny<Exception?>()),
             Times.Once);
     }
@@ -99,24 +114,21 @@ public class SystemBackupServiceTests
         var date = new DateTime(2025, 1, 15);
         var result = BackupResult.CreateSuccess(
             restorePointDate: date,
-            restorePointCreated: true,
-            systemRestoreWasDisabled: true);
+            restorePointCreated: true);
 
         result.Success.Should().BeTrue();
         result.RestorePointDate.Should().Be(date);
         result.RestorePointCreated.Should().BeTrue();
-        result.SystemRestoreWasDisabled.Should().BeTrue();
         result.ErrorMessage.Should().BeNull();
     }
 
     [Fact]
     public void BackupResult_CreateFailure_SetsCorrectProperties()
     {
-        var result = BackupResult.CreateFailure("Something went wrong", systemRestoreWasDisabled: true);
+        var result = BackupResult.CreateFailure("Something went wrong");
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Be("Something went wrong");
-        result.SystemRestoreWasDisabled.Should().BeTrue();
         result.RestorePointCreated.Should().BeFalse();
     }
 }

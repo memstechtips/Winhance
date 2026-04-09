@@ -11,7 +11,7 @@ using Winhance.UI.Features.Common.Utilities;
 namespace Winhance.UI.Features.Common.Services;
 
 /// <summary>
-/// Orchestrates the application startup sequence (phases 1-5).
+/// Orchestrates the application startup sequence (phases 1-4).
 /// Extracted from MainWindow.xaml.cs for testability.
 /// </summary>
 public class StartupOrchestrator : IStartupOrchestrator
@@ -21,7 +21,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     private readonly TooltipRefreshEventHandler _tooltipEventHandler;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IConfigurationService _configurationService;
-    private readonly ISystemBackupService _backupService;
     private readonly IScriptMigrationService _migrationService;
     private readonly IRemovalScriptUpdateService _updateService;
     private readonly INewBadgeService _newBadgeService;
@@ -33,7 +32,6 @@ public class StartupOrchestrator : IStartupOrchestrator
         TooltipRefreshEventHandler tooltipEventHandler,
         IUserPreferencesService preferencesService,
         IConfigurationService configurationService,
-        ISystemBackupService backupService,
         IScriptMigrationService migrationService,
         IRemovalScriptUpdateService updateService,
         INewBadgeService newBadgeService,
@@ -44,7 +42,6 @@ public class StartupOrchestrator : IStartupOrchestrator
         _tooltipEventHandler = tooltipEventHandler;
         _preferencesService = preferencesService;
         _configurationService = configurationService;
-        _backupService = backupService;
         _migrationService = migrationService;
         _updateService = updateService;
         _newBadgeService = newBadgeService;
@@ -56,7 +53,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         IProgress<string> statusProgress,
         IProgress<TaskProgressDetail> detailedProgress)
     {
-        BackupResult? backupResult = null;
+        bool isFirstLaunch = false;
 
         // 1. Initialize settings registry
         statusProgress.Report("Loading_InitializingSettings");
@@ -109,6 +106,7 @@ public class StartupOrchestrator : IStartupOrchestrator
                     await backupTask; // observe exceptions
                     await _preferencesService.SetPreferenceAsync(
                         UserPreferenceKeys.InitialConfigBackupCompleted, true);
+                    isFirstLaunch = true;
                     StartupLogger.Log("StartupOrchestrator", "Phase 2: User backup config done");
                 }
                 else
@@ -130,59 +128,37 @@ public class StartupOrchestrator : IStartupOrchestrator
             _logService.LogWarning($"User backup config failed: {ex.Message}");
         }
 
-        // 3. System restore point (respects SkipSystemBackup preference)
-        try
-        {
-            var skipBackup = _preferencesService.GetPreference(UserPreferenceKeys.SkipSystemBackup, false);
-            if (!skipBackup)
-            {
-                statusProgress.Report("Loading_CheckingSystemProtection");
-                StartupLogger.Log("StartupOrchestrator", "Phase 3: Checking system protection...");
-                backupResult = await _backupService.EnsureInitialBackupsAsync(detailedProgress).ConfigureAwait(false);
-                StartupLogger.Log("StartupOrchestrator", "Phase 3: System protection check done");
-            }
-            else
-            {
-                StartupLogger.Log("StartupOrchestrator", "Phase 3: System backup skipped (user preference)");
-            }
-        }
-        catch (Exception ex)
-        {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 3: System backup FAILED: {ex.Message}");
-            _logService.LogWarning($"System backup failed: {ex.Message}");
-        }
-
-        // 4. Script migration
+        // 3. Script migration
         try
         {
             statusProgress.Report("Loading_MigratingScripts");
-            StartupLogger.Log("StartupOrchestrator", "Phase 4: Migrating scripts...");
+            StartupLogger.Log("StartupOrchestrator", "Phase 3: Migrating scripts...");
             await _migrationService.MigrateFromOldPathsAsync().ConfigureAwait(false);
-            StartupLogger.Log("StartupOrchestrator", "Phase 4: Script migration done");
+            StartupLogger.Log("StartupOrchestrator", "Phase 3: Script migration done");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 4: Script migration FAILED: {ex.Message}");
+            StartupLogger.Log("StartupOrchestrator", $"Phase 3: Script migration FAILED: {ex.Message}");
             _logService.LogWarning($"Script migration failed: {ex.Message}");
         }
 
-        // 5. Script updates
+        // 4. Script updates
         try
         {
             statusProgress.Report("Loading_CheckingScripts");
-            StartupLogger.Log("StartupOrchestrator", "Phase 5: Checking for script updates...");
+            StartupLogger.Log("StartupOrchestrator", "Phase 4: Checking for script updates...");
             await _updateService.CheckAndUpdateScriptsAsync().ConfigureAwait(false);
-            StartupLogger.Log("StartupOrchestrator", "Phase 5: Script update check done");
+            StartupLogger.Log("StartupOrchestrator", "Phase 4: Script update check done");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 5: Script update check FAILED: {ex.Message}");
+            StartupLogger.Log("StartupOrchestrator", $"Phase 4: Script update check FAILED: {ex.Message}");
             _logService.LogWarning($"Script update check failed: {ex.Message}");
         }
 
         statusProgress.Report("Loading_PreparingApp");
         StartupLogger.Log("StartupOrchestrator", "All phases complete");
 
-        return new StartupResult { BackupResult = backupResult };
+        return new StartupResult { IsFirstLaunch = isFirstLaunch };
     }
 }
