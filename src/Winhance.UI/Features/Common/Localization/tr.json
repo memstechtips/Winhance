@@ -412,6 +412,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Masaüstünden veya klasör arka planından CHKDSK çalıştırmak için sağ tıklama seçenekleri ekler ve sürücü harfi seçimi için bir istem gösterir",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "PS1 Bağlam Menüsüne \u0027Düzenle veya Çalıştır\u0027 ekle",
   "Setting_explorer-context-menu-ps1-edit-run_Description": ".ps1 dosyalarına PowerShell, PowerShell 7, PowerShell ISE ve Notepad ile çalıştırma veya düzenleme seçeneklerini içeren sağ tıklama basamaklı menü ekler (yönetici olarak dahil). PowerShell 7 seçeneklerinin çalışması için PowerShell 7 ayrıca yüklenmelidir",
+  "Setting_explorer-context-menu-compress-to_Name": "Ba\u011flam men\u00fcs\u00fcne \u0027\u015euraya S\u0131k\u0131\u015ft\u0131r\u0027 ekle",
+  "Setting_explorer-context-menu-compress-to_Description": "Klasik ba\u011flam men\u00fcs\u00fcnden do\u011frudan dosyalar\u0131 ve klas\u00f6rleri \u00e7e\u015fitli ar\u015fiv bi\u00e7imlerine (ZIP, 7z, TAR) s\u0131k\u0131\u015ft\u0131rmak i\u00e7in sa\u011f t\u0131klama se\u00e7ene\u011fi ekler",
   "Setting_devices-dynamic-lighting-ambient_Name": "Cihazlarımda Dinamik Aydınlatma kullan",
   "Setting_devices-dynamic-lighting-ambient_Description": "Windows Dinamik Aydınlatmanın uyumlu cihazlardaki ortam RGB efektlerini denetlemesine izin ver",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Ön plandaki uyumlu uygulamalar her zaman aydınlatmayı denetler",

@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Lägger till högerklicksalternativ för att köra CHKDSK från skrivbordet eller mappbakgrunden med en fråga om att välja enhetsbokstav",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Lägg till \u0027Redigera eller Kör med\u0027 i PS1-snabbmenyn",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Lägger till en högerklickskaskadmeny för .ps1-filer med alternativ att köra eller redigera med PowerShell, PowerShell 7, PowerShell ISE och Notepad (inklusive som administratör). PowerShell 7 måste installeras separat för att PowerShell 7-alternativen ska fungera",
+  "Setting_explorer-context-menu-compress-to_Name": "L\u00e4gg till \u0027Komprimera till\u0027 i snabbmenyn",
+  "Setting_explorer-context-menu-compress-to_Description": "L\u00e4gger till ett h\u00f6gerklicksalternativ f\u00f6r att komprimera filer och mappar till olika arkivformat (ZIP, 7z, TAR) direkt fr\u00e5n den klassiska snabbmenyn",
   "Setting_devices-dynamic-lighting-ambient_Name": "Använd Dynamisk belysning på mina enheter",
   "Setting_devices-dynamic-lighting-ambient_Description": "Tillåt att Windows dynamiska belysning styr omgivande RGB-effekter på kompatibla enheter",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Kompatibla appar i förgrunden styr alltid belysningen",

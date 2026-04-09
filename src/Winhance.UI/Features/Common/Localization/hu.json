@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Jobb kattintás opciókat ad hozzá a CHKDSK futtatásához az asztalról vagy a mappa háttérből, a meghajtóbetűjel kiválasztásának lehetőségével",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Adja hozzá a \u0027Szerkesztés vagy futtatás ezzel\u0027 lehetőséget a PS1 helyi menübe",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Jobb kattintás kaszkád menüt ad a .ps1 fájlokhoz PowerShell, PowerShell 7, PowerShell ISE és Notepad futtatási vagy szerkesztési lehetőségekkel (beleértve rendszergazdaként is). A PowerShell 7 opcióinak működéséhez a PowerShell 7-et külön kell telepíteni",
+  "Setting_explorer-context-menu-compress-to_Name": "\u0027T\u00f6m\u00f6r\u00edt\u00e9s ide\u0027 hozz\u00e1ad\u00e1sa a helyi men\u00fch\u00f6z",
+  "Setting_explorer-context-menu-compress-to_Description": "Jobb kattint\u00e1sos lehet\u0151s\u00e9get ad f\u00e1jlok \u00e9s mapp\u00e1k k\u00fcl\u00f6nb\u00f6z\u0151 arch\u00edvum form\u00e1tumokba (ZIP, 7z, TAR) t\u00f6rt\u00e9n\u0151 t\u00f6m\u00f6r\u00edt\u00e9s\u00e9hez k\u00f6zvetlen\u00fcl a klasszikus helyi men\u00fcb\u0151l",
   "Setting_devices-dynamic-lighting-ambient_Name": "Dinamikus fények használata az eszközeimen",
   "Setting_devices-dynamic-lighting-ambient_Description": "Engedélyezze a Windows dinamikus fényeket az RGB környezeti hatások vezérlésére a kompatibilis eszközökön",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "A kompatibilis alkalmazások az előtérben mindig irányítják a világítást",

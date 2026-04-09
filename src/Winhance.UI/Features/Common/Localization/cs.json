@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Přidá možnosti pravého kliknutí pro spuštění CHKDSK z plochy nebo pozadí složky s výzvou k výběru písmene jednotky",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Přidat \u0027Upravit nebo spustit pomocí\u0027 do kontextové nabídky PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Přidá kaskádovou nabídku pravého kliknutí pro soubory .ps1 s možnostmi spuštění nebo úpravy pomocí PowerShell, PowerShell 7, PowerShell ISE a Notepad (včetně jako správce). PowerShell 7 musí být nainstalován samostatně, aby možnosti PowerShell 7 fungovaly",
+  "Setting_explorer-context-menu-compress-to_Name": "P\u0159idat \u0027Komprimovat do\u0027 do kontextov\u00e9 nab\u00eddky",
+  "Setting_explorer-context-menu-compress-to_Description": "P\u0159id\u00e1 mo\u017enost prav\u00fdm kliknut\u00edm komprimovat soubory a slo\u017eky do r\u016fzn\u00fdch form\u00e1t\u016f archivu (ZIP, 7z, TAR) p\u0159\u00edmo z klasick\u00e9 kontextov\u00e9 nab\u00eddky",
   "Setting_devices-dynamic-lighting-ambient_Name": "Používat dynamické osvětlení na mých zařízeních",
   "Setting_devices-dynamic-lighting-ambient_Description": "Povolit dynamickému osvětlení Windows ovládat okolní efekty RGB na kompatibilních zařízeních",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Kompatibilní aplikace v popředí vždy ovládají osvětlení",

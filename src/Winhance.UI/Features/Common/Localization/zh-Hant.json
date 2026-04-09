@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "新增右鍵選單選項，可從桌面或資料夾背景執行 CHKDSK，並提示選擇磁碟機代號",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "新增 \u0027編輯或執行方式\u0027 至 PS1 右鍵選單",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "為 .ps1 檔案新增右鍵階層式選單，包含使用 PowerShell、PowerShell 7、PowerShell ISE 和 Notepad 執行或編輯的選項（包括以系統管理員身分執行）。PowerShell 7 必須另外安裝才能使 PowerShell 7 選項正常運作",
+  "Setting_explorer-context-menu-compress-to_Name": "\u5728\u53f3\u9375\u9078\u55ae\u4e2d\u65b0\u589e\u0027\u58d3\u7e2e\u81f3\u0027",
+  "Setting_explorer-context-menu-compress-to_Description": "\u65b0\u589e\u53f3\u9375\u9078\u9805\uff0c\u53ef\u76f4\u63a5\u5f9e\u50b3\u7d71\u53f3\u9375\u9078\u55ae\u5c07\u6a94\u6848\u548c\u8cc7\u6599\u593e\u58d3\u7e2e\u70ba\u5404\u7a2e\u5b58\u6a94\u683c\u5f0f (ZIP, 7z, TAR)",
   "Setting_devices-dynamic-lighting-ambient_Name": "在我的裝置上使用動態照明",
   "Setting_devices-dynamic-lighting-ambient_Description": "允許 Windows 動態照明控制相容裝置的環境 RGB 燈效",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "前景中的相容應用程式一律控制照明",

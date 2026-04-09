@@ -643,6 +643,71 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-context-menu-compress-to",
+                    Name = "Add 'Compress To' to Context Menu",
+                    Description = "Adds a right-click option to compress files and folders into various archive formats (ZIP, 7z, TAR) directly from the classic context menu",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "FolderZip",
+                    IsWindows11Only = true,
+                    MinimumBuildNumber = 26100,
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu",
+                            ValueName = "ExplorerCommandHandler",
+                            EnabledValue = ["{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+; Credit: ThioJoe - https://github.com/ThioJoe/
+; Source: https://gist.github.com/ThioJoe/f4b0799e2f0d95466f4c2bd4e46d1e67
+
+[HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu]
+""CommandStateSync""=""""
+""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
+""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
+""Note""=""Copied from original Command Store command: Windows.CompressTo""
+
+[HKEY_CLASSES_ROOT\Folder\shell\CompressToFullMenu_ForOldContextMenu]
+""CommandStateSync""=""""
+""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
+""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
+""Note""=""Copied from original Command Store command: Windows.CompressTo""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu]
+
+[-HKEY_CLASSES_ROOT\Folder\shell\CompressToFullMenu_ForOldContextMenu]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-compress-to",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "devices-dynamic-lighting-ambient",
                     Name = "Use Dynamic Lighting on my devices",
                     Description = "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",

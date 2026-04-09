@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Adiciona opções de clique com o botão direito para executar CHKDSK a partir do ambiente de trabalho ou do fundo da pasta com um pedido para selecionar a letra da unidade",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Adicionar \u0027Editar ou Executar com\u0027 ao Menu de Contexto PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Adiciona um menu de contexto em cascata aos ficheiros .ps1 com opções para executar ou editar com PowerShell, PowerShell 7, PowerShell ISE e Notepad (incluindo como administrador). O PowerShell 7 deve ser instalado separadamente para que as opções do PowerShell 7 funcionem",
+  "Setting_explorer-context-menu-compress-to_Name": "Adicionar \u0027Comprimir para\u0027 ao menu de contexto",
+  "Setting_explorer-context-menu-compress-to_Description": "Adiciona uma op\u00e7\u00e3o de clique direito para comprimir ficheiros e pastas em v\u00e1rios formatos de arquivo (ZIP, 7z, TAR) diretamente do menu de contexto cl\u00e1ssico",
   "Setting_devices-dynamic-lighting-ambient_Name": "Usar Iluminação Dinâmica nos meus dispositivos",
   "Setting_devices-dynamic-lighting-ambient_Description": "Permitir que a Iluminação Dinâmica do Windows controle os efeitos de ambiente RGB em dispositivos compatíveis",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Aplicações compatíveis em primeiro plano controlam sempre a iluminação",

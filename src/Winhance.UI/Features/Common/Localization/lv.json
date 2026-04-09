@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Pievieno labā klikšķa opcijas, lai palaistu CHKDSK no darbvirsmas vai mapes fona ar uzvedni diska burta izvēlei",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Pievienot \u0027Rediģēt vai Palaist ar\u0027 PS1 konteksta izvēlnei",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Pievieno labā klikšķa kaskādes izvēlni .ps1 failiem ar opcijām palaist vai rediģēt ar PowerShell, PowerShell 7, PowerShell ISE un Notepad (ieskaitot kā administrators). PowerShell 7 ir jāinstalē atsevišķi, lai PowerShell 7 opcijas darbotos",
+  "Setting_explorer-context-menu-compress-to_Name": "Pievienot \u0027Saspiest uz\u0027 konteksta izv\u0113lnei",
+  "Setting_explorer-context-menu-compress-to_Description": "Pievieno lab\u0101 klik\u0161\u0137a opciju, lai saspietu failus un mapes da\u017e\u0101dos arh\u012bvu form\u0101tos (ZIP, 7z, TAR) tie\u0161i no klasisk\u0101s konteksta izv\u0113lnes",
   "Setting_devices-dynamic-lighting-ambient_Name": "Izmantot dinamisko apgaismojumu manās ierīcēs",
   "Setting_devices-dynamic-lighting-ambient_Description": "Atļaut Windows dinamiskajam apgaismojumam kontrolēt apkārtējos RGB efektus saderīgās ierīcēs",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Saderīgas priekšplāna lietotnes vienmēr kontrolē apgaismojumu",

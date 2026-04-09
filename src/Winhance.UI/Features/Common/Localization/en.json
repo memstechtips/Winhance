@@ -412,6 +412,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Add \u0027Edit or Run with\u0027 to PS1 Context Menu",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
+  "Setting_explorer-context-menu-compress-to_Name": "Add \u0027Compress To\u0027 to Context Menu",
+  "Setting_explorer-context-menu-compress-to_Description": "Adds a right-click option to compress files and folders into various archive formats (ZIP, 7z, TAR) directly from the classic context menu",
   "Setting_devices-dynamic-lighting-ambient_Name": "Use Dynamic Lighting on my devices",
   "Setting_devices-dynamic-lighting-ambient_Description": "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Compatible apps in the foreground always control lighting",

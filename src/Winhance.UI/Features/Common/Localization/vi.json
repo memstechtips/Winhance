@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Thêm tùy chọn nhấp chuột phải để chạy CHKDSK từ màn hình nền hoặc nền thư mục với lời nhắc chọn ký tự ổ đĩa",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Thêm \u0027Chỉnh sửa hoặc Chạy với\u0027 vào Menu ngữ cảnh PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Thêm menu xếp tầng nhấp chuột phải cho tệp .ps1 với tùy chọn chạy hoặc chỉnh sửa bằng PowerShell, PowerShell 7, PowerShell ISE và Notepad (bao gồm chạy với quyền quản trị viên). PowerShell 7 phải được cài đặt riêng để các tùy chọn PowerShell 7 hoạt động",
+  "Setting_explorer-context-menu-compress-to_Name": "Th\u00eam \u0027N\u00e9n v\u00e0o\u0027 v\u00e0o menu ng\u1eef c\u1ea3nh",
+  "Setting_explorer-context-menu-compress-to_Description": "Th\u00eam t\u00f9y ch\u1ecdn nh\u1ea5p chu\u1ed9t ph\u1ea3i \u0111\u1ec3 n\u00e9n t\u1ec7p v\u00e0 th\u01b0 m\u1ee5c v\u00e0o c\u00e1c \u0111\u1ecbnh d\u1ea1ng l\u01b0u tr\u1eef kh\u00e1c nhau (ZIP, 7z, TAR) tr\u1ef1c ti\u1ebfp t\u1eeb menu ng\u1eef c\u1ea3nh c\u1ed5 \u0111i\u1ec3n",
   "Setting_devices-dynamic-lighting-ambient_Name": "Sử dụng Ánh sáng động trên thiết bị của tôi",
   "Setting_devices-dynamic-lighting-ambient_Description": "Cho phép Windows Dynamic Lighting điều khiển các hiệu ứng RGB xung quanh trên các thiết bị tương thích",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Các ứng dụng tương thích ở nền trước luôn kiểm soát ánh sáng",

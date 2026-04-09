@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "Prideda dešiniojo pelės klavišo parinktis paleisti CHKDSK iš darbalaukio arba aplanko fono su raginimu pasirinkti disko raidę",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Pridėti \u0027Redaguoti arba paleisti su\u0027 į PS1 kontekstinį meniu",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Prideda dešiniojo pelės klavišo pakopinį meniu .ps1 failams su parinktimis paleisti arba redaguoti naudojant PowerShell, PowerShell 7, PowerShell ISE ir Notepad (įskaitant kaip administratorių). PowerShell 7 turi būti įdiegtas atskirai, kad PowerShell 7 parinktys veiktų",
+  "Setting_explorer-context-menu-compress-to_Name": "Prid\u0117ti \u0027Suspausti \u012f\u0027 \u012f kontekstin\u012f meniu",
+  "Setting_explorer-context-menu-compress-to_Description": "Prid\u0117da de\u0161iniojo pelyt\u0117s mygtuko parinkt\u012f suspausti failus ir aplankus \u012f \u012fvairius archyvo formatus (ZIP, 7z, TAR) tiesiai i\u0161 klasikinio kontekstinio meniu",
   "Setting_devices-dynamic-lighting-ambient_Name": "Naudoti dinaminį apšvietimą mano įrenginiuose",
   "Setting_devices-dynamic-lighting-ambient_Description": "Leisti Windows dinaminiam apšvietimui valdyti aplinkos RGB efektus suderinamuose įrenginiuose",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "Suderinamos programos pirmame plane visada valdo apšvietimą",

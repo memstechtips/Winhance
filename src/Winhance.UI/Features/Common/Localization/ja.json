@@ -377,6 +377,8 @@
   "Setting_explorer-context-menu-chkdsk_Description": "デスクトップまたはフォルダーの背景から右クリックでCHKDSKを実行するオプションを追加し、ドライブレターの選択を求めます",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "PS1コンテキストメニューに\u0027編集または実行\u0027を追加",
   "Setting_explorer-context-menu-ps1-edit-run_Description": ".ps1ファイルにPowerShell、PowerShell 7、PowerShell ISE、Notepadで実行または編集するオプション付きの右クリックカスケードメニューを追加（管理者として実行を含む）。PowerShell 7のオプションを使用するには、PowerShell 7を別途インストールする必要があります",
+  "Setting_explorer-context-menu-compress-to_Name": "\u30b3\u30f3\u30c6\u30ad\u30b9\u30c8\u30e1\u30cb\u30e5\u30fc\u306b\u0027\u5727\u7e2e\u5148\u0027\u3092\u8ffd\u52a0",
+  "Setting_explorer-context-menu-compress-to_Description": "\u30af\u30e9\u30b7\u30c3\u30af\u30b3\u30f3\u30c6\u30ad\u30b9\u30c8\u30e1\u30cb\u30e5\u30fc\u304b\u3089\u76f4\u63a5\u3001\u30d5\u30a1\u30a4\u30eb\u3084\u30d5\u30a9\u30eb\u30c0\u30fc\u3092\u3055\u307e\u3056\u307e\u306a\u30a2\u30fc\u30ab\u30a4\u30d6\u5f62\u5f0f (ZIP, 7z, TAR) \u306b\u5727\u7e2e\u3059\u308b\u53f3\u30af\u30ea\u30c3\u30af\u30aa\u30d7\u30b7\u30e7\u30f3\u3092\u8ffd\u52a0\u3057\u307e\u3059\u3002",
   "Setting_devices-dynamic-lighting-ambient_Name": "デバイスでダイナミックライティングを使用",
   "Setting_devices-dynamic-lighting-ambient_Description": "Windowsダイナミックライティングが互換性のあるデバイスのアンビエントRGB効果を制御できるようにする",
   "Setting_devices-dynamic-lighting-foreground-app_Name": "フォアグラウンドの互換性のあるアプリは常に照明を制御",
