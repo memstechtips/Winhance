@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Voeg regskliek-opsies by om System File Checker (SFC /SCANNOW) uit te voer en skanderingbesonderhede te sien vanaf die lessenaar of gidsagtergrond",
   "Setting_explorer-context-menu-dism_Name": "Voeg \u0027Herstel Windows-beeld\u0027 by Kontekskieslys",
   "Setting_explorer-context-menu-dism_Description": "Voeg \u0027n regskliek-opsie by om DISM /RestoreHealth uit te voer om die Windows-stelselbeeld te herstel vanaf die lessenaar of gidsagtergrond",
+  "Setting_explorer-context-menu-chkdsk_Name": "Voeg \u0027CHKDSK\u0027 by Kontekskieslys",
+  "Setting_explorer-context-menu-chkdsk_Description": "Voeg regskliek-opsies by om CHKDSK vanaf die lessenaar of gidsagtergrond uit te voer met \u0027n aanwysing om die skyfletter te kies",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Voeg \u0027Redigeer of Voer uit met\u0027 by PS1 Kontekskieslys",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Voeg \u0027n regskliek-kaskadekieslys by .ps1-lêers met opsies om uit te voer of te redigeer met PowerShell, PowerShell 7, PowerShell ISE en Notepad (insluitend as administrateur). PowerShell 7 moet afsonderlik geïnstalleer word sodat die PowerShell 7-opsies kan werk",
   "Setting_devices-dynamic-lighting-ambient_Name": "Gebruik Dinamiese Beligting op my toestelle",

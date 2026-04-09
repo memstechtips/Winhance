@@ -408,6 +408,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Masaüstünden veya klasör arka planından Sistem Dosyası Denetleyicisi\u0027ni (SFC /SCANNOW) çalıştırmak ve tarama ayrıntılarını görüntülemek için sağ tıklama seçenekleri ekler",
   "Setting_explorer-context-menu-dism_Name": "Bağlam Menüsüne \u0027Windows Görüntüsünü Onar\u0027 ekle",
   "Setting_explorer-context-menu-dism_Description": "Masaüstünden veya klasör arka planından Windows sistem görüntüsünü onarmak için DISM /RestoreHealth çalıştırma sağ tıklama seçeneği ekler",
+  "Setting_explorer-context-menu-chkdsk_Name": "Bağlam Menüsüne \u0027CHKDSK\u0027 ekle",
+  "Setting_explorer-context-menu-chkdsk_Description": "Masaüstünden veya klasör arka planından CHKDSK çalıştırmak için sağ tıklama seçenekleri ekler ve sürücü harfi seçimi için bir istem gösterir",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "PS1 Bağlam Menüsüne \u0027Düzenle veya Çalıştır\u0027 ekle",
   "Setting_explorer-context-menu-ps1-edit-run_Description": ".ps1 dosyalarına PowerShell, PowerShell 7, PowerShell ISE ve Notepad ile çalıştırma veya düzenleme seçeneklerini içeren sağ tıklama basamaklı menü ekler (yönetici olarak dahil). PowerShell 7 seçeneklerinin çalışması için PowerShell 7 ayrıca yüklenmelidir",
   "Setting_devices-dynamic-lighting-ambient_Name": "Cihazlarımda Dinamik Aydınlatma kullan",

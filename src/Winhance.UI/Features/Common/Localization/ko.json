@@ -408,6 +408,8 @@
   "Setting_explorer-context-menu-sfc_Description": "바탕 화면 또는 폴더 배경에서 마우스 오른쪽 버튼을 클릭하여 System File Checker (SFC /SCANNOW)를 실행하고 검사 세부 정보를 볼 수 있는 옵션을 추가합니다",
   "Setting_explorer-context-menu-dism_Name": "상황에 맞는 메뉴에 \u0027Windows 이미지 복구\u0027 추가",
   "Setting_explorer-context-menu-dism_Description": "바탕 화면 또는 폴더 배경에서 마우스 오른쪽 버튼을 클릭하여 DISM /RestoreHealth를 실행해 Windows 시스템 이미지를 복구하는 옵션을 추가합니다",
+  "Setting_explorer-context-menu-chkdsk_Name": "상황에 맞는 메뉴에 \u0027CHKDSK\u0027 추가",
+  "Setting_explorer-context-menu-chkdsk_Description": "바탕 화면 또는 폴더 배경에서 마우스 오른쪽 버튼을 클릭하여 CHKDSK를 실행하는 옵션을 추가하며 드라이브 문자를 선택하라는 메시지가 표시됩니다",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "PS1 상황에 맞는 메뉴에 \u0027편집 또는 실행\u0027 추가",
   "Setting_explorer-context-menu-ps1-edit-run_Description": ".ps1 파일에 PowerShell, PowerShell 7, PowerShell ISE 및 Notepad로 실행하거나 편집할 수 있는 마우스 오른쪽 버튼 클릭 계단식 메뉴를 추가합니다 (관리자 권한 포함). PowerShell 7 옵션이 작동하려면 PowerShell 7을 별도로 설치해야 합니다",
   "Setting_devices-dynamic-lighting-ambient_Name": "내 장치에서 동적 조명 사용",

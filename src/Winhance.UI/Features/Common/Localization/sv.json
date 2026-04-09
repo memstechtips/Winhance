@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Lägger till högerklicksalternativ för att köra systemfilsgranskaren (SFC /SCANNOW) och visa skanningsdetaljer från skrivbordet eller mappbakgrunden",
   "Setting_explorer-context-menu-dism_Name": "Lägg till \u0027Reparera Windows-avbildning\u0027 i snabbmenyn",
   "Setting_explorer-context-menu-dism_Description": "Lägger till ett högerklicksalternativ för att köra DISM /RestoreHealth för att reparera Windows-systemavbildningen från skrivbordet eller mappbakgrunden",
+  "Setting_explorer-context-menu-chkdsk_Name": "Lägg till \u0027CHKDSK\u0027 i snabbmenyn",
+  "Setting_explorer-context-menu-chkdsk_Description": "Lägger till högerklicksalternativ för att köra CHKDSK från skrivbordet eller mappbakgrunden med en fråga om att välja enhetsbokstav",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Lägg till \u0027Redigera eller Kör med\u0027 i PS1-snabbmenyn",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Lägger till en högerklickskaskadmeny för .ps1-filer med alternativ att köra eller redigera med PowerShell, PowerShell 7, PowerShell ISE och Notepad (inklusive som administratör). PowerShell 7 måste installeras separat för att PowerShell 7-alternativen ska fungera",
   "Setting_devices-dynamic-lighting-ambient_Name": "Använd Dynamisk belysning på mina enheter",

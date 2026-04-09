@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Додає параметри контекстного меню для запуску засобу перевірки системних файлів (SFC /SCANNOW) та перегляду деталей сканування з робочого столу або фону папки",
   "Setting_explorer-context-menu-dism_Name": "Додати \u0027Відновити образ Windows\u0027 до контекстного меню",
   "Setting_explorer-context-menu-dism_Description": "Додає параметр контекстного меню для запуску DISM /RestoreHealth для відновлення образу системи Windows з робочого столу або фону папки",
+  "Setting_explorer-context-menu-chkdsk_Name": "Додати \u0027CHKDSK\u0027 до контекстного меню",
+  "Setting_explorer-context-menu-chkdsk_Description": "Додає параметри контекстного меню для запуску CHKDSK з робочого столу або фону папки із запитом на вибір літери диска",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Додати \u0027Редагувати або Запустити за допомогою\u0027 до контекстного меню PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Додає каскадне контекстне меню для файлів .ps1 з параметрами запуску або редагування за допомогою PowerShell, PowerShell 7, PowerShell ISE та Notepad (включно із запуском від імені адміністратора). PowerShell 7 потрібно встановити окремо, щоб параметри PowerShell 7 працювали",
   "Setting_devices-dynamic-lighting-ambient_Name": "Використовувати динамічне освітлення на моїх пристроях",

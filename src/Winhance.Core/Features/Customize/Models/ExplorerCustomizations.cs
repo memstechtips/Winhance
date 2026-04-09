@@ -334,6 +334,10 @@ if (-not (Test-Path $icoPath)) {
                         {
                             EnabledContent = @"Windows Registry Editor Version 5.00
 
+; Created by: Shawn Brink
+; Created on: March 12, 2020
+; Tutorial: https://www.tenforums.com/tutorials/152128-how-add-sfc-scannow-context-menu-windows-10-a.html
+
 [HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
 ""Icon""=""WmiPrvSE.exe""
 ""MUIVerb""=""SFC /SCANNOW""
@@ -435,6 +439,78 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-context-menu-chkdsk",
+                    Name = "Add 'CHKDSK' to Context Menu",
+                    Description = "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "Harddisk",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["CHKDSK"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK]
+""Icon""=""imageres.dll,-36""
+""MUIVerb""=""CHKDSK""
+""Position""=""Bottom""
+""SubCommands""=""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\001menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run CHKDSK (scan only)""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\001menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!:' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\002menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run CHKDSK /F (fix errors)""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\002menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /f' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\003menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run CHKDSK /R (locate bad sectors)""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\003menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /r' -Verb runAs\""""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-chkdsk",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-context-menu-ps1-edit-run",
                     Name = "Add 'Edit or Run with' to PS1 Context Menu",
                     Description = "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
@@ -460,6 +536,10 @@ if (-not (Test-Path $icoPath)) {
                         new RegContentSetting
                         {
                             EnabledContent = @"Windows Registry Editor Version 5.00
+
+; Created by: Shawn Brink
+; Created on: December 4, 2023
+; Tutorial: https://www.elevenforum.com/t/add-edit-or-run-with-to-ps1-file-context-menu-in-windows-11.20366/
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
 ""MUIVerb""=""Edit or Run with""

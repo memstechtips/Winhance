@@ -339,6 +339,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-chkdsk",
+            "Name": "Add \u0027CHKDSK\u0027 to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "devices-default-printer-management",
             "Name": "Automatic Default Printer Management",
             "IsSelected": true,

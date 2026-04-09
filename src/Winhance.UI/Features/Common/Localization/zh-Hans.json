@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "添加右键菜单选项，可从桌面或文件夹背景运行系统文件检查器 (SFC /SCANNOW) 并查看扫描详情",
   "Setting_explorer-context-menu-dism_Name": "向上下文菜单添加 \u0027修复 Windows 映像\u0027",
   "Setting_explorer-context-menu-dism_Description": "添加右键菜单选项，可从桌面或文件夹背景运行 DISM /RestoreHealth 以修复 Windows 系统映像",
+  "Setting_explorer-context-menu-chkdsk_Name": "向上下文菜单添加 \u0027CHKDSK\u0027",
+  "Setting_explorer-context-menu-chkdsk_Description": "添加右键菜单选项，可从桌面或文件夹背景运行 CHKDSK，并提示选择驱动器盘符",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "向 PS1 上下文菜单添加 \u0027编辑或运行方式\u0027",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "为 .ps1 文件添加右键级联菜单，包含使用 PowerShell、PowerShell 7、PowerShell ISE 和 Notepad 运行或编辑的选项（包括以管理员身份运行）。PowerShell 7 必须单独安装才能使 PowerShell 7 选项正常工作",
   "Setting_devices-dynamic-lighting-ambient_Name": "在我的设备上使用动态光照",

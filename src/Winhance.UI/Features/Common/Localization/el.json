@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Προσθέτει επιλογές δεξιού κλικ για εκτέλεση του System File Checker (SFC /SCANNOW) και προβολή λεπτομερειών σάρωσης από την επιφάνεια εργασίας ή το φόντο φακέλου",
   "Setting_explorer-context-menu-dism_Name": "Προσθήκη \u0027Επιδιόρθωση Εικόνας Windows\u0027 στο Μενού Περιβάλλοντος",
   "Setting_explorer-context-menu-dism_Description": "Προσθέτει επιλογή δεξιού κλικ για εκτέλεση DISM /RestoreHealth για επιδιόρθωση της εικόνας συστήματος Windows από την επιφάνεια εργασίας ή το φόντο φακέλου",
+  "Setting_explorer-context-menu-chkdsk_Name": "Προσθήκη \u0027CHKDSK\u0027 στο Μενού Περιβάλλοντος",
+  "Setting_explorer-context-menu-chkdsk_Description": "Προσθέτει επιλογές δεξιού κλικ για εκτέλεση CHKDSK από την επιφάνεια εργασίας ή το φόντο φακέλου με ερώτηση επιλογής γράμματος μονάδας δίσκου",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Προσθήκη \u0027Επεξεργασία ή Εκτέλεση με\u0027 στο Μενού Περιβάλλοντος PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Προσθέτει διαδοχικό μενού δεξιού κλικ σε αρχεία .ps1 με επιλογές εκτέλεσης ή επεξεργασίας με PowerShell, PowerShell 7, PowerShell ISE και Notepad (συμπεριλαμβανομένου ως διαχειριστής). Το PowerShell 7 πρέπει να εγκατασταθεί ξεχωριστά για να λειτουργήσουν οι επιλογές PowerShell 7",
   "Setting_devices-dynamic-lighting-ambient_Name": "Χρήση Δυναμικού Φωτισμού στις συσκευές μου",

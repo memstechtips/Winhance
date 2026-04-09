@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Jobb kattintás opciókat ad hozzá a System File Checker (SFC /SCANNOW) futtatásához és a vizsgálati részletek megtekintéséhez az asztalról vagy a mappa háttérből",
   "Setting_explorer-context-menu-dism_Name": "Adja hozzá a \u0027Windows-kép javítása\u0027 lehetőséget a helyi menübe",
   "Setting_explorer-context-menu-dism_Description": "Jobb kattintás opciót ad hozzá a DISM /RestoreHealth futtatásához a Windows rendszerkép javításához az asztalról vagy a mappa háttérből",
+  "Setting_explorer-context-menu-chkdsk_Name": "Adja hozzá a \u0027CHKDSK\u0027 lehetőséget a helyi menübe",
+  "Setting_explorer-context-menu-chkdsk_Description": "Jobb kattintás opciókat ad hozzá a CHKDSK futtatásához az asztalról vagy a mappa háttérből, a meghajtóbetűjel kiválasztásának lehetőségével",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Adja hozzá a \u0027Szerkesztés vagy futtatás ezzel\u0027 lehetőséget a PS1 helyi menübe",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Jobb kattintás kaszkád menüt ad a .ps1 fájlokhoz PowerShell, PowerShell 7, PowerShell ISE és Notepad futtatási vagy szerkesztési lehetőségekkel (beleértve rendszergazdaként is). A PowerShell 7 opcióinak működéséhez a PowerShell 7-et külön kell telepíteni",
   "Setting_devices-dynamic-lighting-ambient_Name": "Dinamikus fények használata az eszközeimen",

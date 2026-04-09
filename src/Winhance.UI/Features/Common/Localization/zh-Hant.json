@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "新增右鍵選單選項，可從桌面或資料夾背景執行系統檔案檢查工具 (SFC /SCANNOW) 並檢視掃描詳情",
   "Setting_explorer-context-menu-dism_Name": "新增 \u0027修復 Windows 映像\u0027 至右鍵選單",
   "Setting_explorer-context-menu-dism_Description": "新增右鍵選單選項，可從桌面或資料夾背景執行 DISM /RestoreHealth 以修復 Windows 系統映像",
+  "Setting_explorer-context-menu-chkdsk_Name": "新增 \u0027CHKDSK\u0027 至右鍵選單",
+  "Setting_explorer-context-menu-chkdsk_Description": "新增右鍵選單選項，可從桌面或資料夾背景執行 CHKDSK，並提示選擇磁碟機代號",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "新增 \u0027編輯或執行方式\u0027 至 PS1 右鍵選單",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "為 .ps1 檔案新增右鍵階層式選單，包含使用 PowerShell、PowerShell 7、PowerShell ISE 和 Notepad 執行或編輯的選項（包括以系統管理員身分執行）。PowerShell 7 必須另外安裝才能使 PowerShell 7 選項正常運作",
   "Setting_devices-dynamic-lighting-ambient_Name": "在我的裝置上使用動態照明",

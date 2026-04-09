@@ -408,6 +408,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Adds right-click options to run System File Checker (SFC /SCANNOW) and view scan details from the desktop or folder background",
   "Setting_explorer-context-menu-dism_Name": "Add \u0027Repair Windows Image\u0027 to Context Menu",
   "Setting_explorer-context-menu-dism_Description": "Adds a right-click option to run DISM /RestoreHealth to repair the Windows system image from the desktop or folder background",
+  "Setting_explorer-context-menu-chkdsk_Name": "Add \u0027CHKDSK\u0027 to Context Menu",
+  "Setting_explorer-context-menu-chkdsk_Description": "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Add \u0027Edit or Run with\u0027 to PS1 Context Menu",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
   "Setting_devices-dynamic-lighting-ambient_Name": "Use Dynamic Lighting on my devices",

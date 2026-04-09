@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "डेस्कटॉप या फ़ोल्डर पृष्ठभूमि से System File Checker (SFC /SCANNOW) चलाने और स्कैन विवरण देखने के लिए राइट-क्लिक विकल्प जोड़ता है",
   "Setting_explorer-context-menu-dism_Name": "संदर्भ मेनू में \u0027Windows छवि की मरम्मत\u0027 जोड़ें",
   "Setting_explorer-context-menu-dism_Description": "डेस्कटॉप या फ़ोल्डर पृष्ठभूमि से Windows सिस्टम छवि की मरम्मत के लिए DISM /RestoreHealth चलाने का राइट-क्लिक विकल्प जोड़ता है",
+  "Setting_explorer-context-menu-chkdsk_Name": "संदर्भ मेनू में \u0027CHKDSK\u0027 जोड़ें",
+  "Setting_explorer-context-menu-chkdsk_Description": "डेस्कटॉप या फ़ोल्डर पृष्ठभूमि से CHKDSK चलाने के लिए राइट-क्लिक विकल्प जोड़ता है जिसमें ड्राइव अक्षर चुनने का संकेत होता है",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "PS1 संदर्भ मेनू में \u0027संपादित करें या चलाएँ\u0027 जोड़ें",
   "Setting_explorer-context-menu-ps1-edit-run_Description": ".ps1 फ़ाइलों के लिए PowerShell, PowerShell 7, PowerShell ISE और Notepad के साथ चलाने या संपादित करने के विकल्पों के साथ एक राइट-क्लिक कैस्केडिंग मेनू जोड़ता है (व्यवस्थापक के रूप में सहित)। PowerShell 7 विकल्पों के काम करने के लिए PowerShell 7 को अलग से इंस्टॉल करना आवश्यक है",
   "Setting_devices-dynamic-lighting-ambient_Name": "मेरे उपकरणों पर डायनेमिक लाइटिंग का उपयोग करें",

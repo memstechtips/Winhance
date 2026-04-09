@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Dodaje opcje menu kontekstowego do uruchomienia narzędzia sprawdzania plików systemowych (SFC /SCANNOW) i wyświetlenia szczegółów skanowania z pulpitu lub tła folderu",
   "Setting_explorer-context-menu-dism_Name": "Dodaj \u0027Napraw obraz systemu Windows\u0027 do menu kontekstowego",
   "Setting_explorer-context-menu-dism_Description": "Dodaje opcję menu kontekstowego do uruchomienia DISM /RestoreHealth w celu naprawy obrazu systemu Windows z pulpitu lub tła folderu",
+  "Setting_explorer-context-menu-chkdsk_Name": "Dodaj \u0027CHKDSK\u0027 do menu kontekstowego",
+  "Setting_explorer-context-menu-chkdsk_Description": "Dodaje opcje menu kontekstowego do uruchomienia CHKDSK z pulpitu lub tła folderu z monitem o wybór litery dysku",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Dodaj \u0027Edytuj lub Uruchom za pomocą\u0027 do menu kontekstowego PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Dodaje kaskadowe menu kontekstowe do plików .ps1 z opcjami uruchamiania lub edycji za pomocą PowerShell, PowerShell 7, PowerShell ISE i Notepad (w tym jako administrator). PowerShell 7 musi być zainstalowany osobno, aby opcje PowerShell 7 działały",
   "Setting_devices-dynamic-lighting-ambient_Name": "Użyj dynamicznego oświetlenia na moich urządzeniach",

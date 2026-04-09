@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Adiciona opções de clique com o botão direito para executar o System File Checker (SFC /SCANNOW) e ver os detalhes da verificação a partir da área de trabalho ou do plano de fundo da pasta",
   "Setting_explorer-context-menu-dism_Name": "Adicionar \u0027Reparar Imagem do Windows\u0027 ao Menu de Contexto",
   "Setting_explorer-context-menu-dism_Description": "Adiciona uma opção de clique com o botão direito para executar DISM /RestoreHealth para reparar a imagem do sistema Windows a partir da área de trabalho ou do plano de fundo da pasta",
+  "Setting_explorer-context-menu-chkdsk_Name": "Adicionar \u0027CHKDSK\u0027 ao Menu de Contexto",
+  "Setting_explorer-context-menu-chkdsk_Description": "Adiciona opções de clique com o botão direito para executar CHKDSK a partir da área de trabalho ou do plano de fundo da pasta com um prompt para selecionar a letra da unidade",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "Adicionar \u0027Editar ou Executar com\u0027 ao Menu de Contexto PS1",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Adiciona um menu de contexto em cascata aos arquivos .ps1 com opções para executar ou editar com PowerShell, PowerShell 7, PowerShell ISE e Notepad (incluindo como administrador). O PowerShell 7 deve ser instalado separadamente para que as opções do PowerShell 7 funcionem",
   "Setting_devices-dynamic-lighting-ambient_Name": "Usar Iluminação Dinâmica em meus dispositivos",

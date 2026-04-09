@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Fügt Rechtsklick-Optionen hinzu, um System File Checker (SFC /SCANNOW) auszuführen und Scan-Details vom Desktop oder Ordnerhintergrund anzuzeigen",
   "Setting_explorer-context-menu-dism_Name": "\u0027Windows-Abbild reparieren\u0027 zum Kontextmenü hinzufügen",
   "Setting_explorer-context-menu-dism_Description": "Fügt eine Rechtsklick-Option hinzu, um DISM /RestoreHealth zur Reparatur des Windows-Systemabbilds vom Desktop oder Ordnerhintergrund auszuführen",
+  "Setting_explorer-context-menu-chkdsk_Name": "\u0027CHKDSK\u0027 zum Kontextmenü hinzufügen",
+  "Setting_explorer-context-menu-chkdsk_Description": "Fügt Rechtsklick-Optionen hinzu, um CHKDSK vom Desktop oder Ordnerhintergrund auszuführen, mit einer Aufforderung zur Auswahl des Laufwerksbuchstabens",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "\u0027Bearbeiten oder Ausführen mit\u0027 zum PS1-Kontextmenü hinzufügen",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Fügt ein Rechtsklick-Kaskadenmenü zu .ps1-Dateien hinzu mit Optionen zum Ausführen oder Bearbeiten mit PowerShell, PowerShell 7, PowerShell ISE und Notepad (einschließlich als Administrator). PowerShell 7 muss separat installiert werden, damit die PowerShell 7-Optionen funktionieren",
   "Setting_devices-dynamic-lighting-ambient_Name": "Dynamische Beleuchtung auf meinen Geräten verwenden",

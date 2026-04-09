@@ -373,6 +373,8 @@
   "Setting_explorer-context-menu-sfc_Description": "Voegt rechtsklikopties toe om System File Checker (SFC /SCANNOW) uit te voeren en scandetails te bekijken vanaf het bureaublad of de mapachtergrond",
   "Setting_explorer-context-menu-dism_Name": "\u0027Windows-image herstellen\u0027 toevoegen aan contextmenu",
   "Setting_explorer-context-menu-dism_Description": "Voegt een rechtsklikoptie toe om DISM /RestoreHealth uit te voeren om de Windows-systeemimage te herstellen vanaf het bureaublad of de mapachtergrond",
+  "Setting_explorer-context-menu-chkdsk_Name": "\u0027CHKDSK\u0027 toevoegen aan contextmenu",
+  "Setting_explorer-context-menu-chkdsk_Description": "Voegt rechtsklikopties toe om CHKDSK uit te voeren vanaf het bureaublad of de mapachtergrond met een prompt om de stationsletter te selecteren",
   "Setting_explorer-context-menu-ps1-edit-run_Name": "\u0027Bewerken of Uitvoeren met\u0027 toevoegen aan PS1-contextmenu",
   "Setting_explorer-context-menu-ps1-edit-run_Description": "Voegt een rechtsklik-cascademenu toe aan .ps1-bestanden met opties om uit te voeren of te bewerken met PowerShell, PowerShell 7, PowerShell ISE en Notepad (inclusief als administrator). PowerShell 7 moet apart worden geïnstalleerd om de PowerShell 7-opties te laten werken",
   "Setting_devices-dynamic-lighting-ambient_Name": "Dynamische verlichting gebruiken op mijn apparaten",

@@ -404,6 +404,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-chkdsk",
+            "Name": "Add 'CHKDSK' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "devices-dynamic-lighting-ambient",
             "Name": "Use Dynamic Lighting on my devices",
             "IsSelected": true,
