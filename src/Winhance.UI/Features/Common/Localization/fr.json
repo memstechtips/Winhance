@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Choisit si la saisie sélectionne les éléments correspondants ou recherche automatiquement",
   "Setting_explorer-customization-typing-behavior_Option_0": "Sélectionner l'élément tapé dans la vue",
   "Setting_explorer-customization-typing-behavior_Option_1": "Taper automatiquement dans la zone de recherche",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Afficher les lecteurs amovibles en double",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Afficher les lecteurs amovibles comme entrées séparées dans le volet de navigation en plus de sous Ce PC",
   "Setting_explorer-customization-3d-objects_Name": "Afficher les objets 3D",
   "Setting_explorer-customization-3d-objects_Description": "Afficher le dossier Objets 3D à côté de Documents, Images et autres dossiers par défaut",
   "Setting_explorer-customization-home-folder_Name": "Afficher le dossier de base",

@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Zvolí, zda psaní vybírá odpovídající položky nebo vyhledává automaticky",
   "Setting_explorer-customization-typing-behavior_Option_0": "Vybrat napsanou položku v zobrazení",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automaticky psát do vyhledávacího pole",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Zobrazit duplicitní vyjmutelné disky",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Zobrazit vyjmutelné disky jako samostatné položky v navigačním panelu navíc k zobrazení pod Tento počítač",
   "Setting_explorer-customization-3d-objects_Name": "Zobrazit 3D objekty",
   "Setting_explorer-customization-3d-objects_Description": "Zobrazit složku 3D objekty vedle Dokumentů, Obrázků a dalších výchozích složek",
   "Setting_explorer-customization-home-folder_Name": "Zobrazit domovskou složku",

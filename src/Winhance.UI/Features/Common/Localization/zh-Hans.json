@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "选择键入是选择匹配的项目还是自动搜索",
   "Setting_explorer-customization-typing-behavior_Option_0": "在视图中选择键入的项目",
   "Setting_explorer-customization-typing-behavior_Option_1": "自动在搜索框中键入",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "\u663E\u793A\u91CD\u590D\u7684\u53EF\u79FB\u52A8\u9A71\u52A8\u5668",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "\u5728\u5BFC\u822A\u7A97\u683C\u4E2D\u5C06\u53EF\u79FB\u52A8\u9A71\u52A8\u5668\u4F5C\u4E3A\u5355\u72EC\u6761\u76EE\u663E\u793A\uFF0C\u9664\u4E86\u5728\u6B64\u7535\u8111\u4E0B\u663E\u793A\u5916",
   "Setting_explorer-customization-3d-objects_Name": "显示 3D 对象",
   "Setting_explorer-customization-3d-objects_Description": "在文档、图片和其他默认文件夹旁边显示 3D 对象文件夹",
   "Setting_explorer-customization-home-folder_Name": "显示主文件夹",

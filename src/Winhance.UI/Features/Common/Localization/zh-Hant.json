@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "選擇輸入時是選取符合的項目還是自動進行搜尋",
   "Setting_explorer-customization-typing-behavior_Option_0": "選取檢視中鍵入的項目",
   "Setting_explorer-customization-typing-behavior_Option_1": "自動在搜尋方塊中鍵入",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "\u986F\u793A\u91CD\u8907\u7684\u53EF\u5378\u5F0F\u78C1\u789F\u6A5F",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "\u5728\u5C0E\u822A\u7A97\u683C\u4E2D\u5C07\u53EF\u5378\u5F0F\u78C1\u789F\u6A5F\u4F5C\u70BA\u55AE\u7368\u689D\u76EE\u986F\u793A\uFF0C\u9664\u4E86\u5728\u672C\u6A5F\u4E0B\u986F\u793A\u5916",
   "Setting_explorer-customization-3d-objects_Name": "顯示 3D 物件",
   "Setting_explorer-customization-3d-objects_Description": "在文件、圖片與其他預設資料夾旁顯示 3D 物件資料夾",
   "Setting_explorer-customization-home-folder_Name": "顯示主資料夾",

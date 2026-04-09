@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Escolhe se a digitação seleciona itens correspondentes ou pesquisa automaticamente",
   "Setting_explorer-customization-typing-behavior_Option_0": "Selecionar o item digitado na vista",
   "Setting_explorer-customization-typing-behavior_Option_1": "Digitar automaticamente na Caixa de Pesquisa",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Mostrar unidades remov\u00EDveis duplicadas",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Mostrar unidades remov\u00EDveis como entradas separadas no painel de navega\u00E7\u00E3o al\u00E9m de sob Este PC",
   "Setting_explorer-customization-3d-objects_Name": "Mostrar Objetos 3D",
   "Setting_explorer-customization-3d-objects_Description": "Exibir a pasta Objetos 3D juntamente com Documentos, Imagens e outras pastas predefinidas",
   "Setting_explorer-customization-home-folder_Name": "Mostrar Pasta Pessoal",

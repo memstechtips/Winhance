@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Kiest of typen overeenkomende items selecteert of automatisch zoekt",
   "Setting_explorer-customization-typing-behavior_Option_0": "Het getypte item in de weergave selecteren",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automatisch typen in het Zoekvak",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Dubbele verwisselbare stations weergeven",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Verwisselbare stations als afzonderlijke vermeldingen weergeven in het navigatiedeelvenster naast onder Deze pc",
   "Setting_explorer-customization-3d-objects_Name": "3D-objecten weergeven",
   "Setting_explorer-customization-3d-objects_Description": "Toon de map 3D-objecten naast Documenten, Afbeeldingen en andere standaardmappen",
   "Setting_explorer-customization-home-folder_Name": "Startmap weergeven",

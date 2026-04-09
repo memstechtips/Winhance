@@ -816,6 +816,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-duplicate-removable-drives",
+            "Name": "Show Duplicate Removable Drives",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-3d-objects",
             "Name": "Show 3D Objects",
             "IsSelected": false,

@@ -493,6 +493,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Chooses whether typing selects matching items or searches automatically",
   "Setting_explorer-customization-typing-behavior_Option_0": "Select the typed item in the view",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automatically type into the Search Box",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Show Duplicate Removable Drives",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Show removable drives as separate entries in the navigation pane in addition to under This PC",
   "Setting_explorer-customization-3d-objects_Name": "Show 3D Objects",
   "Setting_explorer-customization-3d-objects_Description": "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
   "Setting_explorer-customization-home-folder_Name": "Show Home Folder",

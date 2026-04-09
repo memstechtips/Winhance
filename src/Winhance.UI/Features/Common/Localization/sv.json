@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Väljer om du vill markera matchande objekt eller söka automatiskt när du skriver",
   "Setting_explorer-customization-typing-behavior_Option_0": "Markera det inskrivna objektet i vyn",
   "Setting_explorer-customization-typing-behavior_Option_1": "Skriv automatiskt in i sökrutan",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Visa dubbletter av flyttbara enheter",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Visa flyttbara enheter som separata poster i navigeringsf\u00E4ltet ut\u00F6ver under Den h\u00E4r datorn",
   "Setting_explorer-customization-3d-objects_Name": "Visa 3D-objekt",
   "Setting_explorer-customization-3d-objects_Description": "Visa mappen 3D-objekt tillsammans med Dokument, Bilder och andra standardmappar",
   "Setting_explorer-customization-home-folder_Name": "Visa hemmapp",

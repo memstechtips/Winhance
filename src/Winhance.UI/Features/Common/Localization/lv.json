@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Izvēlas, vai rakstīšana atlasa atbilstošos vienumus vai automātiski meklē",
   "Setting_explorer-customization-typing-behavior_Option_0": "Atlasīt ierakstīto vienumu skatā",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automātiski rakstīt meklēšanas lodziņā",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "R\u0101d\u012Bt dublik\u0101tus no\u0146emamos diskdzi\u0146us",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "R\u0101d\u012Bt no\u0146emamos diskdzi\u0146us k\u0101 atsevi\u0161\u0137us ierakstus navig\u0101cijas r\u016Bt\u012B papildus \u0160is dators",
   "Setting_explorer-customization-3d-objects_Name": "Rādīt 3D objektus",
   "Setting_explorer-customization-3d-objects_Description": "Parādīt mapi 3D objekti blakus mapēm Dokumenti, Attēli un citām noklusējuma mapēm",
   "Setting_explorer-customization-home-folder_Name": "Rādīt sākuma mapi",

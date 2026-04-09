@@ -441,6 +441,8 @@
     "Setting_explorer-customization-typing-behavior_Description": "يحدد ما إذا كانت الكتابة ستحدد عناصر مطابقة أم تبحث تلقائيًا",
     "Setting_explorer-customization-typing-behavior_Option_0": "تحديد العنصر المكتوب في العرض",
     "Setting_explorer-customization-typing-behavior_Option_1": "الكتابة تلقائيًا في مربع البحث",
+    "Setting_explorer-customization-duplicate-removable-drives_Name": "إظهار محركات الأقراص القابلة للإزالة المكررة",
+    "Setting_explorer-customization-duplicate-removable-drives_Description": "إظهار محركات الأقراص القابلة للإزالة كإدخالات منفصلة في جزء التنقل بالإضافة إلى ضمن هذا الكمبيوتر",
     "Setting_explorer-customization-3d-objects_Name": "إظهار كائنات ثلاثية الأبعاد",
     "Setting_explorer-customization-3d-objects_Description": "إظهار مجلد كائنات ثلاثية الأبعاد بجانب المستندات والصور وبقية المجلدات الافتراضية",
     "Setting_explorer-customization-home-folder_Name": "إظهار مجلد الصفحة الرئيسية",

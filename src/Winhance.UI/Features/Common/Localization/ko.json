@@ -493,6 +493,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "입력 시 일치하는 항목을 선택할지 자동으로 검색할지 선택합니다",
   "Setting_explorer-customization-typing-behavior_Option_0": "보기에서 입력한 항목 선택",
   "Setting_explorer-customization-typing-behavior_Option_1": "검색 상자에 자동으로 입력",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "\uC911\uBCF5 \uC774\uB3D9\uC2DD \uB4DC\uB77C\uC774\uBE0C \uD45C\uC2DC",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "\uD0D0\uC0C9 \uCC3D\uC5D0\uC11C \uC774\uB3D9\uC2DD \uB4DC\uB77C\uC774\uBE0C\uB97C \uB0B4 PC \uC544\uB798 \uC678\uC5D0 \uBCC4\uB3C4 \uD56D\uBAA9\uC73C\uB85C \uD45C\uC2DC",
   "Setting_explorer-customization-3d-objects_Name": "3D 개체 표시",
   "Setting_explorer-customization-3d-objects_Description": "문서, 사진 및 기타 기본 폴더와 함께 3D 개체 폴더를 표시합니다",
   "Setting_explorer-customization-home-folder_Name": "홈 폴더 표시",

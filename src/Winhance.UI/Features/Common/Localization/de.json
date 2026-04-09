@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Wählt aus, ob das Tippen übereinstimmende Elemente auswählt oder automatisch sucht",
   "Setting_explorer-customization-typing-behavior_Option_0": "Das eingegebene Element in der Ansicht auswählen",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automatisch in das Suchfeld eingeben",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Doppelte Wechseldatenträger anzeigen",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Wechseldatenträger als separate Einträge im Navigationsbereich zusätzlich zu unter Dieser PC anzeigen",
   "Setting_explorer-customization-3d-objects_Name": "3D-Objekte anzeigen",
   "Setting_explorer-customization-3d-objects_Description": "Den Ordner '3D-Objekte' neben 'Dokumente', 'Bilder' und anderen Standardordnern anzeigen",
   "Setting_explorer-customization-home-folder_Name": "Home-Ordner anzeigen",

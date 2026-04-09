@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "入力によって一致する項目を選択するか、自動的に検索するかを選択",
   "Setting_explorer-customization-typing-behavior_Option_0": "ビューで入力された項目を選択",
   "Setting_explorer-customization-typing-behavior_Option_1": "検索ボックスに自動的に入力",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "\u91CD\u8907\u3059\u308B\u30EA\u30E0\u30FC\u30D0\u30D6\u30EB\u30C9\u30E9\u30A4\u30D6\u3092\u8868\u793A",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u30A6\u30A3\u30F3\u30C9\u30A6\u3067\u30EA\u30E0\u30FC\u30D0\u30D6\u30EB\u30C9\u30E9\u30A4\u30D6\u3092PC\u306E\u4E0B\u306B\u52A0\u3048\u3066\u500B\u5225\u306E\u30A8\u30F3\u30C8\u30EA\u3068\u3057\u3066\u8868\u793A\u3059\u308B",
   "Setting_explorer-customization-3d-objects_Name": "3Dオブジェクトを表示",
   "Setting_explorer-customization-3d-objects_Description": "ドキュメント、ピクチャ、その他のデフォルトフォルダーと並んで3Dオブジェクトフォルダーを表示",
   "Setting_explorer-customization-home-folder_Name": "ホームフォルダーを表示",

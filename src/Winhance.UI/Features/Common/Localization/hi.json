@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "चुनता है कि क्या टाइपिंग मेल खाने वाले आइटम का चयन करती है या स्वचालित रूप से खोज करती है",
   "Setting_explorer-customization-typing-behavior_Option_0": "दृश्य में टाइप किए गए आइटम का चयन करें",
   "Setting_explorer-customization-typing-behavior_Option_1": "स्वचालित रूप से खोज बॉक्स में टाइप करें",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "डुप्लिकेट हटाने योग्य ड्राइव दिखाएं",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "नेविगेशन फलक में हटाने योग्य ड्राइव को इस PC के अंतर्गत के अलावा अलग प्रविष्टियों के रूप में दिखाएं",
   "Setting_explorer-customization-3d-objects_Name": "3D ऑब्जेक्ट दिखाएँ",
   "Setting_explorer-customization-3d-objects_Description": "दस्तावेज़, चित्र और अन्य डिफ़ॉल्ट फ़ोल्डरों के साथ 3D ऑब्जेक्ट फ़ोल्डर प्रदर्शित करें",
   "Setting_explorer-customization-home-folder_Name": "होम फ़ोल्डर दिखाएँ",

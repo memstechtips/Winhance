@@ -614,6 +614,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-duplicate-removable-drives",
+            "Name": "Show Duplicate Removable Drives",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-home-folder",
             "Name": "Show Home Folder",
             "IsSelected": true,

@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Kiválasztja, hogy gépeléssel kiválasztja-e a megfelelő elemeket, vagy automatikusan keres",
   "Setting_explorer-customization-typing-behavior_Option_0": "Válassza ki a beírt elemet a nézetben",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automatikusan írja be a keresőmezőbe",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Duplik\u00E1lt cser\u00E9lhet\u0151 meghajt\u00F3k megjelen\u00EDt\u00E9se",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Cser\u00E9lhet\u0151 meghajt\u00F3k megjelen\u00EDt\u00E9se k\u00FCl\u00F6n bejegyz\u00E9sk\u00E9nt a navig\u00E1ci\u00F3s ablakt\u00E1bl\u00E1n az Ez a g\u00E9p alatti megjelen\u00EDt\u00E9s mellett",
   "Setting_explorer-customization-3d-objects_Name": "3D objektumok megjelenítése",
   "Setting_explorer-customization-3d-objects_Description": "A 3D objektumok mappa megjelenítése a Dokumentumok, Képek és más alapértelmezett mappák mellett",
   "Setting_explorer-customization-home-folder_Name": "Kezdőlap mappa megjelenítése",

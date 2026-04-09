@@ -1713,8 +1713,8 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null], // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = [null], // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1723,8 +1723,8 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null], // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = [null], // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1746,8 +1746,8 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null], // When toggle is ON, Home Folder is shown (key exists)
-                            DisabledValue = [null], // When toggle is OFF, Home Folder is hidden (key removed)
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1769,8 +1769,8 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null],
-                            DisabledValue = [null],
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -2097,6 +2097,40 @@ if (Test-Path $appPathsKey) {
                             DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-duplicate-removable-drives",
+                    Name = "Show Duplicate Removable Drives",
+                    Description = "Show removable drives as separate entries in the navigation pane in addition to under This PC",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    Icon = "Usb",
+                    AddedInVersion = "26.04.09",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
                         },
                     },
                 },

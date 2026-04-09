@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Kies of tik ooreenstemmende items kies of outomaties soek",
   "Setting_explorer-customization-typing-behavior_Option_0": "Kies die getikte item in die aansig",
   "Setting_explorer-customization-typing-behavior_Option_1": "Tik outomaties in die Soekkassie",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Wys Duplikaat Verwyderbare Aandrywers",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Wys verwyderbare aandrywers as aparte inskrywings in die navigasiepaneel benewens onder Hierdie Rekenaar",
   "Setting_explorer-customization-3d-objects_Name": "Wys 3D Voorwerpe",
   "Setting_explorer-customization-3d-objects_Description": "Vertoon die 3D Voorwerpe gids langs Dokumente, Prente, en ander verstekgidse",
   "Setting_explorer-customization-home-folder_Name": "Wys Tuis Gids",

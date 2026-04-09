@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Вибирає, чи введення тексту вибирає відповідні елементи, чи шукає автоматично",
   "Setting_explorer-customization-typing-behavior_Option_0": "Вибрати введений елемент у поданні",
   "Setting_explorer-customization-typing-behavior_Option_1": "Автоматично вводити в поле пошуку",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Показати дублікати знімних дисків",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Показувати знімні диски як окремі записи в області навігації на додаток до Цей комп'ютер",
   "Setting_explorer-customization-3d-objects_Name": "Показувати 3D-об'єкти",
   "Setting_explorer-customization-3d-objects_Description": "Відображати папку 3D-об'єктів поруч з Документами, Зображеннями та іншими стандартними папками",
   "Setting_explorer-customization-home-folder_Name": "Показувати домашню папку",

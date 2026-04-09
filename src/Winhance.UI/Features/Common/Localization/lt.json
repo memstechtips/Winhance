@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Pasirenka, ar įvedant tekstą pasirenkami atitinkantys elementai, ar automatiškai ieškoma",
   "Setting_explorer-customization-typing-behavior_Option_0": "Pasirinkti įvestą elementą rodinyje",
   "Setting_explorer-customization-typing-behavior_Option_1": "Automatiškai įvesti į paieškos laukelį",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Rodyti pasikartojančius keičiamuosius diskus",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Rodyti keičiamuosius diskus kaip atskirus \u012Fra\u0161us naršymo srityje be \u0160is kompiuteris",
   "Setting_explorer-customization-3d-objects_Name": "Rodyti 3D objektus",
   "Setting_explorer-customization-3d-objects_Description": "Rodyti 3D objektų aplanką kartu su Dokumentais, Paveikslėliais ir kitais numatytaisiais aplankais",
   "Setting_explorer-customization-home-folder_Name": "Rodyti pagrindinį aplanką",

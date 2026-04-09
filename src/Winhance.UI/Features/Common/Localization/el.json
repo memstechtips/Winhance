@@ -458,6 +458,8 @@
   "Setting_explorer-customization-typing-behavior_Description": "Επιλέγει αν η πληκτρολόγηση επιλέγει στοιχεία που ταιριάζουν ή αναζητά αυτόματα",
   "Setting_explorer-customization-typing-behavior_Option_0": "Επιλογή του πληκτρολογημένου στοιχείου στην προβολή",
   "Setting_explorer-customization-typing-behavior_Option_1": "Αυτόματη πληκτρολόγηση στο Πλαίσιο Αναζήτησης",
+  "Setting_explorer-customization-duplicate-removable-drives_Name": "Εμφάνιση διπλότυπων αφαιρούμενων μονάδων δίσκου",
+  "Setting_explorer-customization-duplicate-removable-drives_Description": "Εμφάνιση αφαιρούμενων μονάδων δίσκου ως ξεχωριστές καταχωρήσεις στο πλαίσιο πλοήγησης εκτός από το Αυτός ο υπολογιστής",
   "Setting_explorer-customization-3d-objects_Name": "Εμφάνιση Τρισδιάστατων Αντικειμένων",
   "Setting_explorer-customization-3d-objects_Description": "Εμφάνιση του φακέλου Τρισδιάστατα Αντικείμενα δίπλα στα Έγγραφα, Εικόνες και άλλους προεπιλεγμένους φακέλους",
   "Setting_explorer-customization-home-folder_Name": "Εμφάνιση Αρχικού Φακέλου",
