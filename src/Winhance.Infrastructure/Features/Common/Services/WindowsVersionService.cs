@@ -26,6 +26,23 @@ public class WindowsVersionService : IWindowsVersionService
         }
     }
 
+    public int GetWindowsBuildRevision()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+            var ubr = key?.GetValue("UBR");
+            if (ubr is int ubrValue)
+                return ubrValue;
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Error getting Windows build revision (UBR)", ex);
+            return 0;
+        }
+    }
+
     public bool IsWindows11()
     {
         try

@@ -932,8 +932,11 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         {
             null => desired == null,
             bool b when desired is int d => (b ? 1 : 0) == d,
+            byte b when desired is int d => b == d,
+            byte b when desired is byte d => b == d,
             int i when desired is int d => i == d,
             int i when desired is long d => i == d,
+            int i when desired is byte d => i == d,
             long l when desired is long d => l == d,
             long l when desired is int d => l == d,
             string s when desired is string ds => s.Equals(

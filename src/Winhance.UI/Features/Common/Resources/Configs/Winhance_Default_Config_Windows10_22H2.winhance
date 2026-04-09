@@ -623,6 +623,42 @@
             "SelectedIndex": 2
           },
           {
+            "Id": "taskbar-auto-hide",
+            "Name": "Automatically hide the taskbar",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-badges",
+            "Name": "Show badges on taskbar apps",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-multi-display",
+            "Name": "Show my taskbar on all displays",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-multi-display-apps",
+            "Name": "Show taskbar apps on",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "taskbar-combine-buttons",
+            "Name": "Combine taskbar buttons and hide labels",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "taskbar-combine-buttons-other",
+            "Name": "Combine taskbar buttons on other taskbars",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "taskbar-meet-now",
             "Name": "Remove \u0027Meet Now\u0027 button from system tray",
             "IsSelected": false,

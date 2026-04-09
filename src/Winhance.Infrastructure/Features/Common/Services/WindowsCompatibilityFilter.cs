@@ -42,6 +42,7 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
         {
             var isWindows11 = _versionService.IsWindows11();
             var buildNumber = _versionService.GetWindowsBuildNumber();
+            var buildRevision = _versionService.GetWindowsBuildRevision();
             var isServer = _versionService.IsWindowsServer();
 
             if (isServer)
@@ -65,7 +66,9 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
                 bool isWindows10Only = false;
                 bool isWindows11Only = false;
                 int? minimumBuild = null;
+                int? minimumRevision = null;
                 int? maximumBuild = null;
+                int? maximumRevision = null;
                 IReadOnlyList<(int MinBuild, int MaxBuild)>? supportedRanges = null;
 
                 // Extract version info from SettingDefinition
@@ -74,7 +77,9 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
                     isWindows10Only = appSetting.IsWindows10Only;
                     isWindows11Only = appSetting.IsWindows11Only;
                     minimumBuild = appSetting.MinimumBuildNumber;
+                    minimumRevision = appSetting.MinimumBuildRevision;
                     maximumBuild = appSetting.MaximumBuildNumber;
+                    maximumRevision = appSetting.MaximumBuildRevision;
                     supportedRanges = appSetting.SupportedBuildRanges;
                 }
 
@@ -103,17 +108,33 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
                         incompatibilityReason = $"build not in supported ranges: {rangesStr}";
                     }
                 }
-                // Check minimum build number
-                else if (minimumBuild.HasValue && buildNumber < minimumBuild.Value)
+                // Check minimum build number (with optional UBR check)
+                else if (minimumBuild.HasValue)
                 {
-                    isCompatible = false;
-                    incompatibilityReason = $"requires build >= {minimumBuild.Value}";
+                    if (buildNumber < minimumBuild.Value)
+                    {
+                        isCompatible = false;
+                        incompatibilityReason = $"requires build >= {minimumBuild.Value}";
+                    }
+                    else if (buildNumber == minimumBuild.Value && minimumRevision.HasValue && buildRevision < minimumRevision.Value)
+                    {
+                        isCompatible = false;
+                        incompatibilityReason = $"requires build >= {minimumBuild.Value}.{minimumRevision.Value}";
+                    }
                 }
-                // Check maximum build number
-                else if (maximumBuild.HasValue && buildNumber > maximumBuild.Value)
+                // Check maximum build number (with optional UBR check)
+                else if (maximumBuild.HasValue)
                 {
-                    isCompatible = false;
-                    incompatibilityReason = $"requires build <= {maximumBuild.Value}";
+                    if (buildNumber > maximumBuild.Value)
+                    {
+                        isCompatible = false;
+                        incompatibilityReason = $"requires build <= {maximumBuild.Value}";
+                    }
+                    else if (buildNumber == maximumBuild.Value && maximumRevision.HasValue && buildRevision > maximumRevision.Value)
+                    {
+                        isCompatible = false;
+                        incompatibilityReason = $"requires build <= {maximumBuild.Value}.{maximumRevision.Value}";
+                    }
                 }
 
                 if (isCompatible)
@@ -149,6 +170,7 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
     {
         var isWindows11 = _versionService.IsWindows11();
         var buildNumber = _versionService.GetWindowsBuildNumber();
+        var buildRevision = _versionService.GetWindowsBuildRevision();
 
         foreach (var setting in settings)
         {
@@ -167,10 +189,24 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
             {
                 compatibilityMessage = $"Compatibility_MinBuild|{setting.MinimumBuildNumber.Value}";
             }
+            else if (setting.MinimumBuildNumber.HasValue &&
+                     buildNumber == setting.MinimumBuildNumber.Value &&
+                     setting.MinimumBuildRevision.HasValue &&
+                     buildRevision < setting.MinimumBuildRevision.Value)
+            {
+                compatibilityMessage = $"Compatibility_MinBuild|{setting.MinimumBuildNumber.Value}.{setting.MinimumBuildRevision.Value}";
+            }
             else if (setting.MaximumBuildNumber.HasValue &&
                      buildNumber > setting.MaximumBuildNumber.Value)
             {
                 compatibilityMessage = $"Compatibility_MaxBuild|{setting.MaximumBuildNumber.Value}";
+            }
+            else if (setting.MaximumBuildNumber.HasValue &&
+                     buildNumber == setting.MaximumBuildNumber.Value &&
+                     setting.MaximumBuildRevision.HasValue &&
+                     buildRevision > setting.MaximumBuildRevision.Value)
+            {
+                compatibilityMessage = $"Compatibility_MaxBuild|{setting.MaximumBuildNumber.Value}.{setting.MaximumBuildRevision.Value}";
             }
             else if (setting.SupportedBuildRanges?.Count > 0)
             {

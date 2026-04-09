@@ -14,7 +14,9 @@ public abstract record BaseDefinition
     public bool IsWindows11Only { get; init; }
     public bool IsWindows10Only { get; init; }
     public int? MinimumBuildNumber { get; init; }
+    public int? MinimumBuildRevision { get; init; }
     public int? MaximumBuildNumber { get; init; }
+    public int? MaximumBuildRevision { get; init; }
     public IReadOnlyList<RegistrySetting> RegistrySettings { get; init; } = Array.Empty<RegistrySetting>();
     public string? RestartProcess { get; init; }
     public string? RestartService { get; init; }
