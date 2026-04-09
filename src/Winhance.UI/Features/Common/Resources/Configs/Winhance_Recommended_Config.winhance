@@ -582,6 +582,24 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-sfc",
+            "Name": "Add 'SFC /SCANNOW' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-dism",
+            "Name": "Add 'Repair Windows Image' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-ps1-edit-run",
+            "Name": "Add 'Edit or Run with' to PS1 Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "devices-dynamic-lighting-ambient",
             "Name": "Use Dynamic Lighting on my devices",
             "IsSelected": false,

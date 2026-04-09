@@ -321,6 +321,24 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-sfc",
+            "Name": "Add \u0027SFC /SCANNOW\u0027 to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-dism",
+            "Name": "Add \u0027Repair Windows Image\u0027 to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-ps1-edit-run",
+            "Name": "Add \u0027Edit or Run with\u0027 to PS1 Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "devices-default-printer-management",
             "Name": "Automatic Default Printer Management",
             "IsSelected": true,

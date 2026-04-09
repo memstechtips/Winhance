@@ -273,7 +273,16 @@ if (-not (Test-Path $icoPath)) {
 ",
                             RequiresElevation = true
                         }
-                    }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-toggle-extensions",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
                 },
                 new SettingDefinition
                 {
@@ -294,6 +303,261 @@ if (-not (Test-Path $icoPath)) {
                             EnabledValue = [null],
                             DisabledValue = [""],
                             ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-sfc",
+                    Name = "Add 'SFC /SCANNOW' to Context Menu",
+                    Description = "Adds right-click options to run System File Checker (SFC /SCANNOW) and view scan details from the desktop or folder background",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "MagnifyScan",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\SFC",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["SFC /SCANNOW"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
+""Icon""=""WmiPrvSE.exe""
+""MUIVerb""=""SFC /SCANNOW""
+""Position""=""Bottom""
+""Extended""=-
+""SubCommands""=""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\001menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run SFC /SCANNOW""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\001menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/s,/k, sfc /scannow' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\002menu]
+""MUIVerb""=""SFC scan details log""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\002menu\command]
+@=""PowerShell -ExecutionPolicy Bypass (sls [SR] $env:windir\\Logs\\CBS\\CBS.log -s).Line >\""$env:userprofile\\Desktop\\sfcdetails.txt\""""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-sfc",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-dism",
+                    Name = "Add 'Repair Windows Image' to Context Menu",
+                    Description = "Adds a right-click option to run DISM /RestoreHealth to repair the Windows system image from the desktop or folder background",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "MedicalBag",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["Repair Windows Image"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = "Icon",
+                            EnabledValue = ["WmiPrvSE.exe"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = "HasLUAShield",
+                            EnabledValue = [""],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage\command",
+                            ValueName = "",
+                            EnabledValue = ["PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \"Start-Process cmd -ArgumentList '/s,/k, DISM /Online /Cleanup-Image /RestoreHealth' -Verb runAs\""],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-dism",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-ps1-edit-run",
+                    Name = "Add 'Edit or Run with' to PS1 Context Menu",
+                    Description = "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "Powershell",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["Edit or Run with"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
+""MUIVerb""=""Edit or Run with""
+""SubCommands""=""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout]
+""MUIVerb""=""Run with PowerShell""
+""Icon""=""powershell.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout\Command]
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout]
+""MUIVerb""=""Run with PowerShell as administrator""
+""HasLUAShield""=""""
+""Icon""=""powershell.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout\Command]
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""\""& {Start-Process PowerShell.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\\""%1\\\\""' -Verb RunAs}\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout]
+""MUIVerb""=""Run with PowerShell 7""
+""Icon""=""pwsh.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout\Command]
+@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout]
+""MUIVerb""=""Run with PowerShell 7 as administrator""
+""HasLUAShield""=""""
+""Icon""=""pwsh.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout\Command]
+@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""\""& {Start-Process pwsh.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\\""%1\\\\""' -Verb RunAs}\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout]
+""MUIVerb""=""Edit with PowerShell ISE""
+""Icon""=""powershell_ise.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout\Command]
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout]
+""MUIVerb""=""Edit with PowerShell ISE as administrator""
+""HasLUAShield""=""""
+""Icon""=""powershell_ise.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout\Command]
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start PowerShell_ISE.exe \\""%1\\""'  -Verb RunAs\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout]
+""MUIVerb""=""Edit with PowerShell ISE (x86)""
+""Icon""=""powershell_ise.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout\Command]
+@=""\""C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout]
+""MUIVerb""=""Edit with PowerShell ISE (x86) as administrator""
+""HasLUAShield""=""""
+""Icon""=""powershell_ise.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout\Command]
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe \\""%1\\""'  -Verb RunAs\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout]
+""MUIVerb""=""Edit with Notepad""
+""Icon""=""notepad.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout\Command]
+@=""\""C:\\Windows\\System32\\notepad.exe\"" \""%1\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout]
+""MUIVerb""=""Edit with Notepad as administrator""
+""HasLUAShield""=""""
+""Icon""=""notepad.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout\Command]
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\Windows\\System32\\notepad.exe \\""%1\\""'  -Verb RunAs\""""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-ps1-edit-run",
+                            RequiredSettingId = "explorer-customization-context-menu",
                         },
                     },
                 },
