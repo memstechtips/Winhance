@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA ピン",
   "Setting_taskbar-copilot-pwa-pin_Description": "タスクバーの Copilot PWA ピンを表示または非表示にします",
   "Setting_taskbar-recall-pin_Name": "Recall ピン",
-  "Setting_taskbar-recall-pin_Description": "タスクバーの Recall ピンを表示または非表示にします"
+  "Setting_taskbar-recall-pin_Description": "タスクバーの Recall ピンを表示または非表示にします",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) は AI ワークロードを管理します。Windows AI 機能を使用しない場合は無効にしてください",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Recall 設定を含む Windows AI スケジュールタスク。AI 機能がバックグラウンドで実行されないよう無効にしてください",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server スケジュールタスク。Office AI がバックグラウンドで実行されないよう無効にしてください"
 }

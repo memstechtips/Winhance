@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "\u00c9pingle Copilot PWA",
   "Setting_taskbar-copilot-pwa-pin_Description": "Affiche ou masque l\u0027\u00e9pingle Copilot PWA dans la barre des t\u00e2ches",
   "Setting_taskbar-recall-pin_Name": "\u00c9pingle Recall",
-  "Setting_taskbar-recall-pin_Description": "Affiche ou masque l\u0027\u00e9pingle Recall dans la barre des t\u00e2ches"
+  "Setting_taskbar-recall-pin_Description": "Affiche ou masque l\u0027\u00e9pingle Recall dans la barre des t\u00e2ches",
+  "Setting_gaming-ai-fabric-service_Name": "Service Windows AI Fabric",
+  "Setting_gaming-ai-fabric-service_Description": "Le service Windows AI Fabric (WSAIFabricSvc) g\u00e8re les charges de travail d\u0027IA. D\u00e9sactivez si vous n\u0027utilisez pas les fonctionnalit\u00e9s Windows AI",
+  "Setting_gaming-task-windows-ai_Name": "T\u00e2ches Windows AI",
+  "Setting_gaming-task-windows-ai_Description": "T\u00e2ches planifi\u00e9es Windows AI incluant la configuration de Recall. D\u00e9sactivez pour emp\u00eacher les fonctionnalit\u00e9s d\u0027IA de s\u0027ex\u00e9cuter en arri\u00e8re-plan",
+  "Setting_gaming-task-office-actions-server_Name": "T\u00e2che du serveur d\u0027actions Office",
+  "Setting_gaming-task-office-actions-server_Description": "T\u00e2che planifi\u00e9e Office AI Actions Server. D\u00e9sactivez pour emp\u00eacher Office AI de s\u0027ex\u00e9cuter en arri\u00e8re-plan"
 }

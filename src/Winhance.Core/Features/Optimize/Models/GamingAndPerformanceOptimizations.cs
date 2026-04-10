@@ -2424,6 +2424,42 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-ai-fabric-service",
+                    Name = "Windows AI Fabric Service",
+                    Description = "Windows AI Fabric Service (WSAIFabricSvc) manages AI workloads. Disable if you don't use Windows AI features",
+                    GroupName = "System Services",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Selection,
+                    RequiresRestart = true,
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSAIFabricSvc",
+                            ValueName = "Start",
+                            RecommendedValue = 4,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
                 // Scheduled Tasks - Telemetry & Privacy
                 new SettingDefinition
                 {
@@ -2696,6 +2732,50 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedState = false
                         }
                     }
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-task-windows-ai",
+                    Name = "Windows AI Tasks",
+                    Description = "Windows AI scheduled tasks including Recall configuration. Disable to prevent AI features from running in the background",
+                    GroupName = "Scheduled Tasks",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Toggle,
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
+                    {
+                        new ScheduledTaskSetting
+                        {
+                            Id = "WindowsAIRecallConfig",
+                            TaskPath = @"\Microsoft\Windows\WindowsAI\RecallConfiguration",
+                            RecommendedState = false,
+                        },
+                        new ScheduledTaskSetting
+                        {
+                            Id = "WindowsAIRecallPipeline",
+                            TaskPath = @"\Microsoft\Windows\WindowsAI\RecallPipeline",
+                            RecommendedState = false,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-task-office-actions-server",
+                    Name = "Office Actions Server Task",
+                    Description = "Office AI Actions Server scheduled task. Disable to prevent Office AI from running in the background",
+                    GroupName = "Scheduled Tasks",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CalendarClock",
+                    InputType = InputType.Toggle,
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
+                    {
+                        new ScheduledTaskSetting
+                        {
+                            Id = "OfficeActionsServer",
+                            TaskPath = @"\Microsoft\Office\Office Actions Server",
+                            RecommendedState = false,
+                        },
+                    },
                 },
                 // Visual Effects Group
                 new SettingDefinition

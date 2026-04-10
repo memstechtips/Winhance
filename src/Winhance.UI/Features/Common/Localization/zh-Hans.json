@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA 固定",
   "Setting_taskbar-copilot-pwa-pin_Description": "显示或隐藏任务栏上的 Copilot PWA 固定",
   "Setting_taskbar-recall-pin_Name": "Recall 固定",
-  "Setting_taskbar-recall-pin_Description": "显示或隐藏任务栏上的 Recall 固定"
+  "Setting_taskbar-recall-pin_Description": "显示或隐藏任务栏上的 Recall 固定",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service（WSAIFabricSvc）管理 AI 工作负载。如果您不使用 Windows AI 功能，请将其禁用",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Windows AI 计划任务，包括 Recall 配置。禁用以防止 AI 功能在后台运行",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 计划任务。禁用以防止 Office AI 在后台运行"
 }

@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA pin",
   "Setting_taskbar-copilot-pwa-pin_Description": "Megjeleníti vagy elrejti a Copilot PWA pint a tálcán",
   "Setting_taskbar-recall-pin_Name": "Recall pin",
-  "Setting_taskbar-recall-pin_Description": "Megjeleníti vagy elrejti a Recall pint a tálcán"
+  "Setting_taskbar-recall-pin_Description": "Megjeleníti vagy elrejti a Recall pint a tálcán",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "A Windows AI Fabric Service (WSAIFabricSvc) kezeli az AI-munkaterheléseket. Tiltsa le, ha nem használ Windows AI funkciókat",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Windows AI ütemezett feladatok, beleértve a Recall konfigurációját. Tiltsa le, hogy megakadályozza az AI funkciók háttérben való futását",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ütemezett feladat. Tiltsa le, hogy megakadályozza az Office AI háttérben való futását"
 }

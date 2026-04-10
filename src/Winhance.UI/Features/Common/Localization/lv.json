@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA piespraude",
   "Setting_taskbar-copilot-pwa-pin_Description": "Rāda vai slēpj Copilot PWA piespraudi uzdevumjoslā",
   "Setting_taskbar-recall-pin_Name": "Recall piespraude",
-  "Setting_taskbar-recall-pin_Description": "Rāda vai slēpj Recall piespraudi uzdevumjoslā"
+  "Setting_taskbar-recall-pin_Description": "Rāda vai slēpj Recall piespraudi uzdevumjoslā",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) pārvalda AI darba slodzes. Atspējojiet, ja neizmantojat Windows AI funkcijas",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Windows AI ieplānotie uzdevumi, ieskaitot Recall konfigurāciju. Atspējojiet, lai novērstu AI funkciju darbību fonā",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ieplānotais uzdevums. Atspējojiet, lai novērstu Office AI darbību fonā"
 }

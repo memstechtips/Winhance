@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA Sabitleme",
   "Setting_taskbar-copilot-pwa-pin_Description": "G\u00F6rev \u00E7ubu\u011Fundaki Copilot PWA sabitlemesini g\u00F6sterir veya gizler",
   "Setting_taskbar-recall-pin_Name": "Recall Sabitleme",
-  "Setting_taskbar-recall-pin_Description": "G\u00F6rev \u00E7ubu\u011Fundaki Recall sabitlemesini g\u00F6sterir veya gizler"
+  "Setting_taskbar-recall-pin_Description": "G\u00F6rev \u00E7ubu\u011Fundaki Recall sabitlemesini g\u00F6sterir veya gizler",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc), yapay zeka i\u015F y\u00FCklerini y\u00F6netir. Windows YZ \u00F6zelliklerini kullanm\u0131yorsan\u0131z devre d\u0131\u015F\u0131 b\u0131rak\u0131n",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Recall yap\u0131land\u0131rmas\u0131 dahil Windows AI zaman\u00E7izelgeli g\u00F6revler. YZ \u00F6zelliklerinin arka planda \u00E7al\u0131\u015Fmas\u0131n\u0131 \u00F6nlemek i\u00E7in devre d\u0131\u015F\u0131 b\u0131rak\u0131n",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server zaman\u00E7izelgeli g\u00F6revi. Office YZ\u0027nin arka planda \u00E7al\u0131\u015Fmas\u0131n\u0131 \u00F6nlemek i\u00E7in devre d\u0131\u015F\u0131 b\u0131rak\u0131n"
 }

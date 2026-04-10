@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA-nål",
   "Setting_taskbar-copilot-pwa-pin_Description": "Visar eller d\u00F6ljer Copilot PWA-nålen i aktivitetsfältet",
   "Setting_taskbar-recall-pin_Name": "Recall-nål",
-  "Setting_taskbar-recall-pin_Description": "Visar eller d\u00F6ljer Recall-nålen i aktivitetsfältet"
+  "Setting_taskbar-recall-pin_Description": "Visar eller d\u00F6ljer Recall-nålen i aktivitetsfältet",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) hanterar AI-arbetsbelastningar. Inaktivera om du inte anv\u00E4nder Windows AI-funktioner",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Schemalagda Windows AI-uppgifter inklusive Recall-konfiguration. Inaktivera f\u00F6r att f\u00F6rhindra att AI-funktioner k\u00F6rs i bakgrunden",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Schemalagd uppgift f\u00F6r Office AI Actions Server. Inaktivera f\u00F6r att f\u00F6rhindra att Office AI k\u00F6rs i bakgrunden"
 }

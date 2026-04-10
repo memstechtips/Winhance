@@ -1785,6 +1785,9 @@
             "IsSelected": false,
             "InputType": 0
           },
+          { "Id": "gaming-ai-fabric-service", "Name": "Windows AI Fabric Service", "InputType": 1, "SelectedIndex": 0 },
+          { "Id": "gaming-task-windows-ai", "Name": "Windows AI Tasks", "IsSelected": false, "InputType": 0 },
+          { "Id": "gaming-task-office-actions-server", "Name": "Office Actions Server Task", "IsSelected": false, "InputType": 0 },
           {
             "Id": "visual-effects-mode",
             "Name": "Visual Effects",

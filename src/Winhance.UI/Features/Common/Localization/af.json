@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA-vasspeld",
   "Setting_taskbar-copilot-pwa-pin_Description": "Wys of verberg die Copilot PWA-vasspeld op die taakbalk",
   "Setting_taskbar-recall-pin_Name": "Recall-vasspeld",
-  "Setting_taskbar-recall-pin_Description": "Wys of verberg die Recall-vasspeld op die taakbalk"
+  "Setting_taskbar-recall-pin_Description": "Wys of verberg die Recall-vasspeld op die taakbalk",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI-weefselsdiens",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) bestuur KI-werkladings. Deaktiveer as jy nie Windows AI-funksies gebruik nie",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI-take",
+  "Setting_gaming-task-windows-ai_Description": "Windows AI geskeduleerde take insluitend Recall-konfigurasie. Deaktiveer om te verhoed dat KI-funksies op die agtergrond loop",
+  "Setting_gaming-task-office-actions-server_Name": "Office-aksiesbediener-taak",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server geskeduleerde taak. Deaktiveer om te verhoed dat Office AI op die agtergrond loop"
 }

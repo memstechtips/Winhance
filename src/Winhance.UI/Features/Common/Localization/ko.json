@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA 핀",
   "Setting_taskbar-copilot-pwa-pin_Description": "작업 표시줄의 Copilot PWA 핀을 표시하거나 숨깁니다",
   "Setting_taskbar-recall-pin_Name": "Recall 핀",
-  "Setting_taskbar-recall-pin_Description": "작업 표시줄의 Recall 핀을 표시하거나 숨깁니다"
+  "Setting_taskbar-recall-pin_Description": "작업 표시줄의 Recall 핀을 표시하거나 숨깁니다",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc)는 AI 워크로드를 관리합니다. Windows AI 기능을 사용하지 않는 경우 비활성화하세요",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Recall 구성을 포함한 Windows AI 예약 작업입니다. AI 기능이 백그라운드에서 실행되지 않도록 비활성화하세요",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 예약 작업입니다. Office AI가 백그라운드에서 실행되지 않도록 비활성화하세요"
 }

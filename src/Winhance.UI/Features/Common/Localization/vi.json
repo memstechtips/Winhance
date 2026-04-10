@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Ghim Copilot PWA",
   "Setting_taskbar-copilot-pwa-pin_Description": "Hi\u1EC3n th\u1ECB ho\u1EB7c \u1EA9n ghim Copilot PWA tr\u00EAn thanh t\u00E1c v\u1EE5",
   "Setting_taskbar-recall-pin_Name": "Ghim Recall",
-  "Setting_taskbar-recall-pin_Description": "Hi\u1EC3n th\u1ECB ho\u1EB7c \u1EA9n ghim Recall tr\u00EAn thanh t\u00E1c v\u1EE5"
+  "Setting_taskbar-recall-pin_Description": "Hi\u1EC3n th\u1ECB ho\u1EB7c \u1EA9n ghim Recall tr\u00EAn thanh t\u00E1c v\u1EE5",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) qu\u1EA3n l\u00FD kh\u1ED1i l\u01B0\u1EE3ng c\u00F4ng vi\u1EC7c AI. V\u00F4 hi\u1EC7u h\u00F3a n\u1EBFu b\u1EA1n kh\u00F4ng s\u1EED d\u1EE5ng t\u00EDnh n\u0103ng AI c\u1EE7a Windows",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "C\u00E1c t\u00E1c v\u1EE5 \u0111\u01B0\u1EE3c l\u00EAn l\u1ECBch c\u1EE7a Windows AI bao g\u1ED3m c\u1EA5u h\u00ECnh Recall. V\u00F4 hi\u1EC7u h\u00F3a \u0111\u1EC3 ng\u0103n c\u00E1c t\u00EDnh n\u0103ng AI ch\u1EA1y trong n\u1EC1n",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "T\u00E1c v\u1EE5 \u0111\u01B0\u1EE3c l\u00EAn l\u1ECBch c\u1EE7a Office AI Actions Server. V\u00F4 hi\u1EC7u h\u00F3a \u0111\u1EC3 ng\u0103n Office AI ch\u1EA1y trong n\u1EC1n"
 }

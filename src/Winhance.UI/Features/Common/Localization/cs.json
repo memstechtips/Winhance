@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "P\u0159ipnut\u00ed Copilot PWA",
   "Setting_taskbar-copilot-pwa-pin_Description": "Zobraz\u00ed nebo skryje p\u0159ipnut\u00ed Copilot PWA na hlavním panelu",
   "Setting_taskbar-recall-pin_Name": "P\u0159ipnut\u00ed Recall",
-  "Setting_taskbar-recall-pin_Description": "Zobraz\u00ed nebo skryje p\u0159ipnut\u00ed Recall na hlavním panelu"
+  "Setting_taskbar-recall-pin_Description": "Zobraz\u00ed nebo skryje p\u0159ipnut\u00ed Recall na hlavním panelu",
+  "Setting_gaming-ai-fabric-service_Name": "Slu\u017eba Windows AI Fabric",
+  "Setting_gaming-ai-fabric-service_Description": "Slu\u017eba Windows AI Fabric (WSAIFabricSvc) spravuje zát\u011b\u017ee AI. Zakaz\u0165e, pokud nepou\u017eíváte funkce Windows AI",
+  "Setting_gaming-task-windows-ai_Name": "\u00dalohy Windows AI",
+  "Setting_gaming-task-windows-ai_Description": "Naplánované \u00falohy Windows AI v\u010detn\u011b konfigurace Recall. Zakaz\u0165e, aby se funkce AI nespou\u0161t\u011bly na pozadí",
+  "Setting_gaming-task-office-actions-server_Name": "\u00daloha serveru akcí Office",
+  "Setting_gaming-task-office-actions-server_Description": "Naplánovaná \u00faloha Office AI Actions Server. Zakaz\u0165e, aby se Office AI nespou\u0161t\u011blo na pozadí"
 }

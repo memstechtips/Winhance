@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Значок Copilot PWA",
   "Setting_taskbar-copilot-pwa-pin_Description": "Показує або приховує значок Copilot PWA на панелі завдань",
   "Setting_taskbar-recall-pin_Name": "Значок Recall",
-  "Setting_taskbar-recall-pin_Description": "Показує або приховує значок Recall на панелі завдань"
+  "Setting_taskbar-recall-pin_Description": "Показує або приховує значок Recall на панелі завдань",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) керує робочими навантаженнями ШІ. Вимкніть, якщо не використовуєте функції ШІ Windows",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Заплановані завдання Windows AI, включаючи налаштування Recall. Вимкніть, щоб запобігти роботі функцій ШІ у фоновому режимі",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Заплановане завдання Office AI Actions Server. Вимкніть, щоб запобігти роботі ШІ Office у фоновому режимі"
 }

@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Pin Copilot PWA",
   "Setting_taskbar-copilot-pwa-pin_Description": "Mostra o nasconde il pin Copilot PWA nella barra delle applicazioni",
   "Setting_taskbar-recall-pin_Name": "Pin Recall",
-  "Setting_taskbar-recall-pin_Description": "Mostra o nasconde il pin Recall nella barra delle applicazioni"
+  "Setting_taskbar-recall-pin_Description": "Mostra o nasconde il pin Recall nella barra delle applicazioni",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) gestisce i carichi di lavoro AI. Disabilita se non usi le funzionalità Windows AI",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Attività pianificate Windows AI inclusa la configurazione di Recall. Disabilita per impedire l\u0027esecuzione delle funzionalità AI in background",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Attività pianificata Office AI Actions Server. Disabilita per impedire l\u0027esecuzione di Office AI in background"
 }

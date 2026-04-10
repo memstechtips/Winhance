@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA prisegtukas",
   "Setting_taskbar-copilot-pwa-pin_Description": "Rodo arba slepia Copilot PWA prisegtuką užduočių juostoje",
   "Setting_taskbar-recall-pin_Name": "Recall prisegtukas",
-  "Setting_taskbar-recall-pin_Description": "Rodo arba slepia Recall prisegtuką užduočių juostoje"
+  "Setting_taskbar-recall-pin_Description": "Rodo arba slepia Recall prisegtuką užduočių juostoje",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) valdo AI darbo krūvius. Išjunkite, jei nenaudojate Windows AI funkcijų",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Windows AI suplanuotos užduotys, įskaitant Recall konfigūraciją. Išjunkite, kad AI funkcijos neveiktų fone",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server suplanuota užduotis. Išjunkite, kad Office AI neveiktų fone"
 }

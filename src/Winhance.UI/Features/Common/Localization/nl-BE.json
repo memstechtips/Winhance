@@ -1828,5 +1828,11 @@
   "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA-speld",
   "Setting_taskbar-copilot-pwa-pin_Description": "Toont of verbergt de Copilot PWA-speld op de taakbalk",
   "Setting_taskbar-recall-pin_Name": "Recall-speld",
-  "Setting_taskbar-recall-pin_Description": "Toont of verbergt de Recall-speld op de taakbalk"
+  "Setting_taskbar-recall-pin_Description": "Toont of verbergt de Recall-speld op de taakbalk",
+  "Setting_gaming-ai-fabric-service_Name": "Windows AI Fabric Service",
+  "Setting_gaming-ai-fabric-service_Description": "Windows AI Fabric Service (WSAIFabricSvc) beheert AI-werklasten. Schakel uit als u geen Windows AI-functies gebruikt",
+  "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
+  "Setting_gaming-task-windows-ai_Description": "Geplande Windows AI-taken inclusief Recall-configuratie. Schakel uit om te voorkomen dat AI-functies op de achtergrond worden uitgevoerd",
+  "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
+  "Setting_gaming-task-office-actions-server_Description": "Geplande taak Office AI Actions Server. Schakel uit om te voorkomen dat Office AI op de achtergrond wordt uitgevoerd"
 }
