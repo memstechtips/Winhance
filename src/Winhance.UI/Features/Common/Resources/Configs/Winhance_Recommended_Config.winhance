@@ -359,6 +359,69 @@
         ]
       },
       {
+        "Id": "windows-app-client-aix",
+        "Name": "Windows AI Experience",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["MicrosoftWindows.Client.AIX"]
+      },
+      {
+        "Id": "windows-app-client-copilot",
+        "Name": "Windows Copilot Client",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["MicrosoftWindows.Client.CoPilot"]
+      },
+      {
+        "Id": "windows-app-client-coreai",
+        "Name": "Windows Core AI Platform",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["MicrosoftWindows.Client.CoreAI"]
+      },
+      {
+        "Id": "windows-app-edge-game-assist",
+        "Name": "Edge Game Assist",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["Microsoft.Edge.GameAssist"]
+      },
+      {
+        "Id": "windows-app-office-actions-server",
+        "Name": "Office Actions Server",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["Microsoft.Office.ActionsServer"]
+      },
+      {
+        "Id": "windows-app-ai-manager",
+        "Name": "AI Manager",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["aimgr"]
+      },
+      {
+        "Id": "windows-app-writing-assistant",
+        "Name": "Writing Assistant",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["Microsoft.WritingAssistant"]
+      },
+      {
+        "Id": "windows-app-ai-workloads",
+        "Name": "AI Workload Packages",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["WindowsWorkload.OnnxRuntimeGenAI","WindowsWorkload.SemanticTextSimilarity","WindowsWorkload.ImageSearch","WindowsWorkload.ContentExtraction","WindowsWorkload.ScreenRegionDetection","WindowsWorkload.TextRecognition","WindowsWorkload.ImageContentModeration","WindowsWorkload.ScreenSemanticsOCR","WindowsWorkload.ImageSuperResolution","WindowsWorkload.ObjectErase","WindowsWorkload.ImageDescriptor","WindowsWorkload.PortraitBlur","WindowsWorkload.TextToSpeech","WindowsWorkload.SpeechToText","WindowsWorkload.ImageSegmentation","WindowsWorkload.CreativeFilter","WindowsWorkload.StudioEffects","WindowsWorkload.SubtitleTranslation","WindowsWorkload.Summarization","WindowsWorkload.RewriteTextSuggestion"]
+      },
+      {
+        "Id": "windows-app-copilot-plus-pc",
+        "Name": "Copilot+ PC AI Packages",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": ["MicrosoftWindows.Voiess","MicrosoftWindows.Speion","MicrosoftWindows.Livtop","MicrosoftWindows.InpApp","MicrosoftWindows.Filons"]
+      },
+      {
         "Id": "windows-app-edge",
         "Name": "Microsoft Edge",
         "IsSelected": true,

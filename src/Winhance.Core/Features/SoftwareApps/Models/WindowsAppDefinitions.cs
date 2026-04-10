@@ -488,6 +488,114 @@ public static class WindowsAppDefinitions
                     MsStoreId = "9NHT9RB2F4HD",
                     CanBeReinstalled = true,
                 },
+                new ItemDefinition
+                {
+                    Id = "windows-app-client-aix",
+                    Name = "Windows AI Experience",
+                    Description = "Core Windows AI experience package (MicrosoftWindows.Client.AIX)",
+                    GroupName = "AI",
+                    AppxPackageName = ["MicrosoftWindows.Client.AIX"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-client-copilot",
+                    Name = "Windows Copilot Client",
+                    Description = "System Copilot client package (MicrosoftWindows.Client.CoPilot)",
+                    GroupName = "AI",
+                    AppxPackageName = ["MicrosoftWindows.Client.CoPilot"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-client-coreai",
+                    Name = "Windows Core AI Platform",
+                    Description = "Core AI platform package (MicrosoftWindows.Client.CoreAI)",
+                    GroupName = "AI",
+                    AppxPackageName = ["MicrosoftWindows.Client.CoreAI"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-edge-game-assist",
+                    Name = "Edge Game Assist",
+                    Description = "Edge Game Assist AI overlay for gaming",
+                    GroupName = "AI",
+                    AppxPackageName = ["Microsoft.Edge.GameAssist"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-office-actions-server",
+                    Name = "Office Actions Server",
+                    Description = "Office AI Actions Server for automated AI-powered actions",
+                    GroupName = "AI",
+                    AppxPackageName = ["Microsoft.Office.ActionsServer"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-ai-manager",
+                    Name = "AI Manager",
+                    Description = "Office AI Manager (aimgr) for managing AI services",
+                    GroupName = "AI",
+                    AppxPackageName = ["aimgr"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-writing-assistant",
+                    Name = "Writing Assistant",
+                    Description = "Microsoft Office Writing Assistant AI tool",
+                    GroupName = "AI",
+                    AppxPackageName = ["Microsoft.WritingAssistant"],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-ai-workloads",
+                    Name = "AI Workload Packages",
+                    Description = "Windows AI workload packages including ONNX Runtime, Semantic Text, Image Search, Content Extraction, Screen Region Detection, Text Recognition, and Image Content Moderation",
+                    GroupName = "AI",
+                    AppxPackageName = [
+                        "WindowsWorkload.OnnxRuntimeGenAI",
+                        "WindowsWorkload.SemanticTextSimilarity",
+                        "WindowsWorkload.ImageSearch",
+                        "WindowsWorkload.ContentExtraction",
+                        "WindowsWorkload.ScreenRegionDetection",
+                        "WindowsWorkload.TextRecognition",
+                        "WindowsWorkload.ImageContentModeration",
+                        "WindowsWorkload.ScreenSemanticsOCR",
+                        "WindowsWorkload.ImageSuperResolution",
+                        "WindowsWorkload.ObjectErase",
+                        "WindowsWorkload.ImageDescriptor",
+                        "WindowsWorkload.PortraitBlur",
+                        "WindowsWorkload.TextToSpeech",
+                        "WindowsWorkload.SpeechToText",
+                        "WindowsWorkload.ImageSegmentation",
+                        "WindowsWorkload.CreativeFilter",
+                        "WindowsWorkload.StudioEffects",
+                        "WindowsWorkload.SubtitleTranslation",
+                        "WindowsWorkload.Summarization",
+                        "WindowsWorkload.RewriteTextSuggestion",
+                    ],
+                    CanBeReinstalled = false,
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-copilot-plus-pc",
+                    Name = "Copilot+ PC AI Packages",
+                    Description = "AI voice, speech, live typing, input, and file operation packages for NPU-equipped Copilot+ PCs",
+                    GroupName = "AI",
+                    AppxPackageName = [
+                        "MicrosoftWindows.Voiess",
+                        "MicrosoftWindows.Speion",
+                        "MicrosoftWindows.Livtop",
+                        "MicrosoftWindows.InpApp",
+                        "MicrosoftWindows.Filons",
+                    ],
+                    CanBeReinstalled = false,
+                },
 
                 // Special Items that require dedicated scripts
                 new ItemDefinition
