@@ -904,6 +904,42 @@
             "Name": "Enable Long File Paths",
             "IsSelected": true,
             "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-number-decimal",
+            "Name": "Number Decimal Symbol",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-currency-decimal",
+            "Name": "Currency Decimal Symbol",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-short-date",
+            "Name": "Short Date Format",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-first-day-of-week",
+            "Name": "First Day of Week",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-measurement-system",
+            "Name": "Measurement System",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-list-separator",
+            "Name": "List Separator",
+            "InputType": 1,
+            "SelectedIndex": 0
           }
         ]
       },
