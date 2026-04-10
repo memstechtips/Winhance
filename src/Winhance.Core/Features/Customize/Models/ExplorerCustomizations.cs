@@ -2183,84 +2183,6 @@ if (Test-Path $appPathsKey) {
                 // Regional Settings
                 new SettingDefinition
                 {
-                    Id = "explorer-customization-number-decimal",
-                    Name = "Number Decimal Symbol",
-                    Description = "Choose the symbol used to separate whole numbers from decimals in number formatting",
-                    GroupName = "Regional Settings",
-                    InputType = InputType.Selection,
-                    Icon = "Numeric",
-                    AddedInVersion = "26.04.10",
-                    RestartProcess = "intl",
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
-                            ValueName = "sDecimal",
-                            DefaultValue = ".",
-                            ValueType = RegistryValueKind.String,
-                            DefaultOption = ". (Period)",
-                        },
-                    },
-                    ComboBox = new ComboBoxMetadata
-                    {
-                        DisplayNames = new string[]
-                        {
-                            ". (Period)",
-                            ", (Comma)",
-                            "  (Space)",
-                            "\u0027 (Apostrophe)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["sDecimal"] = "." },
-                            [1] = new Dictionary<string, object?> { ["sDecimal"] = "," },
-                            [2] = new Dictionary<string, object?> { ["sDecimal"] = " " },
-                            [3] = new Dictionary<string, object?> { ["sDecimal"] = "'" },
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-currency-decimal",
-                    Name = "Currency Decimal Symbol",
-                    Description = "Choose the symbol used to separate whole numbers from decimals in currency formatting",
-                    GroupName = "Regional Settings",
-                    InputType = InputType.Selection,
-                    Icon = "CurrencySign",
-                    AddedInVersion = "26.04.10",
-                    RestartProcess = "intl",
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
-                            ValueName = "sMonDecimalSep",
-                            DefaultValue = ".",
-                            ValueType = RegistryValueKind.String,
-                            DefaultOption = ". (Period)",
-                        },
-                    },
-                    ComboBox = new ComboBoxMetadata
-                    {
-                        DisplayNames = new string[]
-                        {
-                            ". (Period)",
-                            ", (Comma)",
-                            "  (Space)",
-                            "\u0027 (Apostrophe)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
-                            [1] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
-                            [2] = new Dictionary<string, object?> { ["sMonDecimalSep"] = " " },
-                            [3] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "'" },
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
                     Id = "explorer-customization-short-date",
                     Name = "Short Date Format",
                     Description = "Choose the format used to display short dates across Windows",
@@ -2347,12 +2269,12 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
-                    Id = "explorer-customization-measurement-system",
-                    Name = "Measurement System",
-                    Description = "Choose whether Windows uses the metric or U.S. imperial measurement system",
+                    Id = "explorer-customization-number-decimal",
+                    Name = "Number Decimal Symbol",
+                    Description = "Choose the symbol used to separate whole numbers from decimals in number formatting",
                     GroupName = "Regional Settings",
                     InputType = InputType.Selection,
-                    Icon = "RulerSquare",
+                    Icon = "Numeric",
                     AddedInVersion = "26.04.10",
                     RestartProcess = "intl",
                     RegistrySettings = new List<RegistrySetting>
@@ -2360,23 +2282,27 @@ if (Test-Path $appPathsKey) {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
-                            ValueName = "iMeasure",
-                            DefaultValue = "1",
+                            ValueName = "sDecimal",
+                            DefaultValue = ".",
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = "U.S. (Imperial)",
+                            DefaultOption = ". (Period)",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
                         DisplayNames = new string[]
                         {
-                            "Metric",
-                            "U.S. (Imperial)",
+                            ". (Period)",
+                            ", (Comma)",
+                            "  (Space)",
+                            "\u0027 (Apostrophe)",
                         },
                         ValueMappings = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, object?> { ["iMeasure"] = "0" },
-                            [1] = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                            [0] = new Dictionary<string, object?> { ["sDecimal"] = "." },
+                            [1] = new Dictionary<string, object?> { ["sDecimal"] = "," },
+                            [2] = new Dictionary<string, object?> { ["sDecimal"] = " " },
+                            [3] = new Dictionary<string, object?> { ["sDecimal"] = "'" },
                         },
                     },
                 },
@@ -2415,6 +2341,80 @@ if (Test-Path $appPathsKey) {
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-measurement-system",
+                    Name = "Measurement System",
+                    Description = "Choose whether Windows uses the metric or U.S. imperial measurement system",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "RulerSquare",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "iMeasure",
+                            DefaultValue = "1",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = "U.S. (Imperial)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Metric",
+                            "U.S. (Imperial)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["iMeasure"] = "0" },
+                            [1] = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-currency-decimal",
+                    Name = "Currency Decimal Symbol",
+                    Description = "Choose the symbol used to separate whole numbers from decimals in currency formatting",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CurrencySign",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sMonDecimalSep",
+                            DefaultValue = ".",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = ". (Period)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            ". (Period)",
+                            ", (Comma)",
+                            "  (Space)",
+                            "\u0027 (Apostrophe)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
+                            [1] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
+                            [2] = new Dictionary<string, object?> { ["sMonDecimalSep"] = " " },
+                            [3] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "'" },
+                        },
+                    },
+                },    
             },
         };
     }

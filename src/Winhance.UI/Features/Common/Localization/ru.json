@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "Файлы и папки",
   "SettingGroup_File_Associations": "Ассоциации файлов",
   "SettingGroup_Navigation_Pane": "Панель навигации",
+  "SettingGroup_Regional_Settings": "\u0420\u0435\u0433\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B",
   "SettingGroup_Other": "Прочее",
   "Setting_windows-pushnotifications_Name": "Показывать уведомления",
   "Setting_windows-pushnotifications_Description": "Получать уведомления от приложений и других отправителей в Windows",
