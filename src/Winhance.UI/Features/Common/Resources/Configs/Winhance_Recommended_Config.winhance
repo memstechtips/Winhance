@@ -2622,7 +2622,31 @@
             "Name": "OneDrive Automatic Backups",
             "IsSelected": false,
             "InputType": 0
-          }
+          },
+          { "Id": "privacy-turn-off-copilot", "Name": "Windows Copilot", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-ai-data-analysis", "Name": "AI Data Analysis", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-block-recall-enablement", "Name": "Recall Enablement", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-recall-snapshots", "Name": "Recall Saving Snapshots", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-click-to-do", "Name": "Click to Do", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-settings-agent", "Name": "AI Settings Agent", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-agent-connectors", "Name": "AI Agent Connectors", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-agent-workspaces", "Name": "AI Agent Workspaces", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-remote-agent-connectors", "Name": "Remote AI Agent Connectors", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-copilot-hardware-key", "Name": "Copilot Hardware Key", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-copilot-runtime", "Name": "Copilot Runtime", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-copilot-unavailable", "Name": "Copilot Availability", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-bing-chat", "Name": "Bing Chat Eligibility", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-deny-generative-ai-access", "Name": "Generative AI Access", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-deny-system-ai-models", "Name": "System AI Models Access", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-deny-copilot-microphone", "Name": "Copilot Microphone Access", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-paint-ai-image-creator", "Name": "Paint AI Image Creator", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-paint-ai-cocreator", "Name": "Paint AI Cocreator", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-paint-generative-fill", "Name": "Paint Generative Fill", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-paint-generative-erase", "Name": "Paint Generative Erase", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-paint-remove-background", "Name": "Paint Remove Background", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-input-insights", "Name": "Input Insights", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-copilot-nudges", "Name": "Copilot Nudges", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-disable-consumer-ai-content", "Name": "AI Consumer Content", "IsSelected": false, "InputType": 0 }
         ]
       },
       "Sound": {

@@ -1746,6 +1746,630 @@ public static class PrivacyAndSecurityOptimizations
                         },
                     },
                 },
+                // =====================
+                // Windows AI
+                // =====================
+                new SettingDefinition
+                {
+                    Id = "privacy-turn-off-copilot",
+                    Name = "Windows Copilot",
+                    Description = "Controls whether Windows Copilot is available system-wide via group policy for both current user and local machine",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\WindowsCopilot",
+                            ValueName = "TurnOffWindowsCopilot",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsCopilot",
+                            ValueName = "TurnOffWindowsCopilot",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-ai-data-analysis",
+                    Name = "AI Data Analysis",
+                    Description = "Controls whether Windows AI can analyze user data for personalization and recommendations",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DatabaseOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableAIDataAnalysis",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-block-recall-enablement",
+                    Name = "Recall Enablement",
+                    Description = "Controls whether Windows Recall can be enabled via policy",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Cancel",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "AllowRecallEnablement",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-recall-snapshots",
+                    Name = "Recall Saving Snapshots",
+                    Description = "Allows Windows Recall to save screenshots of your activity for later recall",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CameraOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "TurnOffSavingSnapshots",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-click-to-do",
+                    Name = "Click to Do",
+                    Description = "Controls whether the Click to Do AI feature is available in Windows",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CursorDefaultClickOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableClickToDo",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-settings-agent",
+                    Name = "AI Settings Agent",
+                    Description = "Controls whether the AI-powered Settings Agent is available in Windows",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CogOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableSettingsAgent",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-agent-connectors",
+                    Name = "AI Agent Connectors",
+                    Description = "Controls whether AI agents can use connectors to access external services",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "VectorPolylineRemove",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableAgentConnectors",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-agent-workspaces",
+                    Name = "AI Agent Workspaces",
+                    Description = "Controls whether AI Agent Workspaces are available in Windows",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DesktopClassic",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableAgentWorkspaces",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-remote-agent-connectors",
+                    Name = "Remote AI Agent Connectors",
+                    Description = "Controls whether AI agents can use remote connectors to access remote services",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "LanDisconnect",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableRemoteAgentConnectors",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-copilot-hardware-key",
+                    Name = "Copilot Hardware Key",
+                    Description = "Controls whether the dedicated Copilot key on keyboards opens Copilot",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "KeyboardOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CopilotKey",
+                            ValueName = "SetCopilotHardwareKey",
+                            RecommendedValue = "",
+                            EnabledValue = [null],
+                            DisabledValue = [""],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-copilot-runtime",
+                    Name = "Copilot Runtime",
+                    Description = "Controls whether the Copilot runtime is allowed to run via policy",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "RobotOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "AllowCopilotRuntime",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-copilot-unavailable",
+                    Name = "Copilot Availability",
+                    Description = "Controls whether Copilot is available in the Windows Shell",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "RobotOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Copilot",
+                            ValueName = "IsCopilotAvailable",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-bing-chat",
+                    Name = "Bing Chat Eligibility",
+                    Description = "Controls whether the user is eligible for Bing Chat and Copilot in Search",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ChatRemove",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Copilot\BingChat",
+                            ValueName = "IsUserEligible",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-deny-generative-ai-access",
+                    Name = "Generative AI Access",
+                    Description = "Controls whether apps can access the generative AI capability on your device",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShieldLock",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\generativeAI",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow"],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
+                            ValueName = "LetAppsAccessGenerativeAI",
+                            RecommendedValue = 2,
+                            EnabledValue = [null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-deny-system-ai-models",
+                    Name = "System AI Models Access",
+                    Description = "Controls whether apps can access system AI models on your device and collect usage data",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShieldLock",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\systemAIModels",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow"],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
+                            ValueName = "LetAppsAccessSystemAIModels",
+                            RecommendedValue = 2,
+                            EnabledValue = [null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\systemAIModels",
+                            ValueName = "RecordUsageData",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-deny-copilot-microphone",
+                    Name = "Copilot Microphone Access",
+                    Description = "Controls whether Copilot and Office Hub apps have microphone permission",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "MicrophoneOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Microsoft.Copilot_8wekyb3d8bbwe",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow"],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Microsoft.MicrosoftOfficeHub_8wekyb3d8bbwe",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow"],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-ai-image-creator",
+                    Name = "Paint AI Image Creator",
+                    Description = "Controls whether the AI Image Creator feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ImageOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableImageCreator",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-ai-cocreator",
+                    Name = "Paint AI Cocreator",
+                    Description = "Controls whether the AI Cocreator feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "PaletteOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableCocreator",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-generative-fill",
+                    Name = "Paint Generative Fill",
+                    Description = "Controls whether the AI Generative Fill feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FormatPaint",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableGenerativeFill",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-generative-erase",
+                    Name = "Paint Generative Erase",
+                    Description = "Controls whether the AI Generative Erase feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "EraserVariant",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableGenerativeErase",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-remove-background",
+                    Name = "Paint Remove Background",
+                    Description = "Controls whether the AI Remove Background feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ImageRemove",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableRemoveBackground",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-input-insights",
+                    Name = "Input Insights",
+                    Description = "Controls whether Windows Input Insights can track typing patterns and provide suggestions",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "KeyboardOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input\Settings",
+                            ValueName = "InsightsEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-copilot-nudges",
+                    Name = "Copilot Nudges",
+                    Description = "Controls whether Copilot promotional nudges and background task notifications are shown",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "BellOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowCopilotNudges",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-consumer-ai-content",
+                    Name = "AI Consumer Content",
+                    Description = "Controls whether AI-driven consumer account content recommendations are shown",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "AccountOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent",
+                            ValueName = "DisableConsumerAccountStateContent",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
             },
         };
     }
