@@ -2370,6 +2370,297 @@ public static class PrivacyAndSecurityOptimizations
                         },
                     },
                 },
+                // =====================
+                // Microsoft Edge AI
+                // =====================
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-copilot-cdp-page-context",
+                    Name = "Edge Copilot CDP Page Context",
+                    Description = "Controls whether Copilot can use CDP to access page content in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "WebOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "CopilotCDPPageContext",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-copilot-page-context",
+                    Name = "Edge Copilot Page Context",
+                    Description = "Controls whether Copilot can read page content in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FileEyeOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "CopilotPageContext",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-copilot-sidebar",
+                    Name = "Edge Copilot Sidebar",
+                    Description = "Controls whether the Copilot sidebar is available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DockRight",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "HubsSidebarEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-entra-copilot",
+                    Name = "Edge Entra Copilot Page Context",
+                    Description = "Controls whether Entra Copilot can access page context in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShieldOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "EdgeEntraCopilotPageContext",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-m365-copilot-icon",
+                    Name = "Edge M365 Copilot Chat Icon",
+                    Description = "Controls whether the Microsoft 365 Copilot chat icon is shown in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ChatMinus",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "Microsoft365CopilotChatIconEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-ai-history-search",
+                    Name = "Edge AI History Search",
+                    Description = "Controls whether AI-powered history search is available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "History",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "EdgeHistoryAISearchEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-inline-compose",
+                    Name = "Edge Inline AI Compose",
+                    Description = "Controls whether AI-powered inline compose suggestions are available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "PenOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "ComposeInlineEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-local-ai-model",
+                    Name = "Edge Local AI Model Settings",
+                    Description = "Controls whether local AI model settings are available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DatabaseOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "GenAILocalFoundationalModelSettings",
+                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-builtin-ai-apis",
+                    Name = "Edge Built-in AI APIs",
+                    Description = "Controls whether built-in AI APIs are available in Microsoft Edge for websites to use",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Api",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "BuiltInAIAPIsEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-ai-themes",
+                    Name = "Edge AI Generated Themes",
+                    Description = "Controls whether AI-generated themes are available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "PaletteOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "AIGenThemesEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-devtools-ai",
+                    Name = "Edge DevTools AI",
+                    Description = "Controls whether AI features are available in Edge DevTools",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CodeBracesBox",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "DevToolsGenAiSettings",
+                            RecommendedValue = 2,
+                            EnabledValue = [null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-share-history-copilot",
+                    Name = "Edge Share History with Copilot",
+                    Description = "Controls whether browsing history is shared with Copilot search in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShareOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "ShareBrowsingHistoryWithCopilotSearchAllowed",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
             },
         };
     }

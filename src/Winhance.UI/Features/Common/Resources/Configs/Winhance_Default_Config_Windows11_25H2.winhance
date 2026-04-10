@@ -2361,7 +2361,19 @@
           { "Id": "privacy-disable-paint-remove-background", "Name": "Paint Remove Background", "IsSelected": true, "InputType": 0 },
           { "Id": "privacy-disable-input-insights", "Name": "Input Insights", "IsSelected": true, "InputType": 0 },
           { "Id": "privacy-disable-copilot-nudges", "Name": "Copilot Nudges", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-consumer-ai-content", "Name": "AI Consumer Content", "IsSelected": true, "InputType": 0 }
+          { "Id": "privacy-disable-consumer-ai-content", "Name": "AI Consumer Content", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-copilot-cdp-page-context", "Name": "Edge Copilot CDP Page Context", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-copilot-page-context", "Name": "Edge Copilot Page Context", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-copilot-sidebar", "Name": "Edge Copilot Sidebar", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-entra-copilot", "Name": "Edge Entra Copilot Page Context", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-m365-copilot-icon", "Name": "Edge M365 Copilot Chat Icon", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-ai-history-search", "Name": "Edge AI History Search", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-inline-compose", "Name": "Edge Inline AI Compose", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-local-ai-model", "Name": "Edge Local AI Model Settings", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-builtin-ai-apis", "Name": "Edge Built-in AI APIs", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-ai-themes", "Name": "Edge AI Generated Themes", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-devtools-ai", "Name": "Edge DevTools AI", "IsSelected": true, "InputType": 0 },
+          { "Id": "privacy-edge-share-history-copilot", "Name": "Edge Share History with Copilot", "IsSelected": true, "InputType": 0 }
         ]
       },
       "Sound": {
