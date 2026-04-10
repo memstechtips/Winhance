@@ -834,7 +834,10 @@
             "Name": "Taskbar Auto-Hide Hover Delay",
             "IsSelected": false,
             "InputType": 1
-          }
+          },
+          { "Id": "taskbar-copilot-companion", "Name": "Copilot Companion Button", "IsSelected": true, "InputType": 0 },
+          { "Id": "taskbar-copilot-pwa-pin", "Name": "Copilot PWA Pin", "IsSelected": true, "InputType": 0 },
+          { "Id": "taskbar-recall-pin", "Name": "Recall Pin", "IsSelected": true, "InputType": 0 }
         ]
       },
       "WindowsTheme": {

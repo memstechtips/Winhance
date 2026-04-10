@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Ur\u010duje, zda jsou funkce Copilot AI, not\u00e9sy Copilot a tla\u010d\u00edtko Copilot dostupn\u00e9 v Microsoft OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Bezpe\u010dnost obsahu AI v Office",
-  "Setting_privacy-office-content-safety-ai_Description": "Ur\u010duje, zda jsou funkce bezpe\u010dnosti obsahu AI pro alternativn\u00ed text, p\u0159epis a shrnut\u00ed dostupn\u00e9 v aplikac\u00edch Office"
+  "Setting_privacy-office-content-safety-ai_Description": "Ur\u010duje, zda jsou funkce bezpe\u010dnosti obsahu AI pro alternativn\u00ed text, p\u0159epis a shrnut\u00ed dostupn\u00e9 v aplikac\u00edch Office",
+  "Setting_taskbar-copilot-companion_Name": "Tla\u010d\u00edtko Copilot spole\u010dn\u00edka",
+  "Setting_taskbar-copilot-companion_Description": "Zobraz\u00ed nebo skryje nov\u011bj\u0161\u00ed tla\u010d\u00edtko Copilot spole\u010dn\u00edka na hlavním panelu",
+  "Setting_taskbar-copilot-pwa-pin_Name": "P\u0159ipnut\u00ed Copilot PWA",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Zobraz\u00ed nebo skryje p\u0159ipnut\u00ed Copilot PWA na hlavním panelu",
+  "Setting_taskbar-recall-pin_Name": "P\u0159ipnut\u00ed Recall",
+  "Setting_taskbar-recall-pin_Description": "Zobraz\u00ed nebo skryje p\u0159ipnut\u00ed Recall na hlavním panelu"
 }

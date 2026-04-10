@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Controla si las funciones de IA de Copilot, los blocs de notas de Copilot y el bot\u00f3n de Copilot est\u00e1n disponibles en Microsoft OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Seguridad de contenido de IA de Office",
-  "Setting_privacy-office-content-safety-ai_Description": "Controla si las funciones de seguridad de contenido de IA para texto alternativo, reescritura y resumen est\u00e1n disponibles en las aplicaciones de Office"
+  "Setting_privacy-office-content-safety-ai_Description": "Controla si las funciones de seguridad de contenido de IA para texto alternativo, reescritura y resumen est\u00e1n disponibles en las aplicaciones de Office",
+  "Setting_taskbar-copilot-companion_Name": "Bot\u00f3n de acompa\u00f1ante de Copilot",
+  "Setting_taskbar-copilot-companion_Description": "Muestra u oculta el nuevo bot\u00f3n de acompa\u00f1ante de Copilot en la barra de tareas",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Acceso directo de Copilot PWA",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Muestra u oculta el acceso directo de Copilot PWA en la barra de tareas",
+  "Setting_taskbar-recall-pin_Name": "Acceso directo de Recall",
+  "Setting_taskbar-recall-pin_Description": "Muestra u oculta el acceso directo de Recall en la barra de tareas"
 }

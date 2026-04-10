@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Nosaka, vai Copilot ir iespējots OneNote lietotnē",
   "Setting_privacy-office-content-safety-ai_Name": "Office MI satura drošība",
-  "Setting_privacy-office-content-safety-ai_Description": "Nosaka, vai Office MI satura drošības funkcijas ir iespējotas"
+  "Setting_privacy-office-content-safety-ai_Description": "Nosaka, vai Office MI satura drošības funkcijas ir iespējotas",
+  "Setting_taskbar-copilot-companion_Name": "Copilot pavadoņa poga",
+  "Setting_taskbar-copilot-companion_Description": "Rāda vai slēpj jaunāko Copilot pavadoņa pogu uzdevumjoslā",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA piespraude",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Rāda vai slēpj Copilot PWA piespraudi uzdevumjoslā",
+  "Setting_taskbar-recall-pin_Name": "Recall piespraude",
+  "Setting_taskbar-recall-pin_Description": "Rāda vai slēpj Recall piespraudi uzdevumjoslā"
 }

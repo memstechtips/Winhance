@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Вимикає Copilot у OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Безпека вмісту ШІ Office",
-  "Setting_privacy-office-content-safety-ai_Description": "Вимикає функції безпеки вмісту ШІ в Office"
+  "Setting_privacy-office-content-safety-ai_Description": "Вимикає функції безпеки вмісту ШІ в Office",
+  "Setting_taskbar-copilot-companion_Name": "Кнопка Copilot Companion",
+  "Setting_taskbar-copilot-companion_Description": "Показує або приховує нову кнопку Copilot companion на панелі завдань",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Значок Copilot PWA",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Показує або приховує значок Copilot PWA на панелі завдань",
+  "Setting_taskbar-recall-pin_Name": "Значок Recall",
+  "Setting_taskbar-recall-pin_Description": "Показує або приховує значок Recall на панелі завдань"
 }

@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "T\u1EAFt Copilot trong OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "An to\u00E0n n\u1ED9i dung AI c\u1EE7a Office",
-  "Setting_privacy-office-content-safety-ai_Description": "T\u1EAFt c\u00E1c t\u00EDnh n\u0103ng an to\u00E0n n\u1ED9i dung AI c\u1EE7a Office"
+  "Setting_privacy-office-content-safety-ai_Description": "T\u1EAFt c\u00E1c t\u00EDnh n\u0103ng an to\u00E0n n\u1ED9i dung AI c\u1EE7a Office",
+  "Setting_taskbar-copilot-companion_Name": "N\u00FAt Copilot Companion",
+  "Setting_taskbar-copilot-companion_Description": "Hi\u1EC3n th\u1ECB ho\u1EB7c \u1EA9n n\u00FAt Copilot companion m\u1EDBi h\u01A1n tr\u00EAn thanh t\u00E1c v\u1EE5",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Ghim Copilot PWA",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Hi\u1EC3n th\u1ECB ho\u1EB7c \u1EA9n ghim Copilot PWA tr\u00EAn thanh t\u00E1c v\u1EE5",
+  "Setting_taskbar-recall-pin_Name": "Ghim Recall",
+  "Setting_taskbar-recall-pin_Description": "Hi\u1EC3n th\u1ECB ho\u1EB7c \u1EA9n ghim Recall tr\u00EAn thanh t\u00E1c v\u1EE5"
 }

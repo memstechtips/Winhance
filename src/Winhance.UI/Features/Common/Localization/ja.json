@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "OneNote で Copilot を有効にするかどうかを制御します",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI コンテンツ セーフティ",
-  "Setting_privacy-office-content-safety-ai_Description": "Office の AI コンテンツ セーフティ機能を有効にするかどうかを制御します"
+  "Setting_privacy-office-content-safety-ai_Description": "Office の AI コンテンツ セーフティ機能を有効にするかどうかを制御します",
+  "Setting_taskbar-copilot-companion_Name": "Copilot コンパニオン ボタン",
+  "Setting_taskbar-copilot-companion_Description": "タスクバーに新しい Copilot コンパニオン ボタンを表示または非表示にします",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA ピン",
+  "Setting_taskbar-copilot-pwa-pin_Description": "タスクバーの Copilot PWA ピンを表示または非表示にします",
+  "Setting_taskbar-recall-pin_Name": "Recall ピン",
+  "Setting_taskbar-recall-pin_Description": "タスクバーの Recall ピンを表示または非表示にします"
 }

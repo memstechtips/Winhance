@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Legt fest, ob Copilot-KI-Funktionen, Copilot-Notizbücher und die Copilot-Schaltfläche in Microsoft OneNote verfügbar sind",
   "Setting_privacy-office-content-safety-ai_Name": "Office-KI-Inhaltssicherheit",
-  "Setting_privacy-office-content-safety-ai_Description": "Legt fest, ob KI-Inhaltssicherheitsfunktionen f\u00fcr Alt-Text, Umschreiben und Zusammenfassung in Office-Apps verf\u00fcgbar sind"
+  "Setting_privacy-office-content-safety-ai_Description": "Legt fest, ob KI-Inhaltssicherheitsfunktionen f\u00fcr Alt-Text, Umschreiben und Zusammenfassung in Office-Apps verf\u00fcgbar sind",
+  "Setting_taskbar-copilot-companion_Name": "Copilot-Begleitschaltfl\u00e4che",
+  "Setting_taskbar-copilot-companion_Description": "Zeigt oder versteckt die neuere Copilot-Begleitschaltfl\u00e4che in der Taskleiste",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA-Pin",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Zeigt oder versteckt den Copilot PWA-Pin in der Taskleiste",
+  "Setting_taskbar-recall-pin_Name": "Recall-Pin",
+  "Setting_taskbar-recall-pin_Description": "Zeigt oder versteckt den Recall-Pin in der Taskleiste"
 }

@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Bepaalt of Copilot is ingeschakeld in OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI-inhoudsbeveiliging",
-  "Setting_privacy-office-content-safety-ai_Description": "Bepaalt of de AI-inhoudsbeveiligingsfuncties van Office zijn ingeschakeld"
+  "Setting_privacy-office-content-safety-ai_Description": "Bepaalt of de AI-inhoudsbeveiligingsfuncties van Office zijn ingeschakeld",
+  "Setting_taskbar-copilot-companion_Name": "Copilot-metgezelknop",
+  "Setting_taskbar-copilot-companion_Description": "Toont of verbergt de nieuwere Copilot-metgezelknop op de taakbalk",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA-speld",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Toont of verbergt de Copilot PWA-speld op de taakbalk",
+  "Setting_taskbar-recall-pin_Name": "Recall-speld",
+  "Setting_taskbar-recall-pin_Description": "Toont of verbergt de Recall-speld op de taakbalk"
 }

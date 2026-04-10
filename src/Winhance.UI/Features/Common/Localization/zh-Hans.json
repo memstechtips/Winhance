@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "禁用 OneNote 中的 Copilot",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI 内容安全",
-  "Setting_privacy-office-content-safety-ai_Description": "禁用 Office 中的 AI 内容安全功能"
+  "Setting_privacy-office-content-safety-ai_Description": "禁用 Office 中的 AI 内容安全功能",
+  "Setting_taskbar-copilot-companion_Name": "Copilot Companion 按钮",
+  "Setting_taskbar-copilot-companion_Description": "显示或隐藏任务栏上较新的 Copilot companion 按钮",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA 固定",
+  "Setting_taskbar-copilot-pwa-pin_Description": "显示或隐藏任务栏上的 Copilot PWA 固定",
+  "Setting_taskbar-recall-pin_Name": "Recall 固定",
+  "Setting_taskbar-recall-pin_Description": "显示或隐藏任务栏上的 Recall 固定"
 }

@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Meghatározza, hogy a Copilot engedélyezve van-e a OneNote alkalmazásban",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI tartalombiztonság",
-  "Setting_privacy-office-content-safety-ai_Description": "Meghatározza, hogy az Office AI tartalombiztonsági funkciói engedélyezve vannak-e"
+  "Setting_privacy-office-content-safety-ai_Description": "Meghatározza, hogy az Office AI tartalombiztonsági funkciói engedélyezve vannak-e",
+  "Setting_taskbar-copilot-companion_Name": "Copilot kísérőgomb",
+  "Setting_taskbar-copilot-companion_Description": "Megjeleníti vagy elrejti az újabb Copilot kísérőgombot a tálcán",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA pin",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Megjeleníti vagy elrejti a Copilot PWA pint a tálcán",
+  "Setting_taskbar-recall-pin_Name": "Recall pin",
+  "Setting_taskbar-recall-pin_Description": "Megjeleníti vagy elrejti a Recall pint a tálcán"
 }

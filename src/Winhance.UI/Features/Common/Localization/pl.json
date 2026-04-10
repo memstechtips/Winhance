@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Określa, czy Copilot jest włączony w programie OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Bezpieczeństwo treści AI w Office",
-  "Setting_privacy-office-content-safety-ai_Description": "Określa, czy funkcje bezpieczeństwa treści AI w Office są włączone"
+  "Setting_privacy-office-content-safety-ai_Description": "Określa, czy funkcje bezpieczeństwa treści AI w Office są włączone",
+  "Setting_taskbar-copilot-companion_Name": "Przycisk towarzysza Copilot",
+  "Setting_taskbar-copilot-companion_Description": "Pokazuje lub ukrywa nowszy przycisk towarzysza Copilot na pasku zadań",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Przypięcie Copilot PWA",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Pokazuje lub ukrywa przypięcie Copilot PWA na pasku zadań",
+  "Setting_taskbar-recall-pin_Name": "Przypięcie Recall",
+  "Setting_taskbar-recall-pin_Description": "Pokazuje lub ukrywa przypięcie Recall na pasku zadań"
 }

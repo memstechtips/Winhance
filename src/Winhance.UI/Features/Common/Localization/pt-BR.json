@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Desativa o Copilot no OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Segurança de Conte\u00FAdo de IA do Office",
-  "Setting_privacy-office-content-safety-ai_Description": "Desativa os recursos de seguran\u00E7a de conte\u00FAdo de IA do Office"
+  "Setting_privacy-office-content-safety-ai_Description": "Desativa os recursos de seguran\u00E7a de conte\u00FAdo de IA do Office",
+  "Setting_taskbar-copilot-companion_Name": "Bot\u00E3o Copilot Companion",
+  "Setting_taskbar-copilot-companion_Description": "Mostra ou oculta o bot\u00E3o Copilot companion mais recente na barra de tarefas",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Pin do Copilot PWA",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Mostra ou oculta o pin do Copilot PWA na barra de tarefas",
+  "Setting_taskbar-recall-pin_Name": "Pin do Recall",
+  "Setting_taskbar-recall-pin_Description": "Mostra ou oculta o pin do Recall na barra de tarefas"
 }

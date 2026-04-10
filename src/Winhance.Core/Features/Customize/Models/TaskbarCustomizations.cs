@@ -720,6 +720,81 @@ public static class TaskbarCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "taskbar-copilot-companion",
+                    Name = "Copilot Companion Button",
+                    Description = "Show or hide the newer Copilot companion button on the taskbar",
+                    GroupName = "Taskbar Icons",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "TaskbarCompanion",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    RestartProcess = "Explorer",
+                },
+                new SettingDefinition
+                {
+                    Id = "taskbar-copilot-pwa-pin",
+                    Name = "Copilot PWA Pin",
+                    Description = "Show or hide the Copilot PWA pin on the taskbar",
+                    GroupName = "Taskbar Icons",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Pin",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "CopilotPWAPin",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    RestartProcess = "Explorer",
+                },
+                new SettingDefinition
+                {
+                    Id = "taskbar-recall-pin",
+                    Name = "Recall Pin",
+                    Description = "Show or hide the Recall pin on the taskbar",
+                    GroupName = "Taskbar Icons",
+                    AddedInVersion = "26.04.10",
+                    Icon = "History",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "RecallPin",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    RestartProcess = "Explorer",
+                },
+                new SettingDefinition
+                {
                     Id = "taskbar-widgets",
                     Name = "Show Widgets",
                     Description = "Show the Widgets button that displays personalized news, weather, calendar, and other information",

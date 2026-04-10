@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Valdo, ar Copilot įjungtas OneNote programoje",
   "Setting_privacy-office-content-safety-ai_Name": "Office DI turinio sauga",
-  "Setting_privacy-office-content-safety-ai_Description": "Valdo, ar Office DI turinio saugos funkcijos yra įjungtos"
+  "Setting_privacy-office-content-safety-ai_Description": "Valdo, ar Office DI turinio saugos funkcijos yra įjungtos",
+  "Setting_taskbar-copilot-companion_Name": "Copilot palydovo mygtukas",
+  "Setting_taskbar-copilot-companion_Description": "Rodo arba slepia naują Copilot palydovo mygtuką užduočių juostoje",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA prisegtukas",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Rodo arba slepia Copilot PWA prisegtuką užduočių juostoje",
+  "Setting_taskbar-recall-pin_Name": "Recall prisegtukas",
+  "Setting_taskbar-recall-pin_Description": "Rodo arba slepia Recall prisegtuką užduočių juostoje"
 }

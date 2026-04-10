@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Inaktiverar Copilot i OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI-inneh\u00E5llss\u00E4kerhet",
-  "Setting_privacy-office-content-safety-ai_Description": "Inaktiverar funktioner f\u00F6r AI-inneh\u00E5llss\u00E4kerhet i Office"
+  "Setting_privacy-office-content-safety-ai_Description": "Inaktiverar funktioner f\u00F6r AI-inneh\u00E5llss\u00E4kerhet i Office",
+  "Setting_taskbar-copilot-companion_Name": "Copilot Companion-knapp",
+  "Setting_taskbar-copilot-companion_Description": "Visar eller d\u00F6ljer den nyare Copilot companion-knappen i aktivitetsfältet",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA-nål",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Visar eller d\u00F6ljer Copilot PWA-nålen i aktivitetsfältet",
+  "Setting_taskbar-recall-pin_Name": "Recall-nål",
+  "Setting_taskbar-recall-pin_Description": "Visar eller d\u00F6ljer Recall-nålen i aktivitetsfältet"
 }

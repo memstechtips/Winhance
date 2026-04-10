@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "Controls whether Copilot AI features, Copilot notebooks, and Copilot skittle are available in Microsoft OneNote",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI Content Safety",
-  "Setting_privacy-office-content-safety-ai_Description": "Controls whether AI content safety features for alt text, rewrite, and summarization are available in Office apps"
+  "Setting_privacy-office-content-safety-ai_Description": "Controls whether AI content safety features for alt text, rewrite, and summarization are available in Office apps",
+  "Setting_taskbar-copilot-companion_Name": "Copilot Companion Button",
+  "Setting_taskbar-copilot-companion_Description": "Show or hide the newer Copilot companion button on the taskbar",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA Pin",
+  "Setting_taskbar-copilot-pwa-pin_Description": "Show or hide the Copilot PWA pin on the taskbar",
+  "Setting_taskbar-recall-pin_Name": "Recall Pin",
+  "Setting_taskbar-recall-pin_Description": "Show or hide the Recall pin on the taskbar"
 }

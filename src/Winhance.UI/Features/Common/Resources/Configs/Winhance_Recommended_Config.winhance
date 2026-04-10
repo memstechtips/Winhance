@@ -1203,6 +1203,9 @@
             "IsSelected": false,
             "InputType": 0
           },
+          { "Id": "taskbar-copilot-companion", "Name": "Copilot Companion Button", "IsSelected": false, "InputType": 0 },
+          { "Id": "taskbar-copilot-pwa-pin", "Name": "Copilot PWA Pin", "IsSelected": false, "InputType": 0 },
+          { "Id": "taskbar-recall-pin", "Name": "Recall Pin", "IsSelected": false, "InputType": 0 },
           {
             "Id": "taskbar-widgets",
             "Name": "Show Widgets",

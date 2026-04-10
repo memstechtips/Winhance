@@ -1822,5 +1822,11 @@
   "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
   "Setting_privacy-onenote-copilot_Description": "OneNote에서 Copilot을 활성화할지 제어합니다",
   "Setting_privacy-office-content-safety-ai_Name": "Office AI 콘텐츠 안전",
-  "Setting_privacy-office-content-safety-ai_Description": "Office AI 콘텐츠 안전 기능을 활성화할지 제어합니다"
+  "Setting_privacy-office-content-safety-ai_Description": "Office AI 콘텐츠 안전 기능을 활성화할지 제어합니다",
+  "Setting_taskbar-copilot-companion_Name": "Copilot 동반자 버튼",
+  "Setting_taskbar-copilot-companion_Description": "작업 표시줄에 새 Copilot 동반자 버튼을 표시하거나 숨깁니다",
+  "Setting_taskbar-copilot-pwa-pin_Name": "Copilot PWA 핀",
+  "Setting_taskbar-copilot-pwa-pin_Description": "작업 표시줄의 Copilot PWA 핀을 표시하거나 숨깁니다",
+  "Setting_taskbar-recall-pin_Name": "Recall 핀",
+  "Setting_taskbar-recall-pin_Description": "작업 표시줄의 Recall 핀을 표시하거나 숨깁니다"
 }
