@@ -2180,6 +2180,241 @@ if (Test-Path $appPathsKey) {
                         },
                     },
                 },
+                // Regional Settings
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-number-decimal",
+                    Name = "Number Decimal Symbol",
+                    Description = "Choose the symbol used to separate whole numbers from decimals in number formatting",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "Numeric",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sDecimal",
+                            DefaultValue = ".",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = ". (Period)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            ". (Period)",
+                            ", (Comma)",
+                            "  (Space)",
+                            "\u0027 (Apostrophe)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["sDecimal"] = "." },
+                            [1] = new Dictionary<string, object?> { ["sDecimal"] = "," },
+                            [2] = new Dictionary<string, object?> { ["sDecimal"] = " " },
+                            [3] = new Dictionary<string, object?> { ["sDecimal"] = "'" },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-currency-decimal",
+                    Name = "Currency Decimal Symbol",
+                    Description = "Choose the symbol used to separate whole numbers from decimals in currency formatting",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CurrencySign",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sMonDecimalSep",
+                            DefaultValue = ".",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = ". (Period)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            ". (Period)",
+                            ", (Comma)",
+                            "  (Space)",
+                            "\u0027 (Apostrophe)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
+                            [1] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
+                            [2] = new Dictionary<string, object?> { ["sMonDecimalSep"] = " " },
+                            [3] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "'" },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-short-date",
+                    Name = "Short Date Format",
+                    Description = "Choose the format used to display short dates across Windows",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CalendarMonth",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sShortDate",
+                            DefaultValue = "M/d/yyyy",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = "M/d/yyyy",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "M/d/yyyy",
+                            "dd/MM/yyyy",
+                            "yyyy-MM-dd",
+                            "yyyy/MM/dd",
+                            "dd MMM yyyy",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["sShortDate"] = "M/d/yyyy" },
+                            [1] = new Dictionary<string, object?> { ["sShortDate"] = "dd/MM/yyyy" },
+                            [2] = new Dictionary<string, object?> { ["sShortDate"] = "yyyy-MM-dd" },
+                            [3] = new Dictionary<string, object?> { ["sShortDate"] = "yyyy/MM/dd" },
+                            [4] = new Dictionary<string, object?> { ["sShortDate"] = "dd MMM yyyy" },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-first-day-of-week",
+                    Name = "First Day of Week",
+                    Description = "Choose which day is displayed as the first day of the week in calendars",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CalendarWeekBegin",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "iFirstDayOfWeek",
+                            DefaultValue = "6",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = "Sunday",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Sunday",
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "6" },
+                            [1] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "0" },
+                            [2] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "1" },
+                            [3] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "2" },
+                            [4] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "3" },
+                            [5] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "4" },
+                            [6] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "5" },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-measurement-system",
+                    Name = "Measurement System",
+                    Description = "Choose whether Windows uses the metric or U.S. imperial measurement system",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "RulerSquare",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "iMeasure",
+                            DefaultValue = "1",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = "U.S. (Imperial)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            "Metric",
+                            "U.S. (Imperial)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["iMeasure"] = "0" },
+                            [1] = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-list-separator",
+                    Name = "List Separator",
+                    Description = "Choose the character used to separate items in lists, such as in CSV exports and formulas",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "FormatListBulleted",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sList",
+                            DefaultValue = ",",
+                            ValueType = RegistryValueKind.String,
+                            DefaultOption = ", (Comma)",
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        DisplayNames = new string[]
+                        {
+                            ", (Comma)",
+                            "; (Semicolon)",
+                        },
+                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["sList"] = "," },
+                            [1] = new Dictionary<string, object?> { ["sList"] = ";" },
+                        },
+                    },
+                },
             },
         };
     }
