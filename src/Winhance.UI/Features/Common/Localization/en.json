@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Controls whether AI features are available in Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge Share History with Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Controls whether browsing history is shared with Copilot search in Microsoft Edge"
+  "Setting_privacy-edge-share-history-copilot_Description": "Controls whether browsing history is shared with Copilot search in Microsoft Edge",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Office AI Training",
+  "Setting_privacy-office-ai-training_Description": "Controls whether Office collects AI training data from your usage",
+  "Setting_privacy-office-connected-services_Name": "Office Connected Services",
+  "Setting_privacy-office-connected-services_Description": "Controls whether Office connected experiences and AI-powered services are available",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Controls whether Copilot AI features are available in Microsoft Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Controls whether Copilot AI features are available in Microsoft Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Controls whether Copilot AI features, Copilot notebooks, and Copilot skittle are available in Microsoft OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Office AI Content Safety",
+  "Setting_privacy-office-content-safety-ai_Description": "Controls whether AI content safety features for alt text, rewrite, and summarization are available in Office apps"
 }

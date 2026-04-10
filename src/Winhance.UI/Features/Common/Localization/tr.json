@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools Yapay Zeka",
   "Setting_privacy-edge-devtools-ai_Description": "Edge DevTools yapay zeka özelliklerini devre dışı bırakır",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge Geçmişini Copilot ile Paylaş",
-  "Setting_privacy-edge-share-history-copilot_Description": "Edge geçmişinin Copilot ile paylaşılmasını devre dışı bırakır"
+  "Setting_privacy-edge-share-history-copilot_Description": "Edge ge\u00E7mi\u015Finin Copilot ile payla\u015F\u0131lmas\u0131n\u0131 devre d\u0131\u015F\u0131 b\u0131rak\u0131r",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office Yapay Zeka",
+  "Setting_privacy-office-ai-training_Name": "Office Yapay Zeka E\u011Fitimi",
+  "Setting_privacy-office-ai-training_Description": "Office verilerinin yapay zeka modelleri e\u011Fitmek i\u00E7in kullan\u0131lmas\u0131n\u0131 devre d\u0131\u015F\u0131 b\u0131rak\u0131r",
+  "Setting_privacy-office-connected-services_Name": "Office Ba\u011Fl\u0131 Hizmetler",
+  "Setting_privacy-office-connected-services_Description": "Office ba\u011Fl\u0131 hizmetlerini devre d\u0131\u015F\u0131 b\u0131rak\u0131r",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Word\u0027deki Copilot\u0027u devre d\u0131\u015F\u0131 b\u0131rak\u0131r",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Excel\u0027deki Copilot\u0027u devre d\u0131\u015F\u0131 b\u0131rak\u0131r",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "OneNote\u0027daki Copilot\u0027u devre d\u0131\u015F\u0131 b\u0131rak\u0131r",
+  "Setting_privacy-office-content-safety-ai_Name": "Office Yapay Zeka \u0130\u00E7erik G\u00FCvenli\u011Fi",
+  "Setting_privacy-office-content-safety-ai_Description": "Office\u0027teki yapay zeka i\u00E7erik g\u00FCvenli\u011Fi \u00F6zelliklerini devre d\u0131\u015F\u0131 b\u0131rak\u0131r"
 }

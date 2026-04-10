@@ -2661,6 +2661,181 @@ public static class PrivacyAndSecurityOptimizations
                         },
                     },
                 },
+                // =====================
+                // Microsoft Office AI
+                // =====================
+                new SettingDefinition
+                {
+                    Id = "privacy-office-ai-training",
+                    Name = "Office AI Training",
+                    Description = "Controls whether Office collects AI training data from your usage",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "SchoolOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\ai\training",
+                            ValueName = "optionalconnectedexperiencesenabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-office-connected-services",
+                    Name = "Office Connected Services",
+                    Description = "Controls whether Office connected experiences and AI-powered services are available",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CloudOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\privacy",
+                            ValueName = "controllerconnectedservicesenabled",
+                            RecommendedValue = 2,
+                            EnabledValue = [null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\privacy",
+                            ValueName = "usercontentdisabled",
+                            RecommendedValue = 2,
+                            EnabledValue = [null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-word-copilot",
+                    Name = "Word Copilot",
+                    Description = "Controls whether Copilot AI features are available in Microsoft Word",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FileWord",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\Word\Options",
+                            ValueName = "EnableCopilot",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-excel-copilot",
+                    Name = "Excel Copilot",
+                    Description = "Controls whether Copilot AI features are available in Microsoft Excel",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FileExcel",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\Excel\Options",
+                            ValueName = "EnableCopilot",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-onenote-copilot",
+                    Name = "OneNote Copilot",
+                    Description = "Controls whether Copilot AI features, Copilot notebooks, and Copilot skittle are available in Microsoft OneNote",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "NotebookEdit",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\OneNote\Options\Other",
+                            ValueName = "EnableCopilot",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\OneNote\Options\Other",
+                            ValueName = "EnableCopilotNotebooks",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\OneNote\Options\Other",
+                            ValueName = "EnableCopilotSkittle",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-office-content-safety-ai",
+                    Name = "Office AI Content Safety",
+                    Description = "Controls whether AI content safety features for alt text, rewrite, and summarization are available in Office apps",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "TextBoxRemove",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\ai",
+                            ValueName = "contentsafetyserviceenabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
             },
         };
     }

@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Desativa os recursos de IA do Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Compartilhar Histórico do Edge com Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Desativa o compartilhamento do histórico do Edge com o Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Desativa o compartilhamento do histórico do Edge com o Copilot",
+  "SettingGroup_Microsoft_Office_AI": "IA do Microsoft Office",
+  "Setting_privacy-office-ai-training_Name": "Treinamento de IA do Office",
+  "Setting_privacy-office-ai-training_Description": "Desativa o uso de dados do Office para treinar modelos de IA",
+  "Setting_privacy-office-connected-services_Name": "Servi\u00E7os Conectados do Office",
+  "Setting_privacy-office-connected-services_Description": "Desativa os servi\u00E7os conectados do Office",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Desativa o Copilot no Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Desativa o Copilot no Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Desativa o Copilot no OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Seguran\u00E7a de Conte\u00FAdo de IA do Office",
+  "Setting_privacy-office-content-safety-ai_Description": "Desativa os recursos de seguran\u00E7a de conte\u00FAdo de IA do Office"
 }

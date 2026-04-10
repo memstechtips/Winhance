@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "IA dans Edge DevTools",
   "Setting_privacy-edge-devtools-ai_Description": "Contr\u00f4le si les fonctionnalit\u00e9s IA sont disponibles dans Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Partager l\u0027historique avec Copilot dans Edge",
-  "Setting_privacy-edge-share-history-copilot_Description": "Contr\u00f4le si l\u0027historique de navigation est partag\u00e9 avec la recherche Copilot dans Microsoft Edge"
+  "Setting_privacy-edge-share-history-copilot_Description": "Contr\u00f4le si l\u0027historique de navigation est partag\u00e9 avec la recherche Copilot dans Microsoft Edge",
+  "SettingGroup_Microsoft_Office_AI": "IA Microsoft Office",
+  "Setting_privacy-office-ai-training_Name": "Entra\u00eenement IA d\u0027Office",
+  "Setting_privacy-office-ai-training_Description": "Contr\u00f4le si Office collecte des donn\u00e9es d\u0027entra\u00eenement IA \u00e0 partir de votre utilisation",
+  "Setting_privacy-office-connected-services_Name": "Services connect\u00e9s Office",
+  "Setting_privacy-office-connected-services_Description": "Contr\u00f4le si les exp\u00e9riences connect\u00e9es Office et les services bas\u00e9s sur l\u0027IA sont disponibles",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Contr\u00f4le si les fonctionnalit\u00e9s IA de Copilot sont disponibles dans Microsoft Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Contr\u00f4le si les fonctionnalit\u00e9s IA de Copilot sont disponibles dans Microsoft Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Contr\u00f4le si les fonctionnalit\u00e9s IA de Copilot, les blocs-notes Copilot et le bouton Copilot sont disponibles dans Microsoft OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "S\u00e9curit\u00e9 du contenu IA Office",
+  "Setting_privacy-office-content-safety-ai_Description": "Contr\u00f4le si les fonctionnalit\u00e9s de s\u00e9curit\u00e9 du contenu IA pour le texte alternatif, la r\u00e9\u00e9criture et la synth\u00e8se sont disponibles dans les applications Office"
 }

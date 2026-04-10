@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools MI",
   "Setting_privacy-edge-devtools-ai_Description": "Nosaka, vai MI funkcijas ir iespējotas Edge izstrādātāja rīkos",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge vēstures kopīgošana ar Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Nosaka, vai Edge kopīgo pārlūkošanas vēsturi ar Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Nosaka, vai Edge kopīgo pārlūkošanas vēsturi ar Copilot",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office MI",
+  "Setting_privacy-office-ai-training_Name": "Office MI apmācība",
+  "Setting_privacy-office-ai-training_Description": "Nosaka, vai Office dati tiek izmantoti MI modeļu apmācībai",
+  "Setting_privacy-office-connected-services_Name": "Office savienotie pakalpojumi",
+  "Setting_privacy-office-connected-services_Description": "Nosaka, vai Office savienotie tiešsaistes pakalpojumi ir iespējoti",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Nosaka, vai Copilot ir iespējots Word lietotnē",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Nosaka, vai Copilot ir iespējots Excel lietotnē",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Nosaka, vai Copilot ir iespējots OneNote lietotnē",
+  "Setting_privacy-office-content-safety-ai_Name": "Office MI satura drošība",
+  "Setting_privacy-office-content-safety-ai_Description": "Nosaka, vai Office MI satura drošības funkcijas ir iespējotas"
 }

@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools DI",
   "Setting_privacy-edge-devtools-ai_Description": "Valdo, ar DI funkcijos įjungtos Edge kūrėjų įrankiuose",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge istorijos dalijimasis su Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Valdo, ar Edge dalijasi naršymo istorija su Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Valdo, ar Edge dalijasi naršymo istorija su Copilot",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office DI",
+  "Setting_privacy-office-ai-training_Name": "Office DI mokymas",
+  "Setting_privacy-office-ai-training_Description": "Valdo, ar Office duomenys naudojami DI modeliams mokyti",
+  "Setting_privacy-office-connected-services_Name": "Office prijungtos paslaugos",
+  "Setting_privacy-office-connected-services_Description": "Valdo, ar Office prijungtos interneto paslaugos yra įjungtos",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Valdo, ar Copilot įjungtas Word programoje",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Valdo, ar Copilot įjungtas Excel programoje",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Valdo, ar Copilot įjungtas OneNote programoje",
+  "Setting_privacy-office-content-safety-ai_Name": "Office DI turinio sauga",
+  "Setting_privacy-office-content-safety-ai_Description": "Valdo, ar Office DI turinio saugos funkcijos yra įjungtos"
 }

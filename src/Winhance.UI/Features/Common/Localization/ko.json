@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Edge 개발자 도구에서 AI 기능을 활성화할지 제어합니다",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge 기록을 Copilot과 공유",
-  "Setting_privacy-edge-share-history-copilot_Description": "Edge가 검색 기록을 Copilot과 공유할지 제어합니다"
+  "Setting_privacy-edge-share-history-copilot_Description": "Edge가 검색 기록을 Copilot과 공유할지 제어합니다",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Office AI 학습",
+  "Setting_privacy-office-ai-training_Description": "Office 데이터를 AI 모델 학습에 사용할지 제어합니다",
+  "Setting_privacy-office-connected-services_Name": "Office 연결된 서비스",
+  "Setting_privacy-office-connected-services_Description": "Office의 연결된 온라인 서비스를 활성화할지 제어합니다",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Word에서 Copilot을 활성화할지 제어합니다",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Excel에서 Copilot을 활성화할지 제어합니다",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "OneNote에서 Copilot을 활성화할지 제어합니다",
+  "Setting_privacy-office-content-safety-ai_Name": "Office AI 콘텐츠 안전",
+  "Setting_privacy-office-content-safety-ai_Description": "Office AI 콘텐츠 안전 기능을 활성화할지 제어합니다"
 }

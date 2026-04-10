@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "AI v Edge DevTools",
   "Setting_privacy-edge-devtools-ai_Description": "Ur\u010duje, zda jsou funkce AI dostupn\u00e9 v Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Sd\u00edlet historii s Copilot v Edge",
-  "Setting_privacy-edge-share-history-copilot_Description": "Ur\u010duje, zda je historie prohl\u00ed\u017een\u00ed sd\u00edlena s vyhled\u00e1v\u00e1n\u00edm Copilot v Microsoft Edge"
+  "Setting_privacy-edge-share-history-copilot_Description": "Ur\u010duje, zda je historie prohl\u00ed\u017een\u00ed sd\u00edlena s vyhled\u00e1v\u00e1n\u00edm Copilot v Microsoft Edge",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Tr\u00e9nov\u00e1n\u00ed AI v Office",
+  "Setting_privacy-office-ai-training_Description": "Ur\u010duje, zda Office shroma\u017e\u010fuje data pro tr\u00e9nov\u00e1n\u00ed AI z va\u0161eho pou\u017e\u00edv\u00e1n\u00ed",
+  "Setting_privacy-office-connected-services_Name": "Propojen\u00e9 slu\u017eby Office",
+  "Setting_privacy-office-connected-services_Description": "Ur\u010duje, zda jsou dostupn\u00e9 propojen\u00e9 funkce Office a slu\u017eby s podporou AI",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Ur\u010duje, zda jsou funkce Copilot AI dostupn\u00e9 v Microsoft Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Ur\u010duje, zda jsou funkce Copilot AI dostupn\u00e9 v Microsoft Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Ur\u010duje, zda jsou funkce Copilot AI, not\u00e9sy Copilot a tla\u010d\u00edtko Copilot dostupn\u00e9 v Microsoft OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Bezpe\u010dnost obsahu AI v Office",
+  "Setting_privacy-office-content-safety-ai_Description": "Ur\u010duje, zda jsou funkce bezpe\u010dnosti obsahu AI pro alternativn\u00ed text, p\u0159epis a shrnut\u00ed dostupn\u00e9 v aplikac\u00edch Office"
 }

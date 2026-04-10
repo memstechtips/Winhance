@@ -2658,7 +2658,13 @@
           { "Id": "privacy-edge-builtin-ai-apis", "Name": "Edge Built-in AI APIs", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-edge-ai-themes", "Name": "Edge AI Generated Themes", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-edge-devtools-ai", "Name": "Edge DevTools AI", "IsSelected": false, "InputType": 0 },
-          { "Id": "privacy-edge-share-history-copilot", "Name": "Edge Share History with Copilot", "IsSelected": false, "InputType": 0 }
+          { "Id": "privacy-edge-share-history-copilot", "Name": "Edge Share History with Copilot", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-office-ai-training", "Name": "Office AI Training", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-office-connected-services", "Name": "Office Connected Services", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-word-copilot", "Name": "Word Copilot", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-excel-copilot", "Name": "Excel Copilot", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-onenote-copilot", "Name": "OneNote Copilot", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-office-content-safety-ai", "Name": "Office AI Content Safety", "IsSelected": false, "InputType": 0 }
         ]
       },
       "Sound": {

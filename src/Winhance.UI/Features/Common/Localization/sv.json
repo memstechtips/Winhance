@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Inaktiverar AI-funktioner i Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Dela Edge-historik med Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Inaktiverar delning av Edge-historik med Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Inaktiverar delning av Edge-historik med Copilot",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Office AI-tr\u00E4ning",
+  "Setting_privacy-office-ai-training_Description": "Inaktiverar anv\u00E4ndning av Office-data f\u00F6r att tr\u00E4na AI-modeller",
+  "Setting_privacy-office-connected-services_Name": "Office anslutna tj\u00E4nster",
+  "Setting_privacy-office-connected-services_Description": "Inaktiverar anslutna tj\u00E4nster i Office",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Inaktiverar Copilot i Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Inaktiverar Copilot i Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Inaktiverar Copilot i OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Office AI-inneh\u00E5llss\u00E4kerhet",
+  "Setting_privacy-office-content-safety-ai_Description": "Inaktiverar funktioner f\u00F6r AI-inneh\u00E5llss\u00E4kerhet i Office"
 }

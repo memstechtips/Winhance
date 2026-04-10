@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Bepaalt of AI-functies zijn ingeschakeld in de Edge-ontwikkelaarstools",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge-geschiedenis delen met Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Bepaalt of Edge de browsegeschiedenis deelt met Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Bepaalt of Edge de browsegeschiedenis deelt met Copilot",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Office AI-training",
+  "Setting_privacy-office-ai-training_Description": "Bepaalt of Office-gegevens worden gebruikt voor het trainen van AI-modellen",
+  "Setting_privacy-office-connected-services_Name": "Office verbonden services",
+  "Setting_privacy-office-connected-services_Description": "Bepaalt of de verbonden onlineservices van Office zijn ingeschakeld",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Bepaalt of Copilot is ingeschakeld in Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Bepaalt of Copilot is ingeschakeld in Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Bepaalt of Copilot is ingeschakeld in OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Office AI-inhoudsbeveiliging",
+  "Setting_privacy-office-content-safety-ai_Description": "Bepaalt of de AI-inhoudsbeveiligingsfuncties van Office zijn ingeschakeld"
 }

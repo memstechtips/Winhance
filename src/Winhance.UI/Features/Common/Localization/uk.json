@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "ШІ в Edge DevTools",
   "Setting_privacy-edge-devtools-ai_Description": "Вимикає функції ШІ в Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Передача історії Edge в Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Вимикає передачу історії Edge в Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Вимикає передачу історії Edge в Copilot",
+  "SettingGroup_Microsoft_Office_AI": "\u0428\u0406 Microsoft Office",
+  "Setting_privacy-office-ai-training_Name": "Навчання ШІ Office",
+  "Setting_privacy-office-ai-training_Description": "Вимикає використання даних Office для навчання моделей ШІ",
+  "Setting_privacy-office-connected-services_Name": "Підключені служби Office",
+  "Setting_privacy-office-connected-services_Description": "Вимикає підключені служби Office",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Вимикає Copilot у Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Вимикає Copilot у Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Вимикає Copilot у OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Безпека вмісту ШІ Office",
+  "Setting_privacy-office-content-safety-ai_Description": "Вимикає функції безпеки вмісту ШІ в Office"
 }

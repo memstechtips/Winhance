@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "IA DevTools di Edge",
   "Setting_privacy-edge-devtools-ai_Description": "Determina se le funzionalit\u00e0 IA sono abilitate negli strumenti di sviluppo di Edge",
   "Setting_privacy-edge-share-history-copilot_Name": "Condivisione cronologia Edge con Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Determina se Edge condivide la cronologia di navigazione con Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "Determina se Edge condivide la cronologia di navigazione con Copilot",
+  "SettingGroup_Microsoft_Office_AI": "IA di Microsoft Office",
+  "Setting_privacy-office-ai-training_Name": "Addestramento IA di Office",
+  "Setting_privacy-office-ai-training_Description": "Determina se i dati di Office vengono utilizzati per addestrare i modelli di IA",
+  "Setting_privacy-office-connected-services_Name": "Servizi connessi di Office",
+  "Setting_privacy-office-connected-services_Description": "Determina se i servizi online connessi di Office sono abilitati",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Determina se Copilot \u00e8 abilitato in Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Determina se Copilot \u00e8 abilitato in Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Determina se Copilot \u00e8 abilitato in OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "Sicurezza contenuti IA di Office",
+  "Setting_privacy-office-content-safety-ai_Description": "Determina se le funzionalit\u00e0 di sicurezza dei contenuti IA di Office sono abilitate"
 }

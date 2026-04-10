@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools KI",
   "Setting_privacy-edge-devtools-ai_Description": "Beheer of KI-kenmerke beskikbaar is in Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge Deel geskiedenis met Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Beheer of blaaiergeskiedenis gedeel word met Copilot-soektog in Microsoft Edge"
+  "Setting_privacy-edge-share-history-copilot_Description": "Beheer of blaaiergeskiedenis gedeel word met Copilot-soektog in Microsoft Edge",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office-KI",
+  "Setting_privacy-office-ai-training_Name": "Office KI-opleiding",
+  "Setting_privacy-office-ai-training_Description": "Beheer of Office KI-opleidingsdata van jou gebruik insamel",
+  "Setting_privacy-office-connected-services_Name": "Office-verbonde dienste",
+  "Setting_privacy-office-connected-services_Description": "Beheer of Office-verbonde ervarings en KI-aangedrewe dienste beskikbaar is",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Beheer of Copilot KI-kenmerke in Microsoft Word beskikbaar is",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Beheer of Copilot KI-kenmerke in Microsoft Excel beskikbaar is",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Beheer of Copilot KI-kenmerke, Copilot-notitieboeke en Copilot-knoppie in Microsoft OneNote beskikbaar is",
+  "Setting_privacy-office-content-safety-ai_Name": "Office KI-inhoudveiligheid",
+  "Setting_privacy-office-content-safety-ai_Description": "Beheer of KI-inhoudveiligheidskenmerke vir alternatiewe teks, herskryf en opsomming in Office-programme beskikbaar is"
 }

@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Edge の開発者ツールで AI 機能を有効にするかどうかを制御します",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge の履歴を Copilot と共有",
-  "Setting_privacy-edge-share-history-copilot_Description": "Edge が閲覧履歴を Copilot と共有するかどうかを制御します"
+  "Setting_privacy-edge-share-history-copilot_Description": "Edge が閲覧履歴を Copilot と共有するかどうかを制御します",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Office AI トレーニング",
+  "Setting_privacy-office-ai-training_Description": "Office のデータが AI モデルのトレーニングに使用されるかどうかを制御します",
+  "Setting_privacy-office-connected-services_Name": "Office 接続サービス",
+  "Setting_privacy-office-connected-services_Description": "Office の接続されたオンライン サービスを有効にするかどうかを制御します",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Word で Copilot を有効にするかどうかを制御します",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Excel で Copilot を有効にするかどうかを制御します",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "OneNote で Copilot を有効にするかどうかを制御します",
+  "Setting_privacy-office-content-safety-ai_Name": "Office AI コンテンツ セーフティ",
+  "Setting_privacy-office-content-safety-ai_Description": "Office の AI コンテンツ セーフティ機能を有効にするかどうかを制御します"
 }

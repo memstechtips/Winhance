@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "禁用 Edge DevTools 中的 AI 功能",
   "Setting_privacy-edge-share-history-copilot_Name": "与 Copilot 共享 Edge 历史记录",
-  "Setting_privacy-edge-share-history-copilot_Description": "禁用与 Copilot 共享 Edge 历史记录"
+  "Setting_privacy-edge-share-history-copilot_Description": "禁用与 Copilot 共享 Edge 历史记录",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office AI",
+  "Setting_privacy-office-ai-training_Name": "Office AI 训练",
+  "Setting_privacy-office-ai-training_Description": "禁用使用 Office 数据训练 AI 模型",
+  "Setting_privacy-office-connected-services_Name": "Office 连接服务",
+  "Setting_privacy-office-connected-services_Description": "禁用 Office 连接服务",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "禁用 Word 中的 Copilot",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "禁用 Excel 中的 Copilot",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "禁用 OneNote 中的 Copilot",
+  "Setting_privacy-office-content-safety-ai_Name": "Office AI 内容安全",
+  "Setting_privacy-office-content-safety-ai_Description": "禁用 Office 中的 AI 内容安全功能"
 }

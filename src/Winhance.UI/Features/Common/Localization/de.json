@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools KI",
   "Setting_privacy-edge-devtools-ai_Description": "Legt fest, ob KI-Funktionen in Edge DevTools verf\u00fcgbar sind",
   "Setting_privacy-edge-share-history-copilot_Name": "Edge Verlauf mit Copilot teilen",
-  "Setting_privacy-edge-share-history-copilot_Description": "Legt fest, ob der Browserverlauf mit der Copilot-Suche in Microsoft Edge geteilt wird"
+  "Setting_privacy-edge-share-history-copilot_Description": "Legt fest, ob der Browserverlauf mit der Copilot-Suche in Microsoft Edge geteilt wird",
+  "SettingGroup_Microsoft_Office_AI": "Microsoft Office-KI",
+  "Setting_privacy-office-ai-training_Name": "Office-KI-Training",
+  "Setting_privacy-office-ai-training_Description": "Legt fest, ob Office KI-Trainingsdaten aus Ihrer Nutzung erfasst",
+  "Setting_privacy-office-connected-services_Name": "Verbundene Office-Dienste",
+  "Setting_privacy-office-connected-services_Description": "Legt fest, ob verbundene Office-Erlebnisse und KI-gest\u00fctzte Dienste verf\u00fcgbar sind",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "Legt fest, ob Copilot-KI-Funktionen in Microsoft Word verf\u00fcgbar sind",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "Legt fest, ob Copilot-KI-Funktionen in Microsoft Excel verf\u00fcgbar sind",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "Legt fest, ob Copilot-KI-Funktionen, Copilot-Notizbücher und die Copilot-Schaltfläche in Microsoft OneNote verfügbar sind",
+  "Setting_privacy-office-content-safety-ai_Name": "Office-KI-Inhaltssicherheit",
+  "Setting_privacy-office-content-safety-ai_Description": "Legt fest, ob KI-Inhaltssicherheitsfunktionen f\u00fcr Alt-Text, Umschreiben und Zusammenfassung in Office-Apps verf\u00fcgbar sind"
 }

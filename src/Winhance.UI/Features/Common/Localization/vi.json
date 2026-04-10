@@ -1809,5 +1809,18 @@
   "Setting_privacy-edge-devtools-ai_Name": "Edge DevTools AI",
   "Setting_privacy-edge-devtools-ai_Description": "Tắt các tính năng AI trong Edge DevTools",
   "Setting_privacy-edge-share-history-copilot_Name": "Chia Sẻ Lịch Sử Edge với Copilot",
-  "Setting_privacy-edge-share-history-copilot_Description": "Tắt tính năng chia sẻ lịch sử Edge với Copilot"
+  "Setting_privacy-edge-share-history-copilot_Description": "T\u1EAFt t\u00EDnh n\u0103ng chia s\u1EBB l\u1ECBch s\u1EED Edge v\u1EDBi Copilot",
+  "SettingGroup_Microsoft_Office_AI": "AI Microsoft Office",
+  "Setting_privacy-office-ai-training_Name": "\u0110\u00E0o t\u1EA1o AI Office",
+  "Setting_privacy-office-ai-training_Description": "T\u1EAFt vi\u1EC7c s\u1EED d\u1EE5ng d\u1EEF li\u1EC7u Office \u0111\u1EC3 \u0111\u00E0o t\u1EA1o m\u00F4 h\u00ECnh AI",
+  "Setting_privacy-office-connected-services_Name": "D\u1ECBch v\u1EE5 k\u1EBFt n\u1ED1i Office",
+  "Setting_privacy-office-connected-services_Description": "T\u1EAFt c\u00E1c d\u1ECBch v\u1EE5 k\u1EBFt n\u1ED1i c\u1EE7a Office",
+  "Setting_privacy-word-copilot_Name": "Word Copilot",
+  "Setting_privacy-word-copilot_Description": "T\u1EAFt Copilot trong Word",
+  "Setting_privacy-excel-copilot_Name": "Excel Copilot",
+  "Setting_privacy-excel-copilot_Description": "T\u1EAFt Copilot trong Excel",
+  "Setting_privacy-onenote-copilot_Name": "OneNote Copilot",
+  "Setting_privacy-onenote-copilot_Description": "T\u1EAFt Copilot trong OneNote",
+  "Setting_privacy-office-content-safety-ai_Name": "An to\u00E0n n\u1ED9i dung AI c\u1EE7a Office",
+  "Setting_privacy-office-content-safety-ai_Description": "T\u1EAFt c\u00E1c t\u00EDnh n\u0103ng an to\u00E0n n\u1ED9i dung AI c\u1EE7a Office"
 }
