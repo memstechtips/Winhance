@@ -9,4 +9,5 @@ public interface IWindowsUIManagementService
     bool IsProcessRunning(string processName);
     void KillProcess(string processName);
     Task<OperationResult> RefreshWindowsGUI(bool killExplorer = true);
+    void BroadcastRegionalSettingChange();
 }

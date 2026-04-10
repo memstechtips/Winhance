@@ -62,6 +62,11 @@ public class ProcessRestartManager(
             {
                 await RestartExplorerWithRetryAsync(setting);
             }
+            else if (setting.RestartProcess.Equals("intl", StringComparison.OrdinalIgnoreCase))
+            {
+                logService.Log(LogLevel.Info, $"[ProcessRestartManager] Broadcasting regional setting change for '{setting.Id}'");
+                uiManagementService.BroadcastRegionalSettingChange();
+            }
             else
             {
                 logService.Log(LogLevel.Info, $"[ProcessRestartManager] Restarting process '{setting.RestartProcess}' for setting '{setting.Id}'");
