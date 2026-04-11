@@ -190,7 +190,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
                             ValueName = "ShowFrequentList",
                             RecommendedValue = 0,
-                            EnabledValue = [1], // When toggle is ON, frequently used programs list is shown
+                            EnabledValue = [1, null], // When toggle is ON, frequently used programs list is shown
                             DisabledValue = [0], // When toggle is OFF, frequently used programs list is hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
@@ -214,7 +214,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackProgs",
                             RecommendedValue = 0,
-                            EnabledValue = [1], // When toggle is ON, frequently used programs list is shown
+                            EnabledValue = [1, null], // When toggle is ON, frequently used programs list is shown
                             DisabledValue = [0], // When toggle is OFF, frequently used programs list is hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
@@ -248,7 +248,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-338388Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = [1], // When toggle is ON, suggestions are shown
+                            EnabledValue = [1, null], // When toggle is ON, suggestions are shown
                             DisabledValue = [0], // When toggle is OFF, suggestions are hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,

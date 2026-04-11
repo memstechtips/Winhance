@@ -218,7 +218,7 @@ public static class WindowsThemeCustomizations
 
                             RecommendedValue = 0, // Disable transparency recommended
 
-                            EnabledValue = [1], // When toggle is ON, transparency effects are enabled
+                            EnabledValue = [1, null], // When toggle is ON, transparency effects are enabled
 
                             DisabledValue = [0], // When toggle is OFF, transparency effects are disabled
 
