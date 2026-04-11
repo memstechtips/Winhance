@@ -12,6 +12,7 @@ public static class UserPreferenceKeys
     public const string InitialConfigBackupCompleted = "InitialConfigBackupCompleted";
     public const string InitialRestorePointOffered = "InitialRestorePointOffered";
     public const string ShowTechnicalDetails = "ShowTechnicalDetails";
+    public const string ShowInfoBadges = "ShowInfoBadges";
 }
 
 public static class DebugFlags

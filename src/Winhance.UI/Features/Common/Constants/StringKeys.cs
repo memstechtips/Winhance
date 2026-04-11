@@ -99,6 +99,39 @@ public static class StringKeys
     }
 
     /// <summary>
+    /// View menu strings
+    /// </summary>
+    public static class View
+    {
+        public const string Menu = "View_Menu";
+        public const string TechnicalDetails = "View_TechnicalDetails";
+        public const string InfoBadges = "View_InfoBadges";
+    }
+
+    /// <summary>
+    /// Quick Actions menu strings
+    /// </summary>
+    public static class QuickActions
+    {
+        public const string Menu = "QuickActions_Menu";
+        public const string ApplyRecommended = "QuickActions_ApplyRecommended";
+        public const string ResetDefaults = "QuickActions_ResetDefaults";
+        public const string ConfirmTitle = "QuickActions_ConfirmTitle";
+        public const string ConfirmMessage = "QuickActions_ConfirmMessage";
+        public const string SuccessMessage = "QuickActions_SuccessMessage";
+    }
+
+    /// <summary>
+    /// InfoBadge strings
+    /// </summary>
+    public static class InfoBadge
+    {
+        public const string Recommended = "InfoBadge_Recommended";
+        public const string Default = "InfoBadge_Default";
+        public const string Custom = "InfoBadge_Custom";
+    }
+
+    /// <summary>
     /// Provides resolved localized strings for x:Bind in XAML.
     /// Initialize with ILocalizationService at app startup.
     /// </summary>

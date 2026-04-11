@@ -520,7 +520,7 @@ public sealed partial class OptimizePage : Page
                 TechnicalDetailsToggleBorder.BorderBrush = null;
             }
 
-            var tooltip = _localizationService?.GetString("TechnicalDetails_ToggleTooltip") ?? "Toggle Technical Details";
+            var tooltip = _localizationService?.GetString("View_TechnicalDetails") ?? "Technical Details";
             ToolTipService.SetToolTip(TechnicalDetailsToggle, tooltip);
             AutomationProperties.SetName(TechnicalDetailsToggle, tooltip);
 

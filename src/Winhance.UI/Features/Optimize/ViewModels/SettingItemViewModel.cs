@@ -157,7 +157,7 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public string TechnicalDetailsLabel =>
-        _localizationService.GetString("TechnicalDetails_Toggle") ?? "Technical Details";
+        _localizationService.GetString("View_TechnicalDetails") ?? "Technical Details";
 
     public string OpenRegeditTooltip =>
         _localizationService.GetString("TechnicalDetails_OpenRegedit") ?? "Open in Registry Editor";
