@@ -1695,7 +1695,7 @@
   "Progress_UninstalledSuccess": "{0} disinstallato con successo",
   "View_Menu": "Visualizza",
   "View_TechnicalDetails": "Dettagli tecnici",
-  "View_InfoBadges": "InfoBadges",
+  "View_InfoBadges": "Badge di stato",
   "View_TechnicalDetails_Tooltip": "Mostra o nascondi i dettagli tecnici per ogni impostazione",
   "View_InfoBadges_Tooltip": "Mostra o nascondi i badge di stato nelle schede delle impostazioni",
   "QuickActions_Menu": "Azioni rapide",

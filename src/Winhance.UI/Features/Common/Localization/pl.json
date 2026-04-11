@@ -1695,7 +1695,7 @@
   "Progress_UninstalledSuccess": "Pomyślnie odinstalowano {0}",
   "View_Menu": "Widok",
   "View_TechnicalDetails": "Szczegóły techniczne",
-  "View_InfoBadges": "InfoBadges",
+  "View_InfoBadges": "Odznaki statusu",
   "View_TechnicalDetails_Tooltip": "Pokaż lub ukryj szczegóły techniczne dla każdego ustawienia",
   "View_InfoBadges_Tooltip": "Pokaż lub ukryj odznaki statusu na kartach ustawień",
   "QuickActions_Menu": "Szybkie akcje",
