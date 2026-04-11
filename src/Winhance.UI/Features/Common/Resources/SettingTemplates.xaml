@@ -81,10 +81,15 @@
                             <Border
                                 Visibility="{x:Bind ShowInfoBadge, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 VerticalAlignment="Center"
-                                Width="10" Height="10"
-                                CornerRadius="5"
+                                Padding="4,2"
+                                CornerRadius="4"
                                 Background="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToColorConverter}}"
-                                ToolTipService.ToolTip="{x:Bind BadgeTooltip, Mode=OneWay}"/>
+                                ToolTipService.ToolTip="{x:Bind BadgeTooltip, Mode=OneWay}">
+                                <FontIcon
+                                    Glyph="{x:Bind BadgeIcon, Mode=OneWay}"
+                                    FontSize="10"
+                                    Foreground="White"/>
+                            </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
@@ -422,10 +427,15 @@
                             <Border
                                 Visibility="{x:Bind ShowInfoBadge, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 VerticalAlignment="Center"
-                                Width="10" Height="10"
-                                CornerRadius="5"
+                                Padding="4,2"
+                                CornerRadius="4"
                                 Background="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToColorConverter}}"
-                                ToolTipService.ToolTip="{x:Bind BadgeTooltip, Mode=OneWay}"/>
+                                ToolTipService.ToolTip="{x:Bind BadgeTooltip, Mode=OneWay}">
+                                <FontIcon
+                                    Glyph="{x:Bind BadgeIcon, Mode=OneWay}"
+                                    FontSize="10"
+                                    Foreground="White"/>
+                            </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
 

@@ -208,6 +208,18 @@ public partial class SettingItemViewModel : BaseViewModel
         _ => ""
     };
 
+    /// <summary>
+    /// Icon glyph for the badge. Matches the Quick Actions menu icons for consistency.
+    /// E735 = star/sparkle (Apply Recommended), E777 = reset/undo (Reset Defaults), E70F = pencil (Custom).
+    /// </summary>
+    public string BadgeIcon => BadgeState switch
+    {
+        SettingBadgeState.Recommended => "\uE735",
+        SettingBadgeState.Default => "\uE777",
+        SettingBadgeState.Custom => "\uE70F",
+        _ => ""
+    };
+
     partial void OnIsInfoBadgeGloballyVisibleChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowInfoBadge));
@@ -216,6 +228,7 @@ public partial class SettingItemViewModel : BaseViewModel
     partial void OnBadgeStateChanged(SettingBadgeState value)
     {
         OnPropertyChanged(nameof(BadgeTooltip));
+        OnPropertyChanged(nameof(BadgeIcon));
     }
 
     // Advanced unlock support
