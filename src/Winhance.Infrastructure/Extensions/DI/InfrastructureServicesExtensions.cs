@@ -80,6 +80,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
         services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
+        services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
         services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
