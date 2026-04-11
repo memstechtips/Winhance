@@ -188,6 +188,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         // If in review mode, apply review diff to the newly created ViewModel
         _enricher.ApplyReviewDiff(viewModel, currentState);
 
+        // Compute initial badge state after all values are populated
+        viewModel.ComputeBadgeState();
+
         return viewModel;
     }
 

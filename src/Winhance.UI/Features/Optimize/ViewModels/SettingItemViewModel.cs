@@ -471,6 +471,10 @@ public partial class SettingItemViewModel : BaseViewModel
                 Off = _localizationService.GetString("Common_Off") ?? "Off"
             });
         OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
+
+        // Initialize badge data availability and compute initial state
+        InitializeHasBadgeData();
+        ComputeBadgeState();
     }
 
     public void UpdateVisibility(string searchText)
@@ -508,6 +512,7 @@ public partial class SettingItemViewModel : BaseViewModel
         finally
         {
             _isUpdatingFromEvent = false;
+            ComputeBadgeState();
         }
     }
 
@@ -556,6 +561,7 @@ public partial class SettingItemViewModel : BaseViewModel
         finally
         {
             _isUpdatingFromEvent = false;
+            ComputeBadgeState();
         }
     }
 
@@ -696,6 +702,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
             IsSelected = newValue;
             _hasChangedThisSession = true;
+            ComputeBadgeState();
             ShowRestartBannerIfNeeded();
             _logService.Log(LogLevel.Info, $"Successfully toggled setting {SettingId} to {newValue}");
         }
@@ -778,6 +785,7 @@ public partial class SettingItemViewModel : BaseViewModel
             }
 
             _hasChangedThisSession = true;
+            ComputeBadgeState();
             UpdateStatusBanner(value);
             ShowRestartBannerIfNeeded();
 
@@ -833,6 +841,7 @@ public partial class SettingItemViewModel : BaseViewModel
             }
 
             _hasChangedThisSession = true;
+            ComputeBadgeState();
             ShowRestartBannerIfNeeded();
         }
         catch (Exception ex)
@@ -865,6 +874,7 @@ public partial class SettingItemViewModel : BaseViewModel
             }
 
             _hasChangedThisSession = true;
+            ComputeBadgeState();
             ShowRestartBannerIfNeeded();
         }
         catch (Exception ex)
@@ -1017,6 +1027,279 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         StatusBannerMessage = state.Message;
         StatusBannerSeverity = state.Severity;
+    }
+
+    #endregion
+
+    #region InfoBadge State Computation
+
+    /// <summary>
+    /// Computes the badge state by comparing the current UI state against
+    /// recommended and default values from the SettingDefinition.
+    /// </summary>
+    public void ComputeBadgeState()
+    {
+        if (!HasBadgeData || SettingDefinition == null)
+            return;
+
+        bool matchesRecommended = true;
+        bool matchesDefault = true;
+
+        // Check RegistrySettings
+        foreach (var reg in SettingDefinition.RegistrySettings)
+        {
+            if (reg.RecommendedValue == null && reg.DefaultValue == null)
+                continue;
+
+            var (currentMatchesRecommended, currentMatchesDefault) = EvaluateRegistrySetting(reg);
+            if (!currentMatchesRecommended) matchesRecommended = false;
+            if (!currentMatchesDefault) matchesDefault = false;
+        }
+
+        // Check ScheduledTaskSettings
+        foreach (var task in SettingDefinition.ScheduledTaskSettings)
+        {
+            if (task.RecommendedState.HasValue)
+            {
+                // For tasks, recommended typically means disabled (IsSelected=true means the optimization is on,
+                // which disables the task). The RecommendedState represents whether the task should be enabled.
+                bool currentTaskEnabled = !IsSelected; // Toggle ON = task disabled
+                if (currentTaskEnabled != task.RecommendedState.Value)
+                    matchesRecommended = false;
+            }
+
+            if (task.DefaultState.HasValue)
+            {
+                bool currentTaskEnabled = !IsSelected;
+                if (currentTaskEnabled != task.DefaultState.Value)
+                    matchesDefault = false;
+            }
+        }
+
+        // Check PowerCfgSettings
+        if (SettingDefinition.PowerCfgSettings != null)
+        {
+            foreach (var pcfg in SettingDefinition.PowerCfgSettings)
+            {
+                if (pcfg.PowerModeSupport == PowerModeSupport.Separate)
+                {
+                    if (InputType == InputType.Selection)
+                    {
+                        // AC/DC selection - compare indices against recommended/default PowerCfg values
+                        if (pcfg.RecommendedValueAC.HasValue || pcfg.RecommendedValueDC.HasValue)
+                        {
+                            if (pcfg.RecommendedValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value))
+                                matchesRecommended = false;
+                            if (pcfg.RecommendedValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value))
+                                matchesRecommended = false;
+                        }
+                        if (pcfg.DefaultValueAC.HasValue || pcfg.DefaultValueDC.HasValue)
+                        {
+                            if (pcfg.DefaultValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value))
+                                matchesDefault = false;
+                            if (pcfg.DefaultValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value))
+                                matchesDefault = false;
+                        }
+                    }
+                    else if (InputType == InputType.NumericRange)
+                    {
+                        if (pcfg.RecommendedValueAC.HasValue && AcNumericValue != pcfg.RecommendedValueAC.Value)
+                            matchesRecommended = false;
+                        if (pcfg.RecommendedValueDC.HasValue && DcNumericValue != pcfg.RecommendedValueDC.Value)
+                            matchesRecommended = false;
+                        if (pcfg.DefaultValueAC.HasValue && AcNumericValue != pcfg.DefaultValueAC.Value)
+                            matchesDefault = false;
+                        if (pcfg.DefaultValueDC.HasValue && DcNumericValue != pcfg.DefaultValueDC.Value)
+                            matchesDefault = false;
+                    }
+                }
+                else
+                {
+                    // Non-separate AC/DC: use the AC value as the single value
+                    if (InputType == InputType.NumericRange)
+                    {
+                        if (pcfg.RecommendedValueAC.HasValue && NumericValue != pcfg.RecommendedValueAC.Value)
+                            matchesRecommended = false;
+                        if (pcfg.DefaultValueAC.HasValue && NumericValue != pcfg.DefaultValueAC.Value)
+                            matchesDefault = false;
+                    }
+                    else if (InputType == InputType.Selection)
+                    {
+                        if (pcfg.RecommendedValueAC.HasValue && SelectedValue is int selVal && selVal != pcfg.RecommendedValueAC.Value)
+                            matchesRecommended = false;
+                        if (pcfg.DefaultValueAC.HasValue && SelectedValue is int selVal2 && selVal2 != pcfg.DefaultValueAC.Value)
+                            matchesDefault = false;
+                    }
+                }
+            }
+        }
+
+        if (matchesRecommended)
+            BadgeState = SettingBadgeState.Recommended;
+        else if (matchesDefault)
+            BadgeState = SettingBadgeState.Default;
+        else
+            BadgeState = SettingBadgeState.Custom;
+    }
+
+    private (bool matchesRecommended, bool matchesDefault) EvaluateRegistrySetting(RegistrySetting reg)
+    {
+        bool matchesRecommended = true;
+        bool matchesDefault = true;
+
+        if (InputType == InputType.Toggle || InputType == InputType.CheckBox)
+        {
+            // Determine what value is currently "set" based on IsSelected
+            // IsSelected=true means EnabledValue is active, false means DisabledValue is active
+            if (reg.RecommendedValue != null)
+            {
+                bool recommendedIsEnabled = IsValueInArray(reg.RecommendedValue, reg.EnabledValue);
+                bool recommendedIsDisabled = IsValueInArray(reg.RecommendedValue, reg.DisabledValue);
+
+                if (recommendedIsEnabled)
+                    matchesRecommended = IsSelected;
+                else if (recommendedIsDisabled)
+                    matchesRecommended = !IsSelected;
+                else
+                    matchesRecommended = false;
+            }
+            else
+            {
+                matchesRecommended = false;
+            }
+
+            if (reg.DefaultValue != null)
+            {
+                bool defaultIsEnabled = IsValueInArray(reg.DefaultValue, reg.EnabledValue);
+                bool defaultIsDisabled = IsValueInArray(reg.DefaultValue, reg.DisabledValue);
+
+                if (defaultIsEnabled)
+                    matchesDefault = IsSelected;
+                else if (defaultIsDisabled)
+                    matchesDefault = !IsSelected;
+                else
+                    matchesDefault = false;
+            }
+            else
+            {
+                matchesDefault = false;
+            }
+        }
+        else if (InputType == InputType.Selection)
+        {
+            // For selection settings, compare using RecommendedOption/DefaultOption (option index)
+            // or direct value comparison with SelectedValue
+            if (reg.RecommendedOption != null && SelectedValue != null)
+            {
+                if (int.TryParse(reg.RecommendedOption, out var recIdx))
+                    matchesRecommended = Equals(SelectedValue, recIdx);
+                else
+                    matchesRecommended = false;
+            }
+            else if (reg.RecommendedValue != null && SelectedValue != null)
+            {
+                matchesRecommended = ValuesEqual(SelectedValue, reg.RecommendedValue);
+            }
+            else
+            {
+                matchesRecommended = false;
+            }
+
+            if (reg.DefaultOption != null && SelectedValue != null)
+            {
+                if (int.TryParse(reg.DefaultOption, out var defIdx))
+                    matchesDefault = Equals(SelectedValue, defIdx);
+                else
+                    matchesDefault = false;
+            }
+            else if (reg.DefaultValue != null && SelectedValue != null)
+            {
+                matchesDefault = ValuesEqual(SelectedValue, reg.DefaultValue);
+            }
+            else
+            {
+                matchesDefault = false;
+            }
+        }
+        else if (InputType == InputType.NumericRange)
+        {
+            if (reg.RecommendedValue != null)
+                matchesRecommended = ValuesEqual(NumericValue, reg.RecommendedValue);
+            else
+                matchesRecommended = false;
+
+            if (reg.DefaultValue != null)
+                matchesDefault = ValuesEqual(NumericValue, reg.DefaultValue);
+            else
+                matchesDefault = false;
+        }
+
+        return (matchesRecommended, matchesDefault);
+    }
+
+    private static bool IsValueInArray(object value, object?[]? array)
+    {
+        if (array == null) return false;
+        return array.Any(v => ValuesEqual(value, v));
+    }
+
+    private static bool ValuesEqual(object? a, object? b)
+    {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        if (Equals(a, b)) return true;
+
+        // Handle numeric type mismatches (int vs long, etc.)
+        try
+        {
+            var aVal = Convert.ToInt64(a);
+            var bVal = Convert.ToInt64(b);
+            return aVal == bVal;
+        }
+        catch
+        {
+            return string.Equals(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private bool PowerCfgIndexMatchesValue(int index, int targetPowerCfgValue)
+    {
+        var mappings = SettingDefinition?.ComboBox?.ValueMappings;
+        if (mappings == null) return false;
+
+        if (mappings.TryGetValue(index, out var mapping) &&
+            mapping.TryGetValue("PowerCfgValue", out var val) && val != null)
+        {
+            return Convert.ToInt32(val) == targetPowerCfgValue;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Initializes HasBadgeData based on whether the definition has comparable
+    /// recommended/default data in RegistrySettings, ScheduledTaskSettings, or PowerCfgSettings.
+    /// </summary>
+    private void InitializeHasBadgeData()
+    {
+        if (SettingDefinition == null)
+        {
+            HasBadgeData = false;
+            return;
+        }
+
+        // Check RegistrySettings for RecommendedValue or DefaultValue
+        bool hasRegistryData = SettingDefinition.RegistrySettings.Any(r =>
+            r.RecommendedValue != null || r.DefaultValue != null);
+
+        // Check ScheduledTaskSettings for RecommendedState or DefaultState
+        bool hasTaskData = SettingDefinition.ScheduledTaskSettings.Any(t =>
+            t.RecommendedState.HasValue || t.DefaultState.HasValue);
+
+        // Check PowerCfgSettings for RecommendedValueAC or DefaultValueAC
+        bool hasPowerCfgData = SettingDefinition.PowerCfgSettings?.Any(p =>
+            p.RecommendedValueAC.HasValue || p.DefaultValueAC.HasValue) == true;
+
+        HasBadgeData = hasRegistryData || hasTaskData || hasPowerCfgData;
     }
 
     #endregion
