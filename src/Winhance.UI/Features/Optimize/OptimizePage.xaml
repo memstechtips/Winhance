@@ -169,7 +169,10 @@
             <!-- Quick Actions dropdown -->
             <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
-                    <TextBlock x:Name="QuickActionsLabel"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE945;" FontSize="14"/>
+                        <TextBlock x:Name="QuickActionsLabel" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </DropDownButton.Content>
                 <DropDownButton.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -190,12 +193,23 @@
             <!-- View dropdown -->
             <DropDownButton Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
                 <DropDownButton.Content>
-                    <TextBlock x:Name="ViewMenuLabel"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
+                        <TextBlock x:Name="ViewMenuLabel" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </DropDownButton.Content>
                 <DropDownButton.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
-                        <ToggleMenuFlyoutItem x:Name="TechnicalDetailsToggleItem" Click="ViewTechnicalDetails_Click"/>
-                        <ToggleMenuFlyoutItem x:Name="InfoBadgesToggleItem" Click="ViewInfoBadges_Click"/>
+                        <ToggleMenuFlyoutItem x:Name="TechnicalDetailsToggleItem" Click="ViewTechnicalDetails_Click">
+                            <ToggleMenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE946;"/>
+                            </ToggleMenuFlyoutItem.Icon>
+                        </ToggleMenuFlyoutItem>
+                        <ToggleMenuFlyoutItem x:Name="InfoBadgesToggleItem" Click="ViewInfoBadges_Click">
+                            <ToggleMenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xF136;"/>
+                            </ToggleMenuFlyoutItem.Icon>
+                        </ToggleMenuFlyoutItem>
                     </MenuFlyout>
                 </DropDownButton.Flyout>
             </DropDownButton>

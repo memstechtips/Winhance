@@ -43,9 +43,10 @@
                     IsTabStop="False"
                     AutomationProperties.LocalizedControlType="setting"
                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
-                    Padding="16,12,16,12">
+                    Padding="16,12,16,12"
+                    HorizontalContentAlignment="Stretch">
                     <controls:SettingsCard.Header>
-                        <Grid>
+                        <Grid HorizontalAlignment="Stretch">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -386,7 +387,8 @@
                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
                     Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                     CornerRadius="4,4,0,0"
-                    Padding="{StaticResource SettingsCardPadding}">
+                    Padding="{StaticResource SettingsCardPadding}"
+                    HorizontalContentAlignment="Stretch">
                     <!-- Hide the built-in > action icon that appears with IsClickEnabled -->
                     <controls:SettingsCard.Resources>
                         <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
@@ -394,7 +396,7 @@
                     </controls:SettingsCard.Resources>
 
                     <controls:SettingsCard.Header>
-                        <Grid>
+                        <Grid HorizontalAlignment="Stretch">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
