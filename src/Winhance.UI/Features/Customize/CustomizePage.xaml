@@ -41,7 +41,8 @@
         <Grid Grid.Row="1" Margin="0,12,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
-                <ColumnDefinition Width="Auto"/>  <!-- Technical Details toggle -->
+                <ColumnDefinition Width="Auto"/>  <!-- Quick Actions -->
+                <ColumnDefinition Width="Auto"/>  <!-- View -->
                 <ColumnDefinition Width="Auto"/>  <!-- Search -->
             </Grid.ColumnDefinitions>
 
@@ -144,27 +145,42 @@
                 </DropDownButton>
             </StackPanel>
 
-            <!-- Technical Details toggle -->
-            <Border x:Name="TechnicalDetailsToggleBorder"
-                    Grid.Column="1"
-                    CornerRadius="4"
-                    BorderThickness="0"
-                    VerticalAlignment="Center"
-                    Margin="0,0,8,0">
-                <Button x:Name="TechnicalDetailsToggle"
-                        Click="TechnicalDetailsToggle_Click"
-                        Padding="6"
-                        Background="Transparent"
-                        BorderThickness="0">
-                    <Viewbox Width="16" Height="16">
-                        <PathIcon x:Name="TechnicalDetailsIcon"
-                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                    </Viewbox>
-                </Button>
-            </Border>
+            <!-- Quick Actions dropdown -->
+            <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
+                <DropDownButton.Content>
+                    <TextBlock x:Name="QuickActionsLabel"/>
+                </DropDownButton.Content>
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuFlyoutItem x:Name="ApplyRecommendedItem" Click="ApplyRecommended_Click">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE735;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="ResetDefaultsItem" Click="ResetDefaults_Click">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE777;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+
+            <!-- View dropdown -->
+            <DropDownButton Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
+                <DropDownButton.Content>
+                    <TextBlock x:Name="ViewMenuLabel"/>
+                </DropDownButton.Content>
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <ToggleMenuFlyoutItem x:Name="TechnicalDetailsToggleItem" Click="ViewTechnicalDetails_Click"/>
+                        <ToggleMenuFlyoutItem x:Name="InfoBadgesToggleItem" Click="ViewInfoBadges_Click"/>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
 
             <!-- Search box with suggestions -->
-            <Grid Grid.Column="2" Width="220">
+            <Grid Grid.Column="3" Width="220">
                 <AutoSuggestBox
                     x:Name="SearchBox"
                     PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"

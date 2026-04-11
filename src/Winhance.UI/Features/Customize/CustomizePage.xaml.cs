@@ -1,16 +1,18 @@
 using System.ComponentModel;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using ILogService = Winhance.Core.Features.Common.Interfaces.ILogService;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
 using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
+using IBulkSettingsActionService = Winhance.Core.Features.Common.Interfaces.IBulkSettingsActionService;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Customize.Pages;
 using Winhance.UI.Features.Customize.ViewModels;
@@ -39,8 +41,10 @@ public sealed partial class CustomizePage : Page
     private IConfigReviewService? _configReviewService;
     private IUserPreferencesService? _userPreferencesService;
     private ILocalizationService? _localizationService;
+    private IBulkSettingsActionService? _bulkSettingsActionService;
     private Dictionary<string, InfoBadge>? _flyoutBadges;
     private bool _isTechnicalDetailsVisible;
+    private bool _isInfoBadgesVisible = true;
 
     public CustomizeViewModel ViewModel { get; }
 
@@ -72,6 +76,7 @@ public sealed partial class CustomizePage : Page
 
             _userPreferencesService = App.Services.GetService<IUserPreferencesService>();
             _localizationService = App.Services.GetService<ILocalizationService>();
+            _bulkSettingsActionService = App.Services.GetService<IBulkSettingsActionService>();
 
             StartupLogger.Log("CustomizePage", "ViewModel obtained, constructor complete");
         }
@@ -131,8 +136,14 @@ public sealed partial class CustomizePage : Page
             StartupLogger.Log("CustomizePage", "Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
 
+            // Set localized labels for dropdown menus
+            SetDropdownLabels();
+
             // Initialize technical details toggle state
             await InitializeTechnicalDetailsToggleAsync();
+
+            // Initialize info badges toggle state
+            await InitializeInfoBadgesAsync();
 
             // Always update badges: shows them if in review mode, collapses them if not
             UpdateOverviewBadges();
@@ -391,6 +402,17 @@ public sealed partial class CustomizePage : Page
         }
     }
 
+    // Dropdown menu labels
+    private void SetDropdownLabels()
+    {
+        QuickActionsLabel.Text = _localizationService?.GetString("QuickActions_Menu") ?? "Quick Actions";
+        ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_ApplyRecommended") ?? "Apply Recommended Settings";
+        ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_ResetDefaults") ?? "Reset to Windows Defaults";
+        ViewMenuLabel.Text = _localizationService?.GetString("View_Menu") ?? "View";
+        TechnicalDetailsToggleItem.Text = _localizationService?.GetString("View_TechnicalDetails") ?? "Technical Details";
+        InfoBadgesToggleItem.Text = _localizationService?.GetString("View_InfoBadges") ?? "InfoBadges";
+    }
+
     // Technical Details toggle
     private async Task InitializeTechnicalDetailsToggleAsync()
     {
@@ -411,12 +433,35 @@ public sealed partial class CustomizePage : Page
             }
         }
 
-        UpdateTechnicalDetailsToggleVisual();
+        TechnicalDetailsToggleItem.IsChecked = _isTechnicalDetailsVisible;
     }
 
-    private async void TechnicalDetailsToggle_Click(object sender, RoutedEventArgs e)
+    private async Task InitializeInfoBadgesAsync()
     {
-        _isTechnicalDetailsVisible = !_isTechnicalDetailsVisible;
+        if (_userPreferencesService != null)
+        {
+            _isInfoBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.ShowInfoBadges, true);
+        }
+
+        // Sync all settings
+        foreach (var section in CustomizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsInfoBadgeGloballyVisible = _isInfoBadgesVisible;
+            }
+        }
+
+        InfoBadgesToggleItem.IsChecked = _isInfoBadgesVisible;
+    }
+
+    // View menu handlers
+    private async void ViewTechnicalDetails_Click(object sender, RoutedEventArgs e)
+    {
+        _isTechnicalDetailsVisible = TechnicalDetailsToggleItem.IsChecked;
 
         // Update all settings across all sections
         foreach (var section in CustomizeViewModel.Sections)
@@ -429,9 +474,6 @@ public sealed partial class CustomizePage : Page
             }
         }
 
-        UpdateTechnicalDetailsToggleVisual();
-
-        // Persist preference
         if (_userPreferencesService != null)
         {
             await _userPreferencesService.SetPreferenceAsync(
@@ -439,47 +481,89 @@ public sealed partial class CustomizePage : Page
         }
     }
 
-    private void UpdateTechnicalDetailsToggleVisual()
+    private async void ViewInfoBadges_Click(object sender, RoutedEventArgs e)
     {
-        try
+        _isInfoBadgesVisible = InfoBadgesToggleItem.IsChecked;
+
+        foreach (var section in CustomizeViewModel.Sections)
         {
-            var resourceKey = _isTechnicalDetailsVisible ? "InformationIconPath" : "InformationOffIconPath";
-            if (Application.Current.Resources.TryGetValue(resourceKey, out var pathData) && pathData is string iconData)
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
             {
-                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
-                TechnicalDetailsIcon.Data = geometry;
+                setting.IsInfoBadgeGloballyVisible = _isInfoBadgesVisible;
             }
-
-            if (_isTechnicalDetailsVisible)
-            {
-                TechnicalDetailsToggleBorder.BorderBrush =
-                    (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(2);
-            }
-            else
-            {
-                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(0);
-                TechnicalDetailsToggleBorder.BorderBrush = null;
-            }
-
-            var tooltip = _localizationService?.GetString("View_TechnicalDetails") ?? "Technical Details";
-            ToolTipService.SetToolTip(TechnicalDetailsToggle, tooltip);
-            AutomationProperties.SetName(TechnicalDetailsToggle, tooltip);
-
-            // Announce state change to Narrator
-            var stateText = _isTechnicalDetailsVisible
-                ? _localizationService?.GetString("TechnicalDetails_On") ?? "Technical Details: On"
-                : _localizationService?.GetString("TechnicalDetails_Off") ?? "Technical Details: Off";
-            var peer = FrameworkElementAutomationPeer.FromElement(TechnicalDetailsToggle)
-                       ?? FrameworkElementAutomationPeer.CreatePeerForElement(TechnicalDetailsToggle);
-            peer?.RaiseNotificationEvent(
-                AutomationNotificationKind.ActionCompleted,
-                AutomationNotificationProcessing.ImportantMostRecent,
-                stateText,
-                "TechnicalDetailsToggle");
         }
-        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update technical details toggle visual: {ex.Message}"); }
+
+        if (_userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.ShowInfoBadges, _isInfoBadgesVisible);
+        }
+    }
+
+    // Quick Actions handlers
+    private async void ApplyRecommended_Click(object sender, RoutedEventArgs e)
+    {
+        await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
+    }
+
+    private async void ResetDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
+    }
+
+    private async Task ExecuteBulkActionAsync(BulkActionType actionType)
+    {
+        if (_bulkSettingsActionService == null) return;
+
+        var settingIds = GetCurrentPageSettingIds();
+
+        var count = await _bulkSettingsActionService.GetAffectedCountAsync(settingIds, actionType);
+        if (count == 0) return;
+
+        var confirmMessage = string.Format(
+            _localizationService?.GetString("QuickActions_ConfirmMessage") ?? "This will change {0} settings on this page. Continue?",
+            count);
+
+        var dialog = new ContentDialog
+        {
+            Title = _localizationService?.GetString("QuickActions_ConfirmTitle") ?? "Confirm Action",
+            Content = confirmMessage,
+            PrimaryButtonText = "OK",
+            CloseButtonText = _localizationService?.GetString("Button_Cancel") ?? "Cancel",
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary) return;
+
+        int applied = actionType == BulkActionType.ApplyRecommended
+            ? await _bulkSettingsActionService.ApplyRecommendedAsync(settingIds)
+            : await _bulkSettingsActionService.ResetToDefaultsAsync(settingIds);
+    }
+
+    private List<string> GetCurrentPageSettingIds()
+    {
+        var settingIds = new List<string>();
+        var sectionsToInclude = ViewModel.IsInDetailPage
+            ? CustomizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : CustomizeViewModel.Sections;
+
+        foreach (var section in sectionsToInclude)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                if (!string.IsNullOrEmpty(setting.SettingId))
+                {
+                    settingIds.Add(setting.SettingId);
+                }
+            }
+        }
+
+        return settingIds;
     }
 
     // Search handlers
