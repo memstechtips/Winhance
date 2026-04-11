@@ -46,7 +46,9 @@ public static class PowerOptimizations
                             SettingGuid = "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 300
+                            RecommendedValueDC = 300,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 180
                         }
                     },
                     ComboBox = PowerTemplates.TimeIntervals,
@@ -72,7 +74,9 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             Units = "Seconds",
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 600
+                            RecommendedValueDC = 600,
+                            DefaultValueAC = 1200,
+                            DefaultValueDC = 600
                         }
                     },
                     NumericRange = PowerTemplates.CreateNumericRange(0, int.MaxValue, "Minutes")
@@ -95,7 +99,9 @@ public static class PowerOptimizations
                             SettingGuid = "4c793e7d-a264-42e1-87d3-7a0d2f523ccd",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 0
+                            RecommendedValueDC = 0,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.JavaScriptTimers,
@@ -118,7 +124,9 @@ public static class PowerOptimizations
                             SettingGuid = "309dce9b-bef4-4119-9921-a851fb12f0f4",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.Slideshow,
@@ -141,7 +149,9 @@ public static class PowerOptimizations
                             SettingGuid = "12bbebe6-58d6-4636-95bb-3217ef867c1a",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 2
+                            RecommendedValueDC = 2,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 2
                         }
                     },
                     ComboBox = PowerTemplates.WirelessPower,
@@ -166,7 +176,9 @@ public static class PowerOptimizations
                             SettingGuid = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 900
+                            RecommendedValueDC = 900,
+                            DefaultValueAC = 900,
+                            DefaultValueDC = 600
                         }
                     },
                     ComboBox = PowerTemplates.TimeIntervals,
@@ -190,7 +202,9 @@ public static class PowerOptimizations
                             SettingGuid = "bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 0
+                            RecommendedValueDC = 0,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.WakeTimers,
@@ -211,6 +225,7 @@ public static class PowerOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power",
                             ValueName = "HibernateEnabled",
                             RecommendedValue = 0,
+                            DefaultValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
@@ -244,7 +259,11 @@ public static class PowerOptimizations
                             SettingGUIDAlias = "HIBERNATEIDLE",
                             SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
                             SettingGuid = "9d7815a6-7ee4-497e-8888-515a05f02364",
-                            PowerModeSupport = PowerModeSupport.Separate
+                            PowerModeSupport = PowerModeSupport.Separate,
+                            RecommendedValueAC = 0,
+                            RecommendedValueDC = 0,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 0
                         }
                     },
                     ComboBox = PowerTemplates.TimeIntervals
@@ -276,7 +295,11 @@ public static class PowerOptimizations
                             SettingGUIDAlias = "HYBRIDSLEEP",
                             SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
                             SettingGuid = "94ac6d29-73ce-41a6-809f-6363ba21b47e",
-                            PowerModeSupport = PowerModeSupport.Separate
+                            PowerModeSupport = PowerModeSupport.Separate,
+                            RecommendedValueAC = 0,
+                            RecommendedValueDC = 0,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.OnOff
@@ -306,6 +329,7 @@ public static class PowerOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager\Power",
                             ValueName = "HiberbootEnabled",
                             RecommendedValue = 0,
+                            DefaultValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
@@ -337,6 +361,7 @@ public static class PowerOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                             ValueName = "ShowHibernateOption",
                             RecommendedValue = 0,
+                            DefaultValue = 1,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
@@ -363,6 +388,8 @@ public static class PowerOptimizations
                             Units = "Milliseconds",
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 1000,
+                            DefaultValueAC = 50,
+                            DefaultValueDC = 50,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\2a737441-1930-4402-8d77-b2bebba308a3\0853a681-27c8-4100-a2fd-82013e970683",
@@ -392,7 +419,9 @@ public static class PowerOptimizations
                             SettingGuid = "48e6b7a6-50f5-4782-a5d4-53bb8f07e226",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 0
                         }
                     },
                     ComboBox = PowerTemplates.EnabledDisabled,
@@ -416,6 +445,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 2,
+                            DefaultValueAC = 2,
+                            DefaultValueDC = 2,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\2a737441-1930-4402-8d77-b2bebba308a3\d4e98f31-5ffe-4ce1-be31-1b38b384c009",
@@ -448,7 +479,9 @@ public static class PowerOptimizations
                             SettingGuid = "3619c3f2-afb2-4afc-b0e9-e7fef372de36",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 2,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.IntelGraphics,
@@ -473,6 +506,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 0,
+                            DefaultValueAC = 3,
+                            DefaultValueDC = 3,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\4f971e89-eebd-4455-a8de-9e59040e7347\7648efa3-dd9c-4e3e-b566-50f929386280",
@@ -505,6 +540,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 0,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\4f971e89-eebd-4455-a8de-9e59040e7347\96996bc0-ad50-47ec-923b-6f41874dd9eb",
@@ -539,6 +576,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
                             RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\4f971e89-eebd-4455-a8de-9e59040e7347\5ca83367-6e45-459f-a27b-476b1d01c936",
@@ -572,7 +611,9 @@ public static class PowerOptimizations
                             SettingGuid = "ee12f906-d277-404b-b6da-e5fa1a576df5",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 2
+                            RecommendedValueDC = 2,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 2
                         }
                     },
                     ComboBox = PowerTemplates.PciExpress,
@@ -598,7 +639,9 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             Units = "%",
                             RecommendedValueAC = 100,
-                            RecommendedValueDC = 5
+                            RecommendedValueDC = 5,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 5
                         }
                     },
                     NumericRange = PowerTemplates.CreateNumericRange(0, 100, "%")
@@ -622,7 +665,9 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             Units = "%",
                             RecommendedValueAC = 100,
-                            RecommendedValueDC = 100
+                            RecommendedValueDC = 100,
+                            DefaultValueAC = 100,
+                            DefaultValueDC = 100
                         }
                     },
                     NumericRange = PowerTemplates.CreateNumericRange(0, 100, "%")
@@ -647,6 +692,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
                             RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 0,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\94d3a615-a899-4ac5-ae2b-e4d8f634367f",
@@ -682,6 +729,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 2,
                             RecommendedValueDC = 1,
+                            DefaultValueAC = 2,
+                            DefaultValueDC = 2,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\be337238-0d82-4146-a960-4f3749d470c7",
@@ -717,6 +766,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 2,
                             RecommendedValueDC = 0,
+                            DefaultValueAC = 2,
+                            DefaultValueDC = 0,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\465e1f50-b610-473a-ab58-00d1077dc418",
@@ -752,6 +803,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
                             RecommendedValueDC = 2,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 0,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\40fbefc7-2e9d-4d25-a185-0cfd8574bac6",
@@ -788,6 +841,8 @@ public static class PowerOptimizations
                             Units = "%",
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 0,
+                            DefaultValueAC = 100,
+                            DefaultValueDC = 10,
                             CheckForHardwareControl = true,
                             EnablementRegistrySetting = new RegistrySetting
                             {
@@ -824,6 +879,8 @@ public static class PowerOptimizations
                             Units = "%",
                             RecommendedValueAC = 100,
                             RecommendedValueDC = 100,
+                            DefaultValueAC = 100,
+                            DefaultValueDC = 100,
                             CheckForHardwareControl = true,
                             EnablementRegistrySetting = new RegistrySetting
                             {
@@ -860,6 +917,8 @@ public static class PowerOptimizations
                             Units = "%",
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 50,
+                            DefaultValueAC = 25,
+                            DefaultValueDC = 50,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\36687f9e-e3a5-4dbf-b1dc-15eb381c6863",
@@ -895,6 +954,8 @@ public static class PowerOptimizations
                             Units = "%",
                             RecommendedValueAC = 10,
                             RecommendedValueDC = 30,
+                            DefaultValueAC = 30,
+                            DefaultValueDC = 90,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\06cadf0e-64ed-448a-8927-ce7bf90eb35d",
@@ -930,6 +991,8 @@ public static class PowerOptimizations
                             Units = "%",
                             RecommendedValueAC = 8,
                             RecommendedValueDC = 20,
+                            DefaultValueAC = 10,
+                            DefaultValueDC = 30,
                             EnablementRegistrySetting = new RegistrySetting
                             {
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\12a0ab44-fe28-4fa9-b3bd-4b64f44960a6",
@@ -982,7 +1045,9 @@ public static class PowerOptimizations
                             SettingGuid = "03680956-93bc-4294-bba6-4e0f09bb717f",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 0
                         }
                     },
                     ComboBox = PowerTemplates.MediaSharing,
@@ -1004,7 +1069,9 @@ public static class PowerOptimizations
                             SettingGuid = "10778347-1370-4ee0-8bbd-33bdacaade49",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 0
                         }
                     },
                     ComboBox = PowerTemplates.VideoQualityBias,
@@ -1026,7 +1093,9 @@ public static class PowerOptimizations
                             SettingGuid = "34c7b99f-9a6d-4b3c-8dc7-b6693b78cef4",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 0
+                            RecommendedValueDC = 0,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.VideoPlayback,
@@ -1051,7 +1120,9 @@ public static class PowerOptimizations
                             SettingGuid = "5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.OnOff,
@@ -1076,7 +1147,9 @@ public static class PowerOptimizations
                             SettingGuid = "637ea02f-bbcb-4015-8e2c-a1c7b9c0b546",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 2,
-                            RecommendedValueDC = 2
+                            RecommendedValueDC = 2,
+                            DefaultValueAC = 2,
+                            DefaultValueDC = 2
                         }
                     },
                     ComboBox = PowerTemplates.BatteryActions,
@@ -1102,7 +1175,9 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             Units = "%",
                             RecommendedValueAC = 10,
-                            RecommendedValueDC = 10
+                            RecommendedValueDC = 10,
+                            DefaultValueAC = 10,
+                            DefaultValueDC = 10
                         }
                     },
                     NumericRange = PowerTemplates.CreateNumericRange(0, 100, "%")
@@ -1127,7 +1202,9 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             Units = "%",
                             RecommendedValueAC = 5,
-                            RecommendedValueDC = 5
+                            RecommendedValueDC = 5,
+                            DefaultValueAC = 5,
+                            DefaultValueDC = 5
                         }
                     },
                     NumericRange = PowerTemplates.CreateNumericRange(0, 100, "%")
@@ -1151,7 +1228,9 @@ public static class PowerOptimizations
                             SettingGuid = "bcded951-187b-4d05-bccc-f7e51960c258",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 1,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.OnOff,
@@ -1176,7 +1255,9 @@ public static class PowerOptimizations
                             SettingGuid = "d8742dcb-3e6a-4b3c-b3fe-374623cdcf06",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
-                            RecommendedValueDC = 0
+                            RecommendedValueDC = 0,
+                            DefaultValueAC = 0,
+                            DefaultValueDC = 0
                         }
                     },
                     ComboBox = PowerTemplates.BatteryActions,
@@ -1201,7 +1282,9 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             Units = "%",
                             RecommendedValueAC = 7,
-                            RecommendedValueDC = 7
+                            RecommendedValueDC = 7,
+                            DefaultValueAC = 7,
+                            DefaultValueDC = 7
                         }
                     },
                     NumericRange = PowerTemplates.CreateNumericRange(0, 100, "%")
@@ -1222,7 +1305,9 @@ public static class PowerOptimizations
                             SettingGuid = "7ec1751b-60ed-4588-afb5-9819d3d77d90",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 3,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.AmdPowerSlider,
@@ -1245,7 +1330,9 @@ public static class PowerOptimizations
                             SettingGuid = "191f65b5-d45c-4a4f-8aae-1ab8bfd980e6",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 2,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.AtiPowerPlay,
@@ -1268,7 +1355,9 @@ public static class PowerOptimizations
                             SettingGuid = "a1662ab2-9d34-4e53-ba8b-2639b9e20857",
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 2,
-                            RecommendedValueDC = 1
+                            RecommendedValueDC = 1,
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.SwitchableGraphics,
@@ -1299,6 +1388,7 @@ public static class PowerOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                             ValueName = "ShowLockOption",
                             RecommendedValue = 0,
+                            DefaultValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,
@@ -1320,6 +1410,7 @@ public static class PowerOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                             ValueName = "ShowSleepOption",
                             RecommendedValue = 0,
+                            DefaultValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
                             ValueType = RegistryValueKind.DWord,

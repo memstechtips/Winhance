@@ -108,6 +108,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -116,6 +117,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -124,6 +126,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -131,6 +134,7 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Education",
                             ValueName = "IsEducationEnvironment",
                             RecommendedValue = 1,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -169,6 +173,7 @@ public static class StartMenuCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null], // When toggle is ON, recently added apps are shown
                             DisabledValue = [0], // When toggle is OFF, recently added apps are hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -282,6 +287,7 @@ public static class StartMenuCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null], // When toggle is ON, recommended files are shown
                             DisabledValue = [0], // When toggle is OFF, recommended files are hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -304,6 +310,7 @@ public static class StartMenuCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -326,6 +333,7 @@ public static class StartMenuCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null], // When toggle is ON, account notifications are shown
                             DisabledValue = [0], // When toggle is OFF, account notifications are hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

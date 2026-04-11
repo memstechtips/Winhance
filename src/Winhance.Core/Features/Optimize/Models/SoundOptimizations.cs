@@ -32,6 +32,7 @@ public static class SoundOptimizations
                             RecommendedValue = 1, // For backward compatibility
                             EnabledValue = [0, null], // When toggle is ON, startup sound is enabled
                             DisabledValue = [1], // When toggle is OFF, startup sound is disabled
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -41,6 +42,7 @@ public static class SoundOptimizations
                             RecommendedValue = 1, // For backward compatibility
                             EnabledValue = [0, null], // When toggle is ON, user startup sound is enabled
                             DisabledValue = [1], // When toggle is OFF, user startup sound is disabled
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -111,6 +113,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -132,6 +135,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -153,6 +157,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0, // For backward compatibility
                             EnabledValue = [1, null], // When toggle is ON, last used voice activation is enabled
                             DisabledValue = [0], // When toggle is OFF, last used voice activation is disabled
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -174,6 +179,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -196,6 +202,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

@@ -686,6 +686,7 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null], // When toggle is ON, Task View button is shown
                             DisabledValue = [0], // When toggle is OFF, Task View button is hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -714,6 +715,7 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0, // Hidden
                             EnabledValue = [1, null],  // Show
                             DisabledValue = [0],    // Hide
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -812,6 +814,7 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -822,6 +825,7 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -846,6 +850,7 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -856,6 +861,7 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
