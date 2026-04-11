@@ -24,6 +24,9 @@
     <converters:IconConverter x:Key="IconConverter"/>
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
+    <!-- Badge Converters -->
+    <converters:BadgeStateToColorConverter x:Key="BadgeStateToColorConverter"/>
+
     <!-- SoftwareApps Converters -->
     <softwareConverters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>
     <softwareConverters:BoolToReinstallBrushConverter x:Key="BoolToReinstallBrushConverter"/>

@@ -182,6 +182,42 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public IRelayCommand DismissNewBadgeCommand { get; private set; } = null!;
 
+    // InfoBadge properties
+    [ObservableProperty]
+    public partial bool IsInfoBadgeGloballyVisible { get; set; }
+
+    [ObservableProperty]
+    public partial SettingBadgeState BadgeState { get; set; }
+
+    /// <summary>
+    /// True if the setting has RecommendedValue/DefaultValue data to compare against.
+    /// False for settings using NativePowerApiSettings, PowerShellScripts, or RegContents only.
+    /// </summary>
+    public bool HasBadgeData { get; set; }
+
+    public bool ShowInfoBadge => IsInfoBadgeGloballyVisible && HasBadgeData;
+
+    /// <summary>
+    /// Localized tooltip text for the badge ("Recommended", "Default", "Custom").
+    /// </summary>
+    public string BadgeTooltip => BadgeState switch
+    {
+        SettingBadgeState.Recommended => _localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended",
+        SettingBadgeState.Default => _localizationService?.GetString("InfoBadge_Default") ?? "Default",
+        SettingBadgeState.Custom => _localizationService?.GetString("InfoBadge_Custom") ?? "Custom",
+        _ => ""
+    };
+
+    partial void OnIsInfoBadgeGloballyVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowInfoBadge));
+    }
+
+    partial void OnBadgeStateChanged(SettingBadgeState value)
+    {
+        OnPropertyChanged(nameof(BadgeTooltip));
+    }
+
     // Advanced unlock support
     [ObservableProperty]
     public partial bool IsLocked { get; set; }
