@@ -16,9 +16,17 @@
     -->
 
     <!-- ==================== Pill Border Base ==================== -->
+    <!--
+    Height is pinned so CornerRadius can match half of it and produce a true
+    capsule shape. WinUI 3 Border.CornerRadius does not always clamp large
+    values (e.g. 999) to half the rendered height — especially with a 1px
+    BorderThickness — so fixing both values explicitly is the reliable way
+    to guarantee a pill look.
+    -->
     <Style x:Key="BadgePillBase" TargetType="Border">
-        <Setter Property="CornerRadius" Value="999"/>
-        <Setter Property="Padding" Value="7,3,10,3"/>
+        <Setter Property="Height" Value="22"/>
+        <Setter Property="CornerRadius" Value="11"/>
+        <Setter Property="Padding" Value="8,0,10,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
