@@ -74,17 +74,23 @@ public record ComboBoxMetadata
 
 Removed: `DisplayNames[]`, `ValueMappings`, `SimpleValueMappings`, `CommandValueMappings`, `ScriptMappings`, `OptionTooltips`, `OptionWarnings`, `OptionConfirmations`, `ScriptVariables`. All nine become properties of `ComboBoxOption`.
 
-**Validation (runtime, at app startup + unit test):**
+**Validation (unit test only, not startup):** A `SettingCatalogValidatorTests` test iterates every registered `SettingDefinition` and asserts:
 - Every `ComboBoxMetadata` has **exactly one** option with `IsDefault = true`.
-- Every `ComboBoxMetadata` has **at most one** option with `IsRecommended = true`. (At most, because some purely informational ComboBoxes — e.g. "pick a DNS provider" — have no clear "recommended" option.)
+- Every `ComboBoxMetadata` has **at most one** option with `IsRecommended = true`. (Some purely informational ComboBoxes — e.g. "pick a DNS provider" — have no clear "recommended" option.)
 - No duplicate `DisplayName` within a single `Options` list.
-- Each option sets at most one of `ValueMappings` / `SimpleValue` / `CommandValue` / `Script` (mutually exclusive by current usage).
+- If `SupportsCustomState = true`, the synthetic Custom entry (surfaced only at runtime via `CustomStateDisplayName`) is not counted toward the `IsDefault` / `IsRecommended` rules — `Options` lists the real options only.
+- For ComboBox settings that write registry values: an audit step (see Migration) confirms each option uses *one* of `ValueMappings` / `SimpleValue` / `CommandValue` / `Script`. If the existing codebase has settings that combine them (e.g. registry write + follow-up script), the validator rule is softened to allow that specific combination and the spec is amended during implementation.
 
-Validation failures throw at app startup (fail fast) and are caught by a unit test iterating every SettingDefinition in the catalog.
+Validation runs in CI via the unit test. No startup-crash behaviour — a bad catalog fails the test build, never the running app.
+
+**`DisplayName` localization:** `DisplayName` is the literal string that gets handed to the localizer at render time — identical semantics to today's `DisplayNames[]`. Resource-key indirection (if any) stays in the consumer layer, unchanged by this refactor.
 
 ### `RegistrySetting` (changed)
 
-Remove `RecommendedOption` and `DefaultOption` string properties entirely. Their function moves to `ComboBoxOption.IsRecommended`/`IsDefault`.
+Remove three properties:
+- `RecommendedOption` (string) — function moves to `ComboBoxOption.IsRecommended`.
+- `DefaultOption` (string) — function moves to `ComboBoxOption.IsDefault`.
+- `ComboBoxOptions` (`Dictionary<string, int>?`) — dead code. The field is declared on the record but never set in any model file. Consumers in `BulkSettingsActionService.cs` lines 363–380 reference it, but those branches have been unreachable in practice. Delete the property and the dead consumer branches as part of this work.
 
 `RecommendedValue` and `DefaultValue` stay as `required object?`. Their semantics per InputType:
 
@@ -95,7 +101,7 @@ Remove `RecommendedOption` and `DefaultOption` string properties entirely. Their
 | Selection | `null` — resolved via `ComboBoxMetadata.Options[i].ValueMappings`. | `null` — same. |
 | Action (no badge) | `null`. | `null`. |
 
-The `null` cases for Selection are explicit because `required` forces authors to write them — a deliberate acknowledgment that "this registry entry's recommendation is decided elsewhere", not a silent omission.
+The `null` cases for Selection are explicit because `required` forces authors to write them — a deliberate acknowledgment that "this registry entry's recommendation is decided elsewhere", not a silent omission. Because `required object?` forces initialization but allows `null`, the catalog validator also asserts: for every `SettingDefinition` with `InputType == Selection`, every `RegistrySetting.RecommendedValue` and `DefaultValue` **must be `null`**. This catches the mirror mistake (accidental non-null value on a Selection-member entry) that the type system alone cannot express.
 
 ### `NumericRangeMetadata` (unchanged)
 
@@ -147,6 +153,8 @@ if (InputType == InputType.Selection)
 
 Toggle and NumericRange branches unchanged.
 
+**Tiebreak for options that are both `IsRecommended` and `IsDefault`:** when the current selection matches both, the badge renders as **Recommended** (green). This matches the visual tiebreak in the open-dropdown highlight. Covered by a dedicated unit test.
+
 ### Technical Details
 
 For Selection settings, when Technical Details lists each registry entry with its "Recommended value" and "Default value" columns, the values come from:
@@ -166,7 +174,9 @@ The existing `.winhance` config files serialize `SelectedIndex` for Selection se
 
 ### Toggle
 
-No visual change. The InfoBadge on the card communicates state. Toggling flips to the other state. Only two positions exist; "Custom" only appears when the registry has a stray third value, and toggling once writes back to `EnabledValue[0]` or `DisabledValue[0]`, resolving it.
+No per-card visual change, and no per-card quick-set button. The InfoBadge on the card communicates state. Toggling the control flips to the other state — which is always either Recommended or Default, since Toggle has only two meaningful positions. "Custom" only surfaces when the registry has a stray third value, and toggling once writes back to `EnabledValue[0]` or `DisabledValue[0]`, resolving it.
+
+For bulk "everything to Recommended" or "everything to Default", users still use the existing Quick Actions dropdown — that path is unchanged.
 
 ### Selection (ComboBox)
 
@@ -176,7 +186,7 @@ When the dropdown is open **and** `UserPreferences.ShowInfoBadges == true`:
 - If one option is both (rare but allowed in the data): Recommended wins visually; tooltip reads "Recommended (also Windows default)".
 - Hover tooltip on a highlighted option: "Recommended" / "Windows Default" (localized).
 
-When the dropdown is closed: no change — the card's InfoBadge alone communicates state.
+**Implementation constraint — closed-dropdown rendering:** the highlight pill must apply only to items in the popup list, never to the closed selection box. In WinUI 3, this means `ComboBox.ItemTemplate` carries the highlight visuals while `ComboBox.SelectionBoxItemTemplate` stays plain. A UI test asserts the closed dropdown shows no pill background for a Recommended-selected option.
 
 ### NumericRange (up/down spinner)
 
@@ -187,26 +197,42 @@ Two small quick-set buttons placed next to the spinner's up/down arrows:
 - Icons only visible when `UserPreferences.ShowInfoBadges == true` (same global toggle as the card badges).
 - The icons match the glyphs already used in the Quick Actions dropdown and the card badges, for consistency across the three surfaces.
 
-For PowerCfg NumericRange settings with `PowerModeSupport.Separate`, each of the AC / DC spinners gets its own pair of quick-set buttons, backed by `PowerCfgSetting.RecommendedValueAC/DC` and `DefaultValueAC/DC`.
+For PowerCfg NumericRange settings with `PowerModeSupport.Separate`, each of the AC / DC spinners gets its own pair of quick-set buttons, backed by `PowerCfgSetting.RecommendedValueAC/DC` and `DefaultValueAC/DC`. Clicking the button on the AC spinner sets AC only; clicking on the DC spinner sets DC only — neither button touches the other power mode.
+
+**Layout constraint:** the screenshot shows an already-tight row (title + badge + spinner). Two extra icons per spinner, doubled for AC/DC, risks overflow at narrow widths. The implementation plan must specify minimum card width / truncation behaviour and verify at 1024px, the current minimum supported window width.
 
 ---
 
 ## Migration strategy
 
-Single PR, big-bang migration. Mechanical per-file passes with parallel subagents.
+Single PR, two clearly-separated phases inside the PR: **Phase A** (data model + consumer rewiring) can be fully reviewed and tested before **Phase B** (new visual layer) lands. The implementation plan splits accordingly.
 
-### Order of operations
+### Phase A — Data model and consumers
 
-1. Add `ComboBoxOption` record. Change `ComboBoxMetadata` to the new shape. Keep old fields temporarily marked `[Obsolete]` so the compiler surfaces every callsite.
-2. Migrate every `SettingDefinition` using `ComboBox = new ComboBoxMetadata { ... }` to the new shape. Set `IsRecommended = true` on the option that matches `Winhance_Recommended_Config.winhance`'s `SelectedIndex` for that setting ID. Set `IsDefault = true` on the option whose DisplayName contains "(Default)" (or, where absent, the one matching `Winhance_Default_Config_Windows11_25H2.winhance`'s `SelectedIndex`).
-3. Remove the `[Obsolete]` fields. Delete `RegistrySetting.RecommendedOption` and `DefaultOption` properties. Delete their single live use in `StartMenuCustomizations.cs`.
-4. Update `BulkSettingsActionService.GetRecommendedOptionFromSetting` / `GetDefaultOptionFromSetting` to read from `ComboBoxMetadata.Options` instead.
-5. Update `SettingItemViewModel.EvaluateRegistrySetting` for the Selection branch.
-6. Update Technical Details binding to resolve Selection recommended/default via `ComboBoxMetadata.Options`.
-7. Add the runtime validator + unit test covering every `SettingDefinition` in the catalog.
-8. Add the NumericRange quick-set button controls in the relevant XAML SettingsCard templates.
-9. Add the open-ComboBox-dropdown option highlighting (style + converter or template selector).
-10. Run the full test suite; fix any fallout.
+1. Snapshot the current resolved Recommended/Default per setting ID (see "Golden snapshot" under Testing). This is the baseline for regression checks in step 10.
+2. Add `ComboBoxOption` record. Add the new `Options` property to `ComboBoxMetadata` alongside the old fields. Mark the old fields `[Obsolete]` so the compiler surfaces every callsite but the build still succeeds.
+3. Migrate every `SettingDefinition` using `ComboBox = new ComboBoxMetadata { ... }` to the new shape. Source of truth for `IsRecommended` / `IsDefault`, in order of precedence:
+   - If the setting's current primary `RegistrySetting` has `RecommendedOption` / `DefaultOption` set → use that.
+   - Otherwise, use the option index from `Winhance_Recommended_Config.winhance` (`IsRecommended`) and `Winhance_Default_Config_Windows11_25H2.winhance` (`IsDefault`).
+   - Otherwise, infer `IsDefault` from the DisplayName containing "(Default)".
+   - **Where any two sources disagree for the same setting ID, log a `// MIGRATION-CHECK:` comment inline and list the setting in the PR description for human review.** Do not silently pick one.
+4. Update `BulkSettingsActionService` (`GetRecommendedOptionFromSetting` / `GetDefaultOptionFromSetting` plus the dead `ComboBoxOptions` branches at lines 363–380) to read from `ComboBoxMetadata.Options` exclusively.
+5. Update `SettingItemViewModel.EvaluateRegistrySetting` for the Selection branch; apply the tiebreak rule for `IsRecommended + IsDefault` intersection.
+6. Update Technical Details bindings to resolve Selection recommended/default via `ComboBoxMetadata.Options[i].ValueMappings[entry.ValueName]`. Preserve the null-vs-absent distinction: a `null` *entry* in `ValueMappings` renders as "— (key deleted)"; an *absent* key renders as "unchanged".
+7. Delete the `[Obsolete]` fields (`DisplayNames`, `ValueMappings`, `SimpleValueMappings`, `CommandValueMappings`, `ScriptMappings`, `OptionTooltips`, `OptionWarnings`, `OptionConfirmations`, `ScriptVariables`). Delete `RegistrySetting.RecommendedOption`, `DefaultOption`, `ComboBoxOptions`. Delete the single live use of `RecommendedOption` in `StartMenuCustomizations.cs`.
+8. Add the `SettingCatalogValidatorTests` unit test covering every `SettingDefinition` in the catalog.
+9. Run the full test suite. Regenerate the golden snapshot; diff against step 1's baseline and attach to the PR — zero Recommended/Default changes expected for any setting ID.
+
+### Phase B — Visual layer
+
+10. Add the NumericRange quick-set button controls in the relevant XAML SettingsCard templates. Wire to `RegistrySetting.RecommendedValue` / `DefaultValue` (and `PowerCfgSetting.RecommendedValueAC/DC` / `DefaultValueAC/DC` for Separate). Verify layout at 1024px window width.
+11. Add the open-ComboBox-dropdown option highlighting via `ComboBox.ItemTemplate` (ensuring `SelectionBoxItemTemplate` stays plain). Bind visibility to `UserPreferences.ShowInfoBadges`.
+12. Add localized strings for the three new tooltips: "Set to Recommended (…)", "Set to Default (…)", "Recommended (also Windows default)". Follow the pattern from `docs/superpowers/plans/2026-04-12-modern-infobadge-pills.md` — add to all 27 language files via parallel subagents.
+13. Run UI smoke tests from the Testing section.
+
+### ScriptVariables stale-entry policy
+
+If the existing `ComboBoxMetadata.ScriptVariables` dictionary contains keys for option indices that don't exist in `DisplayNames` (stale entries left behind from option removals), migration **fails loudly** — a `MIGRATION-FAIL:` comment is added inline and the setting is listed in the PR description for human review. Silent drop is not acceptable.
 
 ### Affected files (estimate)
 
@@ -219,13 +245,28 @@ Single PR, big-bang migration. Mechanical per-file passes with parallel subagent
 
 ## Testing
 
-- **Unit tests per consumer:** `BulkSettingsActionServiceTests` (apply recommended/default for Selection using the new model), `SettingItemViewModelTests` (badge state for Selection).
-- **Catalog validator test:** iterate every registered `SettingDefinition`; assert the per-InputType invariants. Fails CI if any setting has gaps.
+- **Golden snapshot (regression baseline):** before Phase A starts, dump `{settingId → (resolvedRecommendedIndex or value, resolvedDefaultIndex or value)}` for every `SettingDefinition` in the catalog, using the *current* resolution logic. Save as `tests/Winhance.UI.Tests/Fixtures/setting-state-baseline.json`. After Phase A, regenerate and diff — zero changes expected. The diff goes in the PR description. This is the highest-value test for a big-bang rename.
+- **Catalog validator test (`SettingCatalogValidatorTests`):** iterate every registered `SettingDefinition`; assert the invariants listed under `ComboBoxMetadata` validation plus the Selection-entries-must-be-null rule. Fails CI if any setting has gaps.
+- **`BulkSettingsActionServiceTests` additions:**
+  - Apply Recommended for a Selection setting → verify the `IsRecommended` option's `ValueMappings` are written and nothing else.
+  - Reset to Defaults for a Selection setting → verify `IsDefault` option's `ValueMappings` are written.
+  - **Round-trip test:** apply Recommended, read back the effective `SelectedIndex` via `ComputeBadgeState`, assert `BadgeState == Recommended`. Same for Default.
+  - Test a ComboBox setting with `SupportsCustomState = true` — validator does not fail, Apply Recommended still works.
+- **`SettingItemViewModelTests` additions:**
+  - Badge state for Selection maps `SelectedIndex == recommendedIndex` to `Recommended`, same for `Default`, everything else to `Custom`.
+  - Tiebreak test: option that is both `IsRecommended` and `IsDefault`, when selected, yields `BadgeState == Recommended`.
+- **Config import compatibility test:** round-trip a pre-migration `.winhance` file (a pinned copy in `tests/Winhance.UI.Tests/Fixtures/`) through the post-migration importer; assert every Selection setting resolves to the correct option index.
+- **UI tests (Phase B):**
+  - Closed ComboBox dropdown for a Recommended-selected option renders no pill background (guard against the `SelectionBoxItemTemplate` hazard).
+  - Open ComboBox dropdown renders green pill on Recommended option and grey on Default when `ShowInfoBadges = true`; plain when `false`.
+  - NumericRange green star button click → value becomes `RecommendedValue`; grey reset button click → value becomes `DefaultValue`.
+  - AC quick-set on a Separate PowerCfg setting sets only AC; DC value unchanged.
 - **Manual smoke test:**
   - On Optimize → Update Policy, confirm ComboBox dropdown highlights "Security Updates Only (Recommended)" in green and "Normal (Windows Default)" in grey.
-  - Click Apply Recommended in Quick Actions; verify every registry entry in Technical Details shows the right post-apply value.
+  - Click Apply Recommended in Quick Actions; verify every registry entry in Technical Details shows the right post-apply value and the `null`-vs-absent distinction displays correctly.
   - Click Reset to Windows Defaults; verify badges return to Default state.
   - On a NumericRange setting (e.g. Maximum processor state), click the green star quick-set button; verify value jumps to 100 and badge flips to Recommended.
+  - Verify card layout at 1024px window width for the busiest NumericRange settings (PowerCfg Separate sliders).
 
 ## Out-of-scope follow-ups
 
