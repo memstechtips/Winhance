@@ -29,59 +29,73 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "ConsentPromptBehaviorAdmin",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [5],
                             DisabledValue = [0],
-                            DefaultValue = 5,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "PromptOnSecureDesktop",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [1],
                             DisabledValue = [0],
-                            DefaultValue = 1,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Prompt for Credentials",
-                            "Always notify",
-                            "Notify when apps try to make changes",
-                            "Notify when apps try to make changes (no dim)",
-                            "Never notify",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 1,
-                                ["PromptOnSecureDesktop"] = 1,
+                                DisplayName = "Prompt for Credentials",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 1,
+                                    ["PromptOnSecureDesktop"] = 1,
+                                },
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 2,
-                                ["PromptOnSecureDesktop"] = 1,
+                                DisplayName = "Always notify",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 2,
+                                    ["PromptOnSecureDesktop"] = 1,
+                                },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 5,
-                                ["PromptOnSecureDesktop"] = 1,
+                                DisplayName = "Notify when apps try to make changes",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 5,
+                                    ["PromptOnSecureDesktop"] = 1,
+                                },
+                                IsDefault = true,
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 5,
-                                ["PromptOnSecureDesktop"] = 0,
+                                DisplayName = "Notify when apps try to make changes (no dim)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 5,
+                                    ["PromptOnSecureDesktop"] = 0,
+                                },
                             },
-                            [4] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 0,
-                                ["PromptOnSecureDesktop"] = 0,
+                                DisplayName = "Never notify",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 0,
+                                    ["PromptOnSecureDesktop"] = 0,
+                                },
+                                IsRecommended = true,
                             },
                         },
                         SupportsCustomState = true,
@@ -272,34 +286,33 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Policy",
                             ValueName = "VerifiedAndReputablePolicyState",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [2],
                             DisabledValue = [0],
-                            DefaultValue = 2,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Off",
-                            "On (Enforced)",
-                            "Evaluation Mode",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VerifiedAndReputablePolicyState"] = 0,
+                                DisplayName = "Off",
+                                ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 0 },
+                                IsRecommended = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VerifiedAndReputablePolicyState"] = 1,
+                                DisplayName = "On (Enforced)",
+                                ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VerifiedAndReputablePolicyState"] = 2,
+                                DisplayName = "Evaluation Mode",
+                                ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 2 },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -342,54 +355,53 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell",
                             ValueName = "ExecutionPolicy",
-                            RecommendedValue = "RemoteSigned",
+                            RecommendedValue = null,
                             EnabledValue = ["Restricted"],
                             DisabledValue = ["RemoteSigned"],
-                            DefaultValue = "Restricted",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell",
                             ValueName = "ExecutionPolicy",
-                            RecommendedValue = "RemoteSigned",
+                            RecommendedValue = null,
                             EnabledValue = ["Restricted"],
                             DisabledValue = ["RemoteSigned"],
-                            DefaultValue = "Restricted",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Restricted",
-                            "AllSigned",
-                            "RemoteSigned",
-                            "Unrestricted",
-                            "Bypass",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExecutionPolicy"] = "Restricted",
+                                DisplayName = "Restricted",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "Restricted" },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExecutionPolicy"] = "AllSigned",
+                                DisplayName = "AllSigned",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "AllSigned" },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExecutionPolicy"] = "RemoteSigned",
+                                DisplayName = "RemoteSigned",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "RemoteSigned" },
+                                IsRecommended = true,
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExecutionPolicy"] = "Unrestricted",
+                                DisplayName = "Unrestricted",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "Unrestricted" },
                             },
-                            [4] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExecutionPolicy"] = "Bypass",
+                                DisplayName = "Bypass",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "Bypass" },
                             },
                         },
                     },
@@ -409,32 +421,31 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Settings",
                             ValueName = "AdsPromotionalContentMode",
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 2,
-                            RecommendedValue = 1,
+                            DefaultValue = null,
+                            RecommendedValue = null,
                             IsPrimary = true,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Allow",
-                            "Deny",
-                            "Custom",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["AdsPromotionalContentMode"] = 0,
+                                DisplayName = "Allow",
+                                ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 0 },
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["AdsPromotionalContentMode"] = 1,
+                                DisplayName = "Deny",
+                                ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 1 },
+                                IsRecommended = true,
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["AdsPromotionalContentMode"] = 2,
+                                DisplayName = "Custom",
+                                ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 2 },
+                                IsDefault = true,
                             },
                         },
                     },
