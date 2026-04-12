@@ -110,13 +110,11 @@ public static class WindowsThemeCustomizations
 
                             ValueName = "AppsUseLightTheme",
 
-                            RecommendedValue = 0, // Dark mode recommended
+                            RecommendedValue = null,
 
-                            DefaultValue = 1, // Light mode is Windows default
+                            DefaultValue = null,
 
                             ValueType = RegistryValueKind.DWord,
-
-                            DefaultOption = "Light Mode",
 
                         },
 
@@ -130,9 +128,9 @@ public static class WindowsThemeCustomizations
 
                             ValueName = "SystemUsesLightTheme",
 
-                            RecommendedValue = 0, // Dark mode recommended
+                            RecommendedValue = null,
 
-                            DefaultValue = 1, // Light mode is Windows default
+                            DefaultValue = null,
 
                             ValueType = RegistryValueKind.DWord,
 
@@ -144,37 +142,47 @@ public static class WindowsThemeCustomizations
 
                     {
 
-                        DisplayNames = new string[]
+                        Options = new[]
 
                         {
 
-                            "Light Mode",
-
-                            "Dark Mode",
-
-                        },
-
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-
-                        {
-
-                            [0] = new Dictionary<string, object?> // Light Mode
+                            new ComboBoxOption
 
                             {
 
-                                ["AppsUseLightTheme"] = 1,
+                                DisplayName = "Light Mode",
 
-                                ["SystemUsesLightTheme"] = 1,
+                                ValueMappings = new Dictionary<string, object?>
+
+                                {
+
+                                    ["AppsUseLightTheme"] = 1,
+
+                                    ["SystemUsesLightTheme"] = 1,
+
+                                },
+
+                                IsDefault = true,
 
                             },
 
-                            [1] = new Dictionary<string, object?> // Dark Mode
+                            new ComboBoxOption
 
                             {
 
-                                ["AppsUseLightTheme"] = 0,
+                                DisplayName = "Dark Mode",
 
-                                ["SystemUsesLightTheme"] = 0,
+                                ValueMappings = new Dictionary<string, object?>
+
+                                {
+
+                                    ["AppsUseLightTheme"] = 0,
+
+                                    ["SystemUsesLightTheme"] = 0,
+
+                                },
+
+                                IsRecommended = true,
 
                             },
 
