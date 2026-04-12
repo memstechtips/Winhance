@@ -178,7 +178,7 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <MenuFlyoutItem x:Name="ApplyRecommendedItem" Click="ApplyRecommended_Click">
                             <MenuFlyoutItem.Icon>
-                                <PathIcon Data="{StaticResource StarCheckIconPath}" Height="14" Width="14"/>
+                                <FontIcon Glyph="&#xE735;" FontSize="14"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="ResetDefaultsItem" Click="ResetDefaults_Click">

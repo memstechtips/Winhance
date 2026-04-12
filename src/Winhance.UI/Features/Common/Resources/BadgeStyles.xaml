@@ -66,12 +66,11 @@
     <converters:BadgeIconTemplateSelector x:Key="BadgeIconTemplateSelector">
         <converters:BadgeIconTemplateSelector.RecommendedTemplate>
             <DataTemplate>
-                <PathIcon
-                    Data="{StaticResource StarCheckIconPath}"
+                <FontIcon
+                    Glyph="&#xE735;"
+                    FontSize="14"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
-                    Height="14"
-                    Width="14"
                     Foreground="{StaticResource BadgeRecommendedForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.RecommendedTemplate>
