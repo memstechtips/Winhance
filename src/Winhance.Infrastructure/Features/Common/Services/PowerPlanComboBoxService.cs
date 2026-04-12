@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;

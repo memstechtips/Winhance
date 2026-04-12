@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Interfaces;
+using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 
 namespace Winhance.UI.Features.Common.Controls;
 

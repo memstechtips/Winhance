@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
