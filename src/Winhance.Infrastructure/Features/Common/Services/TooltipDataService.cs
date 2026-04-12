@@ -149,7 +149,8 @@ public class TooltipDataService(
                 DisplayValue = displayValue,
                 IndividualRegistryValues = individualRegistryValues,
                 ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
-                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
+                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>(),
+                SettingDefinition = setting
             };
         }
         catch (Exception ex)

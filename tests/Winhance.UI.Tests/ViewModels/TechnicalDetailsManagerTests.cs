@@ -847,4 +847,106 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Assert
         action.Should().NotThrow();
     }
+
+    // ──────────────────────────────────────────────────
+    // Selection Recommended/Default column resolution (Task A9)
+    // ──────────────────────────────────────────────────
+
+    [Fact]
+    public void OnTooltipUpdated_SelectionSetting_ResolvesColumnsFromComboBoxOptions()
+    {
+        // Arrange
+        // Selection setting with two options:
+        //   Option 0 (IsDefault):     ValueMappings { "X" = 0, "Y" = null }
+        //   Option 1 (IsRecommended): ValueMappings { "X" = 1 }   // "Y" absent
+        // Two RegistrySettings — one for "X" and one for "Y" — both with
+        // RecommendedValue/DefaultValue = null (the new Selection state model).
+        _currentSettingId = "MySetting";
+        var manager = CreateManager();
+
+        _mockRegeditLauncher
+            .Setup(r => r.KeyExists(It.IsAny<string>()))
+            .Returns(true);
+
+        var regX = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "X",
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
+        };
+        var regY = new RegistrySetting
+        {
+            KeyPath = @"HKLM\SOFTWARE\Test",
+            ValueName = "Y",
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
+        };
+
+        var settingDef = new SettingDefinition
+        {
+            Id = "MySetting",
+            Name = "My Setting",
+            Description = "test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption
+                    {
+                        DisplayName = "Default option",
+                        IsDefault = true,
+                        ValueMappings = new Dictionary<string, object?>
+                        {
+                            { "X", 0 },
+                            { "Y", null }   // explicit null: key would be deleted
+                        }
+                    },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption
+                    {
+                        DisplayName = "Recommended option",
+                        IsRecommended = true,
+                        ValueMappings = new Dictionary<string, object?>
+                        {
+                            { "X", 1 }
+                            // "Y" absent from mapping: entry is unchanged under this option
+                        }
+                    }
+                }
+            }
+        };
+
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "MySetting",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { regX, "0" },
+                { regY, "0" }
+            },
+            SettingDefinition = settingDef
+        };
+        var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
+
+        // Act
+        _capturedHandlers[0](evt);
+
+        // Assert
+        _details.Should().HaveCount(2);
+
+        // Row X: both options have a value for "X".
+        var rowX = _details.First(r => r.ValueName == "X");
+        rowX.RecommendedValue.Should().Be("1");
+        rowX.DefaultValue.Should().Be("0");
+
+        // Row Y: absent from Recommended option's mapping, explicitly null in Default's mapping.
+        // Current TechnicalDetailLabels collapses both cases to ValueNotExist — assert both
+        // columns use that label (and critically, do NOT show "0" or "1").
+        var rowY = _details.First(r => r.ValueName == "Y");
+        rowY.RecommendedValue.Should().Be(TestLabels.ValueNotExist);
+        rowY.DefaultValue.Should().Be(TestLabels.ValueNotExist);
+    }
 }
