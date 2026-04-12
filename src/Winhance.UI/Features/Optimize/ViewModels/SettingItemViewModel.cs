@@ -13,6 +13,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -198,25 +199,24 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool ShowInfoBadge => IsInfoBadgeGloballyVisible && HasBadgeData;
 
     /// <summary>
-    /// Localized tooltip text for the badge ("Recommended", "Default", "Custom").
+    /// Localized short label shown inside the badge pill ("Recommended", "Default", "Custom").
     /// </summary>
-    public string BadgeTooltip => BadgeState switch
+    public string BadgeLabel => BadgeState switch
     {
-        SettingBadgeState.Recommended => _localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended",
-        SettingBadgeState.Default => _localizationService?.GetString("InfoBadge_Default") ?? "Default",
-        SettingBadgeState.Custom => _localizationService?.GetString("InfoBadge_Custom") ?? "Custom",
+        SettingBadgeState.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
+        SettingBadgeState.Default => _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
+        SettingBadgeState.Custom => _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
         _ => ""
     };
 
     /// <summary>
-    /// Icon glyph for the badge. Matches the Quick Actions menu icons for consistency.
-    /// E735 = star/sparkle (Apply Recommended), E777 = reset/undo (Reset Defaults), E70F = pencil (Custom).
+    /// Localized long-form tooltip shown when hovering the badge pill.
     /// </summary>
-    public string BadgeIcon => BadgeState switch
+    public string BadgeTooltip => BadgeState switch
     {
-        SettingBadgeState.Recommended => "\uE735",
-        SettingBadgeState.Default => "\uE777",
-        SettingBadgeState.Custom => "\uE70F",
+        SettingBadgeState.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "The Recommended values are applied for this setting",
+        SettingBadgeState.Default => _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "The Default Windows values are applied for this setting",
+        SettingBadgeState.Custom => _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom values are applied for this setting",
         _ => ""
     };
 
@@ -227,8 +227,8 @@ public partial class SettingItemViewModel : BaseViewModel
 
     partial void OnBadgeStateChanged(SettingBadgeState value)
     {
+        OnPropertyChanged(nameof(BadgeLabel));
         OnPropertyChanged(nameof(BadgeTooltip));
-        OnPropertyChanged(nameof(BadgeIcon));
     }
 
     // Advanced unlock support
