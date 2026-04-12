@@ -18,9 +18,9 @@ public record PowerCfgSetting
     public PowerModeSupport PowerModeSupport { get; init; } = PowerModeSupport.Both;
     public string? Units { get; init; }
     public RegistrySetting? EnablementRegistrySetting { get; init; }
-    public int? RecommendedValueAC { get; init; }
-    public int? RecommendedValueDC { get; init; }
-    public int? DefaultValueAC { get; init; }
-    public int? DefaultValueDC { get; init; }
+    public required int? RecommendedValueAC { get; init; }
+    public required int? RecommendedValueDC { get; init; }
+    public required int? DefaultValueAC { get; init; }
+    public required int? DefaultValueDC { get; init; }
     public bool CheckForHardwareControl { get; init; } = false;
 }

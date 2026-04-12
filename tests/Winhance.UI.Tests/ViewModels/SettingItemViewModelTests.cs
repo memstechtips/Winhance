@@ -539,7 +539,7 @@ public class SettingItemViewModelTests : IDisposable
             NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
             PowerCfgSettings = new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             }
         };
         var config = _defaultConfig with
@@ -569,7 +569,7 @@ public class SettingItemViewModelTests : IDisposable
             NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
             PowerCfgSettings = new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             }
         };
         var config = _defaultConfig with
@@ -600,7 +600,7 @@ public class SettingItemViewModelTests : IDisposable
             NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
             PowerCfgSettings = new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             }
         };
         var config = _defaultConfig with
@@ -640,7 +640,7 @@ public class SettingItemViewModelTests : IDisposable
             },
             PowerCfgSettings = new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             }
         };
         var config = _defaultConfig with
@@ -678,7 +678,7 @@ public class SettingItemViewModelTests : IDisposable
             },
             PowerCfgSettings = new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate }
+                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             }
         };
         var config = _defaultConfig with

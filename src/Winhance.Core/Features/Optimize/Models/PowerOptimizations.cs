@@ -396,6 +396,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -453,6 +454,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -514,6 +516,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -548,6 +551,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -584,6 +588,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -700,6 +705,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -737,6 +743,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -774,6 +781,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -811,6 +819,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -850,6 +859,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -888,6 +898,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -925,6 +936,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -962,6 +974,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }
@@ -999,6 +1012,7 @@ public static class PowerOptimizations
                                 ValueName = "Attributes",
                                 EnabledValue = [0],
                                 DisabledValue = [1],
+                                RecommendedValue = 0,
                                 DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord
                             }

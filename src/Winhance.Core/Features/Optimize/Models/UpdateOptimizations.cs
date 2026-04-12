@@ -29,6 +29,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoUpdate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -37,6 +38,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoUpdate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -103,6 +105,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseFeatureUpdatesStartTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -110,6 +113,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseFeatureUpdatesEndTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -117,6 +121,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseQualityUpdatesStartTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -124,6 +129,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseQualityUpdatesEndTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -131,6 +137,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseUpdatesStartTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -138,6 +145,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseUpdatesExpiryTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -145,6 +153,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedQualityDate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -152,6 +161,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedFeatureDate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -159,6 +169,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "FlightSettingsMaxPauseDays",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -166,6 +177,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAUShutdownOption",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -174,6 +186,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAUShutdownOption",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -182,6 +195,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -190,6 +204,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -198,6 +213,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AutoInstallMinorUpdates",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -206,6 +222,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AutoInstallMinorUpdates",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -214,6 +231,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "UseWUServer",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -222,6 +240,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "UseWUServer",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -230,6 +249,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedFeatureStatus",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -237,6 +257,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedQualityStatus",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },

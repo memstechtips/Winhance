@@ -1227,6 +1227,7 @@ if (-not (Test-Path $icoPath)) {
                             ValueName = "",
                             EnabledValue = ["PhotoViewer.FileAssoc.Tiff"],
                             DisabledValue = [null],
+                            RecommendedValue = "PhotoViewer.FileAssoc.Tiff",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         }
@@ -1376,6 +1377,7 @@ if (-not (Test-Path $icoPath)) {
                             ValueName = "NoOpenWith",
                             EnabledValue = [null],
                             DisabledValue = [""],
+                            RecommendedValue = null,
                             DefaultValue = "",
                             ValueType = RegistryValueKind.String,
                         },
@@ -1385,6 +1387,7 @@ if (-not (Test-Path $icoPath)) {
                             ValueName = "UseFilter",
                             EnabledValue = [0],
                             DisabledValue = [1],
+                            RecommendedValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2210,6 +2213,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sShortDate",
+                            RecommendedValue = null,
                             DefaultValue = "M/d/yyyy",
                             ValueType = RegistryValueKind.String,
                             DefaultOption = "M/d/yyyy",
@@ -2251,6 +2255,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "iFirstDayOfWeek",
+                            RecommendedValue = null,
                             DefaultValue = "6",
                             ValueType = RegistryValueKind.String,
                             DefaultOption = "Sunday",
@@ -2296,6 +2301,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sDecimal",
+                            RecommendedValue = null,
                             DefaultValue = ".",
                             ValueType = RegistryValueKind.String,
                             DefaultOption = ". (Period)",
@@ -2335,6 +2341,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sList",
+                            RecommendedValue = null,
                             DefaultValue = ",",
                             ValueType = RegistryValueKind.String,
                             DefaultOption = ", (Comma)",
@@ -2370,6 +2377,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "iMeasure",
+                            RecommendedValue = null,
                             DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                             DefaultOption = "U.S. (Imperial)",
@@ -2405,6 +2413,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sMonDecimalSep",
+                            RecommendedValue = null,
                             DefaultValue = ".",
                             ValueType = RegistryValueKind.String,
                             DefaultOption = ". (Period)",

@@ -155,6 +155,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -164,6 +165,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,

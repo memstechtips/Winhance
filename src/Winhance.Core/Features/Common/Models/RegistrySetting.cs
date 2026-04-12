@@ -7,8 +7,8 @@ public record RegistrySetting
 {
     public required string KeyPath { get; init; }
     public string? ValueName { get; init; }
-    public object? RecommendedValue { get; init; }
-    public object? DefaultValue { get; init; }
+    public required object? RecommendedValue { get; init; }
+    public required object? DefaultValue { get; init; }
     public object?[]? EnabledValue { get; init; }
     public object?[]? DisabledValue { get; init; }
     public required RegistryValueKind ValueType { get; init; }

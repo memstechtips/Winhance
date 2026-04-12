@@ -218,7 +218,8 @@ public class TechnicalDetailsManagerTests : IDisposable
             KeyPath = @"HKLM\SOFTWARE\Test",
             ValueName = "TestValue",
             ValueType = RegistryValueKind.DWord,
-            RecommendedValue = 1
+            RecommendedValue = 1,
+            DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
         {
@@ -257,7 +258,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             SettingId = "OtherSetting",
             IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
             {
-                { new RegistrySetting { KeyPath = @"HKLM\Test", ValueType = RegistryValueKind.DWord }, "0" }
+                { new RegistrySetting { KeyPath = @"HKLM\Test", ValueType = RegistryValueKind.DWord, RecommendedValue = null, DefaultValue = null }, "0" }
             }
         };
         var evt = new TooltipUpdatedEvent("OtherSetting", tooltipData);
@@ -284,7 +285,8 @@ public class TechnicalDetailsManagerTests : IDisposable
                 new ScheduledTaskSetting
                 {
                     TaskPath = @"\Microsoft\Windows\Test",
-                    RecommendedState = false
+                    RecommendedState = false,
+                    DefaultState = null
                 }
             }
         };
@@ -315,7 +317,8 @@ public class TechnicalDetailsManagerTests : IDisposable
                 new ScheduledTaskSetting
                 {
                     TaskPath = @"\Microsoft\Windows\Task",
-                    RecommendedState = true
+                    RecommendedState = true,
+                    DefaultState = null
                 }
             }
         };
@@ -348,7 +351,9 @@ public class TechnicalDetailsManagerTests : IDisposable
                     SettingGUIDAlias = "SetAlias",
                     Units = "Seconds",
                     RecommendedValueAC = 30,
-                    RecommendedValueDC = 60
+                    RecommendedValueDC = 60,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 }
             }
         };
@@ -382,7 +387,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             SettingId = "MySetting",
             IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
             {
-                { new RegistrySetting { KeyPath = @"HKLM\Old", ValueType = RegistryValueKind.DWord }, "0" }
+                { new RegistrySetting { KeyPath = @"HKLM\Old", ValueType = RegistryValueKind.DWord, RecommendedValue = null, DefaultValue = null }, "0" }
             }
         };
         _capturedHandlers[0](new TooltipUpdatedEvent("MySetting", firstData));
@@ -392,7 +397,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             SettingId = "MySetting",
             ScheduledTaskSettings = new List<ScheduledTaskSetting>
             {
-                new ScheduledTaskSetting { TaskPath = @"\New\Task", RecommendedState = true }
+                new ScheduledTaskSetting { TaskPath = @"\New\Task", RecommendedState = true, DefaultState = null }
             }
         };
         var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
@@ -439,7 +444,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         {
             KeyPath = @"HKLM\SOFTWARE\Missing",
             ValueName = "Val",
-            ValueType = RegistryValueKind.DWord
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
         {
@@ -474,7 +481,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         {
             KeyPath = @"HKLM\SOFTWARE\Locked",
             ValueName = "Val",
-            ValueType = RegistryValueKind.DWord
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
         {
@@ -512,7 +521,8 @@ public class TechnicalDetailsManagerTests : IDisposable
             KeyPath = @"HKLM\SOFTWARE\Test",
             ValueName = null,
             ValueType = RegistryValueKind.String,
-            RecommendedValue = null
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
         {
@@ -604,6 +614,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             KeyPath = @"HKLM\SOFTWARE\Test",
             ValueName = "TestValue",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
             DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
@@ -638,7 +649,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         {
             KeyPath = @"HKLM\SOFTWARE\Test",
             ValueName = "TestValue",
-            ValueType = RegistryValueKind.DWord
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
         {
@@ -675,6 +688,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             ValueType = RegistryValueKind.DWord,
             EnabledValue = [1, null],
             DisabledValue = [0],
+            RecommendedValue = null,
             DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
@@ -713,6 +727,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             ValueType = RegistryValueKind.DWord,
             EnabledValue = [1],
             DisabledValue = [0, null],
+            RecommendedValue = null,
             DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
@@ -751,6 +766,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             ValueType = RegistryValueKind.DWord,
             EnabledValue = [1],
             DisabledValue = [0],
+            RecommendedValue = null,
             DefaultValue = null
         };
         var tooltipData = new SettingTooltipData
