@@ -427,6 +427,8 @@ public partial class SettingItemViewModel : BaseViewModel
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
 
+        _localizationService.LanguageChanged += OnLanguageChanged;
+
         // Unpack config data
         SettingDefinition = config.SettingDefinition;
         ParentFeatureViewModel = config.ParentFeatureViewModel;
@@ -1321,10 +1323,24 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
 
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(BadgeLabel));
+        OnPropertyChanged(nameof(BadgeTooltip));
+        OnPropertyChanged(nameof(NewBadgeText));
+        OnPropertyChanged(nameof(NewBadgeDismissTooltip));
+        OnPropertyChanged(nameof(TechnicalDetailsLabel));
+        OnPropertyChanged(nameof(OpenRegeditTooltip));
+        OnPropertyChanged(nameof(ClickToUnlockText));
+        OnPropertyChanged(nameof(PluggedInText));
+        OnPropertyChanged(nameof(OnBatteryText));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            _localizationService.LanguageChanged -= OnLanguageChanged;
             _technicalDetailsManager.Dispose();
         }
         base.Dispose(disposing);
