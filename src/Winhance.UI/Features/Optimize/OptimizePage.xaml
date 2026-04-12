@@ -170,7 +170,7 @@
             <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <fluentIcons:SymbolIcon Symbol="Flash" IconVariant="Regular" FontSize="14"/>
+                        <FontIcon Glyph="&#xE945;" FontSize="14"/>
                         <TextBlock x:Name="QuickActionsLabel" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DropDownButton.Content>
@@ -178,7 +178,7 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <MenuFlyoutItem x:Name="ApplyRecommendedItem" Click="ApplyRecommended_Click">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="StarCheckmark" IconVariant="Regular"/>
+                                <PathIcon Data="{StaticResource StarCheckIconPath}" Height="14" Width="14"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="ResetDefaultsItem" Click="ResetDefaults_Click">
