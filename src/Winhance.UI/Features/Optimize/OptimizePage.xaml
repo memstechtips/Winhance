@@ -170,7 +170,7 @@
             <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <fluentIcons:SymbolIcon Symbol="FlashSparkle" IconVariant="Regular" FontSize="14"/>
+                        <FontIcon Glyph="&#xE945;" FontSize="14"/>
                         <TextBlock x:Name="QuickActionsLabel" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DropDownButton.Content>
@@ -207,7 +207,7 @@
                         </ToggleMenuFlyoutItem>
                         <ToggleMenuFlyoutItem x:Name="InfoBadgesToggleItem" Click="ViewInfoBadges_Click">
                             <ToggleMenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="InfoSparkle" IconVariant="Regular"/>
+                                <PathIcon Data="{StaticResource BookInformationVariantIconPath}"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                     </MenuFlyout>
