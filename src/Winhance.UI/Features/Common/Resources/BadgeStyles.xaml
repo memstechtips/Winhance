@@ -68,7 +68,7 @@
             <DataTemplate>
                 <FontIcon
                     Glyph="&#xE735;"
-                    FontSize="14"
+                    FontSize="12"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
                     Foreground="{StaticResource BadgeRecommendedForeground}"/>
@@ -80,8 +80,8 @@
                     Data="{StaticResource BadgeDefaultIconPath}"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
-                    Height="11"
-                    Width="11"
+                    Height="12"
+                    Width="12"
                     Foreground="{StaticResource BadgeDefaultForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.DefaultTemplate>
@@ -90,7 +90,7 @@
                 <fluentIcons:SymbolIcon
                     Symbol="PersonWrench"
                     IconVariant="Regular"
-                    FontSize="11"
+                    FontSize="12"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
                     Foreground="{StaticResource BadgeCustomForeground}"/>
