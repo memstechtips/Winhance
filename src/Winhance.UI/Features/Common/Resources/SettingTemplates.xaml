@@ -79,16 +79,18 @@
                                     FontWeight="SemiBold"/>
                             </Button>
                             <Border
+                                Style="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToStyleConverter}}"
                                 Visibility="{x:Bind ShowInfoBadge, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                VerticalAlignment="Center"
-                                Padding="4,2"
-                                CornerRadius="4"
-                                Background="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToColorConverter}}"
                                 ToolTipService.ToolTip="{x:Bind BadgeTooltip, Mode=OneWay}">
-                                <FontIcon
-                                    Glyph="{x:Bind BadgeIcon, Mode=OneWay}"
-                                    FontSize="10"
-                                    Foreground="White"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <ContentControl
+                                        Content="{x:Bind BadgeState, Mode=OneWay}"
+                                        ContentTemplateSelector="{StaticResource BadgeIconTemplateSelector}"/>
+                                    <TextBlock
+                                        Text="{x:Bind BadgeLabel, Mode=OneWay}"
+                                        Foreground="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToForegroundConverter}}"
+                                        Style="{StaticResource BadgeTextStyle}"/>
+                                </StackPanel>
                             </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
@@ -425,16 +427,18 @@
                                     FontWeight="SemiBold"/>
                             </Button>
                             <Border
+                                Style="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToStyleConverter}}"
                                 Visibility="{x:Bind ShowInfoBadge, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                VerticalAlignment="Center"
-                                Padding="4,2"
-                                CornerRadius="4"
-                                Background="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToColorConverter}}"
                                 ToolTipService.ToolTip="{x:Bind BadgeTooltip, Mode=OneWay}">
-                                <FontIcon
-                                    Glyph="{x:Bind BadgeIcon, Mode=OneWay}"
-                                    FontSize="10"
-                                    Foreground="White"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <ContentControl
+                                        Content="{x:Bind BadgeState, Mode=OneWay}"
+                                        ContentTemplateSelector="{StaticResource BadgeIconTemplateSelector}"/>
+                                    <TextBlock
+                                        Text="{x:Bind BadgeLabel, Mode=OneWay}"
+                                        Foreground="{x:Bind BadgeState, Mode=OneWay, Converter={StaticResource BadgeStateToForegroundConverter}}"
+                                        Style="{StaticResource BadgeTextStyle}"/>
+                                </StackPanel>
                             </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
