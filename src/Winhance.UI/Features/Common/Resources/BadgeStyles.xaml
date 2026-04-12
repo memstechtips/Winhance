@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Winhance.UI.Features.Common.Converters"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
+
+    <!--
+    BadgeStyles.xaml
+    Centralized visual definition for the SettingsCard InfoBadge pill.
+    Includes:
+      - Pill Border styles per state (Recommended / Default / Custom)
+      - Foreground brushes matching each pill style
+      - Shared text style
+      - The BadgeIconTemplateSelector resource with its three inline icon templates
+    -->
+
+    <!-- ==================== Pill Border Base ==================== -->
+    <Style x:Key="BadgePillBase" TargetType="Border">
+        <Setter Property="CornerRadius" Value="999"/>
+        <Setter Property="Padding" Value="7,3,10,3"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- ==================== State-Specific Pill Styles ==================== -->
+    <Style x:Key="BadgeRecommendedStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background" Value="#224EC94E"/>
+        <Setter Property="BorderBrush" Value="#404EC94E"/>
+    </Style>
+
+    <Style x:Key="BadgeDefaultStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background" Value="#12FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#24FFFFFF"/>
+    </Style>
+
+    <Style x:Key="BadgeCustomStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background" Value="#22F0A030"/>
+        <Setter Property="BorderBrush" Value="#40F0A030"/>
+    </Style>
+
+    <!-- ==================== Foreground Brushes ==================== -->
+    <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
+    <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>
+    <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFF0A030"/>
+
+    <!-- ==================== Text Style ==================== -->
+    <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ==================== Icon Template Selector ==================== -->
+    <!-- Each template is a single icon control with the correct foreground brush.
+         The 4px right margin separates the icon from the pill's text label. -->
+    <converters:BadgeIconTemplateSelector x:Key="BadgeIconTemplateSelector">
+        <converters:BadgeIconTemplateSelector.RecommendedTemplate>
+            <DataTemplate>
+                <fluentIcons:SymbolIcon
+                    Symbol="StarCheckmark"
+                    IconVariant="Regular"
+                    FontSize="11"
+                    VerticalAlignment="Center"
+                    Margin="0,0,4,0"
+                    Foreground="{StaticResource BadgeRecommendedForeground}"/>
+            </DataTemplate>
+        </converters:BadgeIconTemplateSelector.RecommendedTemplate>
+        <converters:BadgeIconTemplateSelector.DefaultTemplate>
+            <DataTemplate>
+                <PathIcon
+                    Data="{StaticResource WindowsLogoIconPath}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,4,0"
+                    Height="11"
+                    Width="11"
+                    Foreground="{StaticResource BadgeDefaultForeground}"/>
+            </DataTemplate>
+        </converters:BadgeIconTemplateSelector.DefaultTemplate>
+        <converters:BadgeIconTemplateSelector.CustomTemplate>
+            <DataTemplate>
+                <fluentIcons:SymbolIcon
+                    Symbol="PersonWrench"
+                    IconVariant="Regular"
+                    FontSize="11"
+                    VerticalAlignment="Center"
+                    Margin="0,0,4,0"
+                    Foreground="{StaticResource BadgeCustomForeground}"/>
+            </DataTemplate>
+        </converters:BadgeIconTemplateSelector.CustomTemplate>
+    </converters:BadgeIconTemplateSelector>
+
+</ResourceDictionary>
