@@ -25,7 +25,8 @@
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- Badge Converters -->
-    <converters:BadgeStateToColorConverter x:Key="BadgeStateToColorConverter"/>
+    <converters:BadgeStateToStyleConverter x:Key="BadgeStateToStyleConverter"/>
+    <converters:BadgeStateToForegroundConverter x:Key="BadgeStateToForegroundConverter"/>
 
     <!-- SoftwareApps Converters -->
     <softwareConverters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>

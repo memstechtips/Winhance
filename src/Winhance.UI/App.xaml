@@ -16,6 +16,8 @@
                 <resources:SettingTemplates />
                 <!-- Centralized feature icons -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/FeatureIcons.xaml" />
+                <!-- InfoBadge pill styles, foreground brushes, and icon template selector -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/BadgeStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Title Bar Button Style -->
