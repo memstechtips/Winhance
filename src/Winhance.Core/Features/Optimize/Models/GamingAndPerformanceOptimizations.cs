@@ -1496,12 +1496,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1540,12 +1540,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1584,12 +1584,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1628,12 +1628,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1672,12 +1672,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1716,12 +1716,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1760,12 +1760,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -1946,12 +1946,16 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
+                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
+                        // service (OS ships it disabled on non-VR hardware), not Automatic. Unlike
+                        // the other gaming-*-service entries where Default == Recommended == index 1.
                         Options = new[]
                         {
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Disabled",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -1963,7 +1967,6 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2002,12 +2005,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2046,12 +2049,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2090,12 +2093,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2134,12 +2137,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2178,12 +2181,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2222,12 +2225,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2266,12 +2269,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2310,12 +2313,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2354,12 +2357,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2398,12 +2401,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2443,12 +2446,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2487,12 +2490,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2531,12 +2534,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2575,12 +2578,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2607,6 +2610,9 @@ public static class GamingAndPerformanceOptimizations
                     AddedInVersion = "26.04.03",
                     ComboBox = new ComboBoxMetadata
                     {
+                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
+                        // service, not Automatic. Unlike the other gaming-*-service entries where
+                        // Default == Recommended == index 1.
                         Options = new[]
                         {
                             new ComboBoxOption
@@ -2614,6 +2620,7 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_Disabled",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4, ["IsInputAppPreloadEnabled"] = 0 },
                                 Script = ScriptOption.Disabled,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2627,7 +2634,6 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2, ["IsInputAppPreloadEnabled"] = 1 },
                                 Script = ScriptOption.Enabled,
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2691,12 +2697,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2735,12 +2741,12 @@ public static class GamingAndPerformanceOptimizations
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Automatic",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2768,18 +2774,21 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
+                        // MIGRATION-CHECK: Recommended is Disabled (index 0) — the Recommended config
+                        // ships this AI service disabled (privacy-by-default). Default stays on
+                        // Automatic (index 2), matching Windows' shipped service state.
                         Options = new[]
                         {
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_Disabled",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {

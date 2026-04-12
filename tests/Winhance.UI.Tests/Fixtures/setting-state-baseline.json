@@ -783,7 +783,10 @@
   },
   "gaming-performance-mouse-hover-time": {
     "Recommended": null,
-    "Default": null,
+    "Default": {
+      "kind": "index",
+      "value": 5
+    },
     "InputType": "Selection"
   },
   "gaming-performance-prefetch": {
@@ -1965,7 +1968,10 @@
       "kind": "index",
       "value": 1
     },
-    "Default": null,
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "start-menu-recommendations": {
@@ -2125,7 +2131,10 @@
   },
   "taskbar-extended-hover-time": {
     "Recommended": null,
-    "Default": null,
+    "Default": {
+      "kind": "index",
+      "value": 5
+    },
     "InputType": "Selection"
   },
   "taskbar-flashing": {
@@ -2169,7 +2178,10 @@
       "kind": "index",
       "value": 0
     },
-    "Default": null,
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "taskbar-search-box-11": {
@@ -2223,7 +2235,10 @@
       "kind": "index",
       "value": 0
     },
-    "Default": null,
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "taskbar-widgets": {
