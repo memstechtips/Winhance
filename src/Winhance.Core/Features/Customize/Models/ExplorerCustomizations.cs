@@ -33,25 +33,23 @@ public static class ExplorerCustomizations
                             RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
-                            DefaultOption = "Keep '- Shortcut' suffix",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Keep '- Shortcut' suffix",
-                            "Remove '- Shortcut' suffix",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["link"] = null,
+                                DisplayName = "Keep '- Shortcut' suffix",
+                                ValueMappings = new Dictionary<string, object?> { ["link"] = null },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["link"] = new byte[] { 0x00, 0x00, 0x00, 0x00 },
+                                DisplayName = "Remove '- Shortcut' suffix",
+                                ValueMappings = new Dictionary<string, object?> { ["link"] = new byte[] { 0x00, 0x00, 0x00, 0x00 } },
                             },
                         },
                     },
@@ -92,31 +90,26 @@ if (-not (Test-Path $icoPath)) {
                             RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = "Show arrow icon",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Show arrow icon",
-                            "Remove arrow icon",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["29"] = null,
+                                DisplayName = "Show arrow icon",
+                                ValueMappings = new Dictionary<string, object?> { ["29"] = null },
+                                Script = ScriptOption.Disabled,
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["29"] = @"C:\Windows\blank.ico",
+                                DisplayName = "Remove arrow icon",
+                                ValueMappings = new Dictionary<string, object?> { ["29"] = @"C:\Windows\blank.ico" },
+                                Script = ScriptOption.Enabled,
                             },
-                        },
-                        ScriptMappings = new Dictionary<int, ScriptOption>
-                        {
-                            [0] = ScriptOption.Disabled,
-                            [1] = ScriptOption.Enabled,
                         },
                     },
                 },
@@ -790,38 +783,36 @@ if (-not (Test-Path $icoPath)) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "LaunchTo",
-                            RecommendedValue = 1,
-                            DefaultValue = 2,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Home",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Home",
-                            "This PC",
-                            "Downloads",
-                            "OneDrive (If Available)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["LaunchTo"] = 2,
+                                DisplayName = "Home",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 2 },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["LaunchTo"] = 1,
+                                DisplayName = "This PC",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 1 },
+                                IsRecommended = true,
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["LaunchTo"] = 3,
+                                DisplayName = "Downloads",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 3 },
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["LaunchTo"] = 4,
+                                DisplayName = "OneDrive (If Available)",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 4 },
                             },
                         },
                     },
@@ -842,8 +833,8 @@ if (-not (Test-Path $icoPath)) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
                             ValueName = "Settings",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 4,
                             BitMask = 0x20,
@@ -851,20 +842,19 @@ if (-not (Test-Path $icoPath)) {
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Open each folder in the same window",
-                            "Open each folder in its own window",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["Settings"] = 0,
+                                DisplayName = "Open each folder in the same window",
+                                ValueMappings = new Dictionary<string, object?> { ["Settings"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["Settings"] = 1,
+                                DisplayName = "Open each folder in its own window",
+                                ValueMappings = new Dictionary<string, object?> { ["Settings"] = 1 },
                             },
                         },
                     },
@@ -888,42 +878,50 @@ if (-not (Test-Path $icoPath)) {
                             ValueType = RegistryValueKind.Binary,
                             BinaryByteIndex = 4,
                             BitMask = 0x20,
-                            RecommendedValue = 1,
-                            DefaultValue = 1,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "IconUnderline",
                             ValueType = RegistryValueKind.DWord,
-                            RecommendedValue = 3,
-                            DefaultValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Double-click to open an item (single-click to select)",
-                            "Single-click to open (underline icon titles consistent with browser)",
-                            "Single-click to open (underline icon titles only when pointing)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ShellState"] = 1,
-                                ["IconUnderline"] = 3,
+                                DisplayName = "Double-click to open an item (single-click to select)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ShellState"] = 1,
+                                    ["IconUnderline"] = 3,
+                                },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ShellState"] = 0,
-                                ["IconUnderline"] = 3,
+                                DisplayName = "Single-click to open (underline icon titles consistent with browser)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ShellState"] = 0,
+                                    ["IconUnderline"] = 3,
+                                },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ShellState"] = 0,
-                                ["IconUnderline"] = 2,
+                                DisplayName = "Single-click to open (underline icon titles only when pointing)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ShellState"] = 0,
+                                    ["IconUnderline"] = 2,
+                                },
                             },
                         },
                     },
@@ -1687,28 +1685,26 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TypeAhead",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Select the typed item in the view",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Select the typed item in the view",
-                            "Automatically type into the Search Box",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TypeAhead"] = 0,
+                                DisplayName = "Select the typed item in the view",
+                                ValueMappings = new Dictionary<string, object?> { ["TypeAhead"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TypeAhead"] = 1,
+                                DisplayName = "Automatically type into the Search Box",
+                                ValueMappings = new Dictionary<string, object?> { ["TypeAhead"] = 1 },
                             },
                         },
                     },
@@ -2214,28 +2210,41 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sShortDate",
                             RecommendedValue = null,
-                            DefaultValue = "M/d/yyyy",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = "M/d/yyyy",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "M/d/yyyy",
-                            "dd/MM/yyyy",
-                            "yyyy-MM-dd",
-                            "yyyy/MM/dd",
-                            "dd MMM yyyy",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["sShortDate"] = "M/d/yyyy" },
-                            [1] = new Dictionary<string, object?> { ["sShortDate"] = "dd/MM/yyyy" },
-                            [2] = new Dictionary<string, object?> { ["sShortDate"] = "yyyy-MM-dd" },
-                            [3] = new Dictionary<string, object?> { ["sShortDate"] = "yyyy/MM/dd" },
-                            [4] = new Dictionary<string, object?> { ["sShortDate"] = "dd MMM yyyy" },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "M/d/yyyy",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "M/d/yyyy" },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "dd/MM/yyyy",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "dd/MM/yyyy" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "yyyy-MM-dd",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "yyyy-MM-dd" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "yyyy/MM/dd",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "yyyy/MM/dd" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "dd MMM yyyy",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "dd MMM yyyy" },
+                            },
                         },
                     },
                 },
@@ -2256,32 +2265,51 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "iFirstDayOfWeek",
                             RecommendedValue = null,
-                            DefaultValue = "6",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = "Sunday",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Sunday",
-                            "Monday",
-                            "Tuesday",
-                            "Wednesday",
-                            "Thursday",
-                            "Friday",
-                            "Saturday",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "6" },
-                            [1] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "0" },
-                            [2] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "1" },
-                            [3] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "2" },
-                            [4] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "3" },
-                            [5] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "4" },
-                            [6] = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "5" },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Sunday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "6" },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Monday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "0" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Tuesday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "1" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Wednesday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "2" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Thursday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "3" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Friday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "4" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Saturday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "5" },
+                            },
                         },
                     },
                 },
@@ -2302,26 +2330,36 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sDecimal",
                             RecommendedValue = null,
-                            DefaultValue = ".",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = ". (Period)",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            ". (Period)",
-                            ", (Comma)",
-                            "  (Space)",
-                            "\u0027 (Apostrophe)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["sDecimal"] = "." },
-                            [1] = new Dictionary<string, object?> { ["sDecimal"] = "," },
-                            [2] = new Dictionary<string, object?> { ["sDecimal"] = " " },
-                            [3] = new Dictionary<string, object?> { ["sDecimal"] = "'" },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ". (Period)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "." },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ", (Comma)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "," },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "  (Space)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = " " },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "\u0027 (Apostrophe)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "'" },
+                            },
                         },
                     },
                 },
@@ -2342,27 +2380,32 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sList",
                             RecommendedValue = null,
-                            DefaultValue = ",",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = ", (Comma)",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            ", (Comma)",
-                            "; (Semicolon)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["sList"] = "," },
-                            [1] = new Dictionary<string, object?> { ["sList"] = ";" },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ", (Comma)",
+                                ValueMappings = new Dictionary<string, object?> { ["sList"] = "," },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "; (Semicolon)",
+                                ValueMappings = new Dictionary<string, object?> { ["sList"] = ";" },
+                            },
                         },
                     },
                 },
                 new SettingDefinition
                 {
+                    // MIGRATION-CHECK: explorer-customization-measurement-system — pre-migration RegistrySetting had DefaultOption="U.S. (Imperial)" (idx 1) and DefaultValue="1", but both shipped Default configs (Windows10_22H2 and Windows11_25H2) use SelectedIndex=0 (Metric), and the Recommended config also uses idx 0. Configs win over DefaultOption/DefaultValue per sourcing authority; IsDefault placed on idx 0 (Metric), IsRecommended on idx 0.
                     Id = "explorer-customization-measurement-system",
                     Name = "Measurement System",
                     Description = "Choose whether Windows uses the metric or U.S. imperial measurement system",
@@ -2378,22 +2421,26 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "iMeasure",
                             RecommendedValue = null,
-                            DefaultValue = "1",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = "U.S. (Imperial)",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Metric",
-                            "U.S. (Imperial)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["iMeasure"] = "0" },
-                            [1] = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Metric",
+                                ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "0" },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "U.S. (Imperial)",
+                                ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                            },
                         },
                     },
                 },
@@ -2414,26 +2461,36 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
                             ValueName = "sMonDecimalSep",
                             RecommendedValue = null,
-                            DefaultValue = ".",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            DefaultOption = ". (Period)",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            ". (Period)",
-                            ", (Comma)",
-                            "  (Space)",
-                            "\u0027 (Apostrophe)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
-                            [1] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
-                            [2] = new Dictionary<string, object?> { ["sMonDecimalSep"] = " " },
-                            [3] = new Dictionary<string, object?> { ["sMonDecimalSep"] = "'" },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ". (Period)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ", (Comma)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "  (Space)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = " " },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "\u0027 (Apostrophe)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "'" },
+                            },
                         },
                     },
                 },    
