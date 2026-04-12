@@ -58,30 +58,20 @@ public class BulkSettingsActionService(
                 }
                 else if (setting.InputType == InputType.Selection)
                 {
-                    var recommendedOption = GetRecommendedOptionFromSetting(setting);
-
-                    if (recommendedOption != null)
-                    {
-                        var registryValue = GetRegistryValueFromOptionName(setting, recommendedOption);
-                        var comboBoxIndex = GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                        {
-                            SettingId = setting.Id,
-                            Enable = true,
-                            Value = comboBoxIndex,
-                            SkipValuePrerequisites = true
-                        }).ConfigureAwait(false);
-                    }
-                    else
+                    var recommendedIndex = GetRecommendedIndex(setting);
+                    if (recommendedIndex is int idx)
                     {
                         await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id,
                             Enable = true,
-                            Value = recommendedValue,
+                            Value = idx,
                             SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
+                    // No else: if no IsRecommended option (legitimate for informational ComboBoxes
+                    // like "pick a DNS provider"), skip. The prior code's else-branch tried to write
+                    // `recommendedValue` which was never wired up for Selection.
                 }
                 else
                 {
@@ -161,32 +151,21 @@ public class BulkSettingsActionService(
                 }
                 else if (setting.InputType == InputType.Selection)
                 {
-                    var defaultOption = GetDefaultOptionFromSetting(setting);
-
-                    if (defaultOption != null)
+                    var defaultIndex = GetDefaultIndex(setting);
+                    if (defaultIndex is int idx)
                     {
-                        var registryValue = GetRegistryValueFromOptionName(setting, defaultOption);
-                        var comboBoxIndex = GetCorrectSelectionIndex(setting, defaultOption, registryValue);
                         await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id,
                             Enable = true,
-                            Value = comboBoxIndex,
+                            Value = idx,
                             ResetToDefault = true,
                             SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
-                    else
-                    {
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                        {
-                            SettingId = setting.Id,
-                            Enable = defaultValue != null,
-                            Value = defaultValue,
-                            ResetToDefault = true,
-                            SkipValuePrerequisites = true
-                        }).ConfigureAwait(false);
-                    }
+                    // No else: catalog validator guarantees every registry-backed Selection has
+                    // exactly one IsDefault option. PowerCfg-backed Selection settings are routed
+                    // through a separate code path and do not reach this branch.
                 }
                 else
                 {
@@ -346,46 +325,21 @@ public class BulkSettingsActionService(
         return setting.RegistrySettings?.Any(rs => rs.IsGroupPolicy) == true;
     }
 
-    private static string? GetRecommendedOptionFromSetting(SettingDefinition setting)
+    private static int? GetRecommendedIndex(SettingDefinition setting)
     {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        return primaryRegistrySetting?.RecommendedOption;
-    }
-
-    private static string? GetDefaultOptionFromSetting(SettingDefinition setting)
-    {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        return primaryRegistrySetting?.DefaultOption;
-    }
-
-    private static int? GetRegistryValueFromOptionName(SettingDefinition setting, string optionName)
-    {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        if (primaryRegistrySetting?.ComboBoxOptions is { } comboBoxOptions)
-        {
-            if (comboBoxOptions.TryGetValue(optionName, out var registryValue))
-            {
-                return registryValue;
-            }
-        }
+        var opts = setting.ComboBox?.Options;
+        if (opts is null) return null;
+        for (int i = 0; i < opts.Count; i++)
+            if (opts[i].IsRecommended) return i;
         return null;
     }
 
-    private static int? GetCorrectSelectionIndex(SettingDefinition setting, string optionName, int? desiredRegistryValue)
+    private static int? GetDefaultIndex(SettingDefinition setting)
     {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        if (primaryRegistrySetting?.ComboBoxOptions is { } comboBoxOptions)
-        {
-            var orderedOptions = comboBoxOptions.OrderBy(kvp => kvp.Key).ToList();
-
-            for (int i = 0; i < orderedOptions.Count; i++)
-            {
-                if (orderedOptions[i].Key == optionName && orderedOptions[i].Value == desiredRegistryValue)
-                {
-                    return i;
-                }
-            }
-        }
+        var opts = setting.ComboBox?.Options;
+        if (opts is null) return null;
+        for (int i = 0; i < opts.Count; i++)
+            if (opts[i].IsDefault) return i;
         return null;
     }
 }
