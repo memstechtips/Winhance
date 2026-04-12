@@ -42,38 +42,36 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search",
                             ValueName = "SearchboxTaskbarMode",
-                            RecommendedValue = 0, // Hide
-                            DefaultValue = 3, // Windows default is search box
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Search box",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Hide",
-                            "Search icon only",
-                            "Search icon and label",
-                            "Search box",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> // Hide
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 0,
+                                DisplayName = "Hide",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 0 },
+                                IsRecommended = true,
                             },
-                            [1] = new Dictionary<string, object?> // Search icon only
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 1,
+                                DisplayName = "Search icon only",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?> // Search icon and label
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 3,
+                                DisplayName = "Search icon and label",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 3 },
                             },
-                            [3] = new Dictionary<string, object?> // Search box
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 2,
+                                DisplayName = "Search box",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 2 },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -94,33 +92,31 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search",
                             ValueName = "SearchboxTaskbarMode",
-                            RecommendedValue = 0, // Hide
-                            DefaultValue = 2, // Windows default is search box
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Search box",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Hide",
-                            "Search icon only",
-                            "Search box",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> // Hide
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 0,
+                                DisplayName = "Hide",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 0 },
+                                IsRecommended = true,
                             },
-                            [1] = new Dictionary<string, object?> // Search icon only
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 1,
+                                DisplayName = "Search icon only",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?> // Search box
+                            new ComboBoxOption
                             {
-                                ["SearchboxTaskbarMode"] = 2,
+                                DisplayName = "Search box",
+                                ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 2 },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -140,23 +136,26 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarAl",
-                            RecommendedValue = 0, // Left alignment
-                            DefaultValue = 1, // Center alignment
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[] { "Left", "Center" },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        Options = new[]
                         {
-                            [0] = new Dictionary<string, object?> // Left
+                            new ComboBoxOption
                             {
-                                ["TaskbarAl"] = 0,
+                                DisplayName = "Left",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarAl"] = 0 },
+                                IsRecommended = true,
                             },
-                            [1] = new Dictionary<string, object?> // Center
+                            new ComboBoxOption
                             {
-                                ["TaskbarAl"] = 1,
+                                DisplayName = "Center",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarAl"] = 1 },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -204,48 +203,45 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ExtendedUIHoverTime",
-                            RecommendedValue = 400,
-                            DefaultValue = 400,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "400ms (Default)",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "1ms (Instant)",
-                            "10ms (Very Fast)",
-                            "50ms (Fast)",
-                            "100ms (Moderate)",
-                            "200ms",
-                            "400ms (Default)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExtendedUIHoverTime"] = 1,
+                                DisplayName = "1ms (Instant)",
+                                ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 1 },
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExtendedUIHoverTime"] = 10,
+                                DisplayName = "10ms (Very Fast)",
+                                ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 10 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExtendedUIHoverTime"] = 50,
+                                DisplayName = "50ms (Fast)",
+                                ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 50 },
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExtendedUIHoverTime"] = 100,
+                                DisplayName = "100ms (Moderate)",
+                                ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 100 },
                             },
-                            [4] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExtendedUIHoverTime"] = 200,
+                                DisplayName = "200ms",
+                                ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 200 },
                             },
-                            [5] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ExtendedUIHoverTime"] = 400,
+                                DisplayName = "400ms (Default)",
+                                ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 400 },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -338,33 +334,31 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "MMTaskbarMode",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "All taskbars",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "All taskbars",
-                            "Main taskbar and taskbar where window is open",
-                            "Taskbar where window is open",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["MMTaskbarMode"] = 0,
+                                DisplayName = "All taskbars",
+                                ValueMappings = new Dictionary<string, object?> { ["MMTaskbarMode"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["MMTaskbarMode"] = 1,
+                                DisplayName = "Main taskbar and taskbar where window is open",
+                                ValueMappings = new Dictionary<string, object?> { ["MMTaskbarMode"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["MMTaskbarMode"] = 2,
+                                DisplayName = "Taskbar where window is open",
+                                ValueMappings = new Dictionary<string, object?> { ["MMTaskbarMode"] = 2 },
                             },
                         },
                     },
@@ -433,33 +427,31 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarGlomLevel",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Always",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Always",
-                            "When taskbar is full",
-                            "Never",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TaskbarGlomLevel"] = 0,
+                                DisplayName = "Always",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarGlomLevel"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TaskbarGlomLevel"] = 1,
+                                DisplayName = "When taskbar is full",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarGlomLevel"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TaskbarGlomLevel"] = 2,
+                                DisplayName = "Never",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarGlomLevel"] = 2 },
                             },
                         },
                     },
@@ -481,33 +473,31 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "MMTaskbarGlomLevel",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Always",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Always",
-                            "When taskbar is full",
-                            "Never",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["MMTaskbarGlomLevel"] = 0,
+                                DisplayName = "Always",
+                                ValueMappings = new Dictionary<string, object?> { ["MMTaskbarGlomLevel"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["MMTaskbarGlomLevel"] = 1,
+                                DisplayName = "When taskbar is full",
+                                ValueMappings = new Dictionary<string, object?> { ["MMTaskbarGlomLevel"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["MMTaskbarGlomLevel"] = 2,
+                                DisplayName = "Never",
+                                ValueMappings = new Dictionary<string, object?> { ["MMTaskbarGlomLevel"] = 2 },
                             },
                         },
                     },
@@ -531,33 +521,31 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "IconSizePreference",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Always",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Always",
-                            "When taskbar is full",
-                            "Never",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["IconSizePreference"] = 0,
+                                DisplayName = "Always",
+                                ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["IconSizePreference"] = 2,
+                                DisplayName = "When taskbar is full",
+                                ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 2 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["IconSizePreference"] = 1,
+                                DisplayName = "Never",
+                                ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 1 },
                             },
                         },
                     },
@@ -893,32 +881,31 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarAcrylicOpacity",
-                            RecommendedValue = null, // Transparent
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Windows default",
-                            "Transparent",
-                            "Opaque",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> // Windows default (delete registry value)
+                            new ComboBoxOption
                             {
-                                ["TaskbarAcrylicOpacity"] = null,
+                                DisplayName = "Windows default",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarAcrylicOpacity"] = null },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?> // Transparent
+                            new ComboBoxOption
                             {
-                                ["TaskbarAcrylicOpacity"] = 0,
+                                DisplayName = "Transparent",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarAcrylicOpacity"] = 0 },
                             },
-                            [2] = new Dictionary<string, object?> // Opaque
+                            new ComboBoxOption
                             {
-                                ["TaskbarAcrylicOpacity"] = 255,
+                                DisplayName = "Opaque",
+                                ValueMappings = new Dictionary<string, object?> { ["TaskbarAcrylicOpacity"] = 255 },
                             },
                         },
                     },
