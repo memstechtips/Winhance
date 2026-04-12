@@ -1064,7 +1064,10 @@ public partial class SettingItemViewModel : BaseViewModel
         // Check RegistrySettings
         foreach (var reg in SettingDefinition.RegistrySettings)
         {
-            if (reg.RecommendedValue == null && reg.DefaultValue == null)
+            // For Selection settings, Recommended/Default live on ComboBoxMetadata.Options[i],
+            // so reg.RecommendedValue/DefaultValue are expected to be null — don't skip.
+            if (reg.RecommendedValue == null && reg.DefaultValue == null
+                && InputType != InputType.Selection)
                 continue;
 
             var (currentMatchesRecommended, currentMatchesDefault) = EvaluateRegistrySetting(reg);
@@ -1203,37 +1206,26 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         else if (InputType == InputType.Selection)
         {
-            // For selection settings, compare using RecommendedOption/DefaultOption (option index)
-            // or direct value comparison with SelectedValue
-            if (reg.RecommendedOption != null && SelectedValue != null)
+            // Recommended/Default for Selection lives on ComboBoxMetadata.Options[i].
+            // SelectedValue is the option index; compare indices directly.
+            // If one option has both flags, matches for both are set — the caller's
+            // if/else-if chain picks Recommended first (tiebreak: Recommended wins).
+            var options = SettingDefinition.ComboBox?.Options;
+            if (options != null && SelectedValue is int currentIndex)
             {
-                if (int.TryParse(reg.RecommendedOption, out var recIdx))
-                    matchesRecommended = Equals(SelectedValue, recIdx);
-                else
-                    matchesRecommended = false;
-            }
-            else if (reg.RecommendedValue != null && SelectedValue != null)
-            {
-                matchesRecommended = ValuesEqual(SelectedValue, reg.RecommendedValue);
+                int? recommendedIndex = null;
+                int? defaultIndex = null;
+                for (int i = 0; i < options.Count; i++)
+                {
+                    if (recommendedIndex == null && options[i].IsRecommended) recommendedIndex = i;
+                    if (defaultIndex == null && options[i].IsDefault) defaultIndex = i;
+                }
+                matchesRecommended = recommendedIndex.HasValue && currentIndex == recommendedIndex.Value;
+                matchesDefault = defaultIndex.HasValue && currentIndex == defaultIndex.Value;
             }
             else
             {
                 matchesRecommended = false;
-            }
-
-            if (reg.DefaultOption != null && SelectedValue != null)
-            {
-                if (int.TryParse(reg.DefaultOption, out var defIdx))
-                    matchesDefault = Equals(SelectedValue, defIdx);
-                else
-                    matchesDefault = false;
-            }
-            else if (reg.DefaultValue != null && SelectedValue != null)
-            {
-                matchesDefault = ValuesEqual(SelectedValue, reg.DefaultValue);
-            }
-            else
-            {
                 matchesDefault = false;
             }
         }
@@ -1307,6 +1299,11 @@ public partial class SettingItemViewModel : BaseViewModel
         bool hasRegistryData = SettingDefinition.RegistrySettings.Any(r =>
             r.RecommendedValue != null || r.DefaultValue != null);
 
+        // Selection settings carry Recommended/Default on ComboBoxMetadata.Options[i] rather than on
+        // RegistrySetting, so consider ComboBox options as badge-worthy data too.
+        bool hasSelectionOptionData = SettingDefinition.InputType == InputType.Selection
+            && SettingDefinition.ComboBox?.Options?.Any(o => o.IsRecommended || o.IsDefault) == true;
+
         // Check ScheduledTaskSettings for RecommendedState or DefaultState
         bool hasTaskData = SettingDefinition.ScheduledTaskSettings.Any(t =>
             t.RecommendedState.HasValue || t.DefaultState.HasValue);
@@ -1315,7 +1312,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool hasPowerCfgData = SettingDefinition.PowerCfgSettings?.Any(p =>
             p.RecommendedValueAC.HasValue || p.DefaultValueAC.HasValue) == true;
 
-        HasBadgeData = hasRegistryData || hasTaskData || hasPowerCfgData;
+        HasBadgeData = hasRegistryData || hasSelectionOptionData || hasTaskData || hasPowerCfgData;
     }
 
     #endregion

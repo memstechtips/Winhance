@@ -1061,4 +1061,108 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.ClickToUnlockText.Should().Be("Click to unlock");
     }
+
+    // ── BadgeState: Selection (ComboBoxOption.IsRecommended / IsDefault) ──
+
+    [Fact]
+    public void BadgeState_Selection_MatchesRecommendedByIndex_UsingComboBoxOptionIsRecommended()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-rec",
+            options: new[]
+            {
+                ("Def", 0, false, true),
+                ("Rec", 1, true,  false),
+            });
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = 1;
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Recommended);
+    }
+
+    [Fact]
+    public void BadgeState_Selection_MatchesDefaultByIndex_UsingComboBoxOptionIsDefault()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-def",
+            options: new[]
+            {
+                ("Def", 0, false, true),
+                ("Rec", 1, true,  false),
+            });
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = 0;
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Default);
+    }
+
+    [Fact]
+    public void BadgeState_Selection_OptionIsBothRecommendedAndDefault_RendersRecommended()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-tiebreak",
+            options: new[]
+            {
+                ("Only option", 0, true, true),
+            });
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = 0;
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Recommended,
+            because: "when a Selection option is both IsRecommended and IsDefault, Recommended wins the tiebreak.");
+    }
+
+    private static SettingDefinition BuildSelectionSettingDefinition(
+        string id,
+        IEnumerable<(string DisplayName, int Value, bool IsRecommended, bool IsDefault)> options)
+    {
+        var list = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>();
+        foreach (var (name, v, rec, def) in options)
+        {
+            list.Add(new Winhance.Core.Features.Common.Models.ComboBoxOption
+            {
+                DisplayName = name,
+                ValueMappings = new Dictionary<string, object?> { ["V"] = v },
+                IsRecommended = rec,
+                IsDefault = def,
+            });
+        }
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = id,
+            Description = "",
+            InputType = InputType.Selection,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
+                    ValueName = "V",
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsPrimary = true,
+                },
+            },
+            ComboBox = new ComboBoxMetadata { Options = list },
+        };
+    }
+
+    private SettingItemViewModelConfig BuildSelectionConfig(SettingDefinition def) =>
+        new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.Selection,
+            IsSelected = false,
+        };
 }
