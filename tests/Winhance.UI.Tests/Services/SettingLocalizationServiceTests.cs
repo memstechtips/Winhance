@@ -199,14 +199,18 @@ public class SettingLocalizationServiceTests
         var sut = CreateSut();
         var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Option A", "Option B" }
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" }
+            }
         });
 
         var result = sut.LocalizeSetting(setting);
 
         result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.DisplayNames[0].Should().Be("Localized Option A");
-        result.ComboBox.DisplayNames[1].Should().Be("Localized Option B");
+        result.ComboBox!.Options![0].DisplayName.Should().Be("Localized Option A");
+        result.ComboBox.Options![1].DisplayName.Should().Be("Localized Option B");
     }
 
     [Fact]
@@ -218,13 +222,16 @@ public class SettingLocalizationServiceTests
         var sut = CreateSut();
         var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Template_MyOption" }
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Template_MyOption" }
+            }
         });
 
         var result = sut.LocalizeSetting(setting);
 
         result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.DisplayNames[0].Should().Be("Template Localized");
+        result.ComboBox!.Options![0].DisplayName.Should().Be("Template Localized");
     }
 
     // --- CustomStateDisplayName ---
@@ -238,7 +245,10 @@ public class SettingLocalizationServiceTests
         var sut = CreateSut();
         var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Option A" },
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" }
+            },
             CustomStateDisplayName = "Original State"
         });
 
@@ -332,20 +342,20 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionWarning_1"))
             .Returns("Localized Warning");
 
-        var warnings = new Dictionary<int, string> { [1] = "Original Warning" };
-
         var sut = CreateSut();
         var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Option A", "Option B" },
-            OptionWarnings = warnings
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", Warning = "Original Warning" }
+            }
         });
 
         var result = sut.LocalizeSetting(setting);
 
         result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.OptionWarnings.Should().NotBeNull();
-        result.ComboBox.OptionWarnings![1].Should().Be("Localized Warning");
+        result.ComboBox!.Options![1].Warning.Should().Be("Localized Warning");
     }
 
     // --- OptionTooltips (string[]) ---
@@ -359,15 +369,16 @@ public class SettingLocalizationServiceTests
         var sut = CreateSut();
         var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Option A" },
-            OptionTooltips = new[] { "Original Tooltip" }
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A", Tooltip = "Original Tooltip" }
+            }
         });
 
         var result = sut.LocalizeSetting(setting);
 
         result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.OptionTooltips.Should().NotBeNull();
-        result.ComboBox.OptionTooltips![0].Should().Be("Localized Tooltip");
+        result.ComboBox!.Options![0].Tooltip.Should().Be("Localized Tooltip");
     }
 
     // --- OptionConfirmations (Dictionary<int, (string, string)>) ---
@@ -380,24 +391,25 @@ public class SettingLocalizationServiceTests
         _localizationService.Setup(l => l.GetString("OldMessage"))
             .Returns("Localized Message");
 
-        var confirmDict = new Dictionary<int, (string Title, string Message)>
-        {
-            [0] = ("OldTitle", "OldMessage")
-        };
-
         var sut = CreateSut();
         var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Option A" },
-            OptionConfirmations = confirmDict
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption
+                {
+                    DisplayName = "Option A",
+                    Confirmation = ("OldTitle", "OldMessage")
+                }
+            }
         });
 
         var result = sut.LocalizeSetting(setting);
 
         result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.OptionConfirmations.Should().NotBeNull();
-        result.ComboBox.OptionConfirmations![0].Title.Should().Be("Localized Title");
-        result.ComboBox.OptionConfirmations[0].Message.Should().Be("Localized Message");
+        result.ComboBox!.Options![0].Confirmation.Should().NotBeNull();
+        result.ComboBox.Options![0].Confirmation!.Value.Title.Should().Be("Localized Title");
+        result.ComboBox.Options![0].Confirmation!.Value.Message.Should().Be("Localized Message");
     }
 
     // --- VersionCompatibilityMessage ---

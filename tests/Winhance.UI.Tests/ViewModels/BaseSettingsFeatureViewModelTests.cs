@@ -1328,7 +1328,12 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         var vm = CreateViewModel();
         var comboBox = new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Low", "Medium", "High" }
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Low" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Medium" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "High" }
+            }
         };
         var settings = new ObservableCollection<SettingItemViewModel>
         {

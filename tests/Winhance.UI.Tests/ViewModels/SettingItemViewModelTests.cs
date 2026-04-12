@@ -630,12 +630,11 @@ public class SettingItemViewModelTests : IDisposable
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = new[] { "Option A", "Option B", "Option C" },
-                ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                Options = new[]
                 {
-                    { 0, new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
-                    { 1, new Dictionary<string, object?> { { "PowerCfgValue", 20 } } },
-                    { 2, new Dictionary<string, object?> { { "PowerCfgValue", 30 } } }
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 20 } } },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option C", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 30 } } }
                 }
             },
             PowerCfgSettings = new List<PowerCfgSetting>
@@ -669,11 +668,10 @@ public class SettingItemViewModelTests : IDisposable
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = new[] { "Option A", "Option B" },
-                ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                Options = new[]
                 {
-                    { 0, new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
-                    { 1, new Dictionary<string, object?> { { "PowerCfgValue", 20 } } }
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 20 } } }
                 }
             },
             PowerCfgSettings = new List<PowerCfgSetting>

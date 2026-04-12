@@ -156,10 +156,6 @@ public class SettingStatusBannerManagerTests
     public void ComputeBannerForValue_WithMatchingOptionWarning_ReturnsErrorBanner()
     {
         // Arrange
-        var warningDict = new Dictionary<int, string>
-        {
-            { 1, "Security risk!" }
-        };
         var definition = new SettingDefinition
         {
             Id = "test",
@@ -167,8 +163,11 @@ public class SettingStatusBannerManagerTests
             Description = "Test setting",
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = new[] { "Option A", "Option B" },
-                OptionWarnings = warningDict
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", Warning = "Security risk!" }
+                }
             }
         };
 
@@ -185,10 +184,6 @@ public class SettingStatusBannerManagerTests
     public void ComputeBannerForValue_WithNonMatchingOptionWarning_ReturnsClear()
     {
         // Arrange
-        var warningDict = new Dictionary<int, string>
-        {
-            { 1, "Security risk!" }
-        };
         var definition = new SettingDefinition
         {
             Id = "test",
@@ -196,8 +191,11 @@ public class SettingStatusBannerManagerTests
             Description = "Test setting",
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = new[] { "Option A", "Option B" },
-                OptionWarnings = warningDict
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", Warning = "Security risk!" }
+                }
             }
         };
 
@@ -213,14 +211,21 @@ public class SettingStatusBannerManagerTests
     public void ComputeBannerForValue_WithCrossGroupChildSettings_CustomIndex_ShowsCrossGroupMessage()
     {
         // Arrange
-        var displayNames = new[] { "Option A", "Option B", "Custom" };
         var definition = new SettingDefinition
         {
             Id = "test",
             Name = "Test",
             Description = "Test setting",
             CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
+                }
+            }
         };
 
         // Act - select last index (Custom)
@@ -236,14 +241,21 @@ public class SettingStatusBannerManagerTests
     public void ComputeBannerForValue_WithCrossGroupChildSettings_NonCustomIndex_ReturnsClear()
     {
         // Arrange
-        var displayNames = new[] { "Option A", "Option B", "Custom" };
         var definition = new SettingDefinition
         {
             Id = "test",
             Name = "Test",
             Description = "Test setting",
             CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
+                }
+            }
         };
 
         // Act - select first index (not Custom)
@@ -258,14 +270,21 @@ public class SettingStatusBannerManagerTests
     public void ComputeBannerForValue_WithCrossGroupChildSettings_CustomStateIndex_ShowsCrossGroupMessage()
     {
         // Arrange
-        var displayNames = new[] { "Option A", "Option B", "Custom" };
         var definition = new SettingDefinition
         {
             Id = "test",
             Name = "Test",
             Description = "Test setting",
             CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
+                }
+            }
         };
 
         // Act - use ComboBoxConstants.CustomStateIndex (-1)
@@ -285,14 +304,20 @@ public class SettingStatusBannerManagerTests
             .Setup(l => l.GetString("Setting_CrossGroupWarning_Header"))
             .Returns("Warning: Cross-group settings");
 
-        var displayNames = new[] { "Option A", "Custom" };
         var definition = new SettingDefinition
         {
             Id = "test",
             Name = "Test",
             Description = "Test setting",
             CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata { DisplayNames = displayNames }
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
+                }
+            }
         };
 
         // Act - custom index with null crossGroupInfoMessage
