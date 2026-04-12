@@ -72,8 +72,15 @@
          Keeping them centralized here ensures the badge icon and the matching
          Quick Actions icon stay in sync. -->
 
-    <!-- Microsoft Windows logo (4-pane grid) - Used for Default badge + Reset to Defaults menu item -->
+    <!-- Microsoft Windows logo (4-pane grid, 22x22 viewbox) - Used for Reset to Defaults
+         Quick Actions menu item, where the icon renders at a larger size and the 2px gaps
+         survive scaling. NOT used on the small InfoBadge pill - see BadgeDefaultIconPath. -->
     <x:String x:Key="WindowsLogoIconPath">M0,0 H10 V10 H0 Z M12,0 H22 V10 H12 Z M0,12 H10 V22 H0 Z M12,12 H22 V22 H12 Z</x:String>
+
+    <!-- Microsoft Windows logo redrawn at the pill-icon size (11x11 viewbox, 5x5 panes,
+         1px gap). At this scale the 22x22 original gets anti-aliased into a solid blob,
+         so we need pixel-aligned geometry. Used for the InfoBadge Default pill. -->
+    <x:String x:Key="BadgeDefaultIconPath">M0,0 H5 V5 H0 Z M6,0 H11 V5 H6 Z M0,6 H5 V11 H0 Z M6,6 H11 V11 H6 Z</x:String>
 
     <!-- FluentIcons symbol name - Used for Recommended badge + Apply Recommended menu item -->
     <x:String x:Key="BadgeRecommendedIconSymbol">StarCheckmark</x:String>

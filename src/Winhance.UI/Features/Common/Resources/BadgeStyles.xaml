@@ -57,6 +57,7 @@
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,0,2"/>
     </Style>
 
     <!-- ==================== Icon Template Selector ==================== -->
@@ -70,16 +71,16 @@
                     IconVariant="Regular"
                     FontSize="11"
                     VerticalAlignment="Center"
-                    Margin="0,0,4,0"
+                    Margin="0,4,4,0"
                     Foreground="{StaticResource BadgeRecommendedForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.RecommendedTemplate>
         <converters:BadgeIconTemplateSelector.DefaultTemplate>
             <DataTemplate>
                 <PathIcon
-                    Data="{StaticResource WindowsLogoIconPath}"
+                    Data="{StaticResource BadgeDefaultIconPath}"
                     VerticalAlignment="Center"
-                    Margin="0,0,4,0"
+                    Margin="0,4,4,0"
                     Height="11"
                     Width="11"
                     Foreground="{StaticResource BadgeDefaultForeground}"/>
@@ -92,7 +93,7 @@
                     IconVariant="Regular"
                     FontSize="11"
                     VerticalAlignment="Center"
-                    Margin="0,0,4,0"
+                    Margin="0,4,4,0"
                     Foreground="{StaticResource BadgeCustomForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.CustomTemplate>
