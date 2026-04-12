@@ -12,17 +12,17 @@ public interface IComboBoxSetupService
 
 public class ComboBoxSetupResult
 {
-    public ObservableCollection<ComboBoxOption> Options { get; set; } = new();
+    public ObservableCollection<ComboBoxDisplayOption> Options { get; set; } = new();
     public object? SelectedValue { get; set; }
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
 }
 
-public class ComboBoxOption : INotifyPropertyChanged
+public class ComboBoxDisplayOption : INotifyPropertyChanged
 {
     private string _displayText;
 
-    public ComboBoxOption(string displayText, object value, string? description = null, object? tag = null)
+    public ComboBoxDisplayOption(string displayText, object value, string? description = null, object? tag = null)
     {
         _displayText = displayText;
         Value = value;

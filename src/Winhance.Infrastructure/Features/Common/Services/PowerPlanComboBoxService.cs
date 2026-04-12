@@ -1,7 +1,6 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -24,7 +23,7 @@ public class PowerPlanComboBoxService(
 
             foreach (var option in options)
             {
-                result.Options.Add(new ComboBoxOption(
+                result.Options.Add(new ComboBoxDisplayOption(
                     option.DisplayName,
                     option.Index,
                     option.ExistsOnSystem ? "Installed on system" : "Not installed",

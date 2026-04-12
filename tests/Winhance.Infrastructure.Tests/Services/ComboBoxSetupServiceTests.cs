@@ -104,9 +104,9 @@ public class ComboBoxSetupServiceTests
             Success = true,
             SelectedValue = 2,
         };
-        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption("Balanced", 0));
-        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption("High Performance", 1));
-        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption("Ultimate", 2));
+        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption("Balanced", 0));
+        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption("High Performance", 1));
+        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption("Ultimate", 2));
 
         _mockPowerPlan
             .Setup(p => p.SetupPowerPlanComboBoxAsync(setting, 2))

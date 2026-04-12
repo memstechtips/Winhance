@@ -5,7 +5,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -203,10 +202,10 @@ public class SettingViewModelFactoryTests
 
         var comboBoxResult = new ComboBoxSetupResult
         {
-            Options = new ObservableCollection<ComboBoxOption>
+            Options = new ObservableCollection<ComboBoxDisplayOption>
             {
-                new ComboBoxOption("Option A", 0),
-                new ComboBoxOption("Option B", 1)
+                new ComboBoxDisplayOption("Option A", 0),
+                new ComboBoxDisplayOption("Option B", 1)
             },
             SelectedValue = 1,
             Success = true
@@ -229,10 +228,10 @@ public class SettingViewModelFactoryTests
 
         var comboBoxResult = new ComboBoxSetupResult
         {
-            Options = new ObservableCollection<ComboBoxOption>
+            Options = new ObservableCollection<ComboBoxDisplayOption>
             {
-                new ComboBoxOption("Option A", 0),
-                new ComboBoxOption("Option B", 1)
+                new ComboBoxDisplayOption("Option A", 0),
+                new ComboBoxDisplayOption("Option B", 1)
             },
             SelectedValue = 1,
             Success = true

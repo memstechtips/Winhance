@@ -28,8 +28,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool IsCreatingRestorePoint { get; set; }
 
-    private ObservableCollection<ComboBoxOption> _languages = new();
-    public ObservableCollection<ComboBoxOption> Languages
+    private ObservableCollection<ComboBoxDisplayOption> _languages = new();
+    public ObservableCollection<ComboBoxDisplayOption> Languages
     {
         get => _languages;
         set => SetProperty(ref _languages, value);
@@ -133,7 +133,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         Languages.Clear();
         foreach (var lang in StringKeys.Languages.SupportedLanguages)
         {
-            Languages.Add(new ComboBoxOption(lang.Value, lang.Key));
+            Languages.Add(new ComboBoxDisplayOption(lang.Value, lang.Key));
         }
     }
 

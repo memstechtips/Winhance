@@ -13,7 +13,6 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -88,7 +87,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial object? SelectedValue { get; set; }
 
     [ObservableProperty]
-    public partial ObservableCollection<ComboBoxOption> ComboBoxOptions { get; set; }
+    public partial ObservableCollection<ComboBoxDisplayOption> ComboBoxOptions { get; set; }
 
     [ObservableProperty]
     public partial int NumericValue { get; set; }
@@ -447,7 +446,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         // Initialize remaining defaults
         Status = string.Empty;
-        ComboBoxOptions = new ObservableCollection<ComboBoxOption>();
+        ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>();
         MaxValue = 100;
         Units = string.Empty;
         TechnicalDetails = new ObservableCollection<TechnicalDetailRow>();
@@ -624,7 +623,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (sender is not ComboBox comboBox || comboBox.FocusState == Microsoft.UI.Xaml.FocusState.Unfocused)
             return;
 
-        if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxOption option)
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxDisplayOption option)
         {
             var peer = FrameworkElementAutomationPeer.FromElement(comboBox)
                        ?? FrameworkElementAutomationPeer.CreatePeerForElement(comboBox);

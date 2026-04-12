@@ -7,7 +7,6 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using ComboBoxOption = Winhance.Core.Features.Common.Interfaces.ComboBoxOption;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -76,7 +75,7 @@ public class ComboBoxSetupService(
 
         for (int i = 0; i < options.Count; i++)
         {
-            result.Options.Add(new ComboBoxOption(
+            result.Options.Add(new ComboBoxDisplayOption(
                 options[i].DisplayName,
                 i,
                 options[i].Tooltip));
@@ -85,7 +84,7 @@ public class ComboBoxSetupService(
         if (supportsCustomState && isCustomState)
         {
             var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom (User Defined)";
-            result.Options.Add(new ComboBoxOption(
+            result.Options.Add(new ComboBoxDisplayOption(
                 customDisplayName,
                 ComboBoxConstants.CustomStateIndex,
                 null));
