@@ -30,6 +30,8 @@ public class PolicyCleanupServiceTests
                 ValueName = "TestValue",
                 ValueType = Microsoft.Win32.RegistryValueKind.DWord,
                 IsGroupPolicy = true,
+                RecommendedValue = null,
+                DefaultValue = null
             }).ToArray()
         };
     }
@@ -46,6 +48,8 @@ public class PolicyCleanupServiceTests
                 KeyPath = kp,
                 ValueName = "TestValue",
                 ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             }).ToArray()
         };
     }

@@ -43,6 +43,7 @@ public class RecommendedSettingsApplierTests
                 ValueType = RegistryValueKind.DWord,
                 RecommendedValue = recommendedValue,
                 EnabledValue = enabledValue ?? (recommendedValue != null ? [recommendedValue] : null),
+                DefaultValue = null
             }
         }
     };
@@ -67,6 +68,7 @@ public class RecommendedSettingsApplierTests
                 RecommendedValue = comboBoxOptions[recommendedOption],
                 RecommendedOption = recommendedOption,
                 ComboBoxOptions = comboBoxOptions,
+                DefaultValue = null
             }
         }
     };
@@ -239,6 +241,7 @@ public class RecommendedSettingsApplierTests
                     ValueType = RegistryValueKind.DWord,
                     IsPrimary = false,
                     RecommendedValue = 42,
+                    DefaultValue = null
                 }
             }
         };
@@ -393,6 +396,7 @@ public class RecommendedSettingsApplierTests
                     ValueName = "NumericVal",
                     ValueType = RegistryValueKind.DWord,
                     RecommendedValue = 75,
+                    DefaultValue = null
                 }
             }
         };

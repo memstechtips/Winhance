@@ -543,7 +543,12 @@ public class SettingDependencyResolverTests
 
         var comboBox = new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Low", "Medium", "High" },
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Low" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Medium" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "High" },
+            },
         };
         var setting = CreateSetting("setting1", dependencies: new[] { dependency });
         var requiredSetting = CreateSetting("required1", inputType: InputType.Selection,
@@ -578,7 +583,12 @@ public class SettingDependencyResolverTests
 
         var comboBox = new ComboBoxMetadata
         {
-            DisplayNames = new[] { "Low", "Medium", "High" },
+            Options = new[]
+            {
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Low" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Medium" },
+                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "High" },
+            },
         };
         var setting = CreateSetting("setting1", dependencies: new[] { dependency });
         var requiredSetting = CreateSetting("required1", inputType: InputType.Selection,

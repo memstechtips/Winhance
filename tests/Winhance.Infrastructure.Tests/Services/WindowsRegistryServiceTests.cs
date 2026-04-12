@@ -233,6 +233,8 @@ public class WindowsRegistryServiceTests
             ValueType = Microsoft.Win32.RegistryValueKind.DWord,
             EnabledValue = enabledValue,
             DisabledValue = disabledValue,
+            RecommendedValue = null,
+            DefaultValue = null
         };
     }
 
@@ -322,6 +324,7 @@ public class WindowsRegistryServiceTests
             DisabledValue = ["0"],
             DefaultValue = "1",
             ValueType = Microsoft.Win32.RegistryValueKind.String,
+            RecommendedValue = null
         };
         _sut.IsRegistryValueInEnabledState(setting, "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;", true)
             .Should().BeTrue();
@@ -339,6 +342,7 @@ public class WindowsRegistryServiceTests
             DisabledValue = ["0"],
             DefaultValue = "1",
             ValueType = Microsoft.Win32.RegistryValueKind.String,
+            RecommendedValue = null
         };
         _sut.IsRegistryValueInEnabledState(setting, "SwapEffectUpgradeEnable=0;VRROptimizeEnable=1;", true)
             .Should().BeFalse();
@@ -356,6 +360,7 @@ public class WindowsRegistryServiceTests
             DisabledValue = ["0"],
             DefaultValue = "1",
             ValueType = Microsoft.Win32.RegistryValueKind.String,
+            RecommendedValue = null
         };
         // Composite string exists but doesn't contain our sub-key — DefaultValue "1" == EnabledValue "1"
         _sut.IsRegistryValueInEnabledState(setting, "VRROptimizeEnable=0;", true)
@@ -374,6 +379,7 @@ public class WindowsRegistryServiceTests
             DisabledValue = ["0"],
             DefaultValue = "1",
             ValueType = Microsoft.Win32.RegistryValueKind.String,
+            RecommendedValue = null
         };
         // Value doesn't exist (key absent) — DefaultValue "1" == EnabledValue "1"
         _sut.IsRegistryValueInEnabledState(setting, null, false)

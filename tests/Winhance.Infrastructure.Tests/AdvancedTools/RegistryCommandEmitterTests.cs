@@ -33,7 +33,9 @@ public class RegistryCommandEmitterTests
         {
             KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
             ValueName = "TestValue",
-            ValueType = RegistryValueKind.DWord
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValue(sb, regSetting, 1, "Test Setting", "'HKLM:\\Software\\Test'", "TestValue", "    ");
@@ -61,7 +63,9 @@ public class RegistryCommandEmitterTests
             ValueName = "BinaryVal",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 3,
-            BitMask = 0x04
+            BitMask = 0x04,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValue(sb, regSetting, true, "Bit Setting", "'HKLM:\\Software\\Test'", "BinaryVal", "");
@@ -83,7 +87,9 @@ public class RegistryCommandEmitterTests
             ValueName = "BinaryVal",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 0,
-            BitMask = 0x01
+            BitMask = 0x01,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValue(sb, regSetting, false, "Bit Setting", "'HKLM:\\Software\\Test'", "BinaryVal", "");
@@ -107,7 +113,9 @@ public class RegistryCommandEmitterTests
             ValueName = "ByteVal",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 5,
-            ModifyByteOnly = true
+            ModifyByteOnly = true,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValue(sb, regSetting, 255, "Byte Setting", "'HKLM:\\Software\\Test'", "ByteVal", "");
@@ -128,7 +136,9 @@ public class RegistryCommandEmitterTests
             ValueName = "ByteVal",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 4,
-            ModifyByteOnly = true
+            ModifyByteOnly = true,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValue(sb, regSetting, (byte)0x3E, "Click Setting", "'HKLM:\\Software\\Test'", "ByteVal", "");
@@ -150,7 +160,9 @@ public class RegistryCommandEmitterTests
             KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
             ValueName = "PlainBinary",
             ValueType = RegistryValueKind.Binary,
-            BinaryByteIndex = 0
+            BinaryByteIndex = 0,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         var bytes = new byte[] { 0x01, 0x02 };
@@ -175,7 +187,9 @@ public class RegistryCommandEmitterTests
             ValueName = "Val",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 1,
-            BitMask = 0x08
+            BitMask = 0x08,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, true, isEnabled: true,
@@ -196,7 +210,9 @@ public class RegistryCommandEmitterTests
             ValueName = "Val",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 1,
-            BitMask = 0x08
+            BitMask = 0x08,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, false, isEnabled: false,
@@ -220,7 +236,9 @@ public class RegistryCommandEmitterTests
             ValueName = "Val",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 2,
-            ModifyByteOnly = true
+            ModifyByteOnly = true,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, (byte)0xAB, isEnabled: true,
@@ -241,7 +259,9 @@ public class RegistryCommandEmitterTests
             ValueName = "Val",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 0,
-            ModifyByteOnly = true
+            ModifyByteOnly = true,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, 15, isEnabled: true,
@@ -262,7 +282,9 @@ public class RegistryCommandEmitterTests
             ValueName = "Val",
             ValueType = RegistryValueKind.Binary,
             BinaryByteIndex = 0,
-            ModifyByteOnly = true
+            ModifyByteOnly = true,
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _sut.EmitRegistryValueFromDefinition(sb, regSetting, "unknown", isEnabled: true,
@@ -288,7 +310,9 @@ public class RegistryCommandEmitterTests
                 ValueName = null,
                 ValueType = RegistryValueKind.String,
                 EnabledValue = [null],
-                DisabledValue = [""]
+                DisabledValue = [""],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -310,7 +334,9 @@ public class RegistryCommandEmitterTests
                 ValueName = null,
                 ValueType = RegistryValueKind.String,
                 EnabledValue = [""],
-                DisabledValue = [null]
+                DisabledValue = [null],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -334,7 +360,9 @@ public class RegistryCommandEmitterTests
                 ValueName = null,
                 ValueType = RegistryValueKind.String,
                 EnabledValue = ["exists"],
-                DisabledValue = [null]
+                DisabledValue = [null],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -362,7 +390,9 @@ public class RegistryCommandEmitterTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -384,7 +414,9 @@ public class RegistryCommandEmitterTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -410,7 +442,9 @@ public class RegistryCommandEmitterTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem
@@ -438,7 +472,9 @@ public class RegistryCommandEmitterTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem
@@ -470,7 +506,9 @@ public class RegistryCommandEmitterTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [null],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -496,7 +534,9 @@ public class RegistryCommandEmitterTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.String,
                 EnabledValue = [""],
-                DisabledValue = ["something"]
+                DisabledValue = ["something"],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-setting", IsSelected = true, InputType = InputType.Toggle };
@@ -611,7 +651,9 @@ public class RegistryCommandEmitterTests
             {
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "SelVal",
-                ValueType = RegistryValueKind.DWord
+                ValueType = RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem
@@ -664,6 +706,8 @@ public class RegistryCommandEmitterTests
                 EnabledValue = [1],
                 DisabledValue = [0],
                 ApplyPerMonitor = true,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-monitor", IsSelected = true, InputType = InputType.Toggle };
@@ -691,6 +735,8 @@ public class RegistryCommandEmitterTests
                 EnabledValue = [null],
                 DisabledValue = [1],
                 ApplyPerNetworkInterface = true,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-interface", IsSelected = true, InputType = InputType.Toggle };
@@ -717,6 +763,8 @@ public class RegistryCommandEmitterTests
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
                 DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem { Id = "test-normal", IsSelected = true, InputType = InputType.Toggle };
@@ -745,6 +793,8 @@ public class RegistryCommandEmitterTests
                 ValueName = "SomeValue",
                 ValueType = RegistryValueKind.DWord,
                 ApplyPerMonitor = true,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
         var configItem = new ConfigurationItem

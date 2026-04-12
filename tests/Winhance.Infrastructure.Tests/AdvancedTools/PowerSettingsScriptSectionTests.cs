@@ -250,7 +250,11 @@ public class PowerSettingsScriptSectionTests
                 new PowerCfgSetting
                 {
                     SubgroupGuid = "sub-guid",
-                    SettingGuid = "setting-guid"
+                    SettingGuid = "setting-guid",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 }
             }
         };
@@ -321,7 +325,11 @@ public class PowerSettingsScriptSectionTests
                 new PowerCfgSetting
                 {
                     SubgroupGuid = "battery-sub",
-                    SettingGuid = "battery-set"
+                    SettingGuid = "battery-set",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 }
             }
         };
@@ -390,7 +398,11 @@ public class PowerSettingsScriptSectionTests
                 new PowerCfgSetting
                 {
                     SubgroupGuid = "bright-sub",
-                    SettingGuid = "bright-set"
+                    SettingGuid = "bright-set",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 }
             }
         };

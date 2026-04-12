@@ -90,7 +90,9 @@ public class FeatureRegistryScriptSectionTests
                 ValueName = "AllowTelemetry",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [0],
-                DisabledValue = [1]
+                DisabledValue = [1],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
 
@@ -132,7 +134,9 @@ public class FeatureRegistryScriptSectionTests
                 ValueName = "UserVal",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
 
@@ -168,7 +172,9 @@ public class FeatureRegistryScriptSectionTests
                 ValueName = "UserVal",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
 
@@ -206,7 +212,9 @@ public class FeatureRegistryScriptSectionTests
             {
                 KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
                 ValueName = "Mode",
-                ValueType = RegistryValueKind.DWord
+                ValueType = RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
 
@@ -251,12 +259,14 @@ public class FeatureRegistryScriptSectionTests
                     ValueName = "TaskVal",
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [1],
-                    DisabledValue = [0]
+                    DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 }
             },
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task1", TaskPath = "\\Microsoft\\Windows\\Test\\Task" }
+                new ScheduledTaskSetting { Id = "task1", TaskPath = "\\Microsoft\\Windows\\Test\\Task", RecommendedState = null, DefaultState = null }
             }
         };
 
@@ -304,7 +314,9 @@ public class FeatureRegistryScriptSectionTests
                     ValueName = "HibernateEnabled",
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [1],
-                    DisabledValue = [0]
+                    DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 }
             }
         };
@@ -346,7 +358,9 @@ public class FeatureRegistryScriptSectionTests
                 ValueName = "Val",
                 ValueType = RegistryValueKind.DWord,
                 EnabledValue = [1],
-                DisabledValue = [0]
+                DisabledValue = [0],
+                RecommendedValue = null,
+                DefaultValue = null
             }
         });
 
@@ -383,7 +397,7 @@ public class FeatureRegistryScriptSectionTests
             RegistrySettings = Array.Empty<RegistrySetting>(),
             PowerCfgSettings = new[]
             {
-                new PowerCfgSetting { SubgroupGuid = "sub", SettingGuid = "set" }
+                new PowerCfgSetting { SubgroupGuid = "sub", SettingGuid = "set", RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             }
         };
 

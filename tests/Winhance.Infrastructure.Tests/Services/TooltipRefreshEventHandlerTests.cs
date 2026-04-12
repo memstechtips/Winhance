@@ -67,6 +67,8 @@ public class TooltipRefreshEventHandlerTests : IDisposable
         ValueName = valueName,
         ValueType = Microsoft.Win32.RegistryValueKind.DWord,
         CompositeStringKey = compositeStringKey,
+        RecommendedValue = null,
+        DefaultValue = null,
     };
 
     // ---------------------------------------------------------------

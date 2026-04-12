@@ -69,28 +69,44 @@ public class BulkSettingsActionServiceTests
         string id,
         string recommendedOption,
         string? defaultOption,
-        Dictionary<string, int> comboBoxOptions) => new()
+        Dictionary<string, int> comboBoxOptions)
     {
-        Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        InputType = InputType.Selection,
-        RegistrySettings = new[]
+        // Sort option names alphabetically; their index becomes the selection index.
+        var sortedNames = comboBoxOptions.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray();
+        var options = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>(sortedNames.Length);
+        for (int i = 0; i < sortedNames.Length; i++)
         {
-            new RegistrySetting
+            var name = sortedNames[i];
+            options.Add(new Winhance.Core.Features.Common.Models.ComboBoxOption
             {
-                KeyPath = @"HKLM\Software\Test",
-                ValueName = "TestValue",
-                ValueType = RegistryValueKind.DWord,
-                IsPrimary = true,
-                RecommendedValue = comboBoxOptions[recommendedOption],
-                RecommendedOption = recommendedOption,
-                DefaultValue = defaultOption != null ? comboBoxOptions[defaultOption] : null,
-                DefaultOption = defaultOption,
-                ComboBoxOptions = comboBoxOptions,
-            }
+                DisplayName = name,
+                IsRecommended = name == recommendedOption,
+                IsDefault = defaultOption != null && name == defaultOption,
+                ValueMappings = new Dictionary<string, object?> { { "TestValue", comboBoxOptions[name] } },
+            });
         }
-    };
+
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = $"Setting {id}",
+            Description = $"Description for {id}",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata { Options = options },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Software\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    IsPrimary = true,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                }
+            }
+        };
+    }
 
     private static SettingDefinition CreateNumericSetting(
         string id,
@@ -184,6 +200,7 @@ public class BulkSettingsActionServiceTests
                     ValueType = RegistryValueKind.DWord,
                     RecommendedValue = 1,
                     EnabledValue = [1],
+                    DefaultValue = null
                 }
             }
         };

@@ -59,6 +59,8 @@ public class TooltipDataServiceTests
         BitMask = bitMask,
         ApplyPerNetworkInterface = applyPerNetworkInterface,
         CompositeStringKey = compositeStringKey,
+        RecommendedValue = null,
+        DefaultValue = null,
     };
 
     // ---------------------------------------------------------------
@@ -135,7 +137,7 @@ public class TooltipDataServiceTests
     {
         var tasks = new[]
         {
-            new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Microsoft\Windows\Test" }
+            new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Microsoft\Windows\Test", RecommendedState = null, DefaultState = null }
         };
         var setting = CreateSetting("task-setting", scheduledTaskSettings: tasks);
 
@@ -151,7 +153,7 @@ public class TooltipDataServiceTests
     {
         var powerSettings = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "test-guid" }
+            new PowerCfgSetting { SettingGUIDAlias = "test-guid", RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
         };
         var setting = CreateSetting("power-setting", powerCfgSettings: powerSettings);
 

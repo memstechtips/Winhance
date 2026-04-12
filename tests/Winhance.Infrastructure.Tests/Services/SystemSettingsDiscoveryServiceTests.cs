@@ -44,6 +44,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueName = valueName,
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = enabledValue ?? [1],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -62,6 +64,8 @@ public class SystemSettingsDiscoveryServiceTests
                 {
                     Id = $"{id}-task",
                     TaskPath = taskPath,
+                    RecommendedState = null,
+                    DefaultState = null
                 },
             },
         };
@@ -84,6 +88,10 @@ public class SystemSettingsDiscoveryServiceTests
                     SettingGuid = settingGuid,
                     SubgroupGuid = "sub-guid",
                     PowerModeSupport = mode,
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 },
             },
         };
@@ -146,6 +154,8 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\TestKey",
                     ValueName = null,
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -179,6 +189,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.Binary,
                     BinaryByteIndex = 0,
                     BitMask = 0x04,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -212,6 +224,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.Binary,
                     BinaryByteIndex = 2,
                     ModifyByteOnly = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -468,6 +482,8 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Test",
                     ValueName = "TestValue",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -501,6 +517,10 @@ public class SystemSettingsDiscoveryServiceTests
                 {
                     SettingGuid = "numeric-guid",
                     SubgroupGuid = "sub-guid",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 },
             },
         };
@@ -530,6 +550,8 @@ public class SystemSettingsDiscoveryServiceTests
                 {
                     Id = "task-1",
                     TaskPath = @"\Test\NumericTask",
+                    RecommendedState = null,
+                    DefaultState = null
                 },
             },
         };
@@ -589,6 +611,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [1],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -626,6 +650,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -664,6 +690,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [1],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -702,6 +730,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
                 new RegistrySetting
                 {
@@ -710,6 +740,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -751,6 +783,7 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = ["0"],
                     DefaultValue = "1",
                     ValueType = RegistryValueKind.String,
+                    RecommendedValue = null
                 },
             },
         };
@@ -794,6 +827,8 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = [1],
                     ValueType = RegistryValueKind.DWord,
                     ApplyPerNetworkInterface = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -831,6 +866,8 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = [1],
                     ValueType = RegistryValueKind.DWord,
                     ApplyPerNetworkInterface = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -868,6 +905,8 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = [0],
                     ValueType = RegistryValueKind.DWord,
                     ApplyPerMonitor = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -905,6 +944,8 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = [0],
                     ValueType = RegistryValueKind.DWord,
                     ApplyPerMonitor = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
