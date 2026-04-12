@@ -361,6 +361,19 @@ public class ConfigReviewServiceTests : IDisposable
                 [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
             });
 
+        _mockComboBoxSetupService
+            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
+            .ReturnsAsync(new ComboBoxSetupResult
+            {
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxOption>
+                {
+                    new ComboBoxOption("Light", 0),
+                    new ComboBoxOption("Dark", 1)
+                },
+                SelectedValue = selectedIndex == 0 ? 1 : 0,
+                Success = true
+            });
+
         _mockLocalizationService
             .Setup(l => l.GetString("Review_Mode_Action_ThemeWallpaper"))
             .Returns("Apply the default {0} wallpaper?");
