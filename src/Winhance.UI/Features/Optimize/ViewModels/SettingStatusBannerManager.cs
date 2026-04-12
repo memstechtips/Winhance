@@ -54,8 +54,9 @@ internal sealed class SettingStatusBannerManager
         }
 
         // Check for option-specific warnings (e.g., update policy security warnings)
-        if (definition.ComboBox?.OptionWarnings is { } warningDict &&
-            warningDict.TryGetValue(selectedIndex, out var warning))
+        if (definition.ComboBox?.Options is { } warningOptions
+            && selectedIndex >= 0 && selectedIndex < warningOptions.Count
+            && warningOptions[selectedIndex].Warning is { } warning)
         {
             return new BannerState(warning, InfoBarSeverity.Error);
         }
@@ -92,13 +93,13 @@ internal sealed class SettingStatusBannerManager
     private BannerState ComputeCrossGroupBanner(
         SettingDefinition definition, int selectedIndex, string? crossGroupInfoMessage)
     {
-        var displayNames = definition.ComboBox?.DisplayNames;
+        var options = definition.ComboBox?.Options;
 
-        if (displayNames == null)
+        if (options == null || options.Count == 0)
             return BannerState.Clear;
 
         // Check if "Custom" option is selected (last index or special custom state index)
-        var customOptionIndex = displayNames.Length - 1;
+        var customOptionIndex = options.Count - 1;
         bool isCustomState = selectedIndex == customOptionIndex ||
             selectedIndex == ComboBoxConstants.CustomStateIndex;
 

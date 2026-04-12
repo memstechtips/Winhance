@@ -59,17 +59,15 @@ public class RecommendedSettingsApplier(
                     }
                     else if (setting.InputType == InputType.Selection)
                     {
-                        var recommendedOption = RecommendedSettingsService.GetRecommendedOptionFromSetting(setting);
+                        var recommendedIndex = RecommendedSettingsService.GetRecommendedSelectionIndex(setting);
 
-                        if (recommendedOption != null)
+                        if (recommendedIndex.HasValue)
                         {
-                            var registryValue = RecommendedSettingsService.GetRegistryValueFromOptionName(setting, recommendedOption);
-                            var comboBoxIndex = RecommendedSettingsService.GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
                             await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                             {
                                 SettingId = setting.Id,
                                 Enable = true,
-                                Value = comboBoxIndex,
+                                Value = recommendedIndex.Value,
                                 SkipValuePrerequisites = true
                             }).ConfigureAwait(false);
                         }

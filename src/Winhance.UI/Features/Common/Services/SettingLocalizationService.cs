@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -35,7 +38,7 @@ public class SettingLocalizationService : ISettingLocalizationService
 
             var localizedComboBox = comboBox with
             {
-                DisplayNames = LocalizeComboBoxNames(setting)
+                Options = LocalizeComboBoxOptions(setting)
             };
 
             if (comboBox.CustomStateDisplayName != null)
@@ -43,30 +46,6 @@ public class SettingLocalizationService : ISettingLocalizationService
                 localizedComboBox = localizedComboBox with
                 {
                     CustomStateDisplayName = GetLocalizedCustomState(setting)
-                };
-            }
-
-            if (comboBox.OptionWarnings != null)
-            {
-                localizedComboBox = localizedComboBox with
-                {
-                    OptionWarnings = LocalizeOptionWarnings(setting)
-                };
-            }
-
-            if (comboBox.OptionTooltips != null)
-            {
-                localizedComboBox = localizedComboBox with
-                {
-                    OptionTooltips = LocalizeOptionTooltips(setting)
-                };
-            }
-
-            if (comboBox.OptionConfirmations != null)
-            {
-                localizedComboBox = localizedComboBox with
-                {
-                    OptionConfirmations = LocalizeOptionConfirmations(setting)
                 };
             }
 
@@ -158,70 +137,54 @@ public class SettingLocalizationService : ISettingLocalizationService
         return GetStringOrFallback(key, original);
     }
 
-    private Dictionary<int, string> LocalizeOptionWarnings(SettingDefinition setting)
+    private IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> LocalizeComboBoxOptions(SettingDefinition setting)
     {
-        var originalWarnings = setting.ComboBox?.OptionWarnings;
-        if (originalWarnings == null)
-            return new Dictionary<int, string>();
+        var originalOptions = setting.ComboBox?.Options;
+        if (originalOptions == null || originalOptions.Count == 0)
+            return Array.Empty<Winhance.Core.Features.Common.Models.ComboBoxOption>();
 
-        var localizedWarnings = new Dictionary<int, string>();
-        foreach (var kvp in originalWarnings)
+        var localized = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>(originalOptions.Count);
+        for (int i = 0; i < originalOptions.Count; i++)
         {
-            var locKey = $"Setting_{setting.Id}_OptionWarning_{kvp.Key}";
-            localizedWarnings[kvp.Key] = GetStringOrFallback(locKey, kvp.Value);
-        }
+            var original = originalOptions[i];
 
-        return localizedWarnings;
-    }
-
-    private string[] LocalizeOptionTooltips(SettingDefinition setting)
-    {
-        var originalTooltips = setting.ComboBox?.OptionTooltips;
-        if (originalTooltips == null)
-            return Array.Empty<string>();
-
-        var localizedTooltips = new string[originalTooltips.Length];
-        for (int i = 0; i < originalTooltips.Length; i++)
-        {
-            var locKey = $"Setting_{setting.Id}_OptionTooltip_{i}";
-            localizedTooltips[i] = GetStringOrFallback(locKey, originalTooltips[i]);
-        }
-
-        return localizedTooltips;
-    }
-
-    private Dictionary<int, (string Title, string Message)> LocalizeOptionConfirmations(SettingDefinition setting)
-    {
-        var originalConfirmations = setting.ComboBox?.OptionConfirmations;
-        if (originalConfirmations == null)
-            return new Dictionary<int, (string Title, string Message)>();
-
-        var localizedConfirmations = new Dictionary<int, (string Title, string Message)>();
-        foreach (var kvp in originalConfirmations)
-        {
-            var title = GetStringOrFallback(kvp.Value.Title, kvp.Value.Title);
-            var message = GetStringOrFallback(kvp.Value.Message, kvp.Value.Message);
-            localizedConfirmations[kvp.Key] = (title, message);
-        }
-
-        return localizedConfirmations;
-    }
-
-    private string[] LocalizeComboBoxNames(SettingDefinition setting)
-    {
-        var originalNames = setting.ComboBox!.DisplayNames;
-        var localizedNames = new string[originalNames.Length];
-
-        for (int i = 0; i < originalNames.Length; i++)
-        {
-            var key = IsLocalizationKey(originalNames[i])
-                ? originalNames[i]
+            var displayKey = IsLocalizationKey(original.DisplayName)
+                ? original.DisplayName
                 : $"Setting_{setting.Id}_Option_{i}";
+            var localizedDisplay = GetStringOrFallback(displayKey, original.DisplayName);
 
-            localizedNames[i] = GetStringOrFallback(key, originalNames[i]);
+            string? localizedTooltip = original.Tooltip;
+            if (!string.IsNullOrEmpty(original.Tooltip))
+            {
+                var tooltipKey = $"Setting_{setting.Id}_OptionTooltip_{i}";
+                localizedTooltip = GetStringOrFallback(tooltipKey, original.Tooltip);
+            }
+
+            string? localizedWarning = original.Warning;
+            if (!string.IsNullOrEmpty(original.Warning))
+            {
+                var warningKey = $"Setting_{setting.Id}_OptionWarning_{i}";
+                localizedWarning = GetStringOrFallback(warningKey, original.Warning);
+            }
+
+            (string Title, string Message)? localizedConfirmation = original.Confirmation;
+            if (original.Confirmation is { } confirmation)
+            {
+                var title = GetStringOrFallback(confirmation.Title, confirmation.Title);
+                var message = GetStringOrFallback(confirmation.Message, confirmation.Message);
+                localizedConfirmation = (title, message);
+            }
+
+            localized.Add(original with
+            {
+                DisplayName = localizedDisplay,
+                Tooltip = localizedTooltip,
+                Warning = localizedWarning,
+                Confirmation = localizedConfirmation,
+            });
         }
 
-        return localizedNames;
+        return localized;
     }
 
     private bool IsLocalizationKey(string value)

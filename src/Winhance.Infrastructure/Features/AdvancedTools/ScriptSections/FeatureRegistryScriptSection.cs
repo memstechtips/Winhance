@@ -121,12 +121,14 @@ internal class FeatureRegistryScriptSection
                 {
                     foreach (var scriptSetting in settingDef.PowerShellScripts)
                     {
-                        // For Selection types with ScriptMappings, resolve which script to use from the selected index
+                        // For Selection types with Script on options, resolve which script to use from the selected index
                         var useEnabled = configItem.IsSelected == true;
                         if (settingDef.InputType == InputType.Selection
-                            && settingDef.ComboBox?.ScriptMappings != null
+                            && settingDef.ComboBox?.Options is { } selScriptOptions
                             && configItem.SelectedIndex.HasValue
-                            && settingDef.ComboBox.ScriptMappings.TryGetValue(configItem.SelectedIndex.Value, out var scriptOption))
+                            && configItem.SelectedIndex.Value >= 0
+                            && configItem.SelectedIndex.Value < selScriptOptions.Count
+                            && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
                         {
                             useEnabled = scriptOption == ScriptOption.Enabled;
                         }
@@ -135,9 +137,11 @@ internal class FeatureRegistryScriptSection
 
                         // Substitute ScriptVariables placeholders for the selected index
                         if (!string.IsNullOrEmpty(script)
-                            && settingDef.ComboBox?.ScriptVariables != null
+                            && settingDef.ComboBox?.Options is { } selVarOptions
                             && configItem.SelectedIndex.HasValue
-                            && settingDef.ComboBox.ScriptVariables.TryGetValue(configItem.SelectedIndex.Value, out var variables))
+                            && configItem.SelectedIndex.Value >= 0
+                            && configItem.SelectedIndex.Value < selVarOptions.Count
+                            && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
                         {
                             foreach (var kvp in variables)
                             {

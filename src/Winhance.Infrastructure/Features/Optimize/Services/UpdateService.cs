@@ -364,11 +364,12 @@ public class UpdateService(
 
     private void ApplyRegistrySettingsForIndex(SettingDefinition setting, int index)
     {
-        if (setting.ComboBox?.ValueMappings == null)
+        var options = setting.ComboBox?.Options;
+        if (options == null || index < 0 || index >= options.Count)
             return;
 
-        var mappings = setting.ComboBox.ValueMappings;
-        if (!mappings.TryGetValue(index, out var valueMapping))
+        var valueMapping = options[index].ValueMappings;
+        if (valueMapping == null)
             return;
 
         foreach (var registrySetting in setting.RegistrySettings)

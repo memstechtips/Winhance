@@ -847,24 +847,29 @@ public class PowerService(
                         var recommendedOptionAC = setting.Recommendation.RecommendedOptionAC;
                         var recommendedOptionDC = setting.Recommendation.RecommendedOptionDC ?? recommendedOptionAC;
 
-                        var displayNames = setting.ComboBox?.DisplayNames;
+                        var options = setting.ComboBox?.Options;
 
-                        if (displayNames != null)
+                        if (options != null)
                         {
-                            var indexAC = Array.IndexOf(displayNames, recommendedOptionAC);
-                            var indexDC = Array.IndexOf(displayNames, recommendedOptionDC);
+                            var indexAC = -1;
+                            var indexDC = -1;
+                            for (int oi = 0; oi < options.Count; oi++)
+                            {
+                                if (indexAC < 0 && string.Equals(options[oi].DisplayName, recommendedOptionAC, StringComparison.Ordinal))
+                                    indexAC = oi;
+                                if (indexDC < 0 && string.Equals(options[oi].DisplayName, recommendedOptionDC, StringComparison.Ordinal))
+                                    indexDC = oi;
+                            }
 
-                            var valueMappings = setting.ComboBox?.ValueMappings;
-
-                            if (valueMappings != null)
+                            if (options.Any(o => o.ValueMappings != null))
                             {
                                 int? acValue = null, dcValue = null;
 
-                                if (indexAC >= 0 && valueMappings.TryGetValue(indexAC, out var valueDictAC) &&
+                                if (indexAC >= 0 && options[indexAC].ValueMappings is { } valueDictAC &&
                                     valueDictAC.TryGetValue("PowerCfgValue", out var powerCfgValueAC) && powerCfgValueAC != null)
                                     acValue = Convert.ToInt32(powerCfgValueAC);
 
-                                if (indexDC >= 0 && valueMappings.TryGetValue(indexDC, out var valueDictDC) &&
+                                if (indexDC >= 0 && options[indexDC].ValueMappings is { } valueDictDC &&
                                     valueDictDC.TryGetValue("PowerCfgValue", out var powerCfgValueDC) && powerCfgValueDC != null)
                                     dcValue = Convert.ToInt32(powerCfgValueDC);
 

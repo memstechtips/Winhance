@@ -67,80 +67,32 @@ public class ComboBoxSetupService(
     private bool SetupFromComboBoxDisplayNames(SettingDefinition setting, int currentIndex, ComboBoxSetupResult result)
     {
         var comboBox = setting.ComboBox;
-        if (comboBox == null)
+        if (comboBox?.Options == null || comboBox.Options.Count == 0)
             return false;
 
-        var displayNames = comboBox.DisplayNames;
-
-        if (comboBox.ValueMappings == null)
-        {
-            if (comboBox.SimpleValueMappings != null || comboBox.CommandValueMappings != null || comboBox.ScriptMappings != null)
-            {
-                return SetupFromMappings(setting, currentIndex, result, displayNames);
-            }
-
-            return false;
-        }
-
+        var options = comboBox.Options;
         var supportsCustomState = comboBox.SupportsCustomState;
         var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
-        string[] finalDisplayNames = displayNames;
+        for (int i = 0; i < options.Count; i++)
+        {
+            result.Options.Add(new ComboBoxOption(
+                options[i].DisplayName,
+                i,
+                options[i].Tooltip));
+        }
 
         if (supportsCustomState && isCustomState)
         {
             var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom (User Defined)";
-            finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
-        }
-
-        var optionTooltips = comboBox.OptionTooltips;
-
-        for (int i = 0; i < finalDisplayNames.Length; i++)
-        {
             result.Options.Add(new ComboBoxOption(
-                finalDisplayNames[i],
-                i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
-                optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null));
+                customDisplayName,
+                ComboBoxConstants.CustomStateIndex,
+                null));
         }
 
         result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
         return true;
-    }
-
-    private bool SetupFromMappings(SettingDefinition setting, int currentIndex, ComboBoxSetupResult result, string[] displayNames)
-    {
-        try
-        {
-            var comboBox = setting.ComboBox;
-            var supportsCustomState = comboBox?.SupportsCustomState == true;
-            var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
-
-            string[] finalDisplayNames = displayNames;
-
-            if (supportsCustomState && isCustomState)
-            {
-                var customDisplayName = comboBox?.CustomStateDisplayName ?? "Custom (User Defined)";
-                finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
-            }
-
-            var optionTooltips = comboBox?.OptionTooltips;
-
-            for (int i = 0; i < finalDisplayNames.Length; i++)
-            {
-                result.Options.Add(new ComboBoxOption(
-                    finalDisplayNames[i],
-                    i < displayNames.Length ? i : ComboBoxConstants.CustomStateIndex,
-                    optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null));
-            }
-
-            result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"Failed to setup value mappings for '{setting.Id}': {ex.Message}");
-            return false;
-        }
     }
 
 

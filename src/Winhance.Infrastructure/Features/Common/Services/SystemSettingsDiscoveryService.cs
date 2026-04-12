@@ -488,7 +488,8 @@ public class SystemSettingsDiscoveryService(
         if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
             return di;
 
-        if (setting.ComboBox?.ValueMappings == null)
+        var options = setting.ComboBox?.Options;
+        if (options == null || !options.Any(o => o.ValueMappings != null))
         {
             return 0;
         }
@@ -498,7 +499,6 @@ public class SystemSettingsDiscoveryService(
             return policyIndex is int index ? index : 0;
         }
 
-        var mappings = setting.ComboBox.ValueMappings;
         var currentValues = new Dictionary<string, object?>();
 
         if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
@@ -523,10 +523,10 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        foreach (var mapping in mappings)
+        for (int index = 0; index < options.Count; index++)
         {
-            var index = mapping.Key;
-            var expectedValues = mapping.Value;
+            var expectedValues = options[index].ValueMappings;
+            if (expectedValues == null) continue;
 
             bool allMatch = true;
             foreach (var expectedValue in expectedValues)
@@ -574,13 +574,18 @@ public class SystemSettingsDiscoveryService(
             .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
             .ToString();
 
-        if (string.IsNullOrEmpty(primaryDns) || setting.ComboBox?.ScriptVariables == null)
+        var dnsOptions = setting.ComboBox?.Options;
+        if (string.IsNullOrEmpty(primaryDns) || dnsOptions == null)
             return 0;
 
-        foreach (var (index, variables) in setting.ComboBox.ScriptVariables)
+        for (int i = 0; i < dnsOptions.Count; i++)
         {
-            if (variables.TryGetValue("primary", out var primary) && primary == primaryDns)
-                return index;
+            if (dnsOptions[i].ScriptVariables is { } variables
+                && variables.TryGetValue("primary", out var primary)
+                && primary == primaryDns)
+            {
+                return i;
+            }
         }
 
         return ComboBoxConstants.CustomStateIndex;

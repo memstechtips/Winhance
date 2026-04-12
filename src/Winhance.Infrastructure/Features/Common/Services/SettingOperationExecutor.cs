@@ -157,12 +157,13 @@ public class SettingOperationExecutor(
 
             foreach (var scriptSetting in setting.PowerShellScripts)
             {
-                // For Selection types with ScriptMappings, resolve which script to run from the selected index
+                // For Selection types with Script on options, resolve which script to run from the selected index
                 var useEnabled = enable;
                 if (setting.InputType == InputType.Selection
-                    && setting.ComboBox?.ScriptMappings != null
+                    && setting.ComboBox?.Options is { } scriptOptions
                     && value is int scriptIndex
-                    && setting.ComboBox.ScriptMappings.TryGetValue(scriptIndex, out var scriptOption))
+                    && scriptIndex >= 0 && scriptIndex < scriptOptions.Count
+                    && scriptOptions[scriptIndex].Script is { } scriptOption)
                 {
                     useEnabled = scriptOption == ScriptOption.Enabled;
                 }
@@ -171,9 +172,10 @@ public class SettingOperationExecutor(
 
                 // Substitute ScriptVariables placeholders for the selected index
                 if (!string.IsNullOrEmpty(script)
-                    && setting.ComboBox?.ScriptVariables != null
+                    && setting.ComboBox?.Options is { } varOptions
                     && value is int varIndex
-                    && setting.ComboBox.ScriptVariables.TryGetValue(varIndex, out var variables))
+                    && varIndex >= 0 && varIndex < varOptions.Count
+                    && varOptions[varIndex].ScriptVariables is { } variables)
                 {
                     foreach (var kvp in variables)
                     {

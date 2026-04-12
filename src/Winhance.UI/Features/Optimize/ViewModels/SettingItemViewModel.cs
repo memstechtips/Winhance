@@ -547,12 +547,12 @@ public partial class SettingItemViewModel : BaseViewModel
                     break;
                 case InputType.Selection:
                     if (SupportsSeparateACDC && state.RawValues != null &&
-                        SettingDefinition?.ComboBox?.ValueMappings is { } mappings)
+                        SettingDefinition?.ComboBox?.Options is { } selectionOptions)
                     {
                         if (state.RawValues.TryGetValue("ACValue", out var acRaw) && acRaw != null)
-                            AcValue = FindIndexForPowerCfgValue(mappings, Convert.ToInt32(acRaw));
+                            AcValue = FindIndexForPowerCfgValue(selectionOptions, Convert.ToInt32(acRaw));
                         if (state.RawValues.TryGetValue("DCValue", out var dcRaw) && dcRaw != null)
-                            DcValue = FindIndexForPowerCfgValue(mappings, Convert.ToInt32(dcRaw));
+                            DcValue = FindIndexForPowerCfgValue(selectionOptions, Convert.ToInt32(dcRaw));
                     }
                     else if (state.CurrentValue != null)
                     {
@@ -581,12 +581,18 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private static int FindIndexForPowerCfgValue(Dictionary<int, Dictionary<string, object?>> mappings, int targetValue)
+    private static int FindIndexForPowerCfgValue(IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> options, int targetValue)
     {
-        foreach (var mapping in mappings)
+        for (int i = 0; i < options.Count; i++)
         {
-            if (mapping.Value.TryGetValue("PowerCfgValue", out var val) && val != null && Convert.ToInt32(val) == targetValue)
-                return mapping.Key;
+            var mapping = options[i].ValueMappings;
+            if (mapping != null
+                && mapping.TryGetValue("PowerCfgValue", out var val)
+                && val != null
+                && Convert.ToInt32(val) == targetValue)
+            {
+                return i;
+            }
         }
         return 0;
     }
@@ -1272,10 +1278,10 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool PowerCfgIndexMatchesValue(int index, int targetPowerCfgValue)
     {
-        var mappings = SettingDefinition?.ComboBox?.ValueMappings;
-        if (mappings == null) return false;
+        var options = SettingDefinition?.ComboBox?.Options;
+        if (options == null || index < 0 || index >= options.Count) return false;
 
-        if (mappings.TryGetValue(index, out var mapping) &&
+        if (options[index].ValueMappings is { } mapping &&
             mapping.TryGetValue("PowerCfgValue", out var val) && val != null)
         {
             return Convert.ToInt32(val) == targetPowerCfgValue;

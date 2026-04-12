@@ -320,12 +320,12 @@ public class SettingDependencyResolver(
         }
 
         if (setting.InputType == InputType.Selection &&
-            setting.ComboBox?.DisplayNames is { } displayNames)
+            setting.ComboBox?.Options is { } options)
         {
             int requiredIndex = -1;
-            for (int i = 0; i < displayNames.Length; i++)
+            for (int i = 0; i < options.Count; i++)
             {
-                if (displayNames[i].Equals(requiredValue, StringComparison.OrdinalIgnoreCase))
+                if (options[i].DisplayName.Equals(requiredValue, StringComparison.OrdinalIgnoreCase))
                 {
                     requiredIndex = i;
                     break;
@@ -357,11 +357,11 @@ public class SettingDependencyResolver(
         }
 
         if (setting.InputType == InputType.Selection &&
-            setting.ComboBox?.DisplayNames is { } displayNames)
+            setting.ComboBox?.Options is { } options)
         {
-            for (int i = 0; i < displayNames.Length; i++)
+            for (int i = 0; i < options.Count; i++)
             {
-                if (displayNames[i].Equals(requiredValue, StringComparison.OrdinalIgnoreCase))
+                if (options[i].DisplayName.Equals(requiredValue, StringComparison.OrdinalIgnoreCase))
                 {
                     return i;
                 }

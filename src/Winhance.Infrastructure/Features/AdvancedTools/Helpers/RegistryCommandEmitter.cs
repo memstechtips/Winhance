@@ -270,7 +270,7 @@ internal class RegistryCommandEmitter
             valuesToApply = configItem.CustomStateValues;
         }
         else if (configItem.SelectedIndex.HasValue &&
-                 setting.ComboBox?.ValueMappings != null)
+                 setting.ComboBox?.Options?.Any(o => o.ValueMappings != null) == true)
         {
             var resolvedValues = _comboBoxResolver.ResolveIndexToRawValues(setting, configItem.SelectedIndex.Value);
             valuesToApply = resolvedValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
