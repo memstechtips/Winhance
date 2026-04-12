@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 
 namespace Winhance.Core.Features.Common.Models;
@@ -13,9 +12,6 @@ public record RegistrySetting
     public object?[]? DisabledValue { get; init; }
     public required RegistryValueKind ValueType { get; init; }
     public bool IsPrimary { get; init; } = false;
-    public string? DefaultOption { get; init; }
-    public string? RecommendedOption { get; init; }
-    public Dictionary<string, int>? ComboBoxOptions { get; init; }
     public int? BinaryByteIndex { get; init; }
     public bool ModifyByteOnly { get; init; } = false;
     public byte? BitMask { get; init; }
