@@ -129,6 +129,9 @@ public static class StringKeys
         public const string Recommended = "InfoBadge_Recommended";
         public const string Default = "InfoBadge_Default";
         public const string Custom = "InfoBadge_Custom";
+        public const string RecommendedTooltip = "InfoBadge_Recommended_Tooltip";
+        public const string DefaultTooltip = "InfoBadge_Default_Tooltip";
+        public const string CustomTooltip = "InfoBadge_Custom_Tooltip";
     }
 
     /// <summary>
