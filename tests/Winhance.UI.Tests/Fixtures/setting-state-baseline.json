@@ -130,8 +130,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-browse-folders": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-checkbox-select": {
@@ -140,8 +146,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-click-items": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-compressed-color": {
@@ -155,8 +167,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-currency-decimal": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-disable-sync-provider-notifications": {
@@ -170,8 +188,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-first-day-of-week": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-folder-tips": {
@@ -220,8 +244,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-launch-to": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-legacy-notepad": {
@@ -230,13 +260,25 @@
     "InputType": "Toggle"
   },
   "explorer-customization-list-separator": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-measurement-system": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-nav-expand-current": {
@@ -290,8 +332,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-number-decimal": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-persist-browsers": {
@@ -320,18 +368,36 @@
     "InputType": "Toggle"
   },
   "explorer-customization-short-date": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-shortcut-arrow": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-shortcut-suffix": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-customization-show-availability-status": {
@@ -385,8 +451,14 @@
     "InputType": "Toggle"
   },
   "explorer-customization-typing-behavior": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "explorer-enable-photo-viewer": {
@@ -420,8 +492,14 @@
     "InputType": "Toggle"
   },
   "gaming-ai-fabric-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-auto-color-management": {
@@ -430,23 +508,47 @@
     "InputType": "Toggle"
   },
   "gaming-background-apps": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 2
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-biometric-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-compatibility-assistant-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-connected-devices-platform-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-cpu-priority": {
@@ -480,13 +582,25 @@
     "InputType": "Toggle"
   },
   "gaming-dns-server": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-error-reporting-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-explorer-alt-tab-filter": {
@@ -495,8 +609,14 @@
     "InputType": "Toggle"
   },
   "gaming-fax-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-fullscreen-optimizations": {
@@ -520,8 +640,14 @@
     "InputType": "Toggle"
   },
   "gaming-geolocation-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-gpu-priority": {
@@ -535,13 +661,25 @@
     "InputType": "Toggle"
   },
   "gaming-insider-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-maps-broker-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-memory-integrity": {
@@ -550,13 +688,25 @@
     "InputType": "Toggle"
   },
   "gaming-mixed-reality-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-mobile-hotspot-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-nagle-algorithm": {
@@ -580,13 +730,25 @@
     "InputType": "Toggle"
   },
   "gaming-parental-controls-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-payments-nfc-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-performance-autostart-delay": {
@@ -635,8 +797,14 @@
     "InputType": "Toggle"
   },
   "gaming-performance-svchost-split-threshold": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-performance-wallpaper-compression": {
@@ -645,43 +813,91 @@
     "InputType": "Toggle"
   },
   "gaming-phone-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-print-spooler-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-remote-access-auto": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-remote-access-manager": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-remote-desktop-configuration": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-remote-desktop-port-redirector": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-remote-desktop-services": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-retail-demo-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-scheduling-category": {
@@ -690,28 +906,58 @@
     "InputType": "Toggle"
   },
   "gaming-sensor-data-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-sensor-monitoring-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-smart-card-services": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-sms-router-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-spot-verifier-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-storage-sense": {
@@ -720,8 +966,14 @@
     "InputType": "Toggle"
   },
   "gaming-sysmain-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-system-responsiveness": {
@@ -815,13 +1067,25 @@
     "InputType": "Toggle"
   },
   "gaming-telemetry-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-touch-keyboard-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-virtualization-based-security": {
@@ -830,28 +1094,58 @@
     "InputType": "Toggle"
   },
   "gaming-wallet-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-win32-priority": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "gaming-windows-search-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "gaming-wmp-network-service": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-xbox-auth-manager": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-xbox-game-dvr": {
@@ -860,13 +1154,25 @@
     "InputType": "Toggle"
   },
   "gaming-xbox-game-save": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "gaming-xbox-networking": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "intel-graphics-power-plan": {
@@ -1065,8 +1371,14 @@
     "InputType": "Toggle"
   },
   "privacy-ads-promotional-master": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "privacy-advertising-id": {
@@ -1530,8 +1842,14 @@
     "InputType": "Toggle"
   },
   "security-powershell-execution-policy": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 2
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "security-remote-assistance": {
@@ -1540,13 +1858,25 @@
     "InputType": "Toggle"
   },
   "security-smart-app-control": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "security-uac-level": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 4
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
     "InputType": "Selection"
   },
   "security-wifi-sense": {
@@ -1585,8 +1915,14 @@
     "InputType": "Toggle"
   },
   "sound-communication-ducking": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 3
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "sound-narrator-audio-ducking": {
@@ -1625,7 +1961,10 @@
     "InputType": "Action"
   },
   "start-menu-layout": {
-    "Recommended": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
     "Default": null,
     "InputType": "Selection"
   },
@@ -1650,8 +1989,14 @@
     "InputType": "Toggle"
   },
   "start-recommended-section": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "start-show-account-notifications": {
@@ -1695,8 +2040,14 @@
     "InputType": "Selection"
   },
   "taskbar-alignment": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 1
+    },
     "InputType": "Selection"
   },
   "taskbar-animations": {
@@ -1715,8 +2066,14 @@
     "InputType": "Toggle"
   },
   "taskbar-button-size": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "taskbar-clean": {
@@ -1725,13 +2082,25 @@
     "InputType": "Action"
   },
   "taskbar-combine-buttons": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "taskbar-combine-buttons-other": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "taskbar-copilot": {
@@ -1775,8 +2144,14 @@
     "InputType": "Toggle"
   },
   "taskbar-multi-display-apps": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "taskbar-news-and-interests": {
@@ -1790,13 +2165,22 @@
     "InputType": "Toggle"
   },
   "taskbar-search-box-10": {
-    "Recommended": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
     "Default": null,
     "InputType": "Selection"
   },
   "taskbar-search-box-11": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 3
+    },
     "InputType": "Selection"
   },
   "taskbar-share-window": {
@@ -1835,7 +2219,10 @@
     "InputType": "Toggle"
   },
   "taskbar-transparent": {
-    "Recommended": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
     "Default": null,
     "InputType": "Selection"
   },
@@ -1845,8 +2232,14 @@
     "InputType": "Toggle"
   },
   "theme-mode-windows": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "theme-transparency": {
@@ -1865,8 +2258,14 @@
     "InputType": "Toggle"
   },
   "updates-delivery-optimization": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 3
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "updates-driver-coinstallers": {
@@ -1900,8 +2299,14 @@
     "InputType": "Toggle"
   },
   "updates-policy-mode": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 1
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "updates-restart-asap": {
@@ -1940,8 +2345,14 @@
     "InputType": "Selection"
   },
   "visual-effects-mode": {
-    "Recommended": null,
-    "Default": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 3
+    },
+    "Default": {
+      "kind": "index",
+      "value": 0
+    },
     "InputType": "Selection"
   },
   "window-animation": {
