@@ -157,12 +157,12 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <MenuFlyoutItem x:Name="ApplyRecommendedItem" Click="ApplyRecommended_Click">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE735;"/>
+                                <fluentIcons:SymbolIcon Symbol="StarCheckmark" IconVariant="Regular"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="ResetDefaultsItem" Click="ResetDefaults_Click">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE777;"/>
+                                <PathIcon Data="{StaticResource WindowsLogoIconPath}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>
