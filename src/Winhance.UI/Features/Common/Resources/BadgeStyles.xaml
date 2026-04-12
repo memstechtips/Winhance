@@ -117,4 +117,33 @@
         </converters:BadgeIconTemplateSelector.CustomTemplate>
     </converters:BadgeIconTemplateSelector>
 
+    <!-- ==================== NumericRange Quick-Set Buttons (Task B4) ==================== -->
+    <!--
+    Small borderless icon buttons flanking every NumericRange spinner. Visible only
+    when UserPreferences.ShowInfoBadges is on. The green star matches the Recommended
+    InfoBadge; the grey 2x2-grid icon matches the Default InfoBadge — keeping the
+    Recommended/Default visual vocabulary consistent across InfoBadge pills,
+    Quick Actions menu items, and these per-spinner buttons.
+    -->
+    <Style x:Key="NumericQuickSetButtonBase" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="MinWidth" Value="28"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="NumericQuickSetRecommendedButtonStyle" TargetType="Button"
+           BasedOn="{StaticResource NumericQuickSetButtonBase}">
+        <Setter Property="Foreground" Value="{StaticResource BadgeRecommendedForeground}"/>
+    </Style>
+
+    <Style x:Key="NumericQuickSetDefaultButtonStyle" TargetType="Button"
+           BasedOn="{StaticResource NumericQuickSetButtonBase}">
+        <Setter Property="Foreground" Value="{StaticResource BadgeDefaultForeground}"/>
+    </Style>
+
 </ResourceDictionary>

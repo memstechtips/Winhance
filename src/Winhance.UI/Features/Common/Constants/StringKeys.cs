@@ -132,6 +132,11 @@ public static class StringKeys
         public const string RecommendedTooltip = "InfoBadge_Recommended_Tooltip";
         public const string DefaultTooltip = "InfoBadge_Default_Tooltip";
         public const string CustomTooltip = "InfoBadge_Custom_Tooltip";
+
+        // NumericRange quick-set button tooltips (use "{0}" literal placeholder
+        // that is Replace()'d with the target value at runtime).
+        public const string NumericSetToRecommendedTooltip = "InfoBadge_Numeric_SetToRecommended_Tooltip";
+        public const string NumericSetToDefaultTooltip = "InfoBadge_Numeric_SetToDefault_Tooltip";
     }
 
     /// <summary>

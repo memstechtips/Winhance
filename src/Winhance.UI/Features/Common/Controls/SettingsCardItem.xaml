@@ -65,17 +65,35 @@
                 Tag="{x:Bind}"/>
         </DataTemplate>
 
-        <!-- Template for NumericRange settings -->
+        <!-- Template for NumericRange settings.
+             Quick-set buttons flank the spinner; visibility is driven by ShowNumericQuickSetButtons
+             (ShowInfoBadges preference AND a Recommended/Default value is defined). -->
         <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <NumberBox
-                Value="{x:Bind NumericValue, Mode=OneWay}"
-                ValueChanged="{x:Bind OnNumberBoxValueChanged}"
-                Minimum="{x:Bind MinValue}"
-                Maximum="{x:Bind MaxValue}"
-                SpinButtonPlacementMode="Inline"
-                SmallChange="1"
-                LargeChange="10"
-                MinWidth="120"/>
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button
+                    Style="{StaticResource NumericQuickSetRecommendedButtonStyle}"
+                    Command="{x:Bind SetNumericToRecommendedCommand}"
+                    Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind RecommendedValueTooltip, Mode=OneWay}">
+                    <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"/>
+                </Button>
+                <NumberBox
+                    Value="{x:Bind NumericValue, Mode=OneWay}"
+                    ValueChanged="{x:Bind OnNumberBoxValueChanged}"
+                    Minimum="{x:Bind MinValue}"
+                    Maximum="{x:Bind MaxValue}"
+                    SpinButtonPlacementMode="Inline"
+                    SmallChange="1"
+                    LargeChange="10"
+                    MinWidth="120"/>
+                <Button
+                    Style="{StaticResource NumericQuickSetDefaultButtonStyle}"
+                    Command="{x:Bind SetNumericToDefaultCommand}"
+                    Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind DefaultValueTooltip, Mode=OneWay}">
+                    <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"/>
+                </Button>
+            </StackPanel>
         </DataTemplate>
 
         <!-- Template for Action settings -->
@@ -125,47 +143,98 @@
                 ItemTemplate="{StaticResource ComboBoxOptionItemTemplate}"/>
         </DataTemplate>
 
-        <!-- Template for Dual AC/DC Numeric settings (laptop with battery) -->
+        <!-- Template for Dual AC/DC Numeric settings (laptop with battery).
+             Each AC/DC spinner has its own pair of quick-set buttons. AC buttons only
+             touch AcNumericValue; DC buttons only touch DcNumericValue — no cross-touch. -->
         <DataTemplate x:Key="DualNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <StackPanel Spacing="4">
                     <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-                    <NumberBox
-                        Value="{x:Bind AcNumericValue, Mode=OneWay}"
-                        ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
-                        Minimum="{x:Bind MinValue}"
-                        Maximum="{x:Bind MaxValue}"
-                        SpinButtonPlacementMode="Inline"
-                        SmallChange="1"
-                        LargeChange="10"
-                        MinWidth="120"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button
+                            Style="{StaticResource NumericQuickSetRecommendedButtonStyle}"
+                            Command="{x:Bind SetAcNumericToRecommendedCommand}"
+                            Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
+                            <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"/>
+                        </Button>
+                        <NumberBox
+                            Value="{x:Bind AcNumericValue, Mode=OneWay}"
+                            ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
+                            Minimum="{x:Bind MinValue}"
+                            Maximum="{x:Bind MaxValue}"
+                            SpinButtonPlacementMode="Inline"
+                            SmallChange="1"
+                            LargeChange="10"
+                            MinWidth="120"/>
+                        <Button
+                            Style="{StaticResource NumericQuickSetDefaultButtonStyle}"
+                            Command="{x:Bind SetAcNumericToDefaultCommand}"
+                            Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
+                            <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"/>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
                 <StackPanel Spacing="4">
                     <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-                    <NumberBox
-                        Value="{x:Bind DcNumericValue, Mode=OneWay}"
-                        ValueChanged="{x:Bind OnDCNumberBoxValueChanged}"
-                        Minimum="{x:Bind MinValue}"
-                        Maximum="{x:Bind MaxValue}"
-                        SpinButtonPlacementMode="Inline"
-                        SmallChange="1"
-                        LargeChange="10"
-                        MinWidth="120"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button
+                            Style="{StaticResource NumericQuickSetRecommendedButtonStyle}"
+                            Command="{x:Bind SetDcNumericToRecommendedCommand}"
+                            Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            ToolTipService.ToolTip="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}">
+                            <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"/>
+                        </Button>
+                        <NumberBox
+                            Value="{x:Bind DcNumericValue, Mode=OneWay}"
+                            ValueChanged="{x:Bind OnDCNumberBoxValueChanged}"
+                            Minimum="{x:Bind MinValue}"
+                            Maximum="{x:Bind MaxValue}"
+                            SpinButtonPlacementMode="Inline"
+                            SmallChange="1"
+                            LargeChange="10"
+                            MinWidth="120"/>
+                        <Button
+                            Style="{StaticResource NumericQuickSetDefaultButtonStyle}"
+                            Command="{x:Bind SetDcNumericToDefaultCommand}"
+                            Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            ToolTipService.ToolTip="{x:Bind DefaultDcValueTooltip, Mode=OneWay}">
+                            <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"/>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
 
-        <!-- Template for Single AC Numeric settings (desktop without battery) -->
+        <!-- Template for Single AC Numeric settings (desktop without battery).
+             Bound to the AC quick-set commands since the underlying value is AcNumericValue. -->
         <DataTemplate x:Key="SingleACNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <NumberBox
-                Value="{x:Bind AcNumericValue, Mode=OneWay}"
-                ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
-                Minimum="{x:Bind MinValue}"
-                Maximum="{x:Bind MaxValue}"
-                SpinButtonPlacementMode="Inline"
-                SmallChange="1"
-                LargeChange="10"
-                MinWidth="120"/>
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button
+                    Style="{StaticResource NumericQuickSetRecommendedButtonStyle}"
+                    Command="{x:Bind SetAcNumericToRecommendedCommand}"
+                    Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
+                    <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"/>
+                </Button>
+                <NumberBox
+                    Value="{x:Bind AcNumericValue, Mode=OneWay}"
+                    ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
+                    Minimum="{x:Bind MinValue}"
+                    Maximum="{x:Bind MaxValue}"
+                    SpinButtonPlacementMode="Inline"
+                    SmallChange="1"
+                    LargeChange="10"
+                    MinWidth="120"/>
+                <Button
+                    Style="{StaticResource NumericQuickSetDefaultButtonStyle}"
+                    Command="{x:Bind SetAcNumericToDefaultCommand}"
+                    Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
+                    <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"/>
+                </Button>
+            </StackPanel>
         </DataTemplate>
 
         <!-- Template Selector -->

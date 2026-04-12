@@ -223,8 +223,214 @@ public partial class SettingItemViewModel : BaseViewModel
     partial void OnIsInfoBadgeGloballyVisibleChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowInfoBadge));
+        OnPropertyChanged(nameof(ShowNumericQuickSetButtons));
         SyncComboBoxOptionShowPill(value);
     }
+
+    // ───────── NumericRange quick-set buttons (Task B4) ─────────
+    //
+    // Flank every NumericRange spinner with "Set to Recommended" / "Set to Default" buttons.
+    // Visibility follows IsInfoBadgeGloballyVisible (the ShowInfoBadges user preference).
+    // Values come from:
+    //   • RegistrySetting.RecommendedValue / DefaultValue  (primary registry entry)  → NumericValue
+    //   • PowerCfgSetting.RecommendedValueAC / DefaultValueAC (non-separate)         → NumericValue
+    //   • PowerCfgSetting.RecommendedValueAC/DC / DefaultValueAC/DC (Separate)       → AcNumericValue / DcNumericValue
+    //
+    // Tooltips are localized via InfoBadge_Numeric_SetToRecommended_Tooltip /
+    // InfoBadge_Numeric_SetToDefault_Tooltip. The localization string uses a literal "{0}"
+    // token (not .NET composite format), so we use string.Replace at runtime.
+
+    /// <summary>
+    /// Recommended value for the single NumericRange spinner, or null if not available.
+    /// Prefers PowerCfgSetting.RecommendedValueAC (non-separate) and falls back to the
+    /// primary RegistrySetting.RecommendedValue.
+    /// </summary>
+    public int? NumericRecommendedValue
+    {
+        get
+        {
+            if (SettingDefinition == null) return null;
+            // Non-separate PowerCfg uses AC value as the single value
+            var pcfg = SettingDefinition.PowerCfgSettings?
+                .FirstOrDefault(p => p.PowerModeSupport != PowerModeSupport.Separate);
+            if (pcfg?.RecommendedValueAC is int rac) return rac;
+
+            var reg = SettingDefinition.RegistrySettings?
+                .FirstOrDefault(r => r.IsPrimary) ?? SettingDefinition.RegistrySettings?.FirstOrDefault();
+            return TryConvertToInt(reg?.RecommendedValue);
+        }
+    }
+
+    /// <summary>
+    /// Default value for the single NumericRange spinner, or null if not available.
+    /// </summary>
+    public int? NumericDefaultValue
+    {
+        get
+        {
+            if (SettingDefinition == null) return null;
+            var pcfg = SettingDefinition.PowerCfgSettings?
+                .FirstOrDefault(p => p.PowerModeSupport != PowerModeSupport.Separate);
+            if (pcfg?.DefaultValueAC is int dac) return dac;
+
+            var reg = SettingDefinition.RegistrySettings?
+                .FirstOrDefault(r => r.IsPrimary) ?? SettingDefinition.RegistrySettings?.FirstOrDefault();
+            return TryConvertToInt(reg?.DefaultValue);
+        }
+    }
+
+    /// <summary>
+    /// AC-side recommended value for Separate PowerCfg NumericRange settings.
+    /// </summary>
+    public int? AcRecommendedValue =>
+        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC;
+
+    public int? AcDefaultValue =>
+        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC;
+
+    public int? DcRecommendedValue =>
+        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC;
+
+    public int? DcDefaultValue =>
+        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC;
+
+    private static int? TryConvertToInt(object? value)
+    {
+        if (value == null) return null;
+        try { return Convert.ToInt32(value); }
+        catch { return null; }
+    }
+
+    private string FormatNumericTooltip(string key, int value)
+    {
+        var template = _localizationService?.GetString(key);
+        if (!string.IsNullOrEmpty(template))
+            return template.Replace("{0}", value.ToString());
+        // Fallback if the key is missing
+        return key == StringKeys.InfoBadge.NumericSetToRecommendedTooltip
+            ? $"Set to Recommended ({value})"
+            : $"Set to Default ({value})";
+    }
+
+    // Tooltips — computed live so language changes flow through OnLanguageChanged.
+    public string RecommendedValueTooltip =>
+        NumericRecommendedValue is int rec
+            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            : string.Empty;
+
+    public string DefaultValueTooltip =>
+        NumericDefaultValue is int def
+            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            : string.Empty;
+
+    public string RecommendedAcValueTooltip =>
+        AcRecommendedValue is int rec
+            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            : string.Empty;
+
+    public string DefaultAcValueTooltip =>
+        AcDefaultValue is int def
+            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            : string.Empty;
+
+    public string RecommendedDcValueTooltip =>
+        DcRecommendedValue is int rec
+            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            : string.Empty;
+
+    public string DefaultDcValueTooltip =>
+        DcDefaultValue is int def
+            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            : string.Empty;
+
+    /// <summary>
+    /// True when the NumericRange quick-set buttons should be visible: requires the
+    /// global ShowInfoBadges preference to be on AND at least one of Recommended/Default
+    /// to be available for this setting.
+    /// </summary>
+    public bool ShowNumericQuickSetButtons
+    {
+        get
+        {
+            if (!IsInfoBadgeGloballyVisible) return false;
+            if (InputType != InputType.NumericRange) return false;
+            return NumericRecommendedValue.HasValue
+                || NumericDefaultValue.HasValue
+                || AcRecommendedValue.HasValue
+                || AcDefaultValue.HasValue
+                || DcRecommendedValue.HasValue
+                || DcDefaultValue.HasValue;
+        }
+    }
+
+    /// <summary>
+    /// Sets the single NumericValue to the Recommended value and runs the apply path.
+    /// </summary>
+    public IRelayCommand SetNumericToRecommendedCommand => _setNumericToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (NumericRecommendedValue is int v)
+            {
+                NumericValue = v;
+                HandleValueChangedAsync(v).FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setNumericToRecommendedCommand;
+
+    public IRelayCommand SetNumericToDefaultCommand => _setNumericToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (NumericDefaultValue is int v)
+            {
+                NumericValue = v;
+                HandleValueChangedAsync(v).FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setNumericToDefaultCommand;
+
+    public IRelayCommand SetAcNumericToRecommendedCommand => _setAcNumericToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (AcRecommendedValue is int v)
+            {
+                AcNumericValue = v;
+                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setAcNumericToRecommendedCommand;
+
+    public IRelayCommand SetAcNumericToDefaultCommand => _setAcNumericToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (AcDefaultValue is int v)
+            {
+                AcNumericValue = v;
+                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setAcNumericToDefaultCommand;
+
+    public IRelayCommand SetDcNumericToRecommendedCommand => _setDcNumericToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (DcRecommendedValue is int v)
+            {
+                DcNumericValue = v;
+                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setDcNumericToRecommendedCommand;
+
+    public IRelayCommand SetDcNumericToDefaultCommand => _setDcNumericToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (DcDefaultValue is int v)
+            {
+                DcNumericValue = v;
+                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setDcNumericToDefaultCommand;
 
     /// <summary>
     /// Propagates the ShowInfoBadges toggle into each ComboBoxDisplayOption so the
@@ -1357,6 +1563,12 @@ public partial class SettingItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(ClickToUnlockText));
         OnPropertyChanged(nameof(PluggedInText));
         OnPropertyChanged(nameof(OnBatteryText));
+        OnPropertyChanged(nameof(RecommendedValueTooltip));
+        OnPropertyChanged(nameof(DefaultValueTooltip));
+        OnPropertyChanged(nameof(RecommendedAcValueTooltip));
+        OnPropertyChanged(nameof(DefaultAcValueTooltip));
+        OnPropertyChanged(nameof(RecommendedDcValueTooltip));
+        OnPropertyChanged(nameof(DefaultDcValueTooltip));
     }
 
     protected override void Dispose(bool disposing)

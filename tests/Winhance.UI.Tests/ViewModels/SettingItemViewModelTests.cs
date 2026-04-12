@@ -1163,4 +1163,158 @@ public class SettingItemViewModelTests : IDisposable
             InputType = InputType.Selection,
             IsSelected = false,
         };
+
+    // ───────── Task B4: NumericRange quick-set buttons ─────────
+
+    private static SettingDefinition BuildNumericSettingDefinition(
+        string id,
+        object? recommendedValue,
+        object? defaultValue)
+    {
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = id,
+            Description = "",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = null },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
+                    ValueName = "V",
+                    RecommendedValue = recommendedValue,
+                    DefaultValue = defaultValue,
+                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsPrimary = true,
+                },
+            },
+        };
+    }
+
+    private SettingItemViewModelConfig BuildNumericConfig(SettingDefinition def) =>
+        new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.NumericRange,
+            IsSelected = false,
+        };
+
+    private static SettingDefinition BuildPowerCfgSeparateNumericDefinition(
+        string id,
+        int? recAc, int? recDc, int? defAc, int? defDc)
+    {
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = id,
+            Description = "",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = null },
+            PowerCfgSettings = new List<PowerCfgSetting>
+            {
+                new PowerCfgSetting
+                {
+                    PowerModeSupport = PowerModeSupport.Separate,
+                    RecommendedValueAC = recAc,
+                    RecommendedValueDC = recDc,
+                    DefaultValueAC = defAc,
+                    DefaultValueDC = defDc,
+                },
+            },
+        };
+    }
+
+    [Fact]
+    public void SetNumericToRecommendedCommand_NumericRange_SetsNumericValueToRecommended()
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var def = BuildNumericSettingDefinition("numeric-rec", recommendedValue: 100, defaultValue: 0);
+        var sut = CreateSut(BuildNumericConfig(def));
+
+        sut.SetNumericToRecommendedCommand.Execute(null);
+
+        sut.NumericValue.Should().Be(100);
+        _mockSettingApplicationService.Verify(
+            s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.SettingId == "numeric-rec" && (int)r.Value! == 100)),
+            Times.Once);
+    }
+
+    [Fact]
+    public void SetNumericToDefaultCommand_NumericRange_SetsNumericValueToDefault()
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var def = BuildNumericSettingDefinition("numeric-def", recommendedValue: 100, defaultValue: 25);
+        var sut = CreateSut(BuildNumericConfig(def));
+
+        sut.SetNumericToDefaultCommand.Execute(null);
+
+        sut.NumericValue.Should().Be(25);
+        _mockSettingApplicationService.Verify(
+            s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.SettingId == "numeric-def" && (int)r.Value! == 25)),
+            Times.Once);
+    }
+
+    [Fact]
+    public void SetAcNumericToRecommendedCommand_PowerCfgSeparate_OnlySetsAcValue()
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var def = BuildPowerCfgSeparateNumericDefinition("acdc-rec", recAc: 50, recDc: 25, defAc: 0, defDc: 0);
+        var sut = CreateSut(BuildNumericConfig(def));
+        sut.AcNumericValue = 0;
+        sut.DcNumericValue = 0;
+
+        sut.SetAcNumericToRecommendedCommand.Execute(null);
+
+        sut.AcNumericValue.Should().Be(50);
+        sut.DcNumericValue.Should().Be(0, because: "the AC quick-set button must never touch the DC value");
+    }
+
+    [Fact]
+    public void SetDcNumericToDefaultCommand_PowerCfgSeparate_OnlySetsDcValue()
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var def = BuildPowerCfgSeparateNumericDefinition("acdc-def", recAc: 50, recDc: 25, defAc: 100, defDc: 75);
+        var sut = CreateSut(BuildNumericConfig(def));
+        sut.AcNumericValue = 10;
+        sut.DcNumericValue = 20;
+
+        sut.SetDcNumericToDefaultCommand.Execute(null);
+
+        sut.DcNumericValue.Should().Be(75);
+        sut.AcNumericValue.Should().Be(10, because: "the DC quick-set button must never touch the AC value");
+    }
+
+    [Fact]
+    public void ShowNumericQuickSetButtons_ReflectsIsInfoBadgeGloballyVisible()
+    {
+        var def = BuildNumericSettingDefinition("numeric-toggle", recommendedValue: 100, defaultValue: 0);
+        var sut = CreateSut(BuildNumericConfig(def));
+
+        sut.IsInfoBadgeGloballyVisible = false;
+        sut.ShowNumericQuickSetButtons.Should().BeFalse(
+            because: "ShowInfoBadges is off, the quick-set buttons must be hidden");
+
+        sut.IsInfoBadgeGloballyVisible = true;
+        sut.ShowNumericQuickSetButtons.Should().BeTrue(
+            because: "ShowInfoBadges is on AND the setting has Recommended/Default data");
+    }
 }
