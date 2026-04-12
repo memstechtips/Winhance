@@ -55,7 +55,7 @@
     <!-- Icons - Material Design Icons for WinUI3 -->
     <PackageReference Include="Material.Icons.WinUI3" Version="2.4.1" />
     <!-- Icons - Microsoft Fluent System Icons (4000+ icons) -->
-    <PackageReference Include="FluentIcons.WinUI" Version="1.1.271" />
+    <PackageReference Include="FluentIcons.WinUI" Version="2.0.317.1" />
 
     <!-- WinUI Controls - Use 8.2.x for Windows App SDK 1.6+ compatibility -->
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.250402" />
