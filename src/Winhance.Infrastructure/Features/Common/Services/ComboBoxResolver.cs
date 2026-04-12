@@ -12,13 +12,26 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class ComboBoxResolver(
     ISystemSettingsDiscoveryService discoveryService) : IComboBoxResolver
 {
+    private static Dictionary<int, Dictionary<string, object?>>? ValueMappingsView(ComboBoxMetadata? meta)
+    {
+        if (meta?.Options is null) return null;
+        var dict = new Dictionary<int, Dictionary<string, object?>>();
+        for (int i = 0; i < meta.Options.Count; i++)
+        {
+            if (meta.Options[i].ValueMappings is { } vm)
+                dict[i] = vm;
+        }
+        return dict.Count == 0 ? null : dict;
+    }
 
+    private static string[]? DisplayNamesView(ComboBoxMetadata? meta)
+        => meta?.Options?.Select(o => o.DisplayName).ToArray();
 
     public async Task<object?> ResolveCurrentValueAsync(SettingDefinition setting, Dictionary<string, object?>? existingRawValues = null)
     {
         var rawValues = await GetRawValues(setting, existingRawValues).ConfigureAwait(false);
         
-        if (setting.InputType == InputType.Selection && setting.ComboBox?.ValueMappings != null)
+        if (setting.InputType == InputType.Selection && setting.ComboBox?.Options != null)
         {
             return ResolveRawValuesToIndex(setting, rawValues);
         }
@@ -52,12 +65,13 @@ public class ComboBoxResolver(
             return 0;
         }
 
-        if (setting.ComboBox?.ValueMappings == null)
+        if (setting.ComboBox?.Options == null)
         {
             return index;
         }
 
-        if (setting.ComboBox.ValueMappings.TryGetValue(index, out var valueDict))
+        var mappings = ValueMappingsView(setting.ComboBox);
+        if (mappings != null && mappings.TryGetValue(index, out var valueDict))
         {
             var firstValue = valueDict.Values.FirstOrDefault();
             return firstValue is int intVal ? intVal : (firstValue != null ? Convert.ToInt32(firstValue) : index);
@@ -74,7 +88,7 @@ public class ComboBoxResolver(
         if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
             return di;
 
-        if (setting.ComboBox?.ValueMappings == null)
+        if (setting.ComboBox?.Options == null)
         {
             return 0;
         }
@@ -84,7 +98,8 @@ public class ComboBoxResolver(
             return policyIndex is int index ? index : 0;
         }
 
-        var mappings = setting.ComboBox.ValueMappings;
+        var mappings = ValueMappingsView(setting.ComboBox);
+        if (mappings == null) return 0;
         var currentValues = new Dictionary<string, object?>();
 
         if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
@@ -148,12 +163,13 @@ public class ComboBoxResolver(
     {
         var result = new Dictionary<string, object?>();
 
-        if (setting.ComboBox?.ValueMappings == null)
+        if (setting.ComboBox?.Options == null)
         {
             return result;
         }
 
-        if (setting.ComboBox.ValueMappings.TryGetValue(index, out var expectedValues))
+        var mappings = ValueMappingsView(setting.ComboBox);
+        if (mappings != null && mappings.TryGetValue(index, out var expectedValues))
         {
             foreach (var expectedValue in expectedValues)
             {
@@ -166,7 +182,7 @@ public class ComboBoxResolver(
 
     public int GetIndexFromDisplayName(SettingDefinition setting, string displayName)
     {
-        if (setting.ComboBox?.DisplayNames is { } displayNames)
+        if (DisplayNamesView(setting.ComboBox) is { } displayNames)
         {
             for (int i = 0; i < displayNames.Length; i++)
             {
