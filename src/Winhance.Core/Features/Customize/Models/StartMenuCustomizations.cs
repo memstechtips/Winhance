@@ -59,34 +59,31 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_Layout",
-                            RecommendedValue = 1, // More Pins
-                            DefaultValue = 0, // Windows default is default layout
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Default",
-                            RecommendedOption = "More pins",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Default",
-                            "More pins",
-                            "More recommendations",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> // Default
+                            new ComboBoxOption
                             {
-                                ["Start_Layout"] = 0,
+                                DisplayName = "Default",
+                                ValueMappings = new Dictionary<string, object?> { ["Start_Layout"] = 0 },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?> // More pins
+                            new ComboBoxOption
                             {
-                                ["Start_Layout"] = 1,
+                                DisplayName = "More pins",
+                                ValueMappings = new Dictionary<string, object?> { ["Start_Layout"] = 1 },
+                                IsRecommended = true,
                             },
-                            [2] = new Dictionary<string, object?> // More recommendations
+                            new ComboBoxOption
                             {
-                                ["Start_Layout"] = 2,
+                                DisplayName = "More recommendations",
+                                ValueMappings = new Dictionary<string, object?> { ["Start_Layout"] = 2 },
                             },
                         },
                     },
@@ -107,7 +104,7 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideRecommendedSection",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -116,7 +113,7 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideRecommendedSection",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -125,7 +122,7 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
                             ValueName = "HideRecommendedSection",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -133,25 +130,34 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Education",
                             ValueName = "IsEducationEnvironment",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[] { "Show", "Hide" },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                        Options = new[]
                         {
-                            [0] = new Dictionary<string, object?> // Show (delete registry values)
+                            new ComboBoxOption
                             {
-                                ["HideRecommendedSection"] = null, // Delete
-                                ["IsEducationEnvironment"] = null, // Delete
+                                DisplayName = "Show",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["HideRecommendedSection"] = null, // Delete
+                                    ["IsEducationEnvironment"] = null, // Delete
+                                },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?> // Hide (set registry values)
+                            new ComboBoxOption
                             {
-                                ["HideRecommendedSection"] = 1, // Set to 1
-                                ["IsEducationEnvironment"] = 1, // Set to 1
+                                DisplayName = "Hide",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["HideRecommendedSection"] = 1, // Set to 1
+                                    ["IsEducationEnvironment"] = 1, // Set to 1
+                                },
+                                IsRecommended = true,
                             },
                         },
                     },
