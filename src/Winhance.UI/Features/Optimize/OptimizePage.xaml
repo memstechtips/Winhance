@@ -170,7 +170,7 @@
             <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE945;" FontSize="14"/>
+                        <fluentIcons:SymbolIcon Symbol="Flash" IconVariant="Regular" FontSize="14"/>
                         <TextBlock x:Name="QuickActionsLabel" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DropDownButton.Content>
