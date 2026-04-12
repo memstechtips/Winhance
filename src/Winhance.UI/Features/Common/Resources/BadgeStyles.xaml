@@ -47,6 +47,25 @@
         <Setter Property="BorderBrush" Value="#40F0A030"/>
     </Style>
 
+    <!-- ==================== ComboBox Option Pill Styles ==================== -->
+    <!--
+    Used by the Selection ComboBox ItemTemplate to highlight Recommended / Default
+    options in the open dropdown list. Height auto-follows the text so the pill fits
+    inside a ComboBoxItem row. SelectionBoxItemTemplate is intentionally left at the
+    default TextBlock so the CLOSED dropdown shows no pill.
+    -->
+    <Style x:Key="ComboBoxOptionRecommendedPillStyle" TargetType="Border" BasedOn="{StaticResource BadgeRecommendedStyle}">
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style x:Key="ComboBoxOptionDefaultPillStyle" TargetType="Border" BasedOn="{StaticResource BadgeDefaultStyle}">
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+
     <!-- ==================== Foreground Brushes ==================== -->
     <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
     <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>

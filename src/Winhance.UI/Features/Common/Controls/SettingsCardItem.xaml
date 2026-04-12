@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
+    xmlns:interfaces="using:Winhance.Core.Features.Common.Interfaces"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
     <!--
@@ -17,6 +18,20 @@
         <!-- ComboBoxEx needs explicit style inheritance to maintain rounded corners -->
         <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
 
+        <!--
+        ItemTemplate used by the three regular Selection ComboBoxes
+        (SelectionSettingTemplate, DualSelectionSettingTemplate, SingleACSelectionSettingTemplate).
+        ComboBoxOptionPill inspects its visual ancestry at load time: when hosted inside a
+        ComboBoxItem (the OPEN dropdown), it paints a Recommended / Default pill background
+        depending on the bound option flags + UserPreferences.ShowInfoBadges. When hosted in
+        the ComboBox selection box (no ComboBoxItem ancestor), it clears the pill so the CLOSED
+        dropdown stays plain — spec requirement. SelectionBoxItemTemplate is read-only in WinUI 3
+        (WMC0050) so we cannot set a separate template; the ancestor check is the workaround.
+        -->
+        <DataTemplate x:Key="ComboBoxOptionItemTemplate" x:DataType="interfaces:ComboBoxDisplayOption">
+            <local:ComboBoxOptionPill/>
+        </DataTemplate>
+
         <!-- Template for Toggle settings -->
         <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <ToggleSwitch
@@ -26,7 +41,11 @@
                 OffContent="{x:Bind OffText}"/>
         </DataTemplate>
 
-        <!-- Template for Selection settings - uses ComboBoxEx to fix dropdown positioning issues -->
+        <!-- Template for Selection settings - uses ComboBoxEx to fix dropdown positioning issues.
+             ItemTemplate uses ComboBoxOptionPill which paints a pill only when hosted inside
+             a ComboBoxItem (OPEN dropdown). The CLOSED selection box stays plain text per the
+             Recommended/Default state-model spec.
+             Note: DisplayMemberPath is omitted because it conflicts with ItemTemplate. -->
         <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <local:ComboBoxEx
                 ItemsSource="{x:Bind ComboBoxOptions}"
@@ -34,7 +53,7 @@
                 SelectionChanged="{x:Bind OnComboBoxSelectionChanged}"
                 DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
                 SelectedValuePath="Value"
-                DisplayMemberPath="DisplayText"/>
+                ItemTemplate="{StaticResource ComboBoxOptionItemTemplate}"/>
         </DataTemplate>
 
         <!-- Template for PowerPlan selection settings -->
@@ -82,7 +101,7 @@
                         ItemsSource="{x:Bind ComboBoxOptions}"
                         SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
                         DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
-                        DisplayMemberPath="DisplayText"
+                        ItemTemplate="{StaticResource ComboBoxOptionItemTemplate}"
                         MinWidth="100"/>
                 </StackPanel>
                 <StackPanel Spacing="4">
@@ -91,7 +110,7 @@
                         ItemsSource="{x:Bind ComboBoxOptions}"
                         SelectedIndex="{x:Bind DcValue, Mode=OneWay}"
                         DropDownClosed="{x:Bind OnDCComboBoxDropDownClosed}"
-                        DisplayMemberPath="DisplayText"
+                        ItemTemplate="{StaticResource ComboBoxOptionItemTemplate}"
                         MinWidth="100"/>
                 </StackPanel>
             </StackPanel>
@@ -103,7 +122,7 @@
                 ItemsSource="{x:Bind ComboBoxOptions}"
                 SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
                 DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
-                DisplayMemberPath="DisplayText"/>
+                ItemTemplate="{StaticResource ComboBoxOptionItemTemplate}"/>
         </DataTemplate>
 
         <!-- Template for Dual AC/DC Numeric settings (laptop with battery) -->

@@ -223,6 +223,26 @@ public partial class SettingItemViewModel : BaseViewModel
     partial void OnIsInfoBadgeGloballyVisibleChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowInfoBadge));
+        SyncComboBoxOptionShowPill(value);
+    }
+
+    /// <summary>
+    /// Propagates the ShowInfoBadges toggle into each ComboBoxDisplayOption so the
+    /// open-dropdown pill background follows the global preference in real time.
+    /// </summary>
+    private void SyncComboBoxOptionShowPill(bool showBadges)
+    {
+        if (ComboBoxOptions == null) return;
+        foreach (var option in ComboBoxOptions)
+        {
+            option.ShowPill = showBadges;
+        }
+    }
+
+    partial void OnComboBoxOptionsChanged(ObservableCollection<ComboBoxDisplayOption> value)
+    {
+        // When a fresh collection is assigned, sync each option to the current global flag.
+        SyncComboBoxOptionShowPill(IsInfoBadgeGloballyVisible);
     }
 
     partial void OnBadgeStateChanged(SettingBadgeState value)

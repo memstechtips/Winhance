@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.ComboBoxOptionPill"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    Renders a single ComboBox option. Used by the shared ComboBoxOptionItemTemplate.
+    In the open dropdown (hosted inside a ComboBoxItem), the pill Border is styled
+    green / grey when the option is Recommended / Default and ShowInfoBadges is on.
+    In the closed selection box (NOT hosted inside a ComboBoxItem), the pill style
+    is cleared so the selected option renders as plain text — the spec requires the
+    closed selection box to stay plain regardless of flag state.
+    -->
+    <Border x:Name="PillBorder"
+            ToolTipService.ToolTip="{x:Null}">
+        <TextBlock x:Name="PillText" VerticalAlignment="Center"/>
+    </Border>
+</UserControl>

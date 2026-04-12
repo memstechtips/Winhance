@@ -78,7 +78,11 @@ public class ComboBoxSetupService(
             result.Options.Add(new ComboBoxDisplayOption(
                 options[i].DisplayName,
                 i,
-                options[i].Tooltip));
+                options[i].Tooltip)
+            {
+                IsRecommended = options[i].IsRecommended,
+                IsDefault = options[i].IsDefault,
+            });
         }
 
         if (supportsCustomState && isCustomState)
