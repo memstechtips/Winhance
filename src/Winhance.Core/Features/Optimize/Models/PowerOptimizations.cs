@@ -111,6 +111,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "desktop-slideshow",
+                    IsSubjectivePreference = true,
                     Name = "Desktop Background Slide Show",
                     Description = "Allow or prevent Windows from rotating through multiple wallpaper images",
                     GroupName = "Desktop Background Settings",

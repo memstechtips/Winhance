@@ -50,6 +50,7 @@ public static class SoundOptimizations
                 new SettingDefinition
                 {
                     Id = "sound-communication-ducking",
+                    IsSubjectivePreference = true,
                     Name = "Sound Ducking Preference",
                     Description = "Automatically lower volume of media and apps when Windows detects communication activity",
                     GroupName = "System Sounds",
@@ -90,7 +91,6 @@ public static class SoundOptimizations
                             {
                                 DisplayName = "Do nothing",
                                 ValueMappings = new Dictionary<string, object?> { ["UserDuckingPreference"] = 3 },
-                                IsRecommended = true,
                             },
                         },
                     },

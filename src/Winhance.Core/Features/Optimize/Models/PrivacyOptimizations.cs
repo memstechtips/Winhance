@@ -18,6 +18,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-uac-level",
+                    IsSubjectivePreference = true,
                     Name = "User Account Control Level",
                     Description = "Controls UAC notification level and secure desktop behavior",
                     GroupName = "Security",
@@ -95,7 +96,6 @@ public static class PrivacyAndSecurityOptimizations
                                     ["ConsentPromptBehaviorAdmin"] = 0,
                                     ["PromptOnSecureDesktop"] = 0,
                                 },
-                                IsRecommended = true,
                             },
                         },
                         SupportsCustomState = true,
@@ -274,6 +274,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-smart-app-control",
+                    IsSubjectivePreference = true,
                     Name = "Smart App Control",
                     Description = "Controls the Smart App Control feature which blocks untrusted and potentially dangerous applications",
                     GroupName = "Security",
@@ -301,7 +302,6 @@ public static class PrivacyAndSecurityOptimizations
                             {
                                 DisplayName = "Off",
                                 ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 0 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -343,6 +343,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-powershell-execution-policy",
+                    IsSubjectivePreference = true,
                     Name = "PowerShell Execution Policy",
                     Description = "Controls whether PowerShell scripts are allowed to run and under what conditions for both the current user and the local machine",
                     GroupName = "Security",
@@ -391,7 +392,6 @@ public static class PrivacyAndSecurityOptimizations
                             {
                                 DisplayName = "RemoteSigned",
                                 ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "RemoteSigned" },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -409,6 +409,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-ads-promotional-master",
+                    IsSubjectivePreference = true,
                     Name = "Ads, Suggestions and Promotional Content",
                     Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
                     GroupName = "Content Delivery & Advertising",
@@ -439,7 +440,6 @@ public static class PrivacyAndSecurityOptimizations
                             {
                                 DisplayName = "Deny",
                                 ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 1 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {

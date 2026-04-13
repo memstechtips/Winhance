@@ -889,6 +889,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-dns-server",
+                    IsSubjectivePreference = true,
                     Name = "DNS Server",
                     Description = "Select a DNS server for all network adapters. Changes apply to every adapter on your system (Wi-Fi and Ethernet). Use Automatic to restore your default ISP/router DNS",
                     GroupName = "Network",
@@ -904,7 +905,6 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "Setting_gaming-dns-server_Option_0",
                                 Script = ScriptOption.Disabled,
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
