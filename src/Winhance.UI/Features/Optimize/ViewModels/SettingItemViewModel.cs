@@ -206,6 +206,7 @@ public partial class SettingItemViewModel : BaseViewModel
         SettingBadgeState.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
         SettingBadgeState.Default => _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
         SettingBadgeState.Custom => _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
+        SettingBadgeState.Preference => _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
         _ => ""
     };
 
@@ -217,6 +218,7 @@ public partial class SettingItemViewModel : BaseViewModel
         SettingBadgeState.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "The Recommended values are applied for this setting",
         SettingBadgeState.Default => _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "The Default Windows values are applied for this setting",
         SettingBadgeState.Custom => _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom values are applied for this setting",
+        SettingBadgeState.Preference => _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "This is a personal preference — Winhance has no recommended value here",
         _ => ""
     };
 
