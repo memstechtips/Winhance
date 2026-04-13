@@ -14,7 +14,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// </list>
 /// Style resources are looked up from <see cref="Application.Current"/> to keep the converter lightweight.
 /// </summary>
-public partial class ComboBoxOptionToPillStyleConverter : IValueConverter
+public sealed partial class ComboBoxOptionToPillStyleConverter : IValueConverter
 {
     internal const string RecommendedStyleKey = "ComboBoxOptionRecommendedPillStyle";
     internal const string DefaultStyleKey = "ComboBoxOptionDefaultPillStyle";

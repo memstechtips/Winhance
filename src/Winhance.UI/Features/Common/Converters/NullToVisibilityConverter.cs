@@ -6,7 +6,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// <summary>
 /// Converts null values to Visible visibility and non-null values to Collapsed.
 /// </summary>
-public partial class NullToVisibilityConverter : IValueConverter
+public sealed partial class NullToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {

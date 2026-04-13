@@ -13,7 +13,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// Default uses <c>PathIcon</c>. This selector keeps that heterogeneity out of the
 /// consumer's XAML. Templates are set at resource-declaration time in BadgeStyles.xaml.
 /// </remarks>
-public partial class BadgeIconTemplateSelector : DataTemplateSelector
+public sealed partial class BadgeIconTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? RecommendedTemplate { get; set; }
     public DataTemplate? DefaultTemplate { get; set; }
