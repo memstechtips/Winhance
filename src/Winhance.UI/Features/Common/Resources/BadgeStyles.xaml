@@ -47,6 +47,11 @@
         <Setter Property="BorderBrush" Value="#40F0A030"/>
     </Style>
 
+    <Style x:Key="BadgePreferenceStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background" Value="#2280B3FF"/>
+        <Setter Property="BorderBrush" Value="#4080B3FF"/>
+    </Style>
+
     <!-- ==================== ComboBox Option Pill Styles ==================== -->
     <!--
     Used by the Selection ComboBox ItemTemplate to highlight Recommended / Default
@@ -70,6 +75,7 @@
     <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
     <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>
     <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFF0A030"/>
+    <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
 
     <!-- ==================== Text Style ==================== -->
     <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
@@ -115,6 +121,16 @@
                     Foreground="{StaticResource BadgeCustomForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.CustomTemplate>
+        <converters:BadgeIconTemplateSelector.PreferenceTemplate>
+            <DataTemplate>
+                <FontIcon
+                    Glyph="&#xE77B;"
+                    FontSize="12"
+                    VerticalAlignment="Center"
+                    Margin="0,4,4,0"
+                    Foreground="{StaticResource BadgePreferenceForeground}"/>
+            </DataTemplate>
+        </converters:BadgeIconTemplateSelector.PreferenceTemplate>
     </converters:BadgeIconTemplateSelector>
 
     <!-- ==================== NumericRange Quick-Set Buttons (Task B4) ==================== -->
