@@ -5,6 +5,54 @@
     xmlns:converters="using:Winhance.UI.Features.Common.Converters"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
+    <ResourceDictionary.ThemeDictionaries>
+
+        <ResourceDictionary x:Key="Dark">
+            <!-- Recommended: green -->
+            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#224EC94E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#404EC94E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
+
+            <!-- Default: subtle light grey -->
+            <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#12FFFFFF"/>
+            <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#24FFFFFF"/>
+            <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>
+
+            <!-- Custom: amber -->
+            <SolidColorBrush x:Key="BadgeCustomBackground" Color="#22F0A030"/>
+            <SolidColorBrush x:Key="BadgeCustomBorder"     Color="#40F0A030"/>
+            <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFF0A030"/>
+
+            <!-- Preference: blue -->
+            <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#2280B3FF"/>
+            <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#4080B3FF"/>
+            <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <!-- Recommended: darker green for legibility on white -->
+            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#222E7A2E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#402E7A2E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF2E7A2E"/>
+
+            <!-- Default: dark on light — fixes pre-existing invisibility bug -->
+            <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#10000000"/>
+            <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#33000000"/>
+            <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99000000"/>
+
+            <!-- Custom: darker amber -->
+            <SolidColorBrush x:Key="BadgeCustomBackground" Color="#22B36800"/>
+            <SolidColorBrush x:Key="BadgeCustomBorder"     Color="#40B36800"/>
+            <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFB36800"/>
+
+            <!-- Preference: darker blue -->
+            <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#221E5FBF"/>
+            <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#401E5FBF"/>
+            <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF1E5FBF"/>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
     <!--
     BadgeStyles.xaml
     Centralized visual definition for the SettingsCard InfoBadge pill.
@@ -33,23 +81,23 @@
 
     <!-- ==================== State-Specific Pill Styles ==================== -->
     <Style x:Key="BadgeRecommendedStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background" Value="#224EC94E"/>
-        <Setter Property="BorderBrush" Value="#404EC94E"/>
+        <Setter Property="Background"  Value="{ThemeResource BadgeRecommendedBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeRecommendedBorder}"/>
     </Style>
 
     <Style x:Key="BadgeDefaultStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background" Value="#12FFFFFF"/>
-        <Setter Property="BorderBrush" Value="#24FFFFFF"/>
+        <Setter Property="Background"  Value="{ThemeResource BadgeDefaultBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeDefaultBorder}"/>
     </Style>
 
     <Style x:Key="BadgeCustomStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background" Value="#22F0A030"/>
-        <Setter Property="BorderBrush" Value="#40F0A030"/>
+        <Setter Property="Background"  Value="{ThemeResource BadgeCustomBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
     </Style>
 
     <Style x:Key="BadgePreferenceStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background" Value="#2280B3FF"/>
-        <Setter Property="BorderBrush" Value="#4080B3FF"/>
+        <Setter Property="Background"  Value="{ThemeResource BadgePreferenceBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
     </Style>
 
     <!-- ==================== ComboBox Option Pill Styles ==================== -->
@@ -71,12 +119,6 @@
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
 
-    <!-- ==================== Foreground Brushes ==================== -->
-    <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
-    <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>
-    <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFF0A030"/>
-    <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
-
     <!-- ==================== Text Style ==================== -->
     <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11"/>
@@ -96,7 +138,7 @@
                     FontSize="12"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
-                    Foreground="{StaticResource BadgeRecommendedForeground}"/>
+                    Foreground="{ThemeResource BadgeRecommendedForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.RecommendedTemplate>
         <converters:BadgeIconTemplateSelector.DefaultTemplate>
@@ -107,7 +149,7 @@
                     Margin="0,4,4,0"
                     Height="12"
                     Width="12"
-                    Foreground="{StaticResource BadgeDefaultForeground}"/>
+                    Foreground="{ThemeResource BadgeDefaultForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.DefaultTemplate>
         <converters:BadgeIconTemplateSelector.CustomTemplate>
@@ -118,7 +160,7 @@
                     FontSize="12"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
-                    Foreground="{StaticResource BadgeCustomForeground}"/>
+                    Foreground="{ThemeResource BadgeCustomForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.CustomTemplate>
         <converters:BadgeIconTemplateSelector.PreferenceTemplate>
@@ -128,7 +170,7 @@
                     FontSize="12"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
-                    Foreground="{StaticResource BadgePreferenceForeground}"/>
+                    Foreground="{ThemeResource BadgePreferenceForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.PreferenceTemplate>
     </converters:BadgeIconTemplateSelector>
@@ -154,12 +196,12 @@
 
     <Style x:Key="NumericQuickSetRecommendedButtonStyle" TargetType="Button"
            BasedOn="{StaticResource NumericQuickSetButtonBase}">
-        <Setter Property="Foreground" Value="{StaticResource BadgeRecommendedForeground}"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
     </Style>
 
     <Style x:Key="NumericQuickSetDefaultButtonStyle" TargetType="Button"
            BasedOn="{StaticResource NumericQuickSetButtonBase}">
-        <Setter Property="Foreground" Value="{StaticResource BadgeDefaultForeground}"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
     </Style>
 
 </ResourceDictionary>
