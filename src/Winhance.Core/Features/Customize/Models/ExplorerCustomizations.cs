@@ -2229,6 +2229,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "dd/MM/yyyy",
                                 ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "dd/MM/yyyy" },
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2284,6 +2285,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "Monday",
                                 ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "0" },
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2349,6 +2351,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ", (Comma)",
                                 ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "," },
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2399,6 +2402,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "; (Semicolon)",
                                 ValueMappings = new Dictionary<string, object?> { ["sList"] = ";" },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -2440,6 +2444,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "U.S. (Imperial)",
                                 ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -2480,6 +2485,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ", (Comma)",
                                 ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
