@@ -18,6 +18,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-shortcut-suffix",
+                    IsSubjectivePreference = true,
                     Name = "Shortcut Naming",
                     Description = "Controls whether Windows appends '- Shortcut' text to newly created shortcut file names",
                     GroupName = "Desktop",
@@ -43,7 +44,6 @@ public static class ExplorerCustomizations
                             {
                                 DisplayName = "Keep '- Shortcut' suffix",
                                 ValueMappings = new Dictionary<string, object?> { ["link"] = null },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -57,6 +57,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-shortcut-arrow",
+                    IsSubjectivePreference = true,
                     Name = "Shortcut Arrow Icon",
                     Description = "Controls the small arrow overlay on desktop shortcut icons",
                     GroupName = "Desktop",
@@ -101,7 +102,6 @@ if (-not (Test-Path $icoPath)) {
                                 DisplayName = "Show arrow icon",
                                 ValueMappings = new Dictionary<string, object?> { ["29"] = null },
                                 Script = ScriptOption.Disabled,
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -771,6 +771,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-launch-to",
+                    IsSubjectivePreference = true,
                     Name = "Open File Explorer to",
                     Description = "Choose what happens when File Explorer is opened",
                     GroupName = "General",
@@ -802,7 +803,6 @@ if (-not (Test-Path $icoPath)) {
                             {
                                 DisplayName = "This PC",
                                 ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 1 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -820,6 +820,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-browse-folders",
+                    IsSubjectivePreference = true,
                     Name = "Browse folders",
                     Description = "Choose whether each folder opens in the same window or in its own window",
                     GroupName = "General",
@@ -848,7 +849,6 @@ if (-not (Test-Path $icoPath)) {
                             {
                                 DisplayName = "Open each folder in the same window",
                                 ValueMappings = new Dictionary<string, object?> { ["Settings"] = 0 },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -862,6 +862,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-click-items",
+                    IsSubjectivePreference = true,
                     Name = "Click items as follows",
                     Description = "Choose whether to open files and folders with a single click (like web links) or double-click (traditional)",
                     GroupName = "General",
@@ -902,7 +903,6 @@ if (-not (Test-Path $icoPath)) {
                                     ["ShellState"] = 1,
                                     ["IconUnderline"] = 3,
                                 },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -1674,6 +1674,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-typing-behavior",
+                    IsSubjectivePreference = true,
                     Name = "When typing into list view",
                     Description = "Chooses whether typing selects matching items or searches automatically",
                     GroupName = "Files and Folders",
@@ -1698,7 +1699,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "Select the typed item in the view",
                                 ValueMappings = new Dictionary<string, object?> { ["TypeAhead"] = 0 },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
