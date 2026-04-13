@@ -130,10 +130,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-browse-folders": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -146,10 +143,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-click-items": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -167,10 +161,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-currency-decimal": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -188,10 +179,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-first-day-of-week": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -244,10 +232,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-launch-to": {
-    "Recommended": {
-      "kind": "index",
-      "value": 1
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -260,10 +245,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-list-separator": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -271,10 +253,7 @@
     "InputType": "Selection"
   },
   "explorer-customization-measurement-system": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -332,10 +311,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-number-decimal": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -368,10 +344,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-short-date": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -379,10 +352,7 @@
     "InputType": "Selection"
   },
   "explorer-customization-shortcut-arrow": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -390,10 +360,7 @@
     "InputType": "Selection"
   },
   "explorer-customization-shortcut-suffix": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -451,10 +418,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-typing-behavior": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -582,10 +546,7 @@
     "InputType": "Toggle"
   },
   "gaming-dns-server": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -1374,10 +1335,7 @@
     "InputType": "Toggle"
   },
   "privacy-ads-promotional-master": {
-    "Recommended": {
-      "kind": "index",
-      "value": 1
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 2
@@ -1845,10 +1803,7 @@
     "InputType": "Toggle"
   },
   "security-powershell-execution-policy": {
-    "Recommended": {
-      "kind": "index",
-      "value": 2
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -1861,10 +1816,7 @@
     "InputType": "Toggle"
   },
   "security-smart-app-control": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 2
@@ -1872,10 +1824,7 @@
     "InputType": "Selection"
   },
   "security-uac-level": {
-    "Recommended": {
-      "kind": "index",
-      "value": 4
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 2
@@ -1918,10 +1867,7 @@
     "InputType": "Toggle"
   },
   "sound-communication-ducking": {
-    "Recommended": {
-      "kind": "index",
-      "value": 3
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 1
@@ -1964,10 +1910,7 @@
     "InputType": "Action"
   },
   "start-menu-layout": {
-    "Recommended": {
-      "kind": "index",
-      "value": 1
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -1995,10 +1938,7 @@
     "InputType": "Toggle"
   },
   "start-recommended-section": {
-    "Recommended": {
-      "kind": "index",
-      "value": 1
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -2046,10 +1986,7 @@
     "InputType": "Selection"
   },
   "taskbar-alignment": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 1
@@ -2072,10 +2009,7 @@
     "InputType": "Toggle"
   },
   "taskbar-button-size": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -2088,10 +2022,7 @@
     "InputType": "Action"
   },
   "taskbar-combine-buttons": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
@@ -2174,10 +2105,7 @@
     "InputType": "Toggle"
   },
   "taskbar-search-box-10": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 2
@@ -2185,10 +2113,7 @@
     "InputType": "Selection"
   },
   "taskbar-search-box-11": {
-    "Recommended": {
-      "kind": "index",
-      "value": 0
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 3
@@ -2247,10 +2172,7 @@
     "InputType": "Toggle"
   },
   "theme-mode-windows": {
-    "Recommended": {
-      "kind": "index",
-      "value": 1
-    },
+    "Recommended": null,
     "Default": {
       "kind": "index",
       "value": 0
