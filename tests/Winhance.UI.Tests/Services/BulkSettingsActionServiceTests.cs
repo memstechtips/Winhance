@@ -201,9 +201,10 @@ public class BulkSettingsActionServiceTests
         vm.SelectedValue = selectedOption.ValueMappings!["V"];
         vm.ComputeBadgeState();
 
-        vm.BadgeState.Should().Be(SettingBadgeKind.Recommended,
+        vm.BadgeRow.Should().Contain(
+            p => p.Kind == SettingBadgeKind.Recommended && p.IsHighlighted,
             because: "ApplyRecommended wrote the IsRecommended option index, and ComputeBadgeState " +
-                     "must agree that the effective selection is Recommended.");
+                     "must agree that the effective selection matches Recommended.");
     }
 
     [Fact]
@@ -228,9 +229,10 @@ public class BulkSettingsActionServiceTests
         vm.SelectedValue = selectedOption.ValueMappings!["V"];
         vm.ComputeBadgeState();
 
-        vm.BadgeState.Should().Be(SettingBadgeKind.Default,
+        vm.BadgeRow.Should().Contain(
+            p => p.Kind == SettingBadgeKind.Default && p.IsHighlighted,
             because: "ResetToDefault wrote the IsDefault option index, and ComputeBadgeState " +
-                     "must agree that the effective selection is Default.");
+                     "must agree that the effective selection matches Default.");
     }
 
     // ── SettingItemViewModel construction helper (mirrors SettingItemViewModelTests) ──

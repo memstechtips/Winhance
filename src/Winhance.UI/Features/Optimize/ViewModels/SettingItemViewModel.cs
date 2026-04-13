@@ -188,7 +188,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial bool IsInfoBadgeGloballyVisible { get; set; }
 
     [ObservableProperty]
-    public partial SettingBadgeKind BadgeState { get; set; }
+    public partial IReadOnlyList<BadgePillState> BadgeRow { get; set; } = Array.Empty<BadgePillState>();
 
     /// <summary>
     /// True if the setting has RecommendedValue/DefaultValue data to compare against.
@@ -197,30 +197,6 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool HasBadgeData { get; set; }
 
     public bool ShowInfoBadge => IsInfoBadgeGloballyVisible && HasBadgeData;
-
-    /// <summary>
-    /// Localized short label shown inside the badge pill ("Recommended", "Default", "Custom").
-    /// </summary>
-    public string BadgeLabel => BadgeState switch
-    {
-        SettingBadgeKind.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-        SettingBadgeKind.Default => _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-        SettingBadgeKind.Custom => _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-        SettingBadgeKind.Preference => _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
-        _ => ""
-    };
-
-    /// <summary>
-    /// Localized long-form tooltip shown when hovering the badge pill.
-    /// </summary>
-    public string BadgeTooltip => BadgeState switch
-    {
-        SettingBadgeKind.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "The Recommended values are applied for this setting",
-        SettingBadgeKind.Default => _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "The Default Windows values are applied for this setting",
-        SettingBadgeKind.Custom => _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom values are applied for this setting",
-        SettingBadgeKind.Preference => _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "This is a personal preference — Winhance has no recommended value here",
-        _ => ""
-    };
 
     partial void OnIsInfoBadgeGloballyVisibleChanged(bool value)
     {
@@ -451,12 +427,6 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         // When a fresh collection is assigned, sync each option to the current global flag.
         SyncComboBoxOptionShowPill(IsInfoBadgeGloballyVisible);
-    }
-
-    partial void OnBadgeStateChanged(SettingBadgeKind value)
-    {
-        OnPropertyChanged(nameof(BadgeLabel));
-        OnPropertyChanged(nameof(BadgeTooltip));
     }
 
     // Advanced unlock support
@@ -1386,14 +1356,32 @@ public partial class SettingItemViewModel : BaseViewModel
             }
         }
 
-        if (matchesRecommended)
-            BadgeState = SettingDefinition.IsSubjectivePreference
-                ? SettingBadgeKind.Preference
-                : SettingBadgeKind.Recommended;
-        else if (matchesDefault)
-            BadgeState = SettingBadgeKind.Default;
-        else
-            BadgeState = SettingBadgeKind.Custom;
+        var row = new List<BadgePillState>(capacity: 4);
+
+        if (SettingDefinition.IsSubjectivePreference)
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Preference);
+            row.Add(new BadgePillState(SettingBadgeKind.Preference, IsHighlighted: true, label, tooltip));
+        }
+
+        if (HasAnyRecommendedData())
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended);
+            row.Add(new BadgePillState(SettingBadgeKind.Recommended, IsHighlighted: matchesRecommended, label, tooltip));
+        }
+
+        if (HasAnyDefaultData())
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default);
+            row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
+        }
+
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: !IsKnownSelectionValue(), label, tooltip));
+        }
+
+        BadgeRow = row;
     }
 
     private (bool matchesRecommended, bool matchesDefault) EvaluateRegistrySetting(RegistrySetting reg)
@@ -1441,39 +1429,22 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         else if (InputType == InputType.Selection)
         {
-            // Recommended/Default for Selection lives on ComboBoxMetadata.Options[i].
-            // SelectedValue is the option index; compare indices directly.
-            // If one option has both flags, matches for both are set — the caller's
-            // if/else-if chain picks Recommended first (tiebreak: Recommended wins).
-            //
-            // When the SettingDefinition is flagged IsSubjectivePreference, Winhance has
-            // no opinion on which option is "correct" — any well-known option index
-            // yields Preference (mapped in the caller's assignment block); an unmapped
-            // SelectedValue yields Custom.
+            // Recommended/Default live on ComboBoxOption flags. Multiple options may carry
+            // either flag (e.g. measurement-system marks both Metric and Imperial IsDefault
+            // because the factory default depends on locale). We light the pill whenever
+            // the currently-selected option has the flag — no special-casing for subjective
+            // settings; the Preference pill is added separately at row-build time.
             var options = SettingDefinition.ComboBox?.Options;
-            if (options != null && SelectedValue is int currentIndex)
+            if (options != null && SelectedValue is int currentIndex
+                && currentIndex >= 0 && currentIndex < options.Count)
             {
-                if (SettingDefinition.IsSubjectivePreference)
-                {
-                    bool knownOption = currentIndex >= 0 && currentIndex < options.Count;
-                    matchesRecommended = knownOption;
-                    matchesDefault = false;
-                }
-                else
-                {
-                    int? recommendedIndex = null;
-                    int? defaultIndex = null;
-                    for (int i = 0; i < options.Count; i++)
-                    {
-                        if (recommendedIndex == null && options[i].IsRecommended) recommendedIndex = i;
-                        if (defaultIndex == null && options[i].IsDefault) defaultIndex = i;
-                    }
-                    matchesRecommended = recommendedIndex.HasValue && currentIndex == recommendedIndex.Value;
-                    matchesDefault = defaultIndex.HasValue && currentIndex == defaultIndex.Value;
-                }
+                matchesRecommended = options.Any(o => o.IsRecommended) && options[currentIndex].IsRecommended;
+                matchesDefault    = options.Any(o => o.IsDefault)     && options[currentIndex].IsDefault;
             }
             else
             {
+                // Unmapped value or missing options — no match. Custom pill handles the
+                // "unmapped" signal at row-build level.
                 matchesRecommended = false;
                 matchesDefault = false;
             }
@@ -1532,6 +1503,61 @@ public partial class SettingItemViewModel : BaseViewModel
         return false;
     }
 
+    private bool HasAnyRecommendedData()
+    {
+        if (SettingDefinition.RegistrySettings.Any(r => r.RecommendedValue != null))
+            return true;
+        if (InputType == InputType.Selection
+            && SettingDefinition.ComboBox?.Options?.Any(o => o.IsRecommended) == true)
+            return true;
+        if (SettingDefinition.ScheduledTaskSettings.Any(t => t.RecommendedState.HasValue))
+            return true;
+        if (SettingDefinition.PowerCfgSettings?.Any(
+                p => p.RecommendedValueAC.HasValue || p.RecommendedValueDC.HasValue) == true)
+            return true;
+        return false;
+    }
+
+    private bool HasAnyDefaultData()
+    {
+        if (SettingDefinition.RegistrySettings.Any(r => r.DefaultValue != null))
+            return true;
+        if (InputType == InputType.Selection
+            && SettingDefinition.ComboBox?.Options?.Any(o => o.IsDefault) == true)
+            return true;
+        if (SettingDefinition.ScheduledTaskSettings.Any(t => t.DefaultState.HasValue))
+            return true;
+        if (SettingDefinition.PowerCfgSettings?.Any(
+                p => p.DefaultValueAC.HasValue || p.DefaultValueDC.HasValue) == true)
+            return true;
+        return false;
+    }
+
+    private bool IsKnownSelectionValue()
+    {
+        if (InputType != InputType.Selection) return true;
+        var options = SettingDefinition.ComboBox?.Options;
+        if (options == null || options.Count == 0) return true;
+        return SelectedValue is int idx && idx >= 0 && idx < options.Count;
+    }
+
+    private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind) => kind switch
+    {
+        SettingBadgeKind.Recommended => (
+            _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
+            _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Recommended"),
+        SettingBadgeKind.Default => (
+            _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
+            _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Default"),
+        SettingBadgeKind.Custom => (
+            _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
+            _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom"),
+        SettingBadgeKind.Preference => (
+            _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
+            _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Preference"),
+        _ => ("", ""),
+    };
+
     /// <summary>
     /// Initializes HasBadgeData based on whether the definition has comparable
     /// recommended/default data in RegistrySettings, ScheduledTaskSettings, or PowerCfgSettings.
@@ -1572,8 +1598,6 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(BadgeLabel));
-        OnPropertyChanged(nameof(BadgeTooltip));
         OnPropertyChanged(nameof(NewBadgeText));
         OnPropertyChanged(nameof(NewBadgeDismissTooltip));
         OnPropertyChanged(nameof(TechnicalDetailsLabel));

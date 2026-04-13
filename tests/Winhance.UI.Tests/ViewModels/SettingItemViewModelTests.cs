@@ -1060,137 +1060,211 @@ public class SettingItemViewModelTests : IDisposable
         sut.ClickToUnlockText.Should().Be("Click to unlock");
     }
 
-    // ── BadgeState: Selection (ComboBoxOption.IsRecommended / IsDefault) ──
+    // ── BadgeRow: multi-pill tests ──
 
     [Fact]
-    public void BadgeState_Selection_MatchesRecommendedByIndex_UsingComboBoxOptionIsRecommended()
+    public void BadgeRow_Toggle_NonSubjective_DisabledMatchesBothRecommendedAndDefault_BothLit()
+    {
+        // fax-like: RecommendedValue = 0 (disabled), DefaultValue = 0 (disabled)
+        // IsSelected = false (disabled) => both Recommended + Default lit, Custom dim, no Preference.
+        var def = BuildToggleSettingDefinition(
+            id: "toggle-fax-like",
+            recommendedValue: 0,
+            defaultValue: 0);
+        var config = BuildToggleConfig(def);
+        var sut = CreateSut(config);
+        sut.IsSelected = false;
+        sut.ComputeBadgeState();
+
+        var row = sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).ToArray();
+        row.Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     true),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Toggle_NonSubjective_EnabledMismatch_AllDim()
+    {
+        var def = BuildToggleSettingDefinition(id: "toggle-svc", recommendedValue: 0, defaultValue: 0);
+        var sut = CreateSut(BuildToggleConfig(def));
+        sut.IsSelected = true;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, false),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Selection_Subjective_OnRecommended_PreferenceAndRecommendedLit()
     {
         var def = BuildSelectionSettingDefinition(
-            id: "selection-rec",
-            options: new[]
-            {
-                ("Def", 0, false, true),
-                ("Rec", 1, true,  false),
-            });
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
+            id: "uac-like",
+            options: new[] { ("DefOpt", 0, false, true), ("RecOpt", 1, true, false) })
+            with { IsSubjectivePreference = true };
+        var sut = CreateSut(BuildSelectionConfig(def));
         sut.SelectedValue = 1;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeKind.Recommended);
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Preference,  true),
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
     }
 
     [Fact]
-    public void BadgeState_Selection_MatchesDefaultByIndex_UsingComboBoxOptionIsDefault()
+    public void BadgeRow_Selection_Subjective_OnDefault_PreferenceAndDefaultLit()
     {
         var def = BuildSelectionSettingDefinition(
-            id: "selection-def",
-            options: new[]
-            {
-                ("Def", 0, false, true),
-                ("Rec", 1, true,  false),
-            });
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
+            id: "uac-like-2",
+            options: new[] { ("DefOpt", 0, false, true), ("RecOpt", 1, true, false) })
+            with { IsSubjectivePreference = true };
+        var sut = CreateSut(BuildSelectionConfig(def));
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeKind.Default);
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Preference,  true),
+            (SettingBadgeKind.Recommended, false),
+            (SettingBadgeKind.Default,     true),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
     }
 
     [Fact]
-    public void BadgeState_Selection_OptionIsBothRecommendedAndDefault_RendersRecommended()
+    public void BadgeRow_Selection_Subjective_UnmappedValue_CustomLit()
     {
         var def = BuildSelectionSettingDefinition(
-            id: "selection-tiebreak",
-            options: new[]
-            {
-                ("Only option", 0, true, true),
-            });
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
+            id: "uac-like-3",
+            options: new[] { ("DefOpt", 0, false, true), ("RecOpt", 1, true, false) })
+            with { IsSubjectivePreference = true };
+        var sut = CreateSut(BuildSelectionConfig(def));
+        sut.SelectedValue = 99;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Preference,  true),
+            (SettingBadgeKind.Recommended, false),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      true),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Selection_MultiDefault_NoRecommended_OnEitherOption_DefaultLit()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "measurement-like",
+            options: new[] { ("Metric", 0, false, true), ("Imperial", 1, false, true) })
+            with { IsSubjectivePreference = true };
+        var sut = CreateSut(BuildSelectionConfig(def));
+
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Preference, true),
+            (SettingBadgeKind.Default,    true),
+            (SettingBadgeKind.Custom,     false),
+        }, opts => opts.WithStrictOrdering());
 
-        sut.BadgeState.Should().Be(SettingBadgeKind.Recommended,
-            because: "when a Selection option is both IsRecommended and IsDefault, Recommended wins the tiebreak.");
-    }
-
-    // ── BadgeState: Selection with IsSubjectivePreference ──
-
-    [Fact]
-    public void BadgeState_Selection_SubjectivePreference_MatchesKnownOption_YieldsPreference()
-    {
-        var def = BuildSelectionSettingDefinition(
-            id: "selection-subjective-known",
-            options: new[]
-            {
-                ("A", 0, false, true),  // IsDefault
-                ("B", 1, false, false),
-            }) with { IsSubjectivePreference = true };
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
-        sut.SelectedValue = 1; // non-default known option
+        sut.SelectedValue = 1;
         sut.ComputeBadgeState();
-
-        sut.BadgeState.Should().Be(SettingBadgeKind.Preference);
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Preference, true),
+            (SettingBadgeKind.Default,    true),
+            (SettingBadgeKind.Custom,     false),
+        }, opts => opts.WithStrictOrdering());
     }
 
     [Fact]
-    public void BadgeState_Selection_SubjectivePreference_MatchesDefaultOption_StillYieldsPreference()
+    public void BadgeRow_Selection_NonSubjective_OnRecommended_OnlyRecommendedLit()
     {
         var def = BuildSelectionSettingDefinition(
-            id: "selection-subjective-default",
-            options: new[]
-            {
-                ("A", 0, false, true),
-                ("B", 1, false, false),
-            }) with { IsSubjectivePreference = true };
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
-        sut.SelectedValue = 0; // the IsDefault option
-        sut.ComputeBadgeState();
-
-        sut.BadgeState.Should().Be(SettingBadgeKind.Preference,
-            because: "subjective settings surface Preference even when the user picks the IsDefault option — Winhance has no opinion.");
-    }
-
-    [Fact]
-    public void BadgeState_Selection_SubjectivePreference_UnmappedValue_YieldsCustom()
-    {
-        var def = BuildSelectionSettingDefinition(
-            id: "selection-subjective-unmapped",
-            options: new[]
-            {
-                ("A", 0, false, true),
-                ("B", 1, false, false),
-            }) with { IsSubjectivePreference = true };
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
-        sut.SelectedValue = -1; // unmapped — a value not in any option's ValueMappings
-        sut.ComputeBadgeState();
-
-        sut.BadgeState.Should().Be(SettingBadgeKind.Custom,
-            because: "an out-of-range SelectedValue still means the user has set something Winhance doesn't recognize.");
-    }
-
-    [Fact]
-    public void BadgeState_Selection_NonSubjective_BehaviorUnchanged_WhenRecommendedFlag()
-    {
-        // Regression guard: non-subjective Selection settings keep existing Recommended/Default/Custom logic.
-        var def = BuildSelectionSettingDefinition(
-            id: "selection-nonsubjective-regression",
-            options: new[]
-            {
-                ("Def", 0, false, true),
-                ("Rec", 1, true,  false),
-            });
-        var config = BuildSelectionConfig(def);
-        var sut = CreateSut(config);
+            id: "non-subj-rec",
+            options: new[] { ("Def", 0, false, true), ("Rec", 1, true, false) });
+        var sut = CreateSut(BuildSelectionConfig(def));
         sut.SelectedValue = 1;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeKind.Recommended);
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Selection_OptionIsBothRecommendedAndDefault_BothLit()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "both-flags",
+            options: new[] { ("OnlyOption", 0, true, true) });
+        var sut = CreateSut(BuildSelectionConfig(def));
+        sut.SelectedValue = 0;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     true),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_NumericRange_AtRecommended_OnlyRecommendedLit()
+    {
+        var def = BuildNumericSettingDefinition(
+            id: "numeric-rec",
+            recommendedValue: 50,
+            defaultValue: 10);
+        var config = new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.NumericRange,
+            IsSelected = false,
+        };
+        var sut = CreateSut(config);
+        sut.NumericValue = 50;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Definition_HasNoRecommendedAtAll_RecommendedPillAbsent()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "no-rec",
+            options: new[] { ("A", 0, false, true), ("B", 1, false, true) })
+            with { IsSubjectivePreference = true };
+        var sut = CreateSut(BuildSelectionConfig(def));
+        sut.SelectedValue = 0;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Should().NotContain(p => p.Kind == SettingBadgeKind.Recommended);
     }
 
     private static SettingDefinition BuildSelectionSettingDefinition(
@@ -1238,6 +1312,45 @@ public class SettingItemViewModelTests : IDisposable
             Name = def.Name,
             Description = def.Description,
             InputType = InputType.Selection,
+            IsSelected = false,
+        };
+
+    private static SettingDefinition BuildToggleSettingDefinition(
+        string id,
+        object recommendedValue,
+        object defaultValue)
+    {
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = id,
+            Description = "",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
+                    ValueName = "V",
+                    EnabledValue = new object?[] { 1 },
+                    DisabledValue = new object?[] { 0 },
+                    RecommendedValue = recommendedValue,
+                    DefaultValue = defaultValue,
+                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsPrimary = true,
+                },
+            },
+        };
+    }
+
+    private SettingItemViewModelConfig BuildToggleConfig(SettingDefinition def) =>
+        new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.Toggle,
             IsSelected = false,
         };
 
