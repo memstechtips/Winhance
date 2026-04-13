@@ -6,10 +6,92 @@
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
-    xmlns:models="using:Winhance.UI.Features.Common.Models">
+    xmlns:models="using:Winhance.UI.Features.Common.Models"
+    xmlns:converters="using:Winhance.UI.Features.Common.Converters"
+    xmlns:coreModels="using:Winhance.Core.Features.Common.Models"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
 
     <!-- Common spacing for settings cards -->
     <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+
+    <converters:BoolToDimOpacityConverter x:Key="BoolToDimOpacityConverter"/>
+
+    <converters:BadgePillTemplateSelector x:Key="BadgePillTemplateSelector">
+
+        <converters:BadgePillTemplateSelector.RecommendedTemplate>
+            <DataTemplate x:DataType="coreModels:BadgePillState">
+                <Border
+                    Style="{StaticResource BadgeRecommendedStyle}"
+                    Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <FontIcon Glyph="&#xE735;" FontSize="12"
+                                  VerticalAlignment="Center" Margin="0,1,0,0"
+                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                        <TextBlock Text="{x:Bind Label}"
+                                   Style="{StaticResource BadgeTextStyle}"
+                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </converters:BadgePillTemplateSelector.RecommendedTemplate>
+
+        <converters:BadgePillTemplateSelector.DefaultTemplate>
+            <DataTemplate x:DataType="coreModels:BadgePillState">
+                <Border
+                    Style="{StaticResource BadgeDefaultStyle}"
+                    Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}"
+                                  Height="12" Width="12"
+                                  VerticalAlignment="Center"
+                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                        <TextBlock Text="{x:Bind Label}"
+                                   Style="{StaticResource BadgeTextStyle}"
+                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </converters:BadgePillTemplateSelector.DefaultTemplate>
+
+        <converters:BadgePillTemplateSelector.CustomTemplate>
+            <DataTemplate x:DataType="coreModels:BadgePillState">
+                <Border
+                    Style="{StaticResource BadgeCustomStyle}"
+                    Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <fluentIcons:SymbolIcon Symbol="PersonWrench" IconVariant="Regular"
+                                                FontSize="12" VerticalAlignment="Center"
+                                                Foreground="{ThemeResource BadgeCustomForeground}"/>
+                        <TextBlock Text="{x:Bind Label}"
+                                   Style="{StaticResource BadgeTextStyle}"
+                                   Foreground="{ThemeResource BadgeCustomForeground}"/>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </converters:BadgePillTemplateSelector.CustomTemplate>
+
+        <converters:BadgePillTemplateSelector.PreferenceTemplate>
+            <DataTemplate x:DataType="coreModels:BadgePillState">
+                <Border
+                    Style="{StaticResource BadgePreferenceStyle}"
+                    Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <FontIcon Glyph="&#xE77B;" FontSize="12"
+                                  VerticalAlignment="Center" Margin="0,1,0,0"
+                                  Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                        <TextBlock Text="{x:Bind Label}"
+                                   Style="{StaticResource BadgeTextStyle}"
+                                   Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </converters:BadgePillTemplateSelector.PreferenceTemplate>
+
+    </converters:BadgePillTemplateSelector>
 
     <!-- Common layout values for settings pages -->
     <x:Double x:Key="SettingsContentMaxWidth">1000</x:Double>
@@ -38,12 +120,28 @@
             <!-- Main settings card with overlays -->
             <Grid>
                 <controls:SettingsCard
-                    Description="{x:Bind Description}"
                     IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                     IsTabStop="False"
                     AutomationProperties.LocalizedControlType="setting"
                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
                     Padding="16,12,16,12">
+                    <controls:SettingsCard.Description>
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap"
+                                       Style="{StaticResource CaptionTextBlockStyle}"/>
+                            <ItemsControl
+                                ItemsSource="{x:Bind BadgeRow, Mode=OneWay}"
+                                Visibility="{x:Bind ShowInfoBadge, Mode=OneWay,
+                                             Converter={StaticResource BooleanToVisibilityConverter}}"
+                                ItemTemplateSelector="{StaticResource BadgePillTemplateSelector}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+                    </controls:SettingsCard.Description>
                     <controls:SettingsCard.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
@@ -78,8 +176,6 @@
                                     FontSize="10"
                                     FontWeight="SemiBold"/>
                             </Button>
-                            <!-- TODO Task 7: replace with multi-pill BadgeRow ItemsRepeater -->
-                            <Border Visibility="Collapsed"/>
                         </StackPanel>
                     </controls:SettingsCard.Header>
                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
@@ -364,7 +460,6 @@
             <!-- Parent setting card with expand/collapse chevron -->
             <Grid>
                 <controls:SettingsCard
-                    Description="{x:Bind Description}"
                     IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                     IsClickEnabled="True"
                     Click="{x:Bind ToggleExpander}"
@@ -379,6 +474,24 @@
                         <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
                         <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
                     </controls:SettingsCard.Resources>
+
+                    <controls:SettingsCard.Description>
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap"
+                                       Style="{StaticResource CaptionTextBlockStyle}"/>
+                            <ItemsControl
+                                ItemsSource="{x:Bind BadgeRow, Mode=OneWay}"
+                                Visibility="{x:Bind ShowInfoBadge, Mode=OneWay,
+                                             Converter={StaticResource BooleanToVisibilityConverter}}"
+                                ItemTemplateSelector="{StaticResource BadgePillTemplateSelector}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+                    </controls:SettingsCard.Description>
 
                     <controls:SettingsCard.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -414,8 +527,6 @@
                                     FontSize="10"
                                     FontWeight="SemiBold"/>
                             </Button>
-                            <!-- TODO Task 7: replace with multi-pill BadgeRow ItemsRepeater -->
-                            <Border Visibility="Collapsed"/>
                         </StackPanel>
                     </controls:SettingsCard.Header>
 
@@ -709,7 +820,6 @@
                         <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid>
                                 <controls:SettingsCard
-                                    Description="{x:Bind Description}"
                                     IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                                     IsTabStop="False"
                                     AutomationProperties.LocalizedControlType="setting"
@@ -717,6 +827,23 @@
                                     CornerRadius="{x:Bind ChildCornerRadius, Mode=OneWay}"
                                     BorderThickness="1,0,1,1"
                                     Padding="54,12,52,12">
+                                    <controls:SettingsCard.Description>
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"/>
+                                            <ItemsControl
+                                                ItemsSource="{x:Bind BadgeRow, Mode=OneWay}"
+                                                Visibility="{x:Bind ShowInfoBadge, Mode=OneWay,
+                                                             Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                ItemTemplateSelector="{StaticResource BadgePillTemplateSelector}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </controls:SettingsCard.Description>
                                     <controls:SettingsCard.Header>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
@@ -751,8 +878,6 @@
                                                     FontSize="10"
                                                     FontWeight="SemiBold"/>
                                             </Button>
-                                            <!-- TODO Task 7: replace with multi-pill BadgeRow ItemsRepeater -->
-                                            <Border Visibility="Collapsed"/>
                                         </StackPanel>
                                     </controls:SettingsCard.Header>
                                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
