@@ -11,6 +11,15 @@ namespace Winhance.UI.Features.Common.Converters;
 /// </summary>
 public partial class BadgeStateToStyleConverter : IValueConverter
 {
+    public static string? GetResourceKey(SettingBadgeState state) => state switch
+    {
+        SettingBadgeState.Recommended => "BadgeRecommendedStyle",
+        SettingBadgeState.Default => "BadgeDefaultStyle",
+        SettingBadgeState.Custom => "BadgeCustomStyle",
+        SettingBadgeState.Preference => "BadgePreferenceStyle",
+        _ => null,
+    };
+
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
         if (value is not SettingBadgeState state)
@@ -18,15 +27,7 @@ public partial class BadgeStateToStyleConverter : IValueConverter
             return null;
         }
 
-        var key = state switch
-        {
-            SettingBadgeState.Recommended => "BadgeRecommendedStyle",
-            SettingBadgeState.Default => "BadgeDefaultStyle",
-            SettingBadgeState.Custom => "BadgeCustomStyle",
-            SettingBadgeState.Preference => "BadgePreferenceStyle",
-            _ => null,
-        };
-
+        var key = GetResourceKey(state);
         if (key is null)
         {
             return null;

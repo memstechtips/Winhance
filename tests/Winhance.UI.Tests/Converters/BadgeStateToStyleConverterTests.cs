@@ -23,7 +23,21 @@ public class BadgeStateToStyleConverterTests
         act.Should().Throw<NotImplementedException>();
     }
 
-    // Note: Resource-lookup branches cannot be meaningfully unit-tested without
-    // a running WinUI application host. The lookup logic is validated via
-    // manual visual verification in Task 16.
+    [Theory]
+    [InlineData(SettingBadgeState.Recommended, "BadgeRecommendedStyle")]
+    [InlineData(SettingBadgeState.Default, "BadgeDefaultStyle")]
+    [InlineData(SettingBadgeState.Custom, "BadgeCustomStyle")]
+    [InlineData(SettingBadgeState.Preference, "BadgePreferenceStyle")]
+    public void GetResourceKey_ReturnsMatchingStyleKey(SettingBadgeState state, string expected)
+    {
+        BadgeStateToStyleConverter.GetResourceKey(state).Should().Be(expected);
+    }
+
+    [Fact]
+    public void GetResourceKey_OutOfRangeEnumValue_ReturnsNull()
+    {
+        // Guard against a new SettingBadgeState value being added without updating the switch.
+        var invalid = (SettingBadgeState)999;
+        BadgeStateToStyleConverter.GetResourceKey(invalid).Should().BeNull();
+    }
 }

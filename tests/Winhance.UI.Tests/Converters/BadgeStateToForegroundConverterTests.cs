@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.UI.Features.Common.Converters;
 using Xunit;
 
@@ -20,5 +21,23 @@ public class BadgeStateToForegroundConverterTests
     {
         var act = () => _sut.ConvertBack(null!, typeof(object), null!, "en");
         act.Should().Throw<NotImplementedException>();
+    }
+
+    [Theory]
+    [InlineData(SettingBadgeState.Recommended, "BadgeRecommendedForeground")]
+    [InlineData(SettingBadgeState.Default, "BadgeDefaultForeground")]
+    [InlineData(SettingBadgeState.Custom, "BadgeCustomForeground")]
+    [InlineData(SettingBadgeState.Preference, "BadgePreferenceForeground")]
+    public void GetResourceKey_ReturnsMatchingForegroundKey(SettingBadgeState state, string expected)
+    {
+        BadgeStateToForegroundConverter.GetResourceKey(state).Should().Be(expected);
+    }
+
+    [Fact]
+    public void GetResourceKey_OutOfRangeEnumValue_ReturnsNull()
+    {
+        // Guard against a new SettingBadgeState value being added without updating the switch.
+        var invalid = (SettingBadgeState)999;
+        BadgeStateToForegroundConverter.GetResourceKey(invalid).Should().BeNull();
     }
 }

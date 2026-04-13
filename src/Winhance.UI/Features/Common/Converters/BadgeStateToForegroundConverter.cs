@@ -12,6 +12,15 @@ namespace Winhance.UI.Features.Common.Converters;
 /// </summary>
 public partial class BadgeStateToForegroundConverter : IValueConverter
 {
+    public static string? GetResourceKey(SettingBadgeState state) => state switch
+    {
+        SettingBadgeState.Recommended => "BadgeRecommendedForeground",
+        SettingBadgeState.Default => "BadgeDefaultForeground",
+        SettingBadgeState.Custom => "BadgeCustomForeground",
+        SettingBadgeState.Preference => "BadgePreferenceForeground",
+        _ => null,
+    };
+
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
         if (value is not SettingBadgeState state)
@@ -19,15 +28,7 @@ public partial class BadgeStateToForegroundConverter : IValueConverter
             return null;
         }
 
-        var key = state switch
-        {
-            SettingBadgeState.Recommended => "BadgeRecommendedForeground",
-            SettingBadgeState.Default => "BadgeDefaultForeground",
-            SettingBadgeState.Custom => "BadgeCustomForeground",
-            SettingBadgeState.Preference => "BadgePreferenceForeground",
-            _ => null,
-        };
-
+        var key = GetResourceKey(state);
         if (key is null)
         {
             return null;
