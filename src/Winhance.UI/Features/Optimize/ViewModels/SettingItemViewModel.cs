@@ -188,7 +188,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial bool IsInfoBadgeGloballyVisible { get; set; }
 
     [ObservableProperty]
-    public partial SettingBadgeState BadgeState { get; set; }
+    public partial SettingBadgeKind BadgeState { get; set; }
 
     /// <summary>
     /// True if the setting has RecommendedValue/DefaultValue data to compare against.
@@ -203,10 +203,10 @@ public partial class SettingItemViewModel : BaseViewModel
     /// </summary>
     public string BadgeLabel => BadgeState switch
     {
-        SettingBadgeState.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-        SettingBadgeState.Default => _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-        SettingBadgeState.Custom => _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-        SettingBadgeState.Preference => _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
+        SettingBadgeKind.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
+        SettingBadgeKind.Default => _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
+        SettingBadgeKind.Custom => _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
+        SettingBadgeKind.Preference => _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
         _ => ""
     };
 
@@ -215,10 +215,10 @@ public partial class SettingItemViewModel : BaseViewModel
     /// </summary>
     public string BadgeTooltip => BadgeState switch
     {
-        SettingBadgeState.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "The Recommended values are applied for this setting",
-        SettingBadgeState.Default => _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "The Default Windows values are applied for this setting",
-        SettingBadgeState.Custom => _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom values are applied for this setting",
-        SettingBadgeState.Preference => _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "This is a personal preference — Winhance has no recommended value here",
+        SettingBadgeKind.Recommended => _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "The Recommended values are applied for this setting",
+        SettingBadgeKind.Default => _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "The Default Windows values are applied for this setting",
+        SettingBadgeKind.Custom => _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom values are applied for this setting",
+        SettingBadgeKind.Preference => _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "This is a personal preference — Winhance has no recommended value here",
         _ => ""
     };
 
@@ -453,7 +453,7 @@ public partial class SettingItemViewModel : BaseViewModel
         SyncComboBoxOptionShowPill(IsInfoBadgeGloballyVisible);
     }
 
-    partial void OnBadgeStateChanged(SettingBadgeState value)
+    partial void OnBadgeStateChanged(SettingBadgeKind value)
     {
         OnPropertyChanged(nameof(BadgeLabel));
         OnPropertyChanged(nameof(BadgeTooltip));
@@ -1388,12 +1388,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (matchesRecommended)
             BadgeState = SettingDefinition.IsSubjectivePreference
-                ? SettingBadgeState.Preference
-                : SettingBadgeState.Recommended;
+                ? SettingBadgeKind.Preference
+                : SettingBadgeKind.Recommended;
         else if (matchesDefault)
-            BadgeState = SettingBadgeState.Default;
+            BadgeState = SettingBadgeKind.Default;
         else
-            BadgeState = SettingBadgeState.Custom;
+            BadgeState = SettingBadgeKind.Custom;
     }
 
     private (bool matchesRecommended, bool matchesDefault) EvaluateRegistrySetting(RegistrySetting reg)

@@ -24,11 +24,11 @@ public class BadgeStateToStyleConverterTests
     }
 
     [Theory]
-    [InlineData(SettingBadgeState.Recommended, "BadgeRecommendedStyle")]
-    [InlineData(SettingBadgeState.Default, "BadgeDefaultStyle")]
-    [InlineData(SettingBadgeState.Custom, "BadgeCustomStyle")]
-    [InlineData(SettingBadgeState.Preference, "BadgePreferenceStyle")]
-    public void GetResourceKey_ReturnsMatchingStyleKey(SettingBadgeState state, string expected)
+    [InlineData(SettingBadgeKind.Recommended, "BadgeRecommendedStyle")]
+    [InlineData(SettingBadgeKind.Default, "BadgeDefaultStyle")]
+    [InlineData(SettingBadgeKind.Custom, "BadgeCustomStyle")]
+    [InlineData(SettingBadgeKind.Preference, "BadgePreferenceStyle")]
+    public void GetResourceKey_ReturnsMatchingStyleKey(SettingBadgeKind state, string expected)
     {
         BadgeStateToStyleConverter.GetResourceKey(state).Should().Be(expected);
     }
@@ -36,8 +36,8 @@ public class BadgeStateToStyleConverterTests
     [Fact]
     public void GetResourceKey_OutOfRangeEnumValue_ReturnsNull()
     {
-        // Guard against a new SettingBadgeState value being added without updating the switch.
-        var invalid = (SettingBadgeState)999;
+        // Guard against a new SettingBadgeKind value being added without updating the switch.
+        var invalid = (SettingBadgeKind)999;
         BadgeStateToStyleConverter.GetResourceKey(invalid).Should().BeNull();
     }
 }

@@ -201,7 +201,7 @@ public class BulkSettingsActionServiceTests
         vm.SelectedValue = selectedOption.ValueMappings!["V"];
         vm.ComputeBadgeState();
 
-        vm.BadgeState.Should().Be(SettingBadgeState.Recommended,
+        vm.BadgeState.Should().Be(SettingBadgeKind.Recommended,
             because: "ApplyRecommended wrote the IsRecommended option index, and ComputeBadgeState " +
                      "must agree that the effective selection is Recommended.");
     }
@@ -228,7 +228,7 @@ public class BulkSettingsActionServiceTests
         vm.SelectedValue = selectedOption.ValueMappings!["V"];
         vm.ComputeBadgeState();
 
-        vm.BadgeState.Should().Be(SettingBadgeState.Default,
+        vm.BadgeState.Should().Be(SettingBadgeKind.Default,
             because: "ResetToDefault wrote the IsDefault option index, and ComputeBadgeState " +
                      "must agree that the effective selection is Default.");
     }

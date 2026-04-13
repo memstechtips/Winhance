@@ -5,24 +5,24 @@ using Winhance.Core.Features.Common.Enums;
 namespace Winhance.UI.Features.Common.Converters;
 
 /// <summary>
-/// Converts a <see cref="SettingBadgeState"/> value to the matching pill Style resource.
+/// Converts a <see cref="SettingBadgeKind"/> value to the matching pill Style resource.
 /// Styles are looked up from Application.Current.Resources by key
 /// ("BadgeRecommendedStyle", "BadgeDefaultStyle", "BadgeCustomStyle").
 /// </summary>
 public partial class BadgeStateToStyleConverter : IValueConverter
 {
-    public static string? GetResourceKey(SettingBadgeState state) => state switch
+    public static string? GetResourceKey(SettingBadgeKind state) => state switch
     {
-        SettingBadgeState.Recommended => "BadgeRecommendedStyle",
-        SettingBadgeState.Default => "BadgeDefaultStyle",
-        SettingBadgeState.Custom => "BadgeCustomStyle",
-        SettingBadgeState.Preference => "BadgePreferenceStyle",
+        SettingBadgeKind.Recommended => "BadgeRecommendedStyle",
+        SettingBadgeKind.Default => "BadgeDefaultStyle",
+        SettingBadgeKind.Custom => "BadgeCustomStyle",
+        SettingBadgeKind.Preference => "BadgePreferenceStyle",
         _ => null,
     };
 
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
-        if (value is not SettingBadgeState state)
+        if (value is not SettingBadgeKind state)
         {
             return null;
         }

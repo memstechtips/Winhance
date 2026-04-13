@@ -1077,7 +1077,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = 1;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Recommended);
+        sut.BadgeState.Should().Be(SettingBadgeKind.Recommended);
     }
 
     [Fact]
@@ -1095,7 +1095,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Default);
+        sut.BadgeState.Should().Be(SettingBadgeKind.Default);
     }
 
     [Fact]
@@ -1112,7 +1112,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Recommended,
+        sut.BadgeState.Should().Be(SettingBadgeKind.Recommended,
             because: "when a Selection option is both IsRecommended and IsDefault, Recommended wins the tiebreak.");
     }
 
@@ -1133,7 +1133,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = 1; // non-default known option
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Preference);
+        sut.BadgeState.Should().Be(SettingBadgeKind.Preference);
     }
 
     [Fact]
@@ -1151,7 +1151,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = 0; // the IsDefault option
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Preference,
+        sut.BadgeState.Should().Be(SettingBadgeKind.Preference,
             because: "subjective settings surface Preference even when the user picks the IsDefault option — Winhance has no opinion.");
     }
 
@@ -1170,7 +1170,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = -1; // unmapped — a value not in any option's ValueMappings
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Custom,
+        sut.BadgeState.Should().Be(SettingBadgeKind.Custom,
             because: "an out-of-range SelectedValue still means the user has set something Winhance doesn't recognize.");
     }
 
@@ -1190,7 +1190,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue = 1;
         sut.ComputeBadgeState();
 
-        sut.BadgeState.Should().Be(SettingBadgeState.Recommended);
+        sut.BadgeState.Should().Be(SettingBadgeKind.Recommended);
     }
 
     private static SettingDefinition BuildSelectionSettingDefinition(

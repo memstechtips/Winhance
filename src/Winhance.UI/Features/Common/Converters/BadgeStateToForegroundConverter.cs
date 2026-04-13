@@ -6,24 +6,24 @@ using Winhance.Core.Features.Common.Enums;
 namespace Winhance.UI.Features.Common.Converters;
 
 /// <summary>
-/// Converts a <see cref="SettingBadgeState"/> value to the matching pill foreground brush.
+/// Converts a <see cref="SettingBadgeKind"/> value to the matching pill foreground brush.
 /// Brushes are looked up from Application.Current.Resources by key
 /// ("BadgeRecommendedForeground", "BadgeDefaultForeground", "BadgeCustomForeground").
 /// </summary>
 public partial class BadgeStateToForegroundConverter : IValueConverter
 {
-    public static string? GetResourceKey(SettingBadgeState state) => state switch
+    public static string? GetResourceKey(SettingBadgeKind state) => state switch
     {
-        SettingBadgeState.Recommended => "BadgeRecommendedForeground",
-        SettingBadgeState.Default => "BadgeDefaultForeground",
-        SettingBadgeState.Custom => "BadgeCustomForeground",
-        SettingBadgeState.Preference => "BadgePreferenceForeground",
+        SettingBadgeKind.Recommended => "BadgeRecommendedForeground",
+        SettingBadgeKind.Default => "BadgeDefaultForeground",
+        SettingBadgeKind.Custom => "BadgeCustomForeground",
+        SettingBadgeKind.Preference => "BadgePreferenceForeground",
         _ => null,
     };
 
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
-        if (value is not SettingBadgeState state)
+        if (value is not SettingBadgeKind state)
         {
             return null;
         }

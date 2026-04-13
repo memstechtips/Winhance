@@ -24,11 +24,11 @@ public class BadgeStateToForegroundConverterTests
     }
 
     [Theory]
-    [InlineData(SettingBadgeState.Recommended, "BadgeRecommendedForeground")]
-    [InlineData(SettingBadgeState.Default, "BadgeDefaultForeground")]
-    [InlineData(SettingBadgeState.Custom, "BadgeCustomForeground")]
-    [InlineData(SettingBadgeState.Preference, "BadgePreferenceForeground")]
-    public void GetResourceKey_ReturnsMatchingForegroundKey(SettingBadgeState state, string expected)
+    [InlineData(SettingBadgeKind.Recommended, "BadgeRecommendedForeground")]
+    [InlineData(SettingBadgeKind.Default, "BadgeDefaultForeground")]
+    [InlineData(SettingBadgeKind.Custom, "BadgeCustomForeground")]
+    [InlineData(SettingBadgeKind.Preference, "BadgePreferenceForeground")]
+    public void GetResourceKey_ReturnsMatchingForegroundKey(SettingBadgeKind state, string expected)
     {
         BadgeStateToForegroundConverter.GetResourceKey(state).Should().Be(expected);
     }
@@ -36,8 +36,8 @@ public class BadgeStateToForegroundConverterTests
     [Fact]
     public void GetResourceKey_OutOfRangeEnumValue_ReturnsNull()
     {
-        // Guard against a new SettingBadgeState value being added without updating the switch.
-        var invalid = (SettingBadgeState)999;
+        // Guard against a new SettingBadgeKind value being added without updating the switch.
+        var invalid = (SettingBadgeKind)999;
         BadgeStateToForegroundConverter.GetResourceKey(invalid).Should().BeNull();
     }
 }

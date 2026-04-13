@@ -19,11 +19,11 @@ public class BadgeIconTemplateSelectorTests
     private const string Pref = "pref";
 
     [Theory]
-    [InlineData(SettingBadgeState.Recommended, Rec)]
-    [InlineData(SettingBadgeState.Default, Def)]
-    [InlineData(SettingBadgeState.Custom, Cust)]
-    [InlineData(SettingBadgeState.Preference, Pref)]
-    public void PickByState_ReturnsMatchingSlot(SettingBadgeState state, string expected)
+    [InlineData(SettingBadgeKind.Recommended, Rec)]
+    [InlineData(SettingBadgeKind.Default, Def)]
+    [InlineData(SettingBadgeKind.Custom, Cust)]
+    [InlineData(SettingBadgeKind.Preference, Pref)]
+    public void PickByState_ReturnsMatchingSlot(SettingBadgeKind state, string expected)
     {
         var result = BadgeIconTemplateSelector.PickByState(state, Rec, Def, Cust, Pref);
         result.Should().Be(expected);
@@ -32,16 +32,16 @@ public class BadgeIconTemplateSelectorTests
     [Fact]
     public void PickByState_OutOfRangeEnumValue_ReturnsNull()
     {
-        var result = BadgeIconTemplateSelector.PickByState((SettingBadgeState)999, Rec, Def, Cust, Pref);
+        var result = BadgeIconTemplateSelector.PickByState((SettingBadgeKind)999, Rec, Def, Cust, Pref);
         result.Should().BeNull();
     }
 
     [Theory]
-    [InlineData(SettingBadgeState.Recommended)]
-    [InlineData(SettingBadgeState.Default)]
-    [InlineData(SettingBadgeState.Custom)]
-    [InlineData(SettingBadgeState.Preference)]
-    public void PickByState_NullSlot_ReturnsNull(SettingBadgeState state)
+    [InlineData(SettingBadgeKind.Recommended)]
+    [InlineData(SettingBadgeKind.Default)]
+    [InlineData(SettingBadgeKind.Custom)]
+    [InlineData(SettingBadgeKind.Preference)]
+    public void PickByState_NullSlot_ReturnsNull(SettingBadgeKind state)
     {
         var result = BadgeIconTemplateSelector.PickByState<string>(state, null, null, null, null);
         result.Should().BeNull();
