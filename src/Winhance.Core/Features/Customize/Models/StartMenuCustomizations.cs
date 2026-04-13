@@ -44,6 +44,7 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-menu-layout",
+                    IsSubjectivePreference = true,
                     Name = "Start layout",
                     Description = "Choose whether the Start Menu shows more pinned apps, more recommendations, or a balanced default layout",
                     GroupName = "Layout",
@@ -78,7 +79,6 @@ public static class StartMenuCustomizations
                             {
                                 DisplayName = "More pins",
                                 ValueMappings = new Dictionary<string, object?> { ["Start_Layout"] = 1 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -91,6 +91,7 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-recommended-section",
+                    IsSubjectivePreference = true,
                     Name = "Recommended section",
                     Description = "Show or hide the lower section that displays recently opened files and suggested apps. Hiding this section also removes Windows Spotlight from the lock screen and suggested content in the Settings app",
                     GroupName = "Layout",
@@ -157,7 +158,6 @@ public static class StartMenuCustomizations
                                     ["HideRecommendedSection"] = 1, // Set to 1
                                     ["IsEducationEnvironment"] = 1, // Set to 1
                                 },
-                                IsRecommended = true,
                             },
                         },
                     },

@@ -30,6 +30,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-search-box-11",
+                    IsSubjectivePreference = true,
                     Name = "Search in taskbar",
                     Description = "Choose how the Windows search appears on your taskbar: hidden, icon only, icon with label, or full search box",
                     GroupName = "Taskbar Icons",
@@ -55,7 +56,6 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Hide",
                                 ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 0 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -79,6 +79,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-search-box-10",
+                    IsSubjectivePreference = true,
                     Name = "Search in taskbar",
                     Description = "Choose how the Windows search appears on your taskbar: hidden, icon only, or full search box",
                     GroupName = "Taskbar Icons",
@@ -105,7 +106,6 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Hide",
                                 ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 0 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -124,6 +124,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-alignment",
+                    IsSubjectivePreference = true,
                     Name = "Taskbar alignment",
                     Description = "Align taskbar icons to the left (classic Windows style) or center (Windows 11 default)",
                     GroupName = "Taskbar Behavior",
@@ -149,7 +150,6 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Left",
                                 ValueMappings = new Dictionary<string, object?> { ["TaskbarAl"] = 0 },
-                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -189,6 +189,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-extended-hover-time",
+                    IsSubjectivePreference = true,
                     Name = "Taskbar Auto-Hide Hover Delay",
                     Description = "Controls how long you must hover at the screen edge before the auto-hidden taskbar appears (in milliseconds). Lower values make the taskbar appear faster when using auto-hide. Default is 400ms",
                     GroupName = "Taskbar Behavior",
@@ -414,6 +415,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-combine-buttons",
+                    IsSubjectivePreference = true,
                     Name = "Combine taskbar buttons and hide labels",
                     Description = "Control whether taskbar buttons for the same application are grouped together and whether text labels are shown",
                     GroupName = "Taskbar Behavior",
@@ -440,7 +442,6 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Always",
                                 ValueMappings = new Dictionary<string, object?> { ["TaskbarGlomLevel"] = 0 },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -505,6 +506,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-button-size",
+                    IsSubjectivePreference = true,
                     Name = "Show smaller taskbar buttons",
                     Description = "Control the size of taskbar buttons. This setting may not persist on all Windows 11 builds",
                     GroupName = "Taskbar Behavior",
@@ -534,7 +536,6 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Always",
                                 ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 0 },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption

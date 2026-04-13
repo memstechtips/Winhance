@@ -84,6 +84,8 @@ public static class WindowsThemeCustomizations
 
                     Id = "theme-mode-windows",
 
+                    IsSubjectivePreference = true,
+
                     Name = "Choose your mode",
 
                     Description = "Choose between Light and Dark mode for Windows and apps",
@@ -181,8 +183,6 @@ public static class WindowsThemeCustomizations
                                     ["SystemUsesLightTheme"] = 0,
 
                                 },
-
-                                IsRecommended = true,
 
                             },
 
