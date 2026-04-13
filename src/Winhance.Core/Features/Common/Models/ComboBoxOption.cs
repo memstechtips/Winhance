@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// One ComboBox option. Replaces the nine parallel dictionaries on ComboBoxMetadata with a single
 /// typed record per option - authors no longer need to keep index-keyed dictionaries in sync by hand.
 /// </summary>
-public record ComboBoxOption
+public sealed record ComboBoxOption
 {
     public required string DisplayName { get; init; }
     public Dictionary<string, object?>? ValueMappings { get; init; }

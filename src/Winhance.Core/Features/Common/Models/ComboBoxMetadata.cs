@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// DisplayName, ValueMappings, flags (IsDefault/IsRecommended), tooltip,
 /// warning, confirmation, and script variables as a single typed record.
 /// </summary>
-public record ComboBoxMetadata
+public sealed record ComboBoxMetadata
 {
     public required IReadOnlyList<ComboBoxOption> Options { get; init; }
     public bool SupportsCustomState { get; init; }

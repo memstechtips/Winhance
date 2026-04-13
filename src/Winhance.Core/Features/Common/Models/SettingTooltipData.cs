@@ -1,7 +1,7 @@
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record SettingTooltipData
+public sealed record SettingTooltipData
 {
     public string SettingId { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;

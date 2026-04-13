@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record SettingDefinition : BaseDefinition, ISettingItem
+public sealed record SettingDefinition : BaseDefinition, ISettingItem
 {
     public bool RequiresConfirmation { get; init; } = false;
     public string? ActionCommand { get; init; }

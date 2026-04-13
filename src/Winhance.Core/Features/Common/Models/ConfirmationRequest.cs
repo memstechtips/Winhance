@@ -4,7 +4,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// Represents a request for user confirmation with optional context data.
 /// This generic model can be used across all features that require user confirmation.
 /// </summary>
-public record ConfirmationRequest
+public sealed record ConfirmationRequest
 {
     /// <summary>
     /// Gets the confirmation message to display to the user.

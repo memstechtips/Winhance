@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Models;
 
-public record ScriptMigrationResult
+public sealed record ScriptMigrationResult
 {
     public bool MigrationPerformed { get; init; }
     public int ScriptsRenamed { get; init; }

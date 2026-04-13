@@ -9,7 +9,7 @@ public enum PowerModeSupport
     DCOnly          // Only applies to DC/battery power
 }
 
-public record PowerCfgSetting
+public sealed record PowerCfgSetting
 {
     public string? SubgroupGUIDAlias { get; init; }
     public string SettingGUIDAlias { get; init; } = string.Empty;

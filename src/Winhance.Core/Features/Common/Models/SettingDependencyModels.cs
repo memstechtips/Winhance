@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Models;
 
-public record SettingDependency
+public sealed record SettingDependency
 {
 
     public SettingDependencyType DependencyType { get; init; }

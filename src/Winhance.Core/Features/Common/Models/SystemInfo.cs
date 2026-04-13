@@ -3,7 +3,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// <summary>
 /// Diagnostic system information collected for log headers.
 /// </summary>
-public record SystemInfo
+public sealed record SystemInfo
 {
     public string AppVersion { get; init; } = "Unknown";
     public string OperatingSystem { get; init; } = "Unknown";

@@ -2,7 +2,7 @@ using Microsoft.Win32;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record RegistrySetting
+public sealed record RegistrySetting
 {
     public required string KeyPath { get; init; }
     public string? ValueName { get; init; }

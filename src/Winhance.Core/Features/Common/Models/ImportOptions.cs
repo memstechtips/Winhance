@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record ImportOptions
+public sealed record ImportOptions
 {
     public bool ProcessWindowsAppsRemoval { get; init; }
     public bool ProcessWindowsAppsInstallation { get; init; }

@@ -2,7 +2,7 @@ using System;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record BackupResult
+public sealed record BackupResult
 {
     public bool Success { get; init; }
     public bool RestorePointCreated { get; init; }

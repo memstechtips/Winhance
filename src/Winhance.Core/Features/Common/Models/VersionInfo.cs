@@ -2,7 +2,7 @@ using System;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record VersionInfo
+public sealed record VersionInfo
 {
     public string Version { get; init; } = string.Empty;
     public DateTime ReleaseDate { get; init; }

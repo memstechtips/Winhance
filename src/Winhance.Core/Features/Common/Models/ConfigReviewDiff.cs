@@ -6,7 +6,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// Represents the difference between a setting's current system value
 /// and the value specified in an imported config file.
 /// </summary>
-public record ConfigReviewDiff
+public sealed record ConfigReviewDiff
 {
     /// <summary>
     /// The unique setting identifier.

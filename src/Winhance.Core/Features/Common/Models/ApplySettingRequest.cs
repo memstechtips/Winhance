@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Models;
 
-public record ApplySettingRequest
+public sealed record ApplySettingRequest
 {
     public required string SettingId { get; init; }
     public required bool Enable { get; init; }
