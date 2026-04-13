@@ -1545,16 +1545,16 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         SettingBadgeKind.Recommended => (
             _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-            _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Recommended"),
+            _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
         SettingBadgeKind.Default => (
             _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-            _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Default"),
+            _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
         SettingBadgeKind.Custom => (
             _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-            _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom"),
+            _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
         SettingBadgeKind.Preference => (
             _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
-            _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Preference"),
+            _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
         _ => ("", ""),
     };
 

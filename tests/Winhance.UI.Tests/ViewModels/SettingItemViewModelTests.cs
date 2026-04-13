@@ -1119,6 +1119,10 @@ public class SettingItemViewModelTests : IDisposable
             (SettingBadgeKind.Default,     false),
             (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
+
+        sut.BadgeRow.Should().OnlyContain(
+            p => !string.IsNullOrEmpty(p.Label) && !string.IsNullOrEmpty(p.Tooltip),
+            because: "every pill must carry resolved Label/Tooltip strings — empty values would surface as blank text in XAML.");
     }
 
     [Fact]
