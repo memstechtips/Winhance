@@ -44,6 +44,7 @@ public static class ExplorerCustomizations
                             {
                                 DisplayName = "Keep '- Shortcut' suffix",
                                 ValueMappings = new Dictionary<string, object?> { ["link"] = null },
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -102,6 +103,7 @@ if (-not (Test-Path $icoPath)) {
                                 DisplayName = "Show arrow icon",
                                 ValueMappings = new Dictionary<string, object?> { ["29"] = null },
                                 Script = ScriptOption.Disabled,
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -803,6 +805,7 @@ if (-not (Test-Path $icoPath)) {
                             {
                                 DisplayName = "This PC",
                                 ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 1 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -849,6 +852,7 @@ if (-not (Test-Path $icoPath)) {
                             {
                                 DisplayName = "Open each folder in the same window",
                                 ValueMappings = new Dictionary<string, object?> { ["Settings"] = 0 },
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -903,6 +907,7 @@ if (-not (Test-Path $icoPath)) {
                                     ["ShellState"] = 1,
                                     ["IconUnderline"] = 3,
                                 },
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -1699,6 +1704,7 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "Select the typed item in the view",
                                 ValueMappings = new Dictionary<string, object?> { ["TypeAhead"] = 0 },
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption

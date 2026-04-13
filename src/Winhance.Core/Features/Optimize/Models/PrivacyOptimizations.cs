@@ -96,6 +96,7 @@ public static class PrivacyAndSecurityOptimizations
                                     ["ConsentPromptBehaviorAdmin"] = 0,
                                     ["PromptOnSecureDesktop"] = 0,
                                 },
+                                IsRecommended = true,
                             },
                         },
                         SupportsCustomState = true,
@@ -302,6 +303,7 @@ public static class PrivacyAndSecurityOptimizations
                             {
                                 DisplayName = "Off",
                                 ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 0 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -392,6 +394,7 @@ public static class PrivacyAndSecurityOptimizations
                             {
                                 DisplayName = "RemoteSigned",
                                 ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "RemoteSigned" },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -440,6 +443,7 @@ public static class PrivacyAndSecurityOptimizations
                             {
                                 DisplayName = "Deny",
                                 ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 1 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {

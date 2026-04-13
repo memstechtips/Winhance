@@ -184,6 +184,8 @@ public static class WindowsThemeCustomizations
 
                                 },
 
+                                IsRecommended = true,
+
                             },
 
                         },

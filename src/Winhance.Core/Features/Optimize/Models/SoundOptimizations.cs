@@ -91,6 +91,7 @@ public static class SoundOptimizations
                             {
                                 DisplayName = "Do nothing",
                                 ValueMappings = new Dictionary<string, object?> { ["UserDuckingPreference"] = 3 },
+                                IsRecommended = true,
                             },
                         },
                     },

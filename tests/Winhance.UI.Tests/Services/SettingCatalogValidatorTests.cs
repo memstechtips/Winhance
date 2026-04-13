@@ -73,20 +73,18 @@ public class SettingCatalogValidatorTests
         recommended.Should().BeLessThanOrEqualTo(1, $"{id} must have at most one option with IsRecommended = true");
     }
 
+    // NOTE: Under the multi-badge model, IsSubjectivePreference + IsRecommended can coexist.
+    // The Preference pill says "this is a matter of taste"; the Recommended pill says "but Winhance
+    // suggests this option." Both pills display independently. A subjective setting MAY carry a
+    // Winhance recommendation — there is no constraint preventing it.
     [Theory]
     [MemberData(nameof(AllSettings))]
-    public void SubjectivePreference_HasZeroRecommendedOptions(string id, SettingDefinition s)
+    public void SubjectivePreference_IsSelectionOnly(string id, SettingDefinition s)
     {
         if (!s.IsSubjectivePreference) return;
 
         s.InputType.Should().Be(InputType.Selection,
             because: $"'{id}' is flagged IsSubjectivePreference but that is a Selection-only concept");
-
-        var options = s.ComboBox?.Options ?? Array.Empty<ComboBoxOption>();
-        options.Where(o => o.IsRecommended).Should().BeEmpty(
-            because: $"'{id}' is subjective - Winhance must have no Recommended option. " +
-                     "If Winhance has an opinion, flag the right option with IsRecommended instead of " +
-                     "flagging the setting IsSubjectivePreference.");
     }
 
     [Theory]

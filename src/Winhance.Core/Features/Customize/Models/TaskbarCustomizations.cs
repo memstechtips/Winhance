@@ -56,6 +56,7 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Hide",
                                 ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 0 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -106,6 +107,7 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Hide",
                                 ValueMappings = new Dictionary<string, object?> { ["SearchboxTaskbarMode"] = 0 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -150,6 +152,7 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Left",
                                 ValueMappings = new Dictionary<string, object?> { ["TaskbarAl"] = 0 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -442,6 +445,7 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Always",
                                 ValueMappings = new Dictionary<string, object?> { ["TaskbarGlomLevel"] = 0 },
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -536,6 +540,7 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Always",
                                 ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 0 },
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption

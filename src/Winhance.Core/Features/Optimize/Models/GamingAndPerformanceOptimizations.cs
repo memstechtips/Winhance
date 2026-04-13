@@ -905,6 +905,7 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "Setting_gaming-dns-server_Option_0",
                                 Script = ScriptOption.Disabled,
+                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption

@@ -79,6 +79,7 @@ public static class StartMenuCustomizations
                             {
                                 DisplayName = "More pins",
                                 ValueMappings = new Dictionary<string, object?> { ["Start_Layout"] = 1 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -158,6 +159,7 @@ public static class StartMenuCustomizations
                                     ["HideRecommendedSection"] = 1, // Set to 1
                                     ["IsEducationEnvironment"] = 1, // Set to 1
                                 },
+                                IsRecommended = true,
                             },
                         },
                     },
