@@ -2196,6 +2196,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-short-date",
+                    IsSubjectivePreference = true,
                     Name = "Short Date Format",
                     Description = "Choose the format used to display short dates across Windows",
                     GroupName = "Regional Settings",
@@ -2222,7 +2223,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "M/d/yyyy",
                                 ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "M/d/yyyy" },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -2251,6 +2251,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-first-day-of-week",
+                    IsSubjectivePreference = true,
                     Name = "First Day of Week",
                     Description = "Choose which day is displayed as the first day of the week in calendars",
                     GroupName = "Regional Settings",
@@ -2277,7 +2278,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "Sunday",
                                 ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "6" },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -2316,6 +2316,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-number-decimal",
+                    IsSubjectivePreference = true,
                     Name = "Number Decimal Symbol",
                     Description = "Choose the symbol used to separate whole numbers from decimals in number formatting",
                     GroupName = "Regional Settings",
@@ -2342,7 +2343,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ". (Period)",
                                 ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "." },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -2366,6 +2366,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-list-separator",
+                    IsSubjectivePreference = true,
                     Name = "List Separator",
                     Description = "Choose the character used to separate items in lists, such as in CSV exports and formulas",
                     GroupName = "Regional Settings",
@@ -2392,7 +2393,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ", (Comma)",
                                 ValueMappings = new Dictionary<string, object?> { ["sList"] = "," },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -2407,6 +2407,7 @@ if (Test-Path $appPathsKey) {
                 {
                     // MIGRATION-CHECK: explorer-customization-measurement-system — pre-migration RegistrySetting had DefaultOption="U.S. (Imperial)" (idx 1) and DefaultValue="1", but both shipped Default configs (Windows10_22H2 and Windows11_25H2) use SelectedIndex=0 (Metric), and the Recommended config also uses idx 0. Configs win over DefaultOption/DefaultValue per sourcing authority; IsDefault placed on idx 0 (Metric), IsRecommended on idx 0.
                     Id = "explorer-customization-measurement-system",
+                    IsSubjectivePreference = true,
                     Name = "Measurement System",
                     Description = "Choose whether Windows uses the metric or U.S. imperial measurement system",
                     GroupName = "Regional Settings",
@@ -2433,7 +2434,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "Metric",
                                 ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "0" },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -2447,6 +2447,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-currency-decimal",
+                    IsSubjectivePreference = true,
                     Name = "Currency Decimal Symbol",
                     Description = "Choose the symbol used to separate whole numbers from decimals in currency formatting",
                     GroupName = "Regional Settings",
@@ -2473,7 +2474,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ". (Period)",
                                 ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
