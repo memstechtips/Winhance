@@ -10,6 +10,8 @@
     xmlns:converters="using:Winhance.UI.Features.Common.Converters"
     xmlns:coreModels="using:Winhance.Core.Features.Common.Models"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
+    <!-- Note: 'models:' is UI-layer (TechnicalDetailRow etc); 'coreModels:' is Winhance.Core (BadgePillState etc). -->
+    <!-- Don't merge them. -->
 
     <!-- Common spacing for settings cards -->
     <x:Double x:Key="SettingsCardSpacing">4</x:Double>
