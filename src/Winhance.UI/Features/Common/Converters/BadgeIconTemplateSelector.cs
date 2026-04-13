@@ -18,6 +18,7 @@ public partial class BadgeIconTemplateSelector : DataTemplateSelector
     public DataTemplate? RecommendedTemplate { get; set; }
     public DataTemplate? DefaultTemplate { get; set; }
     public DataTemplate? CustomTemplate { get; set; }
+    public DataTemplate? PreferenceTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
@@ -31,6 +32,7 @@ public partial class BadgeIconTemplateSelector : DataTemplateSelector
             SettingBadgeState.Recommended => RecommendedTemplate,
             SettingBadgeState.Default => DefaultTemplate,
             SettingBadgeState.Custom => CustomTemplate,
+            SettingBadgeState.Preference => PreferenceTemplate,
             _ => null,
         };
     }

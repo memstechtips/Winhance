@@ -24,6 +24,7 @@ public partial class BadgeStateToForegroundConverter : IValueConverter
             SettingBadgeState.Recommended => "BadgeRecommendedForeground",
             SettingBadgeState.Default => "BadgeDefaultForeground",
             SettingBadgeState.Custom => "BadgeCustomForeground",
+            SettingBadgeState.Preference => "BadgePreferenceForeground",
             _ => null,
         };
 

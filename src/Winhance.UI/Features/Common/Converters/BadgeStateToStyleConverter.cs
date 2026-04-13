@@ -23,6 +23,7 @@ public partial class BadgeStateToStyleConverter : IValueConverter
             SettingBadgeState.Recommended => "BadgeRecommendedStyle",
             SettingBadgeState.Default => "BadgeDefaultStyle",
             SettingBadgeState.Custom => "BadgeCustomStyle",
+            SettingBadgeState.Preference => "BadgePreferenceStyle",
             _ => null,
         };
 
