@@ -26,4 +26,14 @@ public record SettingDefinition : BaseDefinition, ISettingItem
     public bool ValidateExistence { get; init; } = true;
     public string? ParentSettingId { get; init; }
     public bool RequiresAdvancedUnlock { get; init; } = false;
+    /// <summary>
+    /// True when this Selection setting has no objectively-better choice —
+    /// the correct answer is user-, region-, or preference-driven. Badge
+    /// computation for subjective settings yields <see cref="SettingBadgeState.Preference"/>
+    /// for any well-known option value, ignoring <see cref="ComboBoxOption.IsRecommended"/>
+    /// and <see cref="ComboBoxOption.IsDefault"/> for the pill label.
+    /// By contract, subjective settings MUST have zero IsRecommended options
+    /// (enforced by SettingCatalogValidator).
+    /// </summary>
+    public bool IsSubjectivePreference { get; init; } = false;
 }
