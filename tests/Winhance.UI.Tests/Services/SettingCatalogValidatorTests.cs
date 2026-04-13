@@ -52,13 +52,19 @@ public class SettingCatalogValidatorTests
 
     [Theory]
     [MemberData(nameof(AllSettings))]
-    public void Selection_ExactlyOneDefault(string id, SettingDefinition s)
+    public void Selection_HasAtLeastOneDefault(string id, SettingDefinition s)
     {
         if (s.InputType != InputType.Selection || s.ComboBox?.Options is null) return;
         // PowerCfg-backed Selection: Default state lives on PowerCfgSetting.DefaultValueAC/DC per power mode.
         if (IsPowerCfgBacked(s)) return;
         var defaults = s.ComboBox.Options.Count(o => o.IsDefault);
-        defaults.Should().Be(1, $"{id} must have exactly one option with IsDefault = true");
+        // Subjective settings whose Windows factory default varies by locale (measurement-system,
+        // currency-decimal, etc.) flag MULTIPLE options as IsDefault — each is a default in some
+        // locale. Non-subjective settings still expect exactly one.
+        if (s.IsSubjectivePreference)
+            defaults.Should().BeGreaterThanOrEqualTo(1, $"{id} (subjective) must have at least one option with IsDefault = true");
+        else
+            defaults.Should().Be(1, $"{id} must have exactly one option with IsDefault = true");
     }
 
     [Theory]
