@@ -1387,7 +1387,9 @@ public partial class SettingItemViewModel : BaseViewModel
         }
 
         if (matchesRecommended)
-            BadgeState = SettingBadgeState.Recommended;
+            BadgeState = SettingDefinition.IsSubjectivePreference
+                ? SettingBadgeState.Preference
+                : SettingBadgeState.Recommended;
         else if (matchesDefault)
             BadgeState = SettingBadgeState.Default;
         else
@@ -1443,18 +1445,32 @@ public partial class SettingItemViewModel : BaseViewModel
             // SelectedValue is the option index; compare indices directly.
             // If one option has both flags, matches for both are set — the caller's
             // if/else-if chain picks Recommended first (tiebreak: Recommended wins).
+            //
+            // When the SettingDefinition is flagged IsSubjectivePreference, Winhance has
+            // no opinion on which option is "correct" — any well-known option index
+            // yields Preference (mapped in the caller's assignment block); an unmapped
+            // SelectedValue yields Custom.
             var options = SettingDefinition.ComboBox?.Options;
             if (options != null && SelectedValue is int currentIndex)
             {
-                int? recommendedIndex = null;
-                int? defaultIndex = null;
-                for (int i = 0; i < options.Count; i++)
+                if (SettingDefinition.IsSubjectivePreference)
                 {
-                    if (recommendedIndex == null && options[i].IsRecommended) recommendedIndex = i;
-                    if (defaultIndex == null && options[i].IsDefault) defaultIndex = i;
+                    bool knownOption = currentIndex >= 0 && currentIndex < options.Count;
+                    matchesRecommended = knownOption;
+                    matchesDefault = false;
                 }
-                matchesRecommended = recommendedIndex.HasValue && currentIndex == recommendedIndex.Value;
-                matchesDefault = defaultIndex.HasValue && currentIndex == defaultIndex.Value;
+                else
+                {
+                    int? recommendedIndex = null;
+                    int? defaultIndex = null;
+                    for (int i = 0; i < options.Count; i++)
+                    {
+                        if (recommendedIndex == null && options[i].IsRecommended) recommendedIndex = i;
+                        if (defaultIndex == null && options[i].IsDefault) defaultIndex = i;
+                    }
+                    matchesRecommended = recommendedIndex.HasValue && currentIndex == recommendedIndex.Value;
+                    matchesDefault = defaultIndex.HasValue && currentIndex == defaultIndex.Value;
+                }
             }
             else
             {

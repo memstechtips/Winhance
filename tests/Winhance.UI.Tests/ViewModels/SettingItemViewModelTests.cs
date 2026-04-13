@@ -1116,6 +1116,83 @@ public class SettingItemViewModelTests : IDisposable
             because: "when a Selection option is both IsRecommended and IsDefault, Recommended wins the tiebreak.");
     }
 
+    // ── BadgeState: Selection with IsSubjectivePreference ──
+
+    [Fact]
+    public void BadgeState_Selection_SubjectivePreference_MatchesKnownOption_YieldsPreference()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-subjective-known",
+            options: new[]
+            {
+                ("A", 0, false, true),  // IsDefault
+                ("B", 1, false, false),
+            }) with { IsSubjectivePreference = true };
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = 1; // non-default known option
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Preference);
+    }
+
+    [Fact]
+    public void BadgeState_Selection_SubjectivePreference_MatchesDefaultOption_StillYieldsPreference()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-subjective-default",
+            options: new[]
+            {
+                ("A", 0, false, true),
+                ("B", 1, false, false),
+            }) with { IsSubjectivePreference = true };
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = 0; // the IsDefault option
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Preference,
+            because: "subjective settings surface Preference even when the user picks the IsDefault option — Winhance has no opinion.");
+    }
+
+    [Fact]
+    public void BadgeState_Selection_SubjectivePreference_UnmappedValue_YieldsCustom()
+    {
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-subjective-unmapped",
+            options: new[]
+            {
+                ("A", 0, false, true),
+                ("B", 1, false, false),
+            }) with { IsSubjectivePreference = true };
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = -1; // unmapped — a value not in any option's ValueMappings
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Custom,
+            because: "an out-of-range SelectedValue still means the user has set something Winhance doesn't recognize.");
+    }
+
+    [Fact]
+    public void BadgeState_Selection_NonSubjective_BehaviorUnchanged_WhenRecommendedFlag()
+    {
+        // Regression guard: non-subjective Selection settings keep existing Recommended/Default/Custom logic.
+        var def = BuildSelectionSettingDefinition(
+            id: "selection-nonsubjective-regression",
+            options: new[]
+            {
+                ("Def", 0, false, true),
+                ("Rec", 1, true,  false),
+            });
+        var config = BuildSelectionConfig(def);
+        var sut = CreateSut(config);
+        sut.SelectedValue = 1;
+        sut.ComputeBadgeState();
+
+        sut.BadgeState.Should().Be(SettingBadgeState.Recommended);
+    }
+
     private static SettingDefinition BuildSelectionSettingDefinition(
         string id,
         IEnumerable<(string DisplayName, int Value, bool IsRecommended, bool IsDefault)> options)
