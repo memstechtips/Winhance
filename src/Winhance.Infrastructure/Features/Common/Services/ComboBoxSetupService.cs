@@ -82,6 +82,7 @@ public class ComboBoxSetupService(
             {
                 IsRecommended = options[i].IsRecommended,
                 IsDefault = options[i].IsDefault,
+                IsSubjectivePreference = setting.IsSubjectivePreference,
             });
         }
 

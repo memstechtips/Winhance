@@ -61,6 +61,13 @@ public class ComboBoxDisplayOption : INotifyPropertyChanged
     public bool IsDefault { get; set; }
 
     /// <summary>
+    /// True when the source SettingDefinition is flagged IsSubjectivePreference —
+    /// Winhance has no opinion on which option is "correct", so the open-dropdown
+    /// pill is suppressed entirely (no green, no grey), even on the IsDefault option.
+    /// </summary>
+    public bool IsSubjectivePreference { get; set; }
+
+    /// <summary>
     /// Computed: pill background is visible only when the user has info-badges enabled
     /// AND the option is Recommended or Default. Reset when the global toggle flips.
     /// Notifies <see cref="PillStyleTrigger"/> and <see cref="PillTooltipTrigger"/>
@@ -86,12 +93,12 @@ public class ComboBoxDisplayOption : INotifyPropertyChanged
     /// XAML binds the pill style converter to this so that the style re-resolves when
     /// <see cref="ShowPill"/> flips via the ShowInfoBadges toggle.
     /// </summary>
-    public ComboBoxDisplayOption? PillStyleTrigger => ShowPill && (IsRecommended || IsDefault) ? this : null;
+    public ComboBoxDisplayOption? PillStyleTrigger => ShowPill && !IsSubjectivePreference && (IsRecommended || IsDefault) ? this : null;
 
     /// <summary>
     /// Same pattern as <see cref="PillStyleTrigger"/> but for the tooltip binding. Null when no pill.
     /// </summary>
-    public ComboBoxDisplayOption? PillTooltipTrigger => ShowPill && (IsRecommended || IsDefault) ? this : null;
+    public ComboBoxDisplayOption? PillTooltipTrigger => ShowPill && !IsSubjectivePreference && (IsRecommended || IsDefault) ? this : null;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

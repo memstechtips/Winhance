@@ -74,6 +74,13 @@ public sealed partial class ComboBoxOptionPill : UserControl
             return;
         }
 
+        if (option.IsSubjectivePreference)
+        {
+            // Winhance has no opinion — no pill in the open dropdown, even on the IsDefault option.
+            ClearPill();
+            return;
+        }
+
         if (!option.ShowPill || (!option.IsRecommended && !option.IsDefault))
         {
             ClearPill();
