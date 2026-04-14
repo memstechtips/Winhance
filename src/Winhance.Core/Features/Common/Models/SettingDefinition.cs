@@ -36,4 +36,19 @@ public sealed record SettingDefinition : BaseDefinition, ISettingItem
     /// (enforced by SettingCatalogValidator).
     /// </summary>
     public bool IsSubjectivePreference { get; init; } = false;
+
+    /// <summary>
+    /// For Toggle/CheckBox settings: explicit Recommended state (true = enabled,
+    /// false = disabled). Mirrors the pattern of <see cref="ComboBoxOption.IsRecommended"/>
+    /// — the recommendation lives on the SettingDefinition rather than per-RegistrySetting.
+    ///
+    /// Set this when the recommendation cannot be encoded as a non-null
+    /// <c>RegistrySetting.RecommendedValue</c> — typically because the recommended state
+    /// is "key absent" (e.g. EnabledValue = [null]). When set, this wins over per-key
+    /// RecommendedValue derivation for badge / quick-set logic.
+    ///
+    /// Null means "no explicit toggle-level recommendation; fall back to per-key
+    /// RecommendedValue, or no Recommended badge if those are also null".
+    /// </summary>
+    public bool? RecommendedToggleState { get; init; }
 }

@@ -27,7 +27,6 @@
     <!-- Badge Converters -->
     <converters:BadgeKindToStyleConverter x:Key="BadgeKindToStyleConverter"/>
     <converters:BadgeKindToForegroundConverter x:Key="BadgeKindToForegroundConverter"/>
-    <converters:ComboBoxOptionToPillStyleConverter x:Key="ComboBoxOptionToPillStyleConverter"/>
 
     <!-- SoftwareApps Converters -->
     <softwareConverters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>

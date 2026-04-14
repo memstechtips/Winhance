@@ -62,6 +62,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-mouse-hover-time",
+                    IsSubjectivePreference = true,
                     Name = "Mouse Hover Time",
                     Description = "Controls how long you must hover over an element before it activates (in milliseconds). Lower values make tooltips, menus, and hover effects appear faster. Default is 400ms",
                     Icon = "Mouse",
@@ -87,6 +88,7 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "1ms (Instant)",
                                 ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "1" },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -726,6 +728,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-desktop-composition",
+                    RecommendedToggleState = true,
                     Name = "Desktop Composition Effects",
                     Description = "Enable visual effects managed by the Desktop Window Manager. Disabling may provide minor performance gains on older hardware but will break Aero effects",
                     GroupName = "Graphics",
@@ -774,6 +777,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-disable-mpo",
+                    RecommendedToggleState = true,
                     Name = "Multi-Plane Overlay (MPO)",
                     Description = "Composite multiple display layers in hardware using the GPU. Disabling can fix screen flickering, black screens, and stuttering on multi-monitor setups",
                     GroupName = "Graphics",
@@ -808,6 +812,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-disable-mpo-min-fps",
+                    RecommendedToggleState = true,
                     Name = "MPO Minimum Frame Rate Requirement",
                     Description = "Allow Desktop Window Manager to dynamically switch apps between overlay modes based on frame rate. Disabling can fix stuttering in browsers and Discord without fully disabling MPO",
                     GroupName = "Graphics",
@@ -855,6 +860,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nagle-algorithm",
+                    RecommendedToggleState = true,
                     Name = "Nagle's Algorithm",
                     Description = "Buffers small network packets before sending to reduce overhead. Turn off to lower latency in online games, or keep on for general-purpose network efficiency",
                     GroupName = "Network",

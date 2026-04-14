@@ -140,9 +140,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                         option.DisplayText = _localizationService.GetString(option.DisplayText);
                     }
 
-                    // Seed pill visibility from the VM's current global ShowInfoBadges state so the
-                    // dropdown renders correctly on first open without waiting for a toggle change.
-                    option.ShowPill = viewModel.IsInfoBadgeGloballyVisible;
                     viewModel.ComboBoxOptions.Add(option);
                 }
 

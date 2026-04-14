@@ -106,6 +106,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-workplace-join-messages",
+                    RecommendedToggleState = false,
                     Name = "Workplace Join Message Prompts",
                     Description = "Show 'Allow my organization to manage my device' prompts throughout Windows",
                     GroupName = "Security",
@@ -322,6 +323,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-developer-mode",
+                    RecommendedToggleState = false,
                     Name = "Developer Mode",
                     Description = "Allows the installation of apps from any source, including loose files",
                     GroupName = "Security",
@@ -1761,6 +1763,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-onedrive-auto-backup",
+                    RecommendedToggleState = false,
                     Name = "OneDrive Automatic Backups",
                     Description = "Controls whether OneDrive automatically backs up your Documents, Pictures, and Desktop folders. Has no effect if OneDrive backups are already active on your device",
                     GroupName = "App Permissions",

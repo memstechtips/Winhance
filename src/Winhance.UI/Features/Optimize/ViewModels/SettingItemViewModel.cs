@@ -202,21 +202,25 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(ShowInfoBadge));
         OnPropertyChanged(nameof(ShowNumericQuickSetButtons));
-        SyncComboBoxOptionShowPill(value);
+        OnPropertyChanged(nameof(ShowToggleQuickSetButtons));
+        OnPropertyChanged(nameof(ShowSelectionQuickSetButtons));
+        OnPropertyChanged(nameof(ShowAcSelectionQuickSetButtons));
+        OnPropertyChanged(nameof(ShowDcSelectionQuickSetButtons));
     }
 
-    // ───────── NumericRange quick-set buttons (Task B4) ─────────
+    // ───────── Quick-set buttons ─────────
     //
-    // Flank every NumericRange spinner with "Set to Recommended" / "Set to Default" buttons.
-    // Visibility follows IsInfoBadgeGloballyVisible (the ShowInfoBadges user preference).
-    // Values come from:
-    //   • RegistrySetting.RecommendedValue / DefaultValue  (primary registry entry)  → NumericValue
-    //   • PowerCfgSetting.RecommendedValueAC / DefaultValueAC (non-separate)         → NumericValue
-    //   • PowerCfgSetting.RecommendedValueAC/DC / DefaultValueAC/DC (Separate)       → AcNumericValue / DcNumericValue
+    // Every setting card shows "Set to Recommended" / "Set to Default" buttons in front
+    // of its control when the ShowInfoBadges preference is on AND the setting has at
+    // least one of Recommended/Default defined. Values come from:
+    //   • RegistrySetting.RecommendedValue / DefaultValue        → Toggle / Numeric
+    //   • ComboBoxOption.IsRecommended / IsDefault               → Selection
+    //   • PowerCfgSetting.RecommendedValueAC/DC / DefaultValueAC/DC → AC/DC Numeric + Selection
     //
-    // Tooltips are localized via InfoBadge_Numeric_SetToRecommended_Tooltip /
-    // InfoBadge_Numeric_SetToDefault_Tooltip. The localization string uses a literal "{0}"
-    // token (not .NET composite format), so we use string.Replace at runtime.
+    // Tooltips use the localized "Set to Recommended ({0})" / "Set to Default ({0})"
+    // template — {0} is the target value's display form (number, On/Off text, or
+    // combobox option label). The string uses a literal "{0}" token (not .NET composite
+    // format), so we use string.Replace at runtime.
 
     /// <summary>
     /// Recommended value for the single NumericRange spinner, or null if not available.
@@ -279,11 +283,11 @@ public partial class SettingItemViewModel : BaseViewModel
         catch { return null; }
     }
 
-    private string FormatNumericTooltip(string key, int value)
+    private string FormatValueTooltip(string key, object value)
     {
         var template = _localizationService?.GetString(key);
         if (!string.IsNullOrEmpty(template))
-            return template.Replace("{0}", value.ToString());
+            return template.Replace("{0}", value?.ToString() ?? string.Empty);
         // Fallback if the key is missing
         return key == StringKeys.InfoBadge.NumericSetToRecommendedTooltip
             ? $"Set to Recommended ({value})"
@@ -293,32 +297,32 @@ public partial class SettingItemViewModel : BaseViewModel
     // Tooltips — computed live so language changes flow through OnLanguageChanged.
     public string RecommendedValueTooltip =>
         NumericRecommendedValue is int rec
-            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
             : string.Empty;
 
     public string DefaultValueTooltip =>
         NumericDefaultValue is int def
-            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
             : string.Empty;
 
     public string RecommendedAcValueTooltip =>
         AcRecommendedValue is int rec
-            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
             : string.Empty;
 
     public string DefaultAcValueTooltip =>
         AcDefaultValue is int def
-            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
             : string.Empty;
 
     public string RecommendedDcValueTooltip =>
         DcRecommendedValue is int rec
-            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
             : string.Empty;
 
     public string DefaultDcValueTooltip =>
         DcDefaultValue is int def
-            ? FormatNumericTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
             : string.Empty;
 
     /// <summary>
@@ -410,24 +414,278 @@ public partial class SettingItemViewModel : BaseViewModel
         });
     private RelayCommand? _setDcNumericToDefaultCommand;
 
+    // ───────── Toggle quick-set buttons ─────────
+    private RegistrySetting? PrimaryRegistrySetting =>
+        SettingDefinition?.RegistrySettings?.FirstOrDefault(r => r.IsPrimary)
+        ?? SettingDefinition?.RegistrySettings?.FirstOrDefault();
+
     /// <summary>
-    /// Propagates the ShowInfoBadges toggle into each ComboBoxDisplayOption so the
-    /// open-dropdown pill background follows the global preference in real time.
+    /// True if Recommended maps to the enabled state, false if disabled, null if no
+    /// recommendation is set. Resolution order:
+    ///   1. <see cref="SettingDefinition.RecommendedToggleState"/> (explicit toggle-level flag)
+    ///   2. Per-RegistrySetting RecommendedValue mapped strictly via EnabledValue/DisabledValue
+    ///   3. null (no Recommended badge / button)
+    /// The strict step never derives state from the EnabledValue/DisabledValue null sentinel —
+    /// recommendations against the key-absent state must be expressed via RecommendedToggleState.
     /// </summary>
-    private void SyncComboBoxOptionShowPill(bool showBadges)
+    public bool? ToggleRecommendedState
     {
-        if (ComboBoxOptions == null) return;
-        foreach (var option in ComboBoxOptions)
+        get
         {
-            option.ShowPill = showBadges;
+            if (SettingDefinition?.RecommendedToggleState is bool explicitState) return explicitState;
+            return ResolveToggleState(PrimaryRegistrySetting?.RecommendedValue, deriveFromKeyAbsent: false);
         }
     }
 
-    partial void OnComboBoxOptionsChanged(ObservableCollection<ComboBoxDisplayOption> value)
+    /// <summary>
+    /// True if Default maps to the enabled state, false if disabled, null if not derivable.
+    /// When DefaultValue is null, the state is derived from which of EnabledValue /
+    /// DisabledValue contains the null sentinel (key-absent convention).
+    /// </summary>
+    public bool? ToggleDefaultState => ResolveToggleState(
+        PrimaryRegistrySetting?.DefaultValue, deriveFromKeyAbsent: true);
+
+    private bool? ResolveToggleState(object? targetValue, bool deriveFromKeyAbsent)
     {
-        // When a fresh collection is assigned, sync each option to the current global flag.
-        SyncComboBoxOptionShowPill(IsInfoBadgeGloballyVisible);
+        var reg = PrimaryRegistrySetting;
+        if (reg == null) return null;
+        if (targetValue == null && !deriveFromKeyAbsent) return null;
+        return ToggleTargetState(targetValue, reg.EnabledValue, reg.DisabledValue);
     }
+
+    /// <summary>
+    /// Resolves a target value into the toggle state it represents. When
+    /// <paramref name="targetValue"/> is null, the result is derived from which of
+    /// EnabledValue / DisabledValue contains the null sentinel — i.e. "key absent" implies
+    /// that state. Callers pick whether to use this derivation: Default does, Recommended
+    /// does not (see ResolveToggleState).
+    /// </summary>
+    internal static bool? ToggleTargetState(object? targetValue, object?[]? enabledValue, object?[]? disabledValue)
+    {
+        if (targetValue == null)
+        {
+            if (ArrayContainsNull(enabledValue)) return true;
+            if (ArrayContainsNull(disabledValue)) return false;
+            return null;
+        }
+        if (IsValueInArray(targetValue, enabledValue)) return true;
+        if (IsValueInArray(targetValue, disabledValue)) return false;
+        return null;
+    }
+
+    private static bool ArrayContainsNull(object?[]? array) => array?.Any(v => v == null) == true;
+
+    private string ToggleStateText(bool state) => state ? OnText : OffText;
+
+    public string ToggleRecommendedTooltip =>
+        ToggleRecommendedState is bool s
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ToggleStateText(s))
+            : string.Empty;
+
+    public string ToggleDefaultTooltip =>
+        ToggleDefaultState is bool s
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ToggleStateText(s))
+            : string.Empty;
+
+    public bool ShowToggleQuickSetButtons
+    {
+        get
+        {
+            if (!IsInfoBadgeGloballyVisible) return false;
+            if (InputType != InputType.Toggle && InputType != InputType.CheckBox) return false;
+            return ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue;
+        }
+    }
+
+    public IRelayCommand SetToggleToRecommendedCommand => _setToggleToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (ToggleRecommendedState is bool v)
+                HandleToggleAsync(v).FireAndForget(_logService);
+        });
+    private RelayCommand? _setToggleToRecommendedCommand;
+
+    public IRelayCommand SetToggleToDefaultCommand => _setToggleToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (ToggleDefaultState is bool v)
+                HandleToggleAsync(v).FireAndForget(_logService);
+        });
+    private RelayCommand? _setToggleToDefaultCommand;
+
+    // ───────── Selection quick-set buttons (single ComboBox) ─────────
+    private int? FindOptionIndex(Func<Winhance.Core.Features.Common.Models.ComboBoxOption, bool> predicate)
+    {
+        var opts = SettingDefinition?.ComboBox?.Options;
+        if (opts == null) return null;
+        for (int i = 0; i < opts.Count; i++)
+            if (predicate(opts[i])) return i;
+        return null;
+    }
+
+    public int? SelectionRecommendedIndex => FindOptionIndex(o => o.IsRecommended);
+    public int? SelectionDefaultIndex => FindOptionIndex(o => o.IsDefault);
+
+    private string? OptionDisplayText(int? index)
+    {
+        if (index is not int i) return null;
+        if (ComboBoxOptions == null || i < 0 || i >= ComboBoxOptions.Count) return null;
+        return ComboBoxOptions[i].DisplayText;
+    }
+
+    public string SelectionRecommendedTooltip =>
+        OptionDisplayText(SelectionRecommendedIndex) is { } label
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            : string.Empty;
+
+    public string SelectionDefaultTooltip =>
+        OptionDisplayText(SelectionDefaultIndex) is { } label
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            : string.Empty;
+
+    public bool ShowSelectionQuickSetButtons
+    {
+        get
+        {
+            if (!IsInfoBadgeGloballyVisible) return false;
+            if (InputType != InputType.Selection) return false;
+            if (IsPowerPlanSetting) return false; // PowerPlan has its own recommendation logic (TBD)
+            if (SupportsSeparateACDC) return false; // Dual AC/DC selection uses per-mode buttons
+            return SelectionRecommendedIndex.HasValue || SelectionDefaultIndex.HasValue;
+        }
+    }
+
+    public IRelayCommand SetSelectionToRecommendedCommand => _setSelectionToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (SelectionRecommendedIndex is int i)
+                HandleValueChangedAsync(i).FireAndForget(_logService);
+        });
+    private RelayCommand? _setSelectionToRecommendedCommand;
+
+    public IRelayCommand SetSelectionToDefaultCommand => _setSelectionToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (SelectionDefaultIndex is int i)
+                HandleValueChangedAsync(i).FireAndForget(_logService);
+        });
+    private RelayCommand? _setSelectionToDefaultCommand;
+
+    // ───────── AC/DC Selection quick-set buttons (PowerCfg Separate + Single AC) ─────────
+    private int? FindPowerCfgOptionIndex(int? targetValue)
+    {
+        if (targetValue is not int target) return null;
+        var opts = SettingDefinition?.ComboBox?.Options;
+        if (opts == null) return null;
+        for (int i = 0; i < opts.Count; i++)
+        {
+            if (opts[i].ValueMappings is { } m && m.TryGetValue("PowerCfgValue", out var v) && v != null)
+            {
+                try { if (Convert.ToInt32(v) == target) return i; }
+                catch { }
+            }
+        }
+        return null;
+    }
+
+    public int? AcSelectionRecommendedIndex =>
+        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC);
+
+    public int? AcSelectionDefaultIndex =>
+        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC);
+
+    public int? DcSelectionRecommendedIndex =>
+        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC);
+
+    public int? DcSelectionDefaultIndex =>
+        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC);
+
+    public string AcSelectionRecommendedTooltip =>
+        OptionDisplayText(AcSelectionRecommendedIndex) is { } label
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            : string.Empty;
+
+    public string AcSelectionDefaultTooltip =>
+        OptionDisplayText(AcSelectionDefaultIndex) is { } label
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            : string.Empty;
+
+    public string DcSelectionRecommendedTooltip =>
+        OptionDisplayText(DcSelectionRecommendedIndex) is { } label
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            : string.Empty;
+
+    public string DcSelectionDefaultTooltip =>
+        OptionDisplayText(DcSelectionDefaultIndex) is { } label
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            : string.Empty;
+
+    public bool ShowAcSelectionQuickSetButtons
+    {
+        get
+        {
+            if (!IsInfoBadgeGloballyVisible) return false;
+            if (InputType != InputType.Selection) return false;
+            if (SettingDefinition?.PowerCfgSettings?.Any() != true) return false;
+            return AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue;
+        }
+    }
+
+    public bool ShowDcSelectionQuickSetButtons
+    {
+        get
+        {
+            if (!IsInfoBadgeGloballyVisible) return false;
+            if (InputType != InputType.Selection) return false;
+            if (!SupportsSeparateACDC) return false;
+            return DcSelectionRecommendedIndex.HasValue || DcSelectionDefaultIndex.HasValue;
+        }
+    }
+
+    public IRelayCommand SetAcSelectionToRecommendedCommand => _setAcSelectionToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (AcSelectionRecommendedIndex is int i)
+            {
+                AcValue = i;
+                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setAcSelectionToRecommendedCommand;
+
+    public IRelayCommand SetAcSelectionToDefaultCommand => _setAcSelectionToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (AcSelectionDefaultIndex is int i)
+            {
+                AcValue = i;
+                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setAcSelectionToDefaultCommand;
+
+    public IRelayCommand SetDcSelectionToRecommendedCommand => _setDcSelectionToRecommendedCommand ??=
+        new RelayCommand(() =>
+        {
+            if (DcSelectionRecommendedIndex is int i)
+            {
+                DcValue = i;
+                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setDcSelectionToRecommendedCommand;
+
+    public IRelayCommand SetDcSelectionToDefaultCommand => _setDcSelectionToDefaultCommand ??=
+        new RelayCommand(() =>
+        {
+            if (DcSelectionDefaultIndex is int i)
+            {
+                DcValue = i;
+                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+            }
+        });
+    private RelayCommand? _setDcSelectionToDefaultCommand;
+
 
     // Advanced unlock support
     [ObservableProperty]
@@ -1391,41 +1649,21 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (InputType == InputType.Toggle || InputType == InputType.CheckBox)
         {
-            // Determine what value is currently "set" based on IsSelected
-            // IsSelected=true means EnabledValue is active, false means DisabledValue is active
-            if (reg.RecommendedValue != null)
-            {
-                bool recommendedIsEnabled = IsValueInArray(reg.RecommendedValue, reg.EnabledValue);
-                bool recommendedIsDisabled = IsValueInArray(reg.RecommendedValue, reg.DisabledValue);
+            // Resolution order for Recommended:
+            //   1. SettingDefinition.RecommendedToggleState (explicit toggle-level flag)
+            //   2. Per-RegistrySetting RecommendedValue mapped strictly (no null-sentinel derivation)
+            //   3. null → no badge match
+            // Default still derives from the null sentinel via ToggleTargetState — settings
+            // that ship with the registry key absent (e.g. EnabledValue = [1, null],
+            // DefaultValue = null) produce a Default badge matching the key-absent state.
+            bool? recommendedState = SettingDefinition?.RecommendedToggleState
+                ?? (reg.RecommendedValue == null
+                    ? (bool?)null
+                    : ToggleTargetState(reg.RecommendedValue, reg.EnabledValue, reg.DisabledValue));
+            matchesRecommended = recommendedState == IsSelected;
 
-                if (recommendedIsEnabled)
-                    matchesRecommended = IsSelected;
-                else if (recommendedIsDisabled)
-                    matchesRecommended = !IsSelected;
-                else
-                    matchesRecommended = false;
-            }
-            else
-            {
-                matchesRecommended = false;
-            }
-
-            if (reg.DefaultValue != null)
-            {
-                bool defaultIsEnabled = IsValueInArray(reg.DefaultValue, reg.EnabledValue);
-                bool defaultIsDisabled = IsValueInArray(reg.DefaultValue, reg.DisabledValue);
-
-                if (defaultIsEnabled)
-                    matchesDefault = IsSelected;
-                else if (defaultIsDisabled)
-                    matchesDefault = !IsSelected;
-                else
-                    matchesDefault = false;
-            }
-            else
-            {
-                matchesDefault = false;
-            }
+            var defaultState = ToggleTargetState(reg.DefaultValue, reg.EnabledValue, reg.DisabledValue);
+            matchesDefault = defaultState == IsSelected;
         }
         else if (InputType == InputType.Selection)
         {
@@ -1505,6 +1743,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool HasAnyRecommendedData()
     {
+        // Toggle-level explicit flag wins.
+        if ((InputType == InputType.Toggle || InputType == InputType.CheckBox)
+            && SettingDefinition.RecommendedToggleState.HasValue)
+            return true;
+        // Recommended is strict otherwise — explicit non-null per-RegistrySetting value.
         if (SettingDefinition.RegistrySettings.Any(r => r.RecommendedValue != null))
             return true;
         if (InputType == InputType.Selection
@@ -1520,7 +1763,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool HasAnyDefaultData()
     {
-        if (SettingDefinition.RegistrySettings.Any(r => r.DefaultValue != null))
+        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        if (SettingDefinition.RegistrySettings.Any(r =>
+                isToggleLike
+                    ? ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
+                    : r.DefaultValue != null))
             return true;
         if (InputType == InputType.Selection
             && SettingDefinition.ComboBox?.Options?.Any(o => o.IsDefault) == true)
@@ -1570,9 +1817,23 @@ public partial class SettingItemViewModel : BaseViewModel
             return;
         }
 
-        // Check RegistrySettings for RecommendedValue or DefaultValue
+        // Check RegistrySettings for RecommendedValue or DefaultValue.
+        // For Toggle/CheckBox the Default check uses the key-absent convention via
+        // ToggleTargetState — a Default badge is "data" when EnabledValue or DisabledValue
+        // contains the null sentinel even if DefaultValue itself is null. Recommended is
+        // strict per-RegistrySetting; the toggle-level RecommendedToggleState flag is
+        // checked separately below.
+        bool isToggleLike = SettingDefinition.InputType == InputType.Toggle
+            || SettingDefinition.InputType == InputType.CheckBox;
         bool hasRegistryData = SettingDefinition.RegistrySettings.Any(r =>
-            r.RecommendedValue != null || r.DefaultValue != null);
+            r.RecommendedValue != null
+            || (isToggleLike
+                ? ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
+                : r.DefaultValue != null));
+
+        // Toggle-level explicit recommendation also counts as badge-worthy data.
+        if (isToggleLike && SettingDefinition.RecommendedToggleState.HasValue)
+            hasRegistryData = true;
 
         // Selection settings carry Recommended/Default on ComboBoxMetadata.Options[i] rather than on
         // RegistrySetting, so consider ComboBox options as badge-worthy data too.
@@ -1611,6 +1872,14 @@ public partial class SettingItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(DefaultAcValueTooltip));
         OnPropertyChanged(nameof(RecommendedDcValueTooltip));
         OnPropertyChanged(nameof(DefaultDcValueTooltip));
+        OnPropertyChanged(nameof(ToggleRecommendedTooltip));
+        OnPropertyChanged(nameof(ToggleDefaultTooltip));
+        OnPropertyChanged(nameof(SelectionRecommendedTooltip));
+        OnPropertyChanged(nameof(SelectionDefaultTooltip));
+        OnPropertyChanged(nameof(AcSelectionRecommendedTooltip));
+        OnPropertyChanged(nameof(AcSelectionDefaultTooltip));
+        OnPropertyChanged(nameof(DcSelectionRecommendedTooltip));
+        OnPropertyChanged(nameof(DcSelectionDefaultTooltip));
     }
 
     protected override void Dispose(bool disposing)

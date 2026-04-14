@@ -764,7 +764,10 @@
     "InputType": "Toggle"
   },
   "gaming-performance-mouse-hover-time": {
-    "Recommended": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
     "Default": {
       "kind": "index",
       "value": 5

@@ -224,6 +224,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-toggle-extensions",
+                    RecommendedToggleState = false,
                     Name = "Add 'Show/Hide Extensions' to Context Menu",
                     Description = "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
                     GroupName = "Context Menu",
@@ -282,6 +283,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-windows-terminal",
+                    RecommendedToggleState = true,
                     Name = "Show 'Open in Windows Terminal' in Context Menu",
                     Description = "Displays the Windows Terminal option when right-clicking folders and backgrounds in File Explorer",
                     GroupName = "Context Menu",
@@ -305,6 +307,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-sfc",
+                    RecommendedToggleState = false,
                     Name = "Add 'SFC /SCANNOW' to Context Menu",
                     Description = "Adds right-click options to run System File Checker (SFC /SCANNOW) and view scan details from the desktop or folder background",
                     GroupName = "Context Menu",
@@ -374,6 +377,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-dism",
+                    RecommendedToggleState = false,
                     Name = "Add 'Repair Windows Image' to Context Menu",
                     Description = "Adds a right-click option to run DISM /RestoreHealth to repair the Windows system image from the desktop or folder background",
                     GroupName = "Context Menu",
@@ -436,6 +440,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-chkdsk",
+                    RecommendedToggleState = false,
                     Name = "Add 'CHKDSK' to Context Menu",
                     Description = "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
                     GroupName = "Context Menu",
@@ -508,6 +513,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-ps1-edit-run",
+                    RecommendedToggleState = false,
                     Name = "Add 'Edit or Run with' to PS1 Context Menu",
                     Description = "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
                     GroupName = "Context Menu",
@@ -640,6 +646,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-compress-to",
+                    RecommendedToggleState = false,
                     Name = "Add 'Compress To' to Context Menu",
                     Description = "Adds a right-click option to compress files and folders into various archive formats (ZIP, 7z, TAR) directly from the classic context menu",
                     GroupName = "Context Menu",
@@ -1104,6 +1111,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-folder-tips",
+                    RecommendedToggleState = true,
                     Name = "Display file size information in folder tips",
                     Description = "Shows total size and file count when hovering over folders",
                     GroupName = "Files and Folders",
@@ -1172,6 +1180,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-hide-empty-drives",
+                    RecommendedToggleState = true,
                     Name = "Hide empty drives",
                     Description = "Hides drives with no media inserted like empty card readers or optical drives",
                     GroupName = "Files and Folders",
@@ -1364,6 +1373,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-legacy-notepad",
+                    RecommendedToggleState = false,
                     Name = "Use Legacy Notepad for text files",
                     Description = "Makes legacy Notepad available as a file handler and disables the Store Notepad redirect. Requires Notepad (Legacy) capability to be installed",
                     GroupName = "File Associations",
@@ -1501,6 +1511,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-drive-letters",
+                    RecommendedToggleState = true,
                     Name = "Show drive letters",
                     Description = "Displays drive letters (C:, D:) before drive names in This PC",
                     GroupName = "Files and Folders",
@@ -1718,6 +1729,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-3d-objects",
+                    RecommendedToggleState = false,
                     Name = "Show 3D Objects",
                     Description = "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
                     GroupName = "Navigation Pane",
@@ -1751,6 +1763,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-home-folder",
+                    RecommendedToggleState = false,
                     Name = "Show Home Folder",
                     Description = "Display the Home folder in the navigation pane as a shortcut to your user profile folder",
                     GroupName = "Navigation Pane",
@@ -1774,6 +1787,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-gallery",
+                    RecommendedToggleState = false,
                     Name = "Show Gallery",
                     Description = "Display the Gallery folder in the navigation pane for quick access to all your photos and videos",
                     GroupName = "Navigation Pane",
@@ -2121,6 +2135,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-duplicate-removable-drives",
+                    RecommendedToggleState = false,
                     Name = "Show Duplicate Removable Drives",
                     Description = "Show removable drives as separate entries in the navigation pane in addition to under This PC",
                     GroupName = "Navigation Pane",

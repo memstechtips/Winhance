@@ -102,6 +102,29 @@ public class SettingCatalogValidatorTests
         names.Should().OnlyHaveUniqueItems($"{id} ComboBox options must have unique DisplayNames");
     }
 
+    /// <summary>
+    /// Every Toggle/CheckBox SettingDefinition that has registry-backed state must declare a
+    /// Winhance recommendation — either via the toggle-level <see cref="SettingDefinition.RecommendedToggleState"/>
+    /// flag or via at least one <see cref="RegistrySetting.RecommendedValue"/>. Catches future
+    /// drift where someone adds a toggle without filling in the recommendation.
+    /// Settings backed only by ScheduledTask / PowerCfg / NativePowerApi / PowerShellScripts /
+    /// RegContents are exempt (they carry their recommendation on those models, not here).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AllSettings))]
+    public void Toggle_HasRecommendation(string id, SettingDefinition s)
+    {
+        if (s.InputType != InputType.Toggle && s.InputType != InputType.CheckBox) return;
+        if (s.RegistrySettings is null || s.RegistrySettings.Count == 0) return;
+
+        bool hasToggleLevelFlag = s.RecommendedToggleState.HasValue;
+        bool hasPerKeyValue = s.RegistrySettings.Any(r => r.RecommendedValue != null);
+
+        (hasToggleLevelFlag || hasPerKeyValue).Should().BeTrue(
+            $"{id} is a Toggle/CheckBox and must declare a Winhance recommendation — set " +
+            $"SettingDefinition.RecommendedToggleState or at least one RegistrySetting.RecommendedValue");
+    }
+
     [Theory]
     [MemberData(nameof(AllSettings))]
     public void Selection_RegistrySettings_RecommendedAndDefaultValue_MustBeNull(string id, SettingDefinition s)

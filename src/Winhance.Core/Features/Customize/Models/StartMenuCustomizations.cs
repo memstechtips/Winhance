@@ -349,6 +349,7 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-disable-bing-search-results",
+                    RecommendedToggleState = false,
                     Name = "Bing Search Results in Start Menu",
                     Description = "Show web results from Bing alongside local files and apps when searching in the Start Menu",
                     GroupName = "Start Menu Settings",

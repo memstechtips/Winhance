@@ -521,6 +521,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-restart-options",
+                    RecommendedToggleState = false,
                     Name = "Automatic Restart After Updates",
                     Description = "Allow Windows to automatically restart your PC after installing updates when you are logged in",
                     GroupName = "Update Behavior",
@@ -555,6 +556,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-notification-level",
+                    RecommendedToggleState = false,
                     Name = "Update Notifications",
                     Description = "Show or hide notifications about available updates and update progress",
                     GroupName = "Update Behavior",
@@ -633,6 +635,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-driver-controls",
+                    RecommendedToggleState = false,
                     Name = "Driver Updates via Windows Update",
                     Description = "Include hardware driver updates when downloading and installing Windows Updates",
                     GroupName = "Update Behavior",
@@ -667,6 +670,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-driver-coinstallers",
+                    RecommendedToggleState = false,
                     Name = "Driver Co-Installers",
                     Description = "Allows hardware vendors to install companion software alongside device drivers. Disabling this prevents bloatware like Razer Synapse, printer utilities, and other vendor software from being automatically installed when you plug in devices. Your hardware will still work normally with standard drivers.",
                     GroupName = "Update Behavior",

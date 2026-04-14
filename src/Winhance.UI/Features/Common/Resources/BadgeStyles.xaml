@@ -100,25 +100,6 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
     </Style>
 
-    <!-- ==================== ComboBox Option Pill Styles ==================== -->
-    <!--
-    Used by the Selection ComboBox ItemTemplate to highlight Recommended / Default
-    options in the open dropdown list. Height auto-follows the text so the pill fits
-    inside a ComboBoxItem row. SelectionBoxItemTemplate is intentionally left at the
-    default TextBlock so the CLOSED dropdown shows no pill.
-    -->
-    <Style x:Key="ComboBoxOptionRecommendedPillStyle" TargetType="Border" BasedOn="{StaticResource BadgeRecommendedStyle}">
-        <Setter Property="Height" Value="Auto"/>
-        <Setter Property="Padding" Value="8,4"/>
-        <Setter Property="HorizontalAlignment" Value="Stretch"/>
-    </Style>
-
-    <Style x:Key="ComboBoxOptionDefaultPillStyle" TargetType="Border" BasedOn="{StaticResource BadgeDefaultStyle}">
-        <Setter Property="Height" Value="Auto"/>
-        <Setter Property="Padding" Value="8,4"/>
-        <Setter Property="HorizontalAlignment" Value="Stretch"/>
-    </Style>
-
     <!-- ==================== Text Style ==================== -->
     <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11"/>
@@ -175,15 +156,20 @@
         </converters:BadgeIconTemplateSelector.PreferenceTemplate>
     </converters:BadgeIconTemplateSelector>
 
-    <!-- ==================== NumericRange Quick-Set Buttons (Task B4) ==================== -->
+    <!-- ==================== Quick-Set Buttons ==================== -->
     <!--
-    Small borderless icon buttons flanking every NumericRange spinner. Visible only
-    when UserPreferences.ShowInfoBadges is on. The green star matches the Recommended
-    InfoBadge; the grey 2x2-grid icon matches the Default InfoBadge — keeping the
-    Recommended/Default visual vocabulary consistent across InfoBadge pills,
-    Quick Actions menu items, and these per-spinner buttons.
+    Small borderless icon buttons placed in front of every setting's control. Visible
+    only when UserPreferences.ShowInfoBadges is on. The green star matches the
+    Recommended InfoBadge; the grey 2x2-grid icon matches the Default InfoBadge —
+    keeping the Recommended/Default visual vocabulary consistent across InfoBadge
+    pills, Quick Actions menu items, and these per-card buttons.
+
+    Hover/press: the icon child carries its own Foreground brush (BadgeRecommendedForeground
+    / BadgeDefaultForeground) so the default ButtonForegroundPointerOver override on the
+    ContentPresenter has no effect — the green/grey stays while the usual background
+    hover tint still renders.
     -->
-    <Style x:Key="NumericQuickSetButtonBase" TargetType="Button">
+    <Style x:Key="QuickSetButtonBase" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="4"/>
@@ -194,13 +180,13 @@
         <Setter Property="HorizontalAlignment" Value="Center"/>
     </Style>
 
-    <Style x:Key="NumericQuickSetRecommendedButtonStyle" TargetType="Button"
-           BasedOn="{StaticResource NumericQuickSetButtonBase}">
+    <Style x:Key="QuickSetRecommendedButtonStyle" TargetType="Button"
+           BasedOn="{StaticResource QuickSetButtonBase}">
         <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
     </Style>
 
-    <Style x:Key="NumericQuickSetDefaultButtonStyle" TargetType="Button"
-           BasedOn="{StaticResource NumericQuickSetButtonBase}">
+    <Style x:Key="QuickSetDefaultButtonStyle" TargetType="Button"
+           BasedOn="{StaticResource QuickSetButtonBase}">
         <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
     </Style>
 
