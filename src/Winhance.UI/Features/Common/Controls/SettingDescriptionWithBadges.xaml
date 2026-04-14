@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingDescriptionWithBadges"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Spacing="6">
+        <TextBlock
+            Text="{x:Bind DescriptionText, Mode=OneWay}"
+            TextWrapping="Wrap"
+            Style="{StaticResource CaptionTextBlockStyle}"/>
+        <ItemsControl
+            ItemsSource="{x:Bind BadgeRow, Mode=OneWay}"
+            Visibility="{x:Bind ShowBadges, Mode=OneWay,
+                         Converter={StaticResource BooleanToVisibilityConverter}}"
+            ItemTemplateSelector="{StaticResource BadgePillTemplateSelector}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>
