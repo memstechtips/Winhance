@@ -9,7 +9,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// Styles are looked up from Application.Current.Resources by key
 /// ("BadgeRecommendedStyle", "BadgeDefaultStyle", "BadgeCustomStyle").
 /// </summary>
-public sealed partial class BadgeStateToStyleConverter : IValueConverter
+public sealed partial class BadgeKindToStyleConverter : IValueConverter
 {
     public static string? GetResourceKey(SettingBadgeKind state) => state switch
     {

@@ -25,8 +25,8 @@
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- Badge Converters -->
-    <converters:BadgeStateToStyleConverter x:Key="BadgeStateToStyleConverter"/>
-    <converters:BadgeStateToForegroundConverter x:Key="BadgeStateToForegroundConverter"/>
+    <converters:BadgeKindToStyleConverter x:Key="BadgeKindToStyleConverter"/>
+    <converters:BadgeKindToForegroundConverter x:Key="BadgeKindToForegroundConverter"/>
     <converters:ComboBoxOptionToPillStyleConverter x:Key="ComboBoxOptionToPillStyleConverter"/>
 
     <!-- SoftwareApps Converters -->

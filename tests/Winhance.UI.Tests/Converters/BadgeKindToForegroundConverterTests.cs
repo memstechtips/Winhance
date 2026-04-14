@@ -5,9 +5,9 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Converters;
 
-public class BadgeStateToForegroundConverterTests
+public class BadgeKindToForegroundConverterTests
 {
-    private readonly BadgeStateToForegroundConverter _sut = new();
+    private readonly BadgeKindToForegroundConverter _sut = new();
 
     [Fact]
     public void Convert_NonEnumValue_ReturnsNull()
@@ -30,7 +30,7 @@ public class BadgeStateToForegroundConverterTests
     [InlineData(SettingBadgeKind.Preference, "BadgePreferenceForeground")]
     public void GetResourceKey_ReturnsMatchingForegroundKey(SettingBadgeKind state, string expected)
     {
-        BadgeStateToForegroundConverter.GetResourceKey(state).Should().Be(expected);
+        BadgeKindToForegroundConverter.GetResourceKey(state).Should().Be(expected);
     }
 
     [Fact]
@@ -38,6 +38,6 @@ public class BadgeStateToForegroundConverterTests
     {
         // Guard against a new SettingBadgeKind value being added without updating the switch.
         var invalid = (SettingBadgeKind)999;
-        BadgeStateToForegroundConverter.GetResourceKey(invalid).Should().BeNull();
+        BadgeKindToForegroundConverter.GetResourceKey(invalid).Should().BeNull();
     }
 }

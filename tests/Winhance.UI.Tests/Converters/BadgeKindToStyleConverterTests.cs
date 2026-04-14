@@ -5,9 +5,9 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Converters;
 
-public class BadgeStateToStyleConverterTests
+public class BadgeKindToStyleConverterTests
 {
-    private readonly BadgeStateToStyleConverter _sut = new();
+    private readonly BadgeKindToStyleConverter _sut = new();
 
     [Fact]
     public void Convert_NonEnumValue_ReturnsNull()
@@ -30,7 +30,7 @@ public class BadgeStateToStyleConverterTests
     [InlineData(SettingBadgeKind.Preference, "BadgePreferenceStyle")]
     public void GetResourceKey_ReturnsMatchingStyleKey(SettingBadgeKind state, string expected)
     {
-        BadgeStateToStyleConverter.GetResourceKey(state).Should().Be(expected);
+        BadgeKindToStyleConverter.GetResourceKey(state).Should().Be(expected);
     }
 
     [Fact]
@@ -38,6 +38,6 @@ public class BadgeStateToStyleConverterTests
     {
         // Guard against a new SettingBadgeKind value being added without updating the switch.
         var invalid = (SettingBadgeKind)999;
-        BadgeStateToStyleConverter.GetResourceKey(invalid).Should().BeNull();
+        BadgeKindToStyleConverter.GetResourceKey(invalid).Should().BeNull();
     }
 }

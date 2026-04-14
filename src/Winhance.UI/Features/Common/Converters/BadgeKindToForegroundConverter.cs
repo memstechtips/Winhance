@@ -10,7 +10,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// Brushes are looked up from Application.Current.Resources by key
 /// ("BadgeRecommendedForeground", "BadgeDefaultForeground", "BadgeCustomForeground").
 /// </summary>
-public sealed partial class BadgeStateToForegroundConverter : IValueConverter
+public sealed partial class BadgeKindToForegroundConverter : IValueConverter
 {
     public static string? GetResourceKey(SettingBadgeKind state) => state switch
     {
