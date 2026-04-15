@@ -4,6 +4,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Models;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -1578,5 +1580,99 @@ public class SettingItemViewModelTests : IDisposable
         sut.IsInfoBadgeGloballyVisible = true;
         sut.ShowNumericQuickSetButtons.Should().BeTrue(
             because: "ShowInfoBadges is on AND the setting has Recommended/Default data");
+    }
+
+    // ── Pinned regression tests: real SettingDefinition instances ──
+
+    [Fact]
+    public void WorkplaceJoinMessages_ToggleOff_RecommendedLit_DefaultDim()
+    {
+        var def = PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations()
+            .Settings
+            .First(s => s.Id == "security-workplace-join-messages");
+
+        var config = new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.Toggle,
+            IsSelected = false, // toggle OFF -> blocking state applied
+        };
+        var sut = CreateSut(config);
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Where(p => p.IsHighlighted).Select(p => p.Kind)
+            .Should().BeEquivalentTo(new[] { SettingBadgeKind.Recommended });
+    }
+
+    [Fact]
+    public void WorkplaceJoinMessages_ToggleOn_DefaultLit_RecommendedDim()
+    {
+        var def = PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations()
+            .Settings
+            .First(s => s.Id == "security-workplace-join-messages");
+
+        var config = new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.Toggle,
+            IsSelected = true, // toggle ON -> Windows default
+        };
+        var sut = CreateSut(config);
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Where(p => p.IsHighlighted).Select(p => p.Kind)
+            .Should().BeEquivalentTo(new[] { SettingBadgeKind.Default });
+    }
+
+    [Fact]
+    public void BingSearchResults_ToggleOff_RecommendedLit_DefaultDim()
+    {
+        var def = StartMenuCustomizations.GetStartMenuCustomizations()
+            .Settings
+            .First(s => s.Id == "start-disable-bing-search-results");
+
+        var config = new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.Toggle,
+            IsSelected = false,
+        };
+        var sut = CreateSut(config);
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Where(p => p.IsHighlighted).Select(p => p.Kind)
+            .Should().BeEquivalentTo(new[] { SettingBadgeKind.Recommended });
+    }
+
+    [Fact]
+    public void BingSearchResults_ToggleOn_DefaultLit_RecommendedDim()
+    {
+        var def = StartMenuCustomizations.GetStartMenuCustomizations()
+            .Settings
+            .First(s => s.Id == "start-disable-bing-search-results");
+
+        var config = new SettingItemViewModelConfig
+        {
+            SettingDefinition = def,
+            SettingId = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            InputType = InputType.Toggle,
+            IsSelected = true,
+        };
+        var sut = CreateSut(config);
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Where(p => p.IsHighlighted).Select(p => p.Kind)
+            .Should().BeEquivalentTo(new[] { SettingBadgeKind.Default });
     }
 }
