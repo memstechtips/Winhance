@@ -1102,6 +1102,47 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
+    public void BadgeRow_Toggle_InvertedPolicy_ToggleOff_OnlyRecommendedLit()
+    {
+        // Inverted policy: EnabledValue=[null], DisabledValue=[1],
+        // RecommendedToggleState=false (recommend the blocking state).
+        // Toggle OFF means user has the recommended blocking state applied.
+        var def = BuildInvertedPolicyToggleDefinition(
+            id: "security-workplace-join-messages-like",
+            recommendedToggleState: false);
+        var sut = CreateSut(BuildToggleConfig(def));
+        sut.IsSelected = false; // toggle OFF -> matches recommended, NOT default
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Toggle_InvertedPolicy_ToggleOn_OnlyDefaultLit()
+    {
+        // Same inverted-policy shape; toggle ON means key-absent state,
+        // which is the Windows default (messages shown / feature enabled).
+        var def = BuildInvertedPolicyToggleDefinition(
+            id: "security-workplace-join-messages-like-on",
+            recommendedToggleState: false);
+        var sut = CreateSut(BuildToggleConfig(def));
+        sut.IsSelected = true;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, false),
+            (SettingBadgeKind.Default,     true),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
     public void BadgeRow_Selection_Subjective_OnRecommended_PreferenceAndRecommendedLit()
     {
         var def = BuildSelectionSettingDefinition(
@@ -1341,6 +1382,33 @@ public class SettingItemViewModelTests : IDisposable
                     RecommendedValue = recommendedValue,
                     DefaultValue = defaultValue,
                     ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsPrimary = true,
+                },
+            },
+        };
+    }
+
+    private static SettingDefinition BuildInvertedPolicyToggleDefinition(string id, bool? recommendedToggleState)
+    {
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = id,
+            Description = "",
+            InputType = InputType.Toggle,
+            RecommendedToggleState = recommendedToggleState,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "BlockThing",
+                    EnabledValue = new object?[] { null },
+                    DisabledValue = new object?[] { 1 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsGroupPolicy = true,
                     IsPrimary = true,
                 },
             },

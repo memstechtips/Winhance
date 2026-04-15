@@ -1525,12 +1525,6 @@ public partial class SettingItemViewModel : BaseViewModel
         // Check RegistrySettings
         foreach (var reg in SettingDefinition.RegistrySettings)
         {
-            // For Selection settings, Recommended/Default live on ComboBoxMetadata.Options[i],
-            // so reg.RecommendedValue/DefaultValue are expected to be null — don't skip.
-            if (reg.RecommendedValue == null && reg.DefaultValue == null
-                && InputType != InputType.Selection)
-                continue;
-
             var (currentMatchesRecommended, currentMatchesDefault) = EvaluateRegistrySetting(reg);
             if (!currentMatchesRecommended) matchesRecommended = false;
             if (!currentMatchesDefault) matchesDefault = false;
