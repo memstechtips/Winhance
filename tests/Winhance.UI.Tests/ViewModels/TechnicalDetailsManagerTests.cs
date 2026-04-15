@@ -65,7 +65,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         On = "On",
         Off = "Off",
         ScriptOnEnable = "On Enable",
-        ScriptOnDisable = "On Disable"
+        ScriptOnDisable = "On Disable",
+        RegContentOnEnable = "On Enable",
+        RegContentOnDisable = "On Disable"
     };
 
     private TechnicalDetailsManager CreateManager(
@@ -1179,6 +1181,34 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
 
         _sections.Single(s => s.Type == DetailRowType.PowerShellScript).Rows.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_RegContentBoth_ProducesTwoRows()
+    {
+        var manager = CreateManager();
+        var reg = new RegContentSetting
+        {
+            EnabledContent  = "Windows Registry Editor Version 5.00\r\n[HKLM\\Software\\Test]\r\n\"V\"=dword:00000001",
+            DisabledContent = "Windows Registry Editor Version 5.00\r\n[HKLM\\Software\\Test]\r\n\"V\"=dword:00000000"
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            RegContents = new[] { reg }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        var section = _sections.Single(s => s.Type == DetailRowType.RegContent);
+        section.Rows.Should().HaveCount(2);
+        section.Rows[0].ContentLabel.Should().Be(TestLabels.RegContentOnEnable);
+        section.Rows[0].ContentBody.Should().Contain("dword:00000001");
+        section.Rows[1].ContentLabel.Should().Be(TestLabels.RegContentOnDisable);
+        section.Rows[1].ContentBody.Should().Contain("dword:00000000");
     }
 
     [Fact]
