@@ -76,40 +76,30 @@ public class NewBadgeServiceTests
     [Fact]
     public void IsSettingNew_ReturnsTrue_WhenAddedAfterBaseline()
     {
-        // Use a fixed version so the test is independent of the test-runner assembly version
-        const string fixedVersion = "26.04.10";
+        // First init writes LastRunVersion = whatever GetAppVersion() returns at runtime
+        new NewBadgeService(_prefs.Object, _log.Object).Initialize();
+        // Override baseline to be older than the test setting's version
+        _store["NewBadgeBaseline"] = "0.0.0";
 
-        // First init seeds LastRunVersion = "26.04.10"
-        var sut1 = new NewBadgeService(_prefs.Object, _log.Object, fixedVersion);
-        sut1.Initialize();
-        // Override baseline to an older version (26.04.05 < 26.04.10)
-        _store["NewBadgeBaseline"] = "26.04.05";
-
-        // Second init: same version -> loads baseline from store ("26.04.05")
-        var sut = new NewBadgeService(_prefs.Object, _log.Object, fixedVersion);
+        // Second init: same version branch -> loads baseline = "0.0.0"
+        var sut = new NewBadgeService(_prefs.Object, _log.Object);
         sut.Initialize();
 
-        // Setting added in 26.04.10 > baseline 26.04.05 -> new
         sut.IsSettingNew("26.04.10", "setting1").Should().BeTrue();
     }
 
     [Fact]
     public void IsSettingNew_ReturnsFalse_WhenAddedAtOrBeforeBaseline()
     {
-        // Use a fixed version so the test is independent of the test-runner assembly version
-        const string fixedVersion = "26.04.10";
+        // First init writes LastRunVersion = whatever GetAppVersion() returns at runtime
+        new NewBadgeService(_prefs.Object, _log.Object).Initialize();
+        // Override baseline to be newer than any test setting
+        _store["NewBadgeBaseline"] = "99.99.99";
 
-        // First init seeds LastRunVersion = "26.04.10"
-        var sut1 = new NewBadgeService(_prefs.Object, _log.Object, fixedVersion);
-        sut1.Initialize();
-        // Baseline equals current version -> no setting is "new"
-        _store["NewBadgeBaseline"] = fixedVersion;
-
-        // Second init: same version -> loads baseline = "26.04.10"
-        var sut = new NewBadgeService(_prefs.Object, _log.Object, fixedVersion);
+        // Second init: same version branch -> loads baseline = "99.99.99"
+        var sut = new NewBadgeService(_prefs.Object, _log.Object);
         sut.Initialize();
 
-        // Setting added before baseline (26.04.05 <= 26.04.10) -> not new
         sut.IsSettingNew("26.04.05", "setting1").Should().BeFalse();
     }
 
