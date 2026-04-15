@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
@@ -21,7 +22,7 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 internal sealed class TechnicalDetailsManager : IDisposable
 {
     private readonly Func<string> _getSettingId;
-    private readonly Action<ObservableCollection<TechnicalDetailRow>> _setDetails;
+    private readonly Action<IReadOnlyList<TechnicalDetailSection>> _setSections;
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
@@ -32,7 +33,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     public TechnicalDetailsManager(
         Func<string> getSettingId,
-        Action<ObservableCollection<TechnicalDetailRow>> setDetails,
+        Action<IReadOnlyList<TechnicalDetailSection>> setSections,
         ILogService logService,
         IDispatcherService dispatcherService,
         IRegeditLauncher? regeditLauncher,
@@ -40,7 +41,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         TechnicalDetailLabels? labels = null)
     {
         _getSettingId = getSettingId;
-        _setDetails = setDetails;
+        _setSections = setSections;
         _logService = logService;
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
@@ -55,107 +56,132 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private void OnTooltipUpdated(TooltipUpdatedEvent evt)
     {
         if (evt.SettingId != _getSettingId()) return;
-        // Use Low priority to defer to the next dispatcher cycle, avoiding
-        // WinUI COMException when the collection is modified during a layout pass.
-        _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low, () => UpdateTechnicalDetails(evt.TooltipData));
+        UpdateTechnicalDetails(evt.TooltipData);
     }
 
     private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
     {
         try
         {
-            // Build the new collection off-screen (no UI bindings yet),
-            // then swap it onto the ViewModel via PropertyChanged.
-            // This avoids the WinUI COMException that occurs when mutating
-            // a bound ObservableCollection during a layout pass or navigation.
-            var newDetails = new ObservableCollection<TechnicalDetailRow>();
+            var registryRows  = BuildRegistryRows(tooltipData);
+            var taskRows      = BuildScheduledTaskRows(tooltipData);
+            var powerRows     = BuildPowerCfgRows(tooltipData);
+            var scriptRows    = new List<TechnicalDetailRow>();      // Task 8
+            var regContentRows = new List<TechnicalDetailRow>();     // Task 9
+            var dependencyRows = new List<TechnicalDetailRow>();     // Task 10
 
-            // Registry rows
-            var setting = tooltipData.SettingDefinition;
-            var isSelection = setting?.InputType == InputType.Selection;
-            foreach (var kvp in tooltipData.IndividualRegistryValues)
-            {
-                var reg = kvp.Key;
-                var keyExists = false;
-                try
-                {
-                    keyExists = _regeditLauncher?.KeyExists(reg.KeyPath) ?? false;
-                }
-                catch (Exception kex)
-                {
-                    _logService.Log(LogLevel.Warning,
-                        $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
-                }
+            var sections = new List<TechnicalDetailSection>();
+            if (registryRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Registry,         _labels.SectionRegistry,       true,  registryRows));
+            if (taskRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.ScheduledTask,    _labels.SectionScheduledTasks, false, taskRows));
+            if (powerRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.PowerConfig,      _labels.SectionPowerSettings,  false, powerRows));
+            if (scriptRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.PowerShellScript, _labels.SectionScripts,        false, scriptRows));
+            if (regContentRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.RegContent,       _labels.SectionRegContent,     false, regContentRows));
+            if (dependencyRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Dependency,       _labels.SectionDependencies,   false, dependencyRows));
 
-                // For Selection settings the per-entry RecommendedValue / DefaultValue are null;
-                // the state lives on the ComboBoxOption whose IsRecommended / IsDefault flag is set.
-                string recommendedColumn;
-                string defaultColumn;
-                if (isSelection && setting is not null)
-                {
-                    recommendedColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: true, _labels);
-                    defaultColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: false, _labels);
-                }
-                else
-                {
-                    recommendedColumn = ResolveRecommendedColumn(setting, reg);
-                    defaultColumn = reg.DefaultValue?.ToString() ?? FormatNotExist(reg);
-                }
-
-                newDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.Registry,
-                    RegistryPath = reg.KeyPath,
-                    ValueName = reg.ValueName ?? "(Default)",
-                    ValueType = reg.ValueType.ToString(),
-                    CurrentValue = kvp.Value ?? FormatNotExist(reg),
-                    RecommendedValue = recommendedColumn,
-                    DefaultValue = defaultColumn,
-                    PathLabel = _labels.Path,
-                    ValueLabel = _labels.Value,
-                    CurrentLabel = _labels.Current,
-                    RecommendedLabel = _labels.Recommended,
-                    DefaultLabel = _labels.Default,
-                    OpenRegeditCommand = OpenRegeditCommand,
-                    RegeditIconSource = RegeditIconProvider.CachedIcon,
-                    CanOpenRegedit = keyExists
-                });
-            }
-
-            // Scheduled task rows
-            foreach (var task in tooltipData.ScheduledTaskSettings)
-            {
-                newDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.ScheduledTask,
-                    TaskPath = task.TaskPath,
-                    RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
-                });
-            }
-
-            // Power config rows
-            foreach (var pcfg in tooltipData.PowerCfgSettings)
-            {
-                newDetails.Add(new TechnicalDetailRow
-                {
-                    RowType = DetailRowType.PowerConfig,
-                    SubgroupGuid = pcfg.SubgroupGuid,
-                    SettingGuid = pcfg.SettingGuid,
-                    SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
-                    SettingAlias = pcfg.SettingGUIDAlias,
-                    PowerUnits = pcfg.Units ?? "",
-                    RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
-                    RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
-                });
-            }
-
-            _setDetails(newDetails);
+            _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low, () => _setSections(sections));
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error,
                 $"[TechnicalDetails] UpdateTechnicalDetails failed for '{_getSettingId()}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
         }
+    }
+
+    private List<TechnicalDetailRow> BuildRegistryRows(SettingTooltipData tooltipData)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        var setting = tooltipData.SettingDefinition;
+        var isSelection = setting?.InputType == InputType.Selection;
+        foreach (var kvp in tooltipData.IndividualRegistryValues)
+        {
+            var reg = kvp.Key;
+            var keyExists = false;
+            try
+            {
+                keyExists = _regeditLauncher?.KeyExists(reg.KeyPath) ?? false;
+            }
+            catch (Exception kex)
+            {
+                _logService.Log(LogLevel.Warning,
+                    $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
+            }
+
+            // For Selection settings the per-entry RecommendedValue / DefaultValue are null;
+            // the state lives on the ComboBoxOption whose IsRecommended / IsDefault flag is set.
+            string recommendedColumn;
+            string defaultColumn;
+            if (isSelection && setting is not null)
+            {
+                recommendedColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: true, _labels);
+                defaultColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: false, _labels);
+            }
+            else
+            {
+                recommendedColumn = ResolveRecommendedColumn(setting, reg);
+                defaultColumn = reg.DefaultValue?.ToString() ?? FormatNotExist(reg);
+            }
+
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.Registry,
+                RegistryPath = reg.KeyPath,
+                ValueName = reg.ValueName ?? "(Default)",
+                ValueType = reg.ValueType.ToString(),
+                CurrentValue = kvp.Value ?? FormatNotExist(reg),
+                RecommendedValue = recommendedColumn,
+                DefaultValue = defaultColumn,
+                PathLabel = _labels.Path,
+                ValueLabel = _labels.Value,
+                CurrentLabel = _labels.Current,
+                RecommendedLabel = _labels.Recommended,
+                DefaultLabel = _labels.Default,
+                OpenRegeditCommand = OpenRegeditCommand,
+                RegeditIconSource = RegeditIconProvider.CachedIcon,
+                CanOpenRegedit = keyExists
+            });
+        }
+        return rows;
+    }
+
+    private List<TechnicalDetailRow> BuildScheduledTaskRows(SettingTooltipData tooltipData)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        foreach (var task in tooltipData.ScheduledTaskSettings)
+        {
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.ScheduledTask,
+                TaskPath = task.TaskPath,
+                RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
+            });
+        }
+        return rows;
+    }
+
+    private List<TechnicalDetailRow> BuildPowerCfgRows(SettingTooltipData tooltipData)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        foreach (var pcfg in tooltipData.PowerCfgSettings)
+        {
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.PowerConfig,
+                SubgroupGuid = pcfg.SubgroupGuid,
+                SettingGuid = pcfg.SettingGuid,
+                SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
+                SettingAlias = pcfg.SettingGUIDAlias,
+                PowerUnits = pcfg.Units ?? "",
+                RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
+                RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
+            });
+        }
+        return rows;
     }
 
     /// <summary>

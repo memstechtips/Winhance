@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -23,7 +24,7 @@ public class TechnicalDetailsManagerTests : IDisposable
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<ISubscriptionToken> _mockSubscriptionToken;
-    private ObservableCollection<TechnicalDetailRow> _details;
+    private IReadOnlyList<TechnicalDetailSection> _sections = Array.Empty<TechnicalDetailSection>();
     private readonly List<Action<TooltipUpdatedEvent>> _capturedHandlers;
 
     private string _currentSettingId = "TestSetting";
@@ -36,7 +37,6 @@ public class TechnicalDetailsManagerTests : IDisposable
         _mockRegeditLauncher = new Mock<IRegeditLauncher>();
         _mockEventBus = new Mock<IEventBus>();
         _mockSubscriptionToken = new Mock<ISubscriptionToken>();
-        _details = new ObservableCollection<TechnicalDetailRow>();
         _capturedHandlers = new List<Action<TooltipUpdatedEvent>>();
 
         // Set up dispatcher to execute actions synchronously for testing
@@ -73,7 +73,7 @@ public class TechnicalDetailsManagerTests : IDisposable
     {
         _manager = new TechnicalDetailsManager(
             () => _currentSettingId,
-            newDetails => _details = newDetails,
+            newSections => _sections = newSections,
             _mockLogService.Object,
             _mockDispatcherService.Object,
             regeditLauncher ?? _mockRegeditLauncher.Object,
@@ -235,15 +235,16 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details.Should().HaveCount(1);
-        _details[0].RowType.Should().Be(DetailRowType.Registry);
-        _details[0].RegistryPath.Should().Be(@"HKLM\SOFTWARE\Test");
-        _details[0].ValueName.Should().Be("TestValue");
-        _details[0].ValueType.Should().Be("DWord");
-        _details[0].CurrentValue.Should().Be("0");
-        _details[0].RecommendedValue.Should().Be("1");
-        _details[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
-        _details[0].CanOpenRegedit.Should().BeTrue();
+        var rows = _sections.SelectMany(s => s.Rows).ToList();
+        rows.Should().HaveCount(1);
+        rows[0].RowType.Should().Be(DetailRowType.Registry);
+        rows[0].RegistryPath.Should().Be(@"HKLM\SOFTWARE\Test");
+        rows[0].ValueName.Should().Be("TestValue");
+        rows[0].ValueType.Should().Be("DWord");
+        rows[0].CurrentValue.Should().Be("0");
+        rows[0].RecommendedValue.Should().Be("1");
+        rows[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
+        rows[0].CanOpenRegedit.Should().BeTrue();
     }
 
     [Fact]
@@ -267,7 +268,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details.Should().BeEmpty();
+        _sections.SelectMany(s => s.Rows).Should().BeEmpty();
     }
 
     [Fact]
@@ -296,10 +297,11 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details.Should().HaveCount(1);
-        _details[0].RowType.Should().Be(DetailRowType.ScheduledTask);
-        _details[0].TaskPath.Should().Be(@"\Microsoft\Windows\Test");
-        _details[0].RecommendedState.Should().Be("Disabled");
+        var rows = _sections.SelectMany(s => s.Rows).ToList();
+        rows.Should().HaveCount(1);
+        rows[0].RowType.Should().Be(DetailRowType.ScheduledTask);
+        rows[0].TaskPath.Should().Be(@"\Microsoft\Windows\Test");
+        rows[0].RecommendedState.Should().Be("Disabled");
     }
 
     [Fact]
@@ -328,7 +330,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].RecommendedState.Should().Be("Enabled");
+        _sections.SelectMany(s => s.Rows).First().RecommendedState.Should().Be("Enabled");
     }
 
     [Fact]
@@ -363,15 +365,16 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details.Should().HaveCount(1);
-        _details[0].RowType.Should().Be(DetailRowType.PowerConfig);
-        _details[0].SubgroupGuid.Should().Be("sub-guid");
-        _details[0].SettingGuid.Should().Be("set-guid");
-        _details[0].SubgroupAlias.Should().Be("SubAlias");
-        _details[0].SettingAlias.Should().Be("SetAlias");
-        _details[0].PowerUnits.Should().Be("Seconds");
-        _details[0].RecommendedAC.Should().Be("30");
-        _details[0].RecommendedDC.Should().Be("60");
+        var rows = _sections.SelectMany(s => s.Rows).ToList();
+        rows.Should().HaveCount(1);
+        rows[0].RowType.Should().Be(DetailRowType.PowerConfig);
+        rows[0].SubgroupGuid.Should().Be("sub-guid");
+        rows[0].SettingGuid.Should().Be("set-guid");
+        rows[0].SubgroupAlias.Should().Be("SubAlias");
+        rows[0].SettingAlias.Should().Be("SetAlias");
+        rows[0].PowerUnits.Should().Be("Seconds");
+        rows[0].RecommendedAC.Should().Be("30");
+        rows[0].RecommendedDC.Should().Be("60");
     }
 
     [Fact]
@@ -381,7 +384,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _currentSettingId = "MySetting";
         var manager = CreateManager();
 
-        // Trigger a first update to set _details
+        // Trigger a first update to populate sections
         var firstData = new SettingTooltipData
         {
             SettingId = "MySetting",
@@ -405,9 +408,10 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Act
         _capturedHandlers[0](evt);
 
-        // Assert — new collection contains only the new data
-        _details.Should().HaveCount(1);
-        _details[0].TaskPath.Should().Be(@"\New\Task");
+        // Assert — new sections contain only the new data
+        var rows = _sections.SelectMany(s => s.Rows).ToList();
+        rows.Should().HaveCount(1);
+        rows[0].TaskPath.Should().Be(@"\New\Task");
     }
 
     [Fact]
@@ -416,7 +420,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Arrange
         _currentSettingId = "MySetting";
         var manager = CreateManager();
-        var originalDetails = _details;
+        var originalSections = _sections;
 
         var tooltipData = new SettingTooltipData { SettingId = "MySetting" };
         var evt = new TooltipUpdatedEvent("MySetting", tooltipData);
@@ -424,9 +428,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         // Act
         _capturedHandlers[0](evt);
 
-        // Assert — the setter was called with a new collection
-        _details.Should().NotBeNull();
-        _details.Should().NotBeSameAs(originalDetails);
+        // Assert — the setter was called with a new list
+        _sections.Should().NotBeNull();
+        _sections.Should().NotBeSameAs(originalSections);
     }
 
     [Fact]
@@ -462,8 +466,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].CanOpenRegedit.Should().BeFalse();
-        _details[0].CurrentValue.Should().Be(TestLabels.ValueNotExist);
+        var row = _sections.SelectMany(s => s.Rows).First();
+        row.CanOpenRegedit.Should().BeFalse();
+        row.CurrentValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     [Fact]
@@ -499,7 +504,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].CanOpenRegedit.Should().BeFalse();
+        _sections.SelectMany(s => s.Rows).First().CanOpenRegedit.Should().BeFalse();
         _mockLogService.Verify(
             l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("KeyExists failed"))),
             Times.Once);
@@ -538,9 +543,13 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].ValueName.Should().Be("(Default)");
-        _details[0].RecommendedValue.Should().Be(string.Empty);
-        _details[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
+        // RecommendedValue = null with no EnabledValue/DisabledValue: no recommendation can be
+        // resolved, so the column shows the ValueNotExist label (updated from "" after
+        // DefaultValue/FormatNotExist were introduced in an earlier refactor).
+        var row = _sections.SelectMany(s => s.Rows).First();
+        row.ValueName.Should().Be("(Default)");
+        row.RecommendedValue.Should().Be(TestLabels.ValueNotExist);
+        row.DefaultValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     [Fact]
@@ -595,7 +604,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].DefaultValue.Should().Be("1");
+        _sections.SelectMany(s => s.Rows).First().DefaultValue.Should().Be("1");
     }
 
     [Fact]
@@ -631,7 +640,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].DefaultValue.Should().Be(TestLabels.ValueNotExist);
+        _sections.SelectMany(s => s.Rows).First().DefaultValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     [Fact]
@@ -667,7 +676,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].CurrentValue.Should().Be(TestLabels.ValueNotExist);
+        _sections.SelectMany(s => s.Rows).First().CurrentValue.Should().Be(TestLabels.ValueNotExist);
     }
 
     [Fact]
@@ -705,8 +714,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].CurrentValue.Should().Be("doesn't exist (On)");
-        _details[0].DefaultValue.Should().Be("doesn't exist (On)");
+        var row = _sections.SelectMany(s => s.Rows).First();
+        row.CurrentValue.Should().Be("doesn't exist (On)");
+        row.DefaultValue.Should().Be("doesn't exist (On)");
     }
 
     [Fact]
@@ -744,8 +754,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].CurrentValue.Should().Be("doesn't exist (Off)");
-        _details[0].DefaultValue.Should().Be("doesn't exist (Off)");
+        var row = _sections.SelectMany(s => s.Rows).First();
+        row.CurrentValue.Should().Be("doesn't exist (Off)");
+        row.DefaultValue.Should().Be("doesn't exist (Off)");
     }
 
     [Fact]
@@ -783,8 +794,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details[0].CurrentValue.Should().Be("doesn't exist");
-        _details[0].DefaultValue.Should().Be("doesn't exist");
+        var row = _sections.SelectMany(s => s.Rows).First();
+        row.CurrentValue.Should().Be("doesn't exist");
+        row.DefaultValue.Should().Be("doesn't exist");
     }
 
     // ──────────────────────────────────────────────────
@@ -834,11 +846,12 @@ public class TechnicalDetailsManagerTests : IDisposable
 
         _capturedHandlers[0](evt);
 
-        _details.Should().HaveCount(1);
-        _details[0].CurrentValue.Should().Be("1");
-        _details[0].RecommendedValue.Should().Be($"1 ({TestLabels.Off})",
+        var rows = _sections.SelectMany(s => s.Rows).ToList();
+        rows.Should().HaveCount(1);
+        rows[0].CurrentValue.Should().Be("1");
+        rows[0].RecommendedValue.Should().Be($"1 ({TestLabels.Off})",
             because: "RecommendedToggleState=false maps to DisabledValue=[1] => '1 (Off)'");
-        _details[0].DefaultValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})",
+        rows[0].DefaultValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})",
             because: "DefaultValue=null with EnabledValue=[null] keeps the null-sentinel 'doesn't exist (On)'");
     }
 
@@ -877,7 +890,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         };
         _capturedHandlers[0](new TooltipUpdatedEvent("inverted-rec-on", tooltipData));
 
-        _details[0].RecommendedValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})");
+        _sections.SelectMany(s => s.Rows).First().RecommendedValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})");
     }
 
     [Fact]
@@ -917,7 +930,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         };
         _capturedHandlers[0](new TooltipUpdatedEvent("both-rec-set", tooltipData));
 
-        _details[0].RecommendedValue.Should().Be($"1 ({TestLabels.Off})");
+        _sections.SelectMany(s => s.Rows).First().RecommendedValue.Should().Be($"1 ({TestLabels.Off})");
     }
 
     // ──────────────────────────────────────────────────
@@ -984,6 +997,55 @@ public class TechnicalDetailsManagerTests : IDisposable
     // ──────────────────────────────────────────────────
     // Selection Recommended/Default column resolution (Task A9)
     // ──────────────────────────────────────────────────
+
+    // ── Section output ──
+
+    [Fact]
+    public void UpdateTechnicalDetails_RegistryOnly_ProducesSingleRegistrySection()
+    {
+        var manager = CreateManager();
+        var regKey = new RegistrySetting
+        {
+            KeyPath = @"HKLM\Software\Test",
+            ValueName = "Test",
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = 1,
+            DefaultValue = null
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "Enabled",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?> { [regKey] = "1" },
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            SettingDefinition = null
+        };
+
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        _sections.Should().HaveCount(1);
+        _sections[0].Type.Should().Be(DetailRowType.Registry);
+        _sections[0].StartsExpanded.Should().BeTrue();
+        _sections[0].Rows.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_NothingDeclared_ProducesZeroSections()
+    {
+        var manager = CreateManager();
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>()
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        _sections.Should().BeEmpty();
+    }
 
     [Fact]
     public void OnTooltipUpdated_SelectionSetting_ResolvesColumnsFromComboBoxOptions()
@@ -1068,17 +1130,18 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _details.Should().HaveCount(2);
+        var allRows = _sections.SelectMany(s => s.Rows).ToList();
+        allRows.Should().HaveCount(2);
 
         // Row X: both options have a value for "X".
-        var rowX = _details.First(r => r.ValueName == "X");
+        var rowX = allRows.First(r => r.ValueName == "X");
         rowX.RecommendedValue.Should().Be("1");
         rowX.DefaultValue.Should().Be("0");
 
         // Row Y: absent from Recommended option's mapping, explicitly null in Default's mapping.
         // Current TechnicalDetailLabels collapses both cases to ValueNotExist — assert both
         // columns use that label (and critically, do NOT show "0" or "1").
-        var rowY = _details.First(r => r.ValueName == "Y");
+        var rowY = allRows.First(r => r.ValueName == "Y");
         rowY.RecommendedValue.Should().Be(TestLabels.ValueNotExist);
         rowY.DefaultValue.Should().Be(TestLabels.ValueNotExist);
     }

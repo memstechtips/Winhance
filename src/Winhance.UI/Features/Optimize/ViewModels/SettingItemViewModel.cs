@@ -130,6 +130,10 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial ObservableCollection<TechnicalDetailRow> TechnicalDetails { get; set; }
 
+    [ObservableProperty]
+    public partial IReadOnlyList<TechnicalDetailSection> TechnicalDetailSections { get; set; }
+        = Array.Empty<TechnicalDetailSection>();
+
     public bool HasTechnicalDetails => TechnicalDetails.Count > 0;
 
     /// <summary>
@@ -925,7 +929,14 @@ public partial class SettingItemViewModel : BaseViewModel
         _statusBannerManager = new SettingStatusBannerManager(localizationService);
         _technicalDetailsManager = new TechnicalDetailsManager(
             () => SettingId,
-            newDetails => { TechnicalDetails = newDetails; OnPropertyChanged(nameof(HasTechnicalDetails)); OnPropertyChanged(nameof(ShowTechnicalDetailsBar)); },
+            newSections =>
+            {
+                TechnicalDetailSections = newSections;
+                // Deprecated: flattened view kept for XAML backward-compat during feature rollout. Removed in Task 11.
+                TechnicalDetails = new ObservableCollection<TechnicalDetailRow>(newSections.SelectMany(s => s.Rows));
+                OnPropertyChanged(nameof(HasTechnicalDetails));
+                OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
+            },
             logService,
             dispatcherService,
             regeditLauncher,
@@ -1656,8 +1667,20 @@ public partial class SettingItemViewModel : BaseViewModel
                     : ToggleTargetState(reg.RecommendedValue, reg.EnabledValue, reg.DisabledValue));
             matchesRecommended = recommendedState == IsSelected;
 
-            var defaultState = ToggleTargetState(reg.DefaultValue, reg.EnabledValue, reg.DisabledValue);
-            matchesDefault = defaultState == IsSelected;
+            // A group-policy reg with no declared DefaultValue has no opinion on the
+            // Windows default — its null sentinel in DisabledValue reflects "policy
+            // not applied", not "feature off". The base (non-policy) reg carries the
+            // Windows default; this policy reg contributes nothing to the aggregate.
+            // Policy regs with an explicit DefaultValue still vote normally.
+            if (reg.IsGroupPolicy && reg.DefaultValue == null)
+            {
+                matchesDefault = true;
+            }
+            else
+            {
+                var defaultState = ToggleTargetState(reg.DefaultValue, reg.EnabledValue, reg.DisabledValue);
+                matchesDefault = defaultState == IsSelected;
+            }
         }
         else if (InputType == InputType.Selection)
         {
@@ -1758,10 +1781,15 @@ public partial class SettingItemViewModel : BaseViewModel
     private bool HasAnyDefaultData()
     {
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        // Group-policy regs with null DefaultValue are write-only enforcers; their
+        // null-sentinel convention doesn't express a Windows default state. Skip
+        // them so a setting that carries only such regs doesn't render a Default
+        // pill it can never match.
         if (SettingDefinition.RegistrySettings.Any(r =>
-                isToggleLike
+                !(r.IsGroupPolicy && r.DefaultValue == null)
+                && (isToggleLike
                     ? ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
-                    : r.DefaultValue != null))
+                    : r.DefaultValue != null)))
             return true;
         if (InputType == InputType.Selection
             && SettingDefinition.ComboBox?.Options?.Any(o => o.IsDefault) == true)
