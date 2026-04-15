@@ -7,7 +7,10 @@ public enum DetailRowType
 {
     Registry,
     ScheduledTask,
-    PowerConfig
+    PowerConfig,
+    PowerShellScript,
+    RegContent,
+    Dependency
 }
 
 public class TechnicalDetailRow
@@ -25,6 +28,7 @@ public class TechnicalDetailRow
     // ScheduledTask fields
     public string TaskPath { get; set; } = string.Empty;
     public string RecommendedState { get; set; } = string.Empty;
+    public string DefaultState { get; set; } = string.Empty;
 
     // PowerConfig fields
     public string SubgroupGuid { get; set; } = string.Empty;
@@ -34,6 +38,24 @@ public class TechnicalDetailRow
     public string PowerUnits { get; set; } = string.Empty;
     public string RecommendedAC { get; set; } = string.Empty;
     public string RecommendedDC { get; set; } = string.Empty;
+
+    // PowerConfig — Current and Default AC/DC
+    public string CurrentAC { get; set; } = string.Empty;
+    public string CurrentDC { get; set; } = string.Empty;
+    public string DefaultAC { get; set; } = string.Empty;
+    public string DefaultDC { get; set; } = string.Empty;
+
+    // PowerShell Script
+    public string ScriptLabel { get; set; } = string.Empty;
+    public string ScriptBody { get; set; } = string.Empty;
+
+    // RegContent
+    public string ContentLabel { get; set; } = string.Empty;
+    public string ContentBody { get; set; } = string.Empty;
+
+    // Dependency
+    public string DependencyLabel { get; set; } = string.Empty;
+    public string DependencyRelation { get; set; } = string.Empty;
 
     // Localized labels for XAML binding
     public string PathLabel { get; set; } = "Path";
@@ -46,6 +68,9 @@ public class TechnicalDetailRow
     public bool IsRegistry => RowType == DetailRowType.Registry;
     public bool IsScheduledTask => RowType == DetailRowType.ScheduledTask;
     public bool IsPowerConfig => RowType == DetailRowType.PowerConfig;
+    public bool IsPowerShellScript => RowType == DetailRowType.PowerShellScript;
+    public bool IsRegContent       => RowType == DetailRowType.RegContent;
+    public bool IsDependency       => RowType == DetailRowType.Dependency;
 
     // Command and icon set from parent ViewModel
     public IRelayCommand<string>? OpenRegeditCommand { get; set; }
