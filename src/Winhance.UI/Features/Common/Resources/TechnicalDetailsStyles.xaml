@@ -1,0 +1,53 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Section header bar (used for every collapsible section) -->
+    <Style x:Key="TechDetail.SectionHeader" TargetType="Button">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1,0,1,1"/>
+        <Setter Property="CornerRadius" Value="0"/>
+    </Style>
+
+    <!-- PowerShell code block -->
+    <Style x:Key="TechDetail.CodeBlock.PowerShell" TargetType="Border">
+        <Setter Property="Background" Value="#FF0D1117"/>
+        <Setter Property="BorderBrush" Value="#FF58A6FF"/>
+        <Setter Property="BorderThickness" Value="3,0,0,0"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="CornerRadius" Value="2"/>
+    </Style>
+
+    <!-- .reg content code block -->
+    <Style x:Key="TechDetail.CodeBlock.RegContent" TargetType="Border">
+        <Setter Property="Background" Value="#FF2D1B2D"/>
+        <Setter Property="BorderBrush" Value="#FFF0C674"/>
+        <Setter Property="BorderThickness" Value="3,0,0,0"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="CornerRadius" Value="2"/>
+    </Style>
+
+    <!-- Shared text style for code blocks -->
+    <Style x:Key="TechDetail.CodeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas,Cascadia Code,Courier New"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="#FFDDDDDD"/>
+        <Setter Property="IsTextSelectionEnabled" Value="True"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <!-- Dependency chip -->
+    <Style x:Key="TechDetail.DependencyChip" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="8,3"/>
+        <Setter Property="Margin" Value="0,0,6,6"/>
+    </Style>
+
+</ResourceDictionary>
