@@ -171,6 +171,9 @@ public class TooltipDataService(
     {
         var dict = new Dictionary<PowerCfgSetting, (int? AC, int? DC)>();
         if (powerCfgSettings is null || powerCfgSettings.Count == 0) return dict;
+        // Sequential rather than Task.WhenAll: GetPowerSettingACDCValuesAsync wraps synchronous
+        // PInvoke (PowerReadACValueIndex/PowerReadDCValueIndex); there is no parallelism gain
+        // and PowerCfgSettings is typically 0-2 entries per setting.
         foreach (var pcs in powerCfgSettings)
         {
             var values = await _powerSettingsQueryService.GetPowerSettingACDCValuesAsync(pcs).ConfigureAwait(false);

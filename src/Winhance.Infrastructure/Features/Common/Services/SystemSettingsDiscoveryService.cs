@@ -398,11 +398,15 @@ public class SystemSettingsDiscoveryService(
             }
 
             var currentPowerValues = new Dictionary<PowerCfgSetting, (int? AC, int? DC)>();
-            foreach (var pcs in setting.PowerCfgSettings ?? Enumerable.Empty<PowerCfgSetting>())
+            // settingRawValues holds ACValue/DCValue only for PowerCfgSettings[0] (see batch-read
+            // logic in GetRawSettingsValuesWithBatchAsync). Entries beyond index 0 would need a
+            // per-entry bulk lookup that is not plumbed to this scope yet — they are intentionally
+            // absent and will simply render with blank Current AC/DC in the UI until that work lands.
+            if (setting.PowerCfgSettings is { Count: > 0 } && settingRawValues is not null)
             {
-                var ac = settingRawValues != null && settingRawValues.TryGetValue("ACValue", out var acObj) && acObj is int acInt ? acInt : (int?)null;
-                var dc = settingRawValues != null && settingRawValues.TryGetValue("DCValue", out var dcObj) && dcObj is int dcInt ? dcInt : (int?)null;
-                currentPowerValues[pcs] = (ac, dc);
+                var ac = settingRawValues.TryGetValue("ACValue", out var acObj) && acObj is int acInt ? acInt : (int?)null;
+                var dc = settingRawValues.TryGetValue("DCValue", out var dcObj) && dcObj is int dcInt ? dcInt : (int?)null;
+                currentPowerValues[setting.PowerCfgSettings[0]] = (ac, dc);
             }
 
             return new SettingTooltipData
