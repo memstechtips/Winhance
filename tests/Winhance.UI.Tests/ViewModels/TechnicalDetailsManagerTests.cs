@@ -788,6 +788,99 @@ public class TechnicalDetailsManagerTests : IDisposable
     }
 
     // ──────────────────────────────────────────────────
+    // Inverted-policy Recommended column (Task 3)
+    // ──────────────────────────────────────────────────
+
+    [Fact]
+    public void OnTooltipUpdated_InvertedPolicy_RecommendedColumn_UsesToggleStateValue()
+    {
+        // Inverted-policy shape like security-workplace-join-messages.
+        // RecommendedToggleState=false => recommend the "blocking" state,
+        // which maps to DisabledValue=[1], so Recommended must render "1 (Off)".
+        _currentSettingId = "security-workplace-join-messages";
+        var manager = CreateManager();
+        _mockRegeditLauncher.Setup(r => r.KeyExists(It.IsAny<string>())).Returns(false);
+
+        var reg = new RegistrySetting
+        {
+            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
+            ValueName = "BlockAADWorkplaceJoin",
+            ValueType = RegistryValueKind.DWord,
+            EnabledValue = new object?[] { null },
+            DisabledValue = new object?[] { 1 },
+            RecommendedValue = null,
+            DefaultValue = null,
+            IsGroupPolicy = true,
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "security-workplace-join-messages",
+            Name = "Workplace Join Message Prompts",
+            Description = "",
+            InputType = InputType.Toggle,
+            RecommendedToggleState = false,
+            RegistrySettings = new[] { reg },
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "security-workplace-join-messages",
+            SettingDefinition = setting,
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>
+            {
+                { reg, "1" }
+            }
+        };
+        var evt = new TooltipUpdatedEvent("security-workplace-join-messages", tooltipData);
+
+        _capturedHandlers[0](evt);
+
+        _details.Should().HaveCount(1);
+        _details[0].CurrentValue.Should().Be("1");
+        _details[0].RecommendedValue.Should().Be($"1 ({TestLabels.Off})",
+            because: "RecommendedToggleState=false maps to DisabledValue=[1] => '1 (Off)'");
+        _details[0].DefaultValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})",
+            because: "DefaultValue=null with EnabledValue=[null] keeps the null-sentinel 'doesn't exist (On)'");
+    }
+
+    [Fact]
+    public void OnTooltipUpdated_InvertedPolicy_RecommendedToggleOn_RendersNotExistOn()
+    {
+        // RecommendedToggleState=true maps to EnabledValue=[null] => null sentinel.
+        _currentSettingId = "inverted-rec-on";
+        var manager = CreateManager();
+
+        var reg = new RegistrySetting
+        {
+            KeyPath = @"HKLM\Test",
+            ValueName = "V",
+            ValueType = RegistryValueKind.DWord,
+            EnabledValue = new object?[] { null },
+            DisabledValue = new object?[] { 1 },
+            RecommendedValue = null,
+            DefaultValue = null,
+            IsGroupPolicy = true,
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "inverted-rec-on",
+            Name = "N",
+            Description = "",
+            InputType = InputType.Toggle,
+            RecommendedToggleState = true,
+            RegistrySettings = new[] { reg },
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "inverted-rec-on",
+            SettingDefinition = setting,
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?> { { reg, null } }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("inverted-rec-on", tooltipData));
+
+        _details[0].RecommendedValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})");
+    }
+
+    // ──────────────────────────────────────────────────
     // Dispose
     // ──────────────────────────────────────────────────
 

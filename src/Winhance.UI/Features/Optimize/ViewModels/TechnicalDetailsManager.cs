@@ -98,7 +98,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 }
                 else
                 {
-                    recommendedColumn = reg.RecommendedValue?.ToString() ?? FormatNotExist(reg);
+                    recommendedColumn = ResolveRecommendedColumn(setting, reg);
                     defaultColumn = reg.DefaultValue?.ToString() ?? FormatNotExist(reg);
                 }
 
@@ -201,6 +201,29 @@ internal sealed class TechnicalDetailsManager : IDisposable
             return labels.ValueNotExist;
         }
         return v.ToString()!;
+    }
+
+    private string ResolveRecommendedColumn(SettingDefinition? setting, RegistrySetting reg)
+    {
+        // Inverted-policy settings express their recommendation via the toggle-level
+        // RecommendedToggleState flag rather than reg.RecommendedValue. Resolve the
+        // concrete value representing that toggle state by mapping through
+        // EnabledValue / DisabledValue; fall back to the null-sentinel "doesn't exist"
+        // rendering when the target array carries the null sentinel.
+        if (setting is not null
+            && (setting.InputType == InputType.Toggle || setting.InputType == InputType.CheckBox)
+            && setting.RecommendedToggleState.HasValue
+            && reg.RecommendedValue is null)
+        {
+            bool targetState = setting.RecommendedToggleState.Value;
+            var targetArray = targetState ? reg.EnabledValue : reg.DisabledValue;
+            var concreteValue = targetArray?.FirstOrDefault(v => v is not null);
+            string stateLabel = targetState ? _labels.On : _labels.Off;
+            if (concreteValue is not null)
+                return $"{concreteValue} ({stateLabel})";
+            return $"{_labels.ValueNotExist} ({stateLabel})";
+        }
+        return reg.RecommendedValue?.ToString() ?? FormatNotExist(reg);
     }
 
     private string FormatNotExist(RegistrySetting reg)
