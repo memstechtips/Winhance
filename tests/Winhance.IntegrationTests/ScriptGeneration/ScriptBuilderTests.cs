@@ -201,6 +201,8 @@ public class ScriptBuilderTests
                 {
                     SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
                     SettingGuid = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
+                    DefaultValueAC = 0,
+                    DefaultValueDC = 0,
                     RecommendedValueAC = 1800,
                     RecommendedValueDC = 900,
                 },
