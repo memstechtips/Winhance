@@ -961,4 +961,127 @@ public class SystemSettingsDiscoveryServiceTests
         result["test-monitor-not-applied"].Success.Should().BeTrue();
         result["test-monitor-not-applied"].IsEnabled.Should().BeFalse();
     }
+
+    // ── Inverted-policy (EnabledValue = [null]) state reading ──
+
+    [Fact]
+    public async Task InvertedPolicy_KeyAbsent_ReportsEnabled()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "inverted-policy-key-absent",
+            Name = "Inverted Policy",
+            Description = "",
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "BlockThing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { null },
+                    DisabledValue = new object?[] { 1 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    IsGroupPolicy = true,
+                },
+            },
+        };
+
+        _mockRegistry
+            .Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test\BlockThing", null }
+            });
+
+        _mockRegistry
+            .Setup(r => r.IsRegistryValueInEnabledState(
+                It.Is<RegistrySetting>(rs => rs.ValueName == "BlockThing"),
+                It.IsAny<object?>(),
+                false))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result.Should().ContainKey("inverted-policy-key-absent");
+        result["inverted-policy-key-absent"].IsEnabled.Should().BeTrue(
+            because: "EnabledValue = [null] means key absent IS the enabled state");
+    }
+
+    [Fact]
+    public async Task InvertedPolicy_KeyPresentWithDisabledValue_ReportsDisabled()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "inverted-policy-blocked",
+            Name = "Inverted Policy",
+            Description = "",
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "BlockThing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { null },
+                    DisabledValue = new object?[] { 1 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    IsGroupPolicy = true,
+                },
+            },
+        };
+
+        _mockRegistry
+            .Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?> { { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test\BlockThing", 1 } });
+
+        _mockRegistry
+            .Setup(r => r.IsRegistryValueInEnabledState(
+                It.IsAny<RegistrySetting>(), 1, true))
+            .Returns(false);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["inverted-policy-blocked"].IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HybridPolicy_EnabledValueOneOrNull_KeyAbsent_ReportsEnabled()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "hybrid-policy",
+            Name = "Hybrid",
+            Description = "",
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "FlagThing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { 1, null },
+                    DisabledValue = new object?[] { 0 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    IsGroupPolicy = true,
+                },
+            },
+        };
+
+        _mockRegistry
+            .Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?> { { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test\FlagThing", null } });
+
+        _mockRegistry
+            .Setup(r => r.IsRegistryValueInEnabledState(
+                It.IsAny<RegistrySetting>(), It.IsAny<object?>(), false))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["hybrid-policy"].IsEnabled.Should().BeTrue();
+    }
 }
