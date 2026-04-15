@@ -63,7 +63,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         Default = "Default",
         ValueNotExist = "doesn't exist",
         On = "On",
-        Off = "Off"
+        Off = "Off",
+        ScriptOnEnable = "On Enable",
+        ScriptOnDisable = "On Disable"
     };
 
     private TechnicalDetailsManager CreateManager(
@@ -1130,6 +1132,53 @@ public class TechnicalDetailsManagerTests : IDisposable
         row.RecommendedDC.Should().Contain("900");
         row.DefaultAC.Should().Contain("1800");
         row.DefaultDC.Should().Contain("600");
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_PowerShellBothScripts_ProducesTwoRowsInOneSection()
+    {
+        var manager = CreateManager();
+        var script = new PowerShellScriptSetting
+        {
+            EnabledScript  = "Stop-Service wuauserv",
+            DisabledScript = "Start-Service wuauserv"
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            PowerShellScripts = new[] { script }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        var section = _sections.Single(s => s.Type == DetailRowType.PowerShellScript);
+        section.Rows.Should().HaveCount(2);
+        section.Rows[0].ScriptLabel.Should().Be(TestLabels.ScriptOnEnable);
+        section.Rows[0].ScriptBody.Should().Be("Stop-Service wuauserv");
+        section.Rows[1].ScriptLabel.Should().Be(TestLabels.ScriptOnDisable);
+        section.Rows[1].ScriptBody.Should().Be("Start-Service wuauserv");
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_PowerShellEnabledOnly_ProducesOneRow()
+    {
+        var manager = CreateManager();
+        var script = new PowerShellScriptSetting { EnabledScript = "Write-Host 'hi'", DisabledScript = null };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            PowerShellScripts = new[] { script }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        _sections.Single(s => s.Type == DetailRowType.PowerShellScript).Rows.Should().HaveCount(1);
     }
 
     [Fact]

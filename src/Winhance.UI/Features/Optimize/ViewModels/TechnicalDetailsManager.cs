@@ -66,7 +66,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
             var registryRows  = BuildRegistryRows(tooltipData);
             var taskRows      = BuildScheduledTaskRows(tooltipData);
             var powerRows     = BuildPowerCfgRows(tooltipData);
-            var scriptRows    = new List<TechnicalDetailRow>();      // Task 8
+            var scriptRows    = BuildPowerShellScriptRows(tooltipData);
             var regContentRows = new List<TechnicalDetailRow>();     // Task 9
             var dependencyRows = new List<TechnicalDetailRow>();     // Task 10
 
@@ -196,6 +196,29 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 DefaultAC     = pcfg.DefaultValueAC?.ToString() ?? "",
                 DefaultDC     = pcfg.DefaultValueDC?.ToString() ?? "",
             });
+        }
+        return rows;
+    }
+
+    private List<TechnicalDetailRow> BuildPowerShellScriptRows(SettingTooltipData tooltipData)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        foreach (var s in tooltipData.PowerShellScripts)
+        {
+            if (!string.IsNullOrWhiteSpace(s.EnabledScript))
+                rows.Add(new TechnicalDetailRow
+                {
+                    RowType     = DetailRowType.PowerShellScript,
+                    ScriptLabel = _labels.ScriptOnEnable,
+                    ScriptBody  = s.EnabledScript
+                });
+            if (!string.IsNullOrWhiteSpace(s.DisabledScript))
+                rows.Add(new TechnicalDetailRow
+                {
+                    RowType     = DetailRowType.PowerShellScript,
+                    ScriptLabel = _labels.ScriptOnDisable,
+                    ScriptBody  = s.DisabledScript
+                });
         }
         return rows;
     }
