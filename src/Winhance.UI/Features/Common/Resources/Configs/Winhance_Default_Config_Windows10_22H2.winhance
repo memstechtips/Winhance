@@ -1033,7 +1033,7 @@
           {
             "Id": "gaming-nagle-algorithm",
             "Name": "Enable Nagle\u0027s Algorithm",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
