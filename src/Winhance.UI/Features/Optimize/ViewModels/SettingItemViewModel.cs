@@ -134,7 +134,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial IReadOnlyList<TechnicalDetailSection> TechnicalDetailSections { get; set; }
         = Array.Empty<TechnicalDetailSection>();
 
-    public bool HasTechnicalDetails => TechnicalDetails.Count > 0;
+    public bool HasTechnicalDetails => TechnicalDetailSections.Count > 0;
 
     /// <summary>
     /// Controls visibility of the toggle bar: requires data AND global toggle to be on.

@@ -1376,4 +1376,42 @@ public class TechnicalDetailsManagerTests : IDisposable
         rowY.RecommendedValue.Should().Be(TestLabels.ValueNotExist);
         rowY.DefaultValue.Should().Be(TestLabels.ValueNotExist);
     }
+
+    [Fact]
+    public void UpdateTechnicalDetails_SelectionSettingWithNullPerEntryValues_StillProducesRows()
+    {
+        _currentSettingId = "updates-policy-mode";
+        var manager = CreateManager();
+        var reg = new RegistrySetting
+        {
+            KeyPath = @"HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU",
+            ValueName = "AUOptions",
+            ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
+        };
+        var definition = new SettingDefinition
+        {
+            Id = "updates-policy-mode",
+            Name = "Windows Update Policy Mode",
+            Description = "",
+            InputType = InputType.Selection
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "updates-policy-mode",
+            DisplayValue = "Notify for download and auto install",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?> { [reg] = "2" },
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            SettingDefinition = definition
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("updates-policy-mode", tooltip));
+
+        _sections.Should().NotBeEmpty();
+        var regSection = _sections.Single(s => s.Type == DetailRowType.Registry);
+        regSection.Rows.Should().HaveCount(1);
+        regSection.Rows[0].CurrentValue.Should().Be("2");
+        // Recommended / Default may be blank — that's fine; banner visibility is driven by section count.
+    }
 }
