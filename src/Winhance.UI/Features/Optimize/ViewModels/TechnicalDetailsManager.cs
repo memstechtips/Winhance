@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
@@ -56,7 +55,8 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private void OnTooltipUpdated(TooltipUpdatedEvent evt)
     {
         if (evt.SettingId != _getSettingId()) return;
-        UpdateTechnicalDetails(evt.TooltipData);
+        _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low,
+            () => UpdateTechnicalDetails(evt.TooltipData));
     }
 
     private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
@@ -84,7 +84,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
             if (dependencyRows.Count > 0)
                 sections.Add(new TechnicalDetailSection(DetailRowType.Dependency,       _labels.SectionDependencies,   false, dependencyRows));
 
-            _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low, () => _setSections(sections));
+            _setSections(sections);
         }
         catch (Exception ex)
         {
@@ -158,7 +158,12 @@ internal sealed class TechnicalDetailsManager : IDisposable
             {
                 RowType = DetailRowType.ScheduledTask,
                 TaskPath = task.TaskPath,
-                RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
+                RecommendedState = task.RecommendedState switch
+                {
+                    true  => _labels.On,
+                    false => _labels.Off,
+                    _     => string.Empty
+                }
             });
         }
         return rows;

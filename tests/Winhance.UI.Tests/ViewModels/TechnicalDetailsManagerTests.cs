@@ -301,7 +301,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         rows.Should().HaveCount(1);
         rows[0].RowType.Should().Be(DetailRowType.ScheduledTask);
         rows[0].TaskPath.Should().Be(@"\Microsoft\Windows\Test");
-        rows[0].RecommendedState.Should().Be("Disabled");
+        rows[0].RecommendedState.Should().Be(TestLabels.Off);
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public class TechnicalDetailsManagerTests : IDisposable
         _capturedHandlers[0](evt);
 
         // Assert
-        _sections.SelectMany(s => s.Rows).First().RecommendedState.Should().Be("Enabled");
+        _sections.SelectMany(s => s.Rows).First().RecommendedState.Should().Be(TestLabels.On);
     }
 
     [Fact]
