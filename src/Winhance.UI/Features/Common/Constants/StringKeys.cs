@@ -106,6 +106,8 @@ public static class StringKeys
         public const string Menu = "View_Menu";
         public const string TechnicalDetails = "View_TechnicalDetails";
         public const string InfoBadges = "View_InfoBadges";
+        public const string NewBadges = "View_NewBadges";
+        public const string NewBadgesTooltip = "View_NewBadges_Tooltip";
     }
 
     /// <summary>
