@@ -7,10 +7,12 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class TooltipDataService(
     IWindowsRegistryService windowsRegistryService,
-    ILogService logService) : ITooltipDataService
+    ILogService logService,
+    IPowerSettingsQueryService powerSettingsQueryService) : ITooltipDataService
 {
     private readonly IWindowsRegistryService _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
     private readonly ILogService _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+    private readonly IPowerSettingsQueryService _powerSettingsQueryService = powerSettingsQueryService ?? throw new ArgumentNullException(nameof(powerSettingsQueryService));
 
     private static string? FormatRegistryValue(object? value, RegistrySetting? registrySetting)
         => RegistryValueFormatter.Format(value, registrySetting);
@@ -150,6 +152,10 @@ public class TooltipDataService(
                 IndividualRegistryValues = individualRegistryValues,
                 ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
                 PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>(),
+                PowerShellScripts = setting.PowerShellScripts?.ToList() ?? new List<PowerShellScriptSetting>(),
+                RegContents = setting.RegContents?.ToList() ?? new List<RegContentSetting>(),
+                Dependencies = setting.Dependencies?.ToList() ?? new List<SettingDependency>(),
+                CurrentPowerValues = await BuildCurrentPowerValuesAsync(setting.PowerCfgSettings).ConfigureAwait(false),
                 SettingDefinition = setting
             };
         }
@@ -158,5 +164,18 @@ public class TooltipDataService(
             _logService.LogWarning($"[TooltipDataService] Error building tooltip data for '{setting.Id}': {ex.Message}");
             return null;
         }
+    }
+
+    private async Task<IReadOnlyDictionary<PowerCfgSetting, (int? AC, int? DC)>> BuildCurrentPowerValuesAsync(
+        IReadOnlyList<PowerCfgSetting>? powerCfgSettings)
+    {
+        var dict = new Dictionary<PowerCfgSetting, (int? AC, int? DC)>();
+        if (powerCfgSettings is null || powerCfgSettings.Count == 0) return dict;
+        foreach (var pcs in powerCfgSettings)
+        {
+            var values = await _powerSettingsQueryService.GetPowerSettingACDCValuesAsync(pcs).ConfigureAwait(false);
+            dict[pcs] = (values.acValue, values.dcValue);
+        }
+        return dict;
     }
 }

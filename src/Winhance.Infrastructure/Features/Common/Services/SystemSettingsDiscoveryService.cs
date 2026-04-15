@@ -335,7 +335,7 @@ public class SystemSettingsDiscoveryService(
             if (setting.DisableTooltip)
                 continue;
 
-            var tooltipData = BuildTooltipData(setting, batchRegistryValues);
+            var tooltipData = BuildTooltipData(setting, batchRegistryValues, stateResult.RawValues);
             if (tooltipData != null)
             {
                 results[setting.Id] = stateResult with { TooltipData = tooltipData };
@@ -346,7 +346,7 @@ public class SystemSettingsDiscoveryService(
         return results;
     }
 
-    private SettingTooltipData? BuildTooltipData(SettingDefinition setting, Dictionary<string, object?> batchRegistryValues)
+    private SettingTooltipData? BuildTooltipData(SettingDefinition setting, Dictionary<string, object?> batchRegistryValues, IReadOnlyDictionary<string, object?>? settingRawValues)
     {
         bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
         bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
@@ -397,6 +397,14 @@ public class SystemSettingsDiscoveryService(
                 displayValue = primaryDisplayValue ?? string.Empty;
             }
 
+            var currentPowerValues = new Dictionary<PowerCfgSetting, (int? AC, int? DC)>();
+            foreach (var pcs in setting.PowerCfgSettings ?? Enumerable.Empty<PowerCfgSetting>())
+            {
+                var ac = settingRawValues != null && settingRawValues.TryGetValue("ACValue", out var acObj) && acObj is int acInt ? acInt : (int?)null;
+                var dc = settingRawValues != null && settingRawValues.TryGetValue("DCValue", out var dcObj) && dcObj is int dcInt ? dcInt : (int?)null;
+                currentPowerValues[pcs] = (ac, dc);
+            }
+
             return new SettingTooltipData
             {
                 SettingId = setting.Id,
@@ -404,6 +412,10 @@ public class SystemSettingsDiscoveryService(
                 IndividualRegistryValues = individualValues,
                 ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
                 PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>(),
+                PowerShellScripts = setting.PowerShellScripts?.ToList() ?? new List<PowerShellScriptSetting>(),
+                RegContents = setting.RegContents?.ToList() ?? new List<RegContentSetting>(),
+                Dependencies = setting.Dependencies?.ToList() ?? new List<SettingDependency>(),
+                CurrentPowerValues = currentPowerValues,
                 SettingDefinition = setting
             };
         }
