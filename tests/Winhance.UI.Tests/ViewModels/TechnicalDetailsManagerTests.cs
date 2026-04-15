@@ -1097,6 +1097,42 @@ public class TechnicalDetailsManagerTests : IDisposable
     }
 
     [Fact]
+    public void UpdateTechnicalDetails_PowerCfgWithCurrentAndDefault_PopulatesAllAcDcColumns()
+    {
+        var manager = CreateManager();
+        var pcs = new PowerCfgSetting
+        {
+            SubgroupGuid = Guid.NewGuid().ToString(),
+            SettingGuid = Guid.NewGuid().ToString(),
+            SubgroupGUIDAlias = "SUB_SLEEP",
+            SettingGUIDAlias = "STANDBYIDLE",
+            Units = "seconds",
+            RecommendedValueAC = 0,
+            RecommendedValueDC = 900,
+            DefaultValueAC = 1800,
+            DefaultValueDC = 600
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "Never",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = new[] { pcs },
+            CurrentPowerValues = new Dictionary<PowerCfgSetting, (int? AC, int? DC)> { [pcs] = (1200, 600) }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        var row = _sections.Single(s => s.Type == DetailRowType.PowerConfig).Rows.Single();
+        row.CurrentAC.Should().Contain("1200");
+        row.CurrentDC.Should().Contain("600");
+        row.RecommendedAC.Should().Contain("0");
+        row.RecommendedDC.Should().Contain("900");
+        row.DefaultAC.Should().Contain("1800");
+        row.DefaultDC.Should().Contain("600");
+    }
+
+    [Fact]
     public void OnTooltipUpdated_SelectionSetting_ResolvesColumnsFromComboBoxOptions()
     {
         // Arrange

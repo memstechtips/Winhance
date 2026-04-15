@@ -180,16 +180,21 @@ internal sealed class TechnicalDetailsManager : IDisposable
         var rows = new List<TechnicalDetailRow>();
         foreach (var pcfg in tooltipData.PowerCfgSettings)
         {
+            tooltipData.CurrentPowerValues.TryGetValue(pcfg, out var current);
             rows.Add(new TechnicalDetailRow
             {
-                RowType = DetailRowType.PowerConfig,
-                SubgroupGuid = pcfg.SubgroupGuid,
-                SettingGuid = pcfg.SettingGuid,
+                RowType       = DetailRowType.PowerConfig,
+                SubgroupGuid  = pcfg.SubgroupGuid,
+                SettingGuid   = pcfg.SettingGuid,
                 SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
-                SettingAlias = pcfg.SettingGUIDAlias,
-                PowerUnits = pcfg.Units ?? "",
+                SettingAlias  = pcfg.SettingGUIDAlias,
+                PowerUnits    = pcfg.Units ?? "",
+                CurrentAC     = current.AC?.ToString() ?? "",
+                CurrentDC     = current.DC?.ToString() ?? "",
                 RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
-                RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
+                RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? "",
+                DefaultAC     = pcfg.DefaultValueAC?.ToString() ?? "",
+                DefaultDC     = pcfg.DefaultValueDC?.ToString() ?? "",
             });
         }
         return rows;
