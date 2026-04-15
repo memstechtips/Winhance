@@ -210,6 +210,11 @@
                                 <PathIcon Data="{StaticResource BookInformationVariantIconPath}"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
+                        <ToggleMenuFlyoutItem x:Name="NewBadgesToggleItem" Click="ViewNewBadges_Click">
+                            <ToggleMenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xEA86;"/>
+                            </ToggleMenuFlyoutItem.Icon>
+                        </ToggleMenuFlyoutItem>
                     </MenuFlyout>
                 </DropDownButton.Flyout>
             </DropDownButton>

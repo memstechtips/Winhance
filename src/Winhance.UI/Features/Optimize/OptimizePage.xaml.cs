@@ -52,6 +52,7 @@ public sealed partial class OptimizePage : Page
     private Dictionary<string, InfoBadge>? _flyoutBadges;
     private bool _isTechnicalDetailsVisible;
     private bool _isInfoBadgesVisible = true;
+    private bool _isNewBadgesVisible = true;
 
     public OptimizeViewModel ViewModel { get; }
 
@@ -155,6 +156,9 @@ public sealed partial class OptimizePage : Page
 
             // Initialize info badges toggle state
             await InitializeInfoBadgesAsync();
+
+            // Initialize NEW badges toggle state
+            await InitializeNewBadgesAsync();
 
             // Always update badges: shows them if in review mode, collapses them if not
             UpdateOverviewBadges();
@@ -470,6 +474,8 @@ public sealed partial class OptimizePage : Page
         ToolTipService.SetToolTip(TechnicalDetailsToggleItem, _localizationService?.GetString("View_TechnicalDetails_Tooltip") ?? "Show or hide technical details for each setting");
         InfoBadgesToggleItem.Text = _localizationService?.GetString("View_InfoBadges") ?? "InfoBadges";
         ToolTipService.SetToolTip(InfoBadgesToggleItem, _localizationService?.GetString("View_InfoBadges_Tooltip") ?? "Show or hide status badges on settings cards");
+        NewBadgesToggleItem.Text = _localizationService?.GetString("View_NewBadges") ?? "NEW Badges";
+        ToolTipService.SetToolTip(NewBadgesToggleItem, _localizationService?.GetString("View_NewBadges_Tooltip") ?? "Show or hide NEW badges on settings added in this release");
     }
 
     // Technical Details toggle
@@ -517,6 +523,28 @@ public sealed partial class OptimizePage : Page
         InfoBadgesToggleItem.IsChecked = _isInfoBadgesVisible;
     }
 
+    private async Task InitializeNewBadgesAsync()
+    {
+        if (_userPreferencesService != null)
+        {
+            _isNewBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.ShowNewBadges, true);
+        }
+
+        // Sync all settings
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsNewBadgeGloballyVisible = _isNewBadgesVisible;
+            }
+        }
+
+        NewBadgesToggleItem.IsChecked = _isNewBadgesVisible;
+    }
+
     // View menu handlers
     private async void ViewTechnicalDetails_Click(object sender, RoutedEventArgs e)
     {
@@ -558,6 +586,27 @@ public sealed partial class OptimizePage : Page
         {
             await _userPreferencesService.SetPreferenceAsync(
                 UserPreferenceKeys.ShowInfoBadges, _isInfoBadgesVisible);
+        }
+    }
+
+    private async void ViewNewBadges_Click(object sender, RoutedEventArgs e)
+    {
+        _isNewBadgesVisible = NewBadgesToggleItem.IsChecked;
+
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsNewBadgeGloballyVisible = _isNewBadgesVisible;
+            }
+        }
+
+        if (_userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.ShowNewBadges, _isNewBadgesVisible);
         }
     }
 
