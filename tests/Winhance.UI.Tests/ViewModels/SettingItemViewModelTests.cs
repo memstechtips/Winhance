@@ -110,7 +110,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.ComboBoxOptions.Should().NotBeNull().And.BeEmpty();
         sut.MaxValue.Should().Be(100);
         sut.Units.Should().BeEmpty();
-        sut.TechnicalDetails.Should().NotBeNull().And.BeEmpty();
+        sut.TechnicalDetailSections.Should().NotBeNull().And.BeEmpty();
         sut.IsVisible.Should().BeTrue();
         sut.IsEnabled.Should().BeTrue();
         sut.ParentIsEnabled.Should().BeTrue();
@@ -1145,6 +1145,50 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
+    public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOn_DefaultLit()
+    {
+        // privacy-tailored-experiences shape: a base registry with DefaultValue = 1
+        // (Windows default is ON) plus group-policy enforcer regs carrying
+        // DefaultValue = null and DisabledValue = [null]. The policy regs have no
+        // opinion on the Windows default state — their null sentinel only models
+        // "policy not applied". Toggle ON must light the Default badge on the
+        // strength of the base reg alone.
+        var def = BuildBaseWithPolicyEnforcerToggleDefinition(
+            id: "tailored-experiences-like",
+            recommendedToggleState: false);
+        var sut = CreateSut(BuildToggleConfig(def));
+        sut.IsSelected = true;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, false),
+            (SettingBadgeKind.Default,     true),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOff_RecommendedLit()
+    {
+        // Same shape as above; toggle OFF is the recommended state. Default must
+        // be dim because the base reg's Windows default is ON.
+        var def = BuildBaseWithPolicyEnforcerToggleDefinition(
+            id: "tailored-experiences-like-off",
+            recommendedToggleState: false);
+        var sut = CreateSut(BuildToggleConfig(def));
+        sut.IsSelected = false;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
+        {
+            (SettingBadgeKind.Recommended, true),
+            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Custom,      false),
+        }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
     public void BadgeRow_Selection_Subjective_OnRecommended_PreferenceAndRecommendedLit()
     {
         var def = BuildSelectionSettingDefinition(
@@ -1412,6 +1456,45 @@ public class SettingItemViewModelTests : IDisposable
                     ValueType = Microsoft.Win32.RegistryValueKind.DWord,
                     IsGroupPolicy = true,
                     IsPrimary = true,
+                },
+            },
+        };
+    }
+
+    private static SettingDefinition BuildBaseWithPolicyEnforcerToggleDefinition(
+        string id,
+        bool? recommendedToggleState)
+    {
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = id,
+            Description = "",
+            InputType = InputType.Toggle,
+            RecommendedToggleState = recommendedToggleState,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
+                    ValueName = "Feature",
+                    EnabledValue = new object?[] { 1 },
+                    DisabledValue = new object?[] { 0 },
+                    RecommendedValue = 0,
+                    DefaultValue = 1,
+                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsPrimary = true,
+                },
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Test",
+                    ValueName = "DisableFeature",
+                    EnabledValue = new object?[] { 0 },
+                    DisabledValue = new object?[] { null },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                    IsGroupPolicy = true,
                 },
             },
         };

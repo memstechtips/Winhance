@@ -13,6 +13,10 @@
     <!-- Note: 'models:' is UI-layer (TechnicalDetailRow etc); 'coreModels:' is Winhance.Core (BadgePillState etc). -->
     <!-- Don't merge them. -->
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="TechnicalDetailsStyles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- Common spacing for settings cards -->
     <x:Double x:Key="SettingsCardSpacing">4</x:Double>
 
@@ -234,99 +238,154 @@
                     CornerRadius="0,0,4,4"
                     Padding="12,6"
                     Margin="0,0,0,0">
-                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetails, Mode=OneWay}">
+                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetailSections, Mode=OneWay}">
                     <ItemsRepeater.Layout>
-                        <StackLayout Spacing="6"/>
+                        <StackLayout Spacing="8"/>
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="models:TechnicalDetailRow">
-                            <ContentControl IsTabStop="True"
-                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
-                                            AutomationProperties.LocalizedControlType="detail"
-                                            HorizontalContentAlignment="Stretch">
-                            <Grid>
-                                <!-- Registry row -->
-                                <Grid Visibility="{x:Bind IsRegistry}"
-                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                    <!-- Regedit open button -->
-                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
-                                            CommandParameter="{x:Bind RegistryPath}"
-                                            IsEnabled="{x:Bind CanOpenRegedit}"
-                                            ToolTipService.ToolTip="Open in Registry Editor"
-                                            AutomationProperties.Name="{x:Bind RegistryPath}"
-                                            Padding="4" Margin="0,0,8,0"
-                                            Background="Transparent" BorderThickness="0"
-                                            VerticalAlignment="Center">
-                                        <Grid Width="16" Height="16">
-                                            <!-- FontIcon fallback when icon extraction fails -->
-                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
-                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                            <!-- Extracted regedit icon overlays FontIcon when available -->
-                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
-                                        </Grid>
-                                    </Button>
-                                    <!-- Path + ValueName + Type -->
-                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
-                                        </TextBlock>
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
-                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
-                                        </TextBlock>
+                        <DataTemplate x:DataType="models:TechnicalDetailSection">
+                            <StackPanel Margin="0,4,0,0">
+                                <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
+                                <Button Style="{StaticResource TechDetail.SectionHeader}"
+                                        IsHitTestVisible="False"
+                                        IsTabStop="False">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
                                     </StackPanel>
-                                    <!-- Current + Recommended values -->
-                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
-                                        </TextBlock>
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
-                                        </TextBlock>
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Grid>
+                                </Button>
+                                <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
+                                    <ItemsRepeater.Layout>
+                                        <StackLayout Spacing="6"/>
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
+                                            <ContentControl IsTabStop="True"
+                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
+                                                            AutomationProperties.LocalizedControlType="detail"
+                                                            HorizontalContentAlignment="Stretch">
+                                            <Grid>
+                                                <!-- Registry row -->
+                                                <Grid Visibility="{x:Bind IsRegistry}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <!-- Regedit open button -->
+                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
+                                                            CommandParameter="{x:Bind RegistryPath}"
+                                                            IsEnabled="{x:Bind CanOpenRegedit}"
+                                                            ToolTipService.ToolTip="Open in Registry Editor"
+                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
+                                                            Padding="4" Margin="0,0,8,0"
+                                                            Background="Transparent" BorderThickness="0"
+                                                            VerticalAlignment="Center">
+                                                        <Grid Width="16" Height="16">
+                                                            <!-- FontIcon fallback when icon extraction fails -->
+                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
+                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                            <!-- Extracted regedit icon overlays FontIcon when available -->
+                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
+                                                        </Grid>
+                                                    </Button>
+                                                    <!-- Path + ValueName + Type -->
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
+                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <!-- Current + Recommended + Default values -->
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Grid>
 
-                                <!-- ScheduledTask row -->
-                                <StackPanel Visibility="{x:Bind IsScheduledTask}"
-                                            Orientation="Horizontal" Spacing="8" Padding="4,4">
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                        <Run FontWeight="SemiBold" Text="TaskPath: "/><Run Text="{x:Bind TaskPath}"/>
-                                    </TextBlock>
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                        <Run FontWeight="SemiBold" Text="Recommended: "/><Run Text="{x:Bind RecommendedState}"/>
-                                    </TextBlock>
-                                </StackPanel>
+                                                <!-- Scheduled task row (now with Default column) -->
+                                                <Grid Visibility="{x:Bind IsScheduledTask}" ColumnSpacing="12" Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
+                                                </Grid>
 
-                                <!-- PowerConfig row -->
-                                <StackPanel Visibility="{x:Bind IsPowerConfig}"
-                                            Spacing="2" Padding="4,4">
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                        <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
-                                        <Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}"/><Run Text=")"/>
-                                    </TextBlock>
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True">
-                                        <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
-                                        <Run Text=" ("/><Run Text="{x:Bind SettingGuid}"/><Run Text=")"/>
-                                        <Run Text="  AC: "/><Run Text="{x:Bind RecommendedAC}"/>
-                                        <Run Text="  DC: "/><Run Text="{x:Bind RecommendedDC}"/>
-                                        <Run Text="  "/><Run Text="{x:Bind PowerUnits}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Grid>
-                            </ContentControl>
+                                                <!-- PowerConfig row -->
+                                                <Grid Visibility="{x:Bind IsPowerConfig}" ColumnSpacing="12" Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="{x:Bind SubgroupAlias}" ToolTipService.ToolTip="{x:Bind SubgroupGuid}"/>
+                                                        <TextBlock Text="{x:Bind SettingAlias}" ToolTipService.ToolTip="{x:Bind SettingGuid}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{x:Bind CurrentAC}"/>
+                                                        <TextBlock Text="{x:Bind CurrentDC}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="{x:Bind RecommendedAC}"/>
+                                                        <TextBlock Text="{x:Bind RecommendedDC}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="3">
+                                                        <TextBlock Text="{x:Bind DefaultAC}"/>
+                                                        <TextBlock Text="{x:Bind DefaultDC}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- PowerShell script row -->
+                                                <StackPanel Visibility="{x:Bind IsPowerShellScript}" Spacing="4" Margin="0,4">
+                                                    <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
+                                                    <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
+                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- RegContent row -->
+                                                <StackPanel Visibility="{x:Bind IsRegContent}" Spacing="4" Margin="0,4">
+                                                    <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
+                                                    <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
+                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Dependency chip row -->
+                                                <Border Visibility="{x:Bind IsDependency}" Style="{StaticResource TechDetail.DependencyChip}" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="{x:Bind DependencyLabel}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            </ContentControl>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
@@ -568,94 +627,149 @@
                     CornerRadius="0,0,4,4"
                     Padding="12,6"
                     Margin="0,0,0,0">
-                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetails, Mode=OneWay}">
+                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetailSections, Mode=OneWay}">
                     <ItemsRepeater.Layout>
-                        <StackLayout Spacing="6"/>
+                        <StackLayout Spacing="8"/>
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="models:TechnicalDetailRow">
-                            <ContentControl IsTabStop="True"
-                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
-                                            AutomationProperties.LocalizedControlType="detail"
-                                            HorizontalContentAlignment="Stretch">
-                            <Grid>
-                                <!-- Registry row -->
-                                <Grid Visibility="{x:Bind IsRegistry}"
-                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
-                                            CommandParameter="{x:Bind RegistryPath}"
-                                            IsEnabled="{x:Bind CanOpenRegedit}"
-                                            ToolTipService.ToolTip="Open in Registry Editor"
-                                            AutomationProperties.Name="{x:Bind RegistryPath}"
-                                            Padding="4" Margin="0,0,8,0"
-                                            Background="Transparent" BorderThickness="0"
-                                            VerticalAlignment="Center">
-                                        <Grid Width="16" Height="16">
-                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
-                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
-                                        </Grid>
-                                    </Button>
-                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
-                                        </TextBlock>
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
-                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
-                                        </TextBlock>
+                        <DataTemplate x:DataType="models:TechnicalDetailSection">
+                            <StackPanel Margin="0,4,0,0">
+                                <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
+                                <Button Style="{StaticResource TechDetail.SectionHeader}"
+                                        IsHitTestVisible="False"
+                                        IsTabStop="False">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
-                                        </TextBlock>
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
-                                        </TextBlock>
-                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                   IsTextSelectionEnabled="True">
-                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Grid>
+                                </Button>
+                                <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
+                                    <ItemsRepeater.Layout>
+                                        <StackLayout Spacing="6"/>
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
+                                            <ContentControl IsTabStop="True"
+                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
+                                                            AutomationProperties.LocalizedControlType="detail"
+                                                            HorizontalContentAlignment="Stretch">
+                                            <Grid>
+                                                <!-- Registry row -->
+                                                <Grid Visibility="{x:Bind IsRegistry}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
+                                                            CommandParameter="{x:Bind RegistryPath}"
+                                                            IsEnabled="{x:Bind CanOpenRegedit}"
+                                                            ToolTipService.ToolTip="Open in Registry Editor"
+                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
+                                                            Padding="4" Margin="0,0,8,0"
+                                                            Background="Transparent" BorderThickness="0"
+                                                            VerticalAlignment="Center">
+                                                        <Grid Width="16" Height="16">
+                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
+                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
+                                                        </Grid>
+                                                    </Button>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
+                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Grid>
 
-                                <!-- ScheduledTask row -->
-                                <StackPanel Visibility="{x:Bind IsScheduledTask}"
-                                            Orientation="Horizontal" Spacing="8" Padding="4,4">
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                        <Run FontWeight="SemiBold" Text="TaskPath: "/><Run Text="{x:Bind TaskPath}"/>
-                                    </TextBlock>
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                        <Run FontWeight="SemiBold" Text="Recommended: "/><Run Text="{x:Bind RecommendedState}"/>
-                                    </TextBlock>
-                                </StackPanel>
+                                                <!-- Scheduled task row (now with Default column) -->
+                                                <Grid Visibility="{x:Bind IsScheduledTask}" ColumnSpacing="12" Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
+                                                </Grid>
 
-                                <!-- PowerConfig row -->
-                                <StackPanel Visibility="{x:Bind IsPowerConfig}"
-                                            Spacing="2" Padding="4,4">
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                        <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
-                                        <Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}"/><Run Text=")"/>
-                                    </TextBlock>
-                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                               IsTextSelectionEnabled="True">
-                                        <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
-                                        <Run Text=" ("/><Run Text="{x:Bind SettingGuid}"/><Run Text=")"/>
-                                        <Run Text="  AC: "/><Run Text="{x:Bind RecommendedAC}"/>
-                                        <Run Text="  DC: "/><Run Text="{x:Bind RecommendedDC}"/>
-                                        <Run Text="  "/><Run Text="{x:Bind PowerUnits}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Grid>
-                            </ContentControl>
+                                                <!-- PowerConfig row -->
+                                                <Grid Visibility="{x:Bind IsPowerConfig}" ColumnSpacing="12" Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="{x:Bind SubgroupAlias}" ToolTipService.ToolTip="{x:Bind SubgroupGuid}"/>
+                                                        <TextBlock Text="{x:Bind SettingAlias}" ToolTipService.ToolTip="{x:Bind SettingGuid}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{x:Bind CurrentAC}"/>
+                                                        <TextBlock Text="{x:Bind CurrentDC}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="{x:Bind RecommendedAC}"/>
+                                                        <TextBlock Text="{x:Bind RecommendedDC}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="3">
+                                                        <TextBlock Text="{x:Bind DefaultAC}"/>
+                                                        <TextBlock Text="{x:Bind DefaultDC}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- PowerShell script row -->
+                                                <StackPanel Visibility="{x:Bind IsPowerShellScript}" Spacing="4" Margin="0,4">
+                                                    <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
+                                                    <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
+                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- RegContent row -->
+                                                <StackPanel Visibility="{x:Bind IsRegContent}" Spacing="4" Margin="0,4">
+                                                    <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
+                                                    <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
+                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Dependency chip row -->
+                                                <Border Visibility="{x:Bind IsDependency}" Style="{StaticResource TechDetail.DependencyChip}" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="{x:Bind DependencyLabel}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            </ContentControl>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
@@ -844,89 +958,149 @@
                                     CornerRadius="0,0,4,4"
                                     Padding="12,6"
                                     Margin="0,0,0,0">
-                                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetails, Mode=OneWay}">
+                                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetailSections, Mode=OneWay}">
                                     <ItemsRepeater.Layout>
-                                        <StackLayout Spacing="6"/>
+                                        <StackLayout Spacing="8"/>
                                     </ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
-                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
-                                            <ContentControl IsTabStop="True"
-                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
-                                                            AutomationProperties.LocalizedControlType="detail"
-                                                            HorizontalContentAlignment="Stretch">
-                                            <Grid>
-                                                <Grid Visibility="{x:Bind IsRegistry}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
-                                                            CommandParameter="{x:Bind RegistryPath}"
-                                                            IsEnabled="{x:Bind CanOpenRegedit}"
-                                                            ToolTipService.ToolTip="Open in Registry Editor"
-                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
-                                                            Padding="4" Margin="0,0,8,0"
-                                                            Background="Transparent" BorderThickness="0"
-                                                            VerticalAlignment="Center">
-                                                        <Grid Width="16" Height="16">
-                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
-                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
-                                                        </Grid>
-                                                    </Button>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
-                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
-                                                        </TextBlock>
+                                        <DataTemplate x:DataType="models:TechnicalDetailSection">
+                                            <StackPanel Margin="0,4,0,0">
+                                                <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
+                                                <Button Style="{StaticResource TechDetail.SectionHeader}"
+                                                        IsHitTestVisible="False"
+                                                        IsTabStop="False">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-                                                <StackPanel Visibility="{x:Bind IsScheduledTask}"
-                                                            Orientation="Horizontal" Spacing="8" Padding="4,4">
-                                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                                        <Run FontWeight="SemiBold" Text="TaskPath: "/><Run Text="{x:Bind TaskPath}"/>
-                                                    </TextBlock>
-                                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                                        <Run FontWeight="SemiBold" Text="Recommended: "/><Run Text="{x:Bind RecommendedState}"/>
-                                                    </TextBlock>
-                                                </StackPanel>
-                                                <StackPanel Visibility="{x:Bind IsPowerConfig}"
-                                                            Spacing="2" Padding="4,4">
-                                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                                               IsTextSelectionEnabled="True" VerticalAlignment="Center">
-                                                        <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
-                                                        <Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}"/><Run Text=")"/>
-                                                    </TextBlock>
-                                                    <TextBlock FontFamily="Consolas" FontSize="11"
-                                                               IsTextSelectionEnabled="True">
-                                                        <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
-                                                        <Run Text=" ("/><Run Text="{x:Bind SettingGuid}"/><Run Text=")"/>
-                                                        <Run Text="  AC: "/><Run Text="{x:Bind RecommendedAC}"/>
-                                                        <Run Text="  DC: "/><Run Text="{x:Bind RecommendedDC}"/>
-                                                        <Run Text="  "/><Run Text="{x:Bind PowerUnits}"/>
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </Grid>
-                                            </ContentControl>
+                                                </Button>
+                                                <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
+                                                    <ItemsRepeater.Layout>
+                                                        <StackLayout Spacing="6"/>
+                                                    </ItemsRepeater.Layout>
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
+                                                            <ContentControl IsTabStop="True"
+                                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
+                                                                            AutomationProperties.LocalizedControlType="detail"
+                                                                            HorizontalContentAlignment="Stretch">
+                                                            <Grid>
+                                                                <!-- Registry row -->
+                                                                <Grid Visibility="{x:Bind IsRegistry}"
+                                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
+                                                                            CommandParameter="{x:Bind RegistryPath}"
+                                                                            IsEnabled="{x:Bind CanOpenRegedit}"
+                                                                            ToolTipService.ToolTip="Open in Registry Editor"
+                                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
+                                                                            Padding="4" Margin="0,0,8,0"
+                                                                            Background="Transparent" BorderThickness="0"
+                                                                            VerticalAlignment="Center">
+                                                                        <Grid Width="16" Height="16">
+                                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
+                                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
+                                                                        </Grid>
+                                                                    </Button>
+                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
+                                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
+                                                                        </TextBlock>
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                                                        </TextBlock>
+                                                                    </StackPanel>
+                                                                </Grid>
+
+                                                                <!-- Scheduled task row (now with Default column) -->
+                                                                <Grid Visibility="{x:Bind IsScheduledTask}" ColumnSpacing="12" Margin="0,2">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
+                                                                    <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
+                                                                </Grid>
+
+                                                                <!-- PowerConfig row -->
+                                                                <Grid Visibility="{x:Bind IsPowerConfig}" ColumnSpacing="12" Margin="0,2">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <StackPanel Grid.Column="0">
+                                                                        <TextBlock Text="{x:Bind SubgroupAlias}" ToolTipService.ToolTip="{x:Bind SubgroupGuid}"/>
+                                                                        <TextBlock Text="{x:Bind SettingAlias}" ToolTipService.ToolTip="{x:Bind SettingGuid}" Opacity="0.7"/>
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="1">
+                                                                        <TextBlock Text="{x:Bind CurrentAC}"/>
+                                                                        <TextBlock Text="{x:Bind CurrentDC}" Opacity="0.7"/>
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="2">
+                                                                        <TextBlock Text="{x:Bind RecommendedAC}"/>
+                                                                        <TextBlock Text="{x:Bind RecommendedDC}" Opacity="0.7"/>
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="3">
+                                                                        <TextBlock Text="{x:Bind DefaultAC}"/>
+                                                                        <TextBlock Text="{x:Bind DefaultDC}" Opacity="0.7"/>
+                                                                    </StackPanel>
+                                                                </Grid>
+
+                                                                <!-- PowerShell script row -->
+                                                                <StackPanel Visibility="{x:Bind IsPowerShellScript}" Spacing="4" Margin="0,4">
+                                                                    <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
+                                                                    <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
+                                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                                        </ScrollViewer>
+                                                                    </Border>
+                                                                </StackPanel>
+
+                                                                <!-- RegContent row -->
+                                                                <StackPanel Visibility="{x:Bind IsRegContent}" Spacing="4" Margin="0,4">
+                                                                    <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
+                                                                    <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
+                                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                                        </ScrollViewer>
+                                                                    </Border>
+                                                                </StackPanel>
+
+                                                                <!-- Dependency chip row -->
+                                                                <Border Visibility="{x:Bind IsDependency}" Style="{StaticResource TechDetail.DependencyChip}" HorizontalAlignment="Left">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                        <TextBlock Text="{x:Bind DependencyLabel}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </Grid>
+                                                            </ContentControl>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </ItemsRepeater.ItemTemplate>
                                 </ItemsRepeater>

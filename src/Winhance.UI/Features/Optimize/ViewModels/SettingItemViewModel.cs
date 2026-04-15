@@ -128,9 +128,6 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial bool IsTechnicalDetailsGloballyVisible { get; set; }
 
     [ObservableProperty]
-    public partial ObservableCollection<TechnicalDetailRow> TechnicalDetails { get; set; }
-
-    [ObservableProperty]
     public partial IReadOnlyList<TechnicalDetailSection> TechnicalDetailSections { get; set; }
         = Array.Empty<TechnicalDetailSection>();
 
@@ -914,7 +911,6 @@ public partial class SettingItemViewModel : BaseViewModel
         ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>();
         MaxValue = 100;
         Units = string.Empty;
-        TechnicalDetails = new ObservableCollection<TechnicalDetailRow>();
         IsVisible = true;
         IsEnabled = true;
         ParentIsEnabled = true;
@@ -932,8 +928,6 @@ public partial class SettingItemViewModel : BaseViewModel
             newSections =>
             {
                 TechnicalDetailSections = newSections;
-                // Deprecated: flattened view kept for XAML backward-compat during feature rollout. Removed in Task 11.
-                TechnicalDetails = new ObservableCollection<TechnicalDetailRow>(newSections.SelectMany(s => s.Rows));
                 OnPropertyChanged(nameof(HasTechnicalDetails));
                 OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
             },
