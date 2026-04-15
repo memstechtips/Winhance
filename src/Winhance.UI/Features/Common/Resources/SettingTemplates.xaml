@@ -248,7 +248,8 @@
                                 <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
                                 <Button Style="{StaticResource TechDetail.SectionHeader}"
                                         IsHitTestVisible="False"
-                                        IsTabStop="False">
+                                        IsTabStop="False"
+                                        AutomationProperties.Name="{x:Bind Label}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
                                         <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
@@ -322,7 +323,9 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"
+                                                               IsTextSelectionEnabled="True"
+                                                               FontFamily="Consolas,Cascadia Code,Courier New"/>
                                                     <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
                                                     <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
                                                 </Grid>
@@ -637,7 +640,8 @@
                                 <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
                                 <Button Style="{StaticResource TechDetail.SectionHeader}"
                                         IsHitTestVisible="False"
-                                        IsTabStop="False">
+                                        IsTabStop="False"
+                                        AutomationProperties.Name="{x:Bind Label}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
                                         <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
@@ -706,7 +710,9 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"
+                                                               IsTextSelectionEnabled="True"
+                                                               FontFamily="Consolas,Cascadia Code,Courier New"/>
                                                     <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
                                                     <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
                                                 </Grid>
@@ -968,7 +974,8 @@
                                                 <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
                                                 <Button Style="{StaticResource TechDetail.SectionHeader}"
                                                         IsHitTestVisible="False"
-                                                        IsTabStop="False">
+                                                        IsTabStop="False"
+                                                        AutomationProperties.Name="{x:Bind Label}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
                                                         <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
@@ -1037,7 +1044,9 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
-                                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"
+                                                                               IsTextSelectionEnabled="True"
+                                                                               FontFamily="Consolas,Cascadia Code,Courier New"/>
                                                                     <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
                                                                     <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
                                                                 </Grid>

@@ -88,10 +88,14 @@ public class TechnicalDetailRow
     {
         DetailRowType.Registry =>
             $"Registry. Path: {RegistryPath}, Value: {ValueName} ({ValueType}), Current: {CurrentValue}, Recommended: {RecommendedValue}, Default: {DefaultValue}",
-        DetailRowType.ScheduledTask =>
-            $"Scheduled Task. TaskPath: {TaskPath}, Recommended: {RecommendedState}",
+        DetailRowType.ScheduledTask => string.IsNullOrEmpty(DefaultState)
+            ? $"Scheduled Task. TaskPath: {TaskPath}, Recommended: {RecommendedState}"
+            : $"Scheduled Task. TaskPath: {TaskPath}, Recommended: {RecommendedState}, Default: {DefaultState}",
         DetailRowType.PowerConfig =>
             $"Power Config. Subgroup: {SubgroupAlias} ({SubgroupGuid}), Setting: {SettingAlias} ({SettingGuid}), AC: {RecommendedAC}, DC: {RecommendedDC}, {PowerUnits}",
+        DetailRowType.PowerShellScript => $"PowerShell script {ScriptLabel}: {ScriptBody}",
+        DetailRowType.RegContent       => $"Registry content {ContentLabel}: {ContentBody}",
+        DetailRowType.Dependency       => $"Depends on {DependencyLabel} {DependencyRelation}",
         _ => string.Empty
     };
 }

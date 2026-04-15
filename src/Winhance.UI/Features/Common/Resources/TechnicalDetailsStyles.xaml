@@ -47,7 +47,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="8,3"/>
-        <Setter Property="Margin" Value="0,0,6,6"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
     </Style>
 
 </ResourceDictionary>
