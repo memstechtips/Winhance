@@ -1031,6 +1031,55 @@ public class TechnicalDetailsManagerTests : IDisposable
     }
 
     [Fact]
+    public void UpdateTechnicalDetails_ScheduledTaskWithDefaultState_PopulatesDefaultColumn()
+    {
+        var manager = CreateManager();
+        var task = new ScheduledTaskSetting
+        {
+            TaskPath = @"\Microsoft\Windows\SomeTask",
+            RecommendedState = false,
+            DefaultState = true
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "Disabled",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = new[] { task },
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>()
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        var taskSection = _sections.Single(s => s.Type == DetailRowType.ScheduledTask);
+        var row = taskSection.Rows.Single();
+        row.DefaultState.Should().Be(TestLabels.On);
+        row.RecommendedState.Should().Be(TestLabels.Off);
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_ScheduledTaskWithNullDefaultState_LeavesDefaultBlank()
+    {
+        var manager = CreateManager();
+        var task = new ScheduledTaskSetting
+        {
+            TaskPath = @"\Microsoft\Test",
+            RecommendedState = true,
+            DefaultState = null
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "TestSetting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = new[] { task },
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>()
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("TestSetting", tooltip));
+
+        _sections.Single(s => s.Type == DetailRowType.ScheduledTask).Rows.Single().DefaultState.Should().BeEmpty();
+    }
+
+    [Fact]
     public void UpdateTechnicalDetails_NothingDeclared_ProducesZeroSections()
     {
         var manager = CreateManager();

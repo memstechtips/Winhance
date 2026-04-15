@@ -163,6 +163,12 @@ internal sealed class TechnicalDetailsManager : IDisposable
                     true  => _labels.On,
                     false => _labels.Off,
                     _     => string.Empty
+                },
+                DefaultState = task.DefaultState switch
+                {
+                    true  => _labels.On,
+                    false => _labels.Off,
+                    _     => string.Empty
                 }
             });
         }
