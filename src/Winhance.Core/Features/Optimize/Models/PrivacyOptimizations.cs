@@ -118,7 +118,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
-                            RecommendedValue = null,
+                            RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             DefaultValue = null,
@@ -129,7 +129,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
-                            RecommendedValue = null,
+                            RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             DefaultValue = null,
