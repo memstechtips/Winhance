@@ -941,6 +941,7 @@ public partial class SettingItemViewModel : BaseViewModel
             dispatcherService,
             regeditLauncher,
             eventBus,
+            _localizationService,
             new TechnicalDetailLabels
             {
                 Path = _localizationService.GetString("TechnicalDetails_Path") ?? "Path",

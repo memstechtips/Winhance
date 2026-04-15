@@ -25,6 +25,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
+    private readonly ILocalizationService _localizationService;
     private readonly TechnicalDetailLabels _labels;
     private ISubscriptionToken? _subscription;
 
@@ -37,6 +38,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         IDispatcherService dispatcherService,
         IRegeditLauncher? regeditLauncher,
         IEventBus? eventBus,
+        ILocalizationService localizationService,
         TechnicalDetailLabels? labels = null)
     {
         _getSettingId = getSettingId;
@@ -44,6 +46,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         _logService = logService;
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
+        _localizationService = localizationService;
         _labels = labels ?? new TechnicalDetailLabels();
 
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
@@ -68,7 +71,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
             var powerRows     = BuildPowerCfgRows(tooltipData);
             var scriptRows    = BuildPowerShellScriptRows(tooltipData);
             var regContentRows = BuildRegContentRows(tooltipData);
-            var dependencyRows = new List<TechnicalDetailRow>();     // Task 10
+            var dependencyRows = BuildDependencyRows(tooltipData);
 
             var sections = new List<TechnicalDetailSection>();
             if (registryRows.Count > 0)
@@ -242,6 +245,32 @@ internal sealed class TechnicalDetailsManager : IDisposable
                     ContentLabel = _labels.RegContentOnDisable,
                     ContentBody  = r.DisabledContent
                 });
+        }
+        return rows;
+    }
+
+    private List<TechnicalDetailRow> BuildDependencyRows(SettingTooltipData tooltipData)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        foreach (var dep in tooltipData.Dependencies)
+        {
+            var name = _localizationService.GetString($"Setting_{dep.RequiredSettingId}_Name");
+            if (string.IsNullOrEmpty(name) || name == $"Setting_{dep.RequiredSettingId}_Name")
+                name = dep.RequiredSettingId;  // fall back to id when no translation
+            var relation = dep.DependencyType switch
+            {
+                SettingDependencyType.RequiresEnabled              => $"{_labels.DependencyEquals} {_labels.On}",
+                SettingDependencyType.RequiresDisabled             => $"{_labels.DependencyEquals} {_labels.Off}",
+                SettingDependencyType.RequiresSpecificValue        => $"{_labels.DependencyEquals} {dep.RequiredValue ?? string.Empty}",
+                SettingDependencyType.RequiresValueBeforeAnyChange => $"{_labels.DependencyEquals} {dep.RequiredValue ?? string.Empty}",
+                _ => string.Empty
+            };
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType            = DetailRowType.Dependency,
+                DependencyLabel    = name,
+                DependencyRelation = relation
+            });
         }
         return rows;
     }

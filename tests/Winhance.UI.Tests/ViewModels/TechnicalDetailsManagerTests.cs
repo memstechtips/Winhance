@@ -24,6 +24,7 @@ public class TechnicalDetailsManagerTests : IDisposable
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<ISubscriptionToken> _mockSubscriptionToken;
+    private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private IReadOnlyList<TechnicalDetailSection> _sections = Array.Empty<TechnicalDetailSection>();
     private readonly List<Action<TooltipUpdatedEvent>> _capturedHandlers;
 
@@ -52,6 +53,11 @@ public class TechnicalDetailsManagerTests : IDisposable
             .Setup(e => e.Subscribe<TooltipUpdatedEvent>(It.IsAny<Action<TooltipUpdatedEvent>>()))
             .Callback<Action<TooltipUpdatedEvent>>(handler => _capturedHandlers.Add(handler))
             .Returns(_mockSubscriptionToken.Object);
+
+        // Default echo: return the key as-is when no specific setup is provided
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns<string>(key => key);
     }
 
     private static readonly TechnicalDetailLabels TestLabels = new()
@@ -67,7 +73,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         ScriptOnEnable = "On Enable",
         ScriptOnDisable = "On Disable",
         RegContentOnEnable = "On Enable",
-        RegContentOnDisable = "On Disable"
+        RegContentOnDisable = "On Disable",
+        DependencyEquals = "=",
+        DependencyNotEquals = "≠"
     };
 
     private TechnicalDetailsManager CreateManager(
@@ -82,6 +90,7 @@ public class TechnicalDetailsManagerTests : IDisposable
             _mockDispatcherService.Object,
             regeditLauncher ?? _mockRegeditLauncher.Object,
             useDefaultEventBus ? (eventBus ?? _mockEventBus.Object) : null,
+            _mockLocalizationService.Object,
             TestLabels);
         return _manager;
     }
@@ -1209,6 +1218,64 @@ public class TechnicalDetailsManagerTests : IDisposable
         section.Rows[0].ContentBody.Should().Contain("dword:00000001");
         section.Rows[1].ContentLabel.Should().Be(TestLabels.RegContentOnDisable);
         section.Rows[1].ContentBody.Should().Contain("dword:00000000");
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_RequiresEnabledDependency_ResolvesLocalizedName()
+    {
+        _mockLocalizationService
+            .Setup(l => l.GetString("Setting_disable-telemetry_Name"))
+            .Returns("Disable Telemetry");
+
+        _currentSettingId = "current-setting";
+        var manager = CreateManager();
+        var dep = new SettingDependency
+        {
+            DependencyType     = SettingDependencyType.RequiresEnabled,
+            DependentSettingId = "current-setting",
+            RequiredSettingId  = "disable-telemetry"
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "current-setting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            Dependencies = new[] { dep }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("current-setting", tooltip));
+
+        var row = _sections.Single(s => s.Type == DetailRowType.Dependency).Rows.Single();
+        row.DependencyLabel.Should().Be("Disable Telemetry");
+        row.DependencyRelation.Should().Be($"{TestLabels.DependencyEquals} {TestLabels.On}");
+    }
+
+    [Fact]
+    public void UpdateTechnicalDetails_RequiresDisabledDependency_UsesOffRelation()
+    {
+        _mockLocalizationService.Setup(l => l.GetString("Setting_other_Name")).Returns("Other Setting");
+        _currentSettingId = "current-setting";
+        var manager = CreateManager();
+        var dep = new SettingDependency
+        {
+            DependencyType     = SettingDependencyType.RequiresDisabled,
+            DependentSettingId = "current-setting",
+            RequiredSettingId  = "other"
+        };
+        var tooltip = new SettingTooltipData
+        {
+            SettingId = "current-setting",
+            DisplayValue = "",
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?>(),
+            ScheduledTaskSettings = Array.Empty<ScheduledTaskSetting>(),
+            PowerCfgSettings = Array.Empty<PowerCfgSetting>(),
+            Dependencies = new[] { dep }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("current-setting", tooltip));
+
+        _sections.Single(s => s.Type == DetailRowType.Dependency).Rows.Single()
+            .DependencyRelation.Should().Be($"{TestLabels.DependencyEquals} {TestLabels.Off}");
     }
 
     [Fact]
