@@ -13,6 +13,7 @@ public static class UserPreferenceKeys
     public const string InitialRestorePointOffered = "InitialRestorePointOffered";
     public const string ShowTechnicalDetails = "ShowTechnicalDetails";
     public const string ShowInfoBadges = "ShowInfoBadges";
+    public const string ShowNewBadges = "ShowNewBadges";
 }
 
 public static class DebugFlags
