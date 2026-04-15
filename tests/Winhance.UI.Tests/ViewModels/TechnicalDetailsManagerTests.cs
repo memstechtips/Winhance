@@ -880,6 +880,46 @@ public class TechnicalDetailsManagerTests : IDisposable
         _details[0].RecommendedValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})");
     }
 
+    [Fact]
+    public void OnTooltipUpdated_ToggleWithBothRecommendedValueAndToggleState_UsesToggleStateLabel()
+    {
+        // When both reg.RecommendedValue and SettingDefinition.RecommendedToggleState
+        // are set, RecommendedToggleState wins and the display includes the "(On)/(Off)"
+        // label, matching the badge logic's priority.
+        _currentSettingId = "both-rec-set";
+        var manager = CreateManager();
+
+        var reg = new RegistrySetting
+        {
+            KeyPath = @"HKLM\Test",
+            ValueName = "V",
+            ValueType = RegistryValueKind.DWord,
+            EnabledValue = new object?[] { null },
+            DisabledValue = new object?[] { 1 },
+            RecommendedValue = 1,
+            DefaultValue = null,
+            IsGroupPolicy = true,
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "both-rec-set",
+            Name = "N",
+            Description = "",
+            InputType = InputType.Toggle,
+            RecommendedToggleState = false,
+            RegistrySettings = new[] { reg },
+        };
+        var tooltipData = new SettingTooltipData
+        {
+            SettingId = "both-rec-set",
+            SettingDefinition = setting,
+            IndividualRegistryValues = new Dictionary<RegistrySetting, string?> { { reg, "1" } }
+        };
+        _capturedHandlers[0](new TooltipUpdatedEvent("both-rec-set", tooltipData));
+
+        _details[0].RecommendedValue.Should().Be($"1 ({TestLabels.Off})");
+    }
+
     // ──────────────────────────────────────────────────
     // Dispose
     // ──────────────────────────────────────────────────

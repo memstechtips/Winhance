@@ -205,15 +205,14 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     private string ResolveRecommendedColumn(SettingDefinition? setting, RegistrySetting reg)
     {
-        // Inverted-policy settings express their recommendation via the toggle-level
-        // RecommendedToggleState flag rather than reg.RecommendedValue. Resolve the
-        // concrete value representing that toggle state by mapping through
-        // EnabledValue / DisabledValue; fall back to the null-sentinel "doesn't exist"
-        // rendering when the target array carries the null sentinel.
+        // Toggle-like settings with an explicit RecommendedToggleState render through
+        // this branch regardless of reg.RecommendedValue, so the user always sees the
+        // human-readable "(On)" / "(Off)" suffix. Maps the target state to the concrete
+        // value via EnabledValue / DisabledValue, falling back to the null-sentinel
+        // "doesn't exist" form when the target array carries the null sentinel.
         if (setting is not null
             && (setting.InputType == InputType.Toggle || setting.InputType == InputType.CheckBox)
-            && setting.RecommendedToggleState.HasValue
-            && reg.RecommendedValue is null)
+            && setting.RecommendedToggleState.HasValue)
         {
             bool targetState = setting.RecommendedToggleState.Value;
             var targetArray = targetState ? reg.EnabledValue : reg.DisabledValue;
