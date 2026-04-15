@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "जानकारी बैज",
   "View_TechnicalDetails_Tooltip": "प्रत्येक सेटिंग के लिए तकनीकी विवरण दिखाएं या छुपाएं",
   "View_InfoBadges_Tooltip": "सेटिंग्स कार्ड पर स्थिति बैज दिखाएं या छुपाएं",
+  "View_NewBadges": "नया बैज",
+  "View_NewBadges_Tooltip": "इस रिलीज़ में जोड़ी गई सेटिंग्स पर नया बैज दिखाएं या छुपाएं",
   "QuickActions_Menu": "त्वरित क्रियाएं",
   "QuickActions_ApplyRecommended": "अनुशंसित सेटिंग्स लागू करें",
   "QuickActions_ResetDefaults": "Windows डिफ़ॉल्ट पर रीसेट करें",

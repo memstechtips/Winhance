@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "資訊徽章",
   "View_TechnicalDetails_Tooltip": "顯示或隱藏每個設定的技術詳情",
   "View_InfoBadges_Tooltip": "顯示或隱藏設定卡片上的狀態徽章",
+  "View_NewBadges": "新功能徽章",
+  "View_NewBadges_Tooltip": "顯示或隱藏此版本新增設定上的新功能徽章",
   "QuickActions_Menu": "快速操作",
   "QuickActions_ApplyRecommended": "套用建議設定",
   "QuickActions_ResetDefaults": "重設為 Windows 預設值",

@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Inligtingsmerkers",
   "View_TechnicalDetails_Tooltip": "Wys of versteek tegniese besonderhede vir elke instelling",
   "View_InfoBadges_Tooltip": "Wys of versteek statusmerkers op instellingskaarte",
+  "View_NewBadges": "NUUT-merkers",
+  "View_NewBadges_Tooltip": "Wys of versteek NUUT-merkers op instellings wat in hierdie weergawe bygevoeg is",
   "QuickActions_Menu": "Vinnige Aksies",
   "QuickActions_ApplyRecommended": "Pas aanbevole instellings toe",
   "QuickActions_ResetDefaults": "Herstel na Windows-verstekke",

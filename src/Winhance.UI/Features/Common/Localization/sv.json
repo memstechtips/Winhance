@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Statusmärken",
   "View_TechnicalDetails_Tooltip": "Visa eller dölj tekniska detaljer för varje inställning",
   "View_InfoBadges_Tooltip": "Visa eller dölj statusmärken på inställningskort",
+  "View_NewBadges": "Märken NYTT",
+  "View_NewBadges_Tooltip": "Visa eller dölj märken NYTT på inställningar tillagda i den här versionen",
   "QuickActions_Menu": "Snabbåtgärder",
   "QuickActions_ApplyRecommended": "Tillämpa rekommenderade inställningar",
   "QuickActions_ResetDefaults": "Återställ Windows-standardinställningar",

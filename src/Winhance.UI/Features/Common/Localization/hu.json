@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Állapotjelzők",
   "View_TechnicalDetails_Tooltip": "Műszaki részletek megjelenítése vagy elrejtése minden beállításhoz",
   "View_InfoBadges_Tooltip": "Állapotjelzők megjelenítése vagy elrejtése a beállítási kártyákon",
+  "View_NewBadges": "ÚJ jelzők",
+  "View_NewBadges_Tooltip": "ÚJ jelzők megjelenítése vagy elrejtése az ebben a verzióban hozzáadott beállításoknál",
   "QuickActions_Menu": "Gyors műveletek",
   "QuickActions_ApplyRecommended": "Ajánlott beállítások alkalmazása",
   "QuickActions_ResetDefaults": "Visszaállítás Windows alapértékekre",

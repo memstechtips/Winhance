@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Statusabzeichen",
   "View_TechnicalDetails_Tooltip": "Technische Details für jede Einstellung ein- oder ausblenden",
   "View_InfoBadges_Tooltip": "Statusabzeichen auf Einstellungskarten ein- oder ausblenden",
+  "View_NewBadges": "NEU-Abzeichen",
+  "View_NewBadges_Tooltip": "NEU-Abzeichen bei Einstellungen ein- oder ausblenden, die in diesem Release hinzugefügt wurden",
   "QuickActions_Menu": "Schnellaktionen",
   "QuickActions_ApplyRecommended": "Empfohlene Einstellungen anwenden",
   "QuickActions_ResetDefaults": "Windows-Standardwerte wiederherstellen",

@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Інформаційні значки",
   "View_TechnicalDetails_Tooltip": "Показати або приховати технічні деталі для кожного параметра",
   "View_InfoBadges_Tooltip": "Показати або приховати значки стану на картках параметрів",
+  "View_NewBadges": "Значки НОВЕ",
+  "View_NewBadges_Tooltip": "Показати або приховати значки НОВЕ у параметрів, доданих у цьому випуску",
   "QuickActions_Menu": "Швидкі дії",
   "QuickActions_ApplyRecommended": "Застосувати рекомендовані параметри",
   "QuickActions_ResetDefaults": "Скинути до типових параметрів Windows",

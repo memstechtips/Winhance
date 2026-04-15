@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Emblemas de estado",
   "View_TechnicalDetails_Tooltip": "Mostrar ou ocultar detalhes técnicos de cada definição",
   "View_InfoBadges_Tooltip": "Mostrar ou ocultar emblemas de estado nos cartões de definições",
+  "View_NewBadges": "Emblemas NOVO",
+  "View_NewBadges_Tooltip": "Mostrar ou ocultar emblemas NOVO nas definições adicionadas nesta versão",
   "QuickActions_Menu": "Ações rápidas",
   "QuickActions_ApplyRecommended": "Aplicar definições recomendadas",
   "QuickActions_ResetDefaults": "Repor predefinições do Windows",

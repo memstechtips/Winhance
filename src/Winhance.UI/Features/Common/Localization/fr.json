@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Badges d'état",
   "View_TechnicalDetails_Tooltip": "Afficher ou masquer les détails techniques pour chaque paramètre",
   "View_InfoBadges_Tooltip": "Afficher ou masquer les badges de statut sur les cartes de paramètres",
+  "View_NewBadges": "Badges NOUVEAU",
+  "View_NewBadges_Tooltip": "Afficher ou masquer les badges NOUVEAU sur les paramètres ajoutés dans cette version",
   "QuickActions_Menu": "Actions rapides",
   "QuickActions_ApplyRecommended": "Appliquer les paramètres recommandés",
   "QuickActions_ResetDefaults": "Réinitialiser les valeurs Windows par défaut",

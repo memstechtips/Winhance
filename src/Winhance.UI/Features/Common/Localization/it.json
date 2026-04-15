@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Badge di stato",
   "View_TechnicalDetails_Tooltip": "Mostra o nascondi i dettagli tecnici per ogni impostazione",
   "View_InfoBadges_Tooltip": "Mostra o nascondi i badge di stato nelle schede delle impostazioni",
+  "View_NewBadges": "Badge NUOVO",
+  "View_NewBadges_Tooltip": "Mostra o nascondi i badge NUOVO sulle impostazioni aggiunte in questa versione",
   "QuickActions_Menu": "Azioni rapide",
   "QuickActions_ApplyRecommended": "Applica impostazioni consigliate",
   "QuickActions_ResetDefaults": "Ripristina valori predefiniti di Windows",

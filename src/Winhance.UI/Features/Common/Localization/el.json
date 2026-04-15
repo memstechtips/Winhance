@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Σήματα πληροφοριών",
   "View_TechnicalDetails_Tooltip": "Εμφάνιση ή απόκρυψη τεχνικών λεπτομερειών για κάθε ρύθμιση",
   "View_InfoBadges_Tooltip": "Εμφάνιση ή απόκρυψη σημάτων κατάστασης στις κάρτες ρυθμίσεων",
+  "View_NewBadges": "Σήματα ΝΕΟ",
+  "View_NewBadges_Tooltip": "Εμφάνιση ή απόκρυψη σημάτων ΝΕΟ στις ρυθμίσεις που προστέθηκαν σε αυτή την έκδοση",
   "QuickActions_Menu": "Γρήγορες ενέργειες",
   "QuickActions_ApplyRecommended": "Εφαρμογή προτεινόμενων ρυθμίσεων",
   "QuickActions_ResetDefaults": "Επαναφορά προεπιλογών Windows",

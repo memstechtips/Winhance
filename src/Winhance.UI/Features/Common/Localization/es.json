@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Insignias de estado",
   "View_TechnicalDetails_Tooltip": "Mostrar u ocultar detalles técnicos de cada configuración",
   "View_InfoBadges_Tooltip": "Mostrar u ocultar insignias de estado en las tarjetas de configuración",
+  "View_NewBadges": "Insignias NUEVO",
+  "View_NewBadges_Tooltip": "Mostrar u ocultar las insignias NUEVO en los ajustes añadidos en esta versión",
   "QuickActions_Menu": "Acciones rápidas",
   "QuickActions_ApplyRecommended": "Aplicar configuración recomendada",
   "QuickActions_ResetDefaults": "Restablecer valores predeterminados de Windows",

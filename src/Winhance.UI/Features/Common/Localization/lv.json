@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Statusa nozīmītes",
   "View_TechnicalDetails_Tooltip": "Rādīt vai slēpt tehniskos datus katram iestatījumam",
   "View_InfoBadges_Tooltip": "Rādīt vai slēpt statusa nozīmītes iestatījumu kartītēs",
+  "View_NewBadges": "Nozīmītes JAUNS",
+  "View_NewBadges_Tooltip": "Rādīt vai slēpt nozīmītes JAUNS iestatījumiem, kas pievienoti šajā laidienā",
   "QuickActions_Menu": "Ātrās darbības",
   "QuickActions_ApplyRecommended": "Lietot ieteicamos iestatījumus",
   "QuickActions_ResetDefaults": "Atiestatīt Windows noklusējumus",

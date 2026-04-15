@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Huy hiệu thông tin",
   "View_TechnicalDetails_Tooltip": "Hiển thị hoặc ẩn chi tiết kỹ thuật cho mỗi cài đặt",
   "View_InfoBadges_Tooltip": "Hiển thị hoặc ẩn huy hiệu trạng thái trên các thẻ cài đặt",
+  "View_NewBadges": "Huy hiệu MỚI",
+  "View_NewBadges_Tooltip": "Hiển thị hoặc ẩn huy hiệu MỚI trên các cài đặt được thêm vào trong bản phát hành này",
   "QuickActions_Menu": "Thao tác nhanh",
   "QuickActions_ApplyRecommended": "Áp dụng cài đặt đề xuất",
   "QuickActions_ResetDefaults": "Đặt lại về mặc định của Windows",

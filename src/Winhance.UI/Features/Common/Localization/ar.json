@@ -1698,6 +1698,8 @@
     "View_InfoBadges": "شارات المعلومات",
     "View_TechnicalDetails_Tooltip": "إظهار أو إخفاء التفاصيل التقنية لكل إعداد",
     "View_InfoBadges_Tooltip": "إظهار أو إخفاء شارات الحالة على بطاقات الإعدادات",
+    "View_NewBadges": "شارات جديد",
+    "View_NewBadges_Tooltip": "إظهار أو إخفاء شارات جديد على الإعدادات المضافة في هذا الإصدار",
     "QuickActions_Menu": "الإجراءات السريعة",
     "QuickActions_ApplyRecommended": "تطبيق الإعدادات الموصى بها",
     "QuickActions_ResetDefaults": "إعادة التعيين إلى إعدادات Windows الافتراضية",

@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "InfoBadges",
   "View_TechnicalDetails_Tooltip": "Show or hide technical details for each setting",
   "View_InfoBadges_Tooltip": "Show or hide status badges on settings cards",
+  "View_NewBadges": "NEW Badges",
+  "View_NewBadges_Tooltip": "Show or hide NEW badges on settings added in this release",
   "QuickActions_Menu": "Quick Actions",
   "QuickActions_ApplyRecommended": "Apply Recommended Settings",
   "QuickActions_ResetDefaults": "Reset to Windows Defaults",

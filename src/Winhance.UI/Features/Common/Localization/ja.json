@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "情報バッジ",
   "View_TechnicalDetails_Tooltip": "各設定の技術的な詳細を表示または非表示にします",
   "View_InfoBadges_Tooltip": "設定カードのステータスバッジを表示または非表示にします",
+  "View_NewBadges": "新着バッジ",
+  "View_NewBadges_Tooltip": "このリリースで追加された設定の新着バッジを表示または非表示にします",
   "QuickActions_Menu": "クイック操作",
   "QuickActions_ApplyRecommended": "推奨設定を適用",
   "QuickActions_ResetDefaults": "Windows の既定値にリセット",

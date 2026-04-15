@@ -1698,6 +1698,8 @@
   "View_InfoBadges": "Odznaki statusu",
   "View_TechnicalDetails_Tooltip": "Pokaż lub ukryj szczegóły techniczne dla każdego ustawienia",
   "View_InfoBadges_Tooltip": "Pokaż lub ukryj odznaki statusu na kartach ustawień",
+  "View_NewBadges": "Odznaki NOWE",
+  "View_NewBadges_Tooltip": "Pokaż lub ukryj odznaki NOWE przy ustawieniach dodanych w tym wydaniu",
   "QuickActions_Menu": "Szybkie akcje",
   "QuickActions_ApplyRecommended": "Zastosuj zalecane ustawienia",
   "QuickActions_ResetDefaults": "Przywróć domyślne ustawienia Windows",
