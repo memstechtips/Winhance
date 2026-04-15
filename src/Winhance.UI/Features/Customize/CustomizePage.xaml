@@ -191,7 +191,7 @@
                         </ToggleMenuFlyoutItem>
                         <ToggleMenuFlyoutItem x:Name="NewBadgesToggleItem" Click="ViewNewBadges_Click">
                             <ToggleMenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xEA86;"/>
+                                <PathIcon Data="{StaticResource NewBoxIconPath}"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                     </MenuFlyout>
