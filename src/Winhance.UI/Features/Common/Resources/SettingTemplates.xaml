@@ -136,37 +136,18 @@
                     <controls:SettingsCard.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
-                            <Button
-                                Visibility="{x:Bind IsNew, Mode=OneWay}"
-                                Command="{x:Bind DismissNewBadgeCommand}"
+                            <Border
+                                Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
                                 Padding="5,1"
-                                MinHeight="0"
-                                MinWidth="0"
                                 CornerRadius="3"
-                                BorderThickness="0"
                                 Background="#E81123"
-                                ToolTipService.ToolTip="{x:Bind NewBadgeDismissTooltip}"
                                 VerticalAlignment="Center">
-                                <Button.Resources>
-                                    <ResourceDictionary>
-                                        <ResourceDictionary.ThemeDictionaries>
-                                            <ResourceDictionary x:Key="Light">
-                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Black"/>
-                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="Black"/>
-                                            </ResourceDictionary>
-                                            <ResourceDictionary x:Key="Dark">
-                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White"/>
-                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="White"/>
-                                            </ResourceDictionary>
-                                        </ResourceDictionary.ThemeDictionaries>
-                                        <SolidColorBrush x:Key="ButtonForeground" Color="White"/>
-                                    </ResourceDictionary>
-                                </Button.Resources>
                                 <TextBlock
                                     Text="{x:Bind NewBadgeText}"
+                                    Foreground="White"
                                     FontSize="10"
                                     FontWeight="SemiBold"/>
-                            </Button>
+                            </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
@@ -476,37 +457,18 @@
                     <controls:SettingsCard.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
-                            <Button
-                                Visibility="{x:Bind IsNew, Mode=OneWay}"
-                                Command="{x:Bind DismissNewBadgeCommand}"
+                            <Border
+                                Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
                                 Padding="5,1"
-                                MinHeight="0"
-                                MinWidth="0"
                                 CornerRadius="3"
-                                BorderThickness="0"
                                 Background="#E81123"
-                                ToolTipService.ToolTip="{x:Bind NewBadgeDismissTooltip}"
                                 VerticalAlignment="Center">
-                                <Button.Resources>
-                                    <ResourceDictionary>
-                                        <ResourceDictionary.ThemeDictionaries>
-                                            <ResourceDictionary x:Key="Light">
-                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Black"/>
-                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="Black"/>
-                                            </ResourceDictionary>
-                                            <ResourceDictionary x:Key="Dark">
-                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White"/>
-                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="White"/>
-                                            </ResourceDictionary>
-                                        </ResourceDictionary.ThemeDictionaries>
-                                        <SolidColorBrush x:Key="ButtonForeground" Color="White"/>
-                                    </ResourceDictionary>
-                                </Button.Resources>
                                 <TextBlock
                                     Text="{x:Bind NewBadgeText}"
+                                    Foreground="White"
                                     FontSize="10"
                                     FontWeight="SemiBold"/>
-                            </Button>
+                            </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
 
@@ -816,37 +778,18 @@
                                     <controls:SettingsCard.Header>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
-                                            <Button
-                                                Visibility="{x:Bind IsNew, Mode=OneWay}"
-                                                Command="{x:Bind DismissNewBadgeCommand}"
+                                            <Border
+                                                Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
                                                 Padding="5,1"
-                                                MinHeight="0"
-                                                MinWidth="0"
                                                 CornerRadius="3"
-                                                BorderThickness="0"
                                                 Background="#E81123"
-                                                ToolTipService.ToolTip="{x:Bind NewBadgeDismissTooltip}"
                                                 VerticalAlignment="Center">
-                                                <Button.Resources>
-                                                    <ResourceDictionary>
-                                                        <ResourceDictionary.ThemeDictionaries>
-                                                            <ResourceDictionary x:Key="Light">
-                                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Black"/>
-                                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="Black"/>
-                                                            </ResourceDictionary>
-                                                            <ResourceDictionary x:Key="Dark">
-                                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White"/>
-                                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="White"/>
-                                                            </ResourceDictionary>
-                                                        </ResourceDictionary.ThemeDictionaries>
-                                                        <SolidColorBrush x:Key="ButtonForeground" Color="White"/>
-                                                    </ResourceDictionary>
-                                                </Button.Resources>
                                                 <TextBlock
                                                     Text="{x:Bind NewBadgeText}"
+                                                    Foreground="White"
                                                     FontSize="10"
                                                     FontWeight="SemiBold"/>
-                                            </Button>
+                                            </Border>
                                         </StackPanel>
                                     </controls:SettingsCard.Header>
                                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"

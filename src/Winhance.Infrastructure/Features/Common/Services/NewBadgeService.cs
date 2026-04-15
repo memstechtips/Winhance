@@ -9,12 +9,14 @@ public class NewBadgeService : INewBadgeService
 {
     private readonly IUserPreferencesService _prefs;
     private readonly ILogService _logService;
+    private readonly string? _versionOverride;
     private Version _baseline = new(99, 99, 99);
 
-    public NewBadgeService(IUserPreferencesService prefs, ILogService logService)
+    public NewBadgeService(IUserPreferencesService prefs, ILogService logService, string? versionOverride = null)
     {
         _prefs = prefs;
         _logService = logService;
+        _versionOverride = versionOverride;
     }
 
     public bool ShowNewBadges
@@ -25,7 +27,7 @@ public class NewBadgeService : INewBadgeService
 
     public void Initialize()
     {
-        var currentVersionStr = GetAppVersion();
+        var currentVersionStr = _versionOverride ?? GetAppVersion();
         var lastRunStr = _prefs.GetPreference("LastRunVersion", "");
 
         if (string.IsNullOrEmpty(lastRunStr))

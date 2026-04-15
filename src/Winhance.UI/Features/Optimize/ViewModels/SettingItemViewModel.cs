@@ -178,10 +178,15 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsNew { get; set; }
 
-    public string NewBadgeText => _localizationService.GetString("Badge_New") ?? "NEW";
-    public string NewBadgeDismissTooltip => _localizationService.GetString("Badge_New_Dismiss") ?? "Dismiss";
+    [ObservableProperty]
+    public partial bool IsNewBadgeGloballyVisible { get; set; } = true;
 
-    public IRelayCommand DismissNewBadgeCommand { get; private set; } = null!;
+    public string NewBadgeText => _localizationService.GetString("Badge_New") ?? "NEW";
+
+    public bool ShowNewBadge => IsNew && IsNewBadgeGloballyVisible;
+
+    partial void OnIsNewChanged(bool value) => OnPropertyChanged(nameof(ShowNewBadge));
+    partial void OnIsNewBadgeGloballyVisibleChanged(bool value) => OnPropertyChanged(nameof(ShowNewBadge));
 
     // InfoBadge properties
     [ObservableProperty]
@@ -912,11 +917,6 @@ public partial class SettingItemViewModel : BaseViewModel
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
-        DismissNewBadgeCommand = new RelayCommand(() =>
-        {
-            IsNew = false;
-            _newBadgeService?.DismissBadge(SettingId);
-        });
 
         // Check if this setting is new in the current release
         IsNew = _newBadgeService?.IsSettingNew(
@@ -1860,7 +1860,6 @@ public partial class SettingItemViewModel : BaseViewModel
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(NewBadgeText));
-        OnPropertyChanged(nameof(NewBadgeDismissTooltip));
         OnPropertyChanged(nameof(TechnicalDetailsLabel));
         OnPropertyChanged(nameof(OpenRegeditTooltip));
         OnPropertyChanged(nameof(ClickToUnlockText));
