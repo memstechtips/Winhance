@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Helpers;
@@ -55,6 +56,7 @@ public sealed partial class OptimizePage : Page
     private IBulkSettingsActionService? _bulkSettingsActionService;
     private Dictionary<string, InfoBadge>? _flyoutBadges;
     private ISubscriptionToken? _settingAppliedSubscription;
+    private ISubscriptionToken? _settingsRefreshedSubscription;
     private bool _isTechnicalDetailsVisible;
     private bool _isInfoBadgesVisible = true;
     private bool _isNewBadgesVisible = true;
@@ -153,6 +155,11 @@ public sealed partial class OptimizePage : Page
                 {
                     DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadgePills(); UpdateOverviewNewBadges(); });
                 });
+                _settingsRefreshedSubscription?.Dispose();
+                _settingsRefreshedSubscription = eventBus.Subscribe<SettingsRefreshedEvent>(e =>
+                {
+                    DispatcherQueue.TryEnqueue(() => SyncViewStateToSettings());
+                });
             }
             UpdateBreadcrumbMenuItems();
 
@@ -204,6 +211,8 @@ public sealed partial class OptimizePage : Page
         }
         _settingAppliedSubscription?.Dispose();
         _settingAppliedSubscription = null;
+        _settingsRefreshedSubscription?.Dispose();
+        _settingsRefreshedSubscription = null;
         ViewModel.OnNavigatedFrom();
     }
 
@@ -695,6 +704,28 @@ public sealed partial class OptimizePage : Page
         }
 
         NewBadgesToggleItem.IsChecked = _isNewBadgesVisible;
+    }
+
+    /// <summary>
+    /// Re-applies page-level view state (badge visibility, technical details)
+    /// to all settings after they have been recreated by a reload.
+    /// </summary>
+    private void SyncViewStateToSettings()
+    {
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsInfoBadgeGloballyVisible = _isInfoBadgesVisible;
+                setting.IsNewBadgeGloballyVisible = _isNewBadgesVisible;
+                setting.IsTechnicalDetailsGloballyVisible = _isTechnicalDetailsVisible;
+            }
+        }
+
+        UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
     }
 
     // View menu handlers

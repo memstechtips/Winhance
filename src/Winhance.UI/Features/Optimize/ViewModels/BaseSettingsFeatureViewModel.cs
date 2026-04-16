@@ -173,6 +173,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             OnPropertyChanged(nameof(DisplayName));
             await LoadSettingsAsync();
+
+            // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
+            _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
         }
         catch (Exception ex)
         {
@@ -218,6 +221,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             await LoadSettingsAsync();
 
             _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
+
+            // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
+            _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
         }
         catch (Exception ex)
         {
