@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "已停用",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "子群組",
+  "TechnicalDetails_PowerCfg_Setting": "設定",
   "Accessibility_NavigationLandmark": "導覽",
   "Accessibility_ToggleTechnicalDetails": "切換技術詳細資料",
   "Accessibility_ImportInProgress": "匯入進行中",

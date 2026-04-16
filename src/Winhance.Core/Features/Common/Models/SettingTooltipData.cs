@@ -20,5 +20,6 @@ public sealed record SettingTooltipData
     /// <c>ComboBox.Options[i].ValueMappings</c> (since per-entry RecommendedValue/DefaultValue are
     /// null for Selection settings in the new state model).
     /// </summary>
+    public bool? CurrentSettingState { get; init; }
     public SettingDefinition? SettingDefinition { get; init; }
 }

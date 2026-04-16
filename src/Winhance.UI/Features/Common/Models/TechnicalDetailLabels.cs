@@ -31,4 +31,8 @@ public record TechnicalDetailLabels
     // Dependency relation
     public string DependencyEquals      { get; init; } = "=";
     public string DependencyNotEquals   { get; init; } = "≠";
+
+    // PowerConfig labels
+    public string PowerCfgSubgroup { get; init; } = "Subgroup";
+    public string PowerCfgSetting  { get; init; } = "Setting";
 }

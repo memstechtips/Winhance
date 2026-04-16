@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Vypnuto",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Podskupina",
+  "TechnicalDetails_PowerCfg_Setting": "Nastavení",
   "Accessibility_NavigationLandmark": "Navigace",
   "Accessibility_ToggleTechnicalDetails": "Přepnout technické podrobnosti",
   "Accessibility_ImportInProgress": "Probíhá import",

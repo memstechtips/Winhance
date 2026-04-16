@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Uitgeschakeld",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Subgroep",
+  "TechnicalDetails_PowerCfg_Setting": "Instelling",
   "Accessibility_NavigationLandmark": "Navigatie",
   "Accessibility_ToggleTechnicalDetails": "Technische details aan/uit",
   "Accessibility_ImportInProgress": "Bezig met importeren",

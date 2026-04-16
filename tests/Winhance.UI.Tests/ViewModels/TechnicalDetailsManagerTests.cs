@@ -75,7 +75,9 @@ public class TechnicalDetailsManagerTests : IDisposable
         RegContentOnEnable = "On Enable",
         RegContentOnDisable = "On Disable",
         DependencyEquals = "=",
-        DependencyNotEquals = "≠"
+        DependencyNotEquals = "≠",
+        PowerCfgSubgroup = "Subgroup",
+        PowerCfgSetting = "Setting"
     };
 
     private TechnicalDetailsManager CreateManager(

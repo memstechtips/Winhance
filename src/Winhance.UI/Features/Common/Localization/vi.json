@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Đã tắt",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Nhóm con",
+  "TechnicalDetails_PowerCfg_Setting": "Cài đặt",
   "Accessibility_NavigationLandmark": "Điều hướng",
   "Accessibility_ToggleTechnicalDetails": "Bật/tắt chi tiết kỹ thuật",
   "Accessibility_ImportInProgress": "Đang nhập",

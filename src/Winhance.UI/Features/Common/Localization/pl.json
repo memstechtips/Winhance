@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Wyłączone",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Podgrupa",
+  "TechnicalDetails_PowerCfg_Setting": "Ustawienie",
   "Accessibility_NavigationLandmark": "Nawigacja",
   "Accessibility_ToggleTechnicalDetails": "Przełącz szczegóły techniczne",
   "Accessibility_ImportInProgress": "Importowanie w toku",

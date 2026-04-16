@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "已禁用",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "子组",
+  "TechnicalDetails_PowerCfg_Setting": "设置",
   "Accessibility_NavigationLandmark": "导航",
   "Accessibility_ToggleTechnicalDetails": "切换技术详细信息",
   "Accessibility_ImportInProgress": "正在导入",

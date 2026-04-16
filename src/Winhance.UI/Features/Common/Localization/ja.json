@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "無効",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "サブグループ",
+  "TechnicalDetails_PowerCfg_Setting": "設定",
   "Accessibility_NavigationLandmark": "ナビゲーション",
   "Accessibility_ToggleTechnicalDetails": "技術的な詳細の切り替え",
   "Accessibility_ImportInProgress": "インポート中",

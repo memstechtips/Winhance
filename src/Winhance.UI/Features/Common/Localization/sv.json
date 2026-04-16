@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Inaktiverad",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Undergrupp",
+  "TechnicalDetails_PowerCfg_Setting": "Inställning",
   "Accessibility_NavigationLandmark": "Navigering",
   "Accessibility_ToggleTechnicalDetails": "Växla tekniska detaljer",
   "Accessibility_ImportInProgress": "Import pågår",

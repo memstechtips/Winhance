@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "अक्षम",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "उपसमूह",
+  "TechnicalDetails_PowerCfg_Setting": "सेटिंग",
   "Accessibility_NavigationLandmark": "नेविगेशन",
   "Accessibility_ToggleTechnicalDetails": "तकनीकी विवरण टॉगल करें",
   "Accessibility_ImportInProgress": "आयात प्रगति पर है",

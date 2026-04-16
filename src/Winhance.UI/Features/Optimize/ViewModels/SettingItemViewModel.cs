@@ -957,7 +957,9 @@ public partial class SettingItemViewModel : BaseViewModel
                 RegContentOnEnable = _localizationService.GetString("TechnicalDetails_RegContent_OnEnable") ?? "On Enable",
                 RegContentOnDisable = _localizationService.GetString("TechnicalDetails_RegContent_OnDisable") ?? "On Disable",
                 DependencyEquals = _localizationService.GetString("TechnicalDetails_Dependency_Equals") ?? "=",
-                DependencyNotEquals = _localizationService.GetString("TechnicalDetails_Dependency_NotEquals") ?? "≠"
+                DependencyNotEquals = _localizationService.GetString("TechnicalDetails_Dependency_NotEquals") ?? "≠",
+                PowerCfgSubgroup = _localizationService.GetString("TechnicalDetails_PowerCfg_Subgroup") ?? "Subgroup",
+                PowerCfgSetting  = _localizationService.GetString("TechnicalDetails_PowerCfg_Setting") ?? "Setting"
             });
         OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
 

@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Atspējots",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Apakšgrupa",
+  "TechnicalDetails_PowerCfg_Setting": "Iestatījums",
   "Accessibility_NavigationLandmark": "Navigācija",
   "Accessibility_ToggleTechnicalDetails": "Pārslēgt tehnisko informāciju",
   "Accessibility_ImportInProgress": "Notiek importēšana",

@@ -325,6 +325,9 @@
                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentState}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
@@ -339,11 +342,11 @@
                                                     <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind SubgroupLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind SettingLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
@@ -716,6 +719,9 @@
                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentState}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
@@ -730,11 +736,11 @@
                                                     <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind SubgroupLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind SettingLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
@@ -1054,6 +1060,9 @@
                                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentState}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
                                                                         </TextBlock>
                                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
@@ -1068,11 +1077,11 @@
                                                                     <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind SubgroupLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                                         </TextBlock>
                                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind SettingLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                                         </TextBlock>
                                                                     </StackPanel>
                                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"

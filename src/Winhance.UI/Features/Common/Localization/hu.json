@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Letiltva",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Alcsoport",
+  "TechnicalDetails_PowerCfg_Setting": "Beállítás",
   "Accessibility_NavigationLandmark": "Navigáció",
   "Accessibility_ToggleTechnicalDetails": "Technikai részletek megjelenítése/elrejtése",
   "Accessibility_ImportInProgress": "Importálás folyamatban",

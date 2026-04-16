@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "مُعطَّل",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "مجموعة فرعية",
+  "TechnicalDetails_PowerCfg_Setting": "إعداد",
   "Accessibility_NavigationLandmark": "التنقل",
   "Accessibility_ToggleTechnicalDetails": "تبديل التفاصيل التقنية",
   "Accessibility_ImportInProgress": "جارٍ الاستيراد",

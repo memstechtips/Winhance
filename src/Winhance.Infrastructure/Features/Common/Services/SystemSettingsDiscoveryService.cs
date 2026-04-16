@@ -338,6 +338,7 @@ public class SystemSettingsDiscoveryService(
             var tooltipData = BuildTooltipData(setting, batchRegistryValues, stateResult.RawValues);
             if (tooltipData != null)
             {
+                tooltipData = tooltipData with { CurrentSettingState = stateResult.IsEnabled };
                 results[setting.Id] = stateResult with { TooltipData = tooltipData };
             }
         }

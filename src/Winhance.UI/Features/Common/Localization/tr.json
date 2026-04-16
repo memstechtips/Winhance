@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Devre Dışı",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Alt Grup",
+  "TechnicalDetails_PowerCfg_Setting": "Ayar",
   "Accessibility_NavigationLandmark": "Gezinme",
   "Accessibility_ToggleTechnicalDetails": "Teknik Detayları Değiştir",
   "Accessibility_ImportInProgress": "İçe aktarma devam ediyor",

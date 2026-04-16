@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Gedeaktiveer",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Subgroep",
+  "TechnicalDetails_PowerCfg_Setting": "Instelling",
   "Accessibility_NavigationLandmark": "Navigasie",
   "Accessibility_ToggleTechnicalDetails": "Wissel Tegniese Besonderhede",
   "Accessibility_ImportInProgress": "Invoer aan die gang",

@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "Απενεργοποιημένο",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "Υποομάδα",
+  "TechnicalDetails_PowerCfg_Setting": "Ρύθμιση",
   "Accessibility_NavigationLandmark": "Πλοήγηση",
   "Accessibility_ToggleTechnicalDetails": "Εναλλαγή τεχνικών λεπτομερειών",
   "Accessibility_ImportInProgress": "Εισαγωγή σε εξέλιξη",

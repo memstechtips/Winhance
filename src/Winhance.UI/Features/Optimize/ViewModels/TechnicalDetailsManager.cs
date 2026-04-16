@@ -165,6 +165,12 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 CurrentLabel = _labels.Current,
                 RecommendedLabel = _labels.Recommended,
                 DefaultLabel = _labels.Default,
+                CurrentState = tooltipData.CurrentSettingState switch
+                {
+                    true  => _labels.On,
+                    false => _labels.Off,
+                    _     => string.Empty
+                },
                 RecommendedState = task.RecommendedState switch
                 {
                     true  => _labels.On,
@@ -194,6 +200,8 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 CurrentLabel = _labels.Current,
                 RecommendedLabel = _labels.Recommended,
                 DefaultLabel = _labels.Default,
+                SubgroupLabel = _labels.PowerCfgSubgroup,
+                SettingLabel  = _labels.PowerCfgSetting,
                 SubgroupGuid  = pcfg.SubgroupGuid,
                 SettingGuid   = pcfg.SettingGuid,
                 SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",

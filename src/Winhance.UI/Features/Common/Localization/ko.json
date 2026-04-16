@@ -1742,6 +1742,8 @@
   "TechnicalDetails_State_Disabled": "사용 안 함",
   "TechnicalDetails_Dependency_Equals": "=",
   "TechnicalDetails_Dependency_NotEquals": "≠",
+  "TechnicalDetails_PowerCfg_Subgroup": "하위 그룹",
+  "TechnicalDetails_PowerCfg_Setting": "설정",
   "Accessibility_NavigationLandmark": "탐색",
   "Accessibility_ToggleTechnicalDetails": "기술 세부 정보 전환",
   "Accessibility_ImportInProgress": "가져오기 진행 중",

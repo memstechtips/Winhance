@@ -29,6 +29,7 @@ public class TechnicalDetailRow
     public string TaskPath { get; set; } = string.Empty;
     public string RecommendedState { get; set; } = string.Empty;
     public string DefaultState { get; set; } = string.Empty;
+    public string CurrentState { get; set; } = string.Empty;
 
     // PowerConfig fields
     public string SubgroupGuid { get; set; } = string.Empty;
@@ -63,6 +64,8 @@ public class TechnicalDetailRow
     public string CurrentLabel { get; set; } = "Current";
     public string RecommendedLabel { get; set; } = "Recommended";
     public string DefaultLabel { get; set; } = "Default";
+    public string SubgroupLabel { get; set; } = "Subgroup";
+    public string SettingLabel { get; set; } = "Setting";
 
     // Computed bools for XAML visibility
     public bool IsRegistry => RowType == DetailRowType.Registry;
