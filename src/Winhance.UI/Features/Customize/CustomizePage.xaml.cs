@@ -141,7 +141,7 @@ public sealed partial class CustomizePage : Page
                 _settingAppliedSubscription?.Dispose();
                 _settingAppliedSubscription = eventBus.Subscribe<SettingAppliedEvent>(e =>
                 {
-                    DispatcherQueue.TryEnqueue(() => UpdateOverviewBadgePills());
+                    DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadgePills(); UpdateOverviewNewBadges(); });
                 });
             }
 
@@ -170,6 +170,7 @@ public sealed partial class CustomizePage : Page
             UpdateOverviewBadges();
             UpdateBreadcrumbBadges();
             UpdateOverviewBadgePills();
+            UpdateOverviewNewBadges();
 
             // Re-apply Show Only Changes filter if still active from before navigation
             if (_showOnlyChanges)
@@ -369,39 +370,68 @@ public sealed partial class CustomizePage : Page
     {
         UpdateFeatureOverviewPills(
             ViewModel.WindowsThemeViewModel,
-            WindowsThemeOverviewBadges, WindowsThemeNewPill, WindowsThemeNewText,
+            WindowsThemeOverviewBadges,
             WindowsThemeRecommendedPill, WindowsThemeRecommendedText,
             WindowsThemeDefaultPill, WindowsThemeDefaultText,
             WindowsThemeCustomPill, WindowsThemeCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.TaskbarViewModel,
-            TaskbarOverviewBadges, TaskbarNewPill, TaskbarNewText,
+            TaskbarOverviewBadges,
             TaskbarRecommendedPill, TaskbarRecommendedText,
             TaskbarDefaultPill, TaskbarDefaultText,
             TaskbarCustomPill, TaskbarCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.StartMenuViewModel,
-            StartMenuOverviewBadges, StartMenuNewPill, StartMenuNewText,
+            StartMenuOverviewBadges,
             StartMenuRecommendedPill, StartMenuRecommendedText,
             StartMenuDefaultPill, StartMenuDefaultText,
             StartMenuCustomPill, StartMenuCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.ExplorerViewModel,
-            ExplorerOverviewBadges, ExplorerNewPill, ExplorerNewText,
+            ExplorerOverviewBadges,
             ExplorerRecommendedPill, ExplorerRecommendedText,
             ExplorerDefaultPill, ExplorerDefaultText,
             ExplorerCustomPill, ExplorerCustomText);
     }
 
+    private void UpdateOverviewNewBadges()
+    {
+        UpdateFeatureNewBadge(ViewModel.WindowsThemeViewModel, WindowsThemeNewBadge, WindowsThemeNewText);
+        UpdateFeatureNewBadge(ViewModel.TaskbarViewModel, TaskbarNewBadge, TaskbarNewText);
+        UpdateFeatureNewBadge(ViewModel.StartMenuViewModel, StartMenuNewBadge, StartMenuNewText);
+        UpdateFeatureNewBadge(ViewModel.ExplorerViewModel, ExplorerNewBadge, ExplorerNewText);
+    }
+
+    private void UpdateFeatureNewBadge(
+        ISettingsFeatureViewModel feature,
+        Border badge, TextBlock text)
+    {
+        if (!_isNewBadgesVisible)
+        {
+            badge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var summary = FeatureBadgeAggregator.Aggregate(feature);
+        if (summary.NewCount > 0)
+        {
+            badge.Visibility = Visibility.Visible;
+            text.Text = $"{_localizationService?.GetString("Badge_New") ?? "NEW"} {summary.NewCount}";
+        }
+        else
+        {
+            badge.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void UpdateFeatureOverviewPills(
         ISettingsFeatureViewModel feature,
         StackPanel container,
-        Border newPill, TextBlock newText,
         Border recommendedPill, TextBlock recommendedText,
         Border defaultPill, TextBlock defaultText,
         Border customPill, TextBlock customText)
     {
-        if (!_isInfoBadgesVisible && !_isNewBadgesVisible)
+        if (!_isInfoBadgesVisible)
         {
             container.Visibility = Visibility.Collapsed;
             return;
@@ -410,18 +440,6 @@ public sealed partial class CustomizePage : Page
         var summary = FeatureBadgeAggregator.Aggregate(feature);
         int total = summary.TotalWithBadgeData;
         bool showAny = false;
-
-        // NEW pill
-        if (_isNewBadgesVisible && summary.NewCount > 0)
-        {
-            newPill.Visibility = Visibility.Visible;
-            newText.Text = $"{_localizationService?.GetString("Badge_New") ?? "NEW"} {summary.NewCount}";
-            showAny = true;
-        }
-        else
-        {
-            newPill.Visibility = Visibility.Collapsed;
-        }
 
         // InfoBadge pills
         if (_isInfoBadgesVisible && total > 0)
@@ -677,6 +695,7 @@ public sealed partial class CustomizePage : Page
         }
 
         UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
     }
 
     // Show Only Changes filter (review mode)

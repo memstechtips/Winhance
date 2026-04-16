@@ -151,7 +151,7 @@ public sealed partial class OptimizePage : Page
                 _settingAppliedSubscription?.Dispose();
                 _settingAppliedSubscription = eventBus.Subscribe<SettingAppliedEvent>(e =>
                 {
-                    DispatcherQueue.TryEnqueue(() => UpdateOverviewBadgePills());
+                    DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadgePills(); UpdateOverviewNewBadges(); });
                 });
             }
             UpdateBreadcrumbMenuItems();
@@ -179,6 +179,7 @@ public sealed partial class OptimizePage : Page
             UpdateOverviewBadges();
             UpdateBreadcrumbBadges();
             UpdateOverviewBadgePills();
+            UpdateOverviewNewBadges();
 
             // Re-apply Show Only Changes filter if still active from before navigation
             if (_showOnlyChanges)
@@ -424,51 +425,82 @@ public sealed partial class OptimizePage : Page
     {
         UpdateFeatureOverviewPills(
             ViewModel.PrivacyViewModel,
-            PrivacyOverviewBadges, PrivacyNewPill, PrivacyNewText,
+            PrivacyOverviewBadges,
             PrivacyRecommendedPill, PrivacyRecommendedText,
             PrivacyDefaultPill, PrivacyDefaultText,
             PrivacyCustomPill, PrivacyCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.PowerViewModel,
-            PowerOverviewBadges, PowerNewPill, PowerNewText,
+            PowerOverviewBadges,
             PowerRecommendedPill, PowerRecommendedText,
             PowerDefaultPill, PowerDefaultText,
             PowerCustomPill, PowerCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.GamingViewModel,
-            GamingOverviewBadges, GamingNewPill, GamingNewText,
+            GamingOverviewBadges,
             GamingRecommendedPill, GamingRecommendedText,
             GamingDefaultPill, GamingDefaultText,
             GamingCustomPill, GamingCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.UpdateViewModel,
-            UpdateOverviewPills, UpdateNewPill, UpdateNewText,
+            UpdateOverviewPills,
             UpdateRecommendedPill, UpdateRecommendedText,
             UpdateDefaultPill, UpdateDefaultText,
             UpdateCustomPill, UpdateCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.NotificationViewModel,
-            NotificationOverviewBadges, NotificationNewPill, NotificationNewText,
+            NotificationOverviewBadges,
             NotificationRecommendedPill, NotificationRecommendedText,
             NotificationDefaultPill, NotificationDefaultText,
             NotificationCustomPill, NotificationCustomText);
         UpdateFeatureOverviewPills(
             ViewModel.SoundViewModel,
-            SoundOverviewBadges, SoundNewPill, SoundNewText,
+            SoundOverviewBadges,
             SoundRecommendedPill, SoundRecommendedText,
             SoundDefaultPill, SoundDefaultText,
             SoundCustomPill, SoundCustomText);
     }
 
+    private void UpdateOverviewNewBadges()
+    {
+        UpdateFeatureNewBadge(ViewModel.PrivacyViewModel, PrivacyNewBadge, PrivacyNewText);
+        UpdateFeatureNewBadge(ViewModel.PowerViewModel, PowerNewBadge, PowerNewText);
+        UpdateFeatureNewBadge(ViewModel.GamingViewModel, GamingNewBadge, GamingNewText);
+        UpdateFeatureNewBadge(ViewModel.UpdateViewModel, UpdateNewBadge, UpdateNewText);
+        UpdateFeatureNewBadge(ViewModel.NotificationViewModel, NotificationNewBadge, NotificationNewText);
+        UpdateFeatureNewBadge(ViewModel.SoundViewModel, SoundNewBadge, SoundNewText);
+    }
+
+    private void UpdateFeatureNewBadge(
+        ISettingsFeatureViewModel feature,
+        Border badge, TextBlock text)
+    {
+        if (!_isNewBadgesVisible)
+        {
+            badge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var summary = FeatureBadgeAggregator.Aggregate(feature);
+        if (summary.NewCount > 0)
+        {
+            badge.Visibility = Visibility.Visible;
+            text.Text = $"{_localizationService?.GetString("Badge_New") ?? "NEW"} {summary.NewCount}";
+        }
+        else
+        {
+            badge.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void UpdateFeatureOverviewPills(
         ISettingsFeatureViewModel feature,
         StackPanel container,
-        Border newPill, TextBlock newText,
         Border recommendedPill, TextBlock recommendedText,
         Border defaultPill, TextBlock defaultText,
         Border customPill, TextBlock customText)
     {
-        if (!_isInfoBadgesVisible && !_isNewBadgesVisible)
+        if (!_isInfoBadgesVisible)
         {
             container.Visibility = Visibility.Collapsed;
             return;
@@ -477,18 +509,6 @@ public sealed partial class OptimizePage : Page
         var summary = FeatureBadgeAggregator.Aggregate(feature);
         int total = summary.TotalWithBadgeData;
         bool showAny = false;
-
-        // NEW pill
-        if (_isNewBadgesVisible && summary.NewCount > 0)
-        {
-            newPill.Visibility = Visibility.Visible;
-            newText.Text = $"{_localizationService?.GetString("Badge_New") ?? "NEW"} {summary.NewCount}";
-            showAny = true;
-        }
-        else
-        {
-            newPill.Visibility = Visibility.Collapsed;
-        }
 
         // InfoBadge pills
         if (_isInfoBadgesVisible && total > 0)
@@ -744,6 +764,7 @@ public sealed partial class OptimizePage : Page
         }
 
         UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
     }
 
     // Show Only Changes filter (review mode)

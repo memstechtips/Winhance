@@ -279,24 +279,24 @@
 
                             <!-- Privacy & Security Card -->
                             <controls:SettingsCard
-                                Header="{x:Bind ViewModel.PrivacyViewModel.DisplayName}"
                                 Description="{x:Bind ViewModel.PrivacyViewModel.GroupDescriptionText}"
                                 IsClickEnabled="True"
                                 Click="PrivacyCard_Click">
+                                <controls:SettingsCard.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind ViewModel.PrivacyViewModel.DisplayName}" VerticalAlignment="Center"/>
+                                        <Border x:Name="PrivacyNewBadge" Visibility="Collapsed"
+                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
+                                            <TextBlock x:Name="PrivacyNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource PrivacyIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="PrivacyBadge" Visibility="Collapsed"/>
                                     <StackPanel x:Name="PrivacyOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                                        <Border x:Name="PrivacyNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
-                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
-                                                <TextBlock x:Name="PrivacyNewText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                         <Border x:Name="PrivacyRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
@@ -325,24 +325,24 @@
 
                             <!-- Power Card -->
                             <controls:SettingsCard
-                                Header="{x:Bind ViewModel.PowerViewModel.DisplayName}"
                                 Description="{x:Bind ViewModel.PowerViewModel.GroupDescriptionText}"
                                 IsClickEnabled="True"
                                 Click="PowerCard_Click">
+                                <controls:SettingsCard.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind ViewModel.PowerViewModel.DisplayName}" VerticalAlignment="Center"/>
+                                        <Border x:Name="PowerNewBadge" Visibility="Collapsed"
+                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
+                                            <TextBlock x:Name="PowerNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource PowerIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="PowerBadge" Visibility="Collapsed"/>
                                     <StackPanel x:Name="PowerOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                                        <Border x:Name="PowerNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
-                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
-                                                <TextBlock x:Name="PowerNewText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                         <Border x:Name="PowerRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
@@ -371,24 +371,24 @@
 
                             <!-- Gaming and Performance Card -->
                             <controls:SettingsCard
-                                Header="{x:Bind ViewModel.GamingViewModel.DisplayName}"
                                 Description="{x:Bind ViewModel.GamingViewModel.GroupDescriptionText}"
                                 IsClickEnabled="True"
                                 Click="GamingCard_Click">
+                                <controls:SettingsCard.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind ViewModel.GamingViewModel.DisplayName}" VerticalAlignment="Center"/>
+                                        <Border x:Name="GamingNewBadge" Visibility="Collapsed"
+                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
+                                            <TextBlock x:Name="GamingNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource GamingIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="GamingBadge" Visibility="Collapsed"/>
                                     <StackPanel x:Name="GamingOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                                        <Border x:Name="GamingNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
-                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
-                                                <TextBlock x:Name="GamingNewText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                         <Border x:Name="GamingRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
@@ -417,24 +417,24 @@
 
                             <!-- Update Card -->
                             <controls:SettingsCard
-                                Header="{x:Bind ViewModel.UpdateViewModel.DisplayName}"
                                 Description="{x:Bind ViewModel.UpdateViewModel.GroupDescriptionText}"
                                 IsClickEnabled="True"
                                 Click="UpdateCard_Click">
+                                <controls:SettingsCard.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind ViewModel.UpdateViewModel.DisplayName}" VerticalAlignment="Center"/>
+                                        <Border x:Name="UpdateNewBadge" Visibility="Collapsed"
+                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
+                                            <TextBlock x:Name="UpdateNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
                                     <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
                                     <StackPanel x:Name="UpdateOverviewPills" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                                        <Border x:Name="UpdateNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
-                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
-                                                <TextBlock x:Name="UpdateNewText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                         <Border x:Name="UpdateRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
@@ -463,24 +463,24 @@
 
                             <!-- Notifications Card -->
                             <controls:SettingsCard
-                                Header="{x:Bind ViewModel.NotificationViewModel.DisplayName}"
                                 Description="{x:Bind ViewModel.NotificationViewModel.GroupDescriptionText}"
                                 IsClickEnabled="True"
                                 Click="NotificationCard_Click">
+                                <controls:SettingsCard.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind ViewModel.NotificationViewModel.DisplayName}" VerticalAlignment="Center"/>
+                                        <Border x:Name="NotificationNewBadge" Visibility="Collapsed"
+                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
+                                            <TextBlock x:Name="NotificationNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource NotificationIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="NotificationBadge" Visibility="Collapsed"/>
                                     <StackPanel x:Name="NotificationOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                                        <Border x:Name="NotificationNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
-                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
-                                                <TextBlock x:Name="NotificationNewText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                         <Border x:Name="NotificationRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
@@ -509,24 +509,24 @@
 
                             <!-- Sound Card -->
                             <controls:SettingsCard
-                                Header="{x:Bind ViewModel.SoundViewModel.DisplayName}"
                                 Description="{x:Bind ViewModel.SoundViewModel.GroupDescriptionText}"
                                 IsClickEnabled="True"
                                 Click="SoundCard_Click">
+                                <controls:SettingsCard.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Bind ViewModel.SoundViewModel.DisplayName}" VerticalAlignment="Center"/>
+                                        <Border x:Name="SoundNewBadge" Visibility="Collapsed"
+                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
+                                            <TextBlock x:Name="SoundNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
                                     <fluentIcons:SymbolIcon Symbol="Speaker2" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>
                                     <StackPanel x:Name="SoundOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                                        <Border x:Name="SoundNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
-                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
-                                                <TextBlock x:Name="SoundNewText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                         <Border x:Name="SoundRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"

@@ -28,10 +28,6 @@
             <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#4080B3FF"/>
             <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
 
-            <!-- New: red/accent -->
-            <SolidColorBrush x:Key="BadgeNewBackground" Color="#22E81123"/>
-            <SolidColorBrush x:Key="BadgeNewBorder"     Color="#40E81123"/>
-            <SolidColorBrush x:Key="BadgeNewForeground" Color="#FFE81123"/>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -55,10 +51,6 @@
             <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#401E5FBF"/>
             <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF1E5FBF"/>
 
-            <!-- New: red -->
-            <SolidColorBrush x:Key="BadgeNewBackground" Color="#22C50F1F"/>
-            <SolidColorBrush x:Key="BadgeNewBorder"     Color="#40C50F1F"/>
-            <SolidColorBrush x:Key="BadgeNewForeground" Color="#FFC50F1F"/>
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>
@@ -108,11 +100,6 @@
     <Style x:Key="BadgePreferenceStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
         <Setter Property="Background"  Value="{ThemeResource BadgePreferenceBackground}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
-    </Style>
-
-    <Style x:Key="BadgeNewStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background"  Value="{ThemeResource BadgeNewBackground}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource BadgeNewBorder}"/>
     </Style>
 
     <!-- ==================== Text Style ==================== -->
