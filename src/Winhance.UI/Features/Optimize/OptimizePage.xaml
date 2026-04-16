@@ -286,8 +286,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.PrivacyViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="PrivacyNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="PrivacyNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="PrivacyNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -332,8 +332,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.PowerViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="PowerNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="PowerNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="PowerNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -378,8 +378,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.GamingViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="GamingNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="GamingNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="GamingNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -424,8 +424,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.UpdateViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="UpdateNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="UpdateNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="UpdateNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -470,8 +470,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.NotificationViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="NotificationNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="NotificationNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="NotificationNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -516,8 +516,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.SoundViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="SoundNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="SoundNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="SoundNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>

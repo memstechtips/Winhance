@@ -142,15 +142,10 @@
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                             <Border
                                 Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
-                                Padding="5,1"
-                                CornerRadius="3"
-                                Background="#E81123"
-                                VerticalAlignment="Center">
+                                Style="{StaticResource NewBadgeBorderStyle}">
                                 <TextBlock
                                     Text="{x:Bind NewBadgeText}"
-                                    Foreground="White"
-                                    FontSize="10"
-                                    FontWeight="SemiBold"/>
+                                    Style="{StaticResource NewBadgeTextStyle}"/>
                             </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
@@ -528,15 +523,10 @@
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                             <Border
                                 Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
-                                Padding="5,1"
-                                CornerRadius="3"
-                                Background="#E81123"
-                                VerticalAlignment="Center">
+                                Style="{StaticResource NewBadgeBorderStyle}">
                                 <TextBlock
                                     Text="{x:Bind NewBadgeText}"
-                                    Foreground="White"
-                                    FontSize="10"
-                                    FontWeight="SemiBold"/>
+                                    Style="{StaticResource NewBadgeTextStyle}"/>
                             </Border>
                         </StackPanel>
                     </controls:SettingsCard.Header>
@@ -914,15 +904,10 @@
                                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                                             <Border
                                                 Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
-                                                Padding="5,1"
-                                                CornerRadius="3"
-                                                Background="#E81123"
-                                                VerticalAlignment="Center">
+                                                Style="{StaticResource NewBadgeBorderStyle}">
                                                 <TextBlock
                                                     Text="{x:Bind NewBadgeText}"
-                                                    Foreground="White"
-                                                    FontSize="10"
-                                                    FontWeight="SemiBold"/>
+                                                    Style="{StaticResource NewBadgeTextStyle}"/>
                                             </Border>
                                         </StackPanel>
                                     </controls:SettingsCard.Header>

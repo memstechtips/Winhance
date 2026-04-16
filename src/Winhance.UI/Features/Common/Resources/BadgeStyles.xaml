@@ -102,6 +102,22 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
     </Style>
 
+    <!-- ==================== NEW Badge Style ==================== -->
+    <!-- Small red badge used next to setting/feature names to indicate new additions.
+         NOT based on BadgePillBase — the NEW badge has its own compact shape. -->
+    <Style x:Key="NewBadgeBorderStyle" TargetType="Border">
+        <Setter Property="Padding" Value="5,1"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="Background" Value="#E81123"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="NewBadgeTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
     <!-- ==================== Text Style ==================== -->
     <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11"/>

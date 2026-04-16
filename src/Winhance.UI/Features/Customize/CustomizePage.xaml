@@ -265,8 +265,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="WindowsThemeNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="WindowsThemeNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="WindowsThemeNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -311,8 +311,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.TaskbarViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="TaskbarNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="TaskbarNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="TaskbarNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -357,8 +357,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.StartMenuViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="StartMenuNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="StartMenuNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="StartMenuNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
@@ -403,8 +403,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{x:Bind ViewModel.ExplorerViewModel.DisplayName}" VerticalAlignment="Center"/>
                                         <Border x:Name="ExplorerNewBadge" Visibility="Collapsed"
-                                                Padding="5,1" CornerRadius="3" Background="#E81123" VerticalAlignment="Center">
-                                            <TextBlock x:Name="ExplorerNewText" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                                Style="{StaticResource NewBadgeBorderStyle}">
+                                            <TextBlock x:Name="ExplorerNewText" Style="{StaticResource NewBadgeTextStyle}"/>
                                         </Border>
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
