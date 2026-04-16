@@ -286,7 +286,41 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource PrivacyIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
-                                <InfoBadge x:Name="PrivacyBadge" Visibility="Collapsed"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <InfoBadge x:Name="PrivacyBadge" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="PrivacyOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                                        <Border x:Name="PrivacyNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
+                                                <TextBlock x:Name="PrivacyNewText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="PrivacyRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                <TextBlock x:Name="PrivacyRecommendedText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="PrivacyDefaultPill" Style="{StaticResource BadgeDefaultStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                <TextBlock x:Name="PrivacyDefaultText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="PrivacyCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock x:Name="PrivacyCustomText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </controls:SettingsCard>
 
                             <!-- Power Card -->
@@ -298,7 +332,41 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource PowerIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
-                                <InfoBadge x:Name="PowerBadge" Visibility="Collapsed"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <InfoBadge x:Name="PowerBadge" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="PowerOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                                        <Border x:Name="PowerNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
+                                                <TextBlock x:Name="PowerNewText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="PowerRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                <TextBlock x:Name="PowerRecommendedText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="PowerDefaultPill" Style="{StaticResource BadgeDefaultStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                <TextBlock x:Name="PowerDefaultText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="PowerCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock x:Name="PowerCustomText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </controls:SettingsCard>
 
                             <!-- Gaming and Performance Card -->
@@ -310,7 +378,41 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource GamingIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
-                                <InfoBadge x:Name="GamingBadge" Visibility="Collapsed"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <InfoBadge x:Name="GamingBadge" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="GamingOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                                        <Border x:Name="GamingNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
+                                                <TextBlock x:Name="GamingNewText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="GamingRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                <TextBlock x:Name="GamingRecommendedText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="GamingDefaultPill" Style="{StaticResource BadgeDefaultStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                <TextBlock x:Name="GamingDefaultText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="GamingCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock x:Name="GamingCustomText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </controls:SettingsCard>
 
                             <!-- Update Card -->
@@ -322,7 +424,41 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
-                                <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="UpdateOverviewPills" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                                        <Border x:Name="UpdateNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
+                                                <TextBlock x:Name="UpdateNewText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="UpdateRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                <TextBlock x:Name="UpdateRecommendedText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="UpdateDefaultPill" Style="{StaticResource BadgeDefaultStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                <TextBlock x:Name="UpdateDefaultText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="UpdateCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock x:Name="UpdateCustomText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </controls:SettingsCard>
 
                             <!-- Notifications Card -->
@@ -334,7 +470,41 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource NotificationIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
-                                <InfoBadge x:Name="NotificationBadge" Visibility="Collapsed"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <InfoBadge x:Name="NotificationBadge" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="NotificationOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                                        <Border x:Name="NotificationNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
+                                                <TextBlock x:Name="NotificationNewText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="NotificationRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                <TextBlock x:Name="NotificationRecommendedText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="NotificationDefaultPill" Style="{StaticResource BadgeDefaultStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                <TextBlock x:Name="NotificationDefaultText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="NotificationCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock x:Name="NotificationCustomText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </controls:SettingsCard>
 
                             <!-- Sound Card -->
@@ -346,7 +516,41 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <fluentIcons:SymbolIcon Symbol="Speaker2" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
-                                <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="SoundOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                                        <Border x:Name="SoundNewPill" Style="{StaticResource BadgeNewStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeNewForeground}"/>
+                                                <TextBlock x:Name="SoundNewText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeNewForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="SoundRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                <TextBlock x:Name="SoundRecommendedText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="SoundDefaultPill" Style="{StaticResource BadgeDefaultStyle}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                <TextBlock x:Name="SoundDefaultText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="SoundCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock x:Name="SoundCustomText" Style="{StaticResource BadgeTextStyle}"
+                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </controls:SettingsCard>
 
                         </StackPanel>
