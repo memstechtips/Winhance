@@ -250,10 +250,7 @@
                                         IsHitTestVisible="False"
                                         IsTabStop="False"
                                         AutomationProperties.Name="{x:Bind Label}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
-                                    </StackPanel>
+                                    <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" FontSize="12"/>
                                 </Button>
                                 <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
                                     <ItemsRepeater.Layout>
@@ -316,43 +313,54 @@
                                                     </StackPanel>
                                                 </Grid>
 
-                                                <!-- Scheduled task row (now with Default column) -->
-                                                <Grid Visibility="{x:Bind IsScheduledTask}" ColumnSpacing="12" Margin="0,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"
-                                                               IsTextSelectionEnabled="True"
-                                                               FontFamily="Consolas,Cascadia Code,Courier New"/>
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
-                                                    <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
+                                                <!-- Scheduled task row -->
+                                                <Grid Visibility="{x:Bind IsScheduledTask}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <Border Grid.Column="0" Width="28"/>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultState}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
                                                 </Grid>
 
                                                 <!-- PowerConfig row -->
-                                                <Grid Visibility="{x:Bind IsPowerConfig}" ColumnSpacing="12" Margin="0,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0">
-                                                        <TextBlock Text="{x:Bind SubgroupAlias}" ToolTipService.ToolTip="{x:Bind SubgroupGuid}"/>
-                                                        <TextBlock Text="{x:Bind SettingAlias}" ToolTipService.ToolTip="{x:Bind SettingGuid}" Opacity="0.7"/>
+                                                <Grid Visibility="{x:Bind IsPowerConfig}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <Border Grid.Column="0" Width="28"/>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                   ToolTipService.ToolTip="{x:Bind SubgroupGuid}">
+                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True"
+                                                                   ToolTipService.ToolTip="{x:Bind SettingGuid}">
+                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                        </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{x:Bind CurrentAC}"/>
-                                                        <TextBlock Text="{x:Bind CurrentDC}" Opacity="0.7"/>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="2">
-                                                        <TextBlock Text="{x:Bind RecommendedAC}"/>
-                                                        <TextBlock Text="{x:Bind RecommendedDC}" Opacity="0.7"/>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="3">
-                                                        <TextBlock Text="{x:Bind DefaultAC}"/>
-                                                        <TextBlock Text="{x:Bind DefaultDC}" Opacity="0.7"/>
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind RecommendedAC}"/><Run Text=" DC:"/><Run Text="{x:Bind RecommendedDC}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind DefaultAC}"/><Run Text=" DC:"/><Run Text="{x:Bind DefaultDC}"/>
+                                                        </TextBlock>
                                                     </StackPanel>
                                                 </Grid>
 
@@ -361,7 +369,7 @@
                                                     <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
                                                     <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
                                                         <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
                                                         </ScrollViewer>
                                                     </Border>
                                                 </StackPanel>
@@ -371,7 +379,7 @@
                                                     <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
                                                     <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
                                                         <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
                                                         </ScrollViewer>
                                                     </Border>
                                                 </StackPanel>
@@ -642,10 +650,7 @@
                                         IsHitTestVisible="False"
                                         IsTabStop="False"
                                         AutomationProperties.Name="{x:Bind Label}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
-                                    </StackPanel>
+                                    <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" FontSize="12"/>
                                 </Button>
                                 <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
                                     <ItemsRepeater.Layout>
@@ -703,43 +708,54 @@
                                                     </StackPanel>
                                                 </Grid>
 
-                                                <!-- Scheduled task row (now with Default column) -->
-                                                <Grid Visibility="{x:Bind IsScheduledTask}" ColumnSpacing="12" Margin="0,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"
-                                                               IsTextSelectionEnabled="True"
-                                                               FontFamily="Consolas,Cascadia Code,Courier New"/>
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
-                                                    <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
+                                                <!-- Scheduled task row -->
+                                                <Grid Visibility="{x:Bind IsScheduledTask}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <Border Grid.Column="0" Width="28"/>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultState}"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
                                                 </Grid>
 
                                                 <!-- PowerConfig row -->
-                                                <Grid Visibility="{x:Bind IsPowerConfig}" ColumnSpacing="12" Margin="0,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0">
-                                                        <TextBlock Text="{x:Bind SubgroupAlias}" ToolTipService.ToolTip="{x:Bind SubgroupGuid}"/>
-                                                        <TextBlock Text="{x:Bind SettingAlias}" ToolTipService.ToolTip="{x:Bind SettingGuid}" Opacity="0.7"/>
+                                                <Grid Visibility="{x:Bind IsPowerConfig}"
+                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <Border Grid.Column="0" Width="28"/>
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                   ToolTipService.ToolTip="{x:Bind SubgroupGuid}">
+                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True"
+                                                                   ToolTipService.ToolTip="{x:Bind SettingGuid}">
+                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                        </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{x:Bind CurrentAC}"/>
-                                                        <TextBlock Text="{x:Bind CurrentDC}" Opacity="0.7"/>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="2">
-                                                        <TextBlock Text="{x:Bind RecommendedAC}"/>
-                                                        <TextBlock Text="{x:Bind RecommendedDC}" Opacity="0.7"/>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="3">
-                                                        <TextBlock Text="{x:Bind DefaultAC}"/>
-                                                        <TextBlock Text="{x:Bind DefaultDC}" Opacity="0.7"/>
+                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind RecommendedAC}"/><Run Text=" DC:"/><Run Text="{x:Bind RecommendedDC}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind DefaultAC}"/><Run Text=" DC:"/><Run Text="{x:Bind DefaultDC}"/>
+                                                        </TextBlock>
                                                     </StackPanel>
                                                 </Grid>
 
@@ -748,7 +764,7 @@
                                                     <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
                                                     <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
                                                         <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
                                                         </ScrollViewer>
                                                     </Border>
                                                 </StackPanel>
@@ -758,7 +774,7 @@
                                                     <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
                                                     <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
                                                         <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
                                                         </ScrollViewer>
                                                     </Border>
                                                 </StackPanel>
@@ -976,10 +992,7 @@
                                                         IsHitTestVisible="False"
                                                         IsTabStop="False"
                                                         AutomationProperties.Name="{x:Bind Label}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{x:Bind Count}" Opacity="0.7"/>
-                                                    </StackPanel>
+                                                    <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" FontSize="12"/>
                                                 </Button>
                                                 <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
                                                     <ItemsRepeater.Layout>
@@ -1037,43 +1050,54 @@
                                                                     </StackPanel>
                                                                 </Grid>
 
-                                                                <!-- Scheduled task row (now with Default column) -->
-                                                                <Grid Visibility="{x:Bind IsScheduledTask}" ColumnSpacing="12" Margin="0,2">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <TextBlock Grid.Column="0" Text="{x:Bind TaskPath}" TextTrimming="CharacterEllipsis"
-                                                                               IsTextSelectionEnabled="True"
-                                                                               FontFamily="Consolas,Cascadia Code,Courier New"/>
-                                                                    <TextBlock Grid.Column="1" Text="{x:Bind RecommendedState}"/>
-                                                                    <TextBlock Grid.Column="2" Text="{x:Bind DefaultState}" Opacity="0.7"/>
+                                                                <!-- Scheduled task row -->
+                                                                <Grid Visibility="{x:Bind IsScheduledTask}"
+                                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                                    <Border Grid.Column="0" Width="28"/>
+                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
+                                                                        </TextBlock>
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultState}"/>
+                                                                        </TextBlock>
+                                                                    </StackPanel>
                                                                 </Grid>
 
                                                                 <!-- PowerConfig row -->
-                                                                <Grid Visibility="{x:Bind IsPowerConfig}" ColumnSpacing="12" Margin="0,2">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0">
-                                                                        <TextBlock Text="{x:Bind SubgroupAlias}" ToolTipService.ToolTip="{x:Bind SubgroupGuid}"/>
-                                                                        <TextBlock Text="{x:Bind SettingAlias}" ToolTipService.ToolTip="{x:Bind SettingGuid}" Opacity="0.7"/>
+                                                                <Grid Visibility="{x:Bind IsPowerConfig}"
+                                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                                    <Border Grid.Column="0" Width="28"/>
+                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                                   ToolTipService.ToolTip="{x:Bind SubgroupGuid}">
+                                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                                   IsTextSelectionEnabled="True"
+                                                                                   ToolTipService.ToolTip="{x:Bind SettingGuid}">
+                                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                                        </TextBlock>
                                                                     </StackPanel>
-                                                                    <StackPanel Grid.Column="1">
-                                                                        <TextBlock Text="{x:Bind CurrentAC}"/>
-                                                                        <TextBlock Text="{x:Bind CurrentDC}" Opacity="0.7"/>
-                                                                    </StackPanel>
-                                                                    <StackPanel Grid.Column="2">
-                                                                        <TextBlock Text="{x:Bind RecommendedAC}"/>
-                                                                        <TextBlock Text="{x:Bind RecommendedDC}" Opacity="0.7"/>
-                                                                    </StackPanel>
-                                                                    <StackPanel Grid.Column="3">
-                                                                        <TextBlock Text="{x:Bind DefaultAC}"/>
-                                                                        <TextBlock Text="{x:Bind DefaultDC}" Opacity="0.7"/>
+                                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind RecommendedAC}"/><Run Text=" DC:"/><Run Text="{x:Bind RecommendedDC}"/>
+                                                                        </TextBlock>
+                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
+                                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind DefaultAC}"/><Run Text=" DC:"/><Run Text="{x:Bind DefaultDC}"/>
+                                                                        </TextBlock>
                                                                     </StackPanel>
                                                                 </Grid>
 
@@ -1082,7 +1106,7 @@
                                                                     <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
                                                                     <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
                                                                         <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
                                                                         </ScrollViewer>
                                                                     </Border>
                                                                 </StackPanel>
@@ -1092,7 +1116,7 @@
                                                                     <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
                                                                     <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
                                                                         <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}"/>
+                                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
                                                                         </ScrollViewer>
                                                                     </Border>
                                                                 </StackPanel>

@@ -6,7 +6,7 @@
     <Style x:Key="TechDetail.SectionHeader" TargetType="Button">
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="Padding" Value="8,6"/>
         <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
         <Setter Property="BorderThickness" Value="1,0,1,1"/>
