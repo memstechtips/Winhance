@@ -46,6 +46,7 @@ public sealed partial class CustomizePage : Page
     private bool _isTechnicalDetailsVisible;
     private bool _isInfoBadgesVisible = true;
     private bool _isNewBadgesVisible = true;
+    private bool _showOnlyChanges;
 
     public CustomizeViewModel ViewModel { get; }
 
@@ -152,6 +153,10 @@ public sealed partial class CustomizePage : Page
             // Always update badges: shows them if in review mode, collapses them if not
             UpdateOverviewBadges();
             UpdateBreadcrumbBadges();
+
+            // Re-apply Show Only Changes filter if still active from before navigation
+            if (_showOnlyChanges)
+                ApplyShowOnlyChangesFilter();
 
             StartupLogger.Log("CustomizePage", "OnNavigatedTo complete");
         }
@@ -311,7 +316,12 @@ public sealed partial class CustomizePage : Page
     // Review mode badge handlers
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadges(); UpdateBreadcrumbBadges(); });
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            UpdateOverviewBadges();
+            UpdateBreadcrumbBadges();
+            UpdateQuickActionsForReviewMode();
+        });
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e)
@@ -419,6 +429,9 @@ public sealed partial class CustomizePage : Page
         ToolTipService.SetToolTip(InfoBadgesToggleItem, _localizationService?.GetString("View_InfoBadges_Tooltip") ?? "Show or hide status badges on settings cards");
         NewBadgesToggleItem.Text = _localizationService?.GetString("View_NewBadges") ?? "NEW Badges";
         ToolTipService.SetToolTip(NewBadgesToggleItem, _localizationService?.GetString("View_NewBadges_Tooltip") ?? "Show or hide NEW badges on settings added in this release");
+        ShowOnlyChangesToggleItem.Text = _localizationService?.GetString("View_ShowOnlyChanges") ?? "Show Only Changes";
+        ToolTipService.SetToolTip(ShowOnlyChangesToggleItem, _localizationService?.GetString("View_ShowOnlyChanges_Tooltip") ?? "Show only settings with pending changes from the imported config");
+        UpdateQuickActionsForReviewMode();
     }
 
     // Technical Details toggle
@@ -553,15 +566,52 @@ public sealed partial class CustomizePage : Page
         }
     }
 
+    // Show Only Changes filter (review mode)
+    private void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
+    {
+        _showOnlyChanges = ShowOnlyChangesToggleItem.IsChecked;
+        ApplyShowOnlyChangesFilter();
+    }
+
+    private void ApplyShowOnlyChangesFilter()
+    {
+        var sectionsToFilter = ViewModel.IsInDetailPage
+            ? CustomizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : CustomizeViewModel.Sections;
+
+        foreach (var section in sectionsToFilter)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                if (_showOnlyChanges)
+                {
+                    setting.IsVisible = setting.HasReviewDiff || setting.HasReviewAction;
+                }
+                else
+                {
+                    setting.UpdateVisibility(ViewModel.SearchText ?? string.Empty);
+                }
+            }
+        }
+    }
+
     // Quick Actions handlers
     private async void ApplyRecommended_Click(object sender, RoutedEventArgs e)
     {
-        await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
+        if (_configReviewService?.IsInReviewMode == true)
+            await ExecuteReviewBulkActionAsync(approved: true);
+        else
+            await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
     }
 
     private async void ResetDefaults_Click(object sender, RoutedEventArgs e)
     {
-        await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
+        if (_configReviewService?.IsInReviewMode == true)
+            await ExecuteReviewBulkActionAsync(approved: false);
+        else
+            await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
     }
 
     private async Task ExecuteBulkActionAsync(BulkActionType actionType)
@@ -592,6 +642,116 @@ public sealed partial class CustomizePage : Page
         int applied = actionType == BulkActionType.ApplyRecommended
             ? await _bulkSettingsActionService.ApplyRecommendedAsync(settingIds)
             : await _bulkSettingsActionService.ResetToDefaultsAsync(settingIds);
+    }
+
+    private async Task ExecuteReviewBulkActionAsync(bool approved)
+    {
+        if (_configReviewService == null) return;
+
+        var settingIds = GetCurrentPageSettingIds();
+
+        int diffCount = 0;
+        foreach (var id in settingIds)
+        {
+            if (_configReviewService.GetDiffForSetting(id) != null)
+                diffCount++;
+        }
+
+        if (diffCount == 0) return;
+
+        var messageKey = approved ? "QuickActions_AcceptConfirmMessage" : "QuickActions_RejectConfirmMessage";
+        var confirmMessage = string.Format(
+            _localizationService?.GetString(messageKey) ?? (approved ? "This will accept {0} changes on this page. Continue?" : "This will reject {0} changes on this page. Continue?"),
+            diffCount);
+
+        var dialog = new ContentDialog
+        {
+            Title = _localizationService?.GetString("QuickActions_ConfirmTitle") ?? "Confirm Action",
+            Content = confirmMessage,
+            PrimaryButtonText = "OK",
+            CloseButtonText = _localizationService?.GetString("Button_Cancel") ?? "Cancel",
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary) return;
+
+        foreach (var id in settingIds)
+        {
+            var diff = _configReviewService.GetDiffForSetting(id);
+            if (diff == null) continue;
+
+            _configReviewService.SetSettingApproval(id, approved);
+
+            if (diff.IsActionSetting)
+                _configReviewService.SetActionApproval(id, approved);
+
+            UpdateSettingViewModelReviewState(id, approved);
+        }
+    }
+
+    private void UpdateSettingViewModelReviewState(string settingId, bool approved)
+    {
+        var sectionsToSearch = ViewModel.IsInDetailPage
+            ? CustomizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : CustomizeViewModel.Sections;
+
+        foreach (var section in sectionsToSearch)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                if (setting.SettingId == settingId)
+                {
+                    if (setting.HasReviewDiff)
+                    {
+                        setting.IsReviewApproved = approved;
+                        setting.IsReviewRejected = !approved;
+                    }
+                    if (setting.HasReviewAction)
+                    {
+                        setting.IsReviewActionApproved = approved;
+                        setting.IsReviewActionRejected = !approved;
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    private void UpdateQuickActionsForReviewMode()
+    {
+        if (_configReviewService?.IsInReviewMode == true)
+        {
+            ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_AcceptAll") ?? "Accept All Changes";
+            ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_RejectAll") ?? "Reject All Changes";
+            // Swap icons: Accept = checkmark (E73E), Reject = dismiss (E711)
+            ApplyRecommendedIcon.Glyph = "\uE73E";
+            ResetDefaultsItem.Icon = new FontIcon { Glyph = "\uE711", FontSize = 14 };
+            ShowOnlyChangesSeparator.Visibility = Visibility.Visible;
+            ShowOnlyChangesToggleItem.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_ApplyRecommended") ?? "Apply Recommended Settings";
+            ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_ResetDefaults") ?? "Reset to Windows Defaults";
+            ApplyRecommendedIcon.Glyph = "\uE735";
+            ResetDefaultsItem.Icon = new PathIcon
+            {
+                Data = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Microsoft.UI.Xaml.Media.Geometry),
+                    (string)Application.Current.Resources["WindowsLogoIconPath"])
+            };
+            ShowOnlyChangesSeparator.Visibility = Visibility.Collapsed;
+            ShowOnlyChangesToggleItem.Visibility = Visibility.Collapsed;
+            ShowOnlyChangesToggleItem.IsChecked = false;
+            if (_showOnlyChanges)
+            {
+                _showOnlyChanges = false;
+                ApplyShowOnlyChangesFilter();
+            }
+        }
     }
 
     private List<string> GetCurrentPageSettingIds()

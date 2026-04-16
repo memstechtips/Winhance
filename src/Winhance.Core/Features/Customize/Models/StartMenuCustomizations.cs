@@ -361,7 +361,7 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
-                            RecommendedValue = null,
+                            RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             DefaultValue = null,
@@ -372,7 +372,7 @@ public static class StartMenuCustomizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
-                            RecommendedValue = null,
+                            RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
                             DefaultValue = null,

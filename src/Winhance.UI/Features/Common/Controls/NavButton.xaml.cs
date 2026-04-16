@@ -73,6 +73,13 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             typeof(NavButton),
             new PropertyMetadata(false, OnIsLoadingChanged));
 
+    public static readonly DependencyProperty IsLockedProperty =
+        DependencyProperty.Register(
+            nameof(IsLocked),
+            typeof(bool),
+            typeof(NavButton),
+            new PropertyMetadata(false, OnIsLockedChanged));
+
     public static readonly DependencyProperty IsCompactProperty =
         DependencyProperty.Register(
             nameof(IsCompact),
@@ -163,6 +170,16 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Whether the button is locked (reduced opacity, blocks clicks, shows lock icon).
+    /// Used to disable navigation to certain pages during config review mode.
+    /// </summary>
+    public bool IsLocked
+    {
+        get => (bool)GetValue(IsLockedProperty);
+        set => SetValue(IsLockedProperty, value);
+    }
+
+    /// <summary>
     /// Whether the button should display in compact mode (icon only).
     /// </summary>
     public bool IsCompact
@@ -209,6 +226,8 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     public Visibility TextVisibility => IsCompact ? Visibility.Collapsed : Visibility.Visible;
     public Visibility IndicatorVisibility => IsSelected ? Visibility.Visible : Visibility.Collapsed;
     public Visibility LoadingVisibility => IsLoading ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LockedVisibility => IsLocked ? Visibility.Visible : Visibility.Collapsed;
+    public double ContentOpacity => IsLocked ? 0.4 : 1.0;
 
     // Icon type visibility - show FontIcon if IconGlyph is set, PathIcon if IconPath is set
     public Visibility FontIconVisibility => !string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
@@ -237,7 +256,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void NavButton_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (IsLoading) return;
+        if (IsLoading || IsLocked) return;
 
         if (e.Key == VirtualKey.Enter || e.Key == VirtualKey.Space)
         {
@@ -274,6 +293,16 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         if (d is NavButton button)
         {
             button.NotifyPropertyChanged(nameof(LoadingVisibility));
+            button.UpdateVisualState();
+        }
+    }
+
+    private static void OnIsLockedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is NavButton button)
+        {
+            button.NotifyPropertyChanged(nameof(LockedVisibility));
+            button.NotifyPropertyChanged(nameof(ContentOpacity));
             button.UpdateVisualState();
         }
     }
@@ -372,8 +401,8 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        // Block interaction when loading
-        if (IsLoading) return;
+        // Block interaction when loading or locked
+        if (IsLoading || IsLocked) return;
 
         RootGrid.CapturePointer(e.Pointer);
     }
@@ -382,8 +411,8 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     {
         RootGrid.ReleasePointerCapture(e.Pointer);
 
-        // Block interaction when loading
-        if (IsLoading) return;
+        // Block interaction when loading or locked
+        if (IsLoading || IsLocked) return;
 
         // Only fire click if pointer is still over the button
         if (_isPointerOver)
@@ -404,7 +433,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             // Selected state: use tertiary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
         }
-        else if ((_isPointerOver || _isFocused) && !IsLoading)
+        else if ((_isPointerOver || _isFocused) && !IsLoading && !IsLocked)
         {
             // Hover/Focus state: use secondary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];

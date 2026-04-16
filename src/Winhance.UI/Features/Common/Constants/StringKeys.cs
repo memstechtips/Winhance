@@ -108,6 +108,8 @@ public static class StringKeys
         public const string InfoBadges = "View_InfoBadges";
         public const string NewBadges = "View_NewBadges";
         public const string NewBadgesTooltip = "View_NewBadges_Tooltip";
+        public const string ShowOnlyChanges = "View_ShowOnlyChanges";
+        public const string ShowOnlyChangesTooltip = "View_ShowOnlyChanges_Tooltip";
     }
 
     /// <summary>
@@ -121,6 +123,18 @@ public static class StringKeys
         public const string ConfirmTitle = "QuickActions_ConfirmTitle";
         public const string ConfirmMessage = "QuickActions_ConfirmMessage";
         public const string SuccessMessage = "QuickActions_SuccessMessage";
+        public const string AcceptAll = "QuickActions_AcceptAll";
+        public const string RejectAll = "QuickActions_RejectAll";
+        public const string AcceptConfirmMessage = "QuickActions_AcceptConfirmMessage";
+        public const string RejectConfirmMessage = "QuickActions_RejectConfirmMessage";
+    }
+
+    /// <summary>
+    /// Navigation strings
+    /// </summary>
+    public static class Nav
+    {
+        public const string AdvancedToolsLockedTooltip = "Nav_AdvancedTools_Locked_Tooltip";
     }
 
     /// <summary>

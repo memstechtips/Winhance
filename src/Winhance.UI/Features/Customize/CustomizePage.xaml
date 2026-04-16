@@ -157,12 +157,12 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <MenuFlyoutItem x:Name="ApplyRecommendedItem" Click="ApplyRecommended_Click">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE735;" FontSize="14"/>
+                                <FontIcon x:Name="ApplyRecommendedIcon" Glyph="&#xE735;" FontSize="14"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="ResetDefaultsItem" Click="ResetDefaults_Click">
                             <MenuFlyoutItem.Icon>
-                                <PathIcon Data="{StaticResource WindowsLogoIconPath}"/>
+                                <PathIcon x:Name="ResetDefaultsIcon" Data="{StaticResource WindowsLogoIconPath}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>
@@ -192,6 +192,12 @@
                         <ToggleMenuFlyoutItem x:Name="NewBadgesToggleItem" Click="ViewNewBadges_Click">
                             <ToggleMenuFlyoutItem.Icon>
                                 <PathIcon Data="{StaticResource NewBoxIconPath}"/>
+                            </ToggleMenuFlyoutItem.Icon>
+                        </ToggleMenuFlyoutItem>
+                        <MenuFlyoutSeparator x:Name="ShowOnlyChangesSeparator" Visibility="Collapsed"/>
+                        <ToggleMenuFlyoutItem x:Name="ShowOnlyChangesToggleItem" Click="ViewShowOnlyChanges_Click" Visibility="Collapsed">
+                            <ToggleMenuFlyoutItem.Icon>
+                                <PathIcon Data="{StaticResource CogTransferIconPath}"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                     </MenuFlyout>

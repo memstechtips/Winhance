@@ -154,7 +154,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\BitLocker",
                             ValueName = "PreventDeviceEncryption",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [0],
                             DisabledValue = [1],
                             DefaultValue = 0,
@@ -323,7 +323,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-developer-mode",
-                    RecommendedToggleState = false,
+                    IsSubjectivePreference = true,
                     Name = "Developer Mode",
                     Description = "Allows the installation of apps from any source, including loose files",
                     GroupName = "Security",
@@ -336,7 +336,7 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\AppModelUnlock",
                             ValueName = "AllowDevelopmentWithoutDevLicense",
-                            RecommendedValue = null,
+                            RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
                             DefaultValue = 0,
@@ -767,6 +767,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-lock-screen",
+                    IsSubjectivePreference = true,
                     Name = "Lock Screen",
                     Description = "Allows users to lock their computer using Windows+L, Start menu, or Ctrl+Alt+Del screen",
                     GroupName = "Lock Screen",
@@ -1053,6 +1054,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-speech-recognition",
+                    RecommendedToggleState = false,
                     Name = "Online Speech Recognition",
                     Description = "Use your voice for apps using Microsoft's online speech recognition technology",
                     GroupName = "Speech",
@@ -1348,6 +1350,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-tailored-experiences",
+                    RecommendedToggleState = false,
                     Name = "Tailored Experiences",
                     Description = "Let Microsoft use your diagnostic data to show personalized tips, ads and recommendations",
                     GroupName = "Diagnostics & Feedback",
@@ -1630,6 +1633,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-location-services",
+                    RecommendedToggleState = false,
                     Name = "Location Services",
                     Description = "Allows Windows and apps to access your device location for location-based features",
                     GroupName = "App Permissions",
