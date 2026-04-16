@@ -239,7 +239,7 @@ public class SettingLocalizationServiceTests
     [Fact]
     public void LocalizeSetting_LocalizesCustomStateDisplayName()
     {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_CustomState"))
+        _localizationService.Setup(l => l.GetString("Setting_test-setting_Option_Custom"))
             .Returns("Localized Custom State");
 
         var sut = CreateSut();

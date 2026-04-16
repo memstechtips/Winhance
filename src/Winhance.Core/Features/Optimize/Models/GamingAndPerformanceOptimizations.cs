@@ -952,7 +952,7 @@ public static class GamingAndPerformanceOptimizations
                             },
                         },
                         SupportsCustomState = true,
-                        CustomStateDisplayName = "Setting_gaming-dns-server_Option_Custom",
+                        CustomStateDisplayName = "Custom (User Defined)",
                     },
                     PowerShellScripts = new List<PowerShellScriptSetting>
                     {

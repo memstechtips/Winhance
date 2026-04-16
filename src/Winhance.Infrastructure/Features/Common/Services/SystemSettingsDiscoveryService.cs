@@ -579,6 +579,16 @@ public class SystemSettingsDiscoveryService(
         if (activeAdapter == null)
             return 0;
 
+        // Check if DNS is configured manually by reading the NameServer registry value.
+        // When DNS is obtained via DHCP, NameServer is empty.
+        var adapterId = activeAdapter.Id;
+        var nameServer = registryService.GetValue(
+            $@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{adapterId}",
+            "NameServer") as string;
+
+        if (string.IsNullOrEmpty(nameServer))
+            return 0; // DHCP — return "Automatic" index
+
         var primaryDns = activeAdapter.GetIPProperties().DnsAddresses
             .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
             .ToString();

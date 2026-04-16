@@ -132,7 +132,7 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     private string GetLocalizedCustomState(SettingDefinition setting)
     {
-        var key = $"Setting_{setting.Id}_CustomState";
+        var key = $"Setting_{setting.Id}_Option_Custom";
         var original = setting.ComboBox!.CustomStateDisplayName!;
         return GetStringOrFallback(key, original);
     }
