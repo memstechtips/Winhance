@@ -7,8 +7,12 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
+using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
 using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
@@ -47,6 +51,7 @@ public sealed partial class CustomizePage : Page
     private bool _isInfoBadgesVisible = true;
     private bool _isNewBadgesVisible = true;
     private bool _showOnlyChanges;
+    private ISubscriptionToken? _settingAppliedSubscription;
 
     public CustomizeViewModel ViewModel { get; }
 
@@ -129,6 +134,17 @@ public sealed partial class CustomizePage : Page
                 _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
                 _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
             }
+
+            var eventBus = App.Services.GetService<IEventBus>();
+            if (eventBus != null)
+            {
+                _settingAppliedSubscription?.Dispose();
+                _settingAppliedSubscription = eventBus.Subscribe<SettingAppliedEvent>(e =>
+                {
+                    DispatcherQueue.TryEnqueue(() => UpdateOverviewBadgePills());
+                });
+            }
+
             UpdateBreadcrumbMenuItems();
 
             // Ensure we're showing overview on initial navigation
@@ -153,6 +169,7 @@ public sealed partial class CustomizePage : Page
             // Always update badges: shows them if in review mode, collapses them if not
             UpdateOverviewBadges();
             UpdateBreadcrumbBadges();
+            UpdateOverviewBadgePills();
 
             // Re-apply Show Only Changes filter if still active from before navigation
             if (_showOnlyChanges)
@@ -175,6 +192,8 @@ public sealed partial class CustomizePage : Page
             _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
             _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
         }
+        _settingAppliedSubscription?.Dispose();
+        _settingAppliedSubscription = null;
         ViewModel.OnNavigatedFrom();
     }
 
@@ -344,6 +363,96 @@ public sealed partial class CustomizePage : Page
         UpdateFeatureBadge(TaskbarBadge, FeatureIds.Taskbar);
         UpdateFeatureBadge(StartMenuBadge, FeatureIds.StartMenu);
         UpdateFeatureBadge(ExplorerBadge, FeatureIds.ExplorerCustomization);
+    }
+
+    private void UpdateOverviewBadgePills()
+    {
+        UpdateFeatureOverviewPills(
+            ViewModel.WindowsThemeViewModel,
+            WindowsThemeOverviewBadges, WindowsThemeNewPill, WindowsThemeNewText,
+            WindowsThemeRecommendedPill, WindowsThemeRecommendedText,
+            WindowsThemeDefaultPill, WindowsThemeDefaultText,
+            WindowsThemeCustomPill, WindowsThemeCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.TaskbarViewModel,
+            TaskbarOverviewBadges, TaskbarNewPill, TaskbarNewText,
+            TaskbarRecommendedPill, TaskbarRecommendedText,
+            TaskbarDefaultPill, TaskbarDefaultText,
+            TaskbarCustomPill, TaskbarCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.StartMenuViewModel,
+            StartMenuOverviewBadges, StartMenuNewPill, StartMenuNewText,
+            StartMenuRecommendedPill, StartMenuRecommendedText,
+            StartMenuDefaultPill, StartMenuDefaultText,
+            StartMenuCustomPill, StartMenuCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.ExplorerViewModel,
+            ExplorerOverviewBadges, ExplorerNewPill, ExplorerNewText,
+            ExplorerRecommendedPill, ExplorerRecommendedText,
+            ExplorerDefaultPill, ExplorerDefaultText,
+            ExplorerCustomPill, ExplorerCustomText);
+    }
+
+    private void UpdateFeatureOverviewPills(
+        ISettingsFeatureViewModel feature,
+        StackPanel container,
+        Border newPill, TextBlock newText,
+        Border recommendedPill, TextBlock recommendedText,
+        Border defaultPill, TextBlock defaultText,
+        Border customPill, TextBlock customText)
+    {
+        if (!_isInfoBadgesVisible && !_isNewBadgesVisible)
+        {
+            container.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var summary = FeatureBadgeAggregator.Aggregate(feature);
+        int total = summary.TotalWithBadgeData;
+        bool showAny = false;
+
+        // NEW pill
+        if (_isNewBadgesVisible && summary.NewCount > 0)
+        {
+            newPill.Visibility = Visibility.Visible;
+            newText.Text = $"{_localizationService?.GetString("Badge_New") ?? "NEW"} {summary.NewCount}";
+            showAny = true;
+        }
+        else
+        {
+            newPill.Visibility = Visibility.Collapsed;
+        }
+
+        // InfoBadge pills
+        if (_isInfoBadgesVisible && total > 0)
+        {
+            showAny = true;
+            recommendedPill.Visibility = Visibility.Visible;
+            recommendedText.Text = $"{_localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended"} {summary.RecommendedCount}/{total}";
+            recommendedPill.Opacity = summary.RecommendedCount > 0 ? 1.0 : 0.4;
+
+            defaultPill.Visibility = Visibility.Visible;
+            defaultText.Text = $"{_localizationService?.GetString("InfoBadge_Default") ?? "Default"} {summary.DefaultCount}/{total}";
+            defaultPill.Opacity = summary.DefaultCount > 0 ? 1.0 : 0.4;
+
+            if (summary.CustomCount > 0)
+            {
+                customPill.Visibility = Visibility.Visible;
+                customText.Text = $"{_localizationService?.GetString("InfoBadge_Custom") ?? "Custom"} {summary.CustomCount}/{total}";
+            }
+            else
+            {
+                customPill.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            recommendedPill.Visibility = Visibility.Collapsed;
+            defaultPill.Visibility = Visibility.Collapsed;
+            customPill.Visibility = Visibility.Collapsed;
+        }
+
+        container.Visibility = showAny ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void UpdateBreadcrumbBadges()
@@ -543,6 +652,8 @@ public sealed partial class CustomizePage : Page
             await _userPreferencesService.SetPreferenceAsync(
                 UserPreferenceKeys.ShowInfoBadges, _isInfoBadgesVisible);
         }
+
+        UpdateOverviewBadgePills();
     }
 
     private async void ViewNewBadges_Click(object sender, RoutedEventArgs e)
@@ -564,6 +675,8 @@ public sealed partial class CustomizePage : Page
             await _userPreferencesService.SetPreferenceAsync(
                 UserPreferenceKeys.ShowNewBadges, _isNewBadgesVisible);
         }
+
+        UpdateOverviewBadgePills();
     }
 
     // Show Only Changes filter (review mode)
