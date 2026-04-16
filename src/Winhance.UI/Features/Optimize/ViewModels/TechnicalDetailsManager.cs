@@ -161,6 +161,10 @@ internal sealed class TechnicalDetailsManager : IDisposable
             {
                 RowType = DetailRowType.ScheduledTask,
                 TaskPath = task.TaskPath,
+                PathLabel = _labels.Path,
+                CurrentLabel = _labels.Current,
+                RecommendedLabel = _labels.Recommended,
+                DefaultLabel = _labels.Default,
                 RecommendedState = task.RecommendedState switch
                 {
                     true  => _labels.On,
@@ -187,6 +191,9 @@ internal sealed class TechnicalDetailsManager : IDisposable
             rows.Add(new TechnicalDetailRow
             {
                 RowType       = DetailRowType.PowerConfig,
+                CurrentLabel = _labels.Current,
+                RecommendedLabel = _labels.Recommended,
+                DefaultLabel = _labels.Default,
                 SubgroupGuid  = pcfg.SubgroupGuid,
                 SettingGuid   = pcfg.SettingGuid,
                 SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",

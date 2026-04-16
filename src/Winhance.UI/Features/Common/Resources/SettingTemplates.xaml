@@ -315,15 +315,14 @@
 
                                                 <!-- Scheduled task row -->
                                                 <Grid Visibility="{x:Bind IsScheduledTask}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <Border Grid.Column="0" Width="28"/>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                      ColumnDefinitions="*,Auto" Padding="4,4">
+                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
                                                         </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
@@ -336,21 +335,18 @@
 
                                                 <!-- PowerConfig row -->
                                                 <Grid Visibility="{x:Bind IsPowerConfig}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <Border Grid.Column="0" Width="28"/>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                      ColumnDefinitions="*,Auto" Padding="4,4">
+                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                                   ToolTipService.ToolTip="{x:Bind SubgroupGuid}">
-                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True"
-                                                                   ToolTipService.ToolTip="{x:Bind SettingGuid}">
-                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
@@ -710,15 +706,14 @@
 
                                                 <!-- Scheduled task row -->
                                                 <Grid Visibility="{x:Bind IsScheduledTask}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <Border Grid.Column="0" Width="28"/>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                      ColumnDefinitions="*,Auto" Padding="4,4">
+                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
                                                         </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
@@ -731,21 +726,18 @@
 
                                                 <!-- PowerConfig row -->
                                                 <Grid Visibility="{x:Bind IsPowerConfig}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <Border Grid.Column="0" Width="28"/>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                      ColumnDefinitions="*,Auto" Padding="4,4">
+                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                                   ToolTipService.ToolTip="{x:Bind SubgroupGuid}">
-                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True"
-                                                                   ToolTipService.ToolTip="{x:Bind SettingGuid}">
-                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                         </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
@@ -1052,15 +1044,14 @@
 
                                                                 <!-- Scheduled task row -->
                                                                 <Grid Visibility="{x:Bind IsScheduledTask}"
-                                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                                    <Border Grid.Column="0" Width="28"/>
-                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                                      ColumnDefinitions="*,Auto" Padding="4,4">
+                                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                                         <TextBlock FontFamily="Consolas" FontSize="11"
                                                                                    IsTextSelectionEnabled="True" TextWrapping="Wrap">
                                                                             <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
                                                                         </TextBlock>
                                                                     </StackPanel>
-                                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
@@ -1073,21 +1064,18 @@
 
                                                                 <!-- PowerConfig row -->
                                                                 <Grid Visibility="{x:Bind IsPowerConfig}"
-                                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                                    <Border Grid.Column="0" Width="28"/>
-                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                                      ColumnDefinitions="*,Auto" Padding="4,4">
+                                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                                                   ToolTipService.ToolTip="{x:Bind SubgroupGuid}">
-                                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/>
+                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                                            <Run FontWeight="SemiBold" Text="Subgroup: "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                                         </TextBlock>
                                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True"
-                                                                                   ToolTipService.ToolTip="{x:Bind SettingGuid}">
-                                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/>
+                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
+                                                                            <Run FontWeight="SemiBold" Text="Setting: "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
                                                                         </TextBlock>
                                                                     </StackPanel>
-                                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
+                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
                                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                                         <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
                                                                             <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>

@@ -945,7 +945,19 @@ public partial class SettingItemViewModel : BaseViewModel
                 Default = _localizationService.GetString("TechnicalDetails_DefaultValue") ?? "Default",
                 ValueNotExist = _localizationService.GetString("TechnicalDetails_ValueNotExist") ?? "doesn't exist",
                 On = _localizationService.GetString("Common_On") ?? "On",
-                Off = _localizationService.GetString("Common_Off") ?? "Off"
+                Off = _localizationService.GetString("Common_Off") ?? "Off",
+                SectionRegistry = _localizationService.GetString("TechnicalDetails_Section_Registry") ?? "Registry Changes",
+                SectionScheduledTasks = _localizationService.GetString("TechnicalDetails_Section_ScheduledTasks") ?? "Scheduled Tasks",
+                SectionPowerSettings = _localizationService.GetString("TechnicalDetails_Section_PowerSettings") ?? "Power Settings",
+                SectionScripts = _localizationService.GetString("TechnicalDetails_Section_Scripts") ?? "PowerShell Scripts",
+                SectionRegContent = _localizationService.GetString("TechnicalDetails_Section_RegContent") ?? "Registry Content",
+                SectionDependencies = _localizationService.GetString("TechnicalDetails_Section_Dependencies") ?? "Depends On",
+                ScriptOnEnable = _localizationService.GetString("TechnicalDetails_Script_OnEnable") ?? "On Enable",
+                ScriptOnDisable = _localizationService.GetString("TechnicalDetails_Script_OnDisable") ?? "On Disable",
+                RegContentOnEnable = _localizationService.GetString("TechnicalDetails_RegContent_OnEnable") ?? "On Enable",
+                RegContentOnDisable = _localizationService.GetString("TechnicalDetails_RegContent_OnDisable") ?? "On Disable",
+                DependencyEquals = _localizationService.GetString("TechnicalDetails_Dependency_Equals") ?? "=",
+                DependencyNotEquals = _localizationService.GetString("TechnicalDetails_Dependency_NotEquals") ?? "≠"
             });
         OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
 
