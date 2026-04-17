@@ -863,7 +863,8 @@ public class TechnicalDetailsManagerTests : IDisposable
 
         var rows = _sections.SelectMany(s => s.Rows).ToList();
         rows.Should().HaveCount(1);
-        rows[0].CurrentValue.Should().Be("1");
+        rows[0].CurrentValue.Should().Be($"1 ({TestLabels.Off})",
+            because: "Current=\"1\" matches DisabledValue=[1] => '1 (Off)'");
         rows[0].RecommendedValue.Should().Be($"1 ({TestLabels.Off})",
             because: "RecommendedToggleState=false maps to DisabledValue=[1] => '1 (Off)'");
         rows[0].DefaultValue.Should().Be($"{TestLabels.ValueNotExist} ({TestLabels.On})",

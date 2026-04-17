@@ -119,15 +119,18 @@ internal sealed class TechnicalDetailsManager : IDisposable
             // the state lives on the ComboBoxOption whose IsRecommended / IsDefault flag is set.
             string recommendedColumn;
             string defaultColumn;
+            string currentColumn;
             if (isSelection && setting is not null)
             {
                 recommendedColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: true, _labels);
                 defaultColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: false, _labels);
+                currentColumn = kvp.Value is null ? FormatNotExist(reg) : FormatConcreteValueText(kvp.Value);
             }
             else
             {
                 recommendedColumn = ResolveRecommendedColumn(setting, reg);
-                defaultColumn = reg.DefaultValue?.ToString() ?? FormatNotExist(reg);
+                defaultColumn = FormatValueColumn(reg.DefaultValue, reg, setting);
+                currentColumn = FormatValueColumn(kvp.Value, reg, setting);
             }
 
             rows.Add(new TechnicalDetailRow
@@ -136,7 +139,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 RegistryPath = reg.KeyPath,
                 ValueName = reg.ValueName ?? "(Default)",
                 ValueType = reg.ValueType.ToString(),
-                CurrentValue = kvp.Value ?? FormatNotExist(reg),
+                CurrentValue = currentColumn,
                 RecommendedValue = recommendedColumn,
                 DefaultValue = defaultColumn,
                 PathLabel = _labels.Path,
@@ -332,7 +335,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
             // Mapping is explicitly null: key would be deleted under this option.
             return labels.ValueNotExist;
         }
-        return v.ToString()!;
+        return FormatConcreteValueText(v);
     }
 
     private string ResolveRecommendedColumn(SettingDefinition? setting, RegistrySetting reg)
@@ -351,10 +354,49 @@ internal sealed class TechnicalDetailsManager : IDisposable
             var concreteValue = targetArray?.FirstOrDefault(v => v is not null);
             string stateLabel = targetState ? _labels.On : _labels.Off;
             if (concreteValue is not null)
-                return $"{concreteValue} ({stateLabel})";
+                return $"{FormatConcreteValueText(concreteValue)} ({stateLabel})";
             return $"{_labels.ValueNotExist} ({stateLabel})";
         }
-        return reg.RecommendedValue?.ToString() ?? FormatNotExist(reg);
+        return FormatValueColumn(reg.RecommendedValue, reg, setting);
+    }
+
+    // Formats a registry value for a Current/Recommended/Default column.
+    // Null values → FormatNotExist (already appends On/Off when the null sentinel lives
+    // in EnabledValue or DisabledValue). Concrete values are passed through
+    // FormatConcreteValueText so empty strings render as "". For Toggle/CheckBox
+    // settings, appends "(On)" / "(Off)" when the value matches EnabledValue /
+    // DisabledValue — matching the convention the Recommended column already used
+    // for settings with an explicit RecommendedToggleState.
+    //
+    // Array-membership comparison is done on stringified forms because the Current
+    // column's value arrives from RegistryValueFormatter (always a string), while
+    // EnabledValue/DisabledValue entries are typed objects (int, string). Without
+    // string coercion, "1".Equals(1) is false and the suffix is never emitted.
+    private string FormatValueColumn(object? value, RegistrySetting reg, SettingDefinition? setting)
+    {
+        if (value is null) return FormatNotExist(reg);
+
+        string displayText = FormatConcreteValueText(value);
+
+        if (setting is not null
+            && (setting.InputType == InputType.Toggle || setting.InputType == InputType.CheckBox))
+        {
+            string valueStr = value.ToString() ?? string.Empty;
+
+            if (reg.EnabledValue?.Any(ev => ev != null && string.Equals(ev.ToString(), valueStr, StringComparison.Ordinal)) == true)
+                return $"{displayText} ({_labels.On})";
+            if (reg.DisabledValue?.Any(dv => dv != null && string.Equals(dv.ToString(), valueStr, StringComparison.Ordinal)) == true)
+                return $"{displayText} ({_labels.Off})";
+        }
+        return displayText;
+    }
+
+    // Turns a non-null registry value into its display form. Empty strings get
+    // rendered as the literal "" so they're visible; otherwise ToString() wins.
+    private static string FormatConcreteValueText(object value)
+    {
+        var text = value.ToString() ?? string.Empty;
+        return text.Length == 0 ? "\"\"" : text;
     }
 
     private string FormatNotExist(RegistrySetting reg)
