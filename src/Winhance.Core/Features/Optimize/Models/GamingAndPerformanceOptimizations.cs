@@ -2813,6 +2813,7 @@ public static class GamingAndPerformanceOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "Robot",
                     InputType = InputType.Selection,
+                    IsWindows11Only = true,
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
@@ -3097,7 +3098,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "AutochkProxyTask",
                             TaskPath = @"\Microsoft\Windows\Autochk\Proxy",
-                            RecommendedState = true,
+                            RecommendedState = false,
                             DefaultState = true
                         }
                     }
@@ -3150,6 +3151,7 @@ public static class GamingAndPerformanceOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "Robot",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
                         new ScheduledTaskSetting

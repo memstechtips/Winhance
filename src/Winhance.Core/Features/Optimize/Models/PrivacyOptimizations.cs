@@ -1814,6 +1814,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "Robot",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1849,6 +1850,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "DatabaseOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1873,6 +1875,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "Cancel",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1897,6 +1900,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "CameraOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1921,6 +1925,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "CursorDefaultClickOutline",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1945,6 +1950,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "CogOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1969,6 +1975,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "VectorPolylineRemove",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1993,6 +2000,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "DesktopClassic",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2017,6 +2025,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "LanDisconnect",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2041,6 +2050,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "KeyboardOutline",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2064,6 +2074,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "RobotOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2088,6 +2099,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "RobotOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2111,6 +2123,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "ChatRemove",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2134,6 +2147,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "ShieldLock",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2168,6 +2182,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "ShieldLock",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2212,6 +2227,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "MicrophoneOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2245,6 +2261,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "ImageOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2269,6 +2286,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "PaletteOutline",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2293,6 +2311,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "FormatPaint",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2317,6 +2336,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "EraserVariant",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2341,6 +2361,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "ImageRemove",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2365,6 +2386,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "KeyboardOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2388,6 +2410,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "BellOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2411,6 +2434,7 @@ public static class PrivacyAndSecurityOptimizations
                     AddedInVersion = "26.04.10",
                     Icon = "AccountOff",
                     InputType = InputType.Toggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
