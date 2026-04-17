@@ -40,6 +40,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-explorer-mouse-precision",
+                    IsSubjectivePreference = true,
                     Name = "Enhance Pointer Precision",
                     Description = "Adjust cursor speed based on movement velocity (mouse acceleration). Most competitive gamers disable this for consistent aiming in FPS games",
                     Icon = "Mouse",
@@ -122,6 +123,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-autostart-delay",
+                    IsSubjectivePreference = true,
                     Name = "Startup Delay for Apps",
                     Description = "Delay startup applications by 10 seconds after boot to improve initial system responsiveness. Windows becomes usable faster, but your startup apps take longer to load",
                     Icon = "ClockStart",
@@ -132,7 +134,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize",
                             ValueName = "StartupDelayInMSec",
-                            RecommendedValue = 10000,
+                            RecommendedValue = 0,
                             EnabledValue = [10000], // When toggle is ON, startup delay is enabled (10 seconds)
                             DisabledValue = [0], // When toggle is OFF, startup delay is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
@@ -143,6 +145,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-background-apps",
+                    IsSubjectivePreference = true,
                     Name = "Background App Permissions",
                     Description = "Control whether apps can run in the background via Group Policy. Force Deny removes per-app background settings from Windows Settings. Use User in Control if you need apps like Teams, Zoom, or WhatsApp",
                     Icon = "Apps",
@@ -197,6 +200,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-storage-sense",
+                    IsSubjectivePreference = true,
                     Name = "Storage Sense",
                     Description = "Automatically free up disk space by removing temporary files, emptying the recycle bin, and managing downloads",
                     Icon = "Harddisk",
@@ -337,6 +341,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-explorer-menu-show-delay",
+                    IsSubjectivePreference = true,
                     Name = "Menu Show Delay",
                     Description = "Add a brief delay before displaying menus (400ms - Windows default), or show them instantly (0ms) for faster navigation",
                     Icon = "MenuOpen",
@@ -358,6 +363,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-explorer-alt-tab-filter",
+                    IsSubjectivePreference = true,
                     Name = "Alt+Tab Filter",
                     Description = "Show only traditional open windows in Alt+Tab instead of including Microsoft Edge tabs and other Windows suggestions",
                     Icon = "ViewGrid",
@@ -486,6 +492,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-svchost-split-threshold",
+                    IsSubjectivePreference = true,
                     Name = "Svchost Split Threshold",
                     Description = "Set the memory threshold that determines when Windows splits services into separate svchost.exe processes. Higher values group more services together, reducing process count. Select the value matching your system RAM",
                     GroupName = "Processor",
@@ -637,6 +644,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-directx-vrr-optimizations",
+                    IsSubjectivePreference = true,
                     Name = "Variable Refresh Rate",
                     Description = "Enable VRR (G-Sync/FreeSync) optimizations for smoother gameplay. Requires a VRR-compatible monitor; this setting has no effect if your monitor does not support VRR",
                     GroupName = "Graphics",
@@ -660,6 +668,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-directx-auto-hdr",
+                    IsSubjectivePreference = true,
                     Name = "Auto HDR",
                     Description = "Automatically convert SDR content to HDR for enhanced colors and brightness. Requires an HDR-capable display with HDR enabled; this setting has no effect if your display does not support HDR",
                     GroupName = "Graphics",
@@ -684,6 +693,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nvidia-sharpening",
+                    IsSubjectivePreference = true,
                     Name = "Legacy NVIDIA Sharpening",
                     Description = "Enable legacy NVIDIA image sharpening filter for enhanced visual clarity. Only works on older NVIDIA drivers; newer drivers should use NVIDIA Control Panel sharpening instead",
                     GroupName = "Graphics",
@@ -751,6 +761,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-auto-color-management",
+                    IsSubjectivePreference = true,
                     Name = "Automatically manage color for apps",
                     Description = "Allow Windows to automatically manage color profiles for all connected displays that support it",
                     GroupName = "Graphics",
@@ -777,6 +788,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-disable-mpo",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "Multi-Plane Overlay (MPO)",
                     Description = "Composite multiple display layers in hardware using the GPU. Disabling can fix screen flickering, black screens, and stuttering on multi-monitor setups",
@@ -812,6 +824,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-disable-mpo-min-fps",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "MPO Minimum Frame Rate Requirement",
                     Description = "Allow Desktop Window Manager to dynamically switch apps between overlay modes based on frame rate. Disabling can fix stuttering in browsers and Discord without fully disabling MPO",
@@ -838,6 +851,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-network-throttling",
+                    IsSubjectivePreference = true,
                     Name = "Network Throttling",
                     Description = "Controls network packet rate limiting for multimedia applications. Keeping throttling enabled (default: 10 packets/ms) is recommended as it provides better DPC latency for gaming than disabling it entirely",
                     GroupName = "Network",
@@ -860,6 +874,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nagle-algorithm",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "Nagle's Algorithm",
                     Description = "Buffers small network packets before sending to reduce overhead. Turn off to lower latency in online games, or keep on for general-purpose network efficiency",
@@ -968,6 +983,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-virtualization-based-security",
+                    IsSubjectivePreference = true,
                     Name = "Virtualization Based Security (VBS)",
                     Description = "Isolates parts of memory to protect the system from vulnerabilities. Disabling can improve gaming performance but reduces system security",
                     GroupName = "Security",
@@ -1012,6 +1028,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-memory-integrity",
+                    IsSubjectivePreference = true,
                     Name = "Memory Integrity (HVCI)",
                     Description = "Prevents malicious code from being inserted into high-security processes. Disabling can improve gaming performance but reduces system security",
                     GroupName = "Security",
@@ -1178,6 +1195,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-sysmain-service",
+                    IsSubjectivePreference = true,
                     Name = "SysMain Service (Superfetch)",
                     Description = "Preload frequently used applications into RAM for faster launch times. Automatic is recommended for HDDs, Manual or Disabled is preferred for SSDs",
                     GroupName = "System Services",
@@ -1222,6 +1240,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-prefetch",
+                    IsSubjectivePreference = true,
                     Name = "Prefetch Feature",
                     Description = "Preload frequently used applications and boot files into memory to speed up launches. Generally recommended for HDDs not SSDs",
                     GroupName = "System Services",
@@ -1254,6 +1273,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-windows-search-service",
+                    IsSubjectivePreference = true,
                     Name = "Windows Search Indexing Service",
                     Description = "Indexes files and folders for faster search results. Disabling reduces background CPU and disk activity but makes Windows Search slower",
                     GroupName = "System Services",
@@ -1298,6 +1318,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-print-spooler-service",
+                    IsSubjectivePreference = true,
                     Name = "Print Spooler Service",
                     Description = "Manages print jobs sent to printers. If you don't use a printer, set to Manual or Disabled to free up system resources",
                     GroupName = "System Services",
@@ -1386,6 +1407,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-connected-devices-platform-service",
+                    IsSubjectivePreference = true,
                     Name = "Connected Devices Platform Service",
                     Description = "Enables cross-device experiences like phone linking and nearby sharing. Disabling reduces background activity and device interaction logging",
                     GroupName = "System Services",
@@ -1659,6 +1681,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-phone-service",
+                    IsSubjectivePreference = true,
                     Name = "Phone Service",
                     Description = "Manages telephony state on the device. Safe to disable if you don't use phone connectivity features or make calls from your PC",
                     GroupName = "System Services",
@@ -1992,6 +2015,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-mobile-hotspot-service",
+                    IsSubjectivePreference = true,
                     Name = "Windows Mobile Hotspot Service",
                     Description = "Provides ability to share internet connection with other devices. Set to Manual to keep functionality available while preventing unnecessary background activity",
                     GroupName = "System Services",
@@ -2080,6 +2104,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-parental-controls-service",
+                    IsSubjectivePreference = true,
                     Name = "Parental Controls Service",
                     Description = "Enables parental controls and family safety features. Safe to disable if you don't use parental control features",
                     GroupName = "System Services",
@@ -2212,6 +2237,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-access-manager",
+                    IsSubjectivePreference = true,
                     Name = "Remote Access Connection Manager",
                     Description = "Manages VPN and dial-up connections. Set to Manual to reduce background activity while keeping VPN functionality available when needed.",
                     GroupName = "System Services",
@@ -2256,6 +2282,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-access-auto",
+                    IsSubjectivePreference = true,
                     Name = "Remote Access Auto Connection Manager",
                     Description = "Automatically connects to remote networks when programs reference remote resources. Safe to disable if you don't use auto-connect VPN features",
                     GroupName = "System Services",
@@ -2300,6 +2327,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-desktop-services",
+                    IsSubjectivePreference = true,
                     Name = "Remote Desktop Services",
                     Description = "Allows users to connect interactively to a remote computer. Set to Manual to reduce background activity while keeping Remote Desktop available.",
                     GroupName = "System Services",
@@ -2344,6 +2372,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-desktop-configuration",
+                    IsSubjectivePreference = true,
                     Name = "Remote Desktop Configuration",
                     Description = "Manages Remote Desktop Services and Remote Desktop related configurations. Set to Manual to reduce background activity while keeping Remote Desktop available",
                     GroupName = "System Services",
@@ -2388,6 +2417,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-desktop-port-redirector",
+                    IsSubjectivePreference = true,
                     Name = "Remote Desktop Services UserMode Port Redirector",
                     Description = "Allows local device redirection for Remote Desktop connections. Safe to disable if you don't need to share local devices during Remote Desktop sessions",
                     GroupName = "System Services",
@@ -2432,6 +2462,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-xbox-auth-manager",
+                    IsSubjectivePreference = true,
                     Name = "Xbox Live Auth Manager",
                     Description = "Provides authentication and authorization services for Xbox Live. Safe to disable if you don't use Xbox Game Pass, Microsoft Store games, or Xbox features",
                     GroupName = "System Services",
@@ -2477,6 +2508,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-xbox-game-save",
+                    IsSubjectivePreference = true,
                     Name = "Xbox Live Game Save",
                     Description = "Syncs game saves to Xbox Live cloud. Only needed for Xbox Game Pass and Microsoft Store games with cloud save features",
                     GroupName = "System Services",
@@ -2521,6 +2553,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-xbox-networking",
+                    IsSubjectivePreference = true,
                     Name = "Xbox Live Networking Service",
                     Description = "Supports Xbox Live multiplayer networking. Required for Xbox multiplayer gaming but not needed for Steam/Epic/other gaming platforms",
                     GroupName = "System Services",
@@ -2565,6 +2598,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-biometric-service",
+                    IsSubjectivePreference = true,
                     Name = "Windows Biometric Service",
                     Description = "Enables fingerprint and facial recognition login via Windows Hello. Safe to disable on desktop systems without biometric hardware",
                     GroupName = "System Services",
@@ -2609,6 +2643,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-touch-keyboard-service",
+                    IsSubjectivePreference = true,
                     Name = "Touch Keyboard and Handwriting Panel Service",
                     Description = "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad",
                     GroupName = "System Services",
@@ -2624,17 +2659,17 @@ public static class GamingAndPerformanceOptimizations
                         {
                             new ComboBoxOption
                             {
-                                DisplayName = "ServiceOption_Disabled",
+                                DisplayName = "ServiceOption_DisabledRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4, ["IsInputAppPreloadEnabled"] = 0 },
                                 Script = ScriptOption.Disabled,
-                                IsDefault = true,
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
-                                DisplayName = "ServiceOption_ManualRecommended",
+                                DisplayName = "ServiceOption_Manual",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3, ["IsInputAppPreloadEnabled"] = 1 },
                                 Script = ScriptOption.Enabled,
-                                IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2788,13 +2823,13 @@ public static class GamingAndPerformanceOptimizations
                         {
                             new ComboBoxOption
                             {
-                                DisplayName = "ServiceOption_Disabled",
+                                DisplayName = "ServiceOption_DisabledRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
                                 IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
-                                DisplayName = "ServiceOption_ManualRecommended",
+                                DisplayName = "ServiceOption_Manual",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                             },
                             new ComboBoxOption
@@ -3062,7 +3097,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "AutochkProxyTask",
                             TaskPath = @"\Microsoft\Windows\Autochk\Proxy",
-                            RecommendedState = null,
+                            RecommendedState = true,
                             DefaultState = true
                         }
                     }
@@ -3070,6 +3105,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-task-family-safety",
+                    IsSubjectivePreference = true,
                     Name = "Family Safety Monitor Task",
                     Description = "Monitors family safety settings and usage. Disable if you don't use family safety features",
                     GroupName = "Scheduled Tasks",
@@ -3156,6 +3192,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "visual-effects-mode",
+                    IsSubjectivePreference = true,
                     Name = "Visual Effects",
                     Description = "Choose how Windows displays visual effects",
                     GroupName = "Visual Effects",
@@ -3273,6 +3310,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "ui-effects",
+                    IsSubjectivePreference = true,
                     Name = "Animate controls and elements inside windows",
                     Description = "Enables animation effects for controls and UI elements",
                     GroupName = "Visual Effects",
@@ -3308,6 +3346,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "window-animation",
+                    IsSubjectivePreference = true,
                     Name = "Animate windows when minimizing and maximizing",
                     Description = "Shows smooth animation when windows are minimized or maximized",
                     GroupName = "Visual Effects",
@@ -3341,6 +3380,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "taskbar-animations",
+                    IsSubjectivePreference = true,
                     Name = "Animations in the taskbar",
                     Description = "Controls taskbar animation effects for opening, closing, and switching windows",
                     GroupName = "Visual Effects",
@@ -3374,6 +3414,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "enable-peek",
+                    IsSubjectivePreference = true,
                     Name = "Enable Peek",
                     Description = "Allows peeking at desktop when hovering over Show Desktop button",
                     GroupName = "Visual Effects",
@@ -3407,6 +3448,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "menu-animation",
+                    IsSubjectivePreference = true,
                     Name = "Fade or slide menus into view",
                     Description = "Animates menus when they appear using fade or slide effects",
                     GroupName = "Visual Effects",
@@ -3442,6 +3484,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "fade-tooltip",
+                    IsSubjectivePreference = true,
                     Name = "Fade or slide ToolTips into view",
                     Description = "Animates tooltips when they appear using fade or slide effects",
                     GroupName = "Visual Effects",
@@ -3477,6 +3520,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "fade-menu-items",
+                    IsSubjectivePreference = true,
                     Name = "Fade out menu items after clicking",
                     Description = "Fades menu items after selection before closing the menu",
                     GroupName = "Visual Effects",
@@ -3513,6 +3557,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "taskbar-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Save taskbar thumbnail previews",
                     Description = "Saves thumbnail previews of taskbar windows for faster display",
                     GroupName = "Visual Effects",
@@ -3547,6 +3592,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "mouse-shadow",
+                    IsSubjectivePreference = true,
                     Name = "Show shadows under mouse pointer",
                     Description = "Displays shadow effect underneath the mouse cursor",
                     GroupName = "Visual Effects",
@@ -3582,6 +3628,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "window-shadows",
+                    IsSubjectivePreference = true,
                     Name = "Show shadows under windows",
                     Description = "Displays shadow effects underneath windows",
                     GroupName = "Visual Effects",
@@ -3617,6 +3664,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "show-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Show thumbnails instead of icons",
                     Description = "Displays image and document previews instead of generic file icons",
                     GroupName = "Visual Effects",
@@ -3651,6 +3699,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "translucent-selection",
+                    IsSubjectivePreference = true,
                     Name = "Show translucent selection rectangle",
                     Description = "Display a semi-transparent selection box when dragging to select multiple files or items",
                     GroupName = "Visual Effects",
@@ -3684,6 +3733,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "drag-full-windows",
+                    IsSubjectivePreference = true,
                     Name = "Show window contents while dragging",
                     Description = "Displays window contents when dragging instead of just an outline",
                     GroupName = "Visual Effects",
@@ -3717,6 +3767,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "combo-box-animation",
+                    IsSubjectivePreference = true,
                     Name = "Slide open combo boxes",
                     Description = "Animates combo boxes when they open with a sliding effect",
                     GroupName = "Visual Effects",
@@ -3752,6 +3803,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "font-smoothing",
+                    IsSubjectivePreference = true,
                     Name = "Smooth edges of screen fonts",
                     Description = "Apply anti-aliasing to text for smoother, more readable fonts on screen",
                     GroupName = "Visual Effects",
@@ -3785,6 +3837,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "smooth-scroll-listboxes",
+                    IsSubjectivePreference = true,
                     Name = "Smooth-scroll list boxes",
                     Description = "Enables smooth scrolling in list boxes instead of jumping",
                     GroupName = "Visual Effects",
@@ -3820,6 +3873,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "drop-shadows",
+                    IsSubjectivePreference = true,
                     Name = "Use drop shadows for icon labels on the desktop",
                     Description = "Add shadow effects behind desktop icon text to improve readability against backgrounds",
                     GroupName = "Visual Effects",
@@ -3854,6 +3908,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-narrator-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "Narrator Win+Ctrl+Enter Hotkey",
                     Description = "Enable the Win+Ctrl+Enter keyboard shortcut to quickly launch Windows Narrator screen reader",
                     GroupName = "Accessibility",
@@ -3876,6 +3931,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-stickykeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "StickyKeys Hotkey (Shift×5)",
                     Description = "Enable the keyboard shortcut to activate StickyKeys by pressing the Shift key five times",
                     GroupName = "Accessibility",
@@ -3898,6 +3954,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-filterkeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "FilterKeys Hotkey (Right Shift 8s)",
                     Description = "Enable the keyboard shortcut to activate FilterKeys by holding the right Shift key for 8 seconds",
                     GroupName = "Accessibility",
@@ -3920,6 +3977,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-togglekeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "ToggleKeys Hotkey (Num Lock 5s)",
                     Description = "Enable the keyboard shortcut to activate ToggleKeys by holding Num Lock for 5 seconds, which plays sounds when Caps/Num/Scroll Lock are pressed",
                     GroupName = "Accessibility",
@@ -3942,6 +4000,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-mousekeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "MouseKeys Hotkey (Alt+Shift+NumLock)",
                     Description = "Enable the keyboard shortcut to activate MouseKeys, which allows using the numeric keypad to control the mouse pointer",
                     GroupName = "Accessibility",
@@ -3964,6 +4023,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-highcontrast-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "High Contrast Hotkey (Alt+Shift+PrtScn)",
                     Description = "Enable the keyboard shortcut to activate High Contrast mode by pressing Left Alt + Left Shift + Print Screen",
                     GroupName = "Accessibility",

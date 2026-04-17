@@ -301,34 +301,35 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     // Tooltips — computed live so language changes flow through OnLanguageChanged.
+    // NumericRange pcfg values are raw system units (e.g. Seconds); tooltips show display units.
     public string RecommendedValueTooltip =>
         NumericRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultValueTooltip =>
         NumericDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
             : string.Empty;
 
     public string RecommendedAcValueTooltip =>
         AcRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultAcValueTooltip =>
         AcDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
             : string.Empty;
 
     public string RecommendedDcValueTooltip =>
         DcRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, rec)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultDcValueTooltip =>
         DcDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, def)
+            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
             : string.Empty;
 
     /// <summary>
@@ -359,8 +360,9 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (NumericRecommendedValue is int v)
             {
-                NumericValue = v;
-                HandleValueChangedAsync(v).FireAndForget(_logService);
+                var display = ConvertFromSystemUnits(v);
+                NumericValue = display;
+                HandleValueChangedAsync(display).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setNumericToRecommendedCommand;
@@ -370,8 +372,9 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (NumericDefaultValue is int v)
             {
-                NumericValue = v;
-                HandleValueChangedAsync(v).FireAndForget(_logService);
+                var display = ConvertFromSystemUnits(v);
+                NumericValue = display;
+                HandleValueChangedAsync(display).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setNumericToDefaultCommand;
@@ -381,7 +384,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (AcRecommendedValue is int v)
             {
-                AcNumericValue = v;
+                AcNumericValue = ConvertFromSystemUnits(v);
                 HandleACDCNumericChangedAsync().FireAndForget(_logService);
             }
         });
@@ -392,7 +395,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (AcDefaultValue is int v)
             {
-                AcNumericValue = v;
+                AcNumericValue = ConvertFromSystemUnits(v);
                 HandleACDCNumericChangedAsync().FireAndForget(_logService);
             }
         });
@@ -403,7 +406,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (DcRecommendedValue is int v)
             {
-                DcNumericValue = v;
+                DcNumericValue = ConvertFromSystemUnits(v);
                 HandleACDCNumericChangedAsync().FireAndForget(_logService);
             }
         });
@@ -414,7 +417,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (DcDefaultValue is int v)
             {
-                DcNumericValue = v;
+                DcNumericValue = ConvertFromSystemUnits(v);
                 HandleACDCNumericChangedAsync().FireAndForget(_logService);
             }
         });
@@ -456,6 +459,9 @@ public partial class SettingItemViewModel : BaseViewModel
         var reg = PrimaryRegistrySetting;
         if (reg == null) return null;
         if (targetValue == null && !deriveFromKeyAbsent) return null;
+        // Key-existence toggles: Windows default is key-present (enabled = true).
+        if (targetValue == null && deriveFromKeyAbsent && IsKeyExistenceToggle(reg))
+            return true;
         return ToggleTargetState(targetValue, reg.EnabledValue, reg.DisabledValue);
     }
 
@@ -1553,19 +1559,18 @@ public partial class SettingItemViewModel : BaseViewModel
         // Check ScheduledTaskSettings
         foreach (var task in SettingDefinition.ScheduledTaskSettings)
         {
+            // Toggle ON = task enabled (IsSelected maps directly to task.Enabled via
+            // EnableTaskAsync/DisableTaskAsync in SettingOperationExecutor). RecommendedState
+            // and DefaultState both represent the task-enabled state, so compare directly.
             if (task.RecommendedState.HasValue)
             {
-                // For tasks, recommended typically means disabled (IsSelected=true means the optimization is on,
-                // which disables the task). The RecommendedState represents whether the task should be enabled.
-                bool currentTaskEnabled = !IsSelected; // Toggle ON = task disabled
-                if (currentTaskEnabled != task.RecommendedState.Value)
+                if (IsSelected != task.RecommendedState.Value)
                     matchesRecommended = false;
             }
 
             if (task.DefaultState.HasValue)
             {
-                bool currentTaskEnabled = !IsSelected;
-                if (currentTaskEnabled != task.DefaultState.Value)
+                if (IsSelected != task.DefaultState.Value)
                     matchesDefault = false;
             }
         }
@@ -1597,13 +1602,15 @@ public partial class SettingItemViewModel : BaseViewModel
                     }
                     else if (InputType == InputType.NumericRange)
                     {
-                        if (pcfg.RecommendedValueAC.HasValue && AcNumericValue != pcfg.RecommendedValueAC.Value)
+                        // AcNumericValue/DcNumericValue are in display units (e.g. Minutes);
+                        // pcfg values are in system units (e.g. Seconds). Convert before compare.
+                        if (pcfg.RecommendedValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value))
                             matchesRecommended = false;
-                        if (pcfg.RecommendedValueDC.HasValue && DcNumericValue != pcfg.RecommendedValueDC.Value)
+                        if (pcfg.RecommendedValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value))
                             matchesRecommended = false;
-                        if (pcfg.DefaultValueAC.HasValue && AcNumericValue != pcfg.DefaultValueAC.Value)
+                        if (pcfg.DefaultValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueAC.Value))
                             matchesDefault = false;
-                        if (pcfg.DefaultValueDC.HasValue && DcNumericValue != pcfg.DefaultValueDC.Value)
+                        if (pcfg.DefaultValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueDC.Value))
                             matchesDefault = false;
                     }
                 }
@@ -1612,9 +1619,9 @@ public partial class SettingItemViewModel : BaseViewModel
                     // Non-separate AC/DC: use the AC value as the single value
                     if (InputType == InputType.NumericRange)
                     {
-                        if (pcfg.RecommendedValueAC.HasValue && NumericValue != pcfg.RecommendedValueAC.Value)
+                        if (pcfg.RecommendedValueAC.HasValue && NumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value))
                             matchesRecommended = false;
-                        if (pcfg.DefaultValueAC.HasValue && NumericValue != pcfg.DefaultValueAC.Value)
+                        if (pcfg.DefaultValueAC.HasValue && NumericValue != ConvertFromSystemUnits(pcfg.DefaultValueAC.Value))
                             matchesDefault = false;
                     }
                     else if (InputType == InputType.Selection)
@@ -1649,8 +1656,17 @@ public partial class SettingItemViewModel : BaseViewModel
         }
 
         {
+            // Selection: Custom when SelectedValue/AcValue/DcValue falls outside known options.
+            // NumericRange: Custom when the current value matches neither Recommended nor Default.
+            bool isCustom = InputType switch
+            {
+                InputType.Selection => !IsKnownSelectionValue(),
+                InputType.NumericRange => (HasAnyRecommendedData() || HasAnyDefaultData())
+                    && !matchesRecommended && !matchesDefault,
+                _ => false
+            };
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: !IsKnownSelectionValue(), label, tooltip));
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: isCustom, label, tooltip));
         }
 
         BadgeRow = row;
@@ -1676,14 +1692,22 @@ public partial class SettingItemViewModel : BaseViewModel
                     : ToggleTargetState(reg.RecommendedValue, reg.EnabledValue, reg.DisabledValue));
             matchesRecommended = recommendedState == IsSelected;
 
-            // A group-policy reg with no declared DefaultValue has no opinion on the
-            // Windows default — its null sentinel in DisabledValue reflects "policy
-            // not applied", not "feature off". The base (non-policy) reg carries the
-            // Windows default; this policy reg contributes nothing to the aggregate.
-            // Policy regs with an explicit DefaultValue still vote normally.
+            // A group-policy reg with no declared DefaultValue usually has no opinion
+            // on the Windows default. However, for toggle settings the null-sentinel
+            // convention (e.g. EnabledValue = [null]) CAN express a meaningful default
+            // state: "key absent = policy not applied = Windows default behaviour".
+            // When ToggleTargetState yields a result, use it; otherwise abstain.
             if (reg.IsGroupPolicy && reg.DefaultValue == null)
             {
-                matchesDefault = true;
+                var gpDefaultState = ToggleTargetState(reg.DefaultValue, reg.EnabledValue, reg.DisabledValue);
+                if (gpDefaultState.HasValue)
+                    matchesDefault = gpDefaultState == IsSelected;
+                // else: no opinion → abstain (matchesDefault stays true)
+            }
+            else if (IsKeyExistenceToggle(reg))
+            {
+                // Key-existence toggles: Windows default is key-present (enabled = true).
+                matchesDefault = IsSelected == true;
             }
             else
             {
@@ -1787,17 +1811,30 @@ public partial class SettingItemViewModel : BaseViewModel
         return false;
     }
 
+    /// <summary>
+    /// Detects registry key-existence toggles: ValueName is null, no Enabled/Disabled
+    /// value arrays, and ValueType is None.  These settings toggle by creating or
+    /// deleting the registry key itself.  The Windows default is key-present (true).
+    /// </summary>
+    private static bool IsKeyExistenceToggle(RegistrySetting r) =>
+        r.ValueName == null
+        && r.EnabledValue == null
+        && r.DisabledValue == null
+        && r.ValueType == Microsoft.Win32.RegistryValueKind.None;
+
     private bool HasAnyDefaultData()
     {
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        // Group-policy regs with null DefaultValue are write-only enforcers; their
-        // null-sentinel convention doesn't express a Windows default state. Skip
-        // them so a setting that carries only such regs doesn't render a Default
-        // pill it can never match.
+        // Group-policy regs with null DefaultValue are usually write-only enforcers,
+        // but for toggle settings the null-sentinel convention (e.g. EnabledValue = [null])
+        // CAN express a meaningful default ("key absent = Windows default"). Include
+        // such entries when ToggleTargetState produces a result.
         if (SettingDefinition.RegistrySettings.Any(r =>
-                !(r.IsGroupPolicy && r.DefaultValue == null)
+                (!(r.IsGroupPolicy && r.DefaultValue == null)
+                 || (isToggleLike && ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue))
                 && (isToggleLike
-                    ? ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
+                    ? IsKeyExistenceToggle(r)
+                      || ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
                     : r.DefaultValue != null)))
             return true;
         if (InputType == InputType.Selection
@@ -1816,6 +1853,11 @@ public partial class SettingItemViewModel : BaseViewModel
         if (InputType != InputType.Selection) return true;
         var options = SettingDefinition.ComboBox?.Options;
         if (options == null || options.Count == 0) return true;
+        // Separate AC/DC Selection settings (PowerCfg-backed) drive the UI via AcValue/DcValue
+        // rather than SelectedValue — validate those indices instead.
+        if (SupportsSeparateACDC)
+            return AcValue >= 0 && AcValue < options.Count
+                && DcValue >= 0 && DcValue < options.Count;
         return SelectedValue is int idx && idx >= 0 && idx < options.Count;
     }
 
