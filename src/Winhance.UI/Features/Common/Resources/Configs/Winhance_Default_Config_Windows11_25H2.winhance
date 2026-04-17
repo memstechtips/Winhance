@@ -292,13 +292,6 @@
         "AppxPackageName": ["MicrosoftWindows.Client.CoPilot"]
       },
       {
-        "Id": "windows-app-client-coreai",
-        "Name": "Windows Core AI Platform",
-        "IsSelected": false,
-        "InputType": 0,
-        "AppxPackageName": ["MicrosoftWindows.Client.CoreAI"]
-      },
-      {
         "Id": "windows-app-edge-game-assist",
         "Name": "Edge Game Assist",
         "IsSelected": false,

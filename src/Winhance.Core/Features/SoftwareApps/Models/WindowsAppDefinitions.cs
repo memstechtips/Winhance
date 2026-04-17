@@ -508,15 +508,6 @@ public static class WindowsAppDefinitions
                 },
                 new ItemDefinition
                 {
-                    Id = "windows-app-client-coreai",
-                    Name = "Windows Core AI Platform",
-                    Description = "Core AI platform package (MicrosoftWindows.Client.CoreAI)",
-                    GroupName = "AI",
-                    AppxPackageName = ["MicrosoftWindows.Client.CoreAI"],
-                    CanBeReinstalled = false,
-                },
-                new ItemDefinition
-                {
                     Id = "windows-app-edge-game-assist",
                     Name = "Edge Game Assist",
                     Description = "Edge Game Assist AI overlay for gaming",
