@@ -18,6 +18,7 @@ public static class SoundOptimizations
                 new SettingDefinition
                 {
                     Id = "sound-startup",
+                    IsSubjectivePreference = true,
                     Name = "Startup Sound During Boot",
                     Description = "Play the Windows startup sound when your computer boots up",
                     GroupName = "System Sounds",
@@ -32,7 +33,7 @@ public static class SoundOptimizations
                             RecommendedValue = 1, // For backward compatibility
                             EnabledValue = [0, null], // When toggle is ON, startup sound is enabled
                             DisabledValue = [1], // When toggle is OFF, startup sound is disabled
-                            DefaultValue = 1,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -42,7 +43,7 @@ public static class SoundOptimizations
                             RecommendedValue = 1, // For backward compatibility
                             EnabledValue = [0, null], // When toggle is ON, user startup sound is enabled
                             DisabledValue = [1], // When toggle is OFF, user startup sound is disabled
-                            DefaultValue = 1,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

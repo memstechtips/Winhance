@@ -141,6 +141,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-bitlocker-auto-encryption",
+                    IsSubjectivePreference = true,
                     Name = "BitLocker Auto Encryption",
                     Description = "Controls whether Windows can automatically encrypt drives with BitLocker. Has no effect if BitLocker encryption is already active on your device",
                     GroupName = "Security",
@@ -414,7 +415,6 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-ads-promotional-master",
-                    IsSubjectivePreference = true,
                     Name = "Ads, Suggestions and Promotional Content",
                     Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
                     GroupName = "Content Delivery & Advertising",
@@ -1678,6 +1678,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-camera-access",
+                    IsSubjectivePreference = true,
                     Name = "Camera Access",
                     Description = "Allow apps to have camera access",
                     GroupName = "App Permissions",
@@ -1700,6 +1701,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-microphone-access",
+                    IsSubjectivePreference = true,
                     Name = "Microphone Access",
                     Description = "Allow apps to have microphone access",
                     GroupName = "App Permissions",
@@ -1767,6 +1769,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-onedrive-auto-backup",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "OneDrive Automatic Backups",
                     Description = "Controls whether OneDrive automatically backs up your Documents, Pictures, and Desktop folders. Has no effect if OneDrive backups are already active on your device",

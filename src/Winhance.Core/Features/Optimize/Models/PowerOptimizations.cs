@@ -20,6 +20,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-plan-selection",
+                    IsSubjectivePreference = true,
                     Name = "Power Plan",
                     Description = "Select the active power plan for your system",
                     IconPack = "Fluent",
@@ -31,6 +32,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-display-timeout",
+                    IsSubjectivePreference = true,
                     Name = "Turn off the display",
                     Description = "Specifies the period of inactivity before Windows turns off the display",
                     GroupName = "Display",
@@ -47,7 +49,7 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 300,
-                            DefaultValueAC = 0,
+                            DefaultValueAC = 300,
                             DefaultValueDC = 180
                         }
                     },
@@ -58,6 +60,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-harddisk-timeout",
+                    IsSubjectivePreference = true,
                     Name = "Turn off hard disk after",
                     Description = "Specifies the period of inactivity before Windows turns off the hard disk",
                     GroupName = "Hard Disk",
@@ -137,6 +140,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "wireless-power-mode",
+                    IsSubjectivePreference = true,
                     Name = "Power Saving Mode",
                     Description = "Balance wireless network performance with battery life by adjusting adapter power usage",
                     GroupName = "Wireless Adapter Settings",
@@ -162,6 +166,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-sleep-timeout",
+                    IsSubjectivePreference = true,
                     Name = "Put the computer to sleep",
                     Description = "Specifies the period of inactivity before Windows puts the computer to sleep",
                     GroupName = "Sleep",
@@ -214,6 +219,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-hibernation-enable",
+                    IsSubjectivePreference = true,
                     Name = "Hibernation",
                     Description = "Save your session to disk and power down completely, using no battery while preserving your work",
                     GroupName = "Sleep",
@@ -246,6 +252,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-hibernate-timeout",
+                    IsSubjectivePreference = true,
                     Name = "Hibernate after",
                     Description = "Specifies the period of inactivity before Windows hibernates the computer",
                     GroupName = "Sleep",
@@ -264,7 +271,7 @@ public static class PowerOptimizations
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 0,
                             DefaultValueAC = 0,
-                            DefaultValueDC = 0
+                            DefaultValueDC = 10800
                         }
                     },
                     ComboBox = PowerTemplates.TimeIntervals
@@ -272,6 +279,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-hybrid-sleep",
+                    IsSubjectivePreference = true,
                     Name = "Allow hybrid sleep",
                     Description = "Combines sleep and hibernate by saving your session to disk while staying in low-power mode for faster wake",
                     GroupName = "Sleep",
@@ -340,6 +348,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "start-power-hibernate-option",
+                    IsSubjectivePreference = true,
                     Name = "Show Hibernate Option",
                     Description = "Display the Hibernate option in the Start Menu power button menu",
                     GroupName = "Sleep",
@@ -422,8 +431,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 0,
                             RecommendedValueDC = 1,
-                            DefaultValueAC = 0,
-                            DefaultValueDC = 0
+                            DefaultValueAC = 1,
+                            DefaultValueDC = 1
                         }
                     },
                     ComboBox = PowerTemplates.EnabledDisabled,
@@ -494,6 +503,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "power-button-action",
+                    IsSubjectivePreference = true,
                     Name = "Power button action",
                     Description = "Choose what happens when you press the physical power button on your computer",
                     GroupName = "Power Buttons and Lid",
@@ -529,6 +539,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "sleep-button-action",
+                    IsSubjectivePreference = true,
                     Name = "Sleep button action",
                     Description = "Choose what happens when you press the dedicated sleep button on your keyboard or computer",
                     GroupName = "Power Buttons and Lid",
@@ -564,6 +575,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "lid-close-action",
+                    IsSubjectivePreference = true,
                     Name = "Lid close action",
                     Description = "Choose what happens when you close your laptop lid",
                     GroupName = "Power Buttons and Lid",
@@ -1035,7 +1047,7 @@ public static class PowerOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling",
                             ValueName = "PowerThrottlingOff",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [0],
                             DisabledValue = [1],
                             DefaultValue = 0,
@@ -1173,6 +1185,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "low-battery-level",
+                    IsSubjectivePreference = true,
                     Name = "Low battery level",
                     Description = "Set the battery percentage that triggers low battery warnings and actions",
                     GroupName = "Battery",
@@ -1254,6 +1267,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "low-battery-action",
+                    IsSubjectivePreference = true,
                     Name = "Low battery action",
                     Description = "Choose what happens when battery reaches low battery level",
                     GroupName = "Battery",
@@ -1321,8 +1335,8 @@ public static class PowerOptimizations
                             PowerModeSupport = PowerModeSupport.Separate,
                             RecommendedValueAC = 3,
                             RecommendedValueDC = 1,
-                            DefaultValueAC = 1,
-                            DefaultValueDC = 1
+                            DefaultValueAC = 2,
+                            DefaultValueDC = 2
                         }
                     },
                     ComboBox = PowerTemplates.AmdPowerSlider,
@@ -1381,6 +1395,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "start-power-lock-option",
+                    IsSubjectivePreference = true,
                     Name = "Show Lock Option",
                     Description = "Display the Lock option in the Start Menu power button menu",
                     GroupName = "Start Menu",
@@ -1413,6 +1428,7 @@ public static class PowerOptimizations
                 new SettingDefinition
                 {
                     Id = "start-power-sleep-option",
+                    IsSubjectivePreference = true,
                     Name = "Show Sleep Option",
                     Description = "Display the Sleep option in the Start Menu power button menu",
                     GroupName = "Start Menu",

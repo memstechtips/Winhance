@@ -18,6 +18,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-clean",
+                    IsSubjectivePreference = true,
                     Name = "Clean Taskbar",
                     Description = "Removes all pinned items from the Taskbar",
                     GroupName = "Layout",
@@ -166,6 +167,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-auto-hide",
+                    IsSubjectivePreference = true,
                     Name = "Automatically hide the taskbar",
                     Description = "Automatically hides the taskbar when not in use. Hover at the bottom of the screen to reveal it",
                     GroupName = "Taskbar Behavior",
@@ -253,6 +255,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-badges",
+                    IsSubjectivePreference = true,
                     Name = "Show badges on taskbar apps",
                     Description = "Show notification badge counters on taskbar app icons to indicate unread messages or alerts",
                     GroupName = "Taskbar Behavior",
@@ -276,6 +279,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-flashing",
+                    IsSubjectivePreference = true,
                     Name = "Show flashing on taskbar apps",
                     Description = "Allow taskbar app icons to flash when they require your attention",
                     GroupName = "Taskbar Behavior",
@@ -300,6 +304,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-multi-display",
+                    IsSubjectivePreference = true,
                     Name = "Show my taskbar on all displays",
                     Description = "Show the taskbar on all connected monitors when using a multi-display setup",
                     GroupName = "Taskbar Behavior",
@@ -324,6 +329,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-multi-display-apps",
+                    IsSubjectivePreference = true,
                     Name = "Show taskbar apps on",
                     Description = "When using multiple displays, choose which taskbar shows your pinned and running apps",
                     GroupName = "Taskbar Behavior",
@@ -370,6 +376,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-share-window",
+                    IsSubjectivePreference = true,
                     Name = "Share any window from my taskbar",
                     Description = "Enable sharing any open window directly from the taskbar during a call",
                     GroupName = "Taskbar Behavior",
@@ -394,6 +401,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-show-desktop",
+                    IsSubjectivePreference = true,
                     Name = "Show desktop from taskbar corner",
                     Description = "Click the far corner of the taskbar to quickly show the desktop by minimizing all open windows",
                     GroupName = "Taskbar Behavior",
@@ -464,6 +472,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-combine-buttons-other",
+                    IsSubjectivePreference = true,
                     Name = "Combine taskbar buttons on other taskbars",
                     Description = "Control whether taskbar buttons are grouped together and labels are hidden on secondary display taskbars",
                     GroupName = "Taskbar Behavior",
@@ -607,6 +616,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-system-tray-icons",
+                    IsSubjectivePreference = true,
                     Name = "Always show all system tray icons",
                     Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. To control individual icon visibility, go to Taskbar Settings and select which icons appear on the taskbar",
                     GroupName = "Taskbar Behavior",
@@ -631,6 +641,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-system-tray-icons-11",
+                    IsSubjectivePreference = true,
                     Name = "Always show all system tray icons",
                     Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. When disabled, all icons will be hidden in the overflow menu. To control individual icon visibility, go to Windows Settings > Personalization > Taskbar > Other system tray icons",
                     GroupName = "Taskbar Behavior",
@@ -665,6 +676,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-task-view",
+                    IsSubjectivePreference = true,
                     Name = "Show Task View button",
                     Description = "Show the Task View button for managing virtual desktops and viewing all open windows at once",
                     GroupName = "Taskbar Icons",
@@ -864,6 +876,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-transparent",
+                    IsSubjectivePreference = true,
                     Name = "Taskbar Transparency",
                     Description = "Controls the transparency level of the taskbar. Winhance automatically enables Transparency Effects when this setting is applied",
                     GroupName = "Taskbar Behavior",
@@ -919,6 +932,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-small",
+                    IsSubjectivePreference = true,
                     Name = "Make taskbar small",
                     Description = "Reduce the height of the taskbar by using smaller icons, giving you more screen space",
                     GroupName = "Taskbar Behavior",

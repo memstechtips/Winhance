@@ -118,6 +118,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-context-menu",
+                    IsSubjectivePreference = true,
                     Name = "Use Classic Context Menu",
                     Description = "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
                     GroupName = "Context Menu",
@@ -135,7 +136,7 @@ if (-not (Test-Path $icoPath)) {
                             RecommendedValue = "",
                             EnabledValue = [""],
                             DisabledValue = [null],
-                            DefaultValue = "",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
                     },
@@ -143,6 +144,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-take-ownership",
+                    IsSubjectivePreference = true,
                     Name = "Add 'Take Ownership' to Context Menu",
                     Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
                     GroupName = "Context Menu",
@@ -157,7 +159,7 @@ if (-not (Test-Path $icoPath)) {
                             EnabledValue = ["Take Ownership"],
                             DisabledValue = [null],
                             DefaultValue = null,
-                            RecommendedValue = "Take Ownership",
+                            RecommendedValue = null,
                             ValueType = RegistryValueKind.String,
                         }
                     },
@@ -224,6 +226,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-toggle-extensions",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Add 'Show/Hide Extensions' to Context Menu",
                     Description = "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
@@ -283,6 +286,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-windows-terminal",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "Show 'Open in Windows Terminal' in Context Menu",
                     Description = "Displays the Windows Terminal option when right-clicking folders and backgrounds in File Explorer",
@@ -307,6 +311,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-sfc",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Add 'SFC /SCANNOW' to Context Menu",
                     Description = "Adds right-click options to run System File Checker (SFC /SCANNOW) and view scan details from the desktop or folder background",
@@ -377,6 +382,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-dism",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Add 'Repair Windows Image' to Context Menu",
                     Description = "Adds a right-click option to run DISM /RestoreHealth to repair the Windows system image from the desktop or folder background",
@@ -440,6 +446,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-chkdsk",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Add 'CHKDSK' to Context Menu",
                     Description = "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
@@ -513,6 +520,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-ps1-edit-run",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Add 'Edit or Run with' to PS1 Context Menu",
                     Description = "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
@@ -646,6 +654,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-compress-to",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Add 'Compress To' to Context Menu",
                     Description = "Adds a right-click option to compress files and folders into various archive formats (ZIP, 7z, TAR) directly from the classic context menu",
@@ -712,6 +721,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "devices-dynamic-lighting-ambient",
+                    IsSubjectivePreference = true,
                     Name = "Use Dynamic Lighting on my devices",
                     Description = "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",
                     GroupName = "Devices and Peripherals",
@@ -735,6 +745,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "devices-dynamic-lighting-foreground-app",
+                    IsSubjectivePreference = true,
                     Name = "Compatible apps in the foreground always control lighting",
                     Description = "Allow compatible apps to control device lighting effects",
                     GroupName = "Devices and Peripherals",
@@ -758,6 +769,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "devices-default-printer-management",
+                    IsSubjectivePreference = true,
                     Name = "Automatic Default Printer Management",
                     Description = "Let Windows automatically set your default printer based on your location or last used printer",
                     GroupName = "Devices and Peripherals",
@@ -769,7 +781,7 @@ if (-not (Test-Path $icoPath)) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\Windows",
                             ValueName = "LegacyDefaultPrinterMode",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = [0],
                             DisabledValue = [1],
                             DefaultValue = 0,
@@ -1019,6 +1031,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Always show icons, never thumbnails",
                     Description = "Displays generic file icons instead of image/document previews",
                     GroupName = "Files and Folders",
@@ -1041,6 +1054,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-menus",
+                    IsSubjectivePreference = true,
                     Name = "Always show menus",
                     Description = "Shows the Menu bar (File, Edit etc.) on all windows that support it",
                     GroupName = "Files and Folders",
@@ -1065,6 +1079,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-item-space",
+                    IsSubjectivePreference = true,
                     Name = "Decrease space between items (compact view)",
                     Description = "Reduces vertical spacing between files and folders for denser view",
                     GroupName = "Files and Folders",
@@ -1088,6 +1103,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-icon-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Display file icon on thumbnails",
                     Description = "Shows file type icon overlay on bottom-right corner of thumbnail previews",
                     GroupName = "Files and Folders",
@@ -1111,6 +1127,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-folder-tips",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "Display file size information in folder tips",
                     Description = "Shows total size and file count when hovering over folders",
@@ -1135,6 +1152,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-full-path",
+                    IsSubjectivePreference = true,
                     Name = "Display the full path in the title bar",
                     Description = "Shows complete directory path in window title instead of folder name only",
                     GroupName = "Files and Folders",
@@ -1158,6 +1176,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-hidden-files",
+                    IsSubjectivePreference = true,
                     Name = "Show hidden files, folders & drives",
                     Description = "Displays items with the hidden attribute set",
                     GroupName = "Files and Folders",
@@ -1180,6 +1199,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-hide-empty-drives",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "Hide empty drives",
                     Description = "Hides drives with no media inserted like empty card readers or optical drives",
@@ -1203,6 +1223,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-file-ext",
+                    IsSubjectivePreference = true,
                     Name = "Show file extensions",
                     Description = "Displays file type extensions (like .txt, .pdf) after file names",
                     GroupName = "Files and Folders",
@@ -1226,6 +1247,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-enable-photo-viewer",
+                    IsSubjectivePreference = true,
                     Name = "Enable Windows Photo Viewer",
                     Description = "Restore the legacy Windows Photo Viewer and set it as the default program for common image file formats",
                     GroupName = "File Associations",
@@ -1237,7 +1259,7 @@ if (-not (Test-Path $icoPath)) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\.bmp",
                             ValueName = "",
-                            EnabledValue = ["PhotoViewer.FileAssoc.Tiff"],
+                            EnabledValue = [null],
                             DisabledValue = [null],
                             RecommendedValue = "PhotoViewer.FileAssoc.Tiff",
                             DefaultValue = null,
@@ -1373,6 +1395,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-legacy-notepad",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Use Legacy Notepad for text files",
                     Description = "Makes legacy Notepad available as a file handler and disables the Store Notepad redirect. Requires Notepad (Legacy) capability to be installed",
@@ -1422,6 +1445,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-hide-merge-conflicts",
+                    IsSubjectivePreference = true,
                     Name = "Hide folder merge conflicts",
                     Description = "Automatically merges folders with same name without confirmation dialog",
                     GroupName = "Files and Folders",
@@ -1444,6 +1468,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-hide-protected-files",
+                    IsSubjectivePreference = true,
                     Name = "Show protected operating system files",
                     Description = "Displays system files marked with the SuperHidden attribute",
                     GroupName = "Files and Folders",
@@ -1466,6 +1491,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-separate-process",
+                    IsSubjectivePreference = true,
                     Name = "Launch folder windows in a separate process",
                     Description = "Runs each Explorer window in its own process to prevent crashes affecting all windows",
                     GroupName = "Files and Folders",
@@ -1488,6 +1514,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-persist-browsers",
+                    IsSubjectivePreference = true,
                     Name = "Restore previous folder windows at logon",
                     Description = "Reopens Explorer windows that were open when you last shut down or logged off",
                     GroupName = "Files and Folders",
@@ -1511,6 +1538,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-drive-letters",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = true,
                     Name = "Show drive letters",
                     Description = "Displays drive letters (C:, D:) before drive names in This PC",
@@ -1534,6 +1562,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-compressed-color",
+                    IsSubjectivePreference = true,
                     Name = "Show encrypted or compressed NTFS files in color",
                     Description = "Displays encrypted files in green and compressed files in blue",
                     GroupName = "Files and Folders",
@@ -1557,6 +1586,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-popup-descriptions",
+                    IsSubjectivePreference = true,
                     Name = "Show pop-up description for folder and desktop items",
                     Description = "Displays tooltip with item details when hovering over files and folders",
                     GroupName = "Files and Folders",
@@ -1579,6 +1609,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-preview-handlers",
+                    IsSubjectivePreference = true,
                     Name = "Show preview handlers in preview pane",
                     Description = "Enables file content preview when selecting files in Explorer",
                     GroupName = "Files and Folders",
@@ -1601,6 +1632,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-status-bar",
+                    IsSubjectivePreference = true,
                     Name = "Show status bar",
                     Description = "Displays bar at bottom showing item count and selected file sizes",
                     GroupName = "Files and Folders",
@@ -1623,6 +1655,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-disable-sync-provider-notifications",
+                    IsSubjectivePreference = true,
                     Name = "Show sync provider notifications",
                     Description = "Displays cloud sync status notifications from OneDrive and other sync providers",
                     GroupName = "Files and Folders",
@@ -1645,6 +1678,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-checkbox-select",
+                    IsSubjectivePreference = true,
                     Name = "Use check boxes to select items",
                     Description = "Adds checkboxes next to items for easier multi-selection",
                     GroupName = "Files and Folders",
@@ -1667,6 +1701,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-sharing-wizard",
+                    IsSubjectivePreference = true,
                     Name = "Use sharing wizard",
                     Description = "Shows simplified sharing dialog instead of advanced security permissions",
                     GroupName = "Files and Folders",
@@ -1833,6 +1868,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-expand-current",
+                    IsSubjectivePreference = true,
                     Name = "Expand to open folder",
                     Description = "Automatically expands navigation tree to highlight current folder location",
                     GroupName = "Navigation Pane",
@@ -1855,6 +1891,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-show-all-folders",
+                    IsSubjectivePreference = true,
                     Name = "Show all folders",
                     Description = "Shows all folders in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -1888,6 +1925,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-saf-desktop",
+                    IsSubjectivePreference = true,
                     Name = "Show Desktop folder",
                     Description = "Shows the Desktop folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -1922,6 +1960,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-saf-documents",
+                    IsSubjectivePreference = true,
                     Name = "Show Documents folder",
                     Description = "Shows the Documents folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -1956,6 +1995,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-saf-downloads",
+                    IsSubjectivePreference = true,
                     Name = "Show Downloads folder",
                     Description = "Shows the Downloads folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -1990,6 +2030,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-saf-music",
+                    IsSubjectivePreference = true,
                     Name = "Show Music folder",
                     Description = "Shows the Music folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2024,6 +2065,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-saf-pictures",
+                    IsSubjectivePreference = true,
                     Name = "Show Pictures folder",
                     Description = "Shows the Pictures folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2058,6 +2100,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-saf-videos",
+                    IsSubjectivePreference = true,
                     Name = "Show Videos folder",
                     Description = "Shows the Videos folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2092,6 +2135,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-show-libraries",
+                    IsSubjectivePreference = true,
                     Name = "Show Libraries",
                     Description = "Pins the Libraries folder as a top-level item in the navigation pane. Has no effect when Show All Folders is enabled, as Libraries becomes part of the folder tree instead",
                     GroupName = "Navigation Pane",
@@ -2135,6 +2179,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-duplicate-removable-drives",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Show Duplicate Removable Drives",
                     Description = "Show removable drives as separate entries in the navigation pane in addition to under This PC",
@@ -2170,6 +2215,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-long-file-paths",
+                    IsSubjectivePreference = true,
                     Name = "Enable Long File Paths",
                     Description = "Enables support for file paths with up to 32,767 characters instead of the traditional 260-character limit",
                     GroupName = "Files and Folders",
@@ -2192,6 +2238,7 @@ if (Test-Path $appPathsKey) {
                 new SettingDefinition
                 {
                     Id = "explorer-customization-netplwiz-auto-login",
+                    IsSubjectivePreference = true,
                     Name = "Show Auto-Login Option in User Accounts",
                     Description = "Shows the classic 'Users must enter a user name and password to use this computer' checkbox in the User Accounts (netplwiz) window, allowing you to configure automatic logon through the standard Windows UI",
                     GroupName = "Network",

@@ -60,7 +60,7 @@
     "InputType": "Selection"
   },
   "devices-default-printer-management": {
-    "Recommended": 0,
+    "Recommended": 1,
     "Default": 0,
     "InputType": "Toggle"
   },
@@ -163,7 +163,7 @@
   },
   "explorer-customization-context-menu": {
     "Recommended": "",
-    "Default": "",
+    "Default": null,
     "InputType": "Toggle"
   },
   "explorer-customization-currency-decimal": {
@@ -454,7 +454,7 @@
     "InputType": "Toggle"
   },
   "explorer-take-ownership": {
-    "Recommended": "Take Ownership",
+    "Recommended": null,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -734,7 +734,7 @@
     "InputType": "Selection"
   },
   "gaming-performance-autostart-delay": {
-    "Recommended": 10000,
+    "Recommended": 0,
     "Default": 0,
     "InputType": "Toggle"
   },
@@ -1068,11 +1068,11 @@
   "gaming-touch-keyboard-service": {
     "Recommended": {
       "kind": "index",
-      "value": 1
+      "value": 0
     },
     "Default": {
       "kind": "index",
-      "value": 0
+      "value": 1
     },
     "InputType": "Selection"
   },
@@ -1339,7 +1339,7 @@
     "InputType": "Selection"
   },
   "power-throttling": {
-    "Recommended": 0,
+    "Recommended": 1,
     "Default": 0,
     "InputType": "Toggle"
   },
@@ -1815,12 +1815,12 @@
     "InputType": "Toggle"
   },
   "security-bitlocker-auto-encryption": {
-    "Recommended": 0,
+    "Recommended": 1,
     "Default": 0,
     "InputType": "Toggle"
   },
   "security-developer-mode": {
-    "Recommended": null,
+    "Recommended": 0,
     "Default": 0,
     "InputType": "Toggle"
   },
@@ -1873,7 +1873,7 @@
     "InputType": "Toggle"
   },
   "security-workplace-join-messages": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -1920,7 +1920,7 @@
   },
   "sound-startup": {
     "Recommended": 1,
-    "Default": 1,
+    "Default": 0,
     "InputType": "Toggle"
   },
   "sound-voice-activation": {
@@ -1934,7 +1934,7 @@
     "InputType": "Toggle"
   },
   "start-disable-bing-search-results": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -2243,7 +2243,7 @@
     "InputType": "Selection"
   },
   "theme-transparency": {
-    "Recommended": 0,
+    "Recommended": 1,
     "Default": 1,
     "InputType": "Toggle"
   },
@@ -2285,7 +2285,7 @@
   },
   "updates-metered-connection": {
     "Recommended": 0,
-    "Default": 0,
+    "Default": 1,
     "InputType": "Toggle"
   },
   "updates-notification-level": {
@@ -2311,7 +2311,7 @@
   },
   "updates-restart-asap": {
     "Recommended": 0,
-    "Default": 0,
+    "Default": 1,
     "InputType": "Toggle"
   },
   "updates-restart-notification": {

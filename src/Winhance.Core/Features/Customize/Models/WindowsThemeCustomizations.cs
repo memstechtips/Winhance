@@ -101,6 +101,7 @@ public static class WindowsThemeCustomizations
                 new SettingDefinition
                 {
                     Id = "theme-transparency",
+                    IsSubjectivePreference = true,
                     Name = "Transparency effects",
                     Description = "Enable translucent effects for the Start Menu, taskbar, and other Windows interface elements",
                     GroupName = "Transparency",
@@ -112,7 +113,7 @@ public static class WindowsThemeCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                             ValueName = "EnableTransparency",
-                            RecommendedValue = 0, // Disable transparency recommended
+                            RecommendedValue = 1, // Enable transparency recommended
                             EnabledValue = [1, null], // When toggle is ON, transparency effects are enabled
                             DisabledValue = [0], // When toggle is OFF, transparency effects are disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set

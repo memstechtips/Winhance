@@ -83,15 +83,9 @@ public class SettingCatalogValidatorTests
     // The Preference pill says "this is a matter of taste"; the Recommended pill says "but Winhance
     // suggests this option." Both pills display independently. A subjective setting MAY carry a
     // Winhance recommendation — there is no constraint preventing it.
-    [Theory]
-    [MemberData(nameof(AllSettings))]
-    public void SubjectivePreference_IsSelectionOnly(string id, SettingDefinition s)
-    {
-        if (!s.IsSubjectivePreference) return;
-
-        s.InputType.Should().Be(InputType.Selection,
-            because: $"'{id}' is flagged IsSubjectivePreference but that is a Selection-only concept");
-    }
+    // IsSubjectivePreference applies to any InputType (Toggle, CheckBox, Selection, NumericRange, ...),
+    // not just Selection. For Toggles/CheckBoxes it signals "user choice — Winhance makes no
+    // recommendation," which is why Toggle_HasRecommendation below exempts subjective settings.
 
     [Theory]
     [MemberData(nameof(AllSettings))]
@@ -109,6 +103,8 @@ public class SettingCatalogValidatorTests
     /// drift where someone adds a toggle without filling in the recommendation.
     /// Settings backed only by ScheduledTask / PowerCfg / NativePowerApi / PowerShellScripts /
     /// RegContents are exempt (they carry their recommendation on those models, not here).
+    /// Settings flagged <see cref="SettingDefinition.IsSubjectivePreference"/> are also exempt — the
+    /// flag explicitly means "user choice, no Winhance recommendation."
     /// </summary>
     [Theory]
     [MemberData(nameof(AllSettings))]
@@ -116,6 +112,7 @@ public class SettingCatalogValidatorTests
     {
         if (s.InputType != InputType.Toggle && s.InputType != InputType.CheckBox) return;
         if (s.RegistrySettings is null || s.RegistrySettings.Count == 0) return;
+        if (s.IsSubjectivePreference) return;
 
         bool hasToggleLevelFlag = s.RecommendedToggleState.HasValue;
         bool hasPerKeyValue = s.RegistrySettings.Any(r => r.RecommendedValue != null);

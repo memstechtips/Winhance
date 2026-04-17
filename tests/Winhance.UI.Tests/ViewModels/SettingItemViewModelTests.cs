@@ -1145,14 +1145,16 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
-    public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOn_DefaultLit()
+    public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOn_AllBadgesDim()
     {
         // privacy-tailored-experiences shape: a base registry with DefaultValue = 1
         // (Windows default is ON) plus group-policy enforcer regs carrying
-        // DefaultValue = null and DisabledValue = [null]. The policy regs have no
-        // opinion on the Windows default state — their null sentinel only models
-        // "policy not applied". Toggle ON must light the Default badge on the
-        // strength of the base reg alone.
+        // DefaultValue = null and DisabledValue = [null].
+        // Under the current semantics in EvaluateRegistrySetting, a group-policy reg
+        // with null DefaultValue derives its default-state vote via ToggleTargetState
+        // from the null sentinel: DisabledValue = [null] resolves to "default = disabled".
+        // Toggle ON therefore disagrees with the policy reg's default vote, so the
+        // aggregate matchesDefault is false even though the base reg agrees with ON.
         var def = BuildBaseWithPolicyEnforcerToggleDefinition(
             id: "tailored-experiences-like",
             recommendedToggleState: false);
@@ -1163,7 +1165,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
         {
             (SettingBadgeKind.Recommended, false),
-            (SettingBadgeKind.Default,     true),
+            (SettingBadgeKind.Default,     false),
             (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }

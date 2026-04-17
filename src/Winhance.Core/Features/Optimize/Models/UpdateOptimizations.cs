@@ -18,6 +18,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-policy-mode",
+                    IsSubjectivePreference = true,
                     Name = "Windows Update Policy",
                     Description = "Control how Windows updates are installed on your system",
                     GroupName = "Update Policy",
@@ -477,6 +478,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-other-products",
+                    IsSubjectivePreference = true,
                     Name = "Receive updates for other Microsoft products",
                     Description = "Get Microsoft Office and other updates together with Windows updates",
                     GroupName = "Update Behavior",
@@ -513,7 +515,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
-                            DefaultValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -556,6 +558,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-notification-level",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Update Notifications",
                     Description = "Show or hide notifications about available updates and update progress",
@@ -591,6 +594,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-restart-notification",
+                    IsSubjectivePreference = true,
                     Name = "Notify me when a restart is required to finish updating",
                     Description = "Show notification when your device requires a restart to finish updating",
                     GroupName = "Update Behavior",
@@ -627,7 +631,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
-                            DefaultValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -635,6 +639,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-driver-controls",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Driver Updates via Windows Update",
                     Description = "Include hardware driver updates when downloading and installing Windows Updates",
@@ -670,6 +675,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-driver-coinstallers",
+                    IsSubjectivePreference = true,
                     RecommendedToggleState = false,
                     Name = "Driver Co-Installers",
                     Description = "Allows hardware vendors to install companion software alongside device drivers. Disabling this prevents bloatware like Razer Synapse, printer utilities, and other vendor software from being automatically installed when you plug in devices. Your hardware will still work normally with standard drivers.",
