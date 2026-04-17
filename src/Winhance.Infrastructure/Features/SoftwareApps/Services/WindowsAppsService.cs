@@ -95,7 +95,7 @@ public class WindowsAppsService(
                 // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = GetCurrentCancellationToken();
-                var installResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken).ConfigureAwait(false);
+                var installResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (installResult.Success)
                 {
@@ -136,7 +136,7 @@ public class WindowsAppsService(
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = GetCurrentCancellationToken();
-                            var retryResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken2).ConfigureAwait(false);
+                            var retryResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken: cancellationToken2).ConfigureAwait(false);
                             if (retryResult.Success)
                             {
                                 return OperationResult<bool>.Succeeded(true);

@@ -77,7 +77,7 @@ public class ExternalAppsService(
                     var installerType = await winGetDetectionService.GetInstallerTypeAsync(pkgId, cancellationToken).ConfigureAwait(false);
                     var isPortable = IsPortableInstallerType(installerType);
 
-                    lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, cancellationToken).ConfigureAwait(false);
+                    lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, item.WinGetInstallerOverride, cancellationToken).ConfigureAwait(false);
 
                     if (lastResult.Success)
                     {
