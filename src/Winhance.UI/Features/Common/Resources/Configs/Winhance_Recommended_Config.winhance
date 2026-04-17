@@ -1164,7 +1164,7 @@
             "Id": "taskbar-button-size",
             "Name": "Show smaller taskbar buttons",
             "InputType": 1,
-            "SelectedIndex": 0
+            "SelectedIndex": 1
           },
           {
             "Id": "taskbar-meet-now",

@@ -14,6 +14,7 @@ public class BulkSettingsActionServiceTests
     private readonly Mock<IDomainServiceRouter> _mockRouter = new();
     private readonly Mock<IWindowsVersionService> _mockVersionService = new();
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
+    private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly BulkSettingsActionService _service;
 
@@ -23,6 +24,7 @@ public class BulkSettingsActionServiceTests
             _mockRouter.Object,
             _mockVersionService.Object,
             _mockAppService.Object,
+            _mockProcessRestartManager.Object,
             _mockLog.Object);
 
         // Default OS setup: Windows 11, build 22621

@@ -91,7 +91,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<CancellationToken>()))
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -117,7 +117,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "9NBLGGH4NNS1", "msstore", "Store App", It.IsAny<CancellationToken>()))
+                "9NBLGGH4NNS1", "msstore", "Store App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -241,7 +241,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<CancellationToken>()))
+                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -249,9 +249,9 @@ public class ExternalAppsServiceTests
         result.Success.Should().BeTrue();
         // WinGet source should be tried (and succeed), MsStore should NOT be tried
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<CancellationToken>()), Times.Once);
+            "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "9NBLGGH12345", "msstore", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            "9NBLGGH12345", "msstore", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -274,20 +274,20 @@ public class ExternalAppsServiceTests
         // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<CancellationToken>()))
+                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
 
         // MsStore succeeds
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<CancellationToken>()))
+                "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<CancellationToken>()), Times.Once);
+            "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // --- InstallAppAsync: Chocolatey fallback ---
@@ -312,7 +312,7 @@ public class ExternalAppsServiceTests
         // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.HashMismatchOrInstallError, "Hash mismatch"));
 
         // Chocolatey is already installed
@@ -406,7 +406,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.DownloadError, "Download error"));
 
         _chocolateyService
@@ -446,7 +446,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _chocolateyService
@@ -486,7 +486,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _chocolateyService
@@ -534,7 +534,7 @@ public class ExternalAppsServiceTests
         // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FallbackApp", "winget", "Fallback App", It.IsAny<CancellationToken>()))
+                "Publisher.FallbackApp", "winget", "Fallback App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
 
         // Direct download succeeds
@@ -568,7 +568,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.AllFailApp", "winget", "All Fail App", It.IsAny<CancellationToken>()))
+                "Publisher.AllFailApp", "winget", "All Fail App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Failed"));
 
         var result = await sut.InstallAppAsync(item);
@@ -601,7 +601,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FallbackFailApp", "winget", "Fallback Fail App", It.IsAny<CancellationToken>()))
+                "Publisher.FallbackFailApp", "winget", "Fallback Fail App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         // Direct download also fails
@@ -637,7 +637,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FallbackThrowApp", "winget", "Fallback Throw App", It.IsAny<CancellationToken>()))
+                "Publisher.FallbackThrowApp", "winget", "Fallback Throw App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _directDownloadService
@@ -674,7 +674,7 @@ public class ExternalAppsServiceTests
         // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<CancellationToken>()))
+                "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         // Choco installed but package install fails
