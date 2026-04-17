@@ -15,14 +15,19 @@ public class ApplicationCloseServiceTests
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
 
+    private bool _shutdownCalled;
+
     private ApplicationCloseService CreateService()
     {
-        return new ApplicationCloseService(
+        var svc = new ApplicationCloseService(
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
             _mockDialogService.Object,
             _mockProcessExecutor.Object);
+        // Tests must not actually terminate the test host — swap in a no-op shutdown.
+        svc.ShutdownAction = () => _shutdownCalled = true;
+        return svc;
     }
 
     // -------------------------------------------------------
