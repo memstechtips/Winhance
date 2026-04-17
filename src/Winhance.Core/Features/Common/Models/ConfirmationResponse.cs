@@ -4,7 +4,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// Represents the user's response to a confirmation request.
 /// This generic model can be used across all features that require user confirmation.
 /// </summary>
-public record ConfirmationResponse
+public sealed record ConfirmationResponse
 {
     /// <summary>
     /// Gets whether the user confirmed the operation.

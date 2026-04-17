@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Models;
 
-public record PowerShellScriptSetting
+public sealed record PowerShellScriptSetting
 {
     public string? Id { get; init; }
     public string? Script { get; init; }

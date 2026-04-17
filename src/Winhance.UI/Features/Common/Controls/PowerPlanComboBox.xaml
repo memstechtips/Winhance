@@ -25,7 +25,7 @@
         DropDownOpened="OnDropDownOpened">
 
         <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="interfaces:ComboBoxOption">
+            <DataTemplate x:DataType="interfaces:ComboBoxDisplayOption">
                 <Grid HorizontalAlignment="Stretch" Tag="{x:Bind}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>

@@ -46,6 +46,10 @@ public class PowerCfgApplierTests
                 SettingGuid = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
                 PowerModeSupport = powerMode,
                 Units = units,
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null
             }
         }
     };

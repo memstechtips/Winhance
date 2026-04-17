@@ -85,7 +85,7 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "9NBLGGH4NNS1", "msstore", "Test App", It.IsAny<CancellationToken>()))
+                "9NBLGGH4NNS1", "msstore", "Test App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -107,7 +107,7 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.TestApp", "winget", "Test App", It.IsAny<CancellationToken>()))
+                "Publisher.TestApp", "winget", "Test App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -148,7 +148,7 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
 
         // Update policy is not disabled (no blocking)
@@ -188,7 +188,7 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
 
         _systemSettingsDiscoveryService
@@ -225,7 +225,7 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Unexpected error"));
 
         var result = await sut.InstallAppAsync(item);
@@ -248,7 +248,7 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 
         var result = await sut.InstallAppAsync(item);
@@ -337,13 +337,13 @@ public class WindowsAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Microsoft.TestApp", null, "Test Appx", It.IsAny<CancellationToken>()))
+                "Microsoft.TestApp", null, "Test Appx", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "Microsoft.TestApp", null, "Test Appx", It.IsAny<CancellationToken>()), Times.Once);
+            "Microsoft.TestApp", null, "Test Appx", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

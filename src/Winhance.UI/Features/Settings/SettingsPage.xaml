@@ -117,6 +117,30 @@
                             </StackPanel>
                         </controls:SettingsCard>
 
+                        <!-- System Protection Group -->
+                        <TextBlock
+                            Text="{x:Bind ViewModel.SystemProtectionLabel, Mode=OneWay}"
+                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+
+                        <!-- Create Restore Point -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SystemProtectionHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SystemProtectionDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:SymbolIcon Symbol="ShieldTask" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <ProgressRing
+                                    IsActive="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
+                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
+                                    Width="20" Height="20"/>
+                                <Button
+                                    Content="{x:Bind ViewModel.CreateRestorePointButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.CreateRestorePointCommand}"
+                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </controls:SettingsCard>
+
                     </StackPanel>
                 </Grid>
             </ScrollViewer>

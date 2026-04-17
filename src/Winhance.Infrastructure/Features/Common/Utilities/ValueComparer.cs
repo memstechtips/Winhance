@@ -31,6 +31,16 @@ internal static class ValueComparer
             return intVal1 == byteVal2;
         }
 
+        if (value1 is bool boolVal1 && value2 is int intVal3)
+        {
+            return boolVal1 == (intVal3 != 0);
+        }
+
+        if (value1 is int intVal4 && value2 is bool boolVal2)
+        {
+            return (intVal4 != 0) == boolVal2;
+        }
+
         return value1.Equals(value2);
     }
 }

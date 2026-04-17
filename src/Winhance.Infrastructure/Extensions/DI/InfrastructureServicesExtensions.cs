@@ -37,6 +37,9 @@ public static class InfrastructureServicesExtensions
         // User Preferences Service
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
 
+        // New Badge Service (tracks which settings are new in current release)
+        services.AddSingleton<INewBadgeService, NewBadgeService>();
+
         // Localization Service
         services.AddSingleton<ILocalizationService, LocalizationService>();
 
@@ -77,6 +80,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
         services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
+        services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
         services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 

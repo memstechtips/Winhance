@@ -196,4 +196,65 @@ public class ProcessRestartManagerTests
                 It.IsAny<Exception?>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_WhenSuppressed_SkipsProcessRestart()
+    {
+        // Arrange
+        var setting = CreateSetting("suppressed", restartProcess: "notepad");
+
+        // Act
+        using (_sut.SuppressRestarts())
+        {
+            await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        }
+
+        // Assert -- process kill should NOT be called while suppressed
+        _mockUiManagement.Verify(
+            u => u.KillProcess(It.IsAny<string>()), Times.Never);
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Debug,
+                It.Is<string>(s => s.Contains("restarts suppressed")),
+                It.IsAny<Exception?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_WhenSuppressed_SkipsServiceRestart()
+    {
+        // Arrange
+        var setting = CreateSetting("suppressed-svc", restartService: "FakeSvc999");
+
+        // Act
+        using (_sut.SuppressRestarts())
+        {
+            await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        }
+
+        // Assert -- service restart should NOT be attempted while suppressed
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Debug,
+                It.Is<string>(s => s.Contains("restarts suppressed")),
+                It.IsAny<Exception?>()),
+            Times.Once);
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Info,
+                It.Is<string>(s => s.Contains("Restarting service")),
+                It.IsAny<Exception?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_AfterSuppressDisposed_RestartsNormally()
+    {
+        // Arrange
+        var setting = CreateSetting("after-suppress", restartProcess: "notepad");
+
+        // Act -- suppress and dispose, then call
+        using (_sut.SuppressRestarts()) { }
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+
+        // Assert -- process kill should be called since suppression was lifted
+        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once);
+    }
 }

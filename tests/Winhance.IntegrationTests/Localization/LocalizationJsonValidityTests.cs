@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Xunit;
 
@@ -98,6 +99,42 @@ public class LocalizationJsonValidityTests
             value.Should().NotBeNullOrWhiteSpace(
                 because: $"{fileName} key \"{property.Name}\" should not be empty");
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(AllJsonFiles))]
+    public void LocalizationFile_ShouldNotContainUnicodeEscapes(string fileName)
+    {
+        var filePath = Path.Combine(LocalizationFolder, fileName);
+        var lines = File.ReadAllLines(filePath);
+        var pattern = new Regex(@"\\u[0-9a-fA-F]{4}");
+
+        var offenders = lines
+            .Select((line, idx) => (Line: line, Number: idx + 1))
+            .Where(x => pattern.IsMatch(x.Line))
+            .Select(x => $"line {x.Number}: {x.Line.Trim()}")
+            .ToList();
+
+        offenders.Should().BeEmpty(
+            because: $"{fileName} must not contain \\uXXXX unicode escape sequences — write the actual character directly (e.g. & instead of \\u0026, ê instead of \\u00ea). The only allowed escape is \\n for newlines.");
+    }
+
+    [Theory]
+    [MemberData(nameof(AllJsonFiles))]
+    public void LocalizationFile_ShouldNotContainEscapedDoubleQuotes(string fileName)
+    {
+        var filePath = Path.Combine(LocalizationFolder, fileName);
+        var lines = File.ReadAllLines(filePath);
+        var pattern = new Regex(@"\\""");
+
+        var offenders = lines
+            .Select((line, idx) => (Line: line, Number: idx + 1))
+            .Where(x => pattern.IsMatch(x.Line))
+            .Select(x => $"line {x.Number}: {x.Line.Trim()}")
+            .ToList();
+
+        offenders.Should().BeEmpty(
+            because: $"{fileName} must not contain escaped ASCII double quotes (\\\") inside string values — use single quotes (') or typographic curly quotes (\u201C \u201D \u201E) directly instead.");
     }
 
     private static HashSet<string> GetKeys(string filePath)

@@ -23,5 +23,4 @@ public interface IWinGetBootstrapper
 
     Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default);
-    Task<bool> UpgradeAppInstallerAsync(CancellationToken cancellationToken = default);
 }

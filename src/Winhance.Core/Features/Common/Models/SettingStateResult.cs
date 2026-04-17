@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record SettingStateResult
+public sealed record SettingStateResult
 {
     public bool IsEnabled { get; init; }
     public object? CurrentValue { get; init; }

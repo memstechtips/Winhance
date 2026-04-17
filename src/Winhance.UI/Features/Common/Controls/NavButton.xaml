@@ -24,7 +24,8 @@
         <!-- Content Stack -->
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Spacing="4">
+                    Spacing="4"
+                    Opacity="{x:Bind ContentOpacity, Mode=OneWay}">
             <!-- FontIcon - for Segoe MDL2/Fluent glyph icons -->
             <FontIcon x:Name="ButtonFontIcon"
                       Glyph="{x:Bind IconGlyph, Mode=OneWay}"
@@ -88,5 +89,15 @@
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"/>
         </Border>
+
+        <!-- Locked Overlay -->
+        <Grid Visibility="{x:Bind LockedVisibility, Mode=OneWay}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+            <Viewbox Width="14" Height="14">
+                <PathIcon Data="{StaticResource PrivacyIconPath}"
+                          Foreground="#FFA500"/>
+            </Viewbox>
+        </Grid>
     </Grid>
 </UserControl>

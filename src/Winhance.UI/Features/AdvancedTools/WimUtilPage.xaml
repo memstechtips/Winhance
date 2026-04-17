@@ -420,8 +420,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <Image Grid.Column="0"
-                                           Source="ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
+                                    <Image x:Name="WinhanceXmlCardIcon"
+                                           Grid.Column="0"
                                            Width="36" Height="36"
                                            VerticalAlignment="Center"
                                            Margin="0,0,16,0"/>

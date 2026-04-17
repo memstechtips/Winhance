@@ -7,10 +7,12 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class TooltipDataService(
     IWindowsRegistryService windowsRegistryService,
-    ILogService logService) : ITooltipDataService
+    ILogService logService,
+    IPowerSettingsQueryService powerSettingsQueryService) : ITooltipDataService
 {
     private readonly IWindowsRegistryService _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
     private readonly ILogService _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+    private readonly IPowerSettingsQueryService _powerSettingsQueryService = powerSettingsQueryService ?? throw new ArgumentNullException(nameof(powerSettingsQueryService));
 
     private static string? FormatRegistryValue(object? value, RegistrySetting? registrySetting)
         => RegistryValueFormatter.Format(value, registrySetting);
@@ -105,9 +107,9 @@ public class TooltipDataService(
                     try
                     {
                         object? currentValue;
-                        if (registrySetting.ApplyPerNetworkInterface)
+                        if (registrySetting.ApplyPerNetworkInterface || registrySetting.ApplyPerMonitor)
                         {
-                            // Read from the first interface subkey as a representative value
+                            // Read from the first subkey as a representative value
                             var subKeys = _registryService.GetSubKeyNames(registrySetting.KeyPath);
                             if (subKeys.Length > 0)
                             {
@@ -149,7 +151,12 @@ public class TooltipDataService(
                 DisplayValue = displayValue,
                 IndividualRegistryValues = individualRegistryValues,
                 ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
-                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
+                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>(),
+                PowerShellScripts = setting.PowerShellScripts?.ToList() ?? new List<PowerShellScriptSetting>(),
+                RegContents = setting.RegContents?.ToList() ?? new List<RegContentSetting>(),
+                Dependencies = setting.Dependencies?.ToList() ?? new List<SettingDependency>(),
+                CurrentPowerValues = await BuildCurrentPowerValuesAsync(setting.PowerCfgSettings).ConfigureAwait(false),
+                SettingDefinition = setting
             };
         }
         catch (Exception ex)
@@ -157,5 +164,21 @@ public class TooltipDataService(
             _logService.LogWarning($"[TooltipDataService] Error building tooltip data for '{setting.Id}': {ex.Message}");
             return null;
         }
+    }
+
+    private async Task<IReadOnlyDictionary<PowerCfgSetting, (int? AC, int? DC)>> BuildCurrentPowerValuesAsync(
+        IReadOnlyList<PowerCfgSetting>? powerCfgSettings)
+    {
+        var dict = new Dictionary<PowerCfgSetting, (int? AC, int? DC)>();
+        if (powerCfgSettings is null || powerCfgSettings.Count == 0) return dict;
+        // Sequential rather than Task.WhenAll: GetPowerSettingACDCValuesAsync wraps synchronous
+        // PInvoke (PowerReadACValueIndex/PowerReadDCValueIndex); there is no parallelism gain
+        // and PowerCfgSettings is typically 0-2 entries per setting.
+        foreach (var pcs in powerCfgSettings)
+        {
+            var values = await _powerSettingsQueryService.GetPowerSettingACDCValuesAsync(pcs).ConfigureAwait(false);
+            dict[pcs] = (values.acValue, values.dcValue);
+        }
+        return dict;
     }
 }

@@ -32,6 +32,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [1, null], // When toggle is ON, Game Mode is enabled
                             DisabledValue = [0], // When toggle is OFF, Game Mode is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -39,6 +40,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-explorer-mouse-precision",
+                    IsSubjectivePreference = true,
                     Name = "Enhance Pointer Precision",
                     Description = "Adjust cursor speed based on movement velocity (mouse acceleration). Most competitive gamers disable this for consistent aiming in FPS games",
                     Icon = "Mouse",
@@ -60,7 +62,68 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "gaming-performance-mouse-hover-time",
+                    IsSubjectivePreference = true,
+                    Name = "Mouse Hover Time",
+                    Description = "Controls how long you must hover over an element before it activates (in milliseconds). Lower values make tooltips, menus, and hover effects appear faster. Default is 400ms",
+                    Icon = "Mouse",
+                    InputType = InputType.Selection,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Mouse",
+                            ValueName = "MouseHoverTime",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "1ms (Instant)",
+                                ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "1" },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "10ms (Very Fast)",
+                                ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "10" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "50ms (Fast)",
+                                ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "50" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "100ms (Moderate)",
+                                ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "100" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "200ms",
+                                ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "200" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "400ms (Default)",
+                                ValueMappings = new Dictionary<string, object?> { ["MouseHoverTime"] = "400" },
+                                IsDefault = true,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "gaming-performance-autostart-delay",
+                    IsSubjectivePreference = true,
                     Name = "Startup Delay for Apps",
                     Description = "Delay startup applications by 10 seconds after boot to improve initial system responsiveness. Windows becomes usable faster, but your startup apps take longer to load",
                     Icon = "ClockStart",
@@ -71,7 +134,7 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize",
                             ValueName = "StartupDelayInMSec",
-                            RecommendedValue = 10000,
+                            RecommendedValue = 0,
                             EnabledValue = [10000], // When toggle is ON, startup delay is enabled (10 seconds)
                             DisabledValue = [0], // When toggle is OFF, startup delay is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
@@ -82,19 +145,20 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-background-apps",
-                    Name = "Let Apps Run in Background",
-                    Description = "Allow apps to receive notifications, update data, and perform tasks even when not actively in use",
+                    IsSubjectivePreference = true,
+                    Name = "Background App Permissions",
+                    Description = "Control whether apps can run in the background via Group Policy. Force Deny removes per-app background settings from Windows Settings. Use User in Control if you need apps like Teams, Zoom, or WhatsApp",
                     Icon = "Apps",
-                    InputType = InputType.Toggle,
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.04.08",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
-                            RecommendedValue = 0,
-                            EnabledValue = [1, null],
-                            DisabledValue = [0],
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -102,17 +166,41 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
-                            RecommendedValue = 0,
-                            EnabledValue = [1, null],
-                            DisabledValue = [0],
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "User in Control (Default)",
+                                ValueMappings = new Dictionary<string, object?> { ["LetAppsRunInBackground"] = null },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Force Allow",
+                                ValueMappings = new Dictionary<string, object?> { ["LetAppsRunInBackground"] = 1 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Force Deny",
+                                ValueMappings = new Dictionary<string, object?> { ["LetAppsRunInBackground"] = 2 },
+                                Warning = "WARNING: Force Deny removes background app permissions from Windows Settings entirely. Apps requiring background access (Teams, Zoom, WhatsApp, etc.) may not function correctly.",
+                                IsRecommended = true,
+                            },
                         },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "gaming-storage-sense",
+                    IsSubjectivePreference = true,
                     Name = "Storage Sense",
                     Description = "Automatically free up disk space by removing temporary files, emptying the recycle bin, and managing downloads",
                     Icon = "Harddisk",
@@ -126,6 +214,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -136,6 +225,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -164,6 +254,69 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "gaming-performance-search-webview2",
+                    Name = "WebView2 in Windows Search",
+                    Description = "Allow Windows Search to use WebView2 (Edge) for rendering search results. Disabling removes Edge processes spawned by SearchHost.exe, reducing resource usage. Uses an undocumented Windows Feature Management override (feature ID 37926450) that may change in future Windows updates",
+                    IconPack = "Fluent",
+                    Icon = "GlobeSearch",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "EnabledState",
+                            RecommendedValue = 1,
+                            EnabledValue = [2], // When toggle is ON, WebView2 search is enabled
+                            DisabledValue = [1], // When toggle is OFF, WebView2 search is disabled (EnabledState=1 means feature disabled in CFR)
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "EnabledStateOptions",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "Variant",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "VariantPayload",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8\1694661260",
+                            ValueName = "VariantPayloadKind",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "gaming-performance-wallpaper-compression",
                     Name = "Allow Desktop Wallpaper Compression",
                     Description = "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
@@ -180,6 +333,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 100,
                             EnabledValue = [0, null],
                             DisabledValue = [100],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -187,6 +341,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-explorer-menu-show-delay",
+                    IsSubjectivePreference = true,
                     Name = "Menu Show Delay",
                     Description = "Add a brief delay before displaying menus (400ms - Windows default), or show them instantly (0ms) for faster navigation",
                     Icon = "MenuOpen",
@@ -208,6 +363,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-explorer-alt-tab-filter",
+                    IsSubjectivePreference = true,
                     Name = "Alt+Tab Filter",
                     Description = "Show only traditional open windows in Alt+Tab instead of including Microsoft Edge tabs and other Windows suggestions",
                     Icon = "ViewGrid",
@@ -241,26 +397,26 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\PriorityControl",
                             ValueName = "Win32PrioritySeparation",
-                            RecommendedValue = 38, // Decimal
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Programs",
-                            "Background Services",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["Win32PrioritySeparation"] = 38, // Decimal
+                                DisplayName = "Programs",
+                                ValueMappings = new Dictionary<string, object?> { ["Win32PrioritySeparation"] = 38 }, // Decimal
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["Win32PrioritySeparation"] = 24, // Decimal
+                                DisplayName = "Background Services",
+                                ValueMappings = new Dictionary<string, object?> { ["Win32PrioritySeparation"] = 24 }, // Decimal
                             },
                         },
                     }
@@ -333,6 +489,89 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-performance-svchost-split-threshold",
+                    IsSubjectivePreference = true,
+                    Name = "Svchost Split Threshold",
+                    Description = "Set the memory threshold that determines when Windows splits services into separate svchost.exe processes. Higher values group more services together, reducing process count. Select the value matching your system RAM",
+                    GroupName = "Processor",
+                    IconPack = "Fluent",
+                    Icon = "BranchCompare",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "25.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control",
+                            ValueName = "SvcHostSplitThresholdInKB",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Default",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 380000 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "4 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 327680 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "6 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 491520 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "8 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 655360 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "12 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 983040 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "16 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 1310720 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "24 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 1966080 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "32 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 2621440 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "64 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 5242880 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "128 GB",
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 10485760 },
+                            },
+                        },
+                        SupportsCustomState = true,
+                        CustomStateDisplayName = "Custom",
+                    },
+                },
                 // Graphics Group
                 new SettingDefinition
                 {
@@ -374,6 +613,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 2,
                             EnabledValue = [2, null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -404,6 +644,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-directx-vrr-optimizations",
+                    IsSubjectivePreference = true,
                     Name = "Variable Refresh Rate",
                     Description = "Enable VRR (G-Sync/FreeSync) optimizations for smoother gameplay. Requires a VRR-compatible monitor; this setting has no effect if your monitor does not support VRR",
                     GroupName = "Graphics",
@@ -427,6 +668,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-directx-auto-hdr",
+                    IsSubjectivePreference = true,
                     Name = "Auto HDR",
                     Description = "Automatically convert SDR content to HDR for enhanced colors and brightness. Requires an HDR-capable display with HDR enabled; this setting has no effect if your display does not support HDR",
                     GroupName = "Graphics",
@@ -451,6 +693,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nvidia-sharpening",
+                    IsSubjectivePreference = true,
                     Name = "Legacy NVIDIA Sharpening",
                     Description = "Enable legacy NVIDIA image sharpening filter for enhanced visual clarity. Only works on older NVIDIA drivers; newer drivers should use NVIDIA Control Panel sharpening instead",
                     GroupName = "Graphics",
@@ -495,6 +738,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-desktop-composition",
+                    RecommendedToggleState = true,
                     Name = "Desktop Composition Effects",
                     Description = "Enable visual effects managed by the Desktop Window Manager. Disabling may provide minor performance gains on older hardware but will break Aero effects",
                     GroupName = "Graphics",
@@ -509,6 +753,96 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = null,
                             EnabledValue = [null], // When toggle is ON, desktop composition is enabled
                             DisabledValue = [0], // When toggle is OFF, desktop composition is disabled
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-auto-color-management",
+                    IsSubjectivePreference = true,
+                    Name = "Automatically manage color for apps",
+                    Description = "Allow Windows to automatically manage color profiles for all connected displays that support it",
+                    GroupName = "Graphics",
+                    Icon = "Color",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.03.27",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                            ValueName = "AutoColorManagementEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            ApplyPerMonitor = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-disable-mpo",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Multi-Plane Overlay (MPO)",
+                    Description = "Composite multiple display layers in hardware using the GPU. Disabling can fix screen flickering, black screens, and stuttering on multi-monitor setups",
+                    GroupName = "Graphics",
+                    Icon = "MonitorDashboard",
+                    InputType = InputType.Toggle,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Dwm",
+                            ValueName = "OverlayTestMode",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [5],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers",
+                            ValueName = "DisableOverlays",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-disable-mpo-min-fps",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "MPO Minimum Frame Rate Requirement",
+                    Description = "Allow Desktop Window Manager to dynamically switch apps between overlay modes based on frame rate. Disabling can fix stuttering in browsers and Discord without fully disabling MPO",
+                    GroupName = "Graphics",
+                    Icon = "MonitorDashboard",
+                    InputType = InputType.Toggle,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Dwm",
+                            ValueName = "OverlayMinFPS",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -517,6 +851,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-network-throttling",
+                    IsSubjectivePreference = true,
                     Name = "Network Throttling",
                     Description = "Controls network packet rate limiting for multimedia applications. Keeping throttling enabled (default: 10 packets/ms) is recommended as it provides better DPC latency for gaming than disabling it entirely",
                     GroupName = "Network",
@@ -539,6 +874,8 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nagle-algorithm",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Nagle's Algorithm",
                     Description = "Buffers small network packets before sending to reduce overhead. Turn off to lower latency in online games, or keep on for general-purpose network efficiency",
                     GroupName = "Network",
@@ -567,6 +904,179 @@ public static class GamingAndPerformanceOptimizations
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             ApplyPerNetworkInterface = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-dns-server",
+                    IsSubjectivePreference = true,
+                    Name = "DNS Server",
+                    Description = "Select a DNS server for all network adapters. Changes apply to every adapter on your system (Wi-Fi and Ethernet). Use Automatic to restore your default ISP/router DNS",
+                    GroupName = "Network",
+                    Icon = "Dns",
+                    InputType = InputType.Selection,
+                    DetectionType = DetectionType.DnsServer,
+                    AddedInVersion = "26.04.08",
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_0",
+                                Script = ScriptOption.Disabled,
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_1",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_2",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.2", ["secondary"] = "1.0.0.2" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_3",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.3", ["secondary"] = "1.0.0.3" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_4",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "8.8.8.8", ["secondary"] = "8.8.4.4" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_5",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "9.9.9.9", ["secondary"] = "149.112.112.112" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_6",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "208.67.222.222", ["secondary"] = "208.67.220.220" },
+                            },
+                        },
+                        SupportsCustomState = true,
+                        CustomStateDisplayName = "Custom (User Defined)",
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }",
+                            DisabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
+                            RequiresElevation = true,
+                        },
+                    },
+                },
+                // Security Group
+                new SettingDefinition
+                {
+                    Id = "gaming-virtualization-based-security",
+                    IsSubjectivePreference = true,
+                    Name = "Virtualization Based Security (VBS)",
+                    Description = "Isolates parts of memory to protect the system from vulnerabilities. Disabling can improve gaming performance but reduces system security",
+                    GroupName = "Security",
+                    Icon = "ShieldLock",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.01",
+                    RequiresRestart = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard",
+                            ValueName = "EnableVirtualizationBasedSecurity",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard",
+                            ValueName = "RequirePlatformSecurityFeatures",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard",
+                            ValueName = "Locked",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-memory-integrity",
+                    IsSubjectivePreference = true,
+                    Name = "Memory Integrity (HVCI)",
+                    Description = "Prevents malicious code from being inserted into high-security processes. Disabling can improve gaming performance but reduces system security",
+                    GroupName = "Security",
+                    Icon = "MemoryArrowDown",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.01",
+                    RequiresRestart = true,
+                    ParentSettingId = "gaming-virtualization-based-security",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "gaming-memory-integrity",
+                            RequiredSettingId = "gaming-virtualization-based-security",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity",
+                            ValueName = "Enabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity",
+                            ValueName = "Locked",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity",
+                            ValueName = "WasEnabledBy",
+                            RecommendedValue = 0,
+                            EnabledValue = [2],
+                            DisabledValue = [0],
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -632,6 +1142,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null], // When toggle is ON, controller access is enabled
                             DisabledValue = [0], // When toggle is OFF, controller access is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -653,6 +1164,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -683,6 +1195,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-sysmain-service",
+                    IsSubjectivePreference = true,
                     Name = "SysMain Service (Superfetch)",
                     Description = "Preload frequently used applications into RAM for faster launch times. Automatic is recommended for HDDs, Manual or Disabled is preferred for SSDs",
                     GroupName = "System Services",
@@ -691,17 +1204,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Disabled (Recommended for SSD)",
-                            "Manual",
-                            "Automatic (Recommended for HDD)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Disabled (Recommended for SSD)",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Manual",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Automatic (Recommended for HDD)",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -710,7 +1231,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -718,6 +1240,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-prefetch",
+                    IsSubjectivePreference = true,
                     Name = "Prefetch Feature",
                     Description = "Preload frequently used applications and boot files into memory to speed up launches. Generally recommended for HDDs not SSDs",
                     GroupName = "System Services",
@@ -750,6 +1273,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-windows-search-service",
+                    IsSubjectivePreference = true,
                     Name = "Windows Search Indexing Service",
                     Description = "Indexes files and folders for faster search results. Disabling reduces background CPU and disk activity but makes Windows Search slower",
                     GroupName = "System Services",
@@ -758,17 +1282,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -777,7 +1309,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSearch",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -785,6 +1318,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-print-spooler-service",
+                    IsSubjectivePreference = true,
                     Name = "Print Spooler Service",
                     Description = "Manages print jobs sent to printers. If you don't use a printer, set to Manual or Disabled to free up system resources",
                     GroupName = "System Services",
@@ -793,17 +1327,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -812,7 +1354,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Spooler",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -828,17 +1371,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -847,7 +1398,62 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\DiagTrack",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-connected-devices-platform-service",
+                    IsSubjectivePreference = true,
+                    Name = "Connected Devices Platform Service",
+                    Description = "Enables cross-device experiences like phone linking and nearby sharing. Disabling reduces background activity and device interaction logging",
+                    GroupName = "System Services",
+                    Icon = "CellphoneLink",
+                    InputType = InputType.Selection,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.03.27",
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CDPSvc",
+                            ValueName = "Start",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CDPUserSvc",
+                            ValueName = "Start",
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -863,17 +1469,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -882,7 +1496,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PcaSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -898,17 +1513,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -917,7 +1540,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WerSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -933,17 +1557,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -952,7 +1584,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lfsvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -968,17 +1601,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -987,7 +1628,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RetailDemo",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1003,17 +1645,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1022,7 +1672,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wisvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1030,6 +1681,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-phone-service",
+                    IsSubjectivePreference = true,
                     Name = "Phone Service",
                     Description = "Manages telephony state on the device. Safe to disable if you don't use phone connectivity features or make calls from your PC",
                     GroupName = "System Services",
@@ -1038,17 +1690,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1057,7 +1717,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PhoneSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1073,17 +1734,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1092,7 +1761,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WalletService",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1108,17 +1778,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1127,21 +1805,24 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCardSvr",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\ScDeviceEnum",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCPolicySvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1157,17 +1838,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1176,13 +1865,17 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MapsBroker",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
                 new SettingDefinition
                 {
+                    // MIGRATION-CHECK: worksheet listed (IsRecommended=1, IsDefault=2) but this service uses the
+                    // "DisabledRecommended" naming pattern; both shipped configs (Recommended/Default) select
+                    // SelectedIndex=0, so IsRecommended=0 and IsDefault=0.
                     Id = "gaming-fax-service",
                     Name = "Fax Service",
                     Description = "Enables sending and receiving faxes. Safe to disable for most users as fax functionality is rarely used on modern systems",
@@ -1192,17 +1885,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_DisabledRecommended",
-                            "ServiceOption_Manual",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_DisabledRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Manual",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1211,13 +1912,17 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Fax",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
                 new SettingDefinition
                 {
+                    // MIGRATION-CHECK: worksheet listed (IsRecommended=1, IsDefault=2) but this service uses the
+                    // "DisabledRecommended" naming pattern; Recommended config has SelectedIndex=0 and
+                    // Default config has SelectedIndex=1, so IsRecommended=0 and IsDefault=1.
                     Id = "gaming-wmp-network-service",
                     Name = "Windows Media Player Network Sharing Service",
                     Description = "Shares Windows Media Player libraries to other networked players and media devices. Safe to disable if you don't share media over your network",
@@ -1227,17 +1932,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_DisabledRecommended",
-                            "ServiceOption_Manual",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_DisabledRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Manual",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1246,7 +1959,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WMPNetworkSvc",
                             ValueName = "Start",
-                            RecommendedValue = 4,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1262,17 +1976,28 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
+                        // service (OS ships it disabled on non-VR hardware), not Automatic. Unlike
+                        // the other gaming-*-service entries where Default == Recommended == index 1.
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1281,7 +2006,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MixedRealityOpenXRSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1289,6 +2015,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-mobile-hotspot-service",
+                    IsSubjectivePreference = true,
                     Name = "Windows Mobile Hotspot Service",
                     Description = "Provides ability to share internet connection with other devices. Set to Manual to keep functionality available while preventing unnecessary background activity",
                     GroupName = "System Services",
@@ -1297,17 +2024,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1316,7 +2051,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\icssvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1332,17 +2068,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1351,7 +2095,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SmsRouter",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1359,6 +2104,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-parental-controls-service",
+                    IsSubjectivePreference = true,
                     Name = "Parental Controls Service",
                     Description = "Enables parental controls and family safety features. Safe to disable if you don't use parental control features",
                     GroupName = "System Services",
@@ -1367,17 +2113,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1386,7 +2140,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WpcMonSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1402,17 +2157,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1421,7 +2184,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SEMgrSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1437,17 +2201,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1456,7 +2228,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\svsvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1464,6 +2237,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-access-manager",
+                    IsSubjectivePreference = true,
                     Name = "Remote Access Connection Manager",
                     Description = "Manages VPN and dial-up connections. Set to Manual to reduce background activity while keeping VPN functionality available when needed.",
                     GroupName = "System Services",
@@ -1472,17 +2246,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1491,7 +2273,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasMan",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1499,6 +2282,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-access-auto",
+                    IsSubjectivePreference = true,
                     Name = "Remote Access Auto Connection Manager",
                     Description = "Automatically connects to remote networks when programs reference remote resources. Safe to disable if you don't use auto-connect VPN features",
                     GroupName = "System Services",
@@ -1507,17 +2291,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1526,7 +2318,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasAuto",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1534,6 +2327,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-desktop-services",
+                    IsSubjectivePreference = true,
                     Name = "Remote Desktop Services",
                     Description = "Allows users to connect interactively to a remote computer. Set to Manual to reduce background activity while keeping Remote Desktop available.",
                     GroupName = "System Services",
@@ -1542,17 +2336,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1561,7 +2363,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermService",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1569,6 +2372,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-desktop-configuration",
+                    IsSubjectivePreference = true,
                     Name = "Remote Desktop Configuration",
                     Description = "Manages Remote Desktop Services and Remote Desktop related configurations. Set to Manual to reduce background activity while keeping Remote Desktop available",
                     GroupName = "System Services",
@@ -1577,17 +2381,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1596,7 +2408,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SessionEnv",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1604,6 +2417,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-remote-desktop-port-redirector",
+                    IsSubjectivePreference = true,
                     Name = "Remote Desktop Services UserMode Port Redirector",
                     Description = "Allows local device redirection for Remote Desktop connections. Safe to disable if you don't need to share local devices during Remote Desktop sessions",
                     GroupName = "System Services",
@@ -1612,17 +2426,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1631,7 +2453,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1639,6 +2462,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-xbox-auth-manager",
+                    IsSubjectivePreference = true,
                     Name = "Xbox Live Auth Manager",
                     Description = "Provides authentication and authorization services for Xbox Live. Safe to disable if you don't use Xbox Game Pass, Microsoft Store games, or Xbox features",
                     GroupName = "System Services",
@@ -1647,21 +2471,26 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
-                        },
-                        OptionWarnings = new Dictionary<int, string>
-                        {
-                            [0] = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                Warning = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1670,7 +2499,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblAuthManager",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1678,6 +2508,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-xbox-game-save",
+                    IsSubjectivePreference = true,
                     Name = "Xbox Live Game Save",
                     Description = "Syncs game saves to Xbox Live cloud. Only needed for Xbox Game Pass and Microsoft Store games with cloud save features",
                     GroupName = "System Services",
@@ -1686,17 +2517,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1705,7 +2544,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblGameSave",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1713,6 +2553,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-xbox-networking",
+                    IsSubjectivePreference = true,
                     Name = "Xbox Live Networking Service",
                     Description = "Supports Xbox Live multiplayer networking. Required for Xbox multiplayer gaming but not needed for Steam/Epic/other gaming platforms",
                     GroupName = "System Services",
@@ -1721,17 +2562,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1740,7 +2589,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XboxNetApiSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1748,6 +2598,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-biometric-service",
+                    IsSubjectivePreference = true,
                     Name = "Windows Biometric Service",
                     Description = "Enables fingerprint and facial recognition login via Windows Hello. Safe to disable on desktop systems without biometric hardware",
                     GroupName = "System Services",
@@ -1756,17 +2607,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1775,7 +2634,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WbioSrvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1783,25 +2643,48 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-touch-keyboard-service",
+                    IsSubjectivePreference = true,
                     Name = "Touch Keyboard and Handwriting Panel Service",
-                    Description = "Enables touch keyboard and pen input functionality. Safe to disable on desktop systems without touchscreen or stylus",
+                    Description = "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad",
                     GroupName = "System Services",
                     Icon = "KeyboardOutline",
                     InputType = InputType.Selection,
-                    RequiresRestart = true,
+                    AddedInVersion = "26.04.03",
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
+                        // service, not Automatic. Unlike the other gaming-*-service entries where
+                        // Default == Recommended == index 1.
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_DisabledRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4, ["IsInputAppPreloadEnabled"] = 0 },
+                                Script = ScriptOption.Disabled,
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Manual",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3, ["IsInputAppPreloadEnabled"] = 1 },
+                                Script = ScriptOption.Enabled,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2, ["IsInputAppPreloadEnabled"] = 1 },
+                                Script = ScriptOption.Enabled,
+                            },
                         },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
                         {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            DisabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue",
+                            EnabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1810,7 +2693,25 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            LockKeyAccess = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv",
+                            ValueName = "Start",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
+                            ValueName = "IsInputAppPreloadEnabled",
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1826,17 +2727,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1845,7 +2754,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensrSvc",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1861,17 +2771,25 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "ServiceOption_Disabled",
-                            "ServiceOption_ManualRecommended",
-                            "ServiceOption_Automatic",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1880,7 +2798,57 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensorDataService",
                             ValueName = "Start",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-ai-fabric-service",
+                    Name = "Windows AI Fabric Service",
+                    Description = "Windows AI Fabric Service (WSAIFabricSvc) manages AI workloads. Disable if you don't use Windows AI features",
+                    GroupName = "System Services",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Selection,
+                    IsWindows11Only = true,
+                    RequiresRestart = true,
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        // MIGRATION-CHECK: Recommended is Disabled (index 0) — the Recommended config
+                        // ships this AI service disabled (privacy-by-default). Default stays on
+                        // Automatic (index 2), matching Windows' shipped service state.
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_DisabledRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Manual",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                                IsDefault = true,
+                            },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSAIFabricSvc",
+                            ValueName = "Start",
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1900,7 +2868,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "CompatibilityAppraiserTask",
                             TaskPath = @"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -1918,7 +2887,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "ProgramDataUpdaterTask",
                             TaskPath = @"\Microsoft\Windows\Application Experience\ProgramDataUpdater",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -1936,7 +2906,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "CEIPConsolidatorTask",
                             TaskPath = @"\Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -1954,7 +2925,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "UsbCeipTask",
                             TaskPath = @"\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -1972,7 +2944,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "DiskDiagnosticTask",
                             TaskPath = @"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -1990,7 +2963,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "FeedbackDmClientTask",
                             TaskPath = @"\Microsoft\Windows\Feedback\Siuf\DmClient",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2008,7 +2982,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "FeedbackDmClientDownloadTask",
                             TaskPath = @"\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2026,7 +3001,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "ErrorReportingQueueTask",
                             TaskPath = @"\Microsoft\Windows\Windows Error Reporting\QueueReporting",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2044,7 +3020,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "SqmTask",
                             TaskPath = @"\Microsoft\Windows\PI\Sqm-Tasks",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2063,7 +3040,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "MareBackupTask",
                             TaskPath = @"\Microsoft\Windows\Application Experience\MareBackup",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2081,7 +3059,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "StartupAppTask",
                             TaskPath = @"\Microsoft\Windows\Application Experience\StartupAppTask",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2100,7 +3079,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "MapsUpdateTask",
                             TaskPath = @"\Microsoft\Windows\Maps\MapsUpdateTask",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2118,13 +3098,15 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "AutochkProxyTask",
                             TaskPath = @"\Microsoft\Windows\Autochk\Proxy",
-                            RecommendedState = null
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
                 new SettingDefinition
                 {
                     Id = "gaming-task-family-safety",
+                    IsSubjectivePreference = true,
                     Name = "Family Safety Monitor Task",
                     Description = "Monitors family safety settings and usage. Disable if you don't use family safety features",
                     GroupName = "Scheduled Tasks",
@@ -2136,7 +3118,8 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "FamilySafetyTask",
                             TaskPath = @"\Microsoft\Windows\Shell\FamilySafetyMonitor",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
                 },
@@ -2154,14 +3137,64 @@ public static class GamingAndPerformanceOptimizations
                         {
                             Id = "PowerEfficiencyTask",
                             TaskPath = @"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem",
-                            RecommendedState = false
+                            RecommendedState = false,
+                            DefaultState = true
                         }
                     }
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-task-windows-ai",
+                    Name = "Windows AI Tasks",
+                    Description = "Windows AI scheduled tasks including Recall configuration. Disable to prevent AI features from running in the background",
+                    GroupName = "Scheduled Tasks",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
+                    {
+                        new ScheduledTaskSetting
+                        {
+                            Id = "WindowsAIRecallConfig",
+                            TaskPath = @"\Microsoft\Windows\WindowsAI\RecallConfiguration",
+                            RecommendedState = false,
+                            DefaultState = true,
+                        },
+                        new ScheduledTaskSetting
+                        {
+                            Id = "WindowsAIRecallPipeline",
+                            TaskPath = @"\Microsoft\Windows\WindowsAI\RecallPipeline",
+                            RecommendedState = false,
+                            DefaultState = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-task-office-actions-server",
+                    Name = "Office Actions Server Task",
+                    Description = "Office AI Actions Server scheduled task. Disable to prevent Office AI from running in the background",
+                    GroupName = "Scheduled Tasks",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CalendarClock",
+                    InputType = InputType.Toggle,
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
+                    {
+                        new ScheduledTaskSetting
+                        {
+                            Id = "OfficeActionsServer",
+                            TaskPath = @"\Microsoft\Office\Office Actions Server",
+                            RecommendedState = false,
+                            DefaultState = true,
+                        },
+                    },
                 },
                 // Visual Effects Group
                 new SettingDefinition
                 {
                     Id = "visual-effects-mode",
+                    IsSubjectivePreference = true,
                     Name = "Visual Effects",
                     Description = "Choose how Windows displays visual effects",
                     GroupName = "Visual Effects",
@@ -2174,38 +3207,37 @@ public static class GamingAndPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
                             ValueName = "VisualFXSetting",
-                            RecommendedValue = 3,
+                            RecommendedValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0,
+                            DefaultValue = null,
                             IsPrimary = true,
                         }
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Let Windows choose what's best for my computer",
-                            "Adjust for best appearance",
-                            "Adjust for best performance",
-                            "Custom",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VisualFXSetting"] = 0,
+                                DisplayName = "Let Windows choose what's best for my computer",
+                                ValueMappings = new Dictionary<string, object?> { ["VisualFXSetting"] = 0 },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VisualFXSetting"] = 1,
+                                DisplayName = "Adjust for best appearance",
+                                ValueMappings = new Dictionary<string, object?> { ["VisualFXSetting"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VisualFXSetting"] = 2,
+                                DisplayName = "Adjust for best performance",
+                                ValueMappings = new Dictionary<string, object?> { ["VisualFXSetting"] = 2 },
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["VisualFXSetting"] = 3,
+                                DisplayName = "Custom",
+                                ValueMappings = new Dictionary<string, object?> { ["VisualFXSetting"] = 3 },
+                                IsRecommended = true,
                             },
                         },
                     },
@@ -2280,6 +3312,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "ui-effects",
+                    IsSubjectivePreference = true,
                     Name = "Animate controls and elements inside windows",
                     Description = "Enables animation effects for controls and UI elements",
                     GroupName = "Visual Effects",
@@ -2315,6 +3348,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "window-animation",
+                    IsSubjectivePreference = true,
                     Name = "Animate windows when minimizing and maximizing",
                     Description = "Shows smooth animation when windows are minimized or maximized",
                     GroupName = "Visual Effects",
@@ -2348,6 +3382,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "taskbar-animations",
+                    IsSubjectivePreference = true,
                     Name = "Animations in the taskbar",
                     Description = "Controls taskbar animation effects for opening, closing, and switching windows",
                     GroupName = "Visual Effects",
@@ -2381,6 +3416,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "enable-peek",
+                    IsSubjectivePreference = true,
                     Name = "Enable Peek",
                     Description = "Allows peeking at desktop when hovering over Show Desktop button",
                     GroupName = "Visual Effects",
@@ -2414,6 +3450,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "menu-animation",
+                    IsSubjectivePreference = true,
                     Name = "Fade or slide menus into view",
                     Description = "Animates menus when they appear using fade or slide effects",
                     GroupName = "Visual Effects",
@@ -2449,6 +3486,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "fade-tooltip",
+                    IsSubjectivePreference = true,
                     Name = "Fade or slide ToolTips into view",
                     Description = "Animates tooltips when they appear using fade or slide effects",
                     GroupName = "Visual Effects",
@@ -2484,6 +3522,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "fade-menu-items",
+                    IsSubjectivePreference = true,
                     Name = "Fade out menu items after clicking",
                     Description = "Fades menu items after selection before closing the menu",
                     GroupName = "Visual Effects",
@@ -2520,6 +3559,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "taskbar-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Save taskbar thumbnail previews",
                     Description = "Saves thumbnail previews of taskbar windows for faster display",
                     GroupName = "Visual Effects",
@@ -2554,6 +3594,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "mouse-shadow",
+                    IsSubjectivePreference = true,
                     Name = "Show shadows under mouse pointer",
                     Description = "Displays shadow effect underneath the mouse cursor",
                     GroupName = "Visual Effects",
@@ -2589,6 +3630,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "window-shadows",
+                    IsSubjectivePreference = true,
                     Name = "Show shadows under windows",
                     Description = "Displays shadow effects underneath windows",
                     GroupName = "Visual Effects",
@@ -2624,6 +3666,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "show-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Show thumbnails instead of icons",
                     Description = "Displays image and document previews instead of generic file icons",
                     GroupName = "Visual Effects",
@@ -2658,6 +3701,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "translucent-selection",
+                    IsSubjectivePreference = true,
                     Name = "Show translucent selection rectangle",
                     Description = "Display a semi-transparent selection box when dragging to select multiple files or items",
                     GroupName = "Visual Effects",
@@ -2691,6 +3735,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "drag-full-windows",
+                    IsSubjectivePreference = true,
                     Name = "Show window contents while dragging",
                     Description = "Displays window contents when dragging instead of just an outline",
                     GroupName = "Visual Effects",
@@ -2724,6 +3769,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "combo-box-animation",
+                    IsSubjectivePreference = true,
                     Name = "Slide open combo boxes",
                     Description = "Animates combo boxes when they open with a sliding effect",
                     GroupName = "Visual Effects",
@@ -2759,6 +3805,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "font-smoothing",
+                    IsSubjectivePreference = true,
                     Name = "Smooth edges of screen fonts",
                     Description = "Apply anti-aliasing to text for smoother, more readable fonts on screen",
                     GroupName = "Visual Effects",
@@ -2792,6 +3839,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "smooth-scroll-listboxes",
+                    IsSubjectivePreference = true,
                     Name = "Smooth-scroll list boxes",
                     Description = "Enables smooth scrolling in list boxes instead of jumping",
                     GroupName = "Visual Effects",
@@ -2827,6 +3875,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "drop-shadows",
+                    IsSubjectivePreference = true,
                     Name = "Use drop shadows for icon labels on the desktop",
                     Description = "Add shadow effects behind desktop icon text to improve readability against backgrounds",
                     GroupName = "Visual Effects",
@@ -2861,6 +3910,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-narrator-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "Narrator Win+Ctrl+Enter Hotkey",
                     Description = "Enable the Win+Ctrl+Enter keyboard shortcut to quickly launch Windows Narrator screen reader",
                     GroupName = "Accessibility",
@@ -2875,6 +3925,7 @@ public static class GamingAndPerformanceOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -2882,6 +3933,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-stickykeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "StickyKeys Hotkey (Shift×5)",
                     Description = "Enable the keyboard shortcut to activate StickyKeys by pressing the Shift key five times",
                     GroupName = "Accessibility",
@@ -2904,6 +3956,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-filterkeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "FilterKeys Hotkey (Right Shift 8s)",
                     Description = "Enable the keyboard shortcut to activate FilterKeys by holding the right Shift key for 8 seconds",
                     GroupName = "Accessibility",
@@ -2926,6 +3979,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-togglekeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "ToggleKeys Hotkey (Num Lock 5s)",
                     Description = "Enable the keyboard shortcut to activate ToggleKeys by holding Num Lock for 5 seconds, which plays sounds when Caps/Num/Scroll Lock are pressed",
                     GroupName = "Accessibility",
@@ -2948,6 +4002,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-mousekeys-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "MouseKeys Hotkey (Alt+Shift+NumLock)",
                     Description = "Enable the keyboard shortcut to activate MouseKeys, which allows using the numeric keypad to control the mouse pointer",
                     GroupName = "Accessibility",
@@ -2970,6 +4025,7 @@ public static class GamingAndPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "accessibility-highcontrast-hotkey",
+                    IsSubjectivePreference = true,
                     Name = "High Contrast Hotkey (Alt+Shift+PrtScn)",
                     Description = "Enable the keyboard shortcut to activate High Contrast mode by pressing Left Alt + Left Shift + Print Screen",
                     GroupName = "Accessibility",

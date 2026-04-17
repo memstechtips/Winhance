@@ -411,17 +411,19 @@ public class ConfigExportService : IConfigExportService
 
         var intValue = Convert.ToInt32(value);
 
-        if (setting.ComboBox?.ValueMappings == null)
+        var options = setting.ComboBox?.Options;
+        if (options == null)
             return 0;
 
-        var mappings = setting.ComboBox.ValueMappings;
-
-        foreach (var mapping in mappings)
+        for (int i = 0; i < options.Count; i++)
         {
-            if (mapping.Value.TryGetValue("PowerCfgValue", out var expectedValue) &&
+            var mapping = options[i].ValueMappings;
+            if (mapping == null) continue;
+
+            if (mapping.TryGetValue("PowerCfgValue", out var expectedValue) &&
                 expectedValue != null && Convert.ToInt32(expectedValue) == intValue)
             {
-                return mapping.Key;
+                return i;
             }
         }
 

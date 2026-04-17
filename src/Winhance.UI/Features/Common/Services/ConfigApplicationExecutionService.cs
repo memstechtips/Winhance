@@ -258,6 +258,9 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 ?? "Restarting Explorer...");
         await Task.Run(async () =>
         {
+            // Broadcast regional setting change so apps pick up intl changes from import
+            _windowsUIManagementService.BroadcastRegionalSettingChange();
+
             if (_windowsUIManagementService.IsProcessRunning("explorer"))
             {
                 _logService.Log(LogLevel.Info, "Killing explorer to apply changes");

@@ -94,8 +94,8 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                 }
             }
 
-            // Build the new ComboBoxOption list before touching the UI
-            var newItems = new List<ComboBoxOption>(options.Count);
+            // Build the new ComboBoxDisplayOption list before touching the UI
+            var newItems = new List<ComboBoxDisplayOption>(options.Count);
             for (int i = 0; i < options.Count; i++)
             {
                 var displayName = options[i].DisplayName;
@@ -104,7 +104,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                     displayName = _localizationService.GetString(displayName);
                 }
 
-                newItems.Add(new ComboBoxOption(
+                newItems.Add(new ComboBoxDisplayOption(
                     displayName,
                     options[i].Index,
                     options[i].ExistsOnSystem ? "Installed on system" : "Not installed",

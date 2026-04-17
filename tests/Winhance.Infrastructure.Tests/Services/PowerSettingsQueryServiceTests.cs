@@ -153,7 +153,11 @@ public class PowerSettingsQueryServiceTests
         var powerCfgSetting = new PowerCfgSetting
         {
             SubgroupGuid = Guid.Empty.ToString(),
-            SettingGuid = Guid.Empty.ToString()
+            SettingGuid = Guid.Empty.ToString(),
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act
@@ -173,7 +177,11 @@ public class PowerSettingsQueryServiceTests
         var powerCfgSetting = new PowerCfgSetting
         {
             SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
-            SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb"
+            SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act
@@ -190,7 +198,11 @@ public class PowerSettingsQueryServiceTests
         var powerCfgSetting = new PowerCfgSetting
         {
             SubgroupGuid = "not-a-valid-guid",
-            SettingGuid = "also-not-valid"
+            SettingGuid = "also-not-valid",
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act
@@ -263,7 +275,11 @@ public class PowerSettingsQueryServiceTests
         {
             SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
             SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            SettingGUIDAlias = "VIDEONORMALLEVEL"
+            SettingGUIDAlias = "VIDEONORMALLEVEL",
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act
@@ -280,7 +296,11 @@ public class PowerSettingsQueryServiceTests
         var powerCfgSetting = new PowerCfgSetting
         {
             SubgroupGuid = "invalid-guid",
-            SettingGuid = "also-invalid"
+            SettingGuid = "also-invalid",
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act — the exception path returns (null, null) for capabilities,
@@ -299,7 +319,11 @@ public class PowerSettingsQueryServiceTests
         {
             SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
             SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            SettingGUIDAlias = "VIDEONORMALLEVEL"
+            SettingGUIDAlias = "VIDEONORMALLEVEL",
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act — call twice
@@ -318,7 +342,11 @@ public class PowerSettingsQueryServiceTests
         {
             SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
             SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            SettingGUIDAlias = "VIDEONORMALLEVEL"
+            SettingGUIDAlias = "VIDEONORMALLEVEL",
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null
         };
 
         // Act

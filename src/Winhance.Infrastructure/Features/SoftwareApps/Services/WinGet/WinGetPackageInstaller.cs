@@ -59,7 +59,7 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    public async Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default)
+    public async Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, string? installerOverride = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(packageId))
             throw new ArgumentException("Package ID cannot be null or empty", nameof(packageId));
@@ -81,6 +81,8 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
             var arguments = $"install --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
             if (!string.IsNullOrEmpty(source))
                 arguments += $" --source {source}";
+            if (!string.IsNullOrWhiteSpace(installerOverride))
+                arguments += $" --override \"{installerOverride}\"";
 
             _logService?.LogInformation($"[winget] Running: winget {arguments}");
 

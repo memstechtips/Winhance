@@ -3,10 +3,11 @@ namespace Winhance.Core.Features.Common.Models;
 /// <summary>
 /// Communicates the result of the startup orchestration sequence back to MainWindow.
 /// </summary>
-public record StartupResult
+public sealed record StartupResult
 {
     /// <summary>
-    /// The backup result from phase 3 (system restore point), if that phase ran.
+    /// True if this is the first launch (config backup was just created).
+    /// Used to trigger the restore point offer dialog.
     /// </summary>
-    public BackupResult? BackupResult { get; init; }
+    public bool IsFirstLaunch { get; init; }
 }

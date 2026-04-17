@@ -144,4 +144,20 @@ public class WindowsUIManagementService : IWindowsUIManagementService
             return OperationResult.Failed("Error refreshing Windows GUI", ex);
         }
     }
+
+    public void BroadcastRegionalSettingChange()
+    {
+        IntPtr intlPtr = Marshal.StringToHGlobalUni("intl");
+        try
+        {
+            IntPtr result;
+            User32Api.SendMessageTimeout(
+                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
+                IntPtr.Zero, intlPtr, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(intlPtr);
+        }
+    }
 }

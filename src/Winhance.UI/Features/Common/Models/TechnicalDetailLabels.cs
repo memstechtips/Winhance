@@ -13,4 +13,26 @@ public record TechnicalDetailLabels
     public string ValueNotExist { get; init; } = "doesn't exist";
     public string On { get; init; } = "On";
     public string Off { get; init; } = "Off";
+
+    // Section headers
+    public string SectionRegistry       { get; init; } = "Registry Changes";
+    public string SectionScheduledTasks { get; init; } = "Scheduled Tasks";
+    public string SectionPowerSettings  { get; init; } = "Power Settings";
+    public string SectionScripts        { get; init; } = "PowerShell Scripts";
+    public string SectionRegContent     { get; init; } = "Registry Content";
+    public string SectionDependencies   { get; init; } = "Depends On";
+
+    // Script / RegContent labels
+    public string ScriptOnEnable        { get; init; } = "On Enable";
+    public string ScriptOnDisable       { get; init; } = "On Disable";
+    public string RegContentOnEnable    { get; init; } = "On Enable";
+    public string RegContentOnDisable   { get; init; } = "On Disable";
+
+    // Dependency relation
+    public string DependencyEquals      { get; init; } = "=";
+    public string DependencyNotEquals   { get; init; } = "≠";
+
+    // PowerConfig labels
+    public string PowerCfgSubgroup { get; init; } = "Subgroup";
+    public string PowerCfgSetting  { get; init; } = "Setting";
 }

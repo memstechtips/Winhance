@@ -10,6 +10,13 @@ internal static class DismSessionManager
 {
     private static readonly SemaphoreSlim _lock = new(1, 1);
 
+    /// <summary>
+    /// Hard timeout for DISM operations. Native DISM calls cannot be cancelled via
+    /// CancellationToken, so we use Task.WhenAny to abandon the blocking thread
+    /// if it exceeds this deadline.
+    /// </summary>
+    private const int HardTimeoutSeconds = 30;
+
     public static async Task<T> ExecuteAsync<T>(
         Func<uint, T> action,
         CancellationToken ct = default,
@@ -21,7 +28,7 @@ internal static class DismSessionManager
         log?.Invoke($"[DismSession] Semaphore acquired ({sw.ElapsedMilliseconds}ms). Thread={Environment.CurrentManagedThreadId}");
         try
         {
-            return await Task.Run(() =>
+            var workTask = Task.Run(() =>
             {
                 log?.Invoke($"[DismSession] Task.Run started. Thread={Environment.CurrentManagedThreadId}");
 
@@ -60,7 +67,22 @@ internal static class DismSessionManager
                     DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
-            }, ct).ConfigureAwait(false);
+            }, ct);
+
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(HardTimeoutSeconds), ct);
+
+            if (await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false) == timeoutTask)
+            {
+                log?.Invoke($"[DismSession] HARD TIMEOUT after {HardTimeoutSeconds}s — native DISM call is unresponsive, abandoning thread");
+                throw new OperationCanceledException($"DISM operation timed out after {HardTimeoutSeconds}s");
+            }
+
+            return await workTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            log?.Invoke($"[DismSession] Operation cancelled/timed out in ExecuteAsync<T>");
+            throw;
         }
         catch (Exception ex)
         {
@@ -85,7 +107,7 @@ internal static class DismSessionManager
         log?.Invoke($"[DismSession] Semaphore acquired ({sw.ElapsedMilliseconds}ms). Thread={Environment.CurrentManagedThreadId}");
         try
         {
-            await Task.Run(() =>
+            var workTask = Task.Run(() =>
             {
                 log?.Invoke($"[DismSession] Task.Run started. Thread={Environment.CurrentManagedThreadId}");
 
@@ -123,7 +145,22 @@ internal static class DismSessionManager
                     DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
-            }, ct).ConfigureAwait(false);
+            }, ct);
+
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(HardTimeoutSeconds), ct);
+
+            if (await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false) == timeoutTask)
+            {
+                log?.Invoke($"[DismSession] HARD TIMEOUT after {HardTimeoutSeconds}s — native DISM call is unresponsive, abandoning thread");
+                throw new OperationCanceledException($"DISM operation timed out after {HardTimeoutSeconds}s");
+            }
+
+            await workTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            log?.Invoke($"[DismSession] Operation cancelled/timed out in ExecuteAsync");
+            throw;
         }
         catch (Exception ex)
         {

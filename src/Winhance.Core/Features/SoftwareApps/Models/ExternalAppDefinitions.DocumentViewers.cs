@@ -39,6 +39,18 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-pdfgear",
+                        Name = "PDFgear",
+                        Description = "Read, edit, convert, merge, and sign PDF files across devices, for completely free and without signing up.",
+                        GroupName = "Document Viewers",
+                        RegistrySubKeyName = "{7DACF63A-4EE4-4837-9AF9-C65D4509FFB4}_is1",
+                        RegistryDisplayName = "PDFgear {version}",
+                        WinGetPackageId = ["PDFgear.PDFgear"],
+                        ChocoPackageId = "pdfgear",
+                        WebsiteUrl = "https://www.pdfgear.com/"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-foxit-reader",
                         Name = "Foxit PDF Reader",
                         Description = "Lightweight PDF reader with advanced features",

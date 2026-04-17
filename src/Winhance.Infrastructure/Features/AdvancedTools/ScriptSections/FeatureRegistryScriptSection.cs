@@ -68,6 +68,11 @@ internal class FeatureRegistryScriptSection
                     hasEntriesForCurrentHive = true;
                 }
 
+                if (!isHkcu && settingDef.PowerShellScripts?.Count > 0)
+                {
+                    hasEntriesForCurrentHive = true;
+                }
+
                 if (!isHkcu && settingDef.Id == "power-hibernation-enable")
                 {
                     hasEntriesForCurrentHive = true;
@@ -110,6 +115,63 @@ internal class FeatureRegistryScriptSection
                 {
                     _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
+
+                // Emit PowerShell scripts for this setting (system pass only)
+                if (!isHkcu && settingDef.PowerShellScripts?.Count > 0)
+                {
+                    foreach (var scriptSetting in settingDef.PowerShellScripts)
+                    {
+                        // For Selection types with Script on options, resolve which script to use from the selected index
+                        var useEnabled = configItem.IsSelected == true;
+                        if (settingDef.InputType == InputType.Selection
+                            && settingDef.ComboBox?.Options is { } selScriptOptions
+                            && configItem.SelectedIndex.HasValue
+                            && configItem.SelectedIndex.Value >= 0
+                            && configItem.SelectedIndex.Value < selScriptOptions.Count
+                            && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
+                        {
+                            useEnabled = scriptOption == ScriptOption.Enabled;
+                        }
+
+                        var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+
+                        // Substitute ScriptVariables placeholders for the selected index
+                        if (!string.IsNullOrEmpty(script)
+                            && settingDef.ComboBox?.Options is { } selVarOptions
+                            && configItem.SelectedIndex.HasValue
+                            && configItem.SelectedIndex.Value >= 0
+                            && configItem.SelectedIndex.Value < selVarOptions.Count
+                            && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
+                        {
+                            foreach (var kvp in variables)
+                            {
+                                script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(script))
+                        {
+                            var escapedDescription = EscapePowerShellString(settingDef.Description);
+                            sb.AppendLine();
+                            sb.AppendLine($"{indent}# PowerShell script for: {settingDef.Name}");
+                            sb.AppendLine($"{indent}try {{");
+                            foreach (var line in script.Split('\n'))
+                            {
+                                var trimmedLine = line.Trim();
+                                if (!string.IsNullOrEmpty(trimmedLine))
+                                {
+                                    sb.AppendLine($"{indent}    {trimmedLine}");
+                                }
+                            }
+                            sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                            sb.AppendLine($"{indent}}} catch {{");
+                            sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                            sb.AppendLine($"{indent}}}");
+                            sb.AppendLine();
+                        }
+                    }
+                }
+
             }
 
             if (!isHkcu)

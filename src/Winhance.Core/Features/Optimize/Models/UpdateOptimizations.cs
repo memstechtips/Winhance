@@ -18,6 +18,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-policy-mode",
+                    IsSubjectivePreference = true,
                     Name = "Windows Update Policy",
                     Description = "Control how Windows updates are installed on your system",
                     GroupName = "Update Policy",
@@ -29,6 +30,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoUpdate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -37,6 +39,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoUpdate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -45,7 +48,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
-                            RecommendedValue = 2,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -54,7 +57,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
-                            RecommendedValue = 2,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -63,7 +66,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "BranchReadinessLevel",
-                            RecommendedValue = 20,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -71,7 +74,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferFeatureUpdates",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -79,7 +82,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferFeatureUpdatesPeriodInDays",
-                            RecommendedValue = 365,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -87,7 +90,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferQualityUpdates",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -95,7 +98,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "DeferQualityUpdatesPeriodInDays",
-                            RecommendedValue = 7,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -103,6 +106,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseFeatureUpdatesStartTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -110,6 +114,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseFeatureUpdatesEndTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -117,6 +122,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseQualityUpdatesStartTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -124,6 +130,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseQualityUpdatesEndTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -131,6 +138,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseUpdatesStartTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -138,6 +146,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PauseUpdatesExpiryTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -145,6 +154,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedQualityDate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -152,6 +162,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedFeatureDate",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
@@ -159,6 +170,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "FlightSettingsMaxPauseDays",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -166,6 +178,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAUShutdownOption",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -174,6 +187,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAUShutdownOption",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -182,6 +196,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -190,6 +205,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AlwaysAutoRebootAtScheduledTime",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -198,6 +214,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AutoInstallMinorUpdates",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -206,6 +223,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AutoInstallMinorUpdates",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -214,6 +232,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "UseWUServer",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -222,6 +241,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "UseWUServer",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -230,6 +250,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedFeatureStatus",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -237,6 +258,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "PausedQualityStatus",
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -244,126 +266,131 @@ public static class UpdateOptimizations
                     DisableTooltip = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Normal (Windows Default)",
-                            "Security Updates Only (Recommended)",
-                            "Paused for a long time (Unpause in Settings)",
-                            "Disabled (NOT Recommended, Security Risk)",
-                        },
-                        OptionWarnings = new Dictionary<int, string>
-                        {
-                            [2] = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
-                            [3] = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk."
-                        },
-                        OptionTooltips = new string[]
-                        {
-                            "Windows default behavior - automatic updates enabled",
-                            "Only install critical security updates, defer feature updates by 1 year",
-                            "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
-                            "Completely disable Windows Update services and block all updates - NOT RECOMMENDED"
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> // Normal
+                            new ComboBoxOption
                             {
-                                ["NoAutoUpdate"] = null,
-                                ["AUOptions"] = null,
-                                ["BranchReadinessLevel"] = null,
-                                ["DeferFeatureUpdates"] = null,
-                                ["DeferFeatureUpdatesPeriodInDays"] = null,
-                                ["DeferQualityUpdates"] = null,
-                                ["DeferQualityUpdatesPeriodInDays"] = null,
-                                ["PauseFeatureUpdatesStartTime"] = null,
-                                ["PauseFeatureUpdatesEndTime"] = null,
-                                ["PauseQualityUpdatesStartTime"] = null,
-                                ["PauseQualityUpdatesEndTime"] = null,
-                                ["PauseUpdatesStartTime"] = null,
-                                ["PauseUpdatesExpiryTime"] = null,
-                                ["PausedQualityDate"] = null,
-                                ["PausedFeatureDate"] = null,
-                                ["FlightSettingsMaxPauseDays"] = null,
-                                ["NoAUShutdownOption"] = null,
-                                ["AlwaysAutoRebootAtScheduledTime"] = null,
-                                ["AutoInstallMinorUpdates"] = null,
-                                ["UseWUServer"] = null,
-                                ["PausedFeatureStatus"] = null,
-                                ["PausedQualityStatus"] = null,
+                                DisplayName = "Normal (Windows Default)",
+                                Tooltip = "Windows default behavior - automatic updates enabled",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["NoAutoUpdate"] = null,
+                                    ["AUOptions"] = null,
+                                    ["BranchReadinessLevel"] = null,
+                                    ["DeferFeatureUpdates"] = null,
+                                    ["DeferFeatureUpdatesPeriodInDays"] = null,
+                                    ["DeferQualityUpdates"] = null,
+                                    ["DeferQualityUpdatesPeriodInDays"] = null,
+                                    ["PauseFeatureUpdatesStartTime"] = null,
+                                    ["PauseFeatureUpdatesEndTime"] = null,
+                                    ["PauseQualityUpdatesStartTime"] = null,
+                                    ["PauseQualityUpdatesEndTime"] = null,
+                                    ["PauseUpdatesStartTime"] = null,
+                                    ["PauseUpdatesExpiryTime"] = null,
+                                    ["PausedQualityDate"] = null,
+                                    ["PausedFeatureDate"] = null,
+                                    ["FlightSettingsMaxPauseDays"] = null,
+                                    ["NoAUShutdownOption"] = null,
+                                    ["AlwaysAutoRebootAtScheduledTime"] = null,
+                                    ["AutoInstallMinorUpdates"] = null,
+                                    ["UseWUServer"] = null,
+                                    ["PausedFeatureStatus"] = null,
+                                    ["PausedQualityStatus"] = null,
+                                },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?> // Security Only
+                            new ComboBoxOption
                             {
-                                ["NoAutoUpdate"] = null,
-                                ["AUOptions"] = 2,
-                                ["BranchReadinessLevel"] = 20,
-                                ["DeferFeatureUpdates"] = 1,
-                                ["DeferFeatureUpdatesPeriodInDays"] = 365,
-                                ["DeferQualityUpdates"] = 1,
-                                ["DeferQualityUpdatesPeriodInDays"] = 7,
-                                ["PauseFeatureUpdatesStartTime"] = null,
-                                ["PauseFeatureUpdatesEndTime"] = null,
-                                ["PauseQualityUpdatesStartTime"] = null,
-                                ["PauseQualityUpdatesEndTime"] = null,
-                                ["PauseUpdatesStartTime"] = null,
-                                ["PauseUpdatesExpiryTime"] = null,
-                                ["PausedQualityDate"] = null,
-                                ["PausedFeatureDate"] = null,
-                                ["FlightSettingsMaxPauseDays"] = null,
-                                ["NoAUShutdownOption"] = null,
-                                ["AlwaysAutoRebootAtScheduledTime"] = null,
-                                ["AutoInstallMinorUpdates"] = null,
-                                ["UseWUServer"] = null,
-                                ["PausedFeatureStatus"] = null,
-                                ["PausedQualityStatus"] = null,
+                                DisplayName = "Security Updates Only (Recommended)",
+                                Tooltip = "Only install critical security updates, defer feature updates by 1 year",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["NoAutoUpdate"] = null,
+                                    ["AUOptions"] = 2,
+                                    ["BranchReadinessLevel"] = 20,
+                                    ["DeferFeatureUpdates"] = 1,
+                                    ["DeferFeatureUpdatesPeriodInDays"] = 365,
+                                    ["DeferQualityUpdates"] = 1,
+                                    ["DeferQualityUpdatesPeriodInDays"] = 7,
+                                    ["PauseFeatureUpdatesStartTime"] = null,
+                                    ["PauseFeatureUpdatesEndTime"] = null,
+                                    ["PauseQualityUpdatesStartTime"] = null,
+                                    ["PauseQualityUpdatesEndTime"] = null,
+                                    ["PauseUpdatesStartTime"] = null,
+                                    ["PauseUpdatesExpiryTime"] = null,
+                                    ["PausedQualityDate"] = null,
+                                    ["PausedFeatureDate"] = null,
+                                    ["FlightSettingsMaxPauseDays"] = null,
+                                    ["NoAUShutdownOption"] = null,
+                                    ["AlwaysAutoRebootAtScheduledTime"] = null,
+                                    ["AutoInstallMinorUpdates"] = null,
+                                    ["UseWUServer"] = null,
+                                    ["PausedFeatureStatus"] = null,
+                                    ["PausedQualityStatus"] = null,
+                                },
+                                IsRecommended = true,
                             },
-                            [2] = new Dictionary<string, object?> // Paused
+                            new ComboBoxOption
                             {
-                                ["NoAutoUpdate"] = 1,
-                                ["AUOptions"] = 1,
-                                ["BranchReadinessLevel"] = null,
-                                ["DeferFeatureUpdates"] = null,
-                                ["DeferFeatureUpdatesPeriodInDays"] = null,
-                                ["DeferQualityUpdates"] = null,
-                                ["DeferQualityUpdatesPeriodInDays"] = null,
-                                ["PauseFeatureUpdatesStartTime"] = "2025-01-01T00:00:00Z",
-                                ["PauseFeatureUpdatesEndTime"] = "2051-12-31T00:00:00Z",
-                                ["PauseQualityUpdatesStartTime"] = "2025-01-01T00:00:00Z",
-                                ["PauseQualityUpdatesEndTime"] = "2051-12-31T00:00:00Z",
-                                ["PauseUpdatesStartTime"] = "2025-01-01T00:00:00Z",
-                                ["PauseUpdatesExpiryTime"] = "2051-12-31T00:00:00Z",
-                                ["PausedQualityDate"] = "2025-01-01T00:00:00Z",
-                                ["PausedFeatureDate"] = "2025-01-01T00:00:00Z",
-                                ["FlightSettingsMaxPauseDays"] = 10023,
-                                ["NoAUShutdownOption"] = 1,
-                                ["AlwaysAutoRebootAtScheduledTime"] = 0,
-                                ["AutoInstallMinorUpdates"] = 0,
-                                ["UseWUServer"] = 0,
-                                ["PausedFeatureStatus"] = 1,
-                                ["PausedQualityStatus"] = 1,
+                                DisplayName = "Paused for a long time (Unpause in Settings)",
+                                Tooltip = "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
+                                Warning = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["NoAutoUpdate"] = 1,
+                                    ["AUOptions"] = 1,
+                                    ["BranchReadinessLevel"] = null,
+                                    ["DeferFeatureUpdates"] = null,
+                                    ["DeferFeatureUpdatesPeriodInDays"] = null,
+                                    ["DeferQualityUpdates"] = null,
+                                    ["DeferQualityUpdatesPeriodInDays"] = null,
+                                    ["PauseFeatureUpdatesStartTime"] = "2025-01-01T00:00:00Z",
+                                    ["PauseFeatureUpdatesEndTime"] = "2051-12-31T00:00:00Z",
+                                    ["PauseQualityUpdatesStartTime"] = "2025-01-01T00:00:00Z",
+                                    ["PauseQualityUpdatesEndTime"] = "2051-12-31T00:00:00Z",
+                                    ["PauseUpdatesStartTime"] = "2025-01-01T00:00:00Z",
+                                    ["PauseUpdatesExpiryTime"] = "2051-12-31T00:00:00Z",
+                                    ["PausedQualityDate"] = "2025-01-01T00:00:00Z",
+                                    ["PausedFeatureDate"] = "2025-01-01T00:00:00Z",
+                                    ["FlightSettingsMaxPauseDays"] = 10023,
+                                    ["NoAUShutdownOption"] = 1,
+                                    ["AlwaysAutoRebootAtScheduledTime"] = 0,
+                                    ["AutoInstallMinorUpdates"] = 0,
+                                    ["UseWUServer"] = 0,
+                                    ["PausedFeatureStatus"] = 1,
+                                    ["PausedQualityStatus"] = 1,
+                                },
                             },
-                            [3] = new Dictionary<string, object?> // Disabled
+                            new ComboBoxOption
                             {
-                                ["NoAutoUpdate"] = 1,
-                                ["AUOptions"] = 1,
-                                ["BranchReadinessLevel"] = null,
-                                ["DeferFeatureUpdates"] = null,
-                                ["DeferFeatureUpdatesPeriodInDays"] = null,
-                                ["DeferQualityUpdates"] = null,
-                                ["DeferQualityUpdatesPeriodInDays"] = null,
-                                ["PauseFeatureUpdatesStartTime"] = null,
-                                ["PauseFeatureUpdatesEndTime"] = null,
-                                ["PauseQualityUpdatesStartTime"] = null,
-                                ["PauseQualityUpdatesEndTime"] = null,
-                                ["PauseUpdatesStartTime"] = null,
-                                ["PauseUpdatesExpiryTime"] = null,
-                                ["PausedQualityDate"] = null,
-                                ["PausedFeatureDate"] = null,
-                                ["FlightSettingsMaxPauseDays"] = null,
-                                ["NoAUShutdownOption"] = null,
-                                ["AlwaysAutoRebootAtScheduledTime"] = null,
-                                ["AutoInstallMinorUpdates"] = null,
-                                ["UseWUServer"] = 0,
-                                ["PausedFeatureStatus"] = null,
-                                ["PausedQualityStatus"] = null,
+                                DisplayName = "Disabled (NOT Recommended, Security Risk)",
+                                Tooltip = "Completely disable Windows Update services and block all updates - NOT RECOMMENDED",
+                                Warning = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk.",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["NoAutoUpdate"] = 1,
+                                    ["AUOptions"] = 1,
+                                    ["BranchReadinessLevel"] = null,
+                                    ["DeferFeatureUpdates"] = null,
+                                    ["DeferFeatureUpdatesPeriodInDays"] = null,
+                                    ["DeferQualityUpdates"] = null,
+                                    ["DeferQualityUpdatesPeriodInDays"] = null,
+                                    ["PauseFeatureUpdatesStartTime"] = null,
+                                    ["PauseFeatureUpdatesEndTime"] = null,
+                                    ["PauseQualityUpdatesStartTime"] = null,
+                                    ["PauseQualityUpdatesEndTime"] = null,
+                                    ["PauseUpdatesStartTime"] = null,
+                                    ["PauseUpdatesExpiryTime"] = null,
+                                    ["PausedQualityDate"] = null,
+                                    ["PausedFeatureDate"] = null,
+                                    ["FlightSettingsMaxPauseDays"] = null,
+                                    ["NoAUShutdownOption"] = null,
+                                    ["AlwaysAutoRebootAtScheduledTime"] = null,
+                                    ["AutoInstallMinorUpdates"] = null,
+                                    ["UseWUServer"] = 0,
+                                    ["PausedFeatureStatus"] = null,
+                                    ["PausedQualityStatus"] = null,
+                                },
                             },
                         },
                     },
@@ -382,7 +409,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization",
                             ValueName = "DODownloadMode",
-                            RecommendedValue = 99,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -391,7 +418,7 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization",
                             ValueName = "DODownloadMode",
-                            RecommendedValue = 99,
+                            RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -399,30 +426,29 @@ public static class UpdateOptimizations
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Windows Default",
-                            "Devices on LAN Only",
-                            "Devices on LAN and Internet",
-                            "ServiceOption_Disabled",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["DODownloadMode"] = null,
+                                DisplayName = "Windows Default",
+                                ValueMappings = new Dictionary<string, object?> { ["DODownloadMode"] = null },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["DODownloadMode"] = 1,
+                                DisplayName = "Devices on LAN Only",
+                                ValueMappings = new Dictionary<string, object?> { ["DODownloadMode"] = 1 },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["DODownloadMode"] = 3,
+                                DisplayName = "Devices on LAN and Internet",
+                                ValueMappings = new Dictionary<string, object?> { ["DODownloadMode"] = 3 },
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["DODownloadMode"] = 99,
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["DODownloadMode"] = 99 },
+                                IsRecommended = true,
                             },
                         },
                     },
@@ -444,6 +470,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -451,6 +478,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-other-products",
+                    IsSubjectivePreference = true,
                     Name = "Receive updates for other Microsoft products",
                     Description = "Get Microsoft Office and other updates together with Windows updates",
                     GroupName = "Update Behavior",
@@ -487,7 +515,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
-                            DefaultValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -495,8 +523,9 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-restart-options",
-                    Name = "Prevent Automatic Restarts",
-                    Description = "Prevents automatic restarts after installing updates when users are logged on",
+                    RecommendedToggleState = false,
+                    Name = "Automatic Restart After Updates",
+                    Description = "Allow Windows to automatically restart your PC after installing updates when you are logged in",
                     GroupName = "Update Behavior",
                     Icon = "RestartOff",
                     InputType = InputType.Toggle,
@@ -506,9 +535,10 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -516,9 +546,10 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -527,6 +558,8 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-notification-level",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
                     Name = "Update Notifications",
                     Description = "Show or hide notifications about available updates and update progress",
                     GroupName = "Update Behavior",
@@ -541,6 +574,7 @@ public static class UpdateOptimizations
                             RecommendedValue = null,
                             EnabledValue = [2],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -551,6 +585,7 @@ public static class UpdateOptimizations
                             RecommendedValue = null,
                             EnabledValue = [2],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -559,6 +594,7 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-restart-notification",
+                    IsSubjectivePreference = true,
                     Name = "Notify me when a restart is required to finish updating",
                     Description = "Show notification when your device requires a restart to finish updating",
                     GroupName = "Update Behavior",
@@ -595,7 +631,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1],
                             DisabledValue = [0],
-                            DefaultValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -603,8 +639,10 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-driver-controls",
-                    Name = "Do Not Include Drivers with Updates",
-                    Description = "Prevent Windows from automatically downloading and installing hardware driver updates",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Driver Updates via Windows Update",
+                    Description = "Include hardware driver updates when downloading and installing Windows Updates",
                     GroupName = "Update Behavior",
                     Icon = "PackageVariantClosedMinus",
                     InputType = InputType.Toggle,
@@ -614,9 +652,10 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "ExcludeWUDriversInQualityUpdate",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -624,11 +663,37 @@ public static class UpdateOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "ExcludeWUDriversInQualityUpdate",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "updates-driver-coinstallers",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Driver Co-Installers",
+                    Description = "Allows hardware vendors to install companion software alongside device drivers. Disabling this prevents bloatware like Razer Synapse, printer utilities, and other vendor software from being automatically installed when you plug in devices. Your hardware will still work normally with standard drivers.",
+                    GroupName = "Update Behavior",
+                    Icon = "PackageVariantRemove",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "25.04.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Installer",
+                            ValueName = "DisableCoInstallers",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -650,6 +715,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 2,
                             EnabledValue = [4, null],
                             DisabledValue = [2],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -660,6 +726,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 2,
                             EnabledValue = [4, null],
                             DisabledValue = [2],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },

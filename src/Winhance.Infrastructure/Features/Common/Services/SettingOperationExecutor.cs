@@ -23,9 +23,9 @@ public class SettingOperationExecutor(
     IFileSystemService fileSystemService,
     ILogService logService) : ISettingOperationExecutor
 {
-    public async Task<OperationResult> ApplySettingOperationsAsync(SettingDefinition setting, bool enable, object? value)
+    public async Task<OperationResult> ApplySettingOperationsAsync(SettingDefinition setting, bool enable, object? value, bool resetToDefault = false)
     {
-        logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Processing operations for '{setting.Id}' - Type: {setting.InputType}");
+        logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Processing operations for '{setting.Id}' - Type: {setting.InputType}{(resetToDefault ? " (resetting to default values)" : "")}");
 
         bool allSucceeded = true;
         var failedOperations = new List<string>();
@@ -106,7 +106,22 @@ public class SettingOperationExecutor(
 
                 foreach (var registrySetting in setting.RegistrySettings)
                 {
-                    if (!registryService.ApplySetting(registrySetting, applyValue))
+                    bool ok;
+                    if (resetToDefault && !applyValue)
+                    {
+                        // Parent cascading disable: write DefaultValue instead of DisabledValue
+                        // so the child returns to a clean state without leaving behind policy-level
+                        // overrides that could interfere with other independent settings.
+                        var parentDisableValue = registrySetting.DisabledValue?.Length > 1 ? registrySetting.DisabledValue[1] : null;
+                        logService.Log(LogLevel.Info, $"[SettingOperationExecutor] Parent cascade disable for '{registrySetting.KeyPath}\\{registrySetting.ValueName}' - using DisabledValue[1]: {parentDisableValue?.ToString() ?? "null (delete)"}");
+                        ok = registryService.ApplySetting(registrySetting, false, useDefaultValue: true);
+                    }
+                    else
+                    {
+                        ok = registryService.ApplySetting(registrySetting, applyValue);
+                    }
+
+                    if (!ok)
                     {
                         allSucceeded = false;
                         var valueName = registrySetting.ValueName ?? "KeyExists";
@@ -142,7 +157,31 @@ public class SettingOperationExecutor(
 
             foreach (var scriptSetting in setting.PowerShellScripts)
             {
-                var script = enable ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+                // For Selection types with Script on options, resolve which script to run from the selected index
+                var useEnabled = enable;
+                if (setting.InputType == InputType.Selection
+                    && setting.ComboBox?.Options is { } scriptOptions
+                    && value is int scriptIndex
+                    && scriptIndex >= 0 && scriptIndex < scriptOptions.Count
+                    && scriptOptions[scriptIndex].Script is { } scriptOption)
+                {
+                    useEnabled = scriptOption == ScriptOption.Enabled;
+                }
+
+                var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+
+                // Substitute ScriptVariables placeholders for the selected index
+                if (!string.IsNullOrEmpty(script)
+                    && setting.ComboBox?.Options is { } varOptions
+                    && value is int varIndex
+                    && varIndex >= 0 && varIndex < varOptions.Count
+                    && varOptions[varIndex].ScriptVariables is { } variables)
+                {
+                    foreach (var kvp in variables)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+                    }
+                }
 
                 if (!string.IsNullOrEmpty(script))
                 {

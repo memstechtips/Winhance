@@ -119,7 +119,7 @@ public class PowerSettingsValidationServiceTests
         {
             CreateSetting("exists", powerCfgSettings: new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { SettingGuid = settingGuid }
+                new PowerCfgSetting { SettingGuid = settingGuid, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             })
         };
 
@@ -143,7 +143,7 @@ public class PowerSettingsValidationServiceTests
         {
             CreateSetting("missing", powerCfgSettings: new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { SettingGuid = "non-existent-guid" }
+                new PowerCfgSetting { SettingGuid = "non-existent-guid", RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             })
         };
 
@@ -170,7 +170,7 @@ public class PowerSettingsValidationServiceTests
         {
             CreateSetting("hw-controlled", powerCfgSettings: new List<PowerCfgSetting>
             {
-                new PowerCfgSetting { SettingGuid = settingGuid, CheckForHardwareControl = true }
+                new PowerCfgSetting { SettingGuid = settingGuid, CheckForHardwareControl = true, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
             })
         };
 
@@ -226,7 +226,9 @@ public class PowerSettingsValidationServiceTests
             KeyPath = @"HKLM\SYSTEM\CurrentControlSet\Control\Power",
             ValueName = "HiddenSetting",
             ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-            EnabledValue = [1]
+            EnabledValue = [1],
+            RecommendedValue = null,
+            DefaultValue = null
         };
 
         _mockRegistry
@@ -240,7 +242,11 @@ public class PowerSettingsValidationServiceTests
                 new PowerCfgSetting
                 {
                     SettingGuid = settingGuid,
-                    EnablementRegistrySetting = enablementSetting
+                    EnablementRegistrySetting = enablementSetting,
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 }
             })
         };

@@ -16,6 +16,21 @@ public class ApplicationCloseService : IApplicationCloseService
 
     public Func<Task>? BeforeShutdown { get; set; }
 
+    // Terminates the process. Replaced in tests so the test host survives.
+    public Action ShutdownAction { get; set; } = DefaultShutdown;
+
+    private static void DefaultShutdown()
+    {
+        try
+        {
+            Application.Current.Exit();
+        }
+        catch
+        {
+            Environment.Exit(0);
+        }
+    }
+
     public ApplicationCloseService(
         ILogService logService,
         ITaskProgressService taskProgressService,
@@ -83,7 +98,7 @@ public class ApplicationCloseService : IApplicationCloseService
             }
             catch
             {
-                Application.Current.Exit();
+                ShutdownAction();
             }
             return OperationResult.Succeeded();
         }
@@ -131,21 +146,12 @@ public class ApplicationCloseService : IApplicationCloseService
             }
 
             _logService.LogInformation("Shutting down application");
-            Application.Current.Exit();
+            ShutdownAction();
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error in CloseApplicationWithSupportDialogAsync: {ex.Message}", ex);
-
-            try
-            {
-                Application.Current.Exit();
-            }
-            catch (Exception shutdownEx)
-            {
-                _logService.LogError($"Error shutting down application: {shutdownEx.Message}", shutdownEx);
-                Environment.Exit(0);
-            }
+            ShutdownAction();
         }
     }
 

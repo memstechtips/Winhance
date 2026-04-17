@@ -46,6 +46,7 @@ public class RecommendedSettingsServiceTests
                 ValueType = RegistryValueKind.DWord,
                 RecommendedValue = recommendedValue,
                 IsPrimary = true,
+                DefaultValue = null
             });
         }
 

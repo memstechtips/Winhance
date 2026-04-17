@@ -477,7 +477,8 @@ public class WimImageFormatViewModelTests : IDisposable
     {
         var result = WimImageFormatViewModel.FormatFileSize(4_294_967_296L); // 4 GB
 
-        result.Should().Be("4.00 GB");
+        var sep = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+        result.Should().Be($"4{sep}00 GB");
     }
 
     [Fact]
@@ -485,7 +486,8 @@ public class WimImageFormatViewModelTests : IDisposable
     {
         var result = WimImageFormatViewModel.FormatFileSize(0);
 
-        result.Should().Be("0.00 GB");
+        var sep = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+        result.Should().Be($"0{sep}00 GB");
     }
 
     // ── IDisposable ──

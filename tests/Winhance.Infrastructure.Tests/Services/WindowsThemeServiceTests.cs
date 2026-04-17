@@ -173,7 +173,9 @@ public class WindowsThemeServiceTests
             {
                 KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                 ValueName = "AppsUseLightTheme",
-                ValueType = Microsoft.Win32.RegistryValueKind.DWord
+                ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         };
 
@@ -231,13 +233,17 @@ public class WindowsThemeServiceTests
             {
                 KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                 ValueName = "AppsUseLightTheme",
-                ValueType = Microsoft.Win32.RegistryValueKind.DWord
+                ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             },
             new RegistrySetting
             {
                 KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                 ValueName = "SystemUsesLightTheme",
-                ValueType = Microsoft.Win32.RegistryValueKind.DWord
+                ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         };
 
@@ -273,7 +279,9 @@ public class WindowsThemeServiceTests
             {
                 KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                 ValueName = "AppsUseLightTheme",
-                ValueType = Microsoft.Win32.RegistryValueKind.DWord
+                ValueType = Microsoft.Win32.RegistryValueKind.DWord,
+                RecommendedValue = null,
+                DefaultValue = null
             }
         };
 

@@ -17,7 +17,8 @@ public interface IWindowsRegistryService
     bool IsSettingApplied(RegistrySetting setting);
     bool IsRegistryValueInEnabledState(RegistrySetting setting, object? currentValue, bool valueExists);
 
-    bool ApplySetting(RegistrySetting setting, bool enable, object? specificValue = null);
+    /// <param name="useDefaultValue">When true, uses DisabledValue[1] (parent cascade value) instead of DisabledValue[0]. If no second element exists, falls back to normal behavior.</param>
+    bool ApplySetting(RegistrySetting setting, bool enable, object? specificValue = null, bool useDefaultValue = false);
 
     Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries);
 }

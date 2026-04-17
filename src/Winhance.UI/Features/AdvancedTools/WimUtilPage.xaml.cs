@@ -1,7 +1,9 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 
@@ -18,6 +20,16 @@ public sealed partial class WimUtilPage : Page
     {
         this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<WimUtilViewModel>();
+        ActualThemeChanged += (_, _) => UpdateWinhanceXmlCardIcon();
+        UpdateWinhanceXmlCardIcon();
+    }
+
+    private void UpdateWinhanceXmlCardIcon()
+    {
+        var uri = ActualTheme == ElementTheme.Light
+            ? "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png"
+            : "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
+        WinhanceXmlCardIcon.Source = new BitmapImage(new Uri(uri));
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)

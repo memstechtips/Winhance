@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Interfaces;
+using ComboBoxDisplayOption = Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -24,7 +25,7 @@ public sealed partial class PowerPlanComboBox : UserControl
     public static readonly DependencyProperty ItemsSourceProperty =
         DependencyProperty.Register(
             nameof(ItemsSource),
-            typeof(ObservableCollection<ComboBoxOption>),
+            typeof(ObservableCollection<ComboBoxDisplayOption>),
             typeof(PowerPlanComboBox),
             new PropertyMetadata(null, OnItemsSourceChanged));
 
@@ -36,13 +37,13 @@ public sealed partial class PowerPlanComboBox : UserControl
         if (d is not PowerPlanComboBox control) return;
 
         // Unsubscribe from the old collection
-        if (e.OldValue is ObservableCollection<ComboBoxOption> oldCollection && control._collectionChangedHandler != null)
+        if (e.OldValue is ObservableCollection<ComboBoxDisplayOption> oldCollection && control._collectionChangedHandler != null)
         {
             oldCollection.CollectionChanged -= control._collectionChangedHandler;
             control._collectionChangedHandler = null;
         }
 
-        if (e.NewValue is ObservableCollection<ComboBoxOption> newCollection)
+        if (e.NewValue is ObservableCollection<ComboBoxDisplayOption> newCollection)
         {
             // Debounced handler: only re-apply SelectedValue once after all items are added,
             // instead of on every individual Add (which caused redundant deferred tasks during refresh)
@@ -123,9 +124,9 @@ public sealed partial class PowerPlanComboBox : UserControl
             typeof(PowerPlanComboBox),
             new PropertyMetadata("Predefined plan (click to install)"));
 
-    public ObservableCollection<ComboBoxOption>? ItemsSource
+    public ObservableCollection<ComboBoxDisplayOption>? ItemsSource
     {
-        get => (ObservableCollection<ComboBoxOption>?)GetValue(ItemsSourceProperty);
+        get => (ObservableCollection<ComboBoxDisplayOption>?)GetValue(ItemsSourceProperty);
         set => SetValue(ItemsSourceProperty, value);
     }
 

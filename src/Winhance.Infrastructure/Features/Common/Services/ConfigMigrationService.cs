@@ -23,6 +23,9 @@ public class ConfigMigrationService : IConfigMigrationService
         _migrations = new Dictionary<string, Action<ConfigurationItem>>
         {
             ["taskbar-transparent"] = MigrateTaskbarTransparent,
+            ["explorer-customization-shortcut-suffix"] = MigrateToggleToSelection,
+            ["explorer-customization-shortcut-arrow"] = MigrateToggleToSelection,
+            ["gaming-background-apps"] = MigrateBackgroundApps,
         };
     }
 
@@ -78,6 +81,62 @@ public class ConfigMigrationService : IConfigMigrationService
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Migrates a Toggle-based setting to Selection format.
+    /// Old format: InputType=Toggle, IsSelected=true (action applied) or false (default).
+    /// New format: InputType=Selection, SelectedIndex=0 (default/first option), 1 (action applied/second option).
+    /// </summary>
+    private void MigrateToggleToSelection(ConfigurationItem item)
+    {
+        if (item.InputType != InputType.Toggle)
+            return; // Already migrated or not a toggle
+
+        if (item.IsSelected == true)
+        {
+            item.SelectedIndex = 1; // The "action" option (e.g., "Remove")
+        }
+        else
+        {
+            item.SelectedIndex = 0; // The "default" option (e.g., "Keep"/"Show")
+        }
+
+        item.InputType = InputType.Selection;
+        item.IsSelected = null;
+
+        _logService.Log(
+            LogLevel.Info,
+            $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
+    }
+
+    /// <summary>
+    /// Migrates the old Toggle-based "gaming-background-apps" setting to the new Selection-based format.
+    /// Old format: InputType=Toggle, IsSelected=false (intended to block background apps) or true (allow).
+    /// New format: InputType=Selection, SelectedIndex=0 (User in Control), 1 (Force Allow), 2 (Force Deny).
+    /// Note: The old toggle had a bug where DisabledValue was 0 (User in Control) instead of 2 (Force Deny).
+    /// We map IsSelected=false to Force Deny (index 2) since that was the user's intent.
+    /// </summary>
+    private void MigrateBackgroundApps(ConfigurationItem item)
+    {
+        if (item.InputType != InputType.Toggle)
+            return; // Already migrated or not a toggle
+
+        if (item.IsSelected == false)
+        {
+            item.SelectedIndex = 2; // Force Deny — what the user intended
+        }
+        else
+        {
+            item.SelectedIndex = 0; // User in Control (default)
+        }
+
+        item.InputType = InputType.Selection;
+        item.IsSelected = null;
+
+        _logService.Log(
+            LogLevel.Info,
+            $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
     }
 
     /// <summary>

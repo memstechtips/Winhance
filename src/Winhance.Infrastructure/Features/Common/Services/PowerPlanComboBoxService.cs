@@ -23,7 +23,7 @@ public class PowerPlanComboBoxService(
 
             foreach (var option in options)
             {
-                result.Options.Add(new ComboBoxOption(
+                result.Options.Add(new ComboBoxDisplayOption(
                     option.DisplayName,
                     option.Index,
                     option.ExistsOnSystem ? "Installed on system" : "Not installed",

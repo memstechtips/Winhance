@@ -138,8 +138,7 @@ public class ComboBoxResolverTests
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = Array.Empty<string>(),
-                ValueMappings = mappings,
+                Options = BuildOptionsFromMappings(mappings),
                 SupportsCustomState = true,
             },
             RegistrySettings = new[]
@@ -149,6 +148,8 @@ public class ComboBoxResolverTests
                     KeyPath = @"HKLM\Test",
                     ValueName = "TestValue",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -189,8 +190,7 @@ public class ComboBoxResolverTests
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = Array.Empty<string>(),
-                ValueMappings = mappings,
+                Options = BuildOptionsFromMappings(mappings),
             },
             RegistrySettings = new[]
             {
@@ -200,6 +200,7 @@ public class ComboBoxResolverTests
                     ValueName = "TestValue",
                     ValueType = RegistryValueKind.DWord,
                     DefaultValue = 42,
+                    RecommendedValue = null
                 },
             },
         };
@@ -352,6 +353,8 @@ public class ComboBoxResolverTests
                     KeyPath = @"HKLM\Test",
                     ValueName = "TestValue",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -379,6 +382,8 @@ public class ComboBoxResolverTests
                     KeyPath = @"HKLM\Test",
                     ValueName = "TestValue",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -416,6 +421,8 @@ public class ComboBoxResolverTests
                 new ScheduledTaskSetting
                 {
                     TaskPath = @"\Microsoft\Windows\Test",
+                    RecommendedState = null,
+                    DefaultState = null
                 },
             },
         };
@@ -452,6 +459,31 @@ public class ComboBoxResolverTests
         };
     }
 
+    private static IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> BuildOptions(
+        string[] displayNames,
+        Dictionary<int, Dictionary<string, object?>>? mappings)
+    {
+        var options = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>(displayNames.Length);
+        for (int i = 0; i < displayNames.Length; i++)
+        {
+            options.Add(new Winhance.Core.Features.Common.Models.ComboBoxOption
+            {
+                DisplayName = displayNames[i],
+                ValueMappings = mappings != null && mappings.TryGetValue(i, out var vm) ? vm : null,
+            });
+        }
+        return options;
+    }
+
+    private static IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> BuildOptionsFromMappings(
+        Dictionary<int, Dictionary<string, object?>> mappings)
+    {
+        var max = mappings.Count == 0 ? 0 : mappings.Keys.Max() + 1;
+        var names = new string[max];
+        for (int i = 0; i < max; i++) names[i] = $"Option {i}";
+        return BuildOptions(names, mappings);
+    }
+
     private static SettingDefinition CreateSelectionSetting(
         string id,
         Dictionary<int, Dictionary<string, object?>> mappings)
@@ -464,8 +496,7 @@ public class ComboBoxResolverTests
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = Array.Empty<string>(),
-                ValueMappings = mappings,
+                Options = BuildOptionsFromMappings(mappings),
             },
         };
     }
@@ -483,8 +514,7 @@ public class ComboBoxResolverTests
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = Array.Empty<string>(),
-                ValueMappings = mappings,
+                Options = BuildOptionsFromMappings(mappings),
             },
             RegistrySettings = new[]
             {
@@ -493,6 +523,8 @@ public class ComboBoxResolverTests
                     KeyPath = @"HKLM\Test",
                     ValueName = valueName,
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -508,7 +540,7 @@ public class ComboBoxResolverTests
             InputType = InputType.Selection,
             ComboBox = new ComboBoxMetadata
             {
-                DisplayNames = displayNames,
+                Options = BuildOptions(displayNames, null),
             },
         };
     }

@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -11,78 +10,100 @@ public class StartupNotificationService : IStartupNotificationService
 {
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _prefsService;
+    private readonly ISystemBackupService _backupService;
+    private readonly ITaskProgressService _taskProgressService;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
 
     public StartupNotificationService(
         IDialogService dialogService,
         IUserPreferencesService prefsService,
+        ISystemBackupService backupService,
+        ITaskProgressService taskProgressService,
         ILogService logService,
         ILocalizationService localizationService)
     {
         _dialogService = dialogService;
         _prefsService = prefsService;
+        _backupService = backupService;
+        _taskProgressService = taskProgressService;
         _logService = logService;
         _localizationService = localizationService;
     }
 
-    public async Task ShowBackupNotificationAsync(BackupResult result)
+    public async Task ShowFirstLaunchRestoreOfferAsync()
     {
-        if (result == null)
-            return;
-
-        if (!result.Success)
-        {
-            if (!string.IsNullOrEmpty(result.ErrorMessage))
-            {
-                _logService.Log(LogLevel.Info, $"Backup failed: {result.ErrorMessage}");
-            }
-            return;
-        }
-
-        // Only show dialog when something new was actually created
-        if (!result.RestorePointCreated)
-            return;
-
         try
         {
-            var messageText = _localizationService.GetString("Startup_Backup_Intro") + "\n\n";
+            // Check if we've already offered
+            var alreadyOffered = _prefsService.GetPreference(
+                UserPreferenceKeys.InitialRestorePointOffered, false);
+            if (alreadyOffered)
+                return;
 
-            if (result.SystemRestoreWasDisabled)
-            {
-                messageText += _localizationService.GetString("Startup_Backup_RestoreEnabled") + "\n\n";
-            }
+            // Mark as offered immediately so we don't show again even if something fails
+            await _prefsService.SetPreferenceAsync(
+                UserPreferenceKeys.InitialRestorePointOffered, true);
 
-            messageText += _localizationService.GetString("Startup_Backup_Created") + "\n";
-            messageText += _localizationService.GetString("Startup_Backup_RestorePoint") + "\n";
-            messageText += _localizationService.GetString("Startup_Backup_ConfigBackup") + "\n\n";
+            // Build the consent dialog message
+            var message = _localizationService.GetString("Startup_Backup_Intro") + "\n\n"
+                + _localizationService.GetString("Startup_Backup_ConfigCreated") + "\n\n"
+                + _localizationService.GetString("Startup_Backup_RestoreOffer") + "\n\n"
+                + _localizationService.GetString("Startup_Backup_SkipWarning");
 
-            messageText += _localizationService.GetString("Startup_Backup_ToRestore") + "\n";
-            messageText += _localizationService.GetString("Startup_Backup_RestoreInstructions_RestorePoint") + "\n";
-            messageText += _localizationService.GetString("Startup_Backup_RestoreInstructions_ConfigBackup") + "\n\n";
-
-            messageText += _localizationService.GetString("Startup_Backup_Note");
-
-            var checkboxText = _localizationService.GetString("Startup_Backup_Checkbox_DontCreate");
-
-            var dialogResult = await _dialogService.ShowConfirmationWithCheckboxAsync(
-                messageText,
-                checkboxText,
+            var confirmed = await _dialogService.ShowConfirmationAsync(
+                message,
                 title: _localizationService.GetString("Startup_Backup_Title"),
-                continueButtonText: _localizationService.GetString("Button_OK"),
-                cancelButtonText: "");
+                okButtonText: _localizationService.GetString("Startup_Backup_Button_Create"),
+                cancelButtonText: _localizationService.GetString("Startup_Backup_Button_Skip"));
 
-            if (dialogResult.CheckboxChecked)
+            if (confirmed)
             {
-                await _prefsService.SetPreferenceAsync(UserPreferenceKeys.SkipSystemBackup, true);
-                _logService.Log(LogLevel.Info, "User opted to skip system backup check in future launches");
-            }
+                _logService.Log(LogLevel.Info, "User chose to create restore point on first launch");
 
-            _logService.Log(LogLevel.Info, "Backup notification dialog shown to user");
+                // Use TaskProgressService so the main window progress bar shows status
+                var cts = _taskProgressService.StartTask(
+                    _localizationService.GetString("Progress_CreatingRestorePoint") ?? "Creating system restore point...",
+                    isIndeterminate: true);
+                var progress = _taskProgressService.CreateDetailedProgress();
+
+                try
+                {
+                    var result = await _backupService.CreateRestorePointAsync(
+                        progress: progress, cancellationToken: cts.Token);
+
+                    _taskProgressService.CompleteTask();
+
+                    if (result.Success && result.RestorePointCreated)
+                    {
+                        var successMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedSuccess");
+                        await _dialogService.ShowInformationAsync(
+                            successMsg,
+                            _localizationService.GetString("Startup_Backup_Title_Success"));
+                    }
+                    else
+                    {
+                        var failMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedFail")
+                            + (result.ErrorMessage != null ? $"\n\n{result.ErrorMessage}" : "");
+                        await _dialogService.ShowWarningAsync(
+                            failMsg,
+                            _localizationService.GetString("Startup_Backup_Title_Fail"));
+                    }
+                }
+                catch
+                {
+                    _taskProgressService.CompleteTask();
+                    throw;
+                }
+            }
+            else
+            {
+                _logService.Log(LogLevel.Info, "User skipped restore point creation on first launch");
+            }
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error showing backup notification: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error showing first launch restore offer: {ex.Message}");
         }
     }
 }

@@ -312,6 +312,26 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Sets the locked state for a specific navigation button.
+    /// When locked, the button is dimmed, shows a lock icon, and blocks clicks.
+    /// </summary>
+    public void SetButtonLocked(string tag, bool isLocked, string? tooltip = null)
+    {
+        if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
+        {
+            button.IsLocked = isLocked;
+            if (isLocked && !string.IsNullOrEmpty(tooltip))
+            {
+                ToolTipService.SetToolTip(button, tooltip);
+            }
+            else if (!isLocked)
+            {
+                ToolTipService.SetToolTip(button, null);
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets a NavButton by its tag.
     /// </summary>
     /// <param name="tag">The navigation tag of the button to get.</param>

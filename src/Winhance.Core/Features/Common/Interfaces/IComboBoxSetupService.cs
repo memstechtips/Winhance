@@ -12,17 +12,17 @@ public interface IComboBoxSetupService
 
 public class ComboBoxSetupResult
 {
-    public ObservableCollection<ComboBoxOption> Options { get; set; } = new();
+    public ObservableCollection<ComboBoxDisplayOption> Options { get; set; } = new();
     public object? SelectedValue { get; set; }
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
 }
 
-public class ComboBoxOption : INotifyPropertyChanged
+public class ComboBoxDisplayOption : INotifyPropertyChanged
 {
     private string _displayText;
 
-    public ComboBoxOption(string displayText, object value, string? description = null, object? tag = null)
+    public ComboBoxDisplayOption(string displayText, object value, string? description = null, object? tag = null)
     {
         _displayText = displayText;
         Value = value;
@@ -46,10 +46,17 @@ public class ComboBoxOption : INotifyPropertyChanged
     public object Value { get; }
     public string? Description { get; }
     public object? Tag { get; }
+
+    /// <summary>True if the source ComboBoxOption was flagged as Recommended.</summary>
+    public bool IsRecommended { get; set; }
+
+    /// <summary>True if the source ComboBoxOption was flagged as Windows Default.</summary>
+    public bool IsDefault { get; set; }
+
+    /// <summary>True when the source SettingDefinition is flagged IsSubjectivePreference.</summary>
+    public bool IsSubjectivePreference { get; set; }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public override string ToString()
-    {
-        return $"{DisplayText} (Value: {Value})";
-    }
+    public override string ToString() => DisplayText;
 }

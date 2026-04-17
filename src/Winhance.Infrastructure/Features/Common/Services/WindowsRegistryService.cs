@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,6 +15,17 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
 {
     private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
+
+    /// <summary>
+    /// Gets the value to write when a parent cascades a disable to this setting.
+    /// If DisabledValue has a second element, use it (even if null, which means delete).
+    /// Otherwise, fall back to the normal first-non-null disabled value.
+    /// This allows settings to declare e.g. DisabledValue = [1, null] where:
+    ///   - Index 0 (1): written when the user explicitly disables the setting
+    ///   - Index 1 (null): written when the parent cascades a disable (deletes the value)
+    /// </summary>
+    private static object? GetParentDisableValue(object?[]? disabledValues) =>
+        disabledValues?.Length > 1 ? disabledValues[1] : GetWriteValue(disabledValues);
 
     private bool CreateKey(string keyPath)
     {
@@ -222,6 +235,22 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         if (setting == null)
             return false;
 
+        // ValueName == null settings encode enabled-state as key existence; the batched
+        // currentValue is a bool from __KEY_EXISTS__. Interpret it directly — the per-value
+        // EnabledValue/DisabledValue match loop below is meaningless for this case because
+        // the "value" being matched is key-presence, not a stored value.
+        if (setting.ValueName == null && currentValue is bool keyExists)
+        {
+            // Inverted shape: DisabledValue carries the null sentinel meaning
+            // "disabled when key present" (rare — standard shape is EnabledValue = [null]).
+            if (setting.EnabledValue?.Contains(null) != true
+                && setting.DisabledValue?.Contains(null) == true)
+            {
+                return !keyExists;
+            }
+            return keyExists;
+        }
+
         // Handle CompositeStringKey — extract sub-value before comparing
         if (setting.CompositeStringKey != null)
         {
@@ -290,6 +319,25 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                     {
                         KeyPath = $@"{setting.KeyPath}\{subKey}",
                         ApplyPerNetworkInterface = false
+                    };
+                    if (!IsSettingApplied(expandedSetting))
+                        return false;
+                }
+                return true;
+            }
+
+            if (setting.ApplyPerMonitor)
+            {
+                var subKeys = GetSubKeyNames(setting.KeyPath);
+                if (subKeys.Length == 0)
+                    return false;
+
+                foreach (var subKey in subKeys)
+                {
+                    var expandedSetting = setting with
+                    {
+                        KeyPath = $@"{setting.KeyPath}\{subKey}",
+                        ApplyPerMonitor = false
                     };
                     if (!IsSettingApplied(expandedSetting))
                         return false;
@@ -459,7 +507,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    public bool ApplySetting(RegistrySetting setting, bool isEnabled, object? specificValue = null)
+    public bool ApplySetting(RegistrySetting setting, bool isEnabled, object? specificValue = null, bool useDefaultValue = false)
     {
         if (setting == null)
             return false;
@@ -482,6 +530,29 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                     {
                         KeyPath = $@"{setting.KeyPath}\{subKey}",
                         ApplyPerNetworkInterface = false
+                    };
+                    if (!ApplySetting(expandedSetting, isEnabled, specificValue))
+                        allSucceeded = false;
+                }
+                return allSucceeded;
+            }
+
+            if (setting.ApplyPerMonitor)
+            {
+                var subKeys = GetSubKeyNames(setting.KeyPath);
+                if (subKeys.Length == 0)
+                {
+                    logService.Log(LogLevel.Warning, $"[WindowsRegistryService] No subkeys found under '{setting.KeyPath}' for per-monitor setting");
+                    return false;
+                }
+
+                var allSucceeded = true;
+                foreach (var subKey in subKeys)
+                {
+                    var expandedSetting = setting with
+                    {
+                        KeyPath = $@"{setting.KeyPath}\{subKey}",
+                        ApplyPerMonitor = false
                     };
                     if (!ApplySetting(expandedSetting, isEnabled, specificValue))
                         allSucceeded = false;
@@ -528,8 +599,15 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 if (!CreateKey(setting.KeyPath))
                     return false;
 
-                var result = ModifyBinaryBit(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value, isEnabled);
-                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified bit mask 0x{setting.BitMask.Value:X2} at byte index {setting.BinaryByteIndex.Value} to {isEnabled} - Success: {result}");
+                var setBit = specificValue switch
+                {
+                    bool b => b,
+                    int i => i != 0,
+                    byte b => b != 0,
+                    _ => isEnabled
+                };
+                var result = ModifyBinaryBit(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value, setBit);
+                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified bit mask 0x{setting.BitMask.Value:X2} at byte index {setting.BinaryByteIndex.Value} to {setBit} - Success: {result}");
                 return result;
             }
 
@@ -561,12 +639,20 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 return result;
             }
 
-            var oldValue = GetValue(setting.KeyPath, setting.ValueName);
-            var valueToSet = specificValue ?? (isEnabled
-                ? GetWriteValue(setting.EnabledValue)
-                : GetWriteValue(setting.DisabledValue));
+            // Unlock the key first if LockKeyAccess is set, so we can write to it
+            if (setting.LockKeyAccess)
+            {
+                UnlockRegistryKey(setting.KeyPath);
+            }
 
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Setting '{setting.KeyPath}\\{setting.ValueName}' - Old: {oldValue}, New: {valueToSet}");
+            var oldValue = GetValue(setting.KeyPath, setting.ValueName);
+            var valueToSet = useDefaultValue
+                ? GetParentDisableValue(setting.DisabledValue)
+                : specificValue ?? (isEnabled
+                    ? GetWriteValue(setting.EnabledValue)
+                    : GetWriteValue(setting.DisabledValue));
+
+            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Setting '{setting.KeyPath}\\{setting.ValueName}' - Old: {oldValue}, New: {valueToSet}{(useDefaultValue ? " (parent cascade disable)" : "")}");
 
             if (valueToSet == null)
             {
@@ -581,11 +667,158 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var setResult = SetValue(setting.KeyPath, setting.ValueName, valueToSet, setting.ValueType);
 
             logService.Log(LogLevel.Info, $"[WindowsRegistryService] Set value '{setting.ValueName}' = '{valueToSet}' in '{setting.KeyPath}' - Success: {setResult}");
+
+            if (setResult && setting.LockKeyAccess)
+            {
+                // Determine if the value being written means "disabled" (service Start = 4)
+                // Lock the key only when disabling; unlock was already done above for enabling
+                var writtenValue = useDefaultValue
+                    ? GetParentDisableValue(setting.DisabledValue)
+                    : specificValue ?? (isEnabled
+                        ? GetWriteValue(setting.EnabledValue)
+                        : GetWriteValue(setting.DisabledValue));
+
+                // Lock the key if the written value equals the disabled/locked state (e.g., Start = 4)
+                if (!isEnabled || (writtenValue is int intVal && intVal == 4))
+                {
+                    LockRegistryKey(setting.KeyPath);
+                }
+            }
+
             return setResult;
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error applying setting '{setting.KeyPath}\\{setting.ValueName}': {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Locks a registry key to read-only for SYSTEM and TrustedInstaller,
+    /// preventing Windows from resetting the value.
+    /// Administrators retain full control to allow Winhance to unlock later.
+    /// </summary>
+    private bool LockRegistryKey(string keyPath)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(
+                subKeyPath,
+                RegistryKeyPermissionCheck.ReadWriteSubTree,
+                RegistryRights.ChangePermissions | RegistryRights.ReadKey | RegistryRights.TakeOwnership);
+
+            if (key == null)
+            {
+                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot lock key '{keyPath}': key not found");
+                return false;
+            }
+
+            var security = key.GetAccessControl();
+
+            // Ensure Administrators own the key
+            var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            security.SetOwner(adminsSid);
+
+            // Disable inheritance and convert existing rules to explicit
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+
+            // Remove all existing access rules
+            foreach (RegistryAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
+            {
+                security.RemoveAccessRule(rule);
+            }
+
+            // Grant Administrators full control (so Winhance can unlock later)
+            security.AddAccessRule(new RegistryAccessRule(
+                adminsSid,
+                RegistryRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            // Grant SYSTEM read-only (prevents Windows from writing)
+            var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            security.AddAccessRule(new RegistryAccessRule(
+                systemSid,
+                RegistryRights.ReadKey,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            key.SetAccessControl(security);
+
+            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Locked registry key '{keyPath}' to read-only for SYSTEM");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to lock registry key '{keyPath}': {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Restores default permissions on a registry key, re-enabling
+    /// inheritance and granting SYSTEM full control again.
+    /// </summary>
+    private bool UnlockRegistryKey(string keyPath)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(
+                subKeyPath,
+                RegistryKeyPermissionCheck.ReadWriteSubTree,
+                RegistryRights.ChangePermissions | RegistryRights.ReadKey | RegistryRights.TakeOwnership);
+
+            if (key == null)
+            {
+                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot unlock key '{keyPath}': key not found");
+                return false;
+            }
+
+            var security = key.GetAccessControl();
+
+            // Ensure Administrators own the key
+            var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            security.SetOwner(adminsSid);
+
+            // Remove all explicit rules
+            foreach (RegistryAccessRule rule in security.GetAccessRules(true, false, typeof(SecurityIdentifier)))
+            {
+                security.RemoveAccessRule(rule);
+            }
+
+            // Re-enable inheritance
+            security.SetAccessRuleProtection(isProtected: false, preserveInheritance: false);
+
+            // Grant SYSTEM full control
+            var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            security.AddAccessRule(new RegistryAccessRule(
+                systemSid,
+                RegistryRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            // Grant Administrators full control
+            security.AddAccessRule(new RegistryAccessRule(
+                adminsSid,
+                RegistryRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            key.SetAccessControl(security);
+
+            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Unlocked registry key '{keyPath}' - restored SYSTEM full control");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to unlock registry key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -714,8 +947,12 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         return current switch
         {
             null => desired == null,
+            bool b when desired is int d => (b ? 1 : 0) == d,
+            byte b when desired is int d => b == d,
+            byte b when desired is byte d => b == d,
             int i when desired is int d => i == d,
             int i when desired is long d => i == d,
+            int i when desired is byte d => i == d,
             long l when desired is long d => l == d,
             long l when desired is int d => l == d,
             string s when desired is string ds => s.Equals(

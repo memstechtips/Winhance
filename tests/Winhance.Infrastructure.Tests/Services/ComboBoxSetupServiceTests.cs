@@ -33,11 +33,17 @@ public class ComboBoxSetupServiceTests
         ComboBoxMetadata? comboBox = null;
         if (displayNames != null || valueMappings != null)
         {
-            comboBox = new ComboBoxMetadata
+            var names = displayNames ?? Array.Empty<string>();
+            var options = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>(names.Length);
+            for (int i = 0; i < names.Length; i++)
             {
-                DisplayNames = displayNames ?? Array.Empty<string>(),
-                ValueMappings = valueMappings,
-            };
+                options.Add(new Winhance.Core.Features.Common.Models.ComboBoxOption
+                {
+                    DisplayName = names[i],
+                    ValueMappings = valueMappings != null && valueMappings.TryGetValue(i, out var vm) ? vm : null,
+                });
+            }
+            comboBox = new ComboBoxMetadata { Options = options };
         }
 
         return new SettingDefinition
@@ -98,9 +104,9 @@ public class ComboBoxSetupServiceTests
             Success = true,
             SelectedValue = 2,
         };
-        expectedResult.Options.Add(new ComboBoxOption("Balanced", 0));
-        expectedResult.Options.Add(new ComboBoxOption("High Performance", 1));
-        expectedResult.Options.Add(new ComboBoxOption("Ultimate", 2));
+        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption("Balanced", 0));
+        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption("High Performance", 1));
+        expectedResult.Options.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption("Ultimate", 2));
 
         _mockPowerPlan
             .Setup(p => p.SetupPowerPlanComboBoxAsync(setting, 2))

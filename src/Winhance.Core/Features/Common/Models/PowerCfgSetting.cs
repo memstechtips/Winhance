@@ -9,7 +9,7 @@ public enum PowerModeSupport
     DCOnly          // Only applies to DC/battery power
 }
 
-public record PowerCfgSetting
+public sealed record PowerCfgSetting
 {
     public string? SubgroupGUIDAlias { get; init; }
     public string SettingGUIDAlias { get; init; } = string.Empty;
@@ -18,7 +18,9 @@ public record PowerCfgSetting
     public PowerModeSupport PowerModeSupport { get; init; } = PowerModeSupport.Both;
     public string? Units { get; init; }
     public RegistrySetting? EnablementRegistrySetting { get; init; }
-    public int? RecommendedValueAC { get; init; }
-    public int? RecommendedValueDC { get; init; }
+    public required int? RecommendedValueAC { get; init; }
+    public required int? RecommendedValueDC { get; init; }
+    public required int? DefaultValueAC { get; init; }
+    public required int? DefaultValueDC { get; init; }
     public bool CheckForHardwareControl { get; init; } = false;
 }

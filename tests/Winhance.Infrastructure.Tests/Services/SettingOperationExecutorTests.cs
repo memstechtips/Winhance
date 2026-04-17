@@ -116,6 +116,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Test",
             ValueName = "TestValue",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("reg-toggle") with
         {
@@ -138,6 +140,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Test",
             ValueName = "DisableValue",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("reg-toggle-off") with
         {
@@ -153,6 +157,36 @@ public class SettingOperationExecutorTests
     }
 
     [Fact]
+    public async Task ApplySettingOperationsAsync_ResetToDefault_WritesDefaultValueInsteadOfDisabledValue()
+    {
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "ResetMe",
+            ValueType = RegistryValueKind.DWord,
+            DefaultValue = null, // null means delete the value,
+            RecommendedValue = null
+        };
+        var setting = CreateSetting("reset-default") with
+        {
+            RegistrySettings = new[] { regSetting },
+        };
+
+        // Setup mock for the 4-param call with useDefaultValue: true
+        _mockRegistry
+            .Setup(r => r.ApplySetting(It.IsAny<RegistrySetting>(), It.IsAny<bool>(), It.IsAny<object?>(), true))
+            .Returns(true);
+
+        var result = await _executor.ApplySettingOperationsAsync(setting, false, null, resetToDefault: true);
+
+        result.Success.Should().BeTrue();
+        // Should call with useDefaultValue: true instead of the normal disable path
+        _mockRegistry.Verify(
+            r => r.ApplySetting(regSetting, false, null, true),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ApplySettingOperationsAsync_MultipleRegistrySettings_AppliesAll()
     {
         var reg1 = new RegistrySetting
@@ -160,12 +194,16 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Test1",
             ValueName = "Val1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var reg2 = new RegistrySetting
         {
             KeyPath = @"HKCU\Software\Test2",
             ValueName = "Val2",
             ValueType = RegistryValueKind.String,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("reg-multi") with
         {
@@ -188,6 +226,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Test",
             ValueName = "TestValue",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var regContent = new RegContentSetting
         {
@@ -221,7 +261,7 @@ public class SettingOperationExecutorTests
         {
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Microsoft\Windows\Task1" },
+                new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Microsoft\Windows\Task1", RecommendedState = null, DefaultState = null },
             },
         };
 
@@ -242,7 +282,7 @@ public class SettingOperationExecutorTests
         {
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Microsoft\Windows\Task1" },
+                new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Microsoft\Windows\Task1", RecommendedState = null, DefaultState = null },
             },
         };
 
@@ -263,8 +303,8 @@ public class SettingOperationExecutorTests
         {
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Task1" },
-                new ScheduledTaskSetting { Id = "task2", TaskPath = @"\Task2" },
+                new ScheduledTaskSetting { Id = "task1", TaskPath = @"\Task1", RecommendedState = null, DefaultState = null },
+                new ScheduledTaskSetting { Id = "task2", TaskPath = @"\Task2", RecommendedState = null, DefaultState = null },
             },
         };
 
@@ -371,6 +411,107 @@ public class SettingOperationExecutorTests
     }
 
     // ---------------------------------------------------------------
+    // 4b. ScriptMappings resolves correct script for Selection types
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_ScriptMappings_DisabledIndex_RunsDisabledScript()
+    {
+        var setting = CreateSetting("ps-scriptmap", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Off", Script = ScriptOption.Disabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "On", Script = ScriptOption.Enabled },
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    Id = "script1",
+                    EnabledScript = "Enable-Thing",
+                    DisabledScript = "Disable-Thing",
+                },
+            },
+        };
+
+        // enable=true (always true for Selection), value=0 (Disabled index)
+        await _executor.ApplySettingOperationsAsync(setting, true, 0);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptAsync("Disable-Thing", null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_ScriptMappings_EnabledIndex_RunsEnabledScript()
+    {
+        var setting = CreateSetting("ps-scriptmap-en", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Off", Script = ScriptOption.Disabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Manual", Script = ScriptOption.Enabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Auto", Script = ScriptOption.Enabled },
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    Id = "script1",
+                    EnabledScript = "Enable-Thing",
+                    DisabledScript = "Disable-Thing",
+                },
+            },
+        };
+
+        // enable=true, value=2 (Automatic index → ScriptOption.Enabled)
+        await _executor.ApplySettingOperationsAsync(setting, true, 2);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptAsync("Enable-Thing", null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingOperationsAsync_NoScriptMappings_Selection_FallsBackToEnableFlag()
+    {
+        var setting = CreateSetting("ps-no-scriptmap", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Off" },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "On" },
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    Id = "script1",
+                    EnabledScript = "Enable-Thing",
+                    DisabledScript = "Disable-Thing",
+                },
+            },
+        };
+
+        // No ScriptMappings → falls back to enable flag (true)
+        await _executor.ApplySettingOperationsAsync(setting, true, 0);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptAsync("Enable-Thing", null, default),
+            Times.Once);
+    }
+
+    // ---------------------------------------------------------------
     // 5. Power config operations delegated to PowerCfgApplier
     // ---------------------------------------------------------------
 
@@ -386,6 +527,10 @@ public class SettingOperationExecutorTests
                     SettingGUIDAlias = "SLEEPBUTTONTIMEOUT",
                     SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
                     SettingGuid = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 },
             },
         };
@@ -426,6 +571,8 @@ public class SettingOperationExecutorTests
                     KeyPath = @"HKCU\Software\Test",
                     ValueName = "Val",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -462,13 +609,15 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combined",
             ValueName = "CombinedVal",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("combined") with
         {
             RegistrySettings = new[] { regSetting },
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "combTask", TaskPath = @"\CombTask" },
+                new ScheduledTaskSetting { Id = "combTask", TaskPath = @"\CombTask", RecommendedState = null, DefaultState = null },
             },
             PowerShellScripts = new[]
             {
@@ -486,6 +635,10 @@ public class SettingOperationExecutorTests
                     SettingGUIDAlias = "TestAlias",
                     SubgroupGuid = "guid1",
                     SettingGuid = "guid2",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 },
             },
         };
@@ -508,13 +661,15 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combined",
             ValueName = "CombinedVal",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("combined-off") with
         {
             RegistrySettings = new[] { regSetting },
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task", TaskPath = @"\Task" },
+                new ScheduledTaskSetting { Id = "task", TaskPath = @"\Task", RecommendedState = null, DefaultState = null },
             },
             PowerShellScripts = new[]
             {
@@ -552,6 +707,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Test",
             ValueName = "Val",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         _mockRegistry
             .Setup(r => r.ApplySetting(regSetting, true, null))
@@ -562,7 +719,7 @@ public class SettingOperationExecutorTests
             RegistrySettings = new[] { regSetting },
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task", TaskPath = @"\ErrorTask" },
+                new ScheduledTaskSetting { Id = "task", TaskPath = @"\ErrorTask", RecommendedState = null, DefaultState = null },
             },
         };
 
@@ -585,12 +742,16 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Sel",
             ValueName = "Opt1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var reg2 = new RegistrySetting
         {
             KeyPath = @"HKCU\Software\Sel",
             ValueName = "Opt2",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-custom", InputType.Selection) with
         {
@@ -618,6 +779,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Sel",
             ValueName = "Opt1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-custom-null", InputType.Selection) with
         {
@@ -642,6 +805,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Sel",
             ValueName = null,
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-keyexists", InputType.Selection) with
         {
@@ -666,6 +831,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combo",
             ValueName = "Setting1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-int-index", InputType.Selection) with
         {
@@ -690,6 +857,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combo",
             ValueName = "Setting1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-string-index", InputType.Selection) with
         {
@@ -718,6 +887,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combo",
             ValueName = "Setting1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-index-null", InputType.Selection) with
         {
@@ -741,6 +912,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combo",
             ValueName = "UnmappedValue",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-fallback", InputType.Selection) with
         {
@@ -769,6 +942,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combo",
             ValueName = "UnmappedValue",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-fallback-zero", InputType.Selection) with
         {
@@ -797,6 +972,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Sel",
             ValueName = "Val",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-enable-flag", InputType.Selection) with
         {
@@ -820,6 +997,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Numeric",
             ValueName = "Timeout",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("numeric-nonzero", InputType.NumericRange) with
         {
@@ -839,6 +1018,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Numeric",
             ValueName = "Timeout",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("numeric-zero", InputType.NumericRange) with
         {
@@ -858,6 +1039,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Numeric",
             ValueName = "Delay",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("numeric-string", InputType.NumericRange) with
         {
@@ -878,6 +1061,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Numeric",
             ValueName = "Delay",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("numeric-string-zero", InputType.NumericRange) with
         {
@@ -1077,6 +1262,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Test",
             ValueName = "Val",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("unsupported", InputType.Action) with
         {
@@ -1101,6 +1288,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Sel",
             ValueName = "Val",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-empty-string", InputType.Selection) with
         {
@@ -1130,11 +1319,13 @@ public class SettingOperationExecutorTests
                     KeyPath = @"HKCU\Software\Test",
                     ValueName = "V",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "t", TaskPath = @"\T" },
+                new ScheduledTaskSetting { Id = "t", TaskPath = @"\T", RecommendedState = null, DefaultState = null },
             },
         };
 
@@ -1157,6 +1348,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Fail",
             ValueName = "Bad",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("reg-fail") with
         {
@@ -1182,12 +1375,16 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Pass",
             ValueName = "Good",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var reg2 = new RegistrySetting
         {
             KeyPath = @"HKCU\Software\Fail",
             ValueName = "Bad",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("partial-fail") with
         {
@@ -1216,6 +1413,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Fail",
             ValueName = "Val",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("fail-restart") with
         {
@@ -1241,6 +1440,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Sel",
             ValueName = "Opt1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-fail", InputType.Selection) with
         {
@@ -1266,6 +1467,8 @@ public class SettingOperationExecutorTests
             KeyPath = @"HKCU\Software\Combo",
             ValueName = "Setting1",
             ValueType = RegistryValueKind.DWord,
+            RecommendedValue = null,
+            DefaultValue = null
         };
         var setting = CreateSetting("sel-idx-fail", InputType.Selection) with
         {

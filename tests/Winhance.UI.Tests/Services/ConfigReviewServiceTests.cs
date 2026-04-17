@@ -361,6 +361,19 @@ public class ConfigReviewServiceTests : IDisposable
                 [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
             });
 
+        _mockComboBoxSetupService
+            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
+            .ReturnsAsync(new ComboBoxSetupResult
+            {
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
+                {
+                    new ComboBoxDisplayOption("Light", 0),
+                    new ComboBoxDisplayOption("Dark", 1)
+                },
+                SelectedValue = selectedIndex == 0 ? 1 : 0,
+                Success = true
+            });
+
         _mockLocalizationService
             .Setup(l => l.GetString("Review_Mode_Action_ThemeWallpaper"))
             .Returns("Apply the default {0} wallpaper?");
@@ -1237,10 +1250,10 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
             .ReturnsAsync(new ComboBoxSetupResult
             {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxOption>
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
                 {
-                    new ComboBoxOption("Option A", 0),
-                    new ComboBoxOption("Option B", 1)
+                    new ComboBoxDisplayOption("Option A", 0),
+                    new ComboBoxDisplayOption("Option B", 1)
                 },
                 SelectedValue = 0,
                 Success = true
@@ -1693,9 +1706,9 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
             .ReturnsAsync(new ComboBoxSetupResult
             {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxOption>
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
                 {
-                    new ComboBoxOption("Option A", 0)
+                    new ComboBoxDisplayOption("Option A", 0)
                 },
                 SelectedValue = 0,
                 Success = true
@@ -1766,10 +1779,10 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
             .ReturnsAsync(new ComboBoxSetupResult
             {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxOption>
+                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
                 {
-                    new ComboBoxOption("Balanced", 0),
-                    new ComboBoxOption("High Performance", 1)
+                    new ComboBoxDisplayOption("Balanced", 0),
+                    new ComboBoxDisplayOption("High Performance", 1)
                 },
                 SelectedValue = 0,
                 Success = true

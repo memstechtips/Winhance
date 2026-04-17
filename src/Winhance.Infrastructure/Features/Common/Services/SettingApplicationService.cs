@@ -32,6 +32,7 @@ public class SettingApplicationService(
         var commandString = request.CommandString;
         var applyRecommended = request.ApplyRecommended;
         var skipValuePrerequisites = request.SkipValuePrerequisites;
+        var resetToDefault = request.ResetToDefault;
 
         var valueDisplay = value is Dictionary<string, object?> dict
             ? $"Dictionary[AC:{dict.GetValueOrDefault("ACValue")}, DC:{dict.GetValueOrDefault("DCValue")}]"
@@ -76,7 +77,7 @@ public class SettingApplicationService(
             return OperationResult.Succeeded();
         }
 
-        var operationResult = await operationExecutor.ApplySettingOperationsAsync(setting, enable, value).ConfigureAwait(false);
+        var operationResult = await operationExecutor.ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
 
         if (setting.SettingPresets != null &&
             setting.InputType == InputType.Selection &&

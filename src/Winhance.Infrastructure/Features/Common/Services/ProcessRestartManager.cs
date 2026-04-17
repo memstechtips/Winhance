@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.ServiceProcess;
+using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -23,85 +25,163 @@ public class ProcessRestartManager(
     /// <summary>Number of retry attempts if Explorer doesn't respawn.</summary>
     private const int ExplorerMaxRetries = 2;
 
-    public async Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
+    private int _suppressCount;
+
+    /// <inheritdoc />
+    public IDisposable SuppressRestarts()
     {
-        if (!string.IsNullOrEmpty(setting.RestartProcess))
+        Interlocked.Increment(ref _suppressCount);
+        return new SuppressScope(this);
+    }
+
+    private sealed class SuppressScope(ProcessRestartManager owner) : IDisposable
+    {
+        private bool _disposed;
+        public void Dispose()
         {
-            if (configImportState.IsActive)
+            if (!_disposed)
             {
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
-            }
-            else if (setting.RestartProcess.Equals("explorer", StringComparison.OrdinalIgnoreCase))
-            {
-                await RestartExplorerWithRetryAsync(setting);
-            }
-            else
-            {
-                logService.Log(LogLevel.Info, $"[ProcessRestartManager] Restarting process '{setting.RestartProcess}' for setting '{setting.Id}'");
-                try
-                {
-                    uiManagementService.KillProcess(setting.RestartProcess);
-                }
-                catch (Exception ex)
-                {
-                    logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart process '{setting.RestartProcess}': {ex.Message}");
-                }
+                _disposed = true;
+                Interlocked.Decrement(ref owner._suppressCount);
             }
         }
+    }
+
+    public async Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
+    {
+        if (_suppressCount > 0)
+        {
+            if (!string.IsNullOrEmpty(setting.RestartProcess))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (restarts suppressed - parent will restart)");
+            if (!string.IsNullOrEmpty(setting.RestartService))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (restarts suppressed - parent will restart)");
+            return;
+        }
+
+        if (configImportState.IsActive)
+        {
+            if (!string.IsNullOrEmpty(setting.RestartProcess))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(setting.RestartProcess))
+            await RestartProcessByNameAsync(setting.RestartProcess, setting.Id).ConfigureAwait(false);
 
         if (!string.IsNullOrEmpty(setting.RestartService))
+            RestartServiceByName(setting.RestartService, setting.Id);
+    }
+
+    public async Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings)
+    {
+        if (appliedSettings == null) return;
+
+        var processes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var services = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var s in appliedSettings)
         {
-            logService.Log(LogLevel.Info, $"[ProcessRestartManager] Restarting service '{setting.RestartService}' for setting '{setting.Id}'");
+            if (!string.IsNullOrEmpty(s.RestartProcess)) processes.Add(s.RestartProcess);
+            if (!string.IsNullOrEmpty(s.RestartService)) services.Add(s.RestartService);
+        }
+
+        if (processes.Count == 0 && services.Count == 0) return;
+
+        logService.Log(LogLevel.Info,
+            $"[ProcessRestartManager] Flushing coalesced restarts: {processes.Count} process(es), {services.Count} service(s)");
+
+        foreach (var process in processes)
+            await RestartProcessByNameAsync(process, settingIdForLog: null).ConfigureAwait(false);
+
+        foreach (var service in services)
+            RestartServiceByName(service, settingIdForLog: null);
+    }
+
+    private async Task RestartProcessByNameAsync(string processName, string? settingIdForLog)
+    {
+        if (processName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+        {
+            await RestartExplorerWithRetryAsync(settingIdForLog).ConfigureAwait(false);
+        }
+        else if (processName.Equals("intl", StringComparison.OrdinalIgnoreCase))
+        {
+            logService.Log(LogLevel.Info,
+                settingIdForLog != null
+                    ? $"[ProcessRestartManager] Broadcasting regional setting change for '{settingIdForLog}'"
+                    : "[ProcessRestartManager] Broadcasting regional setting change (coalesced)");
+            uiManagementService.BroadcastRegionalSettingChange();
+        }
+        else
+        {
+            logService.Log(LogLevel.Info,
+                settingIdForLog != null
+                    ? $"[ProcessRestartManager] Restarting process '{processName}' for setting '{settingIdForLog}'"
+                    : $"[ProcessRestartManager] Restarting process '{processName}' (coalesced)");
             try
             {
-                if (setting.RestartService.Contains("*"))
-                {
-                    // Wildcard service names require enumeration
-                    var pattern = setting.RestartService.Replace("*", "");
-                    var allServices = ServiceController.GetServices();
-                    try
-                    {
-                        var matchingServices = allServices.Where(s =>
-                            s.ServiceName.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                        foreach (var svc in matchingServices)
-                        {
-                            try
-                            {
-                                if (svc.Status == ServiceControllerStatus.Running)
-                                {
-                                    svc.Stop();
-                                    svc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
-                                    svc.Start();
-                                }
-                            }
-                            catch (Exception svcEx)
-                            {
-                                logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        foreach (var svc in allServices)
-                            svc.Dispose();
-                    }
-                }
-                else
-                {
-                    using var sc = new ServiceController(setting.RestartService);
-                    if (sc.Status == ServiceControllerStatus.Running)
-                    {
-                        sc.Stop();
-                        sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
-                        sc.Start();
-                    }
-                }
+                uiManagementService.KillProcess(processName);
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{setting.RestartService}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart process '{processName}': {ex.Message}");
             }
+        }
+    }
+
+    private void RestartServiceByName(string serviceName, string? settingIdForLog)
+    {
+        logService.Log(LogLevel.Info,
+            settingIdForLog != null
+                ? $"[ProcessRestartManager] Restarting service '{serviceName}' for setting '{settingIdForLog}'"
+                : $"[ProcessRestartManager] Restarting service '{serviceName}' (coalesced)");
+        try
+        {
+            if (serviceName.Contains("*"))
+            {
+                var pattern = serviceName.Replace("*", "");
+                var allServices = ServiceController.GetServices();
+                try
+                {
+                    var matchingServices = allServices.Where(s =>
+                        s.ServiceName.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                    foreach (var svc in matchingServices)
+                    {
+                        try
+                        {
+                            if (svc.Status == ServiceControllerStatus.Running)
+                            {
+                                svc.Stop();
+                                svc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+                                svc.Start();
+                            }
+                        }
+                        catch (Exception svcEx)
+                        {
+                            logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
+                        }
+                    }
+                }
+                finally
+                {
+                    foreach (var svc in allServices)
+                        svc.Dispose();
+                }
+            }
+            else
+            {
+                using var sc = new ServiceController(serviceName);
+                if (sc.Status == ServiceControllerStatus.Running)
+                {
+                    sc.Stop();
+                    sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+                    sc.Start();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{serviceName}': {ex.Message}");
         }
     }
 
@@ -110,9 +190,12 @@ public class ProcessRestartManager(
     /// If Explorer doesn't come back within the timeout, manually starts it
     /// and retries up to <see cref="ExplorerMaxRetries"/> times.
     /// </summary>
-    private async Task RestartExplorerWithRetryAsync(SettingDefinition setting)
+    private async Task RestartExplorerWithRetryAsync(string? settingIdForLog)
     {
-        logService.Log(LogLevel.Info, $"[ProcessRestartManager] Restarting Explorer for setting '{setting.Id}'");
+        logService.Log(LogLevel.Info,
+            settingIdForLog != null
+                ? $"[ProcessRestartManager] Restarting Explorer for setting '{settingIdForLog}'"
+                : "[ProcessRestartManager] Restarting Explorer (coalesced)");
 
         for (int attempt = 0; attempt <= ExplorerMaxRetries; attempt++)
         {
@@ -125,14 +208,12 @@ public class ProcessRestartManager(
                 logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to kill Explorer (attempt {attempt + 1}): {ex.Message}");
                 if (attempt == ExplorerMaxRetries)
                 {
-                    // Last resort: try to start Explorer even if kill failed
                     TryStartExplorer();
                     return;
                 }
                 continue;
             }
 
-            // Wait for Explorer to respawn (Windows normally restarts it automatically)
             if (await WaitForExplorerAsync())
             {
                 logService.Log(LogLevel.Info, "[ProcessRestartManager] Explorer restarted successfully");
@@ -142,7 +223,6 @@ public class ProcessRestartManager(
             logService.Log(LogLevel.Warning,
                 $"[ProcessRestartManager] Explorer did not respawn within timeout (attempt {attempt + 1}/{ExplorerMaxRetries + 1})");
 
-            // Manually start Explorer if it didn't respawn
             TryStartExplorer();
 
             if (await WaitForExplorerAsync())
@@ -155,9 +235,6 @@ public class ProcessRestartManager(
         logService.Log(LogLevel.Error, "[ProcessRestartManager] Explorer failed to restart after all retry attempts");
     }
 
-    /// <summary>
-    /// Polls for the Explorer process to appear within <see cref="ExplorerRespawnTimeout"/>.
-    /// </summary>
     private async Task<bool> WaitForExplorerAsync()
     {
         var sw = Stopwatch.StartNew();

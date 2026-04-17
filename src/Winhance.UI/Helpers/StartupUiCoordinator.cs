@@ -25,9 +25,9 @@ internal sealed class StartupUiCoordinator
     private readonly ILogService? _logService;
 
     /// <summary>
-    /// The backup result from the startup sequence, if any.
+    /// Whether this is the first launch of the application.
     /// </summary>
-    public BackupResult? BackupResult { get; private set; }
+    public bool IsFirstLaunch { get; private set; }
 
     public StartupUiCoordinator(DispatcherQueue dispatcherQueue, ILogService? logService)
     {
@@ -136,7 +136,7 @@ internal sealed class StartupUiCoordinator
 
             var result = await orchestrator.RunStartupSequenceAsync(statusProgress, detailedProgress)
                 .ConfigureAwait(false);
-            BackupResult = result.BackupResult;
+            IsFirstLaunch = result.IsFirstLaunch;
         }
         catch (Exception ex)
         {
@@ -186,13 +186,13 @@ internal sealed class StartupUiCoordinator
         loadingOverlay.Visibility = Visibility.Collapsed;
         StartupLogger.Log("StartupUiCoordinator", "Startup complete, overlay hidden");
 
-        // Show backup notification dialog if backups were created
+        // Show first-launch restore point offer if this is the first launch
         try
         {
-            var startupNotifications = App.Services.GetRequiredService<IStartupNotificationService>();
-            if (BackupResult != null)
+            if (IsFirstLaunch)
             {
-                await startupNotifications.ShowBackupNotificationAsync(BackupResult);
+                var startupNotifications = App.Services.GetRequiredService<IStartupNotificationService>();
+                await startupNotifications.ShowFirstLaunchRestoreOfferAsync();
             }
         }
         catch (Exception ex)
@@ -201,12 +201,10 @@ internal sealed class StartupUiCoordinator
         }
 
         // Check for updates silently (only shows InfoBar if update available)
-        // Ensure WinGet is ready (shows task progress if installation/update needed)
         var viewModel = getViewModel();
         if (viewModel != null)
         {
             _ = viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync();
-            _ = viewModel.EnsureWinGetReadyOnStartupAsync();
         }
     }
 }

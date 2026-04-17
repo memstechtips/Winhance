@@ -55,42 +55,13 @@ public class RecommendedSettingsService(
     }
 
 
-    internal static string? GetRecommendedOptionFromSetting(SettingDefinition setting)
+    internal static int? GetRecommendedSelectionIndex(SettingDefinition setting)
     {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        return primaryRegistrySetting?.RecommendedOption;
-    }
-
-    internal static int? GetCorrectSelectionIndex(SettingDefinition setting, string optionName, int? desiredRegistryValue)
-    {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        if (primaryRegistrySetting?.ComboBoxOptions is { } comboBoxOptions)
+        var options = setting.ComboBox?.Options;
+        if (options == null) return null;
+        for (int i = 0; i < options.Count; i++)
         {
-            // Create a list ordered by key name (alphabetical) to match GenericResolver logic
-            var orderedOptions = comboBoxOptions.OrderBy(kvp => kvp.Key).ToList();
-
-            // Find the index of our desired option in this ordered list
-            for (int i = 0; i < orderedOptions.Count; i++)
-            {
-                if (orderedOptions[i].Key == optionName && orderedOptions[i].Value == desiredRegistryValue)
-                {
-                    return i;
-                }
-            }
-        }
-        return null;
-    }
-
-    internal static int? GetRegistryValueFromOptionName(SettingDefinition setting, string optionName)
-    {
-        var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
-        if (primaryRegistrySetting?.ComboBoxOptions is { } comboBoxOptions)
-        {
-            // Simply return the registry value for this option name
-            if (comboBoxOptions.TryGetValue(optionName, out var registryValue))
-            {
-                return registryValue;
-            }
+            if (options[i].IsRecommended) return i;
         }
         return null;
     }

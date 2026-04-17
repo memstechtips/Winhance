@@ -3,7 +3,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// <summary>
 /// Typed metadata for numeric range settings (slider/spinner controls).
 /// </summary>
-public record NumericRangeMetadata
+public sealed record NumericRangeMetadata
 {
     public required int MinValue { get; init; }
     public required int MaxValue { get; init; }

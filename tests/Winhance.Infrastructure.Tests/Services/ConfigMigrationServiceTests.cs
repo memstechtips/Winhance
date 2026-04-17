@@ -226,6 +226,71 @@ public class ConfigMigrationServiceTests
         item.SelectedIndex.Should().Be(1);
     }
 
+    [Theory]
+    [InlineData("explorer-customization-shortcut-suffix")]
+    [InlineData("explorer-customization-shortcut-arrow")]
+    public void MigrateConfig_ShortcutToggleSelected_MigratedToSelectionIndex1(string settingId)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = settingId,
+            Name = "Old Name",
+            InputType = InputType.Toggle,
+            IsSelected = true,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.InputType.Should().Be(InputType.Selection);
+        item.SelectedIndex.Should().Be(1);
+        item.IsSelected.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("explorer-customization-shortcut-suffix")]
+    [InlineData("explorer-customization-shortcut-arrow")]
+    public void MigrateConfig_ShortcutToggleNotSelected_MigratedToSelectionIndex0(string settingId)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = settingId,
+            Name = "Old Name",
+            InputType = InputType.Toggle,
+            IsSelected = false,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.InputType.Should().Be(InputType.Selection);
+        item.SelectedIndex.Should().Be(0);
+        item.IsSelected.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("explorer-customization-shortcut-suffix")]
+    [InlineData("explorer-customization-shortcut-arrow")]
+    public void MigrateConfig_ShortcutAlreadySelection_NotMigrated(string settingId)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = settingId,
+            Name = "New Name",
+            InputType = InputType.Selection,
+            SelectedIndex = 1,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.InputType.Should().Be(InputType.Selection);
+        item.SelectedIndex.Should().Be(1);
+    }
+
     [Fact]
     public void MigrateConfig_NullSections_DoesNotThrow()
     {

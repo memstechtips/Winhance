@@ -18,7 +18,6 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IVersionService> _mockVersionService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
-    private readonly Mock<IWinGetStartupService> _mockWinGetStartupService = new();
     private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilterService = new();
 
     // Child ViewModel dependencies
@@ -98,7 +97,6 @@ public class MainWindowViewModelTests : IDisposable
             _mockVersionService.Object,
             _mockLogService.Object,
             _mockInteractiveUserService.Object,
-            _mockWinGetStartupService.Object,
             _mockWindowsVersionFilterService.Object,
             _taskProgressViewModel,
             _updateCheckViewModel,
@@ -449,22 +447,6 @@ public class MainWindowViewModelTests : IDisposable
         _mockWindowsVersionFilterService.Raise(f => f.FilterStateChanged += null, this, false);
 
         sut.IsWindowsVersionFilterEnabled.Should().BeFalse();
-    }
-
-    // ── EnsureWinGetReadyOnStartupAsync ──
-
-    [Fact]
-    public async Task EnsureWinGetReadyOnStartupAsync_DelegatesToService()
-    {
-        _mockWinGetStartupService
-            .Setup(w => w.EnsureWinGetReadyOnStartupAsync())
-            .Returns(Task.CompletedTask);
-
-        var sut = CreateSut();
-
-        await sut.EnsureWinGetReadyOnStartupAsync();
-
-        _mockWinGetStartupService.Verify(w => w.EnsureWinGetReadyOnStartupAsync(), Times.Once);
     }
 
     // ── LoadFilterPreferenceAsync ──

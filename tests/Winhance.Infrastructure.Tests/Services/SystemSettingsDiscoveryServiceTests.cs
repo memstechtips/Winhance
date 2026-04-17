@@ -44,6 +44,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueName = valueName,
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = enabledValue ?? [1],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -62,6 +64,8 @@ public class SystemSettingsDiscoveryServiceTests
                 {
                     Id = $"{id}-task",
                     TaskPath = taskPath,
+                    RecommendedState = null,
+                    DefaultState = null
                 },
             },
         };
@@ -84,6 +88,10 @@ public class SystemSettingsDiscoveryServiceTests
                     SettingGuid = settingGuid,
                     SubgroupGuid = "sub-guid",
                     PowerModeSupport = mode,
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 },
             },
         };
@@ -146,6 +154,8 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\TestKey",
                     ValueName = null,
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -179,6 +189,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.Binary,
                     BinaryByteIndex = 0,
                     BitMask = 0x04,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -212,6 +224,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.Binary,
                     BinaryByteIndex = 2,
                     ModifyByteOnly = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -468,6 +482,8 @@ public class SystemSettingsDiscoveryServiceTests
                     KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Test",
                     ValueName = "TestValue",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -501,6 +517,10 @@ public class SystemSettingsDiscoveryServiceTests
                 {
                     SettingGuid = "numeric-guid",
                     SubgroupGuid = "sub-guid",
+                    RecommendedValueAC = null,
+                    RecommendedValueDC = null,
+                    DefaultValueAC = null,
+                    DefaultValueDC = null
                 },
             },
         };
@@ -530,6 +550,8 @@ public class SystemSettingsDiscoveryServiceTests
                 {
                     Id = "task-1",
                     TaskPath = @"\Test\NumericTask",
+                    RecommendedState = null,
+                    DefaultState = null
                 },
             },
         };
@@ -589,6 +611,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [1],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -626,6 +650,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -664,6 +690,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [1],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -702,6 +730,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
                 new RegistrySetting
                 {
@@ -710,6 +740,8 @@ public class SystemSettingsDiscoveryServiceTests
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [null],
                     DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -751,6 +783,7 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = ["0"],
                     DefaultValue = "1",
                     ValueType = RegistryValueKind.String,
+                    RecommendedValue = null
                 },
             },
         };
@@ -794,6 +827,8 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = [1],
                     ValueType = RegistryValueKind.DWord,
                     ApplyPerNetworkInterface = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -831,6 +866,8 @@ public class SystemSettingsDiscoveryServiceTests
                     DisabledValue = [1],
                     ValueType = RegistryValueKind.DWord,
                     ApplyPerNetworkInterface = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
                 },
             },
         };
@@ -845,5 +882,206 @@ public class SystemSettingsDiscoveryServiceTests
 
         result["test-network-not-applied"].Success.Should().BeTrue();
         result["test-network-not-applied"].IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_ApplyPerMonitor_DelegatesToIsSettingApplied()
+    {
+        // ApplyPerMonitor settings bypass batch values and delegate
+        // to IsSettingApplied for correct sub-key expansion.
+        var setting = new SettingDefinition
+        {
+            Id = "test-monitor",
+            Name = "Monitor Setting",
+            Description = "Tests ApplyPerMonitor detection",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                    ValueName = "AutoColorManagementEnabled",
+                    EnabledValue = [1],
+                    DisabledValue = [0],
+                    ValueType = RegistryValueKind.DWord,
+                    ApplyPerMonitor = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _mockRegistry.Setup(r => r.IsSettingApplied(
+                It.Is<RegistrySetting>(rs => rs.ApplyPerMonitor)))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-monitor"].Success.Should().BeTrue();
+        result["test-monitor"].IsEnabled.Should().BeTrue();
+        _mockRegistry.Verify(r => r.IsSettingApplied(
+            It.Is<RegistrySetting>(rs => rs.ApplyPerMonitor)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_ApplyPerMonitor_NotApplied_ReturnsFalse()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "test-monitor-not-applied",
+            Name = "Monitor Not Applied",
+            Description = "Tests ApplyPerMonitor when not applied",
+            InputType = InputType.Toggle,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
+                    ValueName = "AutoColorManagementEnabled",
+                    EnabledValue = [1],
+                    DisabledValue = [0],
+                    ValueType = RegistryValueKind.DWord,
+                    ApplyPerMonitor = true,
+                    RecommendedValue = null,
+                    DefaultValue = null
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _mockRegistry.Setup(r => r.IsSettingApplied(
+                It.Is<RegistrySetting>(rs => rs.ApplyPerMonitor)))
+            .Returns(false);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["test-monitor-not-applied"].Success.Should().BeTrue();
+        result["test-monitor-not-applied"].IsEnabled.Should().BeFalse();
+    }
+
+    // ── Inverted-policy (EnabledValue = [null]) state reading ──
+
+    [Fact]
+    public async Task InvertedPolicy_KeyAbsent_ReportsEnabled()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "inverted-policy-key-absent",
+            Name = "Inverted Policy",
+            Description = "",
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "BlockThing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { null },
+                    DisabledValue = new object?[] { 1 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    IsGroupPolicy = true,
+                },
+            },
+        };
+
+        _mockRegistry
+            .Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test\BlockThing", null }
+            });
+
+        _mockRegistry
+            .Setup(r => r.IsRegistryValueInEnabledState(
+                It.Is<RegistrySetting>(rs => rs.ValueName == "BlockThing"),
+                It.IsAny<object?>(),
+                false))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result.Should().ContainKey("inverted-policy-key-absent");
+        result["inverted-policy-key-absent"].IsEnabled.Should().BeTrue(
+            because: "EnabledValue = [null] means key absent IS the enabled state");
+    }
+
+    [Fact]
+    public async Task InvertedPolicy_KeyPresentWithDisabledValue_ReportsDisabled()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "inverted-policy-blocked",
+            Name = "Inverted Policy",
+            Description = "",
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "BlockThing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { null },
+                    DisabledValue = new object?[] { 1 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    IsGroupPolicy = true,
+                },
+            },
+        };
+
+        _mockRegistry
+            .Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?> { { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test\BlockThing", 1 } });
+
+        _mockRegistry
+            .Setup(r => r.IsRegistryValueInEnabledState(
+                It.IsAny<RegistrySetting>(), 1, true))
+            .Returns(false);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["inverted-policy-blocked"].IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HybridPolicy_EnabledValueOneOrNull_KeyAbsent_ReportsEnabled()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "hybrid-policy",
+            Name = "Hybrid",
+            Description = "",
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
+                    ValueName = "FlagThing",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { 1, null },
+                    DisabledValue = new object?[] { 0 },
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                    IsGroupPolicy = true,
+                },
+            },
+        };
+
+        _mockRegistry
+            .Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?> { { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test\FlagThing", null } });
+
+        _mockRegistry
+            .Setup(r => r.IsRegistryValueInEnabledState(
+                It.IsAny<RegistrySetting>(), It.IsAny<object?>(), false))
+            .Returns(true);
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result["hybrid-policy"].IsEnabled.Should().BeTrue();
     }
 }

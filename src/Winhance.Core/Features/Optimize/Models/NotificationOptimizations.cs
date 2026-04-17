@@ -19,6 +19,7 @@ public static class NotificationOptimizations
                 new SettingDefinition
                 {
                     Id = "windows-pushnotifications",
+                    IsSubjectivePreference = true,
                     Name = "Show Notifications",
                     Description = "Get notifications from apps and other senders in Windows",
                     InputType = InputType.Toggle,
@@ -33,6 +34,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -40,6 +42,7 @@ public static class NotificationOptimizations
                 new SettingDefinition
                 {
                     Id = "notifications-sound",
+                    IsSubjectivePreference = true,
                     Name = "Allow notifications to play sounds",
                     Description = "Play audio alerts when notifications arrive from apps and system senders",
                     Icon = "VolumeHigh",
@@ -54,6 +57,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -61,6 +65,7 @@ public static class NotificationOptimizations
                 new SettingDefinition
                 {
                     Id = "notifications-toast-above-lock",
+                    IsSubjectivePreference = true,
                     Name = "Show notifications on the lock screen",
                     Description = "Display toast notifications on the lock screen when your device is locked",
                     Icon = "CellphoneLock",
@@ -85,6 +90,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -94,6 +100,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -101,6 +108,7 @@ public static class NotificationOptimizations
                 new SettingDefinition
                 {
                     Id = "notifications-critical-toast-above-lock",
+                    IsSubjectivePreference = true,
                     Name = "Show reminders and incoming VoIP calls on the lock screen",
                     Description = "Display critical notifications like reminders and VoIP calls when your device is locked",
                     Icon = "PhoneAlert",
@@ -125,6 +133,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -132,6 +141,7 @@ public static class NotificationOptimizations
                 new SettingDefinition
                 {
                     Id = "notifications-show-bell-icon",
+                    IsSubjectivePreference = true,
                     Name = "Show notification bell icon",
                     Description = "Display the notification bell icon in the system tray",
                     Icon = "BellCheck",
@@ -179,6 +189,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -200,6 +211,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -287,6 +299,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -308,6 +321,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -351,6 +365,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -373,6 +388,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [0, null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -382,6 +398,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [0, null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -392,6 +409,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [0, null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -402,6 +420,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [0, null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -412,6 +431,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [0, null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -434,6 +454,7 @@ public static class NotificationOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

@@ -23,6 +23,7 @@ public class SettingViewModelFactoryTests
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
+    private readonly Mock<INewBadgeService> _mockNewBadgeService = new();
     private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
     private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
     private readonly Mock<ISettingViewModelEnricher> _mockEnricher = new();
@@ -58,6 +59,7 @@ public class SettingViewModelFactoryTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockUserPreferencesService.Object,
+            _mockNewBadgeService.Object,
             _mockComboBoxSetupService.Object,
             _mockComboBoxResolver.Object,
             _mockEnricher.Object);
@@ -200,10 +202,10 @@ public class SettingViewModelFactoryTests
 
         var comboBoxResult = new ComboBoxSetupResult
         {
-            Options = new ObservableCollection<ComboBoxOption>
+            Options = new ObservableCollection<ComboBoxDisplayOption>
             {
-                new ComboBoxOption("Option A", 0),
-                new ComboBoxOption("Option B", 1)
+                new ComboBoxDisplayOption("Option A", 0),
+                new ComboBoxDisplayOption("Option B", 1)
             },
             SelectedValue = 1,
             Success = true
@@ -226,10 +228,10 @@ public class SettingViewModelFactoryTests
 
         var comboBoxResult = new ComboBoxSetupResult
         {
-            Options = new ObservableCollection<ComboBoxOption>
+            Options = new ObservableCollection<ComboBoxDisplayOption>
             {
-                new ComboBoxOption("Option A", 0),
-                new ComboBoxOption("Option B", 1)
+                new ComboBoxDisplayOption("Option A", 0),
+                new ComboBoxDisplayOption("Option B", 1)
             },
             SelectedValue = 1,
             Success = true

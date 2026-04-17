@@ -164,7 +164,11 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     item.PowerSettings = powerDict;
                 }
 
-                if (state?.RawValues != null && state.RawValues.Count > 0)
+                if (setting.InputType == InputType.Selection &&
+                    item.SelectedIndex == null &&
+                    item.PowerSettings == null &&
+                    setting.Id != SettingIds.PowerPlanSelection &&
+                    state?.RawValues != null && state.RawValues.Count > 0)
                 {
                     item.CustomStateValues = state.RawValues
                         .Where(v => v.Value != null)

@@ -45,6 +45,9 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Privacy & Security",
                         WinGetPackageId = ["BiniSoft.WindowsFirewallControl"],
                         ChocoPackageId = "windowsfirewallcontrol",
+                        // Upstream winget manifest passes `-run -close -install -update`, which causes the
+                        // installer to dump files into a `-update` subfolder of CWD when no prior install exists.
+                        WinGetInstallerOverride = "-run -close -install",
                         WebsiteUrl = "https://www.binisoft.org/wfc"
                     },
                     new ItemDefinition

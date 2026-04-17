@@ -18,9 +18,11 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-shortcut-suffix",
-                    Name = "Remove '- Shortcut' suffix from new shortcuts",
-                    Description = "Prevents Windows from appending '- Shortcut' text to newly created shortcut file names",
-                    InputType = InputType.Toggle,
+                    IsSubjectivePreference = true,
+                    Name = "Shortcut Naming",
+                    Description = "Controls whether Windows appends '- Shortcut' text to newly created shortcut file names",
+                    GroupName = "Desktop",
+                    InputType = InputType.Selection,
                     Icon = "LinkVariant",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -30,16 +32,93 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "link",
                             RecommendedValue = null,
-                            EnabledValue = [new byte[] { 0x00, 0x00, 0x00, 0x00 }],
-                            DisabledValue = [null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Keep '- Shortcut' suffix",
+                                ValueMappings = new Dictionary<string, object?> { ["link"] = null },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Remove '- Shortcut' suffix",
+                                ValueMappings = new Dictionary<string, object?> { ["link"] = new byte[] { 0x00, 0x00, 0x00, 0x00 } },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-shortcut-arrow",
+                    IsSubjectivePreference = true,
+                    Name = "Shortcut Arrow Icon",
+                    Description = "Controls the small arrow overlay on desktop shortcut icons",
+                    GroupName = "Desktop",
+                    InputType = InputType.Selection,
+                    Icon = "ArrowTopLeftBoldOutline",
+                    AddedInVersion = "26.03.26",
+                    RestartProcess = "Explorer",
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+$icoPath = ""$env:SystemRoot\blank.ico""
+if (-not (Test-Path $icoPath)) {
+    $b64='AAABAAEAAAAAAAEAIAC5BwAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAEAAAABAAgGAAAAXHKoZgAAB4BJREFUeNrt3eGSmzYAhVFnp+//xJlM67ZJ3Y0XkJBA0j1nJn+yDggEnzG2N98eQKxvdw8AuI8AQDABgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDBBACCCQAEEwAIJgAQTAAgmABAMAGAYAIAwQQAggkABBMACCYAEEwAIJgAQDABgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDBBACCJQXg48Bjftw9SLjSSgHYO8GPnNwfBY+F6c0cgM8nfMuT9qPx8mBIMwbgqmdpVwMsb7YA3PHM7GqAZc0UgDtPRBFgSTMEYJRLcRFgOSMHYJQT/3U8o4wFmhg1AKOebKOOC6qMGICRT7KRxwbFBGC98cFhowVghpNrhjHCIQKw9jhh00gBGO2u/95YZxgnbBKAc+OdZazw1igB+HkyzXRSzTRWeGuEAHw+kWY6sWYaK/xGANqOneuZgxPuDsC7yZtpQmca66rMwQkC0GcbuI79f4IA9NkGrmUOKglAn23gWuag0ogB2Pr7Ec001lWZg0oC0G8buJZ5qCAAfbeD65iDCgLQdzu4jjmoIAB9t4NrmYdCowZg72ejmWmsKzMPhQSg/3ZwHfNQ6O4AbJlpMmca68rMQyEByBvrysxDIQHIG+vqzEUBAcgb6+rMRYGRA/A0y2TOMs4E5qKAAGSNM4G5KCAAWeNMYC4KCEDGGJOYjwICsPb4UpmXgwRg7fGlMi8HCcCaY0tnbg4SgLXGxT/Mz0ECUDemx4Dj4j8jHjdDEoC5x8N75ukgATg+jscgY+GYUY6doQnA/vofN4+BOncfO1MQgDHXzXnm7wABeL/Oxw3rpS0BOEAA/r+ux4Xroy8BOGD0ADx97Py8dpI/L9fBsh4R2DF6AD7+/fN95zE/dn7+jgNjfQKwY4YAPO1N4tZVggMglwDsmCEANZNo0nkSgB2jB+CpZhLd0ONJAHasGoDXf/s48e+ZnwhsWD0ALZfBnMz9hhkC8CQC1DLvGwSA1Zn3DUkBaLkc5mHON6QFoPWyGJ/53pAYgB7LY2zm+wsCQALz/YVZAvAkAtQy119IDkCvZTIe8/yF9AD0XO679XzmoLyGAHxBAPove2v5DsxyryEt2Xf29RsC0H/5W8tNOShb/vKV2u93pOzrIgLQd/lHlrn6gfl5+858Qevnsmq/Ibryfq4iAP3WcXRZR36j0dHlvBrhYG/90kcAGhOAPusoPanPvkwoWd5Verz0aXH1wAsB6LOeVs/qPx/7eJSfTHcf8C0DUHvjb7R9MpyZAvA0w1XA0Wfsx8H1bD221Ul29YesagLgy2AdCEDb9ZRerp+NRYsTrcdvTbryCqjluHrvl+EIQNv19ArAuxtfLd5hKB1Lj32w9ZhH4/EJwCcC0G5dtQf+0ZO05mQteYlw1w3QksdcFYEz7zZMRQDarW/EAGw9tmYsLfZDi58/TozzjquiYQlAm/X1fFZ7d0COGoDak7vmLn+Pl2m9ojis2QLwNOLLgLOve0sv1R+F+6D15w5Kt/HMjcya9dWOccS3U7sSgDbr63nZ2+qjtEevHlqdkHvP6q1usrW4V9NznwxNANqs7+obX2ee+a4IwF7QHifWcXbMtTc/l4yAALRZX82l794yWl82l9w/6PFR3aP7oudbsO8eJwCTuWMiau9M3/WR15Ix1mzv1pg/vnhcz5t7tdvW6q3eaT8zIADt1tnqN/70PJhava3ZM1Sfl39E7Ul8xf2Doc0YgDtMPckNt3naZ7ovtqvFuwhTHxsCcMzUk3xyu1+tsA8E4IUAHDf1RPNLi4/5LvNpQQE4buqJ5pcWL2OW+a6AAJRZ4TVwupYfQGqxnFsJQJklJj3c9M/ajfx9LAsAaQTgZR8IAGR4+9kNAYC1bb5sFQBYS9FnNwQA5nX64+cCAPNo/slMAYAxtfpy2SYBgPtsfevxkrcqBQDaO/p15ts/jyAAUG7vBL/9xD5KAOBrZ3+70fAEgHS3vw6/kwCQIPok3yIArGT5S/bWBIDZeDZvSAAYzTJ32GcgAFzNCT4QAaA1J/hEBIBabrgtQADY4obb4gSAJ8/mj8cff/35fvcgriYAOTyb8xsBWI9ncw4TgPmt+P/3cREBgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDBBACCCQAEEwAIJgAQTAAgmABAMAGAYAIAwQQAggkABBMACCYAEEwAIJgAQDABgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDBBACCCQAEEwAIJgAQTAAgmABAMAGAYAIAwQQAggkABBMACCYAEEwAIJgAQDABgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDBBACCCQAEEwAIJgAQTAAgmABAMAGAYAIAwQQAggkABBMACCYAEEwAIJgAQDABgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDBBACCCQAEEwAIJgAQTAAgmABAMAGAYAIAwQQAggkABBMACCYAEEwAIJgAQDABgGACAMEEAIIJAAQTAAgmABBMACCYAEAwAYBgAgDB/gRG/ewS3uwoeAAAAABJRU5ErkJggg=='
+    [IO.File]::WriteAllBytes($icoPath,[Convert]::FromBase64String($b64))
+}",
+                            // Don't delete blank.ico on disable — only the registry value is removed.
+                            // Deleting the file invalidates the Windows icon cache, causing black
+                            // squares on shortcut icons when the setting is re-enabled.
+                            DisabledScript = null,
+                            RequiresElevation = true,
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons",
+                            ValueName = "29",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Show arrow icon",
+                                ValueMappings = new Dictionary<string, object?> { ["29"] = null },
+                                Script = ScriptOption.Disabled,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Remove arrow icon",
+                                ValueMappings = new Dictionary<string, object?> { ["29"] = @"C:\Windows\blank.ico" },
+                                Script = ScriptOption.Enabled,
+                                IsRecommended = true,
+                            },
                         },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "explorer-customization-context-menu",
+                    IsSubjectivePreference = true,
                     Name = "Use Classic Context Menu",
                     Description = "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
                     GroupName = "Context Menu",
@@ -57,7 +136,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = "",
                             EnabledValue = [""],
                             DisabledValue = [null],
-                            DefaultValue = "",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
                     },
@@ -65,6 +144,8 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-take-ownership",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Add 'Take Ownership' to Context Menu",
                     Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
                     GroupName = "Context Menu",
@@ -79,7 +160,7 @@ public static class ExplorerCustomizations
                             EnabledValue = ["Take Ownership"],
                             DisabledValue = [null],
                             DefaultValue = null,
-                            RecommendedValue = "Take Ownership",
+                            RecommendedValue = null,
                             ValueType = RegistryValueKind.String,
                         }
                     },
@@ -146,6 +227,8 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-toggle-extensions",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
                     Name = "Add 'Show/Hide Extensions' to Context Menu",
                     Description = "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
                     GroupName = "Context Menu",
@@ -190,11 +273,22 @@ public static class ExplorerCustomizations
 ",
                             RequiresElevation = true
                         }
-                    }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-toggle-extensions",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
                 },
                 new SettingDefinition
                 {
                     Id = "explorer-context-menu-windows-terminal",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show 'Open in Windows Terminal' in Context Menu",
                     Description = "Displays the Windows Terminal option when right-clicking folders and backgrounds in File Explorer",
                     GroupName = "Context Menu",
@@ -210,13 +304,425 @@ public static class ExplorerCustomizations
                             RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [""],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         },
                     },
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-context-menu-sfc",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Add 'SFC /SCANNOW' to Context Menu",
+                    Description = "Adds right-click options to run System File Checker (SFC /SCANNOW) and view scan details from the desktop or folder background",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "MagnifyScan",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\SFC",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["SFC /SCANNOW"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+; Created by: Shawn Brink
+; Created on: March 12, 2020
+; Tutorial: https://www.tenforums.com/tutorials/152128-how-add-sfc-scannow-context-menu-windows-10-a.html
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
+""Icon""=""WmiPrvSE.exe""
+""MUIVerb""=""SFC /SCANNOW""
+""Position""=""Bottom""
+""Extended""=-
+""SubCommands""=""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\001menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run SFC /SCANNOW""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\001menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/s,/k, sfc /scannow' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\002menu]
+""MUIVerb""=""SFC scan details log""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\002menu\command]
+@=""PowerShell -ExecutionPolicy Bypass (sls [SR] $env:windir\\Logs\\CBS\\CBS.log -s).Line >\""$env:userprofile\\Desktop\\sfcdetails.txt\""""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-sfc",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-dism",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Add 'Repair Windows Image' to Context Menu",
+                    Description = "Adds a right-click option to run DISM /RestoreHealth to repair the Windows system image from the desktop or folder background",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "MedicalBag",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["Repair Windows Image"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = "Icon",
+                            EnabledValue = ["WmiPrvSE.exe"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = "HasLUAShield",
+                            EnabledValue = [""],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage\command",
+                            ValueName = "",
+                            EnabledValue = ["PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \"Start-Process cmd -ArgumentList '/s,/k, DISM /Online /Cleanup-Image /RestoreHealth' -Verb runAs\""],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-dism",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-chkdsk",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Add 'CHKDSK' to Context Menu",
+                    Description = "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "Harddisk",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["CHKDSK"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK]
+""Icon""=""imageres.dll,-36""
+""MUIVerb""=""CHKDSK""
+""Position""=""Bottom""
+""SubCommands""=""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\001menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run CHKDSK (scan only)""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\001menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!:' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\002menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run CHKDSK /F (fix errors)""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\002menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /f' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\003menu]
+""HasLUAShield""=""""
+""MUIVerb""=""Run CHKDSK /R (locate bad sectors)""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\003menu\command]
+@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /r' -Verb runAs\""""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-chkdsk",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-ps1-edit-run",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Add 'Edit or Run with' to PS1 Context Menu",
+                    Description = "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "Powershell",
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with",
+                            ValueName = "MUIVerb",
+                            EnabledValue = ["Edit or Run with"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+; Created by: Shawn Brink
+; Created on: December 4, 2023
+; Tutorial: https://www.elevenforum.com/t/add-edit-or-run-with-to-ps1-file-context-menu-in-windows-11.20366/
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
+""MUIVerb""=""Edit or Run with""
+""SubCommands""=""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout]
+""MUIVerb""=""Run with PowerShell""
+""Icon""=""powershell.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout\Command]
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout]
+""MUIVerb""=""Run with PowerShell as administrator""
+""HasLUAShield""=""""
+""Icon""=""powershell.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout\Command]
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""\""& {Start-Process PowerShell.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout]
+""MUIVerb""=""Run with PowerShell 7""
+""Icon""=""pwsh.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout\Command]
+@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout]
+""MUIVerb""=""Run with PowerShell 7 as administrator""
+""HasLUAShield""=""""
+""Icon""=""pwsh.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout\Command]
+@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""\""& {Start-Process pwsh.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout]
+""MUIVerb""=""Edit with PowerShell ISE""
+""Icon""=""powershell_ise.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout\Command]
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout]
+""MUIVerb""=""Edit with PowerShell ISE as administrator""
+""HasLUAShield""=""""
+""Icon""=""powershell_ise.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout\Command]
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start PowerShell_ISE.exe \""\""%1\""\""'  -Verb RunAs\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout]
+""MUIVerb""=""Edit with PowerShell ISE (x86)""
+""Icon""=""powershell_ise.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout\Command]
+@=""\""C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout]
+""MUIVerb""=""Edit with PowerShell ISE (x86) as administrator""
+""HasLUAShield""=""""
+""Icon""=""powershell_ise.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout\Command]
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe \""\""%1\""\""'  -Verb RunAs\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout]
+""MUIVerb""=""Edit with Notepad""
+""Icon""=""notepad.exe""
+""CommandFlags""=dword:00000020
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout\Command]
+@=""\""C:\\Windows\\System32\\notepad.exe\"" \""%1\""""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout]
+""MUIVerb""=""Edit with Notepad as administrator""
+""HasLUAShield""=""""
+""Icon""=""notepad.exe""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout\Command]
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\Windows\\System32\\notepad.exe \""\""%1\""\""'  -Verb RunAs\""""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-ps1-edit-run",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-compress-to",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Add 'Compress To' to Context Menu",
+                    Description = "Adds a right-click option to compress files and folders into various archive formats (ZIP, 7z, TAR) directly from the classic context menu",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "FolderZip",
+                    IsWindows11Only = true,
+                    MinimumBuildNumber = 26100,
+                    AddedInVersion = "25.04.09",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu",
+                            ValueName = "ExplorerCommandHandler",
+                            EnabledValue = ["{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}"],
+                            DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+; Credit: ThioJoe - https://github.com/ThioJoe/
+; Source: https://gist.github.com/ThioJoe/f4b0799e2f0d95466f4c2bd4e46d1e67
+
+[HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu]
+""CommandStateSync""=""""
+""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
+""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
+""Note""=""Copied from original Command Store command: Windows.CompressTo""
+
+[HKEY_CLASSES_ROOT\Folder\shell\CompressToFullMenu_ForOldContextMenu]
+""CommandStateSync""=""""
+""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
+""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
+""Note""=""Copied from original Command Store command: Windows.CompressTo""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu]
+
+[-HKEY_CLASSES_ROOT\Folder\shell\CompressToFullMenu_ForOldContextMenu]
+",
+                            RequiresElevation = true
+                        }
+                    },
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "explorer-context-menu-compress-to",
+                            RequiredSettingId = "explorer-customization-context-menu",
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "devices-dynamic-lighting-ambient",
+                    IsSubjectivePreference = true,
                     Name = "Use Dynamic Lighting on my devices",
                     Description = "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",
                     GroupName = "Devices and Peripherals",
@@ -240,6 +746,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "devices-dynamic-lighting-foreground-app",
+                    IsSubjectivePreference = true,
                     Name = "Compatible apps in the foreground always control lighting",
                     Description = "Allow compatible apps to control device lighting effects",
                     GroupName = "Devices and Peripherals",
@@ -255,6 +762,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -262,8 +770,9 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "devices-default-printer-management",
-                    Name = "Disable Automatic Default Printer Management",
-                    Description = "Prevents Windows from automatically changing your default printer based on location or last used printer",
+                    IsSubjectivePreference = true,
+                    Name = "Automatic Default Printer Management",
+                    Description = "Let Windows automatically set your default printer based on your location or last used printer",
                     GroupName = "Devices and Peripherals",
                     InputType = InputType.Toggle,
                     Icon = "PrinterOff",
@@ -274,8 +783,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\Windows",
                             ValueName = "LegacyDefaultPrinterMode",
                             RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [0],
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -284,6 +793,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-launch-to",
+                    IsSubjectivePreference = true,
                     Name = "Open File Explorer to",
                     Description = "Choose what happens when File Explorer is opened",
                     GroupName = "General",
@@ -296,28 +806,36 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "LaunchTo",
-                            RecommendedValue = 1,
-                            DefaultValue = 2,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Home",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Home",
-                            "This PC",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["LaunchTo"] = 2,
+                                DisplayName = "Home",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 2 },
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["LaunchTo"] = 1,
+                                DisplayName = "This PC",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 1 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Downloads",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 3 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "OneDrive (If Available)",
+                                ValueMappings = new Dictionary<string, object?> { ["LaunchTo"] = 4 },
                             },
                         },
                     },
@@ -325,6 +843,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-browse-folders",
+                    IsSubjectivePreference = true,
                     Name = "Browse folders",
                     Description = "Choose whether each folder opens in the same window or in its own window",
                     GroupName = "General",
@@ -338,29 +857,28 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
                             ValueName = "Settings",
-                            RecommendedValue = (byte)0x0A,
-                            DefaultValue = (byte)0x2A,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.Binary,
-                            ModifyByteOnly = true,
                             BinaryByteIndex = 4,
+                            BitMask = 0x20,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Open each folder in the same window",
-                            "Open each folder in its own window",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["Settings"] = (byte)0x0A,
+                                DisplayName = "Open each folder in the same window",
+                                ValueMappings = new Dictionary<string, object?> { ["Settings"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["Settings"] = (byte)0x2A,
+                                DisplayName = "Open each folder in its own window",
+                                ValueMappings = new Dictionary<string, object?> { ["Settings"] = 1 },
                             },
                         },
                     },
@@ -368,6 +886,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-click-items",
+                    IsSubjectivePreference = true,
                     Name = "Click items as follows",
                     Description = "Choose whether to open files and folders with a single click (like web links) or double-click (traditional)",
                     GroupName = "General",
@@ -382,44 +901,52 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShellState",
                             ValueType = RegistryValueKind.Binary,
-                            ModifyByteOnly = true,
                             BinaryByteIndex = 4,
-                            RecommendedValue = (byte)0x3E,
-                            DefaultValue = (byte)0x3E,
+                            BitMask = 0x20,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "IconUnderline",
                             ValueType = RegistryValueKind.DWord,
-                            RecommendedValue = 3,
-                            DefaultValue = 3,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Double-click to open an item (single-click to select)",
-                            "Single-click to open (underline icon titles consistent with browser)",
-                            "Single-click to open (underline icon titles only when pointing)",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ShellState"] = (byte)0x3E,
-                                ["IconUnderline"] = 3,
+                                DisplayName = "Double-click to open an item (single-click to select)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ShellState"] = 1,
+                                    ["IconUnderline"] = 3,
+                                },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ShellState"] = (byte)0x1E,
-                                ["IconUnderline"] = 3,
+                                DisplayName = "Single-click to open (underline icon titles consistent with browser)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ShellState"] = 0,
+                                    ["IconUnderline"] = 3,
+                                },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ShellState"] = (byte)0x1E,
-                                ["IconUnderline"] = 2,
+                                DisplayName = "Single-click to open (underline icon titles only when pointing)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ShellState"] = 0,
+                                    ["IconUnderline"] = 2,
+                                },
                             },
                         },
                     },
@@ -442,6 +969,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -451,6 +979,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -472,6 +1001,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -494,6 +1024,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -501,6 +1032,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Always show icons, never thumbnails",
                     Description = "Displays generic file icons instead of image/document previews",
                     GroupName = "Files and Folders",
@@ -523,6 +1055,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-menus",
+                    IsSubjectivePreference = true,
                     Name = "Always show menus",
                     Description = "Shows the Menu bar (File, Edit etc.) on all windows that support it",
                     GroupName = "Files and Folders",
@@ -547,6 +1080,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-item-space",
+                    IsSubjectivePreference = true,
                     Name = "Decrease space between items (compact view)",
                     Description = "Reduces vertical spacing between files and folders for denser view",
                     GroupName = "Files and Folders",
@@ -570,6 +1104,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-icon-thumbnails",
+                    IsSubjectivePreference = true,
                     Name = "Display file icon on thumbnails",
                     Description = "Shows file type icon overlay on bottom-right corner of thumbnail previews",
                     GroupName = "Files and Folders",
@@ -593,6 +1128,8 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-folder-tips",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Display file size information in folder tips",
                     Description = "Shows total size and file count when hovering over folders",
                     GroupName = "Files and Folders",
@@ -608,6 +1145,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -615,6 +1153,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-full-path",
+                    IsSubjectivePreference = true,
                     Name = "Display the full path in the title bar",
                     Description = "Shows complete directory path in window title instead of folder name only",
                     GroupName = "Files and Folders",
@@ -638,6 +1177,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-hidden-files",
+                    IsSubjectivePreference = true,
                     Name = "Show hidden files, folders & drives",
                     Description = "Displays items with the hidden attribute set",
                     GroupName = "Files and Folders",
@@ -660,6 +1200,8 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-hide-empty-drives",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Hide empty drives",
                     Description = "Hides drives with no media inserted like empty card readers or optical drives",
                     GroupName = "Files and Folders",
@@ -674,6 +1216,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -681,6 +1224,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-file-ext",
+                    IsSubjectivePreference = true,
                     Name = "Show file extensions",
                     Description = "Displays file type extensions (like .txt, .pdf) after file names",
                     GroupName = "Files and Folders",
@@ -704,6 +1248,8 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-enable-photo-viewer",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
                     Name = "Enable Windows Photo Viewer",
                     Description = "Restore the legacy Windows Photo Viewer and set it as the default program for common image file formats",
                     GroupName = "File Associations",
@@ -717,6 +1263,7 @@ public static class ExplorerCustomizations
                             ValueName = "",
                             EnabledValue = ["PhotoViewer.FileAssoc.Tiff"],
                             DisabledValue = [null],
+                            RecommendedValue = "PhotoViewer.FileAssoc.Tiff",
                             DefaultValue = null,
                             ValueType = RegistryValueKind.String,
                         }
@@ -849,7 +1396,58 @@ public static class ExplorerCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-legacy-notepad",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Use Legacy Notepad for text files",
+                    Description = "Makes legacy Notepad available as a file handler and disables the Store Notepad redirect. Requires Notepad (Legacy) capability to be installed",
+                    GroupName = "File Associations",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "NotepadEdit",
+                    IsWindows11Only = true,
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Applications\notepad.exe",
+                            ValueName = "NoOpenWith",
+                            EnabledValue = [null],
+                            DisabledValue = [""],
+                            RecommendedValue = null,
+                            DefaultValue = "",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe",
+                            ValueName = "UseFilter",
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            RecommendedValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+$appPathsKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\notepad.exe'
+if (Test-Path $appPathsKey) {
+    Remove-Item -Path $appPathsKey -Force
+}",
+                            DisabledScript = null,
+                            RequiresElevation = false,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-hide-merge-conflicts",
+                    IsSubjectivePreference = true,
                     Name = "Hide folder merge conflicts",
                     Description = "Automatically merges folders with same name without confirmation dialog",
                     GroupName = "Files and Folders",
@@ -864,6 +1462,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -871,6 +1470,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-hide-protected-files",
+                    IsSubjectivePreference = true,
                     Name = "Show protected operating system files",
                     Description = "Displays system files marked with the SuperHidden attribute",
                     GroupName = "Files and Folders",
@@ -893,6 +1493,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-separate-process",
+                    IsSubjectivePreference = true,
                     Name = "Launch folder windows in a separate process",
                     Description = "Runs each Explorer window in its own process to prevent crashes affecting all windows",
                     GroupName = "Files and Folders",
@@ -915,6 +1516,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-persist-browsers",
+                    IsSubjectivePreference = true,
                     Name = "Restore previous folder windows at logon",
                     Description = "Reopens Explorer windows that were open when you last shut down or logged off",
                     GroupName = "Files and Folders",
@@ -938,6 +1540,8 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-drive-letters",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show drive letters",
                     Description = "Displays drive letters (C:, D:) before drive names in This PC",
                     GroupName = "Files and Folders",
@@ -952,6 +1556,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [2],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -959,6 +1564,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-compressed-color",
+                    IsSubjectivePreference = true,
                     Name = "Show encrypted or compressed NTFS files in color",
                     Description = "Displays encrypted files in green and compressed files in blue",
                     GroupName = "Files and Folders",
@@ -982,6 +1588,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-popup-descriptions",
+                    IsSubjectivePreference = true,
                     Name = "Show pop-up description for folder and desktop items",
                     Description = "Displays tooltip with item details when hovering over files and folders",
                     GroupName = "Files and Folders",
@@ -1004,6 +1611,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-preview-handlers",
+                    IsSubjectivePreference = true,
                     Name = "Show preview handlers in preview pane",
                     Description = "Enables file content preview when selecting files in Explorer",
                     GroupName = "Files and Folders",
@@ -1018,6 +1626,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1025,6 +1634,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-status-bar",
+                    IsSubjectivePreference = true,
                     Name = "Show status bar",
                     Description = "Displays bar at bottom showing item count and selected file sizes",
                     GroupName = "Files and Folders",
@@ -1047,6 +1657,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-disable-sync-provider-notifications",
+                    IsSubjectivePreference = true,
                     Name = "Show sync provider notifications",
                     Description = "Displays cloud sync status notifications from OneDrive and other sync providers",
                     GroupName = "Files and Folders",
@@ -1061,6 +1672,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1068,6 +1680,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-checkbox-select",
+                    IsSubjectivePreference = true,
                     Name = "Use check boxes to select items",
                     Description = "Adds checkboxes next to items for easier multi-selection",
                     GroupName = "Files and Folders",
@@ -1090,6 +1703,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-sharing-wizard",
+                    IsSubjectivePreference = true,
                     Name = "Use sharing wizard",
                     Description = "Shows simplified sharing dialog instead of advanced security permissions",
                     GroupName = "Files and Folders",
@@ -1105,6 +1719,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1112,6 +1727,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-typing-behavior",
+                    IsSubjectivePreference = true,
                     Name = "When typing into list view",
                     Description = "Chooses whether typing selects matching items or searches automatically",
                     GroupName = "Files and Folders",
@@ -1123,28 +1739,26 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TypeAhead",
-                            RecommendedValue = 0,
-                            DefaultValue = 0,
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultOption = "Select the typed item in the view",
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Select the typed item in the view",
-                            "Automatically type into the Search Box",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TypeAhead"] = 0,
+                                DisplayName = "Select the typed item in the view",
+                                ValueMappings = new Dictionary<string, object?> { ["TypeAhead"] = 0 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["TypeAhead"] = 1,
+                                DisplayName = "Automatically type into the Search Box",
+                                ValueMappings = new Dictionary<string, object?> { ["TypeAhead"] = 1 },
                             },
                         },
                     },
@@ -1152,6 +1766,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-3d-objects",
+                    RecommendedToggleState = false,
                     Name = "Show 3D Objects",
                     Description = "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
                     GroupName = "Navigation Pane",
@@ -1165,8 +1780,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null], // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = [null], // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1175,8 +1790,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null], // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = [null], // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1185,6 +1800,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-home-folder",
+                    RecommendedToggleState = false,
                     Name = "Show Home Folder",
                     Description = "Display the Home folder in the navigation pane as a shortcut to your user profile folder",
                     GroupName = "Navigation Pane",
@@ -1198,8 +1814,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = [null], // When toggle is ON, Home Folder is shown (key exists)
-                            DisabledValue = [null], // When toggle is OFF, Home Folder is hidden (key removed)
+                            EnabledValue = [null],
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1208,6 +1824,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-gallery",
+                    RecommendedToggleState = false,
                     Name = "Show Gallery",
                     Description = "Display the Gallery folder in the navigation pane for quick access to all your photos and videos",
                     GroupName = "Navigation Pane",
@@ -1222,7 +1839,7 @@ public static class ExplorerCustomizations
                             ValueName = null,
                             RecommendedValue = null,
                             EnabledValue = [null],
-                            DisabledValue = [null],
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -1253,6 +1870,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-expand-current",
+                    IsSubjectivePreference = true,
                     Name = "Expand to open folder",
                     Description = "Automatically expands navigation tree to highlight current folder location",
                     GroupName = "Navigation Pane",
@@ -1275,11 +1893,23 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-nav-show-all-folders",
+                    IsSubjectivePreference = true,
                     Name = "Show all folders",
                     Description = "Shows all folders in the navigation pane",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
                     Icon = "FolderMultiple",
+                    RestartProcess = "Explorer",
+                    AutoEnableSettingIds = new List<string>
+                    {
+                        "explorer-customization-nav-saf-desktop",
+                        "explorer-customization-nav-saf-documents",
+                        "explorer-customization-nav-saf-downloads",
+                        "explorer-customization-nav-saf-music",
+                        "explorer-customization-nav-saf-pictures",
+                        "explorer-customization-nav-saf-videos",
+                        "explorer-customization-nav-show-libraries",
+                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1296,12 +1926,230 @@ public static class ExplorerCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-nav-saf-desktop",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Show Desktop folder",
+                    Description = "Shows the Desktop folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Monitor",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-documents",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Show Documents folder",
+                    Description = "Shows the Documents folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "FileDocument",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-downloads",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Show Downloads folder",
+                    Description = "Shows the Downloads folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Download",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{374DE290-123F-4565-9164-39C4925E467B}",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{374DE290-123F-4565-9164-39C4925E467B}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-music",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Show Music folder",
+                    Description = "Shows the Music folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Music",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-pictures",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Show Pictures folder",
+                    Description = "Shows the Pictures folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Image",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-saf-videos",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Show Videos folder",
+                    Description = "Shows the Videos folder in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    ParentSettingId = "explorer-customization-nav-show-all-folders",
+                    AddedInVersion = "26.04.07",
+                    Icon = "Video",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-nav-show-libraries",
-                    Name = "Show libraries",
-                    Description = "Displays Libraries container grouping Documents, Music, Pictures, and Videos",
+                    IsSubjectivePreference = true,
+                    Name = "Show Libraries",
+                    Description = "Pins the Libraries folder as a top-level item in the navigation pane. Has no effect when Show All Folders is enabled, as Libraries becomes part of the folder tree instead",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
                     Icon = "FolderTable",
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1314,11 +2162,68 @@ public static class ExplorerCustomizations
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-duplicate-removable-drives",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "Show Duplicate Removable Drives",
+                    Description = "Show removable drives as separate entries in the navigation pane in addition to under This PC",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    Icon = "Usb",
+                    AddedInVersion = "26.04.09",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "explorer-long-file-paths",
+                    IsSubjectivePreference = true,
                     Name = "Enable Long File Paths",
                     Description = "Enables support for file paths with up to 32,767 characters instead of the traditional 260-character limit",
                     GroupName = "Files and Folders",
@@ -1338,6 +2243,333 @@ public static class ExplorerCustomizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-netplwiz-auto-login",
+                    IsSubjectivePreference = true,
+                    Name = "Show Auto-Login Option in User Accounts",
+                    Description = "Shows the classic 'Users must enter a user name and password to use this computer' checkbox in the User Accounts (netplwiz) window, allowing you to configure automatic logon through the standard Windows UI",
+                    GroupName = "Network",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "PersonKey",
+                    AddedInVersion = "26.04.03",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device",
+                            ValueName = "DevicePasswordLessBuildVersion",
+                            RecommendedValue = 2,
+                            EnabledValue = [0],
+                            DisabledValue = [2],
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                // Regional Settings
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-short-date",
+                    IsSubjectivePreference = true,
+                    Name = "Short Date Format",
+                    Description = "Choose the format used to display short dates across Windows",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CalendarMonth",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sShortDate",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "M/d/yyyy",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "M/d/yyyy" },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "dd/MM/yyyy",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "dd/MM/yyyy" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "yyyy-MM-dd",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "yyyy-MM-dd" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "yyyy/MM/dd",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "yyyy/MM/dd" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "dd MMM yyyy",
+                                ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "dd MMM yyyy" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-first-day-of-week",
+                    IsSubjectivePreference = true,
+                    Name = "First Day of Week",
+                    Description = "Choose which day is displayed as the first day of the week in calendars",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CalendarWeekBegin",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "iFirstDayOfWeek",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Sunday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "6" },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Monday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "0" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Tuesday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "1" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Wednesday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "2" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Thursday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "3" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Friday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "4" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Saturday",
+                                ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "5" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-number-decimal",
+                    IsSubjectivePreference = true,
+                    Name = "Number Decimal Symbol",
+                    Description = "Choose the symbol used to separate whole numbers from decimals in number formatting",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "Numeric",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sDecimal",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = ". (Period)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "." },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ", (Comma)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "," },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "  (Space)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = " " },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "\u0027 (Apostrophe)",
+                                ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "'" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-list-separator",
+                    IsSubjectivePreference = true,
+                    Name = "List Separator",
+                    Description = "Choose the character used to separate items in lists, such as in CSV exports and formulas",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "FormatListBulleted",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sList",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = ", (Comma)",
+                                ValueMappings = new Dictionary<string, object?> { ["sList"] = "," },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "; (Semicolon)",
+                                ValueMappings = new Dictionary<string, object?> { ["sList"] = ";" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    // MIGRATION-CHECK: explorer-customization-measurement-system — pre-migration RegistrySetting had DefaultOption="U.S. (Imperial)" (idx 1) and DefaultValue="1", but both shipped Default configs (Windows10_22H2 and Windows11_25H2) use SelectedIndex=0 (Metric), and the Recommended config also uses idx 0. Configs win over DefaultOption/DefaultValue per sourcing authority; IsDefault placed on idx 0 (Metric), IsRecommended on idx 0.
+                    Id = "explorer-customization-measurement-system",
+                    IsSubjectivePreference = true,
+                    Name = "Measurement System",
+                    Description = "Choose whether Windows uses the metric or U.S. imperial measurement system",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "RulerSquare",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "iMeasure",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Metric",
+                                ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "0" },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "U.S. (Imperial)",
+                                ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "1" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-currency-decimal",
+                    IsSubjectivePreference = true,
+                    Name = "Currency Decimal Symbol",
+                    Description = "Choose the symbol used to separate whole numbers from decimals in currency formatting",
+                    GroupName = "Regional Settings",
+                    InputType = InputType.Selection,
+                    Icon = "CurrencySign",
+                    AddedInVersion = "26.04.10",
+                    RestartProcess = "intl",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\International",
+                            ValueName = "sMonDecimalSep",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = ". (Period)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "." },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = ", (Comma)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "  (Space)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = " " },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "\u0027 (Apostrophe)",
+                                ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "'" },
+                            },
+                        },
+                    },
+                },    
             },
         };
     }

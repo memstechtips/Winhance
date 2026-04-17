@@ -67,10 +67,10 @@ public class WinGetDetectionService : IWinGetDetectionService
     {
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(ComOperationTimeoutSeconds));
-
-            return await Task.Run(() =>
+            // Native COM calls (FindPackages, Connect) can block indefinitely and
+            // cannot be interrupted by CancellationToken. Use Task.WhenAny with a
+            // hard timeout so the app continues startup via CLI fallback.
+            var workTask = Task.Run(() =>
             {
                 var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -105,6 +105,7 @@ public class WinGetDetectionService : IWinGetDetectionService
                 filter.Value = "";
                 findOptions.Filters.Add(filter);
 
+                _logService?.LogInformation("WinGet COM: calling FindPackages...");
                 var findResult = connectResult.PackageCatalog.FindPackages(findOptions);
                 var matches = findResult.Matches.ToArray();
 
@@ -128,7 +129,17 @@ public class WinGetDetectionService : IWinGetDetectionService
                 }
 
                 return installedPackageIds;
-            }, timeoutCts.Token).ConfigureAwait(false);
+            }, cancellationToken);
+
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(ComOperationTimeoutSeconds), cancellationToken);
+
+            if (await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false) == timeoutTask)
+            {
+                _logService?.LogWarning($"COM package enumeration hard timeout after {ComOperationTimeoutSeconds}s — FindPackages is unresponsive, abandoning thread");
+                return null;
+            }
+
+            return await workTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

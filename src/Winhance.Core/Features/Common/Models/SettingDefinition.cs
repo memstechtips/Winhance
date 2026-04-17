@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record SettingDefinition : BaseDefinition, ISettingItem
+public sealed record SettingDefinition : BaseDefinition, ISettingItem
 {
     public bool RequiresConfirmation { get; init; } = false;
     public string? ActionCommand { get; init; }
@@ -26,4 +26,29 @@ public record SettingDefinition : BaseDefinition, ISettingItem
     public bool ValidateExistence { get; init; } = true;
     public string? ParentSettingId { get; init; }
     public bool RequiresAdvancedUnlock { get; init; } = false;
+    /// <summary>
+    /// True when this Selection setting has no objectively-better choice —
+    /// the correct answer is user-, region-, or preference-driven. Badge
+    /// computation for subjective settings yields <see cref="SettingBadgeKind.Preference"/>
+    /// for any well-known option value, ignoring <see cref="ComboBoxOption.IsRecommended"/>
+    /// and <see cref="ComboBoxOption.IsDefault"/> for the pill label.
+    /// Authors may still mark a single option as Recommended/Default so Quick Actions
+    /// has a target to apply; SettingCatalogValidator enforces at most one of each.
+    /// </summary>
+    public bool IsSubjectivePreference { get; init; } = false;
+
+    /// <summary>
+    /// For Toggle/CheckBox settings: explicit Recommended state (true = enabled,
+    /// false = disabled). Mirrors the pattern of <see cref="ComboBoxOption.IsRecommended"/>
+    /// — the recommendation lives on the SettingDefinition rather than per-RegistrySetting.
+    ///
+    /// Set this when the recommendation cannot be encoded as a non-null
+    /// <c>RegistrySetting.RecommendedValue</c> — typically because the recommended state
+    /// is "key absent" (e.g. EnabledValue = [null]). When set, this wins over per-key
+    /// RecommendedValue derivation for badge / quick-set logic.
+    ///
+    /// Null means "no explicit toggle-level recommendation; fall back to per-key
+    /// RecommendedValue, or no Recommended badge if those are also null".
+    /// </summary>
+    public bool? RecommendedToggleState { get; init; }
 }

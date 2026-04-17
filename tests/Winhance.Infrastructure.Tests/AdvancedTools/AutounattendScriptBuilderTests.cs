@@ -330,7 +330,9 @@ public class AutounattendScriptBuilderTests
                     ValueName = "OptVal",
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [1],
-                    DisabledValue = [0]
+                    DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 }
             }
         };
@@ -390,7 +392,9 @@ public class AutounattendScriptBuilderTests
                     ValueName = "CustVal",
                     ValueType = RegistryValueKind.DWord,
                     EnabledValue = [1],
-                    DisabledValue = [0]
+                    DisabledValue = [0],
+                    RecommendedValue = null,
+                    DefaultValue = null
                 }
             }
         };

@@ -18,6 +18,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-uac-level",
+                    IsSubjectivePreference = true,
                     Name = "User Account Control Level",
                     Description = "Controls UAC notification level and secure desktop behavior",
                     GroupName = "Security",
@@ -29,59 +30,73 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "ConsentPromptBehaviorAdmin",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [5],
                             DisabledValue = [0],
-                            DefaultValue = 5,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                             ValueName = "PromptOnSecureDesktop",
-                            RecommendedValue = 0,
+                            RecommendedValue = null,
                             EnabledValue = [1],
                             DisabledValue = [0],
-                            DefaultValue = 1,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Prompt for Credentials",
-                            "Always notify",
-                            "Notify when apps try to make changes",
-                            "Notify when apps try to make changes (no dim)",
-                            "Never notify",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 1,
-                                ["PromptOnSecureDesktop"] = 1,
+                                DisplayName = "Prompt for Credentials",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 1,
+                                    ["PromptOnSecureDesktop"] = 1,
+                                },
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 2,
-                                ["PromptOnSecureDesktop"] = 1,
+                                DisplayName = "Always notify",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 2,
+                                    ["PromptOnSecureDesktop"] = 1,
+                                },
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 5,
-                                ["PromptOnSecureDesktop"] = 1,
+                                DisplayName = "Notify when apps try to make changes",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 5,
+                                    ["PromptOnSecureDesktop"] = 1,
+                                },
+                                IsDefault = true,
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 5,
-                                ["PromptOnSecureDesktop"] = 0,
+                                DisplayName = "Notify when apps try to make changes (no dim)",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 5,
+                                    ["PromptOnSecureDesktop"] = 0,
+                                },
                             },
-                            [4] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["ConsentPromptBehaviorAdmin"] = 0,
-                                ["PromptOnSecureDesktop"] = 0,
+                                DisplayName = "Never notify",
+                                ValueMappings = new Dictionary<string, object?>
+                                {
+                                    ["ConsentPromptBehaviorAdmin"] = 0,
+                                    ["PromptOnSecureDesktop"] = 0,
+                                },
+                                IsRecommended = true,
                             },
                         },
                         SupportsCustomState = true,
@@ -91,8 +106,9 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-workplace-join-messages",
-                    Name = "Block Workplace Join Messages",
-                    Description = "Blocks the 'Allow my organization to manage my device' and 'No, sign in to this app only' pop-up messages",
+                    RecommendedToggleState = false,
+                    Name = "Workplace Join Message Prompts",
+                    Description = "Show 'Allow my organization to manage my device' prompts throughout Windows",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
                     Icon = "OfficeBuilding",
@@ -103,8 +119,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
                             RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -114,8 +130,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WorkplaceJoin",
                             ValueName = "BlockAADWorkplaceJoin",
                             RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -125,8 +141,9 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "security-bitlocker-auto-encryption",
-                    Name = "Prevent BitLocker Auto Encryption",
-                    Description = "Prevents Windows from automatically encrypting your device with BitLocker without user consent",
+                    IsSubjectivePreference = true,
+                    Name = "BitLocker Auto Encryption",
+                    Description = "Controls whether Windows can automatically encrypt drives with BitLocker. Has no effect if BitLocker encryption is already active on your device",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
@@ -139,8 +156,8 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\BitLocker",
                             ValueName = "PreventDeviceEncryption",
                             RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [0],
+                            EnabledValue = [0],
+                            DisabledValue = [1],
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -259,6 +276,144 @@ public static class PrivacyAndSecurityOptimizations
                 },
                 new SettingDefinition
                 {
+                    Id = "security-smart-app-control",
+                    IsSubjectivePreference = true,
+                    Name = "Smart App Control",
+                    Description = "Controls the Smart App Control feature which blocks untrusted and potentially dangerous applications",
+                    GroupName = "Security",
+                    Icon = "ShieldCheck",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.04.01",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Policy",
+                            ValueName = "VerifiedAndReputablePolicyState",
+                            RecommendedValue = null,
+                            EnabledValue = [2],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Off",
+                                ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 0 },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "On (Enforced)",
+                                ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 1 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Evaluation Mode",
+                                ValueMappings = new Dictionary<string, object?> { ["VerifiedAndReputablePolicyState"] = 2 },
+                                IsDefault = true,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "security-developer-mode",
+                    IsSubjectivePreference = true,
+                    Name = "Developer Mode",
+                    Description = "Allows the installation of apps from any source, including loose files",
+                    GroupName = "Security",
+                    Icon = "CodeBraces",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\AppModelUnlock",
+                            ValueName = "AllowDevelopmentWithoutDevLicense",
+                            RecommendedValue = 0,
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "security-powershell-execution-policy",
+                    IsSubjectivePreference = true,
+                    Name = "PowerShell Execution Policy",
+                    Description = "Controls whether PowerShell scripts are allowed to run and under what conditions for both the current user and the local machine",
+                    GroupName = "Security",
+                    Icon = "PowerShell",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.04.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell",
+                            ValueName = "ExecutionPolicy",
+                            RecommendedValue = null,
+                            EnabledValue = ["Restricted"],
+                            DisabledValue = ["RemoteSigned"],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell",
+                            ValueName = "ExecutionPolicy",
+                            RecommendedValue = null,
+                            EnabledValue = ["Restricted"],
+                            DisabledValue = ["RemoteSigned"],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Restricted",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "Restricted" },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "AllSigned",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "AllSigned" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "RemoteSigned",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "RemoteSigned" },
+                                IsRecommended = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Unrestricted",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "Unrestricted" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Bypass",
+                                ValueMappings = new Dictionary<string, object?> { ["ExecutionPolicy"] = "Bypass" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "privacy-ads-promotional-master",
                     Name = "Ads, Suggestions and Promotional Content",
                     Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
@@ -272,32 +427,31 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Settings",
                             ValueName = "AdsPromotionalContentMode",
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 2,
-                            RecommendedValue = 1,
+                            DefaultValue = null,
+                            RecommendedValue = null,
                             IsPrimary = true,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Allow",
-                            "Deny",
-                            "Custom",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["AdsPromotionalContentMode"] = 0,
+                                DisplayName = "Allow",
+                                ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 0 },
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["AdsPromotionalContentMode"] = 1,
+                                DisplayName = "Deny",
+                                ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 1 },
+                                IsRecommended = true,
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["AdsPromotionalContentMode"] = 2,
+                                DisplayName = "Custom",
+                                ValueMappings = new Dictionary<string, object?> { ["AdsPromotionalContentMode"] = 2 },
+                                IsDefault = true,
                             },
                         },
                     },
@@ -413,6 +567,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -572,6 +727,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -611,6 +767,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-lock-screen",
+                    IsSubjectivePreference = true,
                     Name = "Lock Screen",
                     Description = "Allows users to lock their computer using Windows+L, Start menu, or Ctrl+Alt+Del screen",
                     GroupName = "Lock Screen",
@@ -751,6 +908,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -761,6 +919,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -783,6 +942,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [null], // When toggle is ON, language list access is enabled
                             DisabledValue = [1], // When toggle is OFF, language list access is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -804,6 +964,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null], // When toggle is ON, app launch tracking is enabled
                             DisabledValue = [0], // When toggle is OFF, app launch tracking is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -842,6 +1003,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -851,6 +1013,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -860,6 +1023,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -882,6 +1046,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null], // When toggle is ON, account notifications are enabled
                             DisabledValue = [0], // When toggle is OFF, account notifications are disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -889,6 +1054,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-speech-recognition",
+                    RecommendedToggleState = false,
                     Name = "Online Speech Recognition",
                     Description = "Use your voice for apps using Microsoft's online speech recognition technology",
                     GroupName = "Speech",
@@ -913,6 +1079,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = null,
                             EnabledValue = [1],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -923,6 +1090,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = null,
                             EnabledValue = [1],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -945,6 +1113,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -966,6 +1135,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1117,6 +1287,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1127,6 +1298,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1178,6 +1350,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-tailored-experiences",
+                    RecommendedToggleState = false,
                     Name = "Tailored Experiences",
                     Description = "Let Microsoft use your diagnostic data to show personalized tips, ads and recommendations",
                     GroupName = "Diagnostics & Feedback",
@@ -1202,6 +1375,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1212,6 +1386,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1235,6 +1410,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1245,8 +1421,19 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = [null],
                             DisabledValue = [1],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Siuf\Rules",
+                            ValueName = "NumberOfSIUFInPeriod",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -1269,6 +1456,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1279,6 +1467,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1312,6 +1501,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1333,6 +1523,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null], // When toggle is ON, history is enabled
                             DisabledValue = [0], // When toggle is OFF, history is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1355,6 +1546,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null], // When toggle is ON, search highlights is enabled
                             DisabledValue = [0], // When toggle is OFF, search highlights is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1376,6 +1568,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null], // When toggle is ON, cloud search is enabled
                             DisabledValue = [0], // When toggle is OFF, cloud search is disabled
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1397,6 +1590,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1419,6 +1613,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1429,6 +1624,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [null],
                             DisabledValue = [0],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1437,6 +1633,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-location-services",
+                    RecommendedToggleState = false,
                     Name = "Location Services",
                     Description = "Allows Windows and apps to access your device location for location-based features",
                     GroupName = "App Permissions",
@@ -1449,7 +1646,7 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location",
                             ValueName = "Value",
                             RecommendedValue = "Deny",
-                            EnabledValue = ["Allow"],
+                            EnabledValue = ["Allow", null],
                             DisabledValue = ["Deny"],
                             DefaultValue = "Allow",
                             ValueType = RegistryValueKind.String,
@@ -1461,6 +1658,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1471,6 +1669,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = null,
                             EnabledValue = [0],
                             DisabledValue = [null],
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
@@ -1479,6 +1678,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-camera-access",
+                    IsSubjectivePreference = true,
                     Name = "Camera Access",
                     Description = "Allow apps to have camera access",
                     GroupName = "App Permissions",
@@ -1491,7 +1691,7 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam",
                             ValueName = "Value",
                             RecommendedValue = "Allow",
-                            EnabledValue = ["Allow"], // When toggle is ON, camera access is allowed
+                            EnabledValue = ["Allow", null], // When toggle is ON, camera access is allowed
                             DisabledValue = ["Deny"], // When toggle is OFF, camera access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
@@ -1501,6 +1701,7 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-microphone-access",
+                    IsSubjectivePreference = true,
                     Name = "Microphone Access",
                     Description = "Allow apps to have microphone access",
                     GroupName = "App Permissions",
@@ -1513,7 +1714,7 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone",
                             ValueName = "Value",
                             RecommendedValue = "Allow",
-                            EnabledValue = ["Allow"], // When toggle is ON, microphone access is allowed
+                            EnabledValue = ["Allow", null], // When toggle is ON, microphone access is allowed
                             DisabledValue = ["Deny"], // When toggle is OFF, microphone access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
@@ -1535,7 +1736,7 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userAccountInformation",
                             ValueName = "Value",
                             RecommendedValue = "Deny",
-                            EnabledValue = ["Allow"], // When toggle is ON, account info access is allowed
+                            EnabledValue = ["Allow", null], // When toggle is ON, account info access is allowed
                             DisabledValue = ["Deny"], // When toggle is OFF, account info access is denied
                             DefaultValue = "Allow", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
@@ -1558,7 +1759,7 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appDiagnostics",
                             ValueName = "Value",
                             RecommendedValue = "Deny",
-                            EnabledValue = ["Allow"],
+                            EnabledValue = ["Allow", null],
                             DisabledValue = ["Deny"],
                             DefaultValue = "Allow",
                             ValueType = RegistryValueKind.String,
@@ -1568,8 +1769,10 @@ public static class PrivacyAndSecurityOptimizations
                 new SettingDefinition
                 {
                     Id = "privacy-onedrive-auto-backup",
-                    Name = "Disable OneDrive Automatic Backups",
-                    Description = "Prevents OneDrive from automatically backing up important folders (Documents, Pictures, Desktop, etc.)",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    Name = "OneDrive Automatic Backups",
+                    Description = "Controls whether OneDrive automatically backs up your Documents, Pictures, and Desktop folders. Has no effect if OneDrive backups are already active on your device",
                     GroupName = "App Permissions",
                     InputType = InputType.Toggle,
                     Icon = "CloudOff",
@@ -1579,9 +1782,9 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\OneDrive",
                             ValueName = "KFMBlockOptIn",
-                            RecommendedValue = 1,
-                            EnabledValue = [1],
-                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
@@ -1590,9 +1793,1123 @@ public static class PrivacyAndSecurityOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\OneDrive",
                             ValueName = "KFMBlockOptIn",
+                            RecommendedValue = null,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                // =====================
+                // Windows AI
+                // =====================
+                new SettingDefinition
+                {
+                    Id = "privacy-turn-off-copilot",
+                    Name = "Windows Copilot",
+                    Description = "Controls whether Windows Copilot is available system-wide via group policy for both current user and local machine",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Robot",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\WindowsCopilot",
+                            ValueName = "TurnOffWindowsCopilot",
                             RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsCopilot",
+                            ValueName = "TurnOffWindowsCopilot",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-ai-data-analysis",
+                    Name = "AI Data Analysis",
+                    Description = "Controls whether Windows AI can analyze user data for personalization and recommendations",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DatabaseOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableAIDataAnalysis",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-block-recall-enablement",
+                    Name = "Recall Enablement",
+                    Description = "Controls whether Windows Recall can be enabled via policy",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Cancel",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "AllowRecallEnablement",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-recall-snapshots",
+                    Name = "Recall Saving Snapshots",
+                    Description = "Allows Windows Recall to save screenshots of your activity for later recall",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CameraOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "TurnOffSavingSnapshots",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-click-to-do",
+                    Name = "Click to Do",
+                    Description = "Controls whether the Click to Do AI feature is available in Windows",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CursorDefaultClickOutline",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableClickToDo",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-settings-agent",
+                    Name = "AI Settings Agent",
+                    Description = "Controls whether the AI-powered Settings Agent is available in Windows",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CogOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableSettingsAgent",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-agent-connectors",
+                    Name = "AI Agent Connectors",
+                    Description = "Controls whether AI agents can use connectors to access external services",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "VectorPolylineRemove",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableAgentConnectors",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-agent-workspaces",
+                    Name = "AI Agent Workspaces",
+                    Description = "Controls whether AI Agent Workspaces are available in Windows",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DesktopClassic",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableAgentWorkspaces",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-remote-agent-connectors",
+                    Name = "Remote AI Agent Connectors",
+                    Description = "Controls whether AI agents can use remote connectors to access remote services",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "LanDisconnect",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "DisableRemoteAgentConnectors",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-copilot-hardware-key",
+                    Name = "Copilot Hardware Key",
+                    Description = "Controls whether the dedicated Copilot key on keyboards opens Copilot",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "KeyboardOutline",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CopilotKey",
+                            ValueName = "SetCopilotHardwareKey",
+                            RecommendedValue = "",
+                            EnabledValue = [null],
+                            DisabledValue = [""],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-copilot-runtime",
+                    Name = "Copilot Runtime",
+                    Description = "Controls whether the Copilot runtime is allowed to run via policy",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "RobotOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                            ValueName = "AllowCopilotRuntime",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-copilot-unavailable",
+                    Name = "Copilot Availability",
+                    Description = "Controls whether Copilot is available in the Windows Shell",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "RobotOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Copilot",
+                            ValueName = "IsCopilotAvailable",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-bing-chat",
+                    Name = "Bing Chat Eligibility",
+                    Description = "Controls whether the user is eligible for Bing Chat and Copilot in Search",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ChatRemove",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Copilot\BingChat",
+                            ValueName = "IsUserEligible",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-deny-generative-ai-access",
+                    Name = "Generative AI Access",
+                    Description = "Controls whether apps can access the generative AI capability on your device",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShieldLock",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\generativeAI",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow", null],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
+                            ValueName = "LetAppsAccessGenerativeAI",
+                            RecommendedValue = 2,
+                            EnabledValue = [0, null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-deny-system-ai-models",
+                    Name = "System AI Models Access",
+                    Description = "Controls whether apps can access system AI models on your device and collect usage data",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShieldLock",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\systemAIModels",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow", null],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
+                            ValueName = "LetAppsAccessSystemAIModels",
+                            RecommendedValue = 2,
+                            EnabledValue = [0, null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\systemAIModels",
+                            ValueName = "RecordUsageData",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-deny-copilot-microphone",
+                    Name = "Copilot Microphone Access",
+                    Description = "Controls whether Copilot and Office Hub apps have microphone permission",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "MicrophoneOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Microsoft.Copilot_8wekyb3d8bbwe",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow", null],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Microsoft.MicrosoftOfficeHub_8wekyb3d8bbwe",
+                            ValueName = "Value",
+                            RecommendedValue = "Deny",
+                            EnabledValue = ["Allow", null],
+                            DisabledValue = ["Deny"],
+                            DefaultValue = "Allow",
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-ai-image-creator",
+                    Name = "Paint AI Image Creator",
+                    Description = "Controls whether the AI Image Creator feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ImageOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableImageCreator",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-ai-cocreator",
+                    Name = "Paint AI Cocreator",
+                    Description = "Controls whether the AI Cocreator feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "PaletteOutline",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableCocreator",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-generative-fill",
+                    Name = "Paint Generative Fill",
+                    Description = "Controls whether the AI Generative Fill feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FormatPaint",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableGenerativeFill",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-generative-erase",
+                    Name = "Paint Generative Erase",
+                    Description = "Controls whether the AI Generative Erase feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "EraserVariant",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableGenerativeErase",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-paint-remove-background",
+                    Name = "Paint Remove Background",
+                    Description = "Controls whether the AI Remove Background feature is available in Microsoft Paint",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ImageRemove",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Paint",
+                            ValueName = "DisableRemoveBackground",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-input-insights",
+                    Name = "Input Insights",
+                    Description = "Controls whether Windows Input Insights can track typing patterns and provide suggestions",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "KeyboardOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input\Settings",
+                            ValueName = "InsightsEnabled",
+                            RecommendedValue = 0,
                             EnabledValue = [1],
-                            DisabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-copilot-nudges",
+                    Name = "Copilot Nudges",
+                    Description = "Controls whether Copilot promotional nudges and background task notifications are shown",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "BellOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowCopilotNudges",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-disable-consumer-ai-content",
+                    Name = "AI Consumer Content",
+                    Description = "Controls whether AI-driven consumer account content recommendations are shown",
+                    GroupName = "Windows AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "AccountOff",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent",
+                            ValueName = "DisableConsumerAccountStateContent",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                // =====================
+                // Microsoft Edge AI
+                // =====================
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-copilot-cdp-page-context",
+                    Name = "Edge Copilot CDP Page Context",
+                    Description = "Controls whether Copilot can use CDP to access page content in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "WebOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "CopilotCDPPageContext",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-copilot-page-context",
+                    Name = "Edge Copilot Page Context",
+                    Description = "Controls whether Copilot can read page content in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FileEyeOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "CopilotPageContext",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-copilot-sidebar",
+                    Name = "Edge Copilot Sidebar",
+                    Description = "Controls whether the Copilot sidebar is available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DockRight",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "HubsSidebarEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-entra-copilot",
+                    Name = "Edge Entra Copilot Page Context",
+                    Description = "Controls whether Entra Copilot can access page context in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShieldOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "EdgeEntraCopilotPageContext",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-m365-copilot-icon",
+                    Name = "Edge M365 Copilot Chat Icon",
+                    Description = "Controls whether the Microsoft 365 Copilot chat icon is shown in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ChatMinus",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "Microsoft365CopilotChatIconEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-ai-history-search",
+                    Name = "Edge AI History Search",
+                    Description = "Controls whether AI-powered history search is available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "History",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "EdgeHistoryAISearchEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-inline-compose",
+                    Name = "Edge Inline AI Compose",
+                    Description = "Controls whether AI-powered inline compose suggestions are available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "PenOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "ComposeInlineEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-local-ai-model",
+                    Name = "Edge Local AI Model Settings",
+                    Description = "Controls whether local AI model settings are available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "DatabaseOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "GenAILocalFoundationalModelSettings",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-builtin-ai-apis",
+                    Name = "Edge Built-in AI APIs",
+                    Description = "Controls whether built-in AI APIs are available in Microsoft Edge for websites to use",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "Api",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "BuiltInAIAPIsEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-ai-themes",
+                    Name = "Edge AI Generated Themes",
+                    Description = "Controls whether AI-generated themes are available in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "PaletteOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "AIGenThemesEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-devtools-ai",
+                    Name = "Edge DevTools AI",
+                    Description = "Controls whether AI features are available in Edge DevTools",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CodeBracesBox",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "DevToolsGenAiSettings",
+                            RecommendedValue = 2,
+                            EnabledValue = [0, null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-edge-share-history-copilot",
+                    Name = "Edge Share History with Copilot",
+                    Description = "Controls whether browsing history is shared with Copilot search in Microsoft Edge",
+                    GroupName = "Microsoft Edge AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "ShareOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge",
+                            ValueName = "ShareBrowsingHistoryWithCopilotSearchAllowed",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                // =====================
+                // Microsoft Office AI
+                // =====================
+                new SettingDefinition
+                {
+                    Id = "privacy-office-ai-training",
+                    Name = "Office AI Training",
+                    Description = "Controls whether Office collects AI training data from your usage",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "SchoolOutline",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\ai\training",
+                            ValueName = "optionalconnectedexperiencesenabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-office-connected-services",
+                    Name = "Office Connected Services",
+                    Description = "Controls whether Office connected experiences and AI-powered services are available",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "CloudOff",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\privacy",
+                            ValueName = "controllerconnectedservicesenabled",
+                            RecommendedValue = 2,
+                            EnabledValue = [0, null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\privacy",
+                            ValueName = "usercontentdisabled",
+                            RecommendedValue = 2,
+                            EnabledValue = [0, null],
+                            DisabledValue = [2],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-word-copilot",
+                    Name = "Word Copilot",
+                    Description = "Controls whether Copilot AI features are available in Microsoft Word",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FileWord",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\Word\Options",
+                            ValueName = "EnableCopilot",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-excel-copilot",
+                    Name = "Excel Copilot",
+                    Description = "Controls whether Copilot AI features are available in Microsoft Excel",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "FileExcel",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\Excel\Options",
+                            ValueName = "EnableCopilot",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-onenote-copilot",
+                    Name = "OneNote Copilot",
+                    Description = "Controls whether Copilot AI features, Copilot notebooks, and Copilot skittle are available in Microsoft OneNote",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "NotebookEdit",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\OneNote\Options\Other",
+                            ValueName = "EnableCopilot",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\OneNote\Options\Other",
+                            ValueName = "EnableCopilotNotebooks",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\OneNote\Options\Other",
+                            ValueName = "EnableCopilotSkittle",
+                            RecommendedValue = 0,
+                            EnabledValue = [null],
+                            DisabledValue = [0],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "privacy-office-content-safety-ai",
+                    Name = "Office AI Content Safety",
+                    Description = "Controls whether AI content safety features for alt text, rewrite, and summarization are available in Office apps",
+                    GroupName = "Microsoft Office AI",
+                    AddedInVersion = "26.04.10",
+                    Icon = "TextBoxRemove",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\office\16.0\common\ai",
+                            ValueName = "contentsafetyserviceenabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,

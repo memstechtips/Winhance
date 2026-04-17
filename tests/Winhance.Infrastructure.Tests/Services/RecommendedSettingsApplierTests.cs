@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -43,6 +46,7 @@ public class RecommendedSettingsApplierTests
                 ValueType = RegistryValueKind.DWord,
                 RecommendedValue = recommendedValue,
                 EnabledValue = enabledValue ?? (recommendedValue != null ? [recommendedValue] : null),
+                DefaultValue = null
             }
         }
     };
@@ -50,26 +54,41 @@ public class RecommendedSettingsApplierTests
     private static SettingDefinition CreateSelectionSetting(
         string id,
         string recommendedOption,
-        Dictionary<string, int> comboBoxOptions) => new()
+        Dictionary<string, int> comboBoxOptions)
     {
-        Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        InputType = InputType.Selection,
-        RegistrySettings = new[]
-        {
-            new RegistrySetting
+        // ComboBox.Options order determines the recommended index; keep alphabetical order
+        // to match the historical ordering the tests were written against.
+        var sortedKeys = comboBoxOptions.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
+        var options = sortedKeys
+            .Select(k => new ComboBoxOption
             {
-                KeyPath = @"HKLM\Software\Test",
-                ValueName = "TestValue",
-                ValueType = RegistryValueKind.DWord,
-                IsPrimary = true,
-                RecommendedValue = comboBoxOptions[recommendedOption],
-                RecommendedOption = recommendedOption,
-                ComboBoxOptions = comboBoxOptions,
+                DisplayName = k,
+                SimpleValue = comboBoxOptions[k],
+                IsRecommended = k == recommendedOption,
+            })
+            .ToList();
+
+        return new SettingDefinition
+        {
+            Id = id,
+            Name = $"Setting {id}",
+            Description = $"Description for {id}",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata { Options = options },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Software\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    IsPrimary = true,
+                    RecommendedValue = comboBoxOptions[recommendedOption],
+                    DefaultValue = null
+                }
             }
-        }
-    };
+        };
+    }
 
     private void SetupDomainService(string settingId, string domainName = "TestDomain")
     {
@@ -218,8 +237,9 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedSettingsForDomainAsync_SelectionSetting_NoPrimaryRegistry_UsesFallbackValue()
     {
-        // Arrange: Selection setting without primary registry (no RecommendedOption),
-        // so it falls through to the else branch using recommendedValue directly
+        // Arrange: Selection setting without a ComboBox.Options list, so
+        // GetRecommendedSelectionIndex returns null and the applier falls through
+        // to the else branch using recommendedValue directly.
         const string callerId = "caller-fallback";
         const string targetId = "selection-fallback";
         SetupDomainService(callerId);
@@ -239,6 +259,7 @@ public class RecommendedSettingsApplierTests
                     ValueType = RegistryValueKind.DWord,
                     IsPrimary = false,
                     RecommendedValue = 42,
+                    DefaultValue = null
                 }
             }
         };
@@ -254,7 +275,7 @@ public class RecommendedSettingsApplierTests
         // Act
         await _applier.ApplyRecommendedSettingsForDomainAsync(callerId, _mockAppService.Object);
 
-        // Assert: Falls through to the else branch since GetRecommendedOptionFromSetting returns null
+        // Assert: Falls through to the else branch since GetRecommendedSelectionIndex returns null
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == targetId &&
             r.Enable == true &&
@@ -393,6 +414,7 @@ public class RecommendedSettingsApplierTests
                     ValueName = "NumericVal",
                     ValueType = RegistryValueKind.DWord,
                     RecommendedValue = 75,
+                    DefaultValue = null
                 }
             }
         };

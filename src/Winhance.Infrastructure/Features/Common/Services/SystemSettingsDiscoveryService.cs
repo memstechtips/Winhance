@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Text;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -203,6 +205,25 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
+        var dnsSettings = settingsList
+            .Where(s => s.DetectionType == DetectionType.DnsServer)
+            .ToList();
+
+        foreach (var setting in dnsSettings)
+        {
+            try
+            {
+                var rawValues = new Dictionary<string, object?>();
+                rawValues["DetectedIndex"] = DetectDnsServerIndex(setting);
+                results[setting.Id] = rawValues;
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning,
+                    $"Exception detecting DNS state for '{setting.Id}': {ex.Message}");
+            }
+        }
+
         var settingsByDomain = settingsList
             .Where(s => s.InputType == InputType.Selection)
             .GroupBy(s => domainServiceRouter.GetDomainService(s.Id).DomainName);
@@ -314,9 +335,10 @@ public class SystemSettingsDiscoveryService(
             if (setting.DisableTooltip)
                 continue;
 
-            var tooltipData = BuildTooltipData(setting, batchRegistryValues);
+            var tooltipData = BuildTooltipData(setting, batchRegistryValues, stateResult.RawValues);
             if (tooltipData != null)
             {
+                tooltipData = tooltipData with { CurrentSettingState = stateResult.IsEnabled };
                 results[setting.Id] = stateResult with { TooltipData = tooltipData };
             }
         }
@@ -325,7 +347,7 @@ public class SystemSettingsDiscoveryService(
         return results;
     }
 
-    private SettingTooltipData? BuildTooltipData(SettingDefinition setting, Dictionary<string, object?> batchRegistryValues)
+    private SettingTooltipData? BuildTooltipData(SettingDefinition setting, Dictionary<string, object?> batchRegistryValues, IReadOnlyDictionary<string, object?>? settingRawValues)
     {
         bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
         bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
@@ -348,9 +370,9 @@ public class SystemSettingsDiscoveryService(
                 {
                     object? currentValue = null;
 
-                    if (rs.ApplyPerNetworkInterface)
+                    if (rs.ApplyPerNetworkInterface || rs.ApplyPerMonitor)
                     {
-                        // Network interface settings: read from first subkey
+                        // Per-interface/per-monitor settings: read from first subkey
                         var subKeys = registryService.GetSubKeyNames(rs.KeyPath);
                         if (subKeys.Length > 0)
                         {
@@ -376,13 +398,30 @@ public class SystemSettingsDiscoveryService(
                 displayValue = primaryDisplayValue ?? string.Empty;
             }
 
+            var currentPowerValues = new Dictionary<PowerCfgSetting, (int? AC, int? DC)>();
+            // settingRawValues holds ACValue/DCValue only for PowerCfgSettings[0] (see batch-read
+            // logic in GetRawSettingsValuesWithBatchAsync). Entries beyond index 0 would need a
+            // per-entry bulk lookup that is not plumbed to this scope yet — they are intentionally
+            // absent and will simply render with blank Current AC/DC in the UI until that work lands.
+            if (setting.PowerCfgSettings is { Count: > 0 } && settingRawValues is not null)
+            {
+                var ac = settingRawValues.TryGetValue("ACValue", out var acObj) && acObj is int acInt ? acInt : (int?)null;
+                var dc = settingRawValues.TryGetValue("DCValue", out var dcObj) && dcObj is int dcInt ? dcInt : (int?)null;
+                currentPowerValues[setting.PowerCfgSettings[0]] = (ac, dc);
+            }
+
             return new SettingTooltipData
             {
                 SettingId = setting.Id,
                 DisplayValue = displayValue,
                 IndividualRegistryValues = individualValues,
                 ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
-                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
+                PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>(),
+                PowerShellScripts = setting.PowerShellScripts?.ToList() ?? new List<PowerShellScriptSetting>(),
+                RegContents = setting.RegContents?.ToList() ?? new List<RegContentSetting>(),
+                Dependencies = setting.Dependencies?.ToList() ?? new List<SettingDependency>(),
+                CurrentPowerValues = currentPowerValues,
+                SettingDefinition = setting
             };
         }
         catch (Exception ex)
@@ -404,10 +443,10 @@ public class SystemSettingsDiscoveryService(
         {
             foreach (var registrySetting in setting.RegistrySettings)
             {
-                // ApplyPerNetworkInterface requires checking all sub-keys;
+                // ApplyPerNetworkInterface/ApplyPerMonitor requires checking all sub-keys;
                 // batch-read values only contain the parent key, so delegate
                 // to IsSettingApplied which handles sub-key expansion.
-                if (registrySetting.ApplyPerNetworkInterface)
+                if (registrySetting.ApplyPerNetworkInterface || registrySetting.ApplyPerMonitor)
                 {
                     if (registryService.IsSettingApplied(registrySetting))
                         return true;
@@ -419,15 +458,6 @@ public class SystemSettingsDiscoveryService(
                     continue;
 
                 bool valueExists = currentValue != null;
-
-                // Group policy enforcement-only keys (EnabledValue = [null]) are neutral
-                // when absent — they only matter when actively set. Skip them so they
-                // don't falsely report "enabled" when the policy key doesn't exist.
-                // Policy keys with real values in EnabledValue (e.g. [1, null]) are
-                // policy-only settings where absence is a meaningful "enabled" state.
-                if (registrySetting.IsGroupPolicy && !valueExists
-                    && registrySetting.EnabledValue is [null])
-                    continue;
 
                 if (registryService.IsRegistryValueInEnabledState(registrySetting, currentValue, valueExists))
                     return true;
@@ -450,6 +480,12 @@ public class SystemSettingsDiscoveryService(
             }
             return false;
         }
+        else if (setting.DetectionType == DetectionType.DnsServer)
+        {
+            if (rawValues.TryGetValue("DetectedIndex", out var detectedIdx) && detectedIdx is int idx)
+                return idx != 0; // 0 = Automatic/DHCP = default state
+            return false;
+        }
 
         return false;
     }
@@ -457,7 +493,12 @@ public class SystemSettingsDiscoveryService(
     // Need this private function as we can't inject IComboboxResolver here, it creates a circular dependency issue
     private int ResolveRawValuesToIndex(SettingDefinition setting, Dictionary<string, object?> rawValues)
     {
-        if (setting.ComboBox?.ValueMappings == null)
+        // Handle DetectedIndex from custom detection (e.g., DnsServer)
+        if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
+            return di;
+
+        var options = setting.ComboBox?.Options;
+        if (options == null || !options.Any(o => o.ValueMappings != null))
         {
             return 0;
         }
@@ -467,7 +508,6 @@ public class SystemSettingsDiscoveryService(
             return policyIndex is int index ? index : 0;
         }
 
-        var mappings = setting.ComboBox.ValueMappings;
         var currentValues = new Dictionary<string, object?>();
 
         if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
@@ -492,10 +532,10 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        foreach (var mapping in mappings)
+        for (int index = 0; index < options.Count; index++)
         {
-            var index = mapping.Key;
-            var expectedValues = mapping.Value;
+            var expectedValues = options[index].ValueMappings;
+            if (expectedValues == null) continue;
 
             bool allMatch = true;
             foreach (var expectedValue in expectedValues)
@@ -529,4 +569,44 @@ public class SystemSettingsDiscoveryService(
 
     private static bool ValuesAreEqual(object? value1, object? value2)
         => Utilities.ValueComparer.ValuesAreEqual(value1, value2);
+
+    private int DetectDnsServerIndex(SettingDefinition setting)
+    {
+        var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
+            .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
+                && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+
+        if (activeAdapter == null)
+            return 0;
+
+        // Check if DNS is configured manually by reading the NameServer registry value.
+        // When DNS is obtained via DHCP, NameServer is empty.
+        var adapterId = activeAdapter.Id;
+        var nameServer = registryService.GetValue(
+            $@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{adapterId}",
+            "NameServer") as string;
+
+        if (string.IsNullOrEmpty(nameServer))
+            return 0; // DHCP — return "Automatic" index
+
+        var primaryDns = activeAdapter.GetIPProperties().DnsAddresses
+            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
+            .ToString();
+
+        var dnsOptions = setting.ComboBox?.Options;
+        if (string.IsNullOrEmpty(primaryDns) || dnsOptions == null)
+            return 0;
+
+        for (int i = 0; i < dnsOptions.Count; i++)
+        {
+            if (dnsOptions[i].ScriptVariables is { } variables
+                && variables.TryGetValue("primary", out var primary)
+                && primary == primaryDns)
+            {
+                return i;
+            }
+        }
+
+        return ComboBoxConstants.CustomStateIndex;
+    }
 }

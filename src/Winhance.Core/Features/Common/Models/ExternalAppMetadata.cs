@@ -3,7 +3,7 @@ namespace Winhance.Core.Features.Common.Models;
 /// <summary>
 /// Typed metadata for external application download definitions.
 /// </summary>
-public record ExternalAppMetadata
+public sealed record ExternalAppMetadata
 {
     public string? DownloadUrl { get; init; }
     public string? FallbackDownloadUrl { get; init; }

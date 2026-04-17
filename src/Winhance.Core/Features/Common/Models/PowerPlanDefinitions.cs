@@ -2,9 +2,9 @@ using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Core.Features.Common.Models;
 
-public record PredefinedPowerPlan(string Name, string Description, string LocalizationKey, string Guid);
+public sealed record PredefinedPowerPlan(string Name, string Description, string LocalizationKey, string Guid);
 
-public record PowerPlanComboBoxOption
+public sealed record PowerPlanComboBoxOption
 {
     public string DisplayName { get; init; } = string.Empty;
     public PredefinedPowerPlan? PredefinedPlan { get; init; }
@@ -14,9 +14,9 @@ public record PowerPlanComboBoxOption
     public int Index { get; init; }
 }
 
-public record PowerPlanImportResult(bool Success, string ImportedGuid, string ErrorMessage = "");
+public sealed record PowerPlanImportResult(bool Success, string ImportedGuid, string ErrorMessage = "");
 
-public record PowerPlanResolutionResult
+public sealed record PowerPlanResolutionResult
 {
     public bool Success { get; init; }
     public string Guid { get; init; } = string.Empty;

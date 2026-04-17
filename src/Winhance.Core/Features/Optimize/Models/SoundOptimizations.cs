@@ -18,6 +18,7 @@ public static class SoundOptimizations
                 new SettingDefinition
                 {
                     Id = "sound-startup",
+                    IsSubjectivePreference = true,
                     Name = "Startup Sound During Boot",
                     Description = "Play the Windows startup sound when your computer boots up",
                     GroupName = "System Sounds",
@@ -32,6 +33,7 @@ public static class SoundOptimizations
                             RecommendedValue = 1, // For backward compatibility
                             EnabledValue = [0, null], // When toggle is ON, startup sound is enabled
                             DisabledValue = [1], // When toggle is OFF, startup sound is disabled
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -41,6 +43,7 @@ public static class SoundOptimizations
                             RecommendedValue = 1, // For backward compatibility
                             EnabledValue = [0, null], // When toggle is ON, user startup sound is enabled
                             DisabledValue = [1], // When toggle is OFF, user startup sound is disabled
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -48,6 +51,7 @@ public static class SoundOptimizations
                 new SettingDefinition
                 {
                     Id = "sound-communication-ducking",
+                    IsSubjectivePreference = true,
                     Name = "Sound Ducking Preference",
                     Description = "Automatically lower volume of media and apps when Windows detects communication activity",
                     GroupName = "System Sounds",
@@ -59,37 +63,36 @@ public static class SoundOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Multimedia\Audio",
                             ValueName = "UserDuckingPreference",
-                            RecommendedValue = 3, // Do Nothing
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            RecommendedValue = null,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
                     {
-                        DisplayNames = new string[]
+                        Options = new[]
                         {
-                            "Mute all other sounds",
-                            "Reduce the volume of other sounds by 80%",
-                            "Reduce the volume of other sounds by 50%",
-                            "Do nothing",
-                        },
-                        ValueMappings = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["UserDuckingPreference"] = 0,
+                                DisplayName = "Mute all other sounds",
+                                ValueMappings = new Dictionary<string, object?> { ["UserDuckingPreference"] = 0 },
                             },
-                            [1] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["UserDuckingPreference"] = 1,
+                                DisplayName = "Reduce the volume of other sounds by 80%",
+                                ValueMappings = new Dictionary<string, object?> { ["UserDuckingPreference"] = 1 },
+                                IsDefault = true,
                             },
-                            [2] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["UserDuckingPreference"] = 2,
+                                DisplayName = "Reduce the volume of other sounds by 50%",
+                                ValueMappings = new Dictionary<string, object?> { ["UserDuckingPreference"] = 2 },
                             },
-                            [3] = new Dictionary<string, object?>
+                            new ComboBoxOption
                             {
-                                ["UserDuckingPreference"] = 3,
+                                DisplayName = "Do nothing",
+                                ValueMappings = new Dictionary<string, object?> { ["UserDuckingPreference"] = 3 },
+                                IsRecommended = true,
                             },
                         },
                     },
@@ -111,6 +114,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -132,6 +136,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -153,6 +158,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0, // For backward compatibility
                             EnabledValue = [1, null], // When toggle is ON, last used voice activation is enabled
                             DisabledValue = [0], // When toggle is OFF, last used voice activation is disabled
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -174,6 +180,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -196,6 +203,7 @@ public static class SoundOptimizations
                             RecommendedValue = 0,
                             EnabledValue = [1, null],
                             DisabledValue = [0],
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

@@ -209,6 +209,12 @@ public class ConfigExportServiceTests
         _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockExternalAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
 
+        // Empty items triggers a "no apps selected" confirmation dialog before
+        // the window check — allow it to proceed so we reach the null window path.
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
         _mockMainWindowProvider
             .Setup(p => p.MainWindow)
             .Returns((Microsoft.UI.Xaml.Window?)null);

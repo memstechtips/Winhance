@@ -15,13 +15,10 @@ public class StartupOrchestratorTests
     private readonly Mock<IGlobalSettingsPreloader> _settingsPreloader = new();
     private readonly Mock<IUserPreferencesService> _preferencesService = new();
     private readonly Mock<IConfigurationService> _configurationService = new();
-    private readonly Mock<ISystemBackupService> _backupService = new();
     private readonly Mock<IScriptMigrationService> _migrationService = new();
     private readonly Mock<IRemovalScriptUpdateService> _updateService = new();
+    private readonly Mock<INewBadgeService> _newBadgeService = new();
     private readonly Mock<ILogService> _logService = new();
-
-    // TooltipRefreshEventHandler is a concrete class. We need to figure out its constructor.
-    // For now, use a real instance or mock if possible.
 
     public StartupOrchestratorTests()
     {
@@ -29,25 +26,19 @@ public class StartupOrchestratorTests
         _preferencesService.Setup(p => p.GetPreference(
             UserPreferenceKeys.InitialConfigBackupCompleted, false))
             .Returns(true);
-        _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
-            .Returns(true);
     }
 
     private StartupOrchestrator CreateSut(TooltipRefreshEventHandler? tooltipHandler = null)
     {
-        // TooltipRefreshEventHandler requires dependencies. We'll create a mock-like
-        // instance; since the orchestrator only accesses it by referencing the instance
-        // (to ensure construction), we use null-forgiving for tests.
         return new StartupOrchestrator(
             _settingsRegistry.Object,
             _settingsPreloader.Object,
             tooltipHandler!,
             _preferencesService.Object,
             _configurationService.Object,
-            _backupService.Object,
             _migrationService.Object,
             _updateService.Object,
+            _newBadgeService.Object,
             _logService.Object);
     }
 
@@ -171,66 +162,41 @@ public class StartupOrchestratorTests
             s.Contains("User backup config failed"))), Times.Once);
     }
 
-    // --- Phase 3: System restore point ---
+    // --- IsFirstLaunch ---
 
     [Fact]
-    public async Task RunStartupSequenceAsync_WhenSkipBackupTrue_SkipsSystemBackup()
+    public async Task RunStartupSequenceAsync_WhenBackupAlreadyCompleted_IsFirstLaunchIsFalse()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
             .Returns(true);
 
         var sut = CreateSut();
         var (statusProgress, detailedProgress, _) = CreateProgressTracking();
 
-        await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
+        var result = await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
 
-        _backupService.Verify(b => b.EnsureInitialBackupsAsync(
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        result.IsFirstLaunch.Should().BeFalse();
     }
 
     [Fact]
-    public async Task RunStartupSequenceAsync_WhenSkipBackupFalse_RunsSystemBackup()
+    public async Task RunStartupSequenceAsync_WhenBackupNotCompletedAndSucceeds_IsFirstLaunchIsTrue()
     {
         _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
             .Returns(false);
-        var backupResult = new BackupResult { Success = true };
-        _backupService.Setup(b => b.EnsureInitialBackupsAsync(
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(backupResult);
+        _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
+            .Returns(Task.CompletedTask);
 
         var sut = CreateSut();
         var (statusProgress, detailedProgress, _) = CreateProgressTracking();
 
         var result = await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
 
-        _backupService.Verify(b => b.EnsureInitialBackupsAsync(
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
-        result.BackupResult.Should().BeSameAs(backupResult);
+        result.IsFirstLaunch.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task RunStartupSequenceAsync_Phase3Failure_ContinuesToPhase4()
-    {
-        _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
-            .Returns(false);
-        _backupService.Setup(b => b.EnsureInitialBackupsAsync(
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Backup failed"));
-
-        var sut = CreateSut();
-        var (statusProgress, detailedProgress, _) = CreateProgressTracking();
-
-        var result = await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
-
-        result.Should().NotBeNull();
-        _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
-            s.Contains("System backup failed"))), Times.Once);
-    }
-
-    // --- Phase 4: Script migration ---
+    // --- Phase 3: Script migration ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_RunsScriptMigration()
@@ -244,7 +210,7 @@ public class StartupOrchestratorTests
     }
 
     [Fact]
-    public async Task RunStartupSequenceAsync_Phase4Failure_ContinuesToPhase5()
+    public async Task RunStartupSequenceAsync_Phase3Failure_ContinuesToPhase4()
     {
         _migrationService.Setup(m => m.MigrateFromOldPathsAsync())
             .ThrowsAsync(new InvalidOperationException("Migration failed"));
@@ -259,7 +225,7 @@ public class StartupOrchestratorTests
             s.Contains("Script migration failed"))), Times.Once);
     }
 
-    // --- Phase 5: Script updates ---
+    // --- Phase 4: Script updates ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_ChecksForScriptUpdates()
@@ -273,7 +239,7 @@ public class StartupOrchestratorTests
     }
 
     [Fact]
-    public async Task RunStartupSequenceAsync_Phase5Failure_StillReturnsResult()
+    public async Task RunStartupSequenceAsync_Phase4Failure_StillReturnsResult()
     {
         _updateService.Setup(u => u.CheckAndUpdateScriptsAsync())
             .ThrowsAsync(new InvalidOperationException("Update check failed"));
@@ -302,21 +268,6 @@ public class StartupOrchestratorTests
         result.Should().BeOfType<StartupResult>();
     }
 
-    [Fact]
-    public async Task RunStartupSequenceAsync_WhenBackupSkipped_ReturnsNullBackupResult()
-    {
-        _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
-            .Returns(true);
-
-        var sut = CreateSut();
-        var (statusProgress, detailedProgress, _) = CreateProgressTracking();
-
-        var result = await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
-
-        result.BackupResult.Should().BeNull();
-    }
-
     // --- Full sequence execution ---
 
     [Fact]
@@ -324,9 +275,6 @@ public class StartupOrchestratorTests
     {
         _preferencesService.Setup(p => p.GetPreference(
             UserPreferenceKeys.InitialConfigBackupCompleted, false))
-            .Returns(true);
-        _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
             .Returns(true);
 
         var callOrder = new List<string>();
@@ -337,10 +285,10 @@ public class StartupOrchestratorTests
             .Callback(() => callOrder.Add("Phase1_Preload"))
             .Returns(Task.CompletedTask);
         _migrationService.Setup(m => m.MigrateFromOldPathsAsync())
-            .Callback(() => callOrder.Add("Phase4_Migration"))
+            .Callback(() => callOrder.Add("Phase3_Migration"))
             .ReturnsAsync(new ScriptMigrationResult());
         _updateService.Setup(u => u.CheckAndUpdateScriptsAsync())
-            .Callback(() => callOrder.Add("Phase5_Update"))
+            .Callback(() => callOrder.Add("Phase4_Update"))
             .Returns(Task.CompletedTask);
 
         var sut = CreateSut();
@@ -351,8 +299,8 @@ public class StartupOrchestratorTests
         callOrder.Should().ContainInOrder(
             "Phase1_Registry",
             "Phase1_Preload",
-            "Phase4_Migration",
-            "Phase5_Update");
+            "Phase3_Migration",
+            "Phase4_Update");
     }
 
     // --- Resilience: All phases fail gracefully ---
@@ -367,16 +315,10 @@ public class StartupOrchestratorTests
             .Returns(false);
         _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
             .ThrowsAsync(new Exception("Phase 2 fail"));
-        _preferencesService.Setup(p => p.GetPreference(
-            UserPreferenceKeys.SkipSystemBackup, false))
-            .Returns(false);
-        _backupService.Setup(b => b.EnsureInitialBackupsAsync(
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Phase 3 fail"));
         _migrationService.Setup(m => m.MigrateFromOldPathsAsync())
-            .ThrowsAsync(new Exception("Phase 4 fail"));
+            .ThrowsAsync(new Exception("Phase 3 fail"));
         _updateService.Setup(u => u.CheckAndUpdateScriptsAsync())
-            .ThrowsAsync(new Exception("Phase 5 fail"));
+            .ThrowsAsync(new Exception("Phase 4 fail"));
 
         var sut = CreateSut();
         var (statusProgress, detailedProgress, _) = CreateProgressTracking();

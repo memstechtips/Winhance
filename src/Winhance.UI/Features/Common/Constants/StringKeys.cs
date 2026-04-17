@@ -73,6 +73,9 @@ public static class StringKeys
         public const string ThemeDescription = "Tooltip_ToggleTheme";
         public const string BackupRestoreTitle = "Settings_BackupRestore_Title";
         public const string BackupRestoreDescription = "Settings_BackupRestore_Description";
+        public const string SystemProtectionTitle = "Settings_SystemProtection_Title";
+        public const string SystemProtectionDescription = "Settings_SystemProtection_Description";
+        public const string CreateRestorePointButton = "Settings_CreateRestorePoint_Button";
     }
 
     /// <summary>
@@ -82,6 +85,7 @@ public static class StringKeys
     {
         public const string General = "Category_General";
         public const string Configuration = "Category_Configuration";
+        public const string SystemProtection = "Category_SystemProtection";
     }
 
     /// <summary>
@@ -92,6 +96,65 @@ public static class StringKeys
         public const string System = "Theme_System";
         public const string LightNative = "Theme_LightNative";
         public const string DarkNative = "Theme_DarkNative";
+    }
+
+    /// <summary>
+    /// View menu strings
+    /// </summary>
+    public static class View
+    {
+        public const string Menu = "View_Menu";
+        public const string TechnicalDetails = "View_TechnicalDetails";
+        public const string InfoBadges = "View_InfoBadges";
+        public const string NewBadges = "View_NewBadges";
+        public const string NewBadgesTooltip = "View_NewBadges_Tooltip";
+        public const string ShowOnlyChanges = "View_ShowOnlyChanges";
+        public const string ShowOnlyChangesTooltip = "View_ShowOnlyChanges_Tooltip";
+    }
+
+    /// <summary>
+    /// Quick Actions menu strings
+    /// </summary>
+    public static class QuickActions
+    {
+        public const string Menu = "QuickActions_Menu";
+        public const string ApplyRecommended = "QuickActions_ApplyRecommended";
+        public const string ResetDefaults = "QuickActions_ResetDefaults";
+        public const string ConfirmTitle = "QuickActions_ConfirmTitle";
+        public const string ConfirmMessage = "QuickActions_ConfirmMessage";
+        public const string SuccessMessage = "QuickActions_SuccessMessage";
+        public const string AcceptAll = "QuickActions_AcceptAll";
+        public const string RejectAll = "QuickActions_RejectAll";
+        public const string AcceptConfirmMessage = "QuickActions_AcceptConfirmMessage";
+        public const string RejectConfirmMessage = "QuickActions_RejectConfirmMessage";
+    }
+
+    /// <summary>
+    /// Navigation strings
+    /// </summary>
+    public static class Nav
+    {
+        public const string AdvancedToolsLockedTooltip = "Nav_AdvancedTools_Locked_Tooltip";
+    }
+
+    /// <summary>
+    /// InfoBadge strings
+    /// </summary>
+    public static class InfoBadge
+    {
+        public const string Recommended = "InfoBadge_Recommended";
+        public const string Default = "InfoBadge_Default";
+        public const string Custom = "InfoBadge_Custom";
+        public const string Preference = "InfoBadge_Preference";
+        public const string RecommendedTooltip = "InfoBadge_Recommended_Tooltip";
+        public const string DefaultTooltip = "InfoBadge_Default_Tooltip";
+        public const string CustomTooltip = "InfoBadge_Custom_Tooltip";
+        public const string PreferenceTooltip = "InfoBadge_Preference_Tooltip";
+
+        // NumericRange quick-set button tooltips (use "{0}" literal placeholder
+        // that is Replace()'d with the target value at runtime).
+        public const string NumericSetToRecommendedTooltip = "InfoBadge_Numeric_SetToRecommended_Tooltip";
+        public const string NumericSetToDefaultTooltip = "InfoBadge_Numeric_SetToDefault_Tooltip";
     }
 
     /// <summary>

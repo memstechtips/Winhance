@@ -7,7 +7,12 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface ISystemBackupService
 {
-    Task<BackupResult> EnsureInitialBackupsAsync(
+    /// <summary>
+    /// Creates a system restore point with the given name.
+    /// Enables System Restore first if it is currently disabled.
+    /// </summary>
+    Task<BackupResult> CreateRestorePointAsync(
+        string? name = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
 }

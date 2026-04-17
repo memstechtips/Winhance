@@ -1,16 +1,23 @@
 using System.ComponentModel;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using ILogService = Winhance.Core.Features.Common.Interfaces.ILogService;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
+using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
 using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
+using IBulkSettingsActionService = Winhance.Core.Features.Common.Interfaces.IBulkSettingsActionService;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.Pages;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -46,8 +53,14 @@ public sealed partial class OptimizePage : Page
     private IConfigReviewService? _configReviewService;
     private IUserPreferencesService? _userPreferencesService;
     private ILocalizationService? _localizationService;
+    private IBulkSettingsActionService? _bulkSettingsActionService;
     private Dictionary<string, InfoBadge>? _flyoutBadges;
+    private ISubscriptionToken? _settingAppliedSubscription;
+    private ISubscriptionToken? _settingsRefreshedSubscription;
     private bool _isTechnicalDetailsVisible;
+    private bool _isInfoBadgesVisible = true;
+    private bool _isNewBadgesVisible = true;
+    private bool _showOnlyChanges;
 
     public OptimizeViewModel ViewModel { get; }
 
@@ -81,6 +94,7 @@ public sealed partial class OptimizePage : Page
 
             _userPreferencesService = App.Services.GetService<IUserPreferencesService>();
             _localizationService = App.Services.GetService<ILocalizationService>();
+            _bulkSettingsActionService = App.Services.GetService<IBulkSettingsActionService>();
 
             StartupLogger.Log("OptimizePage", "ViewModel obtained, constructor complete");
         }
@@ -133,6 +147,20 @@ public sealed partial class OptimizePage : Page
                 _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
                 _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
             }
+            var eventBus = App.Services.GetService<IEventBus>();
+            if (eventBus != null)
+            {
+                _settingAppliedSubscription?.Dispose();
+                _settingAppliedSubscription = eventBus.Subscribe<SettingAppliedEvent>(e =>
+                {
+                    DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadgePills(); UpdateOverviewNewBadges(); });
+                });
+                _settingsRefreshedSubscription?.Dispose();
+                _settingsRefreshedSubscription = eventBus.Subscribe<SettingsRefreshedEvent>(e =>
+                {
+                    DispatcherQueue.TryEnqueue(() => SyncViewStateToSettings());
+                });
+            }
             UpdateBreadcrumbMenuItems();
 
             // Ensure we're showing overview on initial navigation
@@ -142,12 +170,27 @@ public sealed partial class OptimizePage : Page
             StartupLogger.Log("OptimizePage", "Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
 
+            // Set localized labels for dropdown menus
+            SetDropdownLabels();
+
             // Initialize technical details toggle state
             await InitializeTechnicalDetailsToggleAsync();
+
+            // Initialize info badges toggle state
+            await InitializeInfoBadgesAsync();
+
+            // Initialize NEW badges toggle state
+            await InitializeNewBadgesAsync();
 
             // Always update badges: shows them if in review mode, collapses them if not
             UpdateOverviewBadges();
             UpdateBreadcrumbBadges();
+            UpdateOverviewBadgePills();
+            UpdateOverviewNewBadges();
+
+            // Re-apply Show Only Changes filter if still active from before navigation
+            if (_showOnlyChanges)
+                ApplyShowOnlyChangesFilter();
 
             StartupLogger.Log("OptimizePage", "OnNavigatedTo complete");
         }
@@ -166,6 +209,10 @@ public sealed partial class OptimizePage : Page
             _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
             _configReviewService.BadgeStateChanged -= OnBadgeStateChanged;
         }
+        _settingAppliedSubscription?.Dispose();
+        _settingAppliedSubscription = null;
+        _settingsRefreshedSubscription?.Dispose();
+        _settingsRefreshedSubscription = null;
         ViewModel.OnNavigatedFrom();
     }
 
@@ -227,6 +274,11 @@ public sealed partial class OptimizePage : Page
         };
 
         UpdateContentVisibility();
+
+        // Cascade the "Show Only Changes" filter to the newly navigated sub-page
+        // so it doesn't need a toggle off/on to re-apply.
+        if (_showOnlyChanges)
+            ApplyShowOnlyChangesFilter();
     }
 
     private void UpdateContentVisibility()
@@ -349,7 +401,12 @@ public sealed partial class OptimizePage : Page
     // Review mode badge handlers
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadges(); UpdateBreadcrumbBadges(); });
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            UpdateOverviewBadges();
+            UpdateBreadcrumbBadges();
+            UpdateQuickActionsForReviewMode();
+        });
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e)
@@ -376,6 +433,127 @@ public sealed partial class OptimizePage : Page
         UpdateFeatureBadge(UpdateBadge, FeatureIds.Update);
         UpdateFeatureBadge(NotificationBadge, FeatureIds.Notifications);
         UpdateFeatureBadge(SoundBadge, FeatureIds.Sound);
+    }
+
+    private void UpdateOverviewBadgePills()
+    {
+        UpdateFeatureOverviewPills(
+            ViewModel.PrivacyViewModel,
+            PrivacyOverviewBadges,
+            PrivacyRecommendedPill, PrivacyRecommendedText,
+            PrivacyDefaultPill, PrivacyDefaultText,
+            PrivacyCustomPill, PrivacyCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.PowerViewModel,
+            PowerOverviewBadges,
+            PowerRecommendedPill, PowerRecommendedText,
+            PowerDefaultPill, PowerDefaultText,
+            PowerCustomPill, PowerCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.GamingViewModel,
+            GamingOverviewBadges,
+            GamingRecommendedPill, GamingRecommendedText,
+            GamingDefaultPill, GamingDefaultText,
+            GamingCustomPill, GamingCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.UpdateViewModel,
+            UpdateOverviewPills,
+            UpdateRecommendedPill, UpdateRecommendedText,
+            UpdateDefaultPill, UpdateDefaultText,
+            UpdateCustomPill, UpdateCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.NotificationViewModel,
+            NotificationOverviewBadges,
+            NotificationRecommendedPill, NotificationRecommendedText,
+            NotificationDefaultPill, NotificationDefaultText,
+            NotificationCustomPill, NotificationCustomText);
+        UpdateFeatureOverviewPills(
+            ViewModel.SoundViewModel,
+            SoundOverviewBadges,
+            SoundRecommendedPill, SoundRecommendedText,
+            SoundDefaultPill, SoundDefaultText,
+            SoundCustomPill, SoundCustomText);
+    }
+
+    private void UpdateOverviewNewBadges()
+    {
+        UpdateFeatureNewBadge(ViewModel.PrivacyViewModel, PrivacyNewBadge, PrivacyNewText);
+        UpdateFeatureNewBadge(ViewModel.PowerViewModel, PowerNewBadge, PowerNewText);
+        UpdateFeatureNewBadge(ViewModel.GamingViewModel, GamingNewBadge, GamingNewText);
+        UpdateFeatureNewBadge(ViewModel.UpdateViewModel, UpdateNewBadge, UpdateNewText);
+        UpdateFeatureNewBadge(ViewModel.NotificationViewModel, NotificationNewBadge, NotificationNewText);
+        UpdateFeatureNewBadge(ViewModel.SoundViewModel, SoundNewBadge, SoundNewText);
+    }
+
+    private void UpdateFeatureNewBadge(
+        ISettingsFeatureViewModel feature,
+        Border badge, TextBlock text)
+    {
+        if (!_isNewBadgesVisible)
+        {
+            badge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var summary = FeatureBadgeAggregator.Aggregate(feature);
+        if (summary.NewCount > 0)
+        {
+            badge.Visibility = Visibility.Visible;
+            text.Text = $"{_localizationService?.GetString("Badge_New") ?? "NEW"} {summary.NewCount}";
+        }
+        else
+        {
+            badge.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void UpdateFeatureOverviewPills(
+        ISettingsFeatureViewModel feature,
+        StackPanel container,
+        Border recommendedPill, TextBlock recommendedText,
+        Border defaultPill, TextBlock defaultText,
+        Border customPill, TextBlock customText)
+    {
+        if (!_isInfoBadgesVisible)
+        {
+            container.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var summary = FeatureBadgeAggregator.Aggregate(feature);
+        int total = summary.TotalWithBadgeData;
+        bool showAny = false;
+
+        // InfoBadge pills
+        if (_isInfoBadgesVisible && total > 0)
+        {
+            showAny = true;
+            recommendedPill.Visibility = Visibility.Visible;
+            recommendedText.Text = $"{_localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended"} {summary.RecommendedCount}/{total}";
+            recommendedPill.Opacity = summary.RecommendedCount > 0 ? 1.0 : 0.4;
+
+            defaultPill.Visibility = Visibility.Visible;
+            defaultText.Text = $"{_localizationService?.GetString("InfoBadge_Default") ?? "Default"} {summary.DefaultCount}/{total}";
+            defaultPill.Opacity = summary.DefaultCount > 0 ? 1.0 : 0.4;
+
+            if (summary.CustomCount > 0)
+            {
+                customPill.Visibility = Visibility.Visible;
+                customText.Text = $"{_localizationService?.GetString("InfoBadge_Custom") ?? "Custom"} {summary.CustomCount}/{total}";
+            }
+            else
+            {
+                customPill.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            recommendedPill.Visibility = Visibility.Collapsed;
+            defaultPill.Visibility = Visibility.Collapsed;
+            customPill.Visibility = Visibility.Collapsed;
+        }
+
+        container.Visibility = showAny ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void UpdateBreadcrumbBadges()
@@ -448,6 +626,24 @@ public sealed partial class OptimizePage : Page
         }
     }
 
+    // Dropdown menu labels
+    private void SetDropdownLabels()
+    {
+        QuickActionsLabel.Text = _localizationService?.GetString("QuickActions_Menu") ?? "Quick Actions";
+        ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_ApplyRecommended") ?? "Apply Recommended Settings";
+        ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_ResetDefaults") ?? "Reset to Windows Defaults";
+        ViewMenuLabel.Text = _localizationService?.GetString("View_Menu") ?? "View";
+        TechnicalDetailsToggleItem.Text = _localizationService?.GetString("View_TechnicalDetails") ?? "Technical Details";
+        ToolTipService.SetToolTip(TechnicalDetailsToggleItem, _localizationService?.GetString("View_TechnicalDetails_Tooltip") ?? "Show or hide technical details for each setting");
+        InfoBadgesToggleItem.Text = _localizationService?.GetString("View_InfoBadges") ?? "InfoBadges";
+        ToolTipService.SetToolTip(InfoBadgesToggleItem, _localizationService?.GetString("View_InfoBadges_Tooltip") ?? "Show or hide status badges on settings cards");
+        NewBadgesToggleItem.Text = _localizationService?.GetString("View_NewBadges") ?? "NEW Badges";
+        ToolTipService.SetToolTip(NewBadgesToggleItem, _localizationService?.GetString("View_NewBadges_Tooltip") ?? "Show or hide NEW badges on settings added in this release");
+        ShowOnlyChangesToggleItem.Text = _localizationService?.GetString("View_ShowOnlyChanges") ?? "Show Only Changes";
+        ToolTipService.SetToolTip(ShowOnlyChangesToggleItem, _localizationService?.GetString("View_ShowOnlyChanges_Tooltip") ?? "Show only settings with pending changes from the imported config");
+        UpdateQuickActionsForReviewMode();
+    }
+
     // Technical Details toggle
     private async Task InitializeTechnicalDetailsToggleAsync()
     {
@@ -468,12 +664,79 @@ public sealed partial class OptimizePage : Page
             }
         }
 
-        UpdateTechnicalDetailsToggleVisual();
+        TechnicalDetailsToggleItem.IsChecked = _isTechnicalDetailsVisible;
     }
 
-    private async void TechnicalDetailsToggle_Click(object sender, RoutedEventArgs e)
+    private async Task InitializeInfoBadgesAsync()
     {
-        _isTechnicalDetailsVisible = !_isTechnicalDetailsVisible;
+        if (_userPreferencesService != null)
+        {
+            _isInfoBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.ShowInfoBadges, true);
+        }
+
+        // Sync all settings
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsInfoBadgeGloballyVisible = _isInfoBadgesVisible;
+            }
+        }
+
+        InfoBadgesToggleItem.IsChecked = _isInfoBadgesVisible;
+    }
+
+    private async Task InitializeNewBadgesAsync()
+    {
+        if (_userPreferencesService != null)
+        {
+            _isNewBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.ShowNewBadges, true);
+        }
+
+        // Sync all settings
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsNewBadgeGloballyVisible = _isNewBadgesVisible;
+            }
+        }
+
+        NewBadgesToggleItem.IsChecked = _isNewBadgesVisible;
+    }
+
+    /// <summary>
+    /// Re-applies page-level view state (badge visibility, technical details)
+    /// to all settings after they have been recreated by a reload.
+    /// </summary>
+    private void SyncViewStateToSettings()
+    {
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsInfoBadgeGloballyVisible = _isInfoBadgesVisible;
+                setting.IsNewBadgeGloballyVisible = _isNewBadgesVisible;
+                setting.IsTechnicalDetailsGloballyVisible = _isTechnicalDetailsVisible;
+            }
+        }
+
+        UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
+    }
+
+    // View menu handlers
+    private async void ViewTechnicalDetails_Click(object sender, RoutedEventArgs e)
+    {
+        _isTechnicalDetailsVisible = TechnicalDetailsToggleItem.IsChecked;
 
         // Update all settings across all sections
         foreach (var section in OptimizeViewModel.Sections)
@@ -486,9 +749,6 @@ public sealed partial class OptimizePage : Page
             }
         }
 
-        UpdateTechnicalDetailsToggleVisual();
-
-        // Persist preference
         if (_userPreferencesService != null)
         {
             await _userPreferencesService.SetPreferenceAsync(
@@ -496,47 +756,262 @@ public sealed partial class OptimizePage : Page
         }
     }
 
-    private void UpdateTechnicalDetailsToggleVisual()
+    private async void ViewInfoBadges_Click(object sender, RoutedEventArgs e)
     {
-        try
+        _isInfoBadgesVisible = InfoBadgesToggleItem.IsChecked;
+
+        foreach (var section in OptimizeViewModel.Sections)
         {
-            var resourceKey = _isTechnicalDetailsVisible ? "InformationIconPath" : "InformationOffIconPath";
-            if (Application.Current.Resources.TryGetValue(resourceKey, out var pathData) && pathData is string iconData)
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
             {
-                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
-                TechnicalDetailsIcon.Data = geometry;
+                setting.IsInfoBadgeGloballyVisible = _isInfoBadgesVisible;
             }
-
-            if (_isTechnicalDetailsVisible)
-            {
-                TechnicalDetailsToggleBorder.BorderBrush =
-                    (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(2);
-            }
-            else
-            {
-                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(0);
-                TechnicalDetailsToggleBorder.BorderBrush = null;
-            }
-
-            var tooltip = _localizationService?.GetString("TechnicalDetails_ToggleTooltip") ?? "Toggle Technical Details";
-            ToolTipService.SetToolTip(TechnicalDetailsToggle, tooltip);
-            AutomationProperties.SetName(TechnicalDetailsToggle, tooltip);
-
-            // Announce state change to Narrator
-            var stateText = _isTechnicalDetailsVisible
-                ? _localizationService?.GetString("TechnicalDetails_On") ?? "Technical Details: On"
-                : _localizationService?.GetString("TechnicalDetails_Off") ?? "Technical Details: Off";
-            var peer = FrameworkElementAutomationPeer.FromElement(TechnicalDetailsToggle)
-                       ?? FrameworkElementAutomationPeer.CreatePeerForElement(TechnicalDetailsToggle);
-            peer?.RaiseNotificationEvent(
-                AutomationNotificationKind.ActionCompleted,
-                AutomationNotificationProcessing.ImportantMostRecent,
-                stateText,
-                "TechnicalDetailsToggle");
         }
-        catch (Exception ex) { App.Services.GetService<ILogService>()?.LogDebug($"Failed to update technical details toggle visual: {ex.Message}"); }
+
+        if (_userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.ShowInfoBadges, _isInfoBadgesVisible);
+        }
+
+        UpdateOverviewBadgePills();
+    }
+
+    private async void ViewNewBadges_Click(object sender, RoutedEventArgs e)
+    {
+        _isNewBadgesVisible = NewBadgesToggleItem.IsChecked;
+
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsNewBadgeGloballyVisible = _isNewBadgesVisible;
+            }
+        }
+
+        if (_userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.ShowNewBadges, _isNewBadgesVisible);
+        }
+
+        UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
+    }
+
+    // Show Only Changes filter (review mode)
+    private void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
+    {
+        _showOnlyChanges = ShowOnlyChangesToggleItem.IsChecked;
+        ApplyShowOnlyChangesFilter();
+    }
+
+    private void ApplyShowOnlyChangesFilter()
+    {
+        var sectionsToFilter = ViewModel.IsInDetailPage
+            ? OptimizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : OptimizeViewModel.Sections;
+
+        foreach (var section in sectionsToFilter)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                if (_showOnlyChanges)
+                {
+                    setting.IsVisible = setting.HasReviewDiff || setting.HasReviewAction;
+                }
+                else
+                {
+                    setting.UpdateVisibility(ViewModel.SearchText ?? string.Empty);
+                }
+            }
+        }
+    }
+
+    // Quick Actions handlers
+    private async void ApplyRecommended_Click(object sender, RoutedEventArgs e)
+    {
+        if (_configReviewService?.IsInReviewMode == true)
+            await ExecuteReviewBulkActionAsync(approved: true);
+        else
+            await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
+    }
+
+    private async void ResetDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        if (_configReviewService?.IsInReviewMode == true)
+            await ExecuteReviewBulkActionAsync(approved: false);
+        else
+            await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
+    }
+
+    private async Task ExecuteBulkActionAsync(BulkActionType actionType)
+    {
+        if (_bulkSettingsActionService == null) return;
+
+        var settingIds = GetCurrentPageSettingIds();
+
+        var count = await _bulkSettingsActionService.GetAffectedCountAsync(settingIds, actionType);
+        if (count == 0) return;
+
+        var confirmMessage = string.Format(
+            _localizationService?.GetString("QuickActions_ConfirmMessage") ?? "This will change {0} settings on this page. Continue?",
+            count);
+
+        var dialog = new ContentDialog
+        {
+            Title = _localizationService?.GetString("QuickActions_ConfirmTitle") ?? "Confirm Action",
+            Content = confirmMessage,
+            PrimaryButtonText = "OK",
+            CloseButtonText = _localizationService?.GetString("Button_Cancel") ?? "Cancel",
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary) return;
+
+        int applied = actionType == BulkActionType.ApplyRecommended
+            ? await _bulkSettingsActionService.ApplyRecommendedAsync(settingIds)
+            : await _bulkSettingsActionService.ResetToDefaultsAsync(settingIds);
+    }
+
+    private async Task ExecuteReviewBulkActionAsync(bool approved)
+    {
+        if (_configReviewService == null) return;
+
+        var settingIds = GetCurrentPageSettingIds();
+
+        int diffCount = 0;
+        foreach (var id in settingIds)
+        {
+            if (_configReviewService.GetDiffForSetting(id) != null)
+                diffCount++;
+        }
+
+        if (diffCount == 0) return;
+
+        var messageKey = approved ? "QuickActions_AcceptConfirmMessage" : "QuickActions_RejectConfirmMessage";
+        var confirmMessage = string.Format(
+            _localizationService?.GetString(messageKey) ?? (approved ? "This will accept {0} changes on this page. Continue?" : "This will reject {0} changes on this page. Continue?"),
+            diffCount);
+
+        var dialog = new ContentDialog
+        {
+            Title = _localizationService?.GetString("QuickActions_ConfirmTitle") ?? "Confirm Action",
+            Content = confirmMessage,
+            PrimaryButtonText = "OK",
+            CloseButtonText = _localizationService?.GetString("Button_Cancel") ?? "Cancel",
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary) return;
+
+        foreach (var id in settingIds)
+        {
+            var diff = _configReviewService.GetDiffForSetting(id);
+            if (diff == null) continue;
+
+            _configReviewService.SetSettingApproval(id, approved);
+
+            if (diff.IsActionSetting)
+                _configReviewService.SetActionApproval(id, approved);
+
+            UpdateSettingViewModelReviewState(id, approved);
+        }
+    }
+
+    private void UpdateSettingViewModelReviewState(string settingId, bool approved)
+    {
+        var sectionsToSearch = ViewModel.IsInDetailPage
+            ? OptimizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : OptimizeViewModel.Sections;
+
+        foreach (var section in sectionsToSearch)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                if (setting.SettingId == settingId)
+                {
+                    if (setting.HasReviewDiff)
+                    {
+                        setting.IsReviewApproved = approved;
+                        setting.IsReviewRejected = !approved;
+                    }
+                    if (setting.HasReviewAction)
+                    {
+                        setting.IsReviewActionApproved = approved;
+                        setting.IsReviewActionRejected = !approved;
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    private void UpdateQuickActionsForReviewMode()
+    {
+        if (_configReviewService?.IsInReviewMode == true)
+        {
+            ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_AcceptAll") ?? "Accept All Changes";
+            ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_RejectAll") ?? "Reject All Changes";
+            // Swap icons: Accept = checkmark (E73E), Reject = dismiss (E711)
+            ApplyRecommendedIcon.Glyph = "\uE73E";
+            ResetDefaultsItem.Icon = new FontIcon { Glyph = "\uE711", FontSize = 14 };
+            ShowOnlyChangesSeparator.Visibility = Visibility.Visible;
+            ShowOnlyChangesToggleItem.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_ApplyRecommended") ?? "Apply Recommended Settings";
+            ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_ResetDefaults") ?? "Reset to Windows Defaults";
+            ApplyRecommendedIcon.Glyph = "\uE735";
+            ResetDefaultsItem.Icon = new PathIcon
+            {
+                Data = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Microsoft.UI.Xaml.Media.Geometry),
+                    (string)Application.Current.Resources["WindowsLogoIconPath"])
+            };
+            ShowOnlyChangesSeparator.Visibility = Visibility.Collapsed;
+            ShowOnlyChangesToggleItem.Visibility = Visibility.Collapsed;
+            ShowOnlyChangesToggleItem.IsChecked = false;
+            if (_showOnlyChanges)
+            {
+                _showOnlyChanges = false;
+                ApplyShowOnlyChangesFilter();
+            }
+        }
+    }
+
+    private List<string> GetCurrentPageSettingIds()
+    {
+        var settingIds = new List<string>();
+        var sectionsToInclude = ViewModel.IsInDetailPage
+            ? OptimizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : OptimizeViewModel.Sections;
+
+        foreach (var section in sectionsToInclude)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                if (!string.IsNullOrEmpty(setting.SettingId))
+                {
+                    settingIds.Add(setting.SettingId);
+                }
+            }
+        }
+
+        return settingIds;
     }
 
     // Search handlers

@@ -387,11 +387,11 @@ public class SettingReviewDiffApplierTests
             inputType: InputType.Selection,
             selectedValue: 0);
 
-        vm.ComboBoxOptions = new ObservableCollection<ComboBoxOption>
+        vm.ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>
         {
-            new ComboBoxOption("Option A", 0),
-            new ComboBoxOption("Option B", 1),
-            new ComboBoxOption("Option C", 2)
+            new ComboBoxDisplayOption("Option A", 0),
+            new ComboBoxDisplayOption("Option B", 1),
+            new ComboBoxDisplayOption("Option C", 2)
         };
 
         var state = new SettingStateResult { CurrentValue = 0 };
@@ -442,10 +442,10 @@ public class SettingReviewDiffApplierTests
             inputType: InputType.Selection,
             selectedValue: 1);
 
-        vm.ComboBoxOptions = new ObservableCollection<ComboBoxOption>
+        vm.ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>
         {
-            new ComboBoxOption("Option A", 0),
-            new ComboBoxOption("Option B", 1)
+            new ComboBoxDisplayOption("Option A", 0),
+            new ComboBoxDisplayOption("Option B", 1)
         };
 
         var state = new SettingStateResult { CurrentValue = 1 };

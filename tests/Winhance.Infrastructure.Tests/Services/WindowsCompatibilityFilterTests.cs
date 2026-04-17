@@ -190,6 +190,65 @@ public class WindowsCompatibilityFilterTests
     }
 
     [Fact]
+    public void FilterSettingsByWindowsVersion_MinAndMaxBuild_BuildAboveMax_FilteredOut()
+    {
+        // Regression: when both MinimumBuildNumber and MaximumBuildNumber were set,
+        // the else-if chain entered the min-build branch first and exited without
+        // checking the max-build branch. Builds above the maximum leaked through.
+        _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
+        _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+
+        var filter = CreateFilter();
+        var settings = new List<SettingDefinition>
+        {
+            CreateSetting("bounded", minimumBuild: 22000, maximumBuild: 26120),
+            CreateSetting("normal")
+        };
+
+        var result = filter.FilterSettingsByWindowsVersion(settings);
+
+        result.Should().ContainSingle()
+            .Which.Id.Should().Be("normal");
+    }
+
+    [Fact]
+    public void FilterSettingsByWindowsVersion_MinAndMaxBuild_BuildInRange_Kept()
+    {
+        _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
+        _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+
+        var filter = CreateFilter();
+        var settings = new List<SettingDefinition>
+        {
+            CreateSetting("bounded", minimumBuild: 22000, maximumBuild: 26120),
+        };
+
+        var result = filter.FilterSettingsByWindowsVersion(settings);
+
+        result.Should().ContainSingle()
+            .Which.Id.Should().Be("bounded");
+    }
+
+    [Fact]
+    public void FilterSettingsByWindowsVersion_MinAndMaxBuild_BuildBelowMin_FilteredOut()
+    {
+        _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
+        _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(21000);
+
+        var filter = CreateFilter();
+        var settings = new List<SettingDefinition>
+        {
+            CreateSetting("bounded", minimumBuild: 22000, maximumBuild: 26120),
+            CreateSetting("normal")
+        };
+
+        var result = filter.FilterSettingsByWindowsVersion(settings);
+
+        result.Should().ContainSingle()
+            .Which.Id.Should().Be("normal");
+    }
+
+    [Fact]
     public void FilterSettingsByWindowsVersion_OnWindowsServer_DoesNotFilterSettings()
     {
         // Arrange — Server 2022 (build 20348) detected as Windows 10
