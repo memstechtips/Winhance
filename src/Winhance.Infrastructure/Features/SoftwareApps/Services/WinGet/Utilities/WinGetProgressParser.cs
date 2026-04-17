@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
@@ -166,7 +167,7 @@ public static class WinGetProgressParser
 
         // Try to extract percentage
         var percentMatch = PercentRegex.Match(trimmed);
-        if (percentMatch.Success && double.TryParse(percentMatch.Groups[1].Value, out var pct))
+        if (percentMatch.Success && double.TryParse(percentMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
         {
             // Determine phase from context
             var phase = lower.Contains("download") || lower.Contains("██")
@@ -181,8 +182,8 @@ public static class WinGetProgressParser
         // Try byte progress (calculate percentage)
         var byteMatch = ByteProgressRegex.Match(trimmed);
         if (byteMatch.Success &&
-            double.TryParse(byteMatch.Groups[1].Value, out var current) &&
-            double.TryParse(byteMatch.Groups[2].Value, out var total) &&
+            double.TryParse(byteMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var current) &&
+            double.TryParse(byteMatch.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var total) &&
             total > 0)
         {
             var bytePct = (current / total) * 100.0;

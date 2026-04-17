@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -45,7 +46,7 @@ public class DismProcessRunner : IDismProcessRunner
             {
                 stdoutBuilder.AppendLine(line);
                 var match = ProgressRegex.Match(line);
-                if (match.Success && double.TryParse(match.Groups[1].Value, out var pct))
+                if (match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
                 {
                     progress?.Report(new TaskProgressDetail
                     {
