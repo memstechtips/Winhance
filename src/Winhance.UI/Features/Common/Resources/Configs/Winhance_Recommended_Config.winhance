@@ -611,7 +611,7 @@
             "Id": "explorer-customization-shortcut-arrow",
             "Name": "Shortcut Arrow Icon",
             "InputType": 1,
-            "SelectedIndex": 0
+            "SelectedIndex": 1
           },
           {
             "Id": "explorer-customization-context-menu",
@@ -916,37 +916,37 @@
           {
             "Id": "explorer-customization-nav-saf-desktop",
             "Name": "Show Desktop folder",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-documents",
             "Name": "Show Documents folder",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-downloads",
             "Name": "Show Downloads folder",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-music",
             "Name": "Show Music folder",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-pictures",
             "Name": "Show Pictures folder",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-videos",
             "Name": "Show Videos folder",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1277,13 +1277,13 @@
           {
             "Id": "gaming-performance-mouse-hover-time",
             "Name": "Mouse Hover Time",
-            "IsSelected": false,
-            "InputType": 1
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "gaming-performance-autostart-delay",
             "Name": "Startup Delay for Apps",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -1674,7 +1674,7 @@
             "Id": "gaming-touch-keyboard-service",
             "Name": "Touch Keyboard and Handwriting Panel Service",
             "InputType": 1,
-            "SelectedIndex": 1
+            "SelectedIndex": 0
           },
           {
             "Id": "gaming-sensor-monitoring-service",

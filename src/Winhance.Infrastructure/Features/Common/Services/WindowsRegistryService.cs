@@ -235,6 +235,22 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         if (setting == null)
             return false;
 
+        // ValueName == null settings encode enabled-state as key existence; the batched
+        // currentValue is a bool from __KEY_EXISTS__. Interpret it directly — the per-value
+        // EnabledValue/DisabledValue match loop below is meaningless for this case because
+        // the "value" being matched is key-presence, not a stored value.
+        if (setting.ValueName == null && currentValue is bool keyExists)
+        {
+            // Inverted shape: DisabledValue carries the null sentinel meaning
+            // "disabled when key present" (rare — standard shape is EnabledValue = [null]).
+            if (setting.EnabledValue?.Contains(null) != true
+                && setting.DisabledValue?.Contains(null) == true)
+            {
+                return !keyExists;
+            }
+            return keyExists;
+        }
+
         // Handle CompositeStringKey — extract sub-value before comparing
         if (setting.CompositeStringKey != null)
         {

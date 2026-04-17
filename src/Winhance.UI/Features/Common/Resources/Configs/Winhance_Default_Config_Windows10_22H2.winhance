@@ -876,8 +876,8 @@
           {
             "Id": "gaming-performance-mouse-hover-time",
             "Name": "Mouse Hover Time",
-            "IsSelected": false,
-            "InputType": 1
+            "InputType": 1,
+            "SelectedIndex": 5
           },
           {
             "Id": "gaming-performance-autostart-delay",

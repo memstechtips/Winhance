@@ -134,6 +134,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Selection,
                     Icon = "FileTableBoxOutline",
                     IsWindows11Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -141,7 +142,7 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarAl",
                             RecommendedValue = null,
-                            DefaultValue = null,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -222,6 +223,7 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "1ms (Instant)",
                                 ValueMappings = new Dictionary<string, object?> { ["ExtendedUIHoverTime"] = 1 },
+                                IsRecommended = true,
                             },
                             new ComboBoxOption
                             {
@@ -549,13 +551,13 @@ public static class TaskbarCustomizations
                             {
                                 DisplayName = "Always",
                                 ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 0 },
-                                IsRecommended = true,
-                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "When taskbar is full",
                                 ValueMappings = new Dictionary<string, object?> { ["IconSizePreference"] = 2 },
+                                IsRecommended = true,
+                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {

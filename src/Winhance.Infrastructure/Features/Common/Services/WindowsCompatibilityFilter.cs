@@ -108,32 +108,37 @@ public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
                         incompatibilityReason = $"build not in supported ranges: {rangesStr}";
                     }
                 }
-                // Check minimum build number (with optional UBR check)
-                else if (minimumBuild.HasValue)
+                else
                 {
-                    if (buildNumber < minimumBuild.Value)
+                    // Check minimum and maximum build numbers independently so settings
+                    // bounded on both sides (e.g. feature present from build N, removed at build M)
+                    // correctly filter out builds above the maximum.
+                    if (minimumBuild.HasValue)
                     {
-                        isCompatible = false;
-                        incompatibilityReason = $"requires build >= {minimumBuild.Value}";
+                        if (buildNumber < minimumBuild.Value)
+                        {
+                            isCompatible = false;
+                            incompatibilityReason = $"requires build >= {minimumBuild.Value}";
+                        }
+                        else if (buildNumber == minimumBuild.Value && minimumRevision.HasValue && buildRevision < minimumRevision.Value)
+                        {
+                            isCompatible = false;
+                            incompatibilityReason = $"requires build >= {minimumBuild.Value}.{minimumRevision.Value}";
+                        }
                     }
-                    else if (buildNumber == minimumBuild.Value && minimumRevision.HasValue && buildRevision < minimumRevision.Value)
+
+                    if (isCompatible && maximumBuild.HasValue)
                     {
-                        isCompatible = false;
-                        incompatibilityReason = $"requires build >= {minimumBuild.Value}.{minimumRevision.Value}";
-                    }
-                }
-                // Check maximum build number (with optional UBR check)
-                else if (maximumBuild.HasValue)
-                {
-                    if (buildNumber > maximumBuild.Value)
-                    {
-                        isCompatible = false;
-                        incompatibilityReason = $"requires build <= {maximumBuild.Value}";
-                    }
-                    else if (buildNumber == maximumBuild.Value && maximumRevision.HasValue && buildRevision > maximumRevision.Value)
-                    {
-                        isCompatible = false;
-                        incompatibilityReason = $"requires build <= {maximumBuild.Value}.{maximumRevision.Value}";
+                        if (buildNumber > maximumBuild.Value)
+                        {
+                            isCompatible = false;
+                            incompatibilityReason = $"requires build <= {maximumBuild.Value}";
+                        }
+                        else if (buildNumber == maximumBuild.Value && maximumRevision.HasValue && buildRevision > maximumRevision.Value)
+                        {
+                            isCompatible = false;
+                            incompatibilityReason = $"requires build <= {maximumBuild.Value}.{maximumRevision.Value}";
+                        }
                     }
                 }
 

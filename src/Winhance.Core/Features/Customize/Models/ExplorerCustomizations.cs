@@ -1928,6 +1928,7 @@ if (Test-Path $appPathsKey) {
                 {
                     Id = "explorer-customization-nav-saf-desktop",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show Desktop folder",
                     Description = "Shows the Desktop folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -1941,7 +1942,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
                             ValueName = "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -1951,7 +1952,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
                             ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -1963,6 +1964,7 @@ if (Test-Path $appPathsKey) {
                 {
                     Id = "explorer-customization-nav-saf-documents",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show Documents folder",
                     Description = "Shows the Documents folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -1976,7 +1978,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
                             ValueName = "{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -1986,7 +1988,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}",
                             ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -1998,6 +2000,7 @@ if (Test-Path $appPathsKey) {
                 {
                     Id = "explorer-customization-nav-saf-downloads",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show Downloads folder",
                     Description = "Shows the Downloads folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2011,7 +2014,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
                             ValueName = "{374DE290-123F-4565-9164-39C4925E467B}",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2021,7 +2024,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{374DE290-123F-4565-9164-39C4925E467B}",
                             ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2033,6 +2036,7 @@ if (Test-Path $appPathsKey) {
                 {
                     Id = "explorer-customization-nav-saf-music",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show Music folder",
                     Description = "Shows the Music folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2046,7 +2050,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
                             ValueName = "{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2056,7 +2060,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{1CF1260C-4DD0-4ebb-811F-33C572699FDE}",
                             ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2068,6 +2072,7 @@ if (Test-Path $appPathsKey) {
                 {
                     Id = "explorer-customization-nav-saf-pictures",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show Pictures folder",
                     Description = "Shows the Pictures folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2081,7 +2086,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
                             ValueName = "{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2091,7 +2096,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}",
                             ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2103,6 +2108,7 @@ if (Test-Path $appPathsKey) {
                 {
                     Id = "explorer-customization-nav-saf-videos",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Show Videos folder",
                     Description = "Shows the Videos folder in the navigation pane",
                     GroupName = "Navigation Pane",
@@ -2116,7 +2122,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
                             ValueName = "{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
@@ -2126,7 +2132,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A0953C92-50DC-43bf-BE83-3742FED03C9C}",
                             ValueName = "HiddenByDefault",
-                            RecommendedValue = 1,
+                            RecommendedValue = null,
                             EnabledValue = [null],
                             DisabledValue = [1, null],
                             DefaultValue = null,
