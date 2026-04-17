@@ -103,7 +103,6 @@ if (-not (Test-Path $icoPath)) {
                                 DisplayName = "Show arrow icon",
                                 ValueMappings = new Dictionary<string, object?> { ["29"] = null },
                                 Script = ScriptOption.Disabled,
-                                IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
@@ -111,6 +110,7 @@ if (-not (Test-Path $icoPath)) {
                                 DisplayName = "Remove arrow icon",
                                 ValueMappings = new Dictionary<string, object?> { ["29"] = @"C:\Windows\blank.ico" },
                                 Script = ScriptOption.Enabled,
+                                IsRecommended = true,
                             },
                         },
                     },
@@ -145,6 +145,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Id = "explorer-take-ownership",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
                     Name = "Add 'Take Ownership' to Context Menu",
                     Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
                     GroupName = "Context Menu",
@@ -568,7 +569,7 @@ if (-not (Test-Path $icoPath)) {
 ""Icon""=""powershell.exe""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout\Command]
-@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""\""& {Start-Process PowerShell.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\\""%1\\\\""' -Verb RunAs}\""""
+@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""\""& {Start-Process PowerShell.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout]
 ""MUIVerb""=""Run with PowerShell 7""
@@ -584,7 +585,7 @@ if (-not (Test-Path $icoPath)) {
 ""Icon""=""pwsh.exe""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout\Command]
-@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""\""& {Start-Process pwsh.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\\""%1\\\\""' -Verb RunAs}\""""
+@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""\""& {Start-Process pwsh.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout]
 ""MUIVerb""=""Edit with PowerShell ISE""
@@ -600,7 +601,7 @@ if (-not (Test-Path $icoPath)) {
 ""Icon""=""powershell_ise.exe""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout\Command]
-@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start PowerShell_ISE.exe \\""%1\\""'  -Verb RunAs\""""
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start PowerShell_ISE.exe \""\""%1\""\""'  -Verb RunAs\""""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout]
 ""MUIVerb""=""Edit with PowerShell ISE (x86)""
@@ -616,7 +617,7 @@ if (-not (Test-Path $icoPath)) {
 ""Icon""=""powershell_ise.exe""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout\Command]
-@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe \\""%1\\""'  -Verb RunAs\""""
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe \""\""%1\""\""'  -Verb RunAs\""""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout]
 ""MUIVerb""=""Edit with Notepad""
@@ -632,7 +633,7 @@ if (-not (Test-Path $icoPath)) {
 ""Icon""=""notepad.exe""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout\Command]
-@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\Windows\\System32\\notepad.exe \\""%1\\""'  -Verb RunAs\""""
+@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\Windows\\System32\\notepad.exe \""\""%1\""\""'  -Verb RunAs\""""
 ",
                             DisabledContent = @"Windows Registry Editor Version 5.00
 
@@ -1248,6 +1249,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Id = "explorer-enable-photo-viewer",
                     IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
                     Name = "Enable Windows Photo Viewer",
                     Description = "Restore the legacy Windows Photo Viewer and set it as the default program for common image file formats",
                     GroupName = "File Associations",
@@ -1259,7 +1261,7 @@ if (-not (Test-Path $icoPath)) {
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\.bmp",
                             ValueName = "",
-                            EnabledValue = [null],
+                            EnabledValue = ["PhotoViewer.FileAssoc.Tiff"],
                             DisabledValue = [null],
                             RecommendedValue = "PhotoViewer.FileAssoc.Tiff",
                             DefaultValue = null,
@@ -1812,7 +1814,7 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null,
+                            EnabledValue = [null],
                             DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
@@ -1836,7 +1838,7 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null,
+                            EnabledValue = [null],
                             DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
@@ -2160,7 +2162,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
                             RecommendedValue = 1,
                             EnabledValue = [0],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2170,7 +2172,7 @@ if (Test-Path $appPathsKey) {
                             ValueName = "HiddenByDefault",
                             RecommendedValue = 1,
                             EnabledValue = [0],
-                            DisabledValue = [1],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
@@ -2195,7 +2197,7 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null,
+                            EnabledValue = [null],
                             DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
@@ -2205,7 +2207,7 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null,
+                            EnabledValue = [null],
                             DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
@@ -2252,7 +2254,7 @@ if (Test-Path $appPathsKey) {
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device",
                             ValueName = "DevicePasswordLessBuildVersion",
-                            RecommendedValue = 0,
+                            RecommendedValue = 2,
                             EnabledValue = [0],
                             DisabledValue = [2],
                             DefaultValue = 2,
@@ -2297,7 +2299,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "dd/MM/yyyy",
                                 ValueMappings = new Dictionary<string, object?> { ["sShortDate"] = "dd/MM/yyyy" },
-                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2353,7 +2354,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "Monday",
                                 ValueMappings = new Dictionary<string, object?> { ["iFirstDayOfWeek"] = "0" },
-                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2419,7 +2419,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ", (Comma)",
                                 ValueMappings = new Dictionary<string, object?> { ["sDecimal"] = "," },
-                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {
@@ -2470,7 +2469,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "; (Semicolon)",
                                 ValueMappings = new Dictionary<string, object?> { ["sList"] = ";" },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2512,7 +2510,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = "U.S. (Imperial)",
                                 ValueMappings = new Dictionary<string, object?> { ["iMeasure"] = "1" },
-                                IsDefault = true,
                             },
                         },
                     },
@@ -2553,7 +2550,6 @@ if (Test-Path $appPathsKey) {
                             {
                                 DisplayName = ", (Comma)",
                                 ValueMappings = new Dictionary<string, object?> { ["sMonDecimalSep"] = "," },
-                                IsDefault = true,
                             },
                             new ComboBoxOption
                             {

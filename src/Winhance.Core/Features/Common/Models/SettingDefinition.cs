@@ -32,8 +32,8 @@ public sealed record SettingDefinition : BaseDefinition, ISettingItem
     /// computation for subjective settings yields <see cref="SettingBadgeKind.Preference"/>
     /// for any well-known option value, ignoring <see cref="ComboBoxOption.IsRecommended"/>
     /// and <see cref="ComboBoxOption.IsDefault"/> for the pill label.
-    /// By contract, subjective settings MUST have zero IsRecommended options
-    /// (enforced by SettingCatalogValidator).
+    /// Authors may still mark a single option as Recommended/Default so Quick Actions
+    /// has a target to apply; SettingCatalogValidator enforces at most one of each.
     /// </summary>
     public bool IsSubjectivePreference { get; init; } = false;
 
