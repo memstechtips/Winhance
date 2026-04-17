@@ -42,6 +42,8 @@ public static partial class ExternalAppDefinitions
                         Name = "Wise Disk Cleaner",
                         Description = "Free Disk Cleanup and Defragment Tool",
                         GroupName = "Other Utilities",
+                        RegistrySubKeyName = "Wise Disk Cleaner_is1",
+                        RegistryDisplayName = "Wise Disk Cleaner",
                         WinGetPackageId = ["WiseCleaner.WiseDiskCleaner"],
                         MsStoreId = "XP9CW3GPQQS852", // MS Store package
                         WebsiteUrl = "https://www.wisecleaner.com/wise-disk-cleaner.html"
@@ -103,6 +105,8 @@ public static partial class ExternalAppDefinitions
                         Name = "IObit Uninstaller",
                         Description = "Completely Uninstall Unwanted Software, Windows Apps & Browser Plug-ins",
                         GroupName = "Other Utilities",
+                        RegistrySubKeyName = "IObitUninstall",
+                        RegistryDisplayName = "IObit Uninstaller {version}",
                         WinGetPackageId = ["IObit.Uninstaller"],
                         ChocoPackageId = "iobit-uninstaller",
                         WebsiteUrl = "https://www.iobit.com/en/advanceduninstaller.php"
@@ -113,6 +117,8 @@ public static partial class ExternalAppDefinitions
                         Name = "Revo Uninstaller",
                         Description = "Revo Uninstaller helps you to uninstall software and remove unwanted programs easily.",
                         GroupName = "Other Utilities",
+                        RegistrySubKeyName = "{A28DBDA2-3CC7-4ADC-8BFE-66D7743C6C97}_is1",
+                        RegistryDisplayName = "Revo Uninstaller {version}",
                         WinGetPackageId = ["RevoUninstaller.RevoUninstaller"],
                         ChocoPackageId = "revo-uninstaller",
                         WebsiteUrl = "https://www.revouninstaller.com/products/revo-uninstaller-free/"
