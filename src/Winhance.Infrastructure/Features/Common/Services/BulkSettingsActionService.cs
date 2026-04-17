@@ -12,6 +12,7 @@ public class BulkSettingsActionService(
     IDomainServiceRouter domainServiceRouter,
     IWindowsVersionService versionService,
     ISettingApplicationService settingApplicationService,
+    IProcessRestartManager processRestartManager,
     ILogService logService) : IBulkSettingsActionService
 {
     public async Task<int> ApplyRecommendedAsync(
@@ -21,7 +22,13 @@ public class BulkSettingsActionService(
         var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
         int applied = 0;
         int total = settings.Count;
+        var appliedForRestart = new List<SettingDefinition>(total);
 
+        // Suppress per-setting restarts during the loop — many settings share a
+        // RestartProcess (e.g. "explorer") and restarting after each one kills the
+        // shell repeatedly. We flush coalesced restarts once at the end.
+        using (processRestartManager.SuppressRestarts())
+        {
         for (int i = 0; i < total; i++)
         {
             var setting = settings[i];
@@ -40,12 +47,12 @@ public class BulkSettingsActionService(
 
                 if (setting.InputType == InputType.Toggle)
                 {
-                    var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
-                    bool enableValue = false;
-
-                    if (registrySetting != null && recommendedValue != null)
+                    var toggleState = ResolveRecommendedToggleState(setting, recommendedValue);
+                    if (toggleState is not bool enableValue)
                     {
-                        enableValue = registrySetting.EnabledValue?.Any(ev => ev != null && recommendedValue.Equals(ev)) == true;
+                        // No recommendation across any backing store — nothing to apply.
+                        logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no recommended toggle state");
+                        continue;
                     }
 
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
@@ -58,33 +65,48 @@ public class BulkSettingsActionService(
                 }
                 else if (setting.InputType == InputType.Selection)
                 {
-                    var recommendedIndex = GetRecommendedIndex(setting);
-                    if (recommendedIndex is int idx)
+                    var powerCfgValue = BuildPowerCfgApplyValue(setting, useRecommended: true);
+                    if (powerCfgValue != null)
                     {
                         await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id,
                             Enable = true,
-                            Value = idx,
+                            Value = powerCfgValue,
                             SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
-                    // No else: if no IsRecommended option (legitimate for informational ComboBoxes
-                    // like "pick a DNS provider"), skip. The prior code's else-branch tried to write
-                    // `recommendedValue` which was never wired up for Selection.
+                    else
+                    {
+                        var recommendedIndex = GetRecommendedIndex(setting);
+                        if (recommendedIndex is int idx)
+                        {
+                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            {
+                                SettingId = setting.Id,
+                                Enable = true,
+                                Value = idx,
+                                SkipValuePrerequisites = true
+                            }).ConfigureAwait(false);
+                        }
+                        // No else: if no IsRecommended option (legitimate for informational ComboBoxes
+                        // like "pick a DNS provider"), skip.
+                    }
                 }
                 else
                 {
+                    var valueToApply = recommendedValue ?? BuildPowerCfgApplyValue(setting, useRecommended: true);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
                         Enable = true,
-                        Value = recommendedValue,
+                        Value = valueToApply,
                         SkipValuePrerequisites = true
                     }).ConfigureAwait(false);
                 }
 
                 applied++;
+                appliedForRestart.Add(setting);
                 logService.Log(LogLevel.Debug, $"[BulkSettings] Applied recommended for '{setting.Id}'");
             }
             catch (Exception ex)
@@ -92,6 +114,9 @@ public class BulkSettingsActionService(
                 logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to apply recommended for '{setting.Id}': {ex.Message}");
             }
         }
+        } // end SuppressRestarts scope
+
+        await processRestartManager.FlushCoalescedRestartsAsync(appliedForRestart).ConfigureAwait(false);
 
         progress?.Report(new TaskProgressDetail
         {
@@ -111,7 +136,10 @@ public class BulkSettingsActionService(
         var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
         int applied = 0;
         int total = settings.Count;
+        var appliedForRestart = new List<SettingDefinition>(total);
 
+        using (processRestartManager.SuppressRestarts())
+        {
         for (int i = 0; i < total; i++)
         {
             var setting = settings[i];
@@ -130,15 +158,12 @@ public class BulkSettingsActionService(
 
                 if (setting.InputType == InputType.Toggle)
                 {
-                    var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.DefaultValue != null || rs.IsGroupPolicy);
-                    bool enableValue = false;
-
-                    if (registrySetting != null && defaultValue != null)
+                    var toggleState = ResolveDefaultToggleState(setting, defaultValue);
+                    if (toggleState is not bool enableValue)
                     {
-                        enableValue = registrySetting.EnabledValue?.Any(ev => ev != null && defaultValue.Equals(ev)) == true;
+                        logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
+                        continue;
                     }
-                    // For group policy keys where DefaultValue is null, disable the setting
-                    // (defaultValue is already null, enableValue stays false)
 
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
@@ -151,35 +176,51 @@ public class BulkSettingsActionService(
                 }
                 else if (setting.InputType == InputType.Selection)
                 {
-                    var defaultIndex = GetDefaultIndex(setting);
-                    if (defaultIndex is int idx)
+                    var powerCfgValue = BuildPowerCfgApplyValue(setting, useRecommended: false);
+                    if (powerCfgValue != null)
                     {
                         await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id,
                             Enable = true,
-                            Value = idx,
+                            Value = powerCfgValue,
                             ResetToDefault = true,
                             SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
-                    // No else: catalog validator guarantees every registry-backed Selection has
-                    // exactly one IsDefault option. PowerCfg-backed Selection settings are routed
-                    // through a separate code path and do not reach this branch.
+                    else
+                    {
+                        var defaultIndex = GetDefaultIndex(setting);
+                        if (defaultIndex is int idx)
+                        {
+                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            {
+                                SettingId = setting.Id,
+                                Enable = true,
+                                Value = idx,
+                                ResetToDefault = true,
+                                SkipValuePrerequisites = true
+                            }).ConfigureAwait(false);
+                        }
+                        // No else: catalog validator guarantees every registry-backed Selection has
+                        // exactly one IsDefault option.
+                    }
                 }
                 else
                 {
+                    var valueToApply = defaultValue ?? BuildPowerCfgApplyValue(setting, useRecommended: false);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
-                        Enable = defaultValue != null,
-                        Value = defaultValue,
+                        Enable = valueToApply != null,
+                        Value = valueToApply,
                         ResetToDefault = true,
                         SkipValuePrerequisites = true
                     }).ConfigureAwait(false);
                 }
 
                 applied++;
+                appliedForRestart.Add(setting);
                 logService.Log(LogLevel.Debug, $"[BulkSettings] Reset to default for '{setting.Id}'");
             }
             catch (Exception ex)
@@ -187,6 +228,9 @@ public class BulkSettingsActionService(
                 logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to reset default for '{setting.Id}': {ex.Message}");
             }
         }
+        } // end SuppressRestarts scope
+
+        await processRestartManager.FlushCoalescedRestartsAsync(appliedForRestart).ConfigureAwait(false);
 
         progress?.Report(new TaskProgressDetail
         {
@@ -312,12 +356,18 @@ public class BulkSettingsActionService(
 
     private static bool HasRecommendedValue(SettingDefinition setting)
     {
-        return setting.RegistrySettings?.Any(rs => rs.RecommendedValue != null) == true;
+        if (ResolveRecommendedToggleState(setting, GetRecommendedValueForSetting(setting)).HasValue) return true;
+        if (setting.PowerCfgSettings?.Any(p => p.RecommendedValueAC.HasValue || p.RecommendedValueDC.HasValue) == true) return true;
+        if (setting.ComboBox?.Options?.Any(o => o.IsRecommended) == true) return true;
+        return false;
     }
 
     private static bool HasDefaultValue(SettingDefinition setting)
     {
-        return setting.RegistrySettings?.Any(rs => rs.DefaultValue != null) == true;
+        if (ResolveDefaultToggleState(setting, GetDefaultValueForSetting(setting)).HasValue) return true;
+        if (setting.PowerCfgSettings?.Any(p => p.DefaultValueAC.HasValue || p.DefaultValueDC.HasValue) == true) return true;
+        if (setting.ComboBox?.Options?.Any(o => o.IsDefault) == true) return true;
+        return false;
     }
 
     private static bool HasGroupPolicySettings(SettingDefinition setting)
@@ -341,5 +391,155 @@ public class BulkSettingsActionService(
         for (int i = 0; i < opts.Count; i++)
             if (opts[i].IsDefault) return i;
         return null;
+    }
+
+    // Resolves the target Enable flag for a Toggle setting under "Apply Recommended".
+    // Priority matches SettingItemViewModel.ToggleRecommendedState so per-card and bulk
+    // agree:
+    //   1. SettingDefinition.RecommendedToggleState (explicit override — wins over any
+    //      per-key RecommendedValue, e.g. when a primary key's recommendation is "no
+    //      change" but a secondary key has a value for a different reason).
+    //   2. RegistrySetting with non-null RecommendedValue → derive from EnabledValue match
+    //   3. First ScheduledTaskSetting with RecommendedState set → use directly
+    //   4. Null → caller should skip (no recommendation exists)
+    private static bool? ResolveRecommendedToggleState(SettingDefinition setting, object? recommendedRegistryValue)
+    {
+        if (setting.RecommendedToggleState is bool explicitState)
+            return explicitState;
+
+        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
+        if (registrySetting != null && recommendedRegistryValue != null)
+        {
+            return registrySetting.EnabledValue?.Any(ev => ev != null && recommendedRegistryValue.Equals(ev)) == true;
+        }
+
+        var taskSetting = setting.ScheduledTaskSettings?.FirstOrDefault(ts => ts.RecommendedState.HasValue);
+        if (taskSetting?.RecommendedState is bool taskState)
+            return taskState;
+
+        return null;
+    }
+
+    // Resolves the target Enable flag for a Toggle setting under "Reset to Default".
+    //   1. RegistrySetting with DefaultValue → derive from EnabledValue match
+    //   2. RegistrySetting that is a group policy → disabled (key-absent)
+    //   3. Key-absent default: DefaultValue null AND EnabledValue/DisabledValue carries a
+    //      null sentinel — mirrors SettingItemViewModel.ToggleDefaultState so Quick Actions
+    //      resets settings like start-power-lock-option the same way the per-card button does.
+    //   4. First ScheduledTaskSetting with DefaultState set → use directly
+    //   5. Null → caller should skip
+    private static bool? ResolveDefaultToggleState(SettingDefinition setting, object? defaultRegistryValue)
+    {
+        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.DefaultValue != null || rs.IsGroupPolicy);
+        if (registrySetting != null)
+        {
+            if (defaultRegistryValue != null)
+                return registrySetting.EnabledValue?.Any(ev => ev != null && defaultRegistryValue.Equals(ev)) == true;
+            if (registrySetting.IsGroupPolicy)
+                return false;
+        }
+
+        var primaryReg = setting.RegistrySettings?.FirstOrDefault(r => r.IsPrimary)
+                      ?? setting.RegistrySettings?.FirstOrDefault();
+        if (primaryReg != null && primaryReg.DefaultValue == null)
+        {
+            if (primaryReg.EnabledValue?.Any(ev => ev == null) == true) return true;
+            if (primaryReg.DisabledValue?.Any(dv => dv == null) == true) return false;
+        }
+
+        var taskSetting = setting.ScheduledTaskSettings?.FirstOrDefault(ts => ts.DefaultState.HasValue);
+        if (taskSetting?.DefaultState is bool taskState)
+            return taskState;
+
+        return null;
+    }
+
+    // For PowerCfg-backed Selection/NumericRange settings, build the value shape that
+    // SettingApplicationService → PowerCfgApplier expects (matches what SettingItemViewModel
+    // sends for AC/DC quick-set buttons). Returns null if the setting isn't PowerCfg-backed
+    // or if neither AC nor DC has a target value.
+    private static object? BuildPowerCfgApplyValue(SettingDefinition setting, bool useRecommended)
+    {
+        var pcfg = setting.PowerCfgSettings?.FirstOrDefault();
+        if (pcfg == null) return null;
+
+        int? acRaw = useRecommended ? pcfg.RecommendedValueAC : pcfg.DefaultValueAC;
+        int? dcRaw = useRecommended ? pcfg.RecommendedValueDC : pcfg.DefaultValueDC;
+        if (!acRaw.HasValue && !dcRaw.HasValue) return null;
+
+        bool isSeparate = pcfg.PowerModeSupport == PowerModeSupport.Separate;
+
+        if (setting.InputType == InputType.Selection)
+        {
+            int? acIdx = FindOptionIndexForPowerCfgValue(setting, acRaw);
+            int? dcIdx = FindOptionIndexForPowerCfgValue(setting, dcRaw);
+
+            if (isSeparate)
+            {
+                if (!acIdx.HasValue && !dcIdx.HasValue) return null;
+                return new Dictionary<string, object?>
+                {
+                    ["ACValue"] = acIdx ?? 0,
+                    ["DCValue"] = dcIdx ?? 0
+                };
+            }
+            return (object?)(acIdx ?? dcIdx);
+        }
+
+        if (setting.InputType == InputType.NumericRange)
+        {
+            // Stored values are system units (e.g. Seconds). PowerCfgApplier converts
+            // display→system on its end, so we hand it display units here.
+            string displayUnits = GetPowerCfgDisplayUnits(setting);
+            int? acDisplay = acRaw.HasValue ? ConvertSystemToDisplayUnits(acRaw.Value, displayUnits) : null;
+            int? dcDisplay = dcRaw.HasValue ? ConvertSystemToDisplayUnits(dcRaw.Value, displayUnits) : null;
+
+            if (isSeparate)
+            {
+                if (!acDisplay.HasValue && !dcDisplay.HasValue) return null;
+                return new Dictionary<string, object?>
+                {
+                    ["ACValue"] = acDisplay ?? 0,
+                    ["DCValue"] = dcDisplay ?? 0
+                };
+            }
+            return (object?)(acDisplay ?? dcDisplay);
+        }
+
+        return null;
+    }
+
+    private static int? FindOptionIndexForPowerCfgValue(SettingDefinition setting, int? targetValue)
+    {
+        if (!targetValue.HasValue) return null;
+        var opts = setting.ComboBox?.Options;
+        if (opts == null) return null;
+        for (int i = 0; i < opts.Count; i++)
+        {
+            if (opts[i].ValueMappings is { } m && m.TryGetValue("PowerCfgValue", out var v) && v != null)
+            {
+                try { if (Convert.ToInt32(v) == targetValue.Value) return i; }
+                catch { }
+            }
+        }
+        return null;
+    }
+
+    private static string GetPowerCfgDisplayUnits(SettingDefinition setting)
+    {
+        if (setting.NumericRange?.Units is { } unitsStr) return unitsStr;
+        return setting.PowerCfgSettings?[0]?.Units ?? string.Empty;
+    }
+
+    // Inverse of PowerCfgApplier.ConvertToSystemUnits.
+    private static int ConvertSystemToDisplayUnits(int systemValue, string? units)
+    {
+        return units?.ToLowerInvariant() switch
+        {
+            "minutes" => systemValue / 60,
+            "hours" => systemValue / 3600,
+            "milliseconds" => systemValue * 1000,
+            _ => systemValue
+        };
     }
 }

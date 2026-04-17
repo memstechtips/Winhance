@@ -31,6 +31,7 @@ public class BulkSettingsActionServiceTests
     private readonly Mock<IDomainService> _domainService = new();
     private readonly Mock<IWindowsVersionService> _versionService = new();
     private readonly Mock<ISettingApplicationService> _applicationService = new();
+    private readonly Mock<IProcessRestartManager> _processRestartManager = new();
     private readonly Mock<ILogService> _logService = new();
 
     public BulkSettingsActionServiceTests()
@@ -50,10 +51,18 @@ public class BulkSettingsActionServiceTests
             .Setup(d => d.GetSettingsAsync())
             .ReturnsAsync(settings.AsEnumerable());
 
+        _processRestartManager
+            .Setup(p => p.SuppressRestarts())
+            .Returns(Mock.Of<System.IDisposable>());
+        _processRestartManager
+            .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<System.Collections.Generic.IEnumerable<SettingDefinition>>()))
+            .Returns(Task.CompletedTask);
+
         return new BulkSettingsActionService(
             _domainServiceRouter.Object,
             _versionService.Object,
             _applicationService.Object,
+            _processRestartManager.Object,
             _logService.Object);
     }
 

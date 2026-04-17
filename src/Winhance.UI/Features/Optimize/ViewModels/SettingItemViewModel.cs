@@ -997,19 +997,61 @@ public partial class SettingItemViewModel : BaseViewModel
             {
                 IsSelected = isEnabled;
             }
-            else if (InputType == InputType.Selection && value != null)
+            else if (InputType == InputType.Selection)
             {
-                SelectedValue = value;
+                // AC/DC separate selection: value is Dictionary { "ACValue": acIdx, "DCValue": dcIdx }
+                // (what SettingItemViewModel and BulkSettingsActionService send for Separate PowerCfg).
+                if (SupportsSeparateACDC && value is System.Collections.Generic.Dictionary<string, object?> selDict)
+                {
+                    if (selDict.TryGetValue("ACValue", out var ac) && TryReadInt(ac, out var acIdx))
+                        AcValue = acIdx;
+                    if (selDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcIdx))
+                        DcValue = dcIdx;
+                }
+                else if (value != null)
+                {
+                    SelectedValue = value;
+                }
             }
-            else if (InputType == InputType.NumericRange && value is int intValue)
+            else if (InputType == InputType.NumericRange)
             {
-                NumericValue = intValue;
+                // AC/DC separate numeric: value is Dictionary in display units (Minutes, %, etc.).
+                if (SupportsSeparateACDC && value is System.Collections.Generic.Dictionary<string, object?> numDict)
+                {
+                    if (numDict.TryGetValue("ACValue", out var ac) && TryReadInt(ac, out var acNum))
+                        AcNumericValue = acNum;
+                    if (numDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcNum))
+                        DcNumericValue = dcNum;
+                }
+                else if (value is int intValue)
+                {
+                    NumericValue = intValue;
+                }
             }
         }
         finally
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
+        }
+    }
+
+    private static bool TryReadInt(object? value, out int result)
+    {
+        switch (value)
+        {
+            case int i: result = i; return true;
+            case long l: result = (int)l; return true;
+            case double d: result = (int)d; return true;
+            case float f: result = (int)f; return true;
+            case string s when int.TryParse(s, out var parsed): result = parsed; return true;
+            default:
+                if (value != null)
+                {
+                    try { result = Convert.ToInt32(value); return true; }
+                    catch { }
+                }
+                result = 0; return false;
         }
     }
 
