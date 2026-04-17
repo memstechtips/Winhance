@@ -12,11 +12,12 @@ public class TooltipDataServiceTests
 {
     private readonly Mock<IWindowsRegistryService> _mockRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
+    private readonly Mock<IPowerSettingsQueryService> _mockPowerSettings = new();
     private readonly TooltipDataService _service;
 
     public TooltipDataServiceTests()
     {
-        _service = new TooltipDataService(_mockRegistry.Object, _mockLog.Object);
+        _service = new TooltipDataService(_mockRegistry.Object, _mockLog.Object, _mockPowerSettings.Object);
     }
 
     private static SettingDefinition CreateSetting(
@@ -448,7 +449,7 @@ public class TooltipDataServiceTests
     [Fact]
     public void Constructor_NullRegistryService_ThrowsArgumentNull()
     {
-        var action = () => new TooltipDataService(null!, _mockLog.Object);
+        var action = () => new TooltipDataService(null!, _mockLog.Object, _mockPowerSettings.Object);
         action.Should().Throw<ArgumentNullException>()
             .And.ParamName.Should().Be("windowsRegistryService");
     }
@@ -456,8 +457,16 @@ public class TooltipDataServiceTests
     [Fact]
     public void Constructor_NullLogService_ThrowsArgumentNull()
     {
-        var action = () => new TooltipDataService(_mockRegistry.Object, null!);
+        var action = () => new TooltipDataService(_mockRegistry.Object, null!, _mockPowerSettings.Object);
         action.Should().Throw<ArgumentNullException>()
             .And.ParamName.Should().Be("logService");
+    }
+
+    [Fact]
+    public void Constructor_NullPowerSettingsQueryService_ThrowsArgumentNull()
+    {
+        var action = () => new TooltipDataService(_mockRegistry.Object, _mockLog.Object, null!);
+        action.Should().Throw<ArgumentNullException>()
+            .And.ParamName.Should().Be("powerSettingsQueryService");
     }
 }
