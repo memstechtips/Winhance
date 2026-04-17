@@ -261,6 +261,11 @@ public sealed partial class CustomizePage : Page
         };
 
         UpdateContentVisibility();
+
+        // Cascade the "Show Only Changes" filter to the newly navigated sub-page
+        // so it doesn't need a toggle off/on to re-apply.
+        if (_showOnlyChanges)
+            ApplyShowOnlyChangesFilter();
     }
 
     private void UpdateContentVisibility()
