@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Ασφάλεια",
   "SettingGroup_Layout": "Διάταξη",
   "SettingGroup_Start_Menu_Settings": "Ρυθμίσεις Μενού Έναρξης",
- "SettingGroup_Start_Menu": "Μενού Έναρξης",
+  "SettingGroup_Start_Menu": "Μενού Έναρξης",
   "SettingGroup_Windows_Theme": "Θέμα Windows",
   "SettingGroup_Theme_Mode": "Λειτουργία θέματος",
   "SettingGroup_Transparency": "Διαφάνεια",
@@ -712,6 +712,7 @@
   "SettingGroup_Scheduled_Tasks": "Προγραμματισμένες Εργασίες",
   "SettingGroup_Visual_Effects": "Οπτικά Εφέ",
   "SettingGroup_Accessibility": "Προσβασιμότητα",
+  "SettingGroup_System": "Σύστημα",
   "Setting_gaming-game-mode_Name": "Λειτουργία Παιχνιδιού",
   "Setting_gaming-game-mode_Description": "Βελτιστοποιήστε τον υπολογιστή σας για παιχνίδι απενεργοποιώντας πράγματα στο παρασκήνιο",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Βελτίωση Ακρίβειας Δείκτη",
@@ -1883,5 +1884,7 @@
   "Setting_gaming-task-windows-ai_Name": "Εργασίες Windows AI",
   "Setting_gaming-task-windows-ai_Description": "Προγραμματισμένες εργασίες Windows AI συμπεριλαμβανομένης της ρύθμισης Recall. Απενεργοποιήστε για να αποτρέψετε την εκτέλεση λειτουργιών τεχνητής νοημοσύνης στο παρασκήνιο",
   "Setting_gaming-task-office-actions-server_Name": "Εργασία διακομιστή Office Actions",
-  "Setting_gaming-task-office-actions-server_Description": "Προγραμματισμένη εργασία Office AI Actions Server. Απενεργοποιήστε για να αποτρέψετε την εκτέλεση του Office AI στο παρασκήνιο"
-}
+  "Setting_gaming-task-office-actions-server_Description": "Προγραμματισμένη εργασία Office AI Actions Server. Απενεργοποιήστε για να αποτρέψετε την εκτέλεση του Office AI στο παρασκήνιο",
+  "Setting_system-restore-protection_Name": "Προστασία Συστήματος (Σημεία Επαναφοράς)",
+  "Setting_system-restore-protection_Description": "Επιτρέπετε στα Windows να δημιουργούν αυτόματα σημεία επαναφοράς για τη μονάδα C:, καθιστώντας δυνατή την αναίρεση αλλαγών συστήματος αν κάτι πάει στραβά"
+}

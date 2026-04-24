@@ -163,7 +163,7 @@
   "SettingGroup_Security": "सुरक्षा",
   "SettingGroup_Layout": "लेआउट",
   "SettingGroup_Start_Menu_Settings": "स्टार्ट मेनू सेटिंग्स",
- "SettingGroup_Start_Menu": "स्टार्ट मेनू",
+  "SettingGroup_Start_Menu": "स्टार्ट मेनू",
   "SettingGroup_Windows_Theme": "विंडोज थीम",
   "SettingGroup_Theme_Mode": "थीम मोड",
   "SettingGroup_Transparency": "पारदर्शिता",
@@ -712,6 +712,7 @@
   "SettingGroup_Scheduled_Tasks": "अनुसूचित कार्य",
   "SettingGroup_Visual_Effects": "दृश्य प्रभाव",
   "SettingGroup_Accessibility": "अभिगम्यता",
+  "SettingGroup_System": "सिस्टम",
   "Setting_gaming-game-mode_Name": "गेम मोड",
   "Setting_gaming-game-mode_Description": "पृष्ठभूमि में चीजों को बंद करके अपने पीसी को खेलने के लिए अनुकूलित करें",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "पॉइंटर परिशुद्धता बढ़ाएँ",
@@ -1883,5 +1884,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI कार्य",
   "Setting_gaming-task-windows-ai_Description": "Windows AI निर्धारित कार्य जिनमें Recall कॉन्फ़िगरेशन शामिल है। AI सुविधाओं को पृष्ठभूमि में चलने से रोकने के लिए अक्षम करें",
   "Setting_gaming-task-office-actions-server_Name": "Office क्रिया सर्वर कार्य",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server निर्धारित कार्य। Office AI को पृष्ठभूमि में चलने से रोकने के लिए अक्षम करें"
-}
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server निर्धारित कार्य। Office AI को पृष्ठभूमि में चलने से रोकने के लिए अक्षम करें",
+  "Setting_system-restore-protection_Name": "सिस्टम सुरक्षा (पुनर्स्थापन बिंदु)",
+  "Setting_system-restore-protection_Description": "Windows को C: ड्राइव के लिए स्वचालित रूप से पुनर्स्थापन बिंदु बनाने दें, जिससे कुछ गलत होने पर सिस्टम परिवर्तनों को वापस लेना संभव हो"
+}

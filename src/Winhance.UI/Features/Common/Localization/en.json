@@ -198,7 +198,7 @@
   "SettingGroup_Security": "Security",
   "SettingGroup_Layout": "Layout",
   "SettingGroup_Start_Menu_Settings": "Start Menu Settings",
- "SettingGroup_Start_Menu": "Start Menu",
+  "SettingGroup_Start_Menu": "Start Menu",
   "SettingGroup_Windows_Theme": "Windows Theme",
   "SettingGroup_Theme_Mode": "Theme mode",
   "SettingGroup_Transparency": "Transparency",
@@ -1883,5 +1883,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Windows AI scheduled tasks including Recall configuration. Disable to prevent AI features from running in the background",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server scheduled task. Disable to prevent Office AI from running in the background"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server scheduled task. Disable to prevent Office AI from running in the background",
+  "Setting_system-restore-protection_Name": "System Protection (Restore Points)",
+  "Setting_system-restore-protection_Description": "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong"
 }

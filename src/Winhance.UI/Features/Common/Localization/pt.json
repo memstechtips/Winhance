@@ -712,6 +712,7 @@
   "SettingGroup_Scheduled_Tasks": "Tarefas Agendadas",
   "SettingGroup_Visual_Effects": "Efeitos Visuais",
   "SettingGroup_Accessibility": "Acessibilidade",
+  "SettingGroup_System": "Sistema",
   "Setting_gaming-game-mode_Name": "Modo de Jogo",
   "Setting_gaming-game-mode_Description": "Otimize o seu PC para jogar desativando coisas em segundo plano",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Melhorar a Precisão do Ponteiro",
@@ -1883,5 +1884,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Tarefas agendadas do Windows AI, incluindo configuração do Recall. Desative para impedir que funcionalidades de IA sejam executadas em segundo plano",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Tarefa agendada do Office AI Actions Server. Desative para impedir que a IA do Office seja executada em segundo plano"
+  "Setting_gaming-task-office-actions-server_Description": "Tarefa agendada do Office AI Actions Server. Desative para impedir que a IA do Office seja executada em segundo plano",
+  "Setting_system-restore-protection_Name": "Proteção do sistema (Pontos de restauro)",
+  "Setting_system-restore-protection_Description": "Permitir que o Windows crie automaticamente pontos de restauro para a unidade C:, tornando possível desfazer alterações do sistema se algo correr mal"
 }

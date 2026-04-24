@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Sicherheit",
   "SettingGroup_Layout": "Layout",
   "SettingGroup_Start_Menu_Settings": "Startmenü-Einstellungen",
- "SettingGroup_Start_Menu": "Startmenü",
+  "SettingGroup_Start_Menu": "Startmenü",
   "SettingGroup_Windows_Theme": "Windows-Design",
   "SettingGroup_Theme_Mode": "Design-Modus",
   "SettingGroup_Transparency": "Transparenz",
@@ -712,6 +712,7 @@
   "SettingGroup_Scheduled_Tasks": "Geplante Aufgaben",
   "SettingGroup_Visual_Effects": "Visuelle Effekte",
   "SettingGroup_Accessibility": "Barrierefreiheit",
+  "SettingGroup_System": "System",
   "Setting_gaming-game-mode_Name": "Spielmodus",
   "Setting_gaming-game-mode_Description": "Optimieren Sie Ihren PC für das Spielen, indem Sie Dinge im Hintergrund ausschalten",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Zeigerpräzision verbessern",
@@ -1883,5 +1884,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI-Aufgaben",
   "Setting_gaming-task-windows-ai_Description": "Geplante Windows AI-Aufgaben einschließlich Recall-Konfiguration. Deaktivieren, um zu verhindern, dass KI-Funktionen im Hintergrund ausgeführt werden",
   "Setting_gaming-task-office-actions-server_Name": "Office-Aktionsserver-Aufgabe",
-  "Setting_gaming-task-office-actions-server_Description": "Geplante Aufgabe für Office AI Actions Server. Deaktivieren, um zu verhindern, dass Office AI im Hintergrund ausgeführt wird"
-}
+  "Setting_gaming-task-office-actions-server_Description": "Geplante Aufgabe für Office AI Actions Server. Deaktivieren, um zu verhindern, dass Office AI im Hintergrund ausgeführt wird",
+  "Setting_system-restore-protection_Name": "Systemschutz (Wiederherstellungspunkte)",
+  "Setting_system-restore-protection_Description": "Erlaubt Windows, automatisch Wiederherstellungspunkte für Laufwerk C: zu erstellen, sodass Systemveränderungen rückgängig gemacht werden können, falls etwas schiefgeht"
+}

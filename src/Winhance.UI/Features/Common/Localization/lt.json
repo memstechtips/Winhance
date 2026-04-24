@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Saugumas",
   "SettingGroup_Layout": "Išdėstymas",
   "SettingGroup_Start_Menu_Settings": "Paleidimo meniu nustatymai",
- "SettingGroup_Start_Menu": "Paleidimo meniu",
+  "SettingGroup_Start_Menu": "Paleidimo meniu",
   "SettingGroup_Windows_Theme": "Windows tema",
   "SettingGroup_Theme_Mode": "Temos režimas",
   "SettingGroup_Transparency": "Skaidrumas",
@@ -712,6 +712,7 @@
   "SettingGroup_Scheduled_Tasks": "Suplanuotos užduotys",
   "SettingGroup_Visual_Effects": "Vaizdiniai efektai",
   "SettingGroup_Accessibility": "Prieinamumas",
+  "SettingGroup_System": "Sistema",
   "Setting_gaming-game-mode_Name": "Žaidimų režimas",
   "Setting_gaming-game-mode_Description": "Optimizuokite savo kompiuterį žaidimams, išjungdami foninius procesus",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Padidinti žymeklio tikslumą",
@@ -1883,5 +1884,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Windows AI suplanuotos užduotys, įskaitant Recall konfigūraciją. Išjunkite, kad AI funkcijos neveiktų fone",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server suplanuota užduotis. Išjunkite, kad Office AI neveiktų fone"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server suplanuota užduotis. Išjunkite, kad Office AI neveiktų fone",
+  "Setting_system-restore-protection_Name": "Sistemos apsauga (Atkūrimo taškai)",
+  "Setting_system-restore-protection_Description": "Leiskite Windows automatiškai kurti atkūrimo taškus C: diskui, kad būtų galima atšaukti sistemos pakeitimus, jei kų nors nueitų ne taip"
 }
