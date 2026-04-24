@@ -83,6 +83,7 @@ public static partial class ExternalAppDefinitions
                         Id = "external-app-xnview-classic",
                         Name = "XnView",
                         Description = "Image viewer, browser and converter (Classic Version)",
+                        RegistryDisplayName = "XnView",
                         GroupName = "Imaging",
                         WinGetPackageId = ["XnSoft.XnView.Classic"],
                         ChocoPackageId = "xnview",

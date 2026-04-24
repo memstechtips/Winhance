@@ -20,6 +20,8 @@ public static partial class ExternalAppDefinitions
                         Id = "external-app-steam",
                         Name = "Steam",
                         Description = "Digital distribution platform for PC gaming",
+                        RegistryDisplayName = "Steam",
+                        DetectionPaths = new[] { @"%ProgramFiles(x86)%\Steam\Steam.exe", @"%ProgramFiles%\Steam\Steam.exe" },
                         GroupName = "Gaming",
                         WinGetPackageId = ["Valve.Steam"],
                         ChocoPackageId = "steam",
