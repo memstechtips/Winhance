@@ -2648,7 +2648,7 @@ public static class GamingAndPerformanceOptimizations
                     Id = "gaming-touch-keyboard-service",
                     IsSubjectivePreference = true,
                     Name = "Touch Keyboard and Handwriting Panel Service",
-                    Description = "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad",
+                    Description = "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad, and also disables clipboard history (Win+V)",
                     GroupName = "System Services",
                     Icon = "KeyboardOutline",
                     InputType = InputType.Selection,
