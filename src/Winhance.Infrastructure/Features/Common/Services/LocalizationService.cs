@@ -73,8 +73,14 @@ public class LocalizationService : ILocalizationService
 
             _currentStrings = LoadLanguageFile(languageCode);
 
+            // Only update the UI culture for resource-loading purposes.
+            // Deliberately do NOT change CultureInfo.CurrentCulture — keeping it at
+            // InvariantCulture ensures that number formatting throughout the app
+            // (including WinUI NumberBox controls) remains locale-independent.
+            // Winhance's own localization uses a JSON-based system and does not
+            // rely on the thread's CurrentCulture for number/date formatting.
             CultureInfo.CurrentUICulture = culture;
-            CultureInfo.CurrentCulture = culture;
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
             LanguageChanged?.Invoke(this, EventArgs.Empty);
             return true;

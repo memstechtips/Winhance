@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.Json;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
@@ -13,7 +14,7 @@ internal static class NumericConversionHelper
             long longVal => (int)longVal,
             double doubleVal => (int)doubleVal,
             float floatVal => (int)floatVal,
-            string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
+            string stringVal when int.TryParse(stringVal, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) => parsed,
             JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
             _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to numeric value")
         };

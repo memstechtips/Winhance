@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Globalization.NumberFormatting;
 
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -1044,7 +1045,7 @@ public partial class SettingItemViewModel : BaseViewModel
             case long l: result = (int)l; return true;
             case double d: result = (int)d; return true;
             case float f: result = (int)f; return true;
-            case string s when int.TryParse(s, out var parsed): result = parsed; return true;
+            case string s when int.TryParse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed): result = parsed; return true;
             default:
                 if (value != null)
                 {
@@ -1212,6 +1213,28 @@ public partial class SettingItemViewModel : BaseViewModel
             DcNumericValue = (int)e.NewValue;
             HandleACDCNumericChangedAsync().FireAndForget(_logService);
         }
+    }
+
+    /// <summary>
+    /// Sets an invariant-culture NumberFormatter on a NumberBox so that it formats
+    /// and parses values using en-US conventions regardless of the Windows system locale.
+    /// This prevents locale-sensitive formatting (e.g. Russian "50.000" for 50000)
+    /// from causing incorrect values when the user interacts with the control.
+    /// </summary>
+    public void OnNumberBoxLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is NumberBox nb)
+            nb.NumberFormatter = CreateInvariantNumberFormatter();
+    }
+
+    private static DecimalFormatter CreateInvariantNumberFormatter()
+    {
+        var formatter = new DecimalFormatter(new[] { "en-US" }, "US")
+        {
+            FractionDigits = 0,
+            IsGrouped = false
+        };
+        return formatter;
     }
 
     #endregion
