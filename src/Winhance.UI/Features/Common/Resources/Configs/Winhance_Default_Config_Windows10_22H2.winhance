@@ -1535,6 +1535,12 @@
             "Name": "High Contrast Hotkey (Alt\u002BShift\u002BPrtScn)",
             "IsSelected": true,
             "InputType": 0
+          },
+          {
+            "Id": "system-restore-protection",
+            "Name": "System Protection (Restore Points)",
+            "IsSelected": true,
+            "InputType": 0
           }
         ]
       },

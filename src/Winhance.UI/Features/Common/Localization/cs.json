@@ -717,6 +717,7 @@
   "SettingGroup_Scheduled_Tasks": "Naplánované úlohy",
   "SettingGroup_Visual_Effects": "Vizuální efekty",
   "SettingGroup_Accessibility": "Usnadnění přístupu",
+  "SettingGroup_System": "Systém",
   "Setting_gaming-game-mode_Name": "Herní režim",
   "Setting_gaming-game-mode_Description": "Optimalizujte svůj počítač pro hraní vypnutím věcí na pozadí",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Zvýšit přesnost ukazatele",
@@ -1892,5 +1893,7 @@
   "Setting_gaming-task-windows-ai_Name": "Úlohy Windows AI",
   "Setting_gaming-task-windows-ai_Description": "Naplánované úlohy Windows AI včetně konfigurace Recall. Zakazťe, aby se funkce AI nespouštěly na pozadí",
   "Setting_gaming-task-office-actions-server_Name": "Úloha serveru akcí Office",
-  "Setting_gaming-task-office-actions-server_Description": "Naplánovaná úloha Office AI Actions Server. Zakazťe, aby se Office AI nespouštělo na pozadí"
+  "Setting_gaming-task-office-actions-server_Description": "Naplánovaná úloha Office AI Actions Server. Zakazťe, aby se Office AI nespouštělo na pozadí",
+  "Setting_system-restore-protection_Name": "Ochrana systému (Body obnovení)",
+  "Setting_system-restore-protection_Description": "Umožněte systému Windows automaticky vytvářet body obnovení pro disk C:, což umožňuje vrátit změny systému zpět, pokud se něco pokazilo"
 }

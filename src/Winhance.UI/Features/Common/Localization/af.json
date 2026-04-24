@@ -717,6 +717,7 @@
   "SettingGroup_Scheduled_Tasks": "Geskeduleerde Take",
   "SettingGroup_Visual_Effects": "Visuele Effekte",
   "SettingGroup_Accessibility": "Toeganklikheid",
+  "SettingGroup_System": "Stelsel",
   "Setting_gaming-game-mode_Name": "Speletjiemodus",
   "Setting_gaming-game-mode_Description": "Optimaliseer jou rekenaar vir speel deur dinge in die agtergrond af te skakel",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Verbeter Aanwyser Presisie",
@@ -1892,5 +1893,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI-take",
   "Setting_gaming-task-windows-ai_Description": "Windows AI geskeduleerde take insluitend Recall-konfigurasie. Deaktiveer om te verhoed dat KI-funksies op die agtergrond loop",
   "Setting_gaming-task-office-actions-server_Name": "Office-aksiesbediener-taak",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server geskeduleerde taak. Deaktiveer om te verhoed dat Office AI op die agtergrond loop"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server geskeduleerde taak. Deaktiveer om te verhoed dat Office AI op die agtergrond loop",
+  "Setting_system-restore-protection_Name": "Stelselbeskerming (Herstelpunte)",
+  "Setting_system-restore-protection_Description": "Laat Windows toe om outomaties herstelpunte vir die C:-skyf te skep, wat dit moontlik maak om stelselverwysings ongedaan te maak as iets skeefloop"
 }

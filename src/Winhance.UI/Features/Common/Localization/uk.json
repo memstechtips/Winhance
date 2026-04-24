@@ -717,6 +717,7 @@
   "SettingGroup_Scheduled_Tasks": "Заплановані завдання",
   "SettingGroup_Visual_Effects": "Візуальні ефекти",
   "SettingGroup_Accessibility": "Спеціальні можливості",
+  "SettingGroup_System": "Система",
   "Setting_gaming-game-mode_Name": "Ігровий режим",
   "Setting_gaming-game-mode_Description": "Оптимізуйте свій ПК для гри, вимикаючи фонові процеси",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Підвищити точність вказівника",
@@ -1892,5 +1893,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Заплановані завдання Windows AI, включаючи налаштування Recall. Вимкніть, щоб запобігти роботі функцій ШІ у фоновому режимі",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Заплановане завдання Office AI Actions Server. Вимкніть, щоб запобігти роботі ШІ Office у фоновому режимі"
+  "Setting_gaming-task-office-actions-server_Description": "Заплановане завдання Office AI Actions Server. Вимкніть, щоб запобігти роботі ШІ Office у фоновому режимі",
+  "Setting_system-restore-protection_Name": "Захист системи (Точки відновлення)",
+  "Setting_system-restore-protection_Description": "Дозвольте Windows автоматично створювати точки відновлення для диска C:, щоб можна було скасувати зміни системи, якщо щось піде не так"
 }

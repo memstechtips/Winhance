@@ -717,6 +717,7 @@
   "SettingGroup_Scheduled_Tasks": "Ieplānotie uzdevumi",
   "SettingGroup_Visual_Effects": "Vizuālie efekti",
   "SettingGroup_Accessibility": "Pieejamība",
+  "SettingGroup_System": "Sistēma",
   "Setting_gaming-game-mode_Name": "Spēļu režīms",
   "Setting_gaming-game-mode_Description": "Optimizējiet savu datoru spēlēšanai, izslēdzot lietas fonā",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Uzlabot rādītāja precizitāti",
@@ -1892,5 +1893,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Windows AI ieplānotie uzdevumi, ieskaitot Recall konfigurāciju. Atspējojiet, lai novērstu AI funkciju darbību fonā",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ieplānotais uzdevums. Atspējojiet, lai novērstu Office AI darbību fonā"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ieplānotais uzdevums. Atspējojiet, lai novērstu Office AI darbību fonā",
+  "Setting_system-restore-protection_Name": "Sistēmas aizsardzība (Atjaunosšanas punkti)",
+  "Setting_system-restore-protection_Description": "Atļaujiet Windows automātiski izveidot atjaunosšanas punktus C: diskam, padarot iespējamu sistēmas izmaiņu atcelšanu, ja kaut kas iet greizi"
 }
