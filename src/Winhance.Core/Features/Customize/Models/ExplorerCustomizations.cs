@@ -433,6 +433,16 @@ if (-not (Test-Path $icoPath)) {
                             RecommendedValue = null,
                             ValueType = RegistryValueKind.String,
                         },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
                     },
                     Dependencies = new List<SettingDependency>
                     {
