@@ -46,6 +46,16 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["GOG.Galaxy"],
                         ChocoPackageId = "goggalaxy",
                         WebsiteUrl = "https://www.gogalaxy.com/en/"
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-playnite",
+                        Name = "Playnite",
+                        Description = "Open-source video game library manager with support for multiple game stores",
+                        GroupName = "Gaming",
+                        WinGetPackageId = ["Playnite.Playnite"],
+                        ChocoPackageId = "playnite",
+                        WebsiteUrl = "https://playnite.link/"
                     }
                 }
             };
