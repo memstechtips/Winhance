@@ -107,9 +107,14 @@
                     CornerRadius="4">
                 <StackPanel>
                     <!-- Step 1 Header -->
-                    <Border Padding="16,12"
-                            Tapped="Step1_Header_Tapped"
-                            Background="Transparent">
+                    <Button Padding="16,12"
+                            Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                            CommandParameter="1"
+                            AutomationProperties.Name="{x:Bind ViewModel.Step1State.Title, Mode=OneWay}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -160,7 +165,7 @@
                                 </fluentIcons:SymbolIcon.RenderTransform>
                             </fluentIcons:SymbolIcon>
                         </Grid>
-                    </Border>
+                    </Button>
 
                     <!-- Step 1 Content -->
                     <StackPanel Visibility="{x:Bind ViewModel.Step1State.IsExpanded, Mode=OneWay}"
@@ -337,9 +342,14 @@
                 <Grid>
                     <StackPanel>
                         <!-- Step 2 Header -->
-                        <Border Padding="16,12"
-                                Tapped="Step2_Header_Tapped"
-                                Background="Transparent">
+                        <Button Padding="16,12"
+                                Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                CommandParameter="2"
+                                AutomationProperties.Name="{x:Bind ViewModel.Step2State.Title, Mode=OneWay}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -393,7 +403,7 @@
                                     </fluentIcons:SymbolIcon.RenderTransform>
                                 </fluentIcons:SymbolIcon>
                             </Grid>
-                        </Border>
+                        </Button>
 
                         <!-- Step 2 Content -->
                         <StackPanel Visibility="{x:Bind ViewModel.Step2State.IsExpanded, Mode=OneWay}"
@@ -502,9 +512,14 @@
                 <Grid>
                     <StackPanel>
                         <!-- Step 3 Header -->
-                        <Border Padding="16,12"
-                                Tapped="Step3_Header_Tapped"
-                                Background="Transparent">
+                        <Button Padding="16,12"
+                                Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                CommandParameter="3"
+                                AutomationProperties.Name="{x:Bind ViewModel.Step3State.Title, Mode=OneWay}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -555,7 +570,7 @@
                                     </fluentIcons:SymbolIcon.RenderTransform>
                                 </fluentIcons:SymbolIcon>
                             </Grid>
-                        </Border>
+                        </Button>
 
                         <!-- Step 3 Content -->
                         <StackPanel Visibility="{x:Bind ViewModel.Step3State.IsExpanded, Mode=OneWay}"
@@ -588,9 +603,14 @@
                 <Grid>
                     <StackPanel>
                         <!-- Step 4 Header -->
-                        <Border Padding="16,12"
-                                Tapped="Step4_Header_Tapped"
-                                Background="Transparent">
+                        <Button Padding="16,12"
+                                Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                CommandParameter="4"
+                                AutomationProperties.Name="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -644,7 +664,7 @@
                                     </fluentIcons:SymbolIcon.RenderTransform>
                                 </fluentIcons:SymbolIcon>
                             </Grid>
-                        </Border>
+                        </Button>
 
                         <!-- Step 4 Content -->
                         <StackPanel Visibility="{x:Bind ViewModel.Step4State.IsExpanded, Mode=OneWay}"

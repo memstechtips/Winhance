@@ -33,14 +33,16 @@
                     <Button
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetToggleToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind ToggleRecommendedTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind ToggleRecommendedTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ToggleRecommendedTooltip, Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
                     <Button
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetToggleToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind ToggleDefaultTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind ToggleDefaultTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ToggleDefaultTooltip, Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -61,14 +63,16 @@
                     <Button
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetSelectionToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind SelectionRecommendedTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind SelectionRecommendedTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind SelectionRecommendedTooltip, Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
                     <Button
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetSelectionToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind SelectionDefaultTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind SelectionDefaultTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind SelectionDefaultTooltip, Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -100,14 +104,16 @@
                     <Button
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetNumericToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind RecommendedValueTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind RecommendedValueTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind RecommendedValueTooltip, Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
                     <Button
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetNumericToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind DefaultValueTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind DefaultValueTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind DefaultValueTooltip, Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -150,14 +156,16 @@
                             <Button
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetAcSelectionToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
                             <Button
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetAcSelectionToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -178,14 +186,16 @@
                             <Button
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetDcSelectionToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind DcSelectionRecommendedTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind DcSelectionRecommendedTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind DcSelectionRecommendedTooltip, Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
                             <Button
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetDcSelectionToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind DcSelectionDefaultTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind DcSelectionDefaultTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind DcSelectionDefaultTooltip, Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -209,14 +219,16 @@
                     <Button
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetAcSelectionToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
                     <Button
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetAcSelectionToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -241,14 +253,16 @@
                             <Button
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetAcNumericToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
                             <Button
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetAcNumericToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -272,14 +286,16 @@
                             <Button
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetDcNumericToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
                             <Button
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetDcNumericToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind DefaultDcValueTooltip, Mode=OneWay}">
+                                ToolTipService.ToolTip="{x:Bind DefaultDcValueTooltip, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind DefaultDcValueTooltip, Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -306,14 +322,16 @@
                     <Button
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetAcNumericToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
                     <Button
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetAcNumericToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
+                        ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
