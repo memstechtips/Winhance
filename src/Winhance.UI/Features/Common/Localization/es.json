@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "Elija el carácter utilizado para separar elementos en listas, como en exportaciones CSV y fórmulas",
   "Setting_explorer-customization-list-separator_Option_0": ", (Coma)",
   "Setting_explorer-customization-list-separator_Option_1": "; (Punto y coma)",
+  "SettingGroup_Autoplay": "Reproducción automática",
+  "Setting_explorer-disable-autoplay_Name": "Deshabilitar reproducción automática",
+  "Setting_explorer-disable-autoplay_Description": "Impide que Windows abra automáticamente un cuadro de diálogo o ejecute programas al insertar una unidad USB, DVD o tarjeta SD",
   "SettingGroup_System_Sounds": "Sonidos del Sistema",
   "SettingGroup_Update_Policy": "Política de Actualización",
   "SettingGroup_Delivery_Store": "Entrega y Tienda",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Tareas programadas de Windows AI incluida la configuración de Recall. Deshábilite para evitar que las funciones de IA se ejecuten en segundo plano",
   "Setting_gaming-task-office-actions-server_Name": "Tarea del servidor de acciones de Office",
   "Setting_gaming-task-office-actions-server_Description": "Tarea programada de Office AI Actions Server. Deshábilite para evitar que Office AI se ejecute en segundo plano"
-}
+}

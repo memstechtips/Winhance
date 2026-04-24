@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "Zvolte znak používaný k oddělení položek v seznamech, například v exportech CSV a vzorcích",
   "Setting_explorer-customization-list-separator_Option_0": ", (Čárka)",
   "Setting_explorer-customization-list-separator_Option_1": "; (Středník)",
+  "SettingGroup_Autoplay": "Automatické přehrávání",
+  "Setting_explorer-disable-autoplay_Name": "Zakázat automatické přehrávání",
+  "Setting_explorer-disable-autoplay_Description": "Zabrání Windows v automatickém otevření dialogu nebo spuštění programů při vložení USB disku, DVD nebo SD karty",
   "SettingGroup_System_Sounds": "Systémové zvuky",
   "SettingGroup_Update_Policy": "Zásady aktualizací",
   "SettingGroup_Delivery_Store": "Doručování a obchod",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Naplánované úlohy Windows AI včetně konfigurace Recall. Zakazťe, aby se funkce AI nespouštěly na pozadí",
   "Setting_gaming-task-office-actions-server_Name": "Úloha serveru akcí Office",
   "Setting_gaming-task-office-actions-server_Description": "Naplánovaná úloha Office AI Actions Server. Zakazťe, aby se Office AI nespouštělo na pozadí"
-}
+}

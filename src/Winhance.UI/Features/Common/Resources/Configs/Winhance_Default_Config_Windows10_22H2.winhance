@@ -699,6 +699,12 @@
             "Name": "List Separator",
             "InputType": 1,
             "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-disable-autoplay",
+            "Name": "Disable Autoplay",
+            "IsSelected": false,
+            "InputType": 0
           }
         ]
       },

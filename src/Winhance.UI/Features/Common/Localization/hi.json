@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "सूचियों में आइटम अलग करने के लिए उपयोग किए जाने वाले वर्ण को चुनें, जैसे CSV निर्यात और सूत्रों में",
   "Setting_explorer-customization-list-separator_Option_0": ", (अल्पविराम)",
   "Setting_explorer-customization-list-separator_Option_1": "; (अर्धविराम)",
+  "SettingGroup_Autoplay": "ऑटोप्ले",
+  "Setting_explorer-disable-autoplay_Name": "ऑटोप्ले अक्षम करें",
+  "Setting_explorer-disable-autoplay_Description": "Windows को USB ड्राइव, DVD या SD कार्ड डालने पर स्वचालित डायलॉग खोलने या प्रोग्राम चलाने से रोकता है",
   "SettingGroup_System_Sounds": "सिस्टम ध्वनियाँ",
   "SettingGroup_Update_Policy": "अपडेट नीति",
   "SettingGroup_Delivery_Store": "वितरण और स्टोर",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Windows AI निर्धारित कार्य जिनमें Recall कॉन्फ़िगरेशन शामिल है। AI सुविधाओं को पृष्ठभूमि में चलने से रोकने के लिए अक्षम करें",
   "Setting_gaming-task-office-actions-server_Name": "Office क्रिया सर्वर कार्य",
   "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server निर्धारित कार्य। Office AI को पृष्ठभूमि में चलने से रोकने के लिए अक्षम करें"
-}
+}
