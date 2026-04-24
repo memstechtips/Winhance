@@ -379,6 +379,18 @@ public static class StartMenuCustomizations
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
+                        new RegistrySetting
+                        {
+                            // Required for Windows 11 25H2+ where the redesigned Start Menu
+                            // consults this user-preference key independently of the Group Policy entries above.
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search",
+                            ValueName = "BingSearchEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
                     },
                 },
             },
