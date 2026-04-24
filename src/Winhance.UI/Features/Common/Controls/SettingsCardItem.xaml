@@ -115,6 +115,7 @@
                 <NumberBox
                     Value="{x:Bind NumericValue, Mode=OneWay}"
                     ValueChanged="{x:Bind OnNumberBoxValueChanged}"
+                    Loaded="{x:Bind OnNumberBoxLoaded}"
                     Minimum="{x:Bind MinValue}"
                     Maximum="{x:Bind MaxValue}"
                     SpinButtonPlacementMode="Inline"
@@ -256,6 +257,7 @@
                         <NumberBox
                             Value="{x:Bind AcNumericValue, Mode=OneWay}"
                             ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
+                            Loaded="{x:Bind OnNumberBoxLoaded}"
                             Minimum="{x:Bind MinValue}"
                             Maximum="{x:Bind MaxValue}"
                             SpinButtonPlacementMode="Inline"
@@ -287,6 +289,7 @@
                         <NumberBox
                             Value="{x:Bind DcNumericValue, Mode=OneWay}"
                             ValueChanged="{x:Bind OnDCNumberBoxValueChanged}"
+                            Loaded="{x:Bind OnNumberBoxLoaded}"
                             Minimum="{x:Bind MinValue}"
                             Maximum="{x:Bind MaxValue}"
                             SpinButtonPlacementMode="Inline"
@@ -321,6 +324,7 @@
                 <NumberBox
                     Value="{x:Bind AcNumericValue, Mode=OneWay}"
                     ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
+                    Loaded="{x:Bind OnNumberBoxLoaded}"
                     Minimum="{x:Bind MinValue}"
                     Maximum="{x:Bind MaxValue}"
                     SpinButtonPlacementMode="Inline"
