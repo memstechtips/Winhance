@@ -561,6 +561,9 @@
   "Setting_explorer-customization-list-separator_Description": "CSV 내보내기 및 수식 등에서 목록 항목을 구분하는 데 사용할 문자를 선택합니다",
   "Setting_explorer-customization-list-separator_Option_0": ", (쉼표)",
   "Setting_explorer-customization-list-separator_Option_1": "; (세미콜론)",
+  "SettingGroup_Autoplay": "자동 실행",
+  "Setting_explorer-disable-autoplay_Name": "자동 실행 비활성화",
+  "Setting_explorer-disable-autoplay_Description": "USB 드라이브, DVD 또는 SD 카드를 삽입할 때 Windows가 자동으로 대화 상자를 열거나 프로그램을 실행하지 못하도록 합니다",
   "SettingGroup_System_Sounds": "시스템 소리",
   "SettingGroup_Update_Policy": "업데이트 정책",
   "SettingGroup_Delivery_Store": "배달 & 스토어",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Recall 구성을 포함한 Windows AI 예약 작업입니다. AI 기능이 백그라운드에서 실행되지 않도록 비활성화하세요",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
   "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 예약 작업입니다. Office AI가 백그라운드에서 실행되지 않도록 비활성화하세요"
-}
+}

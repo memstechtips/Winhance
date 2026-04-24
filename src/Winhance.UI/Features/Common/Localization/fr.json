@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "Choisissez le caractère utilisé pour séparer les éléments dans les listes, comme dans les exports CSV et les formules",
   "Setting_explorer-customization-list-separator_Option_0": ", (Virgule)",
   "Setting_explorer-customization-list-separator_Option_1": "; (Point-virgule)",
+  "SettingGroup_Autoplay": "Lecture automatique",
+  "Setting_explorer-disable-autoplay_Name": "Désactiver la lecture automatique",
+  "Setting_explorer-disable-autoplay_Description": "Empêche Windows d'ouvrir automatiquement une boîte de dialogue ou d'exécuter des programmes lorsque vous insérez une clé USB, un DVD ou une carte SD",
   "SettingGroup_System_Sounds": "Sons système",
   "SettingGroup_Update_Policy": "Politique de mise à jour",
   "SettingGroup_Delivery_Store": "Livraison & Magasin",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Tâches planifiées Windows AI incluant la configuration de Recall. Désactivez pour empêcher les fonctionnalités d'IA de s'exécuter en arrière-plan",
   "Setting_gaming-task-office-actions-server_Name": "Tâche du serveur d'actions Office",
   "Setting_gaming-task-office-actions-server_Description": "Tâche planifiée Office AI Actions Server. Désactivez pour empêcher Office AI de s'exécuter en arrière-plan"
-}
+}

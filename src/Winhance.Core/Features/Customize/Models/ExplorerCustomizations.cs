@@ -2616,7 +2616,42 @@ if (Test-Path $appPathsKey) {
                             },
                         },
                     },
-                },    
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-disable-autoplay",
+                    RecommendedToggleState = true,
+                    Name = "Disable Autoplay",
+                    Description = "Prevents Windows from automatically opening a dialog or running programs when you insert a USB drive, DVD, or SD card",
+                    GroupName = "Autoplay",
+                    InputType = InputType.Toggle,
+                    Icon = "UsbFlashDriveOff",
+                    AddedInVersion = "26.04.24",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers",
+                            ValueName = "DisableAutoplay",
+                            EnabledValue = [1],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            RecommendedValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+                            ValueName = "NoDriveTypeAutoRun",
+                            EnabledValue = [255],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            RecommendedValue = 255,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
             },
         };
     }

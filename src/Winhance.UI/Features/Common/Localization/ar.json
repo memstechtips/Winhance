@@ -509,6 +509,9 @@
     "Setting_explorer-customization-list-separator_Description": "اختر الحرف المستخدم لفصل العناصر في القوائم، كما في تصدير CSV والصيغ",
     "Setting_explorer-customization-list-separator_Option_0": ", (فاصلة)",
     "Setting_explorer-customization-list-separator_Option_1": "; (فاصلة منقوطة)",
+  "SettingGroup_Autoplay": "تشغيل تلقائي",
+  "Setting_explorer-disable-autoplay_Name": "تعطيل التشغيل التلقائي",
+  "Setting_explorer-disable-autoplay_Description": "يمنع Windows من فتح نافذة حوار تلقائيًا أو تشغيل برامج عند إدخال محرك USB أو قرص DVD أو بطاقة SD",
     "SettingGroup_System_Sounds": "أصوات النظام",
     "SettingGroup_Update_Policy": "سياسة التحديث",
     "SettingGroup_Delivery_Store": "التسليم والمتجر",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "مهام Windows AI المجدولة بما فيها تكوين Recall. عطّلها لمنع تشغيل ميزات الذكاء الاصطناعي في الخلفية",
   "Setting_gaming-task-office-actions-server_Name": "مهمة خادم إجراءات Office",
   "Setting_gaming-task-office-actions-server_Description": "مهمة Office AI Actions Server المجدولة. عطّلها لمنع تشغيل Office AI في الخلفية"
-}
+}

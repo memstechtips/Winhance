@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "CSVエクスポートや数式などでリスト項目を区切るために使用する文字を選択します",
   "Setting_explorer-customization-list-separator_Option_0": ", (カンマ)",
   "Setting_explorer-customization-list-separator_Option_1": "; (セミコロン)",
+  "SettingGroup_Autoplay": "自動再生",
+  "Setting_explorer-disable-autoplay_Name": "自動再生を無効にする",
+  "Setting_explorer-disable-autoplay_Description": "USBドライブ、DVD、SDカードを差し込んだときにWindowsが自動的にダイアログを開いたりプログラムを実行したりするのを防ぎます",
   "SettingGroup_System_Sounds": "システムサウンド",
   "SettingGroup_Update_Policy": "更新ポリシー",
   "SettingGroup_Delivery_Store": "配信とストア",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Recall 設定を含む Windows AI スケジュールタスク。AI 機能がバックグラウンドで実行されないよう無効にしてください",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
   "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server スケジュールタスク。Office AI がバックグラウンドで実行されないよう無効にしてください"
-}
+}

@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "Επιλέξτε τον χαρακτήρα που χρησιμοποιείται για τον διαχωρισμό στοιχείων σε λίστες, όπως σε εξαγωγές CSV και τύπους",
   "Setting_explorer-customization-list-separator_Option_0": ", (Κόμμα)",
   "Setting_explorer-customization-list-separator_Option_1": "; (Ελληνικό ερωτηματικό)",
+  "SettingGroup_Autoplay": "Αυτόματη αναπαραγωγή",
+  "Setting_explorer-disable-autoplay_Name": "Απενεργοποίηση αυτόματης αναπαραγωγής",
+  "Setting_explorer-disable-autoplay_Description": "Εμποδίζει τα Windows να ανοίγουν αυτόματα ένα παράθυρο ή να εκτελούν προγράμματα όταν τοποθετείτε μια μονάδα USB, DVD ή SD",
   "SettingGroup_System_Sounds": "Ήχοι Συστήματος",
   "SettingGroup_Update_Policy": "Πολιτική Ενημερώσεων",
   "SettingGroup_Delivery_Store": "Παράδοση & Store",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Προγραμματισμένες εργασίες Windows AI συμπεριλαμβανομένης της ρύθμισης Recall. Απενεργοποιήστε για να αποτρέψετε την εκτέλεση λειτουργιών τεχνητής νοημοσύνης στο παρασκήνιο",
   "Setting_gaming-task-office-actions-server_Name": "Εργασία διακομιστή Office Actions",
   "Setting_gaming-task-office-actions-server_Description": "Προγραμματισμένη εργασία Office AI Actions Server. Απενεργοποιήστε για να αποτρέψετε την εκτέλεση του Office AI στο παρασκήνιο"
-}
+}

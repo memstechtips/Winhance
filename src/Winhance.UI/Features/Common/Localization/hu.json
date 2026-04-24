@@ -526,6 +526,9 @@
   "Setting_explorer-customization-list-separator_Description": "Válassza ki a listaelemek elválasztására használt karaktert, például CSV-exportálásban és képletekben",
   "Setting_explorer-customization-list-separator_Option_0": ", (Vessző)",
   "Setting_explorer-customization-list-separator_Option_1": "; (Pontosvessző)",
+  "SettingGroup_Autoplay": "Automatikus lejátszás",
+  "Setting_explorer-disable-autoplay_Name": "Automatikus lejátszás letiltása",
+  "Setting_explorer-disable-autoplay_Description": "Megakadályozza, hogy a Windows automatikusan megnyisson egy párbeszédablakot vagy programokat futtasson USB meghajtó, DVD vagy SD kártya behelyezésekor",
   "SettingGroup_System_Sounds": "Rendszerhangok",
   "SettingGroup_Update_Policy": "Frissítési irányelv",
   "SettingGroup_Delivery_Store": " Szállítás és áruház",
@@ -1884,4 +1887,4 @@
   "Setting_gaming-task-windows-ai_Description": "Windows AI ütemezett feladatok, beleértve a Recall konfigurációját. Tiltsa le, hogy megakadályozza az AI funkciók háttérben való futását",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
   "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ütemezett feladat. Tiltsa le, hogy megakadályozza az Office AI háttérben való futását"
-}
+}
