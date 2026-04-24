@@ -965,6 +965,24 @@ public static class GamingAndPerformanceOptimizations
                                 Script = ScriptOption.Enabled,
                                 ScriptVariables = new Dictionary<string, string> { ["primary"] = "208.67.222.222", ["secondary"] = "208.67.220.220" },
                             },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_7",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1", ["dohtemplate"] = "https://cloudflare-dns.com/dns-query" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_8",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "8.8.8.8", ["secondary"] = "8.8.4.4", ["dohtemplate"] = "https://dns.google/dns-query" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_9",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "9.9.9.9", ["secondary"] = "149.112.112.112", ["dohtemplate"] = "https://dns.quad9.net/dns-query" },
+                            },
                         },
                         SupportsCustomState = true,
                         CustomStateDisplayName = "Custom (User Defined)",
@@ -975,6 +993,12 @@ public static class GamingAndPerformanceOptimizations
                         {
                             EnabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }",
                             DisabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
+                            RequiresElevation = true,
+                            RunContext = RunContext.User,
+                        },
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"$t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                             RequiresElevation = true,
                             RunContext = RunContext.User,
                         },
@@ -4045,6 +4069,42 @@ public static class GamingAndPerformanceOptimizations
                             DisabledValue = ["4194"],
                             DefaultValue = "126",
                             ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                // System Group
+                new SettingDefinition
+                {
+                    Id = "system-restore-protection",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "System Protection (Restore Points)",
+                    Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
+                    GroupName = "System",
+                    Icon = "ArrowCounterclockwise",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.04.24",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore",
+                            ValueName = "RPSessionInterval",
+                            EnabledValue = [1440],
+                            DisabledValue = [0],
+                            DefaultValue = 1440,
+                            RecommendedValue = 1440,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"Enable-ComputerRestore -Drive 'C:\'",
+                            DisabledScript = @"Disable-ComputerRestore -Drive 'C:\'",
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
                         },
                     },
                 },
