@@ -448,6 +448,11 @@
     },
     "InputType": "Selection"
   },
+  "explorer-disable-autoplay": {
+    "Recommended": 1,
+    "Default": 0,
+    "InputType": "Toggle"
+  },
   "explorer-enable-photo-viewer": {
     "Recommended": "PhotoViewer.FileAssoc.Tiff",
     "Default": null,
