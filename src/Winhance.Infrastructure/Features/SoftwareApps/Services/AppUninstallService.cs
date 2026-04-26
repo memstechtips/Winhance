@@ -319,7 +319,13 @@ public class AppUninstallService(
                                 matched = true;
                             }
 
+                            // Only fall back to fuzzy name matching when the definition didn't
+                            // pin down a precise registry pattern. Apps that set RegistryDisplayName
+                            // or RegistrySubKeyName (e.g. XnView, Steam) do so to AVOID collateral
+                            // hits like "XnView MP" — fuzzy fallback would re-introduce that bug.
                             if (!matched
+                                && string.IsNullOrEmpty(item.RegistryDisplayName)
+                                && string.IsNullOrEmpty(item.RegistrySubKeyName)
                                 && !string.IsNullOrEmpty(regDisplayName)
                                 && IsFuzzyMatch(item.Name, regDisplayName!))
                             {
