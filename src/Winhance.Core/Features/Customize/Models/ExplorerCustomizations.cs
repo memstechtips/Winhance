@@ -2634,18 +2634,22 @@ if (Test-Path $appPathsKey) {
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers",
                             ValueName = "DisableAutoplay",
                             EnabledValue = [1],
-                            DisabledValue = [0],
+                            DisabledValue = [null],
                             DefaultValue = 0,
                             RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
+                            // Windows ships NoDriveTypeAutoRun = 0x91 (145) — autorun blocked for
+                            // Unknown, CD-ROM, and Removable drive types. Toggling OFF must NOT leave
+                            // the value at 0 (autorun allowed for ALL drive types — less secure than
+                            // a fresh install). Delete the policy so Windows applies its own default.
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
                             ValueName = "NoDriveTypeAutoRun",
                             EnabledValue = [255],
-                            DisabledValue = [0],
-                            DefaultValue = 0,
+                            DisabledValue = [null],
+                            DefaultValue = 145,
                             RecommendedValue = 255,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
