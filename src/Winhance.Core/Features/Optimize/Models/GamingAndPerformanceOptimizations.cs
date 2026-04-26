@@ -998,7 +998,13 @@ public static class GamingAndPerformanceOptimizations
                         },
                         new PowerShellScriptSetting
                         {
-                            EnabledScript = @"$t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
+                            // Always sweep the encryption table for any DoH-capable server we might have
+                            // previously registered, then add the entry for the currently-selected option
+                            // (if it's a DoH option). This keeps the netsh table clean across option switches
+                            // and across switching DoH off entirely (the DisabledScript handles the latter
+                            // when the user picks "System Default", which fires ScriptOption.Disabled).
+                            EnabledScript = @"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
+                            DisabledScript = @"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }",
                             RequiresElevation = true,
                             RunContext = RunContext.User,
                         },
@@ -4069,42 +4075,6 @@ public static class GamingAndPerformanceOptimizations
                             DisabledValue = ["4194"],
                             DefaultValue = "126",
                             ValueType = RegistryValueKind.String,
-                        },
-                    },
-                },
-                // System Group
-                new SettingDefinition
-                {
-                    Id = "system-restore-protection",
-                    IsSubjectivePreference = true,
-                    RecommendedToggleState = true,
-                    Name = "System Protection (Restore Points)",
-                    Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
-                    GroupName = "System",
-                    Icon = "ArrowCounterclockwise",
-                    InputType = InputType.Toggle,
-                    AddedInVersion = "26.04.24",
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore",
-                            ValueName = "RPSessionInterval",
-                            EnabledValue = [1440],
-                            DisabledValue = [0],
-                            DefaultValue = 1440,
-                            RecommendedValue = 1440,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                    PowerShellScripts = new List<PowerShellScriptSetting>
-                    {
-                        new PowerShellScriptSetting
-                        {
-                            EnabledScript = @"Enable-ComputerRestore -Drive 'C:\'",
-                            DisabledScript = @"Disable-ComputerRestore -Drive 'C:\'",
-                            RequiresElevation = true,
-                            RunContext = RunContext.System,
                         },
                     },
                 },
