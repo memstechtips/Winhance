@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -27,10 +30,18 @@ public class AppIconResolver : IAppIconResolver
     private static readonly Size LogoSize = new(96, 96);
 
     // Suffix appended to the cache filename so the cache key encodes the
-    // extraction size. Bumping LogoSize requires bumping this suffix; that
-    // invalidates older cache files (PruneOldVersions cleans them up the
-    // next time their package version changes).
-    private const string CacheFileSuffix = ".96.png";
+    // extraction parameters. Bumping LogoSize or the post-process pipeline
+    // requires bumping this suffix; that invalidates older cache files
+    // (PruneOldVersions cleans them up the next time their package version
+    // changes). The "-trim" segment indicates icons are cropped to their
+    // alpha bounding box so they display at uniform visible size regardless
+    // of the source's original transparent-padding convention.
+    private const string CacheFileSuffix = ".96-trim.png";
+
+    // Pixels with alpha at or below this threshold are treated as transparent
+    // when computing the trim bounding box. Forgives near-edge antialiasing
+    // without losing intentionally-translucent icon parts.
+    private const byte AlphaTrimThreshold = 8;
 
     private readonly IAppxIconSource _appxSource;
     private readonly IStoreIconSource? _storeSource;
@@ -170,14 +181,112 @@ public class AppIconResolver : IAppIconResolver
         def.IconPath = cachePath;
     }
 
-    private static async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
+    private async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
     {
         var tmpPath = cachePath + ".tmp";
-        await using (var fileStream = File.Create(tmpPath))
-        {
-            await source.CopyToAsync(fileStream, ct).ConfigureAwait(false);
-        }
+
+        var sourceBytes = await ReadAllBytesAsync(source, ct).ConfigureAwait(false);
+        var bytesToWrite = await TryTrimTransparentBordersAsync(sourceBytes, ct).ConfigureAwait(false)
+                          ?? sourceBytes;
+
+        await File.WriteAllBytesAsync(tmpPath, bytesToWrite, ct).ConfigureAwait(false);
         File.Move(tmpPath, cachePath, overwrite: true);
+    }
+
+    private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken ct)
+    {
+        if (stream is MemoryStream ms && ms.Position == 0)
+            return ms.ToArray();
+
+        if (stream.CanSeek) stream.Position = 0;
+        using var collector = new MemoryStream();
+        await stream.CopyToAsync(collector, ct).ConfigureAwait(false);
+        return collector.ToArray();
+    }
+
+    /// <summary>
+    /// Crops the source PNG/JPG to the bounding box of its non-transparent
+    /// pixels and re-encodes as PNG. Normalizes icons across AppX packages
+    /// that follow Microsoft's tile-with-padding convention vs. those that
+    /// fill the canvas (e.g. Edge), so all cached icons display at uniform
+    /// visible size when rendered at a fixed Image control size.
+    /// Returns null on any decoder/encoder failure — caller falls back to
+    /// the untrimmed source bytes.
+    /// </summary>
+    private async Task<byte[]?> TryTrimTransparentBordersAsync(byte[] source, CancellationToken ct)
+    {
+        try
+        {
+            using var inStream = new InMemoryRandomAccessStream();
+            await inStream.WriteAsync(source.AsBuffer());
+            inStream.Seek(0);
+
+            var decoder = await BitmapDecoder.CreateAsync(inStream);
+            var swBitmap = await decoder.GetSoftwareBitmapAsync(
+                BitmapPixelFormat.Bgra8,
+                BitmapAlphaMode.Premultiplied);
+
+            int width = (int)swBitmap.PixelWidth;
+            int height = (int)swBitmap.PixelHeight;
+            if (width <= 0 || height <= 0) return null;
+
+            var pixelBuffer = new Windows.Storage.Streams.Buffer((uint)(width * height * 4));
+            swBitmap.CopyToBuffer(pixelBuffer);
+            var pixels = pixelBuffer.ToArray();
+
+            int minX = width, minY = height, maxX = -1, maxY = -1;
+            for (int y = 0; y < height; y++)
+            {
+                int rowStart = y * width * 4;
+                for (int x = 0; x < width; x++)
+                {
+                    byte alpha = pixels[rowStart + x * 4 + 3];
+                    if (alpha > AlphaTrimThreshold)
+                    {
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+
+            // Fully transparent input — nothing to trim, return original bytes.
+            if (maxX < minX || maxY < minY) return null;
+
+            uint cropX = (uint)minX;
+            uint cropY = (uint)minY;
+            uint cropW = (uint)(maxX - minX + 1);
+            uint cropH = (uint)(maxY - minY + 1);
+
+            // Source has no transparent border — re-encoding wouldn't change
+            // anything visible, so skip the round-trip.
+            if (cropX == 0 && cropY == 0 && cropW == width && cropH == height)
+                return null;
+
+            using var outStream = new InMemoryRandomAccessStream();
+            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, outStream);
+            encoder.SetSoftwareBitmap(swBitmap);
+            encoder.BitmapTransform.Bounds = new BitmapBounds
+            {
+                X = cropX,
+                Y = cropY,
+                Width = cropW,
+                Height = cropH,
+            };
+            await encoder.FlushAsync();
+
+            outStream.Seek(0);
+            using var managedStream = outStream.AsStreamForRead();
+            using var resultMs = new MemoryStream();
+            await managedStream.CopyToAsync(resultMs, ct).ConfigureAwait(false);
+            return resultMs.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Icon trim failed; saving raw bytes instead: {ex.Message}");
+            return null;
+        }
     }
 
     private void PruneOldVersions(string packageName, string keepFullName)

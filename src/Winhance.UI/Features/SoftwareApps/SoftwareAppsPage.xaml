@@ -671,12 +671,8 @@
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Grid Width="32" Height="32" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                    <!-- See Card view comment — Clip crops AppX padding so visible art fills the box. -->
-                                                    <Grid.Clip>
-                                                        <RectangleGeometry Rect="0,0,32,32"/>
-                                                    </Grid.Clip>
-                                                    <Image Source="{Binding IconSource}" Width="44" Height="44"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    <!-- See Card view comment — cached icons are pre-trimmed by the resolver. -->
+                                                    <Image Source="{Binding IconSource}" Width="32" Height="32"
                                                            Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                     <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -764,14 +760,10 @@
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                                         <Grid Width="40" Height="40" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <!-- Clip + oversized Image crops AppX logos' built-in transparent
-                                                                 padding (~50% of canvas), so visible art fills the 40x40 box
-                                                                 instead of leaving a wide whitespace ring around it. -->
-                                                            <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,40,40"/>
-                                                            </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="56" Height="56"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                            <!-- Cached icons are pre-trimmed of transparent borders by the
+                                                                 resolver, so visible art naturally fills the Image control
+                                                                 at uniform size across packages. -->
+                                                            <Image Source="{Binding IconSource}" Width="40" Height="40"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="18"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -807,14 +799,10 @@
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                                         <Grid Width="40" Height="40" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <!-- Clip + oversized Image crops AppX logos' built-in transparent
-                                                                 padding (~50% of canvas), so visible art fills the 40x40 box
-                                                                 instead of leaving a wide whitespace ring around it. -->
-                                                            <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,40,40"/>
-                                                            </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="56" Height="56"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                            <!-- Cached icons are pre-trimmed of transparent borders by the
+                                                                 resolver, so visible art naturally fills the Image control
+                                                                 at uniform size across packages. -->
+                                                            <Image Source="{Binding IconSource}" Width="40" Height="40"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="18"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -850,14 +838,10 @@
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                                         <Grid Width="40" Height="40" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <!-- Clip + oversized Image crops AppX logos' built-in transparent
-                                                                 padding (~50% of canvas), so visible art fills the 40x40 box
-                                                                 instead of leaving a wide whitespace ring around it. -->
-                                                            <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,40,40"/>
-                                                            </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="56" Height="56"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                            <!-- Cached icons are pre-trimmed of transparent borders by the
+                                                                 resolver, so visible art naturally fills the Image control
+                                                                 at uniform size across packages. -->
+                                                            <Image Source="{Binding IconSource}" Width="40" Height="40"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="18"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
