@@ -114,8 +114,13 @@ public static class DomainServicesExtensions
         // AppX package source (PackageManager COM → WMI → PowerShell fallback)
         services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
 
-        // AppX icon source (PackageManager + AppListEntry.DisplayInfo.GetLogo)
+        // AppX icon source (PackageManager + AppListEntry.DisplayInfo.GetLogo,
+        // covers current-user / all-users / provisioned scopes)
         services.AddSingleton<IAppxIconSource, AppxIconSource>();
+
+        // Microsoft Store CDN icon source (Layer-2 fallback for AppX entries
+        // not present on this machine in any registered/provisioned form)
+        services.AddSingleton<IStoreIconSource, StoreIconSource>();
 
         // App icon resolver (cache-first, called from WindowsAppsViewModel after install-status discovery)
         services.AddSingleton<IAppIconResolver, AppIconResolver>();

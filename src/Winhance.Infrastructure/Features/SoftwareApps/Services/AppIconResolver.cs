@@ -14,31 +14,44 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class AppIconResolver : IAppIconResolver
 {
     private const string CacheSubDir = @"Winhance\IconCache";
+    private const string StoreCachePrefix = "MsStore_";
+    // Concurrency limit for Store CDN requests. Each unresolved-with-MsStoreId
+    // package costs two HTTP round-trips (catalog metadata + image download);
+    // running them parallel keeps cold-cache load times bounded.
+    private const int StoreFetchConcurrency = 5;
+
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
     // available asset/scale to this hint; 96 reliably returns the high-DPI
     // (200%) variant of Square44x44Logo (~88px native), which renders crisply
     // when displayed at 40 logical pixels on a 200% DPI screen.
     private static readonly Size LogoSize = new(96, 96);
+
     // Suffix appended to the cache filename so the cache key encodes the
     // extraction size. Bumping LogoSize requires bumping this suffix; that
     // invalidates older cache files (PruneOldVersions cleans them up the
     // next time their package version changes).
     private const string CacheFileSuffix = ".96.png";
 
-    private readonly IAppxIconSource _iconSource;
+    private readonly IAppxIconSource _appxSource;
+    private readonly IStoreIconSource? _storeSource;
     private readonly ILogService _logService;
     private readonly string _cacheRoot;
 
     /// <summary>Production constructor — uses %LOCALAPPDATA%\Winhance\IconCache.</summary>
-    public AppIconResolver(IAppxIconSource iconSource, ILogService logService)
-        : this(iconSource, logService, DefaultCacheRoot()) { }
+    public AppIconResolver(IAppxIconSource appxSource, ILogService logService, IStoreIconSource? storeSource = null)
+        : this(appxSource, logService, DefaultCacheRoot(), storeSource) { }
 
-    /// <summary>Test constructor — accepts a custom cache root for unit tests.</summary>
-    internal AppIconResolver(IAppxIconSource iconSource, ILogService logService, string cacheRoot)
+    /// <summary>Test constructor — accepts a custom cache root.</summary>
+    internal AppIconResolver(
+        IAppxIconSource appxSource,
+        ILogService logService,
+        string cacheRoot,
+        IStoreIconSource? storeSource = null)
     {
-        _iconSource = iconSource;
+        _appxSource = appxSource;
         _logService = logService;
         _cacheRoot = cacheRoot;
+        _storeSource = storeSource;
     }
 
     private static string DefaultCacheRoot() =>
@@ -48,8 +61,11 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
+            // Any entry with a routable identity gets a try. AppX-named entries go
+            // through Layer 1 (local enumeration); MsStoreId-bearing entries that
+            // didn't resolve via Layer 1 fall through to Layer 2 (Store CDN).
             var candidates = definitions
-                .Where(d => d.AppxPackageName?.Length > 0 && d.IsInstalled)
+                .Where(d => (d.AppxPackageName?.Length > 0) || !string.IsNullOrEmpty(d.MsStoreId))
                 .ToList();
             if (candidates.Count == 0)
                 return;
@@ -57,21 +73,51 @@ public class AppIconResolver : IAppIconResolver
             if (!EnsureCacheDir())
                 return;
 
-            var installedMap = await _iconSource.GetInstalledPackageMapAsync(ct).ConfigureAwait(false);
-            if (installedMap.Count == 0)
-                return;
+            // Layer 1: AppX (current user / all users / provisioned).
+            var installedMap = await _appxSource.GetInstalledPackageMapAsync(ct).ConfigureAwait(false);
 
             foreach (var def in candidates)
             {
                 if (ct.IsCancellationRequested) return;
-
                 try
                 {
-                    await ResolveOneAsync(def, installedMap, ct).ConfigureAwait(false);
+                    await TryResolveFromAppxAsync(def, installedMap, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    _logService.LogWarning($"Icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                    _logService.LogWarning($"AppX icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                }
+            }
+
+            // Layer 2: Microsoft Store CDN, for entries with an MsStoreId where
+            // Layer 1 didn't yield a result. Parallelized with a small concurrency
+            // limit so cold-cache load doesn't pay a full sequential network cost.
+            if (_storeSource is not null)
+            {
+                var storeCandidates = candidates
+                    .Where(d => d.IconPath is null && !string.IsNullOrEmpty(d.MsStoreId))
+                    .ToList();
+
+                if (storeCandidates.Count > 0)
+                {
+                    using var sem = new SemaphoreSlim(StoreFetchConcurrency);
+                    var tasks = storeCandidates.Select(async def =>
+                    {
+                        await sem.WaitAsync(ct).ConfigureAwait(false);
+                        try
+                        {
+                            await TryResolveFromStoreAsync(def, ct).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService.LogWarning($"Store icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                        }
+                        finally
+                        {
+                            sem.Release();
+                        }
+                    });
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
                 }
             }
         }
@@ -81,14 +127,14 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    private async Task ResolveOneAsync(
+    private async Task TryResolveFromAppxAsync(
         ItemDefinition def,
         IReadOnlyDictionary<string, string> installedMap,
         CancellationToken ct)
     {
-        var packageName = def.AppxPackageName![0];
-        if (!installedMap.TryGetValue(packageName, out var fullName))
-            return;
+        var packageName = def.AppxPackageName?.Length > 0 ? def.AppxPackageName[0] : null;
+        if (packageName is null) return;
+        if (!installedMap.TryGetValue(packageName, out var fullName)) return;
 
         var cachePath = Path.Combine(_cacheRoot, fullName + CacheFileSuffix);
         if (File.Exists(cachePath))
@@ -97,20 +143,41 @@ public class AppIconResolver : IAppIconResolver
             return;
         }
 
-        await using var stream = await _iconSource.GetLogoStreamAsync(fullName, LogoSize, ct).ConfigureAwait(false);
+        await using var stream = await _appxSource.GetLogoStreamAsync(fullName, LogoSize, ct).ConfigureAwait(false);
         if (stream is null)
             return;
 
+        await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
+        PruneOldVersions(packageName, fullName);
+        def.IconPath = cachePath;
+    }
+
+    private async Task TryResolveFromStoreAsync(ItemDefinition def, CancellationToken ct)
+    {
+        var msStoreId = def.MsStoreId!;
+        var cachePath = Path.Combine(_cacheRoot, StoreCachePrefix + msStoreId + CacheFileSuffix);
+        if (File.Exists(cachePath))
+        {
+            def.IconPath = cachePath;
+            return;
+        }
+
+        await using var stream = await _storeSource!.GetIconStreamAsync(msStoreId, ct).ConfigureAwait(false);
+        if (stream is null)
+            return;
+
+        await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
+        def.IconPath = cachePath;
+    }
+
+    private static async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
+    {
         var tmpPath = cachePath + ".tmp";
         await using (var fileStream = File.Create(tmpPath))
         {
-            await stream.CopyToAsync(fileStream, ct).ConfigureAwait(false);
+            await source.CopyToAsync(fileStream, ct).ConfigureAwait(false);
         }
         File.Move(tmpPath, cachePath, overwrite: true);
-
-        PruneOldVersions(packageName, fullName);
-
-        def.IconPath = cachePath;
     }
 
     private void PruneOldVersions(string packageName, string keepFullName)
