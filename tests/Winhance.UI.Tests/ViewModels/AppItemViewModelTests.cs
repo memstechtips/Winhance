@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.SoftwareApps.Constants;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 
@@ -402,5 +403,99 @@ public class AppItemViewModelTests
         var vm = CreateViewModel(def);
 
         vm.CanBeReinstalled.Should().BeFalse();
+    }
+
+    // -------------------------------------------------------
+    // FallbackGlyph
+    // -------------------------------------------------------
+
+    [Fact]
+    public void FallbackGlyph_AppxPackage_ReturnsPackageGlyph()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "app1",
+            Name = "App 1",
+            Description = "",
+            AppxPackageName = new[] { "Microsoft.App1" },
+        };
+        var vm = CreateViewModel(def);
+
+        vm.FallbackGlyph.Should().Be(FallbackGlyphs.Package);
+    }
+
+    [Fact]
+    public void FallbackGlyph_Capability_ReturnsCapabilityGlyph()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "cap1",
+            Name = "Cap 1",
+            Description = "",
+            CapabilityName = "App.Support.IE.Mode",
+        };
+        var vm = CreateViewModel(def);
+
+        vm.FallbackGlyph.Should().Be(FallbackGlyphs.Capability);
+    }
+
+    [Fact]
+    public void FallbackGlyph_OptionalFeature_ReturnsOptionalFeatureGlyph()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "feat1",
+            Name = "Feat 1",
+            Description = "",
+            OptionalFeatureName = "Containers-DisposableClientVM",
+        };
+        var vm = CreateViewModel(def);
+
+        vm.FallbackGlyph.Should().Be(FallbackGlyphs.OptionalFeature);
+    }
+
+    [Fact]
+    public void FallbackGlyph_NoCategoryMatch_DefaultsToPackage()
+    {
+        var def = new ItemDefinition { Id = "x", Name = "X", Description = "" };
+        var vm = CreateViewModel(def);
+
+        vm.FallbackGlyph.Should().Be(FallbackGlyphs.Package);
+    }
+
+    // -------------------------------------------------------
+    // HasIcon
+    // -------------------------------------------------------
+
+    [Fact]
+    public void HasIcon_NullIconPath_IsFalse()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "app1",
+            Name = "App 1",
+            Description = "",
+            AppxPackageName = new[] { "Microsoft.App1" },
+            IconPath = null,
+        };
+        var vm = CreateViewModel(def);
+
+        vm.HasIcon.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasIcon_PopulatedIconPath_IsTrue()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "app1",
+            Name = "App 1",
+            Description = "",
+            AppxPackageName = new[] { "Microsoft.App1" },
+            IconPath = @"C:\Users\test\AppData\Local\Winhance\IconCache\Microsoft.App1_1.0.0.png",
+        };
+        var vm = CreateViewModel(def);
+
+        vm.HasIcon.Should().BeTrue();
     }
 }
