@@ -749,6 +749,13 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Grid Width="24" Height="24" VerticalAlignment="Center">
+                                                            <Image Source="{Binding IconSource}" Width="24" Height="24"
+                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="16"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                        </Grid>
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
@@ -778,6 +785,13 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Grid Width="24" Height="24" VerticalAlignment="Center">
+                                                            <Image Source="{Binding IconSource}" Width="24" Height="24"
+                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="16"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                        </Grid>
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
@@ -807,6 +821,13 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Grid Width="24" Height="24" VerticalAlignment="Center">
+                                                            <Image Source="{Binding IconSource}" Width="24" Height="24"
+                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="16"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                        </Grid>
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
