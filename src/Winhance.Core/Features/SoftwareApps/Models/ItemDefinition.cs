@@ -47,4 +47,11 @@ public record ItemDefinition : BaseDefinition
     // proxied through AppItemViewModel for UI binding
     public bool IsInstalled { get; set; }
     public DetectionSource DetectedVia { get; set; }
+
+    /// <summary>
+    /// Absolute path to the cached icon PNG, or null if no icon is available.
+    /// Populated by IAppIconResolver during AppLoadingService.LoadAppsAsync;
+    /// null for capabilities, optional features, and not-installed AppX entries.
+    /// </summary>
+    public string? IconPath { get; set; }
 }
