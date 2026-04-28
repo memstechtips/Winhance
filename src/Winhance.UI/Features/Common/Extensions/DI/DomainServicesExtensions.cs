@@ -114,6 +114,12 @@ public static class DomainServicesExtensions
         // AppX package source (PackageManager COM → WMI → PowerShell fallback)
         services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
 
+        // AppX icon source (PackageManager + AppListEntry.DisplayInfo.GetLogo)
+        services.AddSingleton<IAppxIconSource, AppxIconSource>();
+
+        // App icon resolver (cache-first, called from AppLoadingService)
+        services.AddSingleton<IAppIconResolver, AppIconResolver>();
+
         // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();
 
