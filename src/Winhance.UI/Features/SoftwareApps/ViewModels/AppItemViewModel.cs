@@ -82,21 +82,37 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         CanBeReinstalled ? "Status_CanReinstall" : "Status_CannotReinstall");
 
     private BitmapImage? _iconSource;
+    private string? _iconSourcePath;
 
     /// <summary>
-    /// Lazily-constructed BitmapImage from Definition.IconPath.
-    /// Returns null when no icon has been resolved.
+    /// Lazily-constructed BitmapImage from Definition.IconPath. Cached by path
+    /// value so a future change to IconPath produces a fresh BitmapImage. Returns
+    /// null when no icon has been resolved.
+    ///
+    /// Note: this property does not raise PropertyChanged on its own. Today's
+    /// resolver runs once during LoadAppsAsync, before the ViewModel is created,
+    /// so no notification is needed. Any future code path that mutates IconPath
+    /// post-construction must call OnPropertyChanged(nameof(IconSource)) and
+    /// OnPropertyChanged(nameof(HasIcon)) explicitly.
     /// </summary>
     public BitmapImage? IconSource
     {
         get
         {
-            if (_iconSource is not null) return _iconSource;
-            if (string.IsNullOrEmpty(Definition.IconPath)) return null;
+            var currentPath = Definition.IconPath;
+            if (string.IsNullOrEmpty(currentPath))
+            {
+                _iconSource = null;
+                _iconSourcePath = null;
+                return null;
+            }
+            if (_iconSource is not null && _iconSourcePath == currentPath)
+                return _iconSource;
 
             var bmp = new BitmapImage { DecodePixelWidth = 48 };
-            bmp.UriSource = new Uri(Definition.IconPath);
+            bmp.UriSource = new Uri(currentPath);
             _iconSource = bmp;
+            _iconSourcePath = currentPath;
             return _iconSource;
         }
     }

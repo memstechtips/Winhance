@@ -10,12 +10,25 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
+// Note: this file does not `using Windows.ApplicationModel;` because that namespace's
+// `Package` type would clash with NuGet/MSBuild concepts elsewhere in the project. The
+// `Package` references below are fully qualified for that reason.
+
 public class AppxIconSource(ILogService logService) : IAppxIconSource
 {
+    // Snapshot of installed packages keyed by FullName. Populated by
+    // GetInstalledPackageMapAsync; consumed by GetLogoStreamAsync to avoid
+    // re-enumerating PackageManager.FindPackagesForUser per icon (~60+ icons
+    // per cold-cache run). Replaced atomically on each enumeration call so
+    // the cache is fresh per batch.
+    private IReadOnlyDictionary<string, Windows.ApplicationModel.Package> _packagesByFullName =
+        new Dictionary<string, Windows.ApplicationModel.Package>(StringComparer.OrdinalIgnoreCase);
+
     public async Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
         CancellationToken ct = default)
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var packageDict = new Dictionary<string, Windows.ApplicationModel.Package>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -32,6 +45,7 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
                     {
                         // Last writer wins for duplicate names (architecture-specific duplicates are rare)
                         map[package.Id.Name] = package.Id.FullName;
+                        packageDict[package.Id.FullName] = package;
                     }
                     catch (Exception ex)
                     {
@@ -55,6 +69,9 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
             logService.LogWarning($"AppxIconSource enumeration failed: {ex.Message}");
         }
 
+        // Atomic snapshot replacement — readers in GetLogoStreamAsync see either
+        // the old dict or the new one, never a partially-populated state.
+        _packagesByFullName = packageDict;
         return map;
     }
 
@@ -70,16 +87,29 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
 
             return await Task.Run(async () =>
             {
-                var packageManager = new PackageManager();
+                var snapshot = _packagesByFullName;
                 Windows.ApplicationModel.Package? pkg = null;
-                foreach (var p in packageManager.FindPackagesForUser(""))
+
+                if (snapshot.TryGetValue(packageFullName, out var cachedPkg))
                 {
-                    if (string.Equals(p.Id.FullName, packageFullName, StringComparison.OrdinalIgnoreCase))
+                    pkg = cachedPkg;
+                }
+                else
+                {
+                    // Cache miss — fall back to a fresh enumeration. Happens when
+                    // GetLogoStreamAsync is called without a prior GetInstalledPackageMapAsync,
+                    // or when the requested package isn't in the most recent snapshot.
+                    var packageManager = new PackageManager();
+                    foreach (var p in packageManager.FindPackagesForUser(""))
                     {
-                        pkg = p;
-                        break;
+                        if (string.Equals(p.Id.FullName, packageFullName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            pkg = p;
+                            break;
+                        }
                     }
                 }
+
                 if (pkg is null) return null;
 
                 var entries = await pkg.GetAppListEntriesAsync();
