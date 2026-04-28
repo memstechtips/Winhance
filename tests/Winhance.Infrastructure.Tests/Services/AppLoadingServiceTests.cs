@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,6 +16,7 @@ public class AppLoadingServiceTests
     private readonly Mock<IWindowsAppsService> _mockWindowsApps = new();
     private readonly Mock<IExternalAppsService> _mockExternalApps = new();
     private readonly Mock<IAppStatusDiscoveryService> _mockStatusDiscovery = new();
+    private readonly Mock<IAppIconResolver> _mockIconResolver = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly AppLoadingService _service;
 
@@ -22,7 +26,14 @@ public class AppLoadingServiceTests
             _mockWindowsApps.Object,
             _mockExternalApps.Object,
             _mockStatusDiscovery.Object,
+            _mockIconResolver.Object,
             _mockLog.Object);
+
+        // Default: resolver is a successful no-op so existing tests aren't affected
+        _mockIconResolver.Setup(r => r.ResolveBatchAsync(
+                It.IsAny<IEnumerable<ItemDefinition>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     private static ItemDefinition CreateDefinition(
@@ -168,6 +179,38 @@ public class AppLoadingServiceTests
         _mockStatusDiscovery.Verify(s => s.GetInstallationStatusBatchAsync(
             It.Is<IEnumerable<ItemDefinition>>(defs => defs.Count() == 2)),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadAppsAsync_CallsIconResolver_AfterInstallStatusIsStamped()
+    {
+        var winApp = CreateDefinition("win1", appxName: "Microsoft.App1");
+        var extApp = CreateDefinition("ext1", appxName: "External.App1");
+        _mockWindowsApps.Setup(s => s.GetAppsAsync()).ReturnsAsync(new List<ItemDefinition> { winApp });
+        _mockExternalApps.Setup(s => s.GetAppsAsync()).ReturnsAsync(new List<ItemDefinition> { extApp });
+        _mockStatusDiscovery.Setup(s => s.GetInstallationStatusBatchAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>
+            {
+                ["win1"] = true,
+                ["ext1"] = false,
+            });
+
+        IReadOnlyList<bool>? installStatesAtResolverCall = null;
+        _mockIconResolver.Setup(r => r.ResolveBatchAsync(
+                It.IsAny<IEnumerable<ItemDefinition>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ItemDefinition>, CancellationToken>((defs, _) =>
+                installStatesAtResolverCall = defs.Select(d => d.IsInstalled).ToList())
+            .Returns(Task.CompletedTask);
+
+        var result = await _service.LoadAppsAsync();
+
+        result.Success.Should().BeTrue();
+        _mockIconResolver.Verify(r => r.ResolveBatchAsync(
+            It.IsAny<IEnumerable<ItemDefinition>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        installStatesAtResolverCall.Should().NotBeNull("resolver must be called after install status is stamped");
+        installStatesAtResolverCall.Should().Equal(new[] { true, false });
     }
 
     // --- GetAppByIdAsync ---

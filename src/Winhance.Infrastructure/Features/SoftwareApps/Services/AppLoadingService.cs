@@ -15,6 +15,7 @@ public class AppLoadingService(
     IWindowsAppsService windowsAppsService,
     IExternalAppsService externalAppsService,
     IAppStatusDiscoveryService statusDiscoveryService,
+    IAppIconResolver iconResolver,
     ILogService logService) : IAppLoadingService
 {
     private readonly ConcurrentDictionary<string, bool> _statusCache = new();
@@ -33,6 +34,8 @@ public class AppLoadingService(
             {
                 app.IsInstalled = installStates.TryGetValue(app.Id, out var isInstalled) && isInstalled;
             }
+
+            await iconResolver.ResolveBatchAsync(allApps).ConfigureAwait(false);
 
             return OperationResult<IEnumerable<ItemDefinition>>.Succeeded(allApps);
         }
