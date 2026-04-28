@@ -14,7 +14,16 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class AppIconResolver : IAppIconResolver
 {
     private const string CacheSubDir = @"Winhance\IconCache";
-    private static readonly Size LogoSize = new(48, 48);
+    // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
+    // available asset/scale to this hint; 96 reliably returns the high-DPI
+    // (200%) variant of Square44x44Logo (~88px native), which renders crisply
+    // when displayed at 40 logical pixels on a 200% DPI screen.
+    private static readonly Size LogoSize = new(96, 96);
+    // Suffix appended to the cache filename so the cache key encodes the
+    // extraction size. Bumping LogoSize requires bumping this suffix; that
+    // invalidates older cache files (PruneOldVersions cleans them up the
+    // next time their package version changes).
+    private const string CacheFileSuffix = ".96.png";
 
     private readonly IAppxIconSource _iconSource;
     private readonly ILogService _logService;
@@ -81,7 +90,7 @@ public class AppIconResolver : IAppIconResolver
         if (!installedMap.TryGetValue(packageName, out var fullName))
             return;
 
-        var cachePath = Path.Combine(_cacheRoot, fullName + ".png");
+        var cachePath = Path.Combine(_cacheRoot, fullName + CacheFileSuffix);
         if (File.Exists(cachePath))
         {
             def.IconPath = cachePath;
@@ -108,8 +117,11 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
+            // Pattern matches both old-format (.png) and new-format (.96.png)
+            // files for this package, so this prune step also cleans up cache
+            // files left over from prior CacheFileSuffix versions.
             var pattern = packageName + "_*.png";
-            var keepFile = keepFullName + ".png";
+            var keepFile = keepFullName + CacheFileSuffix;
             foreach (var path in Directory.EnumerateFiles(_cacheRoot, pattern))
             {
                 if (!string.Equals(Path.GetFileName(path), keepFile, StringComparison.OrdinalIgnoreCase))
