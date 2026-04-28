@@ -11,10 +11,18 @@
 
 $ErrorActionPreference = 'Stop'
 
-$repoRoot   = Split-Path -Parent $PSScriptRoot
-$csprojPath = Join-Path $repoRoot 'src\Winhance.UI\Winhance.UI.csproj'
-$exePath    = Join-Path $repoRoot 'src\Winhance.UI\bin\x64\Debug\net10.0-windows10.0.19041.0\win-x64\Winhance.exe'
-$msbuild    = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe'
+$repoRoot     = Split-Path -Parent $PSScriptRoot
+$csprojPath   = Join-Path $repoRoot 'src\Winhance.UI\Winhance.UI.csproj'
+$buildOutDir  = Join-Path $repoRoot 'src\Winhance.UI\bin\x64\Debug\net10.0-windows10.0.19041.0\win-x64'
+$exePath      = Join-Path $buildOutDir 'Winhance.exe'
+$msbuild      = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe'
+
+# Windows refuses to launch executables from network shares (Internet zone).
+# When the repo lives on a UNC/SMB drive, we mirror the build output to a
+# local path and launch from there. For local repos we just run in place.
+$repoIsRemote = ($repoRoot -match '^[A-Z]:\\') -and `
+                ((Get-PSDrive ($repoRoot.Substring(0, 1)) -ErrorAction SilentlyContinue).DisplayRoot -like '\\*')
+$localRunDir  = Join-Path $env:LOCALAPPDATA 'Winhance-dev\win-x64'
 
 if (-not (Test-Path $csprojPath)) { throw "csproj not found: $csprojPath" }
 if (-not (Test-Path $msbuild))    { throw "MSBuild not found: $msbuild" }
@@ -28,13 +36,15 @@ $today        = Get-Date -Format 'yy.MM.dd'
 $utf8NoBom    = New-Object System.Text.UTF8Encoding $false
 $content      = [System.IO.File]::ReadAllText($csprojPath, [System.Text.Encoding]::UTF8)
 $versionRegex = '<(Version|FileVersion|AssemblyVersion)>(\d{2}\.\d{2}\.\d{2})</\1>'
+$infoVersionRegex = '<InformationalVersion>v(\d{2}\.\d{2}\.\d{2})</InformationalVersion>'
+$changed = $false
 
 if ($content -match $versionRegex) {
     $current = $matches[2]
     if ([version]$today -gt [version]$current) {
-        Write-Host "Bumping version $current -> $today" -ForegroundColor Cyan
-        $newContent = $content -replace $versionRegex, ('<$1>' + $today + '</$1>')
-        [System.IO.File]::WriteAllText($csprojPath, $newContent, $utf8NoBom)
+        Write-Host "Bumping Version/FileVersion/AssemblyVersion $current -> $today" -ForegroundColor Cyan
+        $content = $content -replace $versionRegex, ('<$1>' + $today + '</$1>')
+        $changed = $true
     }
     else {
         Write-Host "Version already current: $current (today: $today) - not bumping" -ForegroundColor DarkGray
@@ -42,6 +52,27 @@ if ($content -match $versionRegex) {
 }
 else {
     Write-Host 'No Version tag found in csproj to bump.' -ForegroundColor Yellow
+}
+
+# InformationalVersion has a `v` prefix and is what the in-app UI displays
+# (read via FileVersionInfo.ProductVersion in VersionService / NewBadgeService).
+if ($content -match $infoVersionRegex) {
+    $currentInfo = $matches[1]
+    if ([version]$today -gt [version]$currentInfo) {
+        Write-Host "Bumping InformationalVersion v$currentInfo -> v$today" -ForegroundColor Cyan
+        $content = $content -replace $infoVersionRegex, ('<InformationalVersion>v' + $today + '</InformationalVersion>')
+        $changed = $true
+    }
+    else {
+        Write-Host "InformationalVersion already current: v$currentInfo (today: $today) - not bumping" -ForegroundColor DarkGray
+    }
+}
+else {
+    Write-Host 'No InformationalVersion tag found in csproj to bump.' -ForegroundColor Yellow
+}
+
+if ($changed) {
+    [System.IO.File]::WriteAllText($csprojPath, $content, $utf8NoBom)
 }
 
 # --- Build ---------------------------------------------------------------
@@ -61,8 +92,21 @@ try {
         throw "Build succeeded but exe not found at: $exePath"
     }
 
-    Write-Host "Launching: $exePath" -ForegroundColor Green
-    & $exePath
+    if ($repoIsRemote) {
+        Write-Host "Repo is on a network share - mirroring output to $localRunDir" -ForegroundColor Cyan
+        $null = New-Item -ItemType Directory -Path $localRunDir -Force
+        & robocopy $buildOutDir $localRunDir /MIR /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
+        $rc = $LASTEXITCODE
+        if ($rc -ge 8) { throw "robocopy failed with exit code $rc" }
+        $global:LASTEXITCODE = 0  # robocopy uses 0-7 for success; reset so script returns clean
+        $launchExe = Join-Path $localRunDir 'Winhance.exe'
+    }
+    else {
+        $launchExe = $exePath
+    }
+
+    Write-Host "Launching: $launchExe" -ForegroundColor Green
+    Start-Process -FilePath $launchExe
 }
 finally {
     Pop-Location
