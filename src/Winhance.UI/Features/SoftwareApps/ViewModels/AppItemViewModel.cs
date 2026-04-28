@@ -86,14 +86,12 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
 
     /// <summary>
     /// Lazily-constructed BitmapImage from Definition.IconPath. Cached by path
-    /// value so a future change to IconPath produces a fresh BitmapImage. Returns
-    /// null when no icon has been resolved.
+    /// value so a change to IconPath produces a fresh BitmapImage on next read.
+    /// Returns null when no icon has been resolved.
     ///
-    /// Note: this property does not raise PropertyChanged on its own. Today's
-    /// resolver runs once during LoadAppsAsync, before the ViewModel is created,
-    /// so no notification is needed. Any future code path that mutates IconPath
-    /// post-construction must call OnPropertyChanged(nameof(IconSource)) and
-    /// OnPropertyChanged(nameof(HasIcon)) explicitly.
+    /// IconPath is mutated by IAppIconResolver *after* this ViewModel is bound
+    /// to the UI, so callers that change Definition.IconPath must invoke
+    /// NotifyIconChanged() to refresh the bound Image and FontIcon.
     /// </summary>
     public BitmapImage? IconSource
     {
@@ -130,6 +128,20 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         { OptionalFeatureName: not null and not "" } => FallbackGlyphs.OptionalFeature,
         _ => FallbackGlyphs.Package,
     };
+
+    /// <summary>
+    /// Raises PropertyChanged for IconSource and HasIcon. Call this after mutating
+    /// Definition.IconPath (e.g. after IAppIconResolver.ResolveBatchAsync returns)
+    /// so the bound Image/FontIcon refresh.
+    /// </summary>
+    public void NotifyIconChanged()
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            OnPropertyChanged(nameof(IconSource));
+            OnPropertyChanged(nameof(HasIcon));
+        });
+    }
 
     public string ItemTypeDescription
     {

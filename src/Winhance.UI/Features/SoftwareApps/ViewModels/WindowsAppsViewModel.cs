@@ -29,6 +29,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     private readonly ILocalizationService _localizationService;
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IAppIconResolver? _iconResolver;
 
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
@@ -39,7 +40,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         IDialogService dialogService,
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IAppIconResolver? iconResolver = null)
     {
         _windowsAppsService = windowsAppsService;
         _appInstallationService = appInstallationService;
@@ -50,6 +52,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         _localizationService = localizationService;
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
+        _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _windowsAppsService.WinGetReady += OnWinGetInstalled;
@@ -233,6 +236,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             _logService.LogWarning($"[WindowsAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
         }
 
+        await ResolveIconsAsync();
+
         try
         {
             NotifySelectionStateChanged();
@@ -272,6 +277,29 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     }
 
     [RelayCommand]
+    /// <summary>
+    /// Resolves AppX icons for installed entries and notifies their ViewModels.
+    /// No-op when no resolver was injected (e.g. legacy test construction).
+    /// Failures are logged and swallowed — icon resolution must never block the load flow.
+    /// </summary>
+    private async Task ResolveIconsAsync()
+    {
+        if (_iconResolver is null) return;
+
+        try
+        {
+            var definitions = Items.Select(item => item.Definition).ToList();
+            await _iconResolver.ResolveBatchAsync(definitions);
+
+            foreach (var item in Items)
+                item.NotifyIconChanged();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[WindowsAppsViewModel] Icon resolution failed: {ex.Message}");
+        }
+    }
+
     public async Task CheckInstallationStatusAsync()
     {
         if (_windowsAppsService == null) return;
