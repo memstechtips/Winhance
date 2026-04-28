@@ -107,7 +107,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
             if (_iconSource is not null && _iconSourcePath == currentPath)
                 return _iconSource;
 
-            var bmp = new BitmapImage { DecodePixelWidth = 80 };
+            var bmp = new BitmapImage { DecodePixelWidth = 64 };
             bmp.UriSource = new Uri(currentPath);
             _iconSource = bmp;
             _iconSourcePath = currentPath;

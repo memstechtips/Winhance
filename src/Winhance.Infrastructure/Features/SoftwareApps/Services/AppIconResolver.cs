@@ -49,7 +49,7 @@ public class AppIconResolver : IAppIconResolver
     private readonly string _cacheRoot;
 
     /// <summary>Production constructor — uses %LOCALAPPDATA%\Winhance\IconCache.</summary>
-    public AppIconResolver(IAppxIconSource appxSource, ILogService logService, IStoreIconSource? storeSource = null)
+    public AppIconResolver(IAppxIconSource appxSource, ILogService logService, IStoreIconSource storeSource)
         : this(appxSource, logService, DefaultCacheRoot(), storeSource) { }
 
     /// <summary>Test constructor — accepts a custom cache root.</summary>
@@ -87,12 +87,14 @@ public class AppIconResolver : IAppIconResolver
             // Layer 1: AppX (current user / all users / provisioned).
             var installedMap = await _appxSource.GetInstalledPackageMapAsync(ct).ConfigureAwait(false);
 
+            int appxResolved = 0;
             foreach (var def in candidates)
             {
                 if (ct.IsCancellationRequested) return;
                 try
                 {
-                    await TryResolveFromAppxAsync(def, installedMap, ct).ConfigureAwait(false);
+                    if (await TryResolveFromAppxAsync(def, installedMap, ct).ConfigureAwait(false))
+                        appxResolved++;
                 }
                 catch (Exception ex)
                 {
@@ -103,34 +105,40 @@ public class AppIconResolver : IAppIconResolver
             // Layer 2: Microsoft Store CDN, for entries with an MsStoreId where
             // Layer 1 didn't yield a result. Parallelized with a small concurrency
             // limit so cold-cache load doesn't pay a full sequential network cost.
-            if (_storeSource is not null)
-            {
-                var storeCandidates = candidates
-                    .Where(d => d.IconPath is null && !string.IsNullOrEmpty(d.MsStoreId))
-                    .ToList();
+            int storeAttempted = 0;
+            int storeResolved = 0;
+            var storeCandidates = candidates
+                .Where(d => d.IconPath is null && !string.IsNullOrEmpty(d.MsStoreId))
+                .ToList();
 
-                if (storeCandidates.Count > 0)
+            if (storeCandidates.Count > 0)
+            {
+                storeAttempted = storeCandidates.Count;
+                using var sem = new SemaphoreSlim(StoreFetchConcurrency);
+                var tasks = storeCandidates.Select(async def =>
                 {
-                    using var sem = new SemaphoreSlim(StoreFetchConcurrency);
-                    var tasks = storeCandidates.Select(async def =>
+                    await sem.WaitAsync(ct).ConfigureAwait(false);
+                    try
                     {
-                        await sem.WaitAsync(ct).ConfigureAwait(false);
-                        try
-                        {
-                            await TryResolveFromStoreAsync(def, ct).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService.LogWarning($"Store icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                        }
-                        finally
-                        {
-                            sem.Release();
-                        }
-                    });
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
-                }
+                        if (await TryResolveFromStoreAsync(def, ct).ConfigureAwait(false))
+                            Interlocked.Increment(ref storeResolved);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"Store icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                    }
+                    finally
+                    {
+                        sem.Release();
+                    }
+                });
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
+
+            int unresolved = candidates.Count - appxResolved - storeResolved;
+            _logService.LogInformation(
+                $"AppIconResolver: {candidates.Count} candidates → " +
+                $"{appxResolved} via AppX, {storeResolved}/{storeAttempted} via Store, {unresolved} unresolved");
         }
         catch (Exception ex)
         {
@@ -138,47 +146,49 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    private async Task TryResolveFromAppxAsync(
+    private async Task<bool> TryResolveFromAppxAsync(
         ItemDefinition def,
         IReadOnlyDictionary<string, string> installedMap,
         CancellationToken ct)
     {
         var packageName = def.AppxPackageName?.Length > 0 ? def.AppxPackageName[0] : null;
-        if (packageName is null) return;
-        if (!installedMap.TryGetValue(packageName, out var fullName)) return;
+        if (packageName is null) return false;
+        if (!installedMap.TryGetValue(packageName, out var fullName)) return false;
 
         var cachePath = Path.Combine(_cacheRoot, fullName + CacheFileSuffix);
         if (File.Exists(cachePath))
         {
             def.IconPath = cachePath;
-            return;
+            return true;
         }
 
         await using var stream = await _appxSource.GetLogoStreamAsync(fullName, LogoSize, ct).ConfigureAwait(false);
         if (stream is null)
-            return;
+            return false;
 
         await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
         PruneOldVersions(packageName, fullName);
         def.IconPath = cachePath;
+        return true;
     }
 
-    private async Task TryResolveFromStoreAsync(ItemDefinition def, CancellationToken ct)
+    private async Task<bool> TryResolveFromStoreAsync(ItemDefinition def, CancellationToken ct)
     {
         var msStoreId = def.MsStoreId!;
         var cachePath = Path.Combine(_cacheRoot, StoreCachePrefix + msStoreId + CacheFileSuffix);
         if (File.Exists(cachePath))
         {
             def.IconPath = cachePath;
-            return;
+            return true;
         }
 
         await using var stream = await _storeSource!.GetIconStreamAsync(msStoreId, ct).ConfigureAwait(false);
         if (stream is null)
-            return;
+            return false;
 
         await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
         def.IconPath = cachePath;
+        return true;
     }
 
     private async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
