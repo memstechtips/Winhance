@@ -43,15 +43,16 @@ public record ItemDefinition : BaseDefinition
     public string? WebsiteUrl { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
-    // Mutable runtime state — set by AppLoadingService/AppStatusDiscoveryService,
-    // proxied through AppItemViewModel for UI binding
+    // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
+    // via the relevant service (status discovery, icon resolver), proxied
+    // through AppItemViewModel for UI binding.
     public bool IsInstalled { get; set; }
     public DetectionSource DetectedVia { get; set; }
 
     /// <summary>
     /// Absolute path to the cached icon PNG, or null if no icon is available.
-    /// Populated by IAppIconResolver during AppLoadingService.LoadAppsAsync;
-    /// null for capabilities, optional features, and not-installed AppX entries.
+    /// Populated by IAppIconResolver from WindowsAppsViewModel after install-status
+    /// discovery; null for capabilities, optional features, and not-installed AppX entries.
     /// </summary>
     public string? IconPath { get; set; }
 }

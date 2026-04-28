@@ -117,14 +117,11 @@ public static class DomainServicesExtensions
         // AppX icon source (PackageManager + AppListEntry.DisplayInfo.GetLogo)
         services.AddSingleton<IAppxIconSource, AppxIconSource>();
 
-        // App icon resolver (cache-first, called from AppLoadingService)
+        // App icon resolver (cache-first, called from WindowsAppsViewModel after install-status discovery)
         services.AddSingleton<IAppIconResolver, AppIconResolver>();
 
         // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();
-
-        // App Services (Singleton - consumed by Singleton ViewModels)
-        services.AddSingleton<IAppLoadingService, AppLoadingService>();
 
         // WinGet decomposed services
         services.AddSingleton<WinGetComSession>();
