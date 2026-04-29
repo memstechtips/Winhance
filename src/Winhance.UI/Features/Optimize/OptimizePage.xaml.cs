@@ -28,7 +28,7 @@ public sealed partial class OptimizePage : Page
 {
     // Maps section keys to their icon resource keys:
     // - "Path" suffix = Material Design SVG path for PathIcon
-    // - "Symbol" suffix = FluentIcons.Common.Symbol enum name for SymbolIcon
+    // - "Symbol" suffix = FluentIcons.Common.Icon enum name for FluentIcon
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
         { "Privacy", "PrivacyIconPath" },
@@ -311,9 +311,9 @@ public sealed partial class OptimizePage : Page
 
                 if (isSymbol)
                 {
-                    if (Enum.TryParse<FluentIcons.Common.Symbol>(iconData, ignoreCase: true, out var symbol))
+                    if (Enum.TryParse<FluentIcons.Common.Icon>(iconData, ignoreCase: true, out var symbol))
                     {
-                        BreadcrumbSectionSymbol.Symbol = symbol;
+                        BreadcrumbSectionSymbol.Icon = symbol;
                     }
                 }
                 else
