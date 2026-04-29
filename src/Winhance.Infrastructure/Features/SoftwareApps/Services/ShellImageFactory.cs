@@ -77,10 +77,17 @@ public class ShellImageFactory : IShellImageFactory
             int height = (int)Math.Round(size.Height);
             var sizePoint = new SIZE { cx = width, cy = height };
 
-            // SIIGBF_RESIZETOFIT (0) | SIIGBF_BIGGERSIZEOK (0x10) — return at least
-            // the requested size; let WinUI scale down if the source is larger.
-            const int siigbfResizeToFit = 0x0;
-            const int siigbfBiggerSizeOk = 0x10;
+            // SIIGBF flag bits (from shobjidl_core.h):
+            //   SIIGBF_RESIZETOFIT  = 0x00
+            //   SIIGBF_BIGGERSIZEOK = 0x01  ← let the shell return a larger asset if needed
+            //   SIIGBF_MEMORYONLY   = 0x02
+            //   SIIGBF_ICONONLY     = 0x04
+            //   SIIGBF_THUMBNAILONLY= 0x08
+            //   SIIGBF_INCACHEONLY  = 0x10  ← "only return cached icons" — DO NOT use unconditionally
+            // The first cut had BiggerSizeOk = 0x10 (which is actually IncacheOnly),
+            // so every uncached path failed with E_FAIL. We want BiggerSizeOk = 0x01.
+            const int siigbfResizeToFit = 0x00;
+            const int siigbfBiggerSizeOk = 0x01;
             hr = factory.GetImage(sizePoint, siigbfResizeToFit | siigbfBiggerSizeOk, out IntPtr hBitmap);
             if (hr != 0 || hBitmap == IntPtr.Zero)
                 throw new InvalidOperationException($"IShellItemImageFactory.GetImage failed (hr=0x{hr:X8}) for '{filePath}'");
