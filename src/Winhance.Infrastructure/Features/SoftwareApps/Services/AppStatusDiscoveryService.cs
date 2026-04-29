@@ -316,7 +316,10 @@ public class AppStatusDiscoveryService(
     internal record RegistryUninstallInfo(
         HashSet<string> KeyNames,
         HashSet<string> DisplayNames,
-        HashSet<string> AllKeyNames);
+        HashSet<string> AllKeyNames)
+    {
+        public Dictionary<string, string> IconHintsByName { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Tests whether input matches a pattern containing {version}, {arch}, {locale} placeholders.
@@ -497,6 +500,8 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
+                        if (regInfo.IconHintsByName.TryGetValue(def.Name, out var hint1))
+                            def.InstalledBinaryHint ??= hint1;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 1 - KeyName): {def.Name}");
                     }
@@ -509,6 +514,8 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
+                        if (regInfo.IconHintsByName.TryGetValue(def.Name, out var hint2))
+                            def.InstalledBinaryHint ??= hint2;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 2 - DisplayName): {def.Name}");
                     }
@@ -519,10 +526,13 @@ public class AppStatusDiscoveryService(
                     .Where(d => !string.IsNullOrEmpty(d.RegistrySubKeyName))
                     .Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
                 {
-                    if (regInfo.AllKeyNames.Any(k => MatchesPattern(k, def.RegistrySubKeyName!)))
+                    var matchedKey3 = regInfo.AllKeyNames.FirstOrDefault(k => MatchesPattern(k, def.RegistrySubKeyName!));
+                    if (matchedKey3 != null)
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
+                        if (regInfo.IconHintsByName.TryGetValue(matchedKey3, out var hint3))
+                            def.InstalledBinaryHint ??= hint3;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 3 - SubKeyName pattern): {def.Name}");
                     }
@@ -533,10 +543,13 @@ public class AppStatusDiscoveryService(
                     .Where(d => !string.IsNullOrEmpty(d.RegistryDisplayName))
                     .Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
                 {
-                    if (regInfo.DisplayNames.Any(dn => MatchesPattern(dn, def.RegistryDisplayName!)))
+                    var matchedDn4 = regInfo.DisplayNames.FirstOrDefault(dn => MatchesPattern(dn, def.RegistryDisplayName!));
+                    if (matchedDn4 != null)
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
+                        if (regInfo.IconHintsByName.TryGetValue(matchedDn4, out var hint4))
+                            def.InstalledBinaryHint ??= hint4;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 4 - DisplayName pattern): {def.Name}");
                     }
@@ -566,6 +579,7 @@ public class AppStatusDiscoveryService(
                         {
                             result[def.Id] = true;
                             def.DetectedVia = DetectionSource.FileSystem;
+                            def.InstalledBinaryHint ??= expandedPath;
                             fileSystemCount++;
                             logService.LogInformation($"Installed (FileSystem): {def.Name} ({expandedPath})");
                             break;
@@ -592,6 +606,7 @@ public class AppStatusDiscoveryService(
         var keyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var displayNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var allKeyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var iconHintsByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         await Task.Run(() =>
         {
@@ -645,6 +660,21 @@ public class AppStatusDiscoveryService(
                             var displayName = subKey.GetValue("DisplayName") as string;
                             if (!string.IsNullOrEmpty(displayName))
                                 displayNames.Add(displayName);
+
+                            // Capture DisplayIcon (strip ",index" suffix + quotes + env vars)
+                            // or fall back to InstallLocation for Layer 1b icon extraction.
+                            string? iconHint = (subKey.GetValue("DisplayIcon") as string)
+                                           ?? (subKey.GetValue("InstallLocation") as string);
+                            if (!string.IsNullOrEmpty(iconHint))
+                            {
+                                var commaIdx = iconHint.IndexOf(',');
+                                if (commaIdx > 0) iconHint = iconHint.Substring(0, commaIdx);
+                                iconHint = Environment.ExpandEnvironmentVariables(iconHint.Trim('"'));
+
+                                iconHintsByName[subKeyName] = iconHint;
+                                if (!string.IsNullOrEmpty(displayName) && !iconHintsByName.ContainsKey(displayName))
+                                    iconHintsByName[displayName] = iconHint;
+                            }
                         }
                         catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
                     }
@@ -653,7 +683,10 @@ public class AppStatusDiscoveryService(
             }
         }).ConfigureAwait(false);
 
-        return new RegistryUninstallInfo(keyNames, displayNames, allKeyNames);
+        return new RegistryUninstallInfo(keyNames, displayNames, allKeyNames)
+        {
+            IconHintsByName = iconHintsByName
+        };
     }
 
     #endregion
