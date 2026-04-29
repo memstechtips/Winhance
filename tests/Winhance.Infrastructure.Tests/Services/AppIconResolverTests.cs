@@ -15,6 +15,8 @@ public class AppIconResolverTests : IDisposable
 {
     private readonly Mock<IAppxIconSource> _mockIconSource = new();
     private readonly Mock<IStoreIconSource> _mockStoreSource = new();
+    private readonly Mock<IBinaryIconSource> _mockBinarySource = new();
+    private readonly Mock<IWinGetIconSource> _mockWinGetSource = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly string _tempCacheDir;
     private readonly AppIconResolver _resolver;
@@ -26,7 +28,9 @@ public class AppIconResolverTests : IDisposable
             _mockIconSource.Object,
             _mockLog.Object,
             _tempCacheDir,
-            _mockStoreSource.Object);
+            _mockStoreSource.Object,
+            _mockBinarySource.Object,
+            _mockWinGetSource.Object);
     }
 
     public void Dispose()
@@ -39,7 +43,9 @@ public class AppIconResolverTests : IDisposable
         string id,
         string? appxName = null,
         bool installed = true,
-        string? msStoreId = null) => new()
+        string? msStoreId = null,
+        string? winGetId = null,
+        string? binaryHint = null) => new()
     {
         Id = id,
         Name = $"App {id}",
@@ -47,6 +53,8 @@ public class AppIconResolverTests : IDisposable
         AppxPackageName = appxName != null ? new[] { appxName } : null,
         IsInstalled = installed,
         MsStoreId = msStoreId,
+        WinGetPackageId = winGetId != null ? new[] { winGetId } : null,
+        InstalledBinaryHint = binaryHint,
     };
 
     private static MemoryStream PngBytes(string label) => new(Encoding.UTF8.GetBytes("PNG-" + label));
@@ -289,5 +297,109 @@ public class AppIconResolverTests : IDisposable
         _mockStoreSource.Verify(
             s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    // --- Layer 1b: binary icon source ---
+
+    [Fact]
+    public async Task ResolveBatchAsync_ResolvesViaBinaryLayer_WhenInstalledBinaryHintSet()
+    {
+        var def = Def("ext-1", binaryHint: "C:\\PowerToys\\PowerToys.exe");
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockBinarySource.Setup(b => b.GetIconStreamAsync(
+                "C:\\PowerToys\\PowerToys.exe",
+                It.IsAny<Size>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("binary"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        def.IconPath.Should().StartWith(_tempCacheDir);
+        Path.GetFileName(def.IconPath!).Should().StartWith("Bin_");
+    }
+
+    // --- Layer 2: Store-over-WinGet preference chain ---
+
+    [Fact]
+    public async Task ResolveBatchAsync_PrefersStoreOverWinGet_WhenBothAvailable()
+    {
+        var def = Def("ext-2", msStoreId: "XP89DCGQ3K6VLD", winGetId: "Microsoft.PowerToys");
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockStoreSource.Setup(s => s.GetIconStreamAsync("XP89DCGQ3K6VLD", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("store"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        Path.GetFileName(def.IconPath!).Should().StartWith("MsStore_");
+        _mockWinGetSource.Verify(
+            w => w.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_FallsBackToWinGet_WhenStoreReturnsNull()
+    {
+        var def = Def("ext-3", msStoreId: "XP_unknown", winGetId: "Microsoft.PowerToys");
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockStoreSource.Setup(s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Stream?)null);
+        _mockWinGetSource.Setup(w => w.GetIconStreamAsync("Microsoft.PowerToys", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("winget"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        Path.GetFileName(def.IconPath!).Should().StartWith("WinGet_");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_ResolvesViaWinGet_WhenOnlyWinGetIdPresent()
+    {
+        var def = Def("ext-4", winGetId: "Microsoft.OneDrive");
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockWinGetSource.Setup(w => w.GetIconStreamAsync("Microsoft.OneDrive", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("winget-only"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        Path.GetFileName(def.IconPath!).Should().StartWith("WinGet_");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_PrefersAppxOverEverything_WhenInstalled()
+    {
+        var def = Def("ext-5",
+            appxName: "Microsoft.PowerToys",
+            msStoreId: "XP89DCGQ3K6VLD",
+            winGetId: "Microsoft.PowerToys",
+            binaryHint: "C:\\PowerToys\\PowerToys.exe");
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>
+            {
+                ["Microsoft.PowerToys"] = "Microsoft.PowerToys_0.87.0_x64__abc"
+            });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(
+                "Microsoft.PowerToys_0.87.0_x64__abc",
+                It.IsAny<Size>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("appx"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        Path.GetFileName(def.IconPath!).Should().NotStartWith("Bin_")
+            .And.NotStartWith("MsStore_")
+            .And.NotStartWith("WinGet_");
+        _mockBinarySource.Verify(b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockStoreSource.Verify(s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockWinGetSource.Verify(w => w.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
