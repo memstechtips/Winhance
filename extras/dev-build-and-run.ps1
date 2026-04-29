@@ -11,11 +11,26 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Pause for a keypress before exiting on failure, so the console window
+# (when launched from Explorer / a shortcut) stays open long enough to
+# read the error. No-op when running from an interactive shell that the
+# user invoked us from — there's nothing useful to pause for.
+function Wait-OnFailure {
+    if ($Host.Name -eq 'ConsoleHost') {
+        Write-Host ""
+        Write-Host "Press any key to close this window..." -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    }
+}
+
 $repoRoot     = Split-Path -Parent $PSScriptRoot
 $csprojPath   = Join-Path $repoRoot 'src\Winhance.UI\Winhance.UI.csproj'
 $buildOutDir  = Join-Path $repoRoot 'src\Winhance.UI\bin\x64\Debug\net10.0-windows10.0.19041.0\win-x64'
 $exePath      = Join-Path $buildOutDir 'Winhance.exe'
 $msbuild      = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe'
+$buildLogDir  = Join-Path $env:LOCALAPPDATA 'Winhance-dev'
+$buildLog     = Join-Path $buildLogDir 'last-build.log'
+$null = New-Item -ItemType Directory -Path $buildLogDir -Force
 
 # Windows refuses to launch executables from network shares (Internet zone).
 # When the repo lives on a UNC/SMB drive, we mirror the build output to a
@@ -78,14 +93,17 @@ if ($changed) {
 # --- Build ---------------------------------------------------------------
 Push-Location $repoRoot
 try {
-    $buildErrors = & $msbuild `
+    # Stream full MSBuild output to the console (so errors come with file/line
+    # context) and tee a copy to a log file for after-the-fact review.
+    # -v:m (minimal) is the sweet spot: shows warnings + errors with file
+    # paths but doesn't drown the user in build-step chatter.
+    & $msbuild `
         'src\Winhance.UI\Winhance.UI.csproj' `
-        -p:Configuration=Debug -p:Platform=x64 -restore -v:q -nologo 2>&1 |
-        Where-Object { $_ -match 'error ' }
+        -p:Configuration=Debug -p:Platform=x64 -restore -v:m -nologo 2>&1 |
+        Tee-Object -FilePath $buildLog
 
-    if ($buildErrors) {
-        $buildErrors | ForEach-Object { Write-Host $_ -ForegroundColor Red }
-        throw 'Build failed.'
+    if ($LASTEXITCODE -ne 0) {
+        throw "MSBuild failed with exit code $LASTEXITCODE. Full log: $buildLog"
     }
 
     if (-not (Test-Path $exePath)) {
@@ -107,6 +125,18 @@ try {
 
     Write-Host "Launching: $launchExe" -ForegroundColor Green
     Start-Process -FilePath $launchExe
+}
+catch {
+    Write-Host ""
+    Write-Host "BUILD FAILED:" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    if ($_.ScriptStackTrace) {
+        Write-Host ""
+        Write-Host "Stack trace:" -ForegroundColor DarkRed
+        Write-Host $_.ScriptStackTrace -ForegroundColor DarkRed
+    }
+    Wait-OnFailure
+    exit 1
 }
 finally {
     Pop-Location
