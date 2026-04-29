@@ -94,7 +94,11 @@ public class WinGetIconSource : IWinGetIconSource
             // Do NOT consult the fetcher when COM returned null cleanly (no Icons in manifest):
             // that means the package genuinely has no icon in the WinGet catalog; the GitHub
             // manifest fetcher would hit the same upstream data and return null too.
-            if (iconUrl is null && !comCleanMiss && !_gitHubRateLimited)
+            // Also skip when the linked CTS already cancelled (e.g. the per-call timeout fired
+            // during COM) — running the fetcher with an already-cancelled token would just
+            // throw OperationCanceledException and surface as a misleading "unexpected failure"
+            // log entry on top of the COM warning we already wrote.
+            if (iconUrl is null && !comCleanMiss && !_gitHubRateLimited && !linked.Token.IsCancellationRequested)
             {
                 try
                 {
