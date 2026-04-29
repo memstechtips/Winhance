@@ -670,16 +670,17 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                                <Grid Width="26" Height="26" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                    <!-- See Card view comment — Clip is a safety net for unusually-shaped icons. -->
+                                                <!-- ICON-SIZE KNOB (DataGrid view) — keep Grid Width/Height,
+                                                     RectangleGeometry Rect and Image Width/Height in lockstep. -->
+                                                <Grid Width="22" Height="22" VerticalAlignment="Center" Margin="-4,0,0,0">
                                                     <Grid.Clip>
-                                                        <RectangleGeometry Rect="0,0,26,26"/>
+                                                        <RectangleGeometry Rect="0,0,22,22"/>
                                                     </Grid.Clip>
-                                                    <Image Source="{Binding IconSource}" Width="26" Height="26"
+                                                    <Image Source="{Binding IconSource}" Width="22" Height="22"
                                                            Stretch="Uniform"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
+                                                    <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="12"
                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                               Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                 </Grid>
@@ -764,19 +765,19 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <Grid Width="32" Height="32" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <!-- Cached icons are pre-trimmed of transparent borders by the
-                                                                 resolver, so visible art naturally fills the Image control
-                                                                 at uniform size across packages. Clip is a safety net
-                                                                 against any source that still ends up oversized. -->
+                                                        <!-- ICON-SIZE KNOB (Card view) — keep all four numbers in lockstep:
+                                                             Grid Width/Height, RectangleGeometry Rect, Image Width/Height
+                                                             (all the same value). FontIcon FontSize is the fallback glyph
+                                                             size, typically ~half of the Grid size. -->
+                                                        <Grid Width="28" Height="28" VerticalAlignment="Center" Margin="-4,0,0,0">
                                                             <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,32,32"/>
+                                                                <RectangleGeometry Rect="0,0,28,28"/>
                                                             </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="32" Height="32"
+                                                            <Image Source="{Binding IconSource}" Width="28" Height="28"
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="16"
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                         </Grid>
@@ -809,19 +810,19 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <Grid Width="32" Height="32" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <!-- Cached icons are pre-trimmed of transparent borders by the
-                                                                 resolver, so visible art naturally fills the Image control
-                                                                 at uniform size across packages. Clip is a safety net
-                                                                 against any source that still ends up oversized. -->
+                                                        <!-- ICON-SIZE KNOB (Card view) — keep all four numbers in lockstep:
+                                                             Grid Width/Height, RectangleGeometry Rect, Image Width/Height
+                                                             (all the same value). FontIcon FontSize is the fallback glyph
+                                                             size, typically ~half of the Grid size. -->
+                                                        <Grid Width="28" Height="28" VerticalAlignment="Center" Margin="-4,0,0,0">
                                                             <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,32,32"/>
+                                                                <RectangleGeometry Rect="0,0,28,28"/>
                                                             </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="32" Height="32"
+                                                            <Image Source="{Binding IconSource}" Width="28" Height="28"
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="16"
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                         </Grid>
@@ -854,19 +855,19 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <Grid Width="32" Height="32" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <!-- Cached icons are pre-trimmed of transparent borders by the
-                                                                 resolver, so visible art naturally fills the Image control
-                                                                 at uniform size across packages. Clip is a safety net
-                                                                 against any source that still ends up oversized. -->
+                                                        <!-- ICON-SIZE KNOB (Card view) — keep all four numbers in lockstep:
+                                                             Grid Width/Height, RectangleGeometry Rect, Image Width/Height
+                                                             (all the same value). FontIcon FontSize is the fallback glyph
+                                                             size, typically ~half of the Grid size. -->
+                                                        <Grid Width="28" Height="28" VerticalAlignment="Center" Margin="-4,0,0,0">
                                                             <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,32,32"/>
+                                                                <RectangleGeometry Rect="0,0,28,28"/>
                                                             </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="32" Height="32"
+                                                            <Image Source="{Binding IconSource}" Width="28" Height="28"
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="16"
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                         </Grid>
