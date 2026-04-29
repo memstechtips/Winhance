@@ -28,6 +28,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     private readonly ILocalizationService _localizationService;
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IAppIconResolver? _iconResolver;
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
@@ -36,7 +37,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         IDialogService dialogService,
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IAppIconResolver? iconResolver = null)
     {
         _externalAppsService = externalAppsService;
         _progressService = progressService;
@@ -45,6 +47,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         _localizationService = localizationService;
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
+        _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _externalAppsService.WinGetReady += OnWinGetInstalled;
@@ -238,6 +241,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             _logService.LogWarning($"[ExternalAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
         }
 
+        await ResolveIconsAsync();
+
         try
         {
             NotifySelectionStateChanged();
@@ -273,6 +278,32 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
         {
             NotifySelectionStateChanged();
+        }
+    }
+
+    /// <summary>
+    /// Resolves icons for all current entries via the unified icon pipeline
+    /// (Layer 1a AppX local → Layer 1b Win32 binary → Layer 2a Store CDN →
+    /// Layer 2b WinGet manifest) and notifies their ViewModels so the bound
+    /// Image / FontIcon refresh.
+    /// No-op when no resolver was injected. Failures are logged and swallowed
+    /// — icon resolution must never block the load flow.
+    /// </summary>
+    private async Task ResolveIconsAsync()
+    {
+        if (_iconResolver is null) return;
+
+        try
+        {
+            var definitions = Items.Select(item => item.Definition).ToList();
+            await _iconResolver.ResolveBatchAsync(definitions);
+
+            foreach (var item in Items)
+                item.NotifyIconChanged();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[ExternalAppsViewModel] Icon resolution failed: {ex.Message}");
         }
     }
 

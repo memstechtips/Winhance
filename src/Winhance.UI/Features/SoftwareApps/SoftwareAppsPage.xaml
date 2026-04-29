@@ -1017,7 +1017,19 @@
                                 <controls:DataGridTemplateColumn Header="Name" Width="*" Tag="Name">
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <!-- Icon size driven by DataGridIconSize / DataGridFallbackFontSize resources at the top of the page. -->
+                                                <Grid Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                      VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                    <Image Source="{Binding IconSource}"
+                                                           Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                           Stretch="Uniform"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                            FontSize="{StaticResource DataGridAppsIconSize}"
+                                                                            Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                </Grid>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                                                 <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
@@ -1114,7 +1126,19 @@
                                                             <DataTemplate>
                                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
                                                                          AutomationProperties.Name="{Binding Name}">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
+                                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                                            <Image Source="{Binding IconSource}"
+                                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                                   Stretch="Uniform"
+                                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                                    FontSize="{StaticResource CardAppsIconSize}"
+                                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                        </Grid>
                                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
                                                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
