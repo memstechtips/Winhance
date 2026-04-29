@@ -27,7 +27,7 @@ public class StoreIconSource(HttpClient httpClient, ILogService logService) : IS
         "https://displaycatalog.mp.microsoft.com/v7.0/products/{0}?market=US&languages=en-US";
 
     private const string StoreEdgeFdUrlFormat =
-        "https://storeedgefd.dsx.mp.microsoft.com/v9.0/pages/pdp?productId={0}&market=US&locale=en-US";
+        "https://storeedgefd.dsx.mp.microsoft.com/v9.0/products/{0}?market=US&locale=en-us&deviceFamily=Windows.Desktop";
 
     private const string UserAgent = "Winhance/1.0";
 
@@ -148,8 +148,10 @@ public class StoreIconSource(HttpClient httpClient, ILogService logService) : IS
 
     /// <summary>
     /// Extracts an icon URL from the displaycatalog v7 response shape:
-    /// <c>Products[].LocalizedProperties[].Images[].Uri</c> with an
-    /// <c>ImagePurpose</c> of "Logo", "Tile", or "BoxArt".
+    /// <c>Product.LocalizedProperties[0].Images[]</c>. The top-level key is
+    /// <c>Product</c> (singular object) not <c>Products[]</c>; the image URL
+    /// lives in the <c>Uri</c> field (the sibling <c>Url</c> field is
+    /// generally null); image purposes are capitalized ("Logo", "Tile").
     /// </summary>
     private static string? ExtractIconUrlFromDisplayCatalog(string json)
     {
@@ -157,12 +159,10 @@ public class StoreIconSource(HttpClient httpClient, ILogService logService) : IS
         {
             using var doc = JsonDocument.Parse(json);
 
-            if (!doc.RootElement.TryGetProperty("Products", out var products) ||
-                products.ValueKind != JsonValueKind.Array ||
-                products.GetArrayLength() == 0)
+            if (!doc.RootElement.TryGetProperty("Product", out var product) ||
+                product.ValueKind != JsonValueKind.Object)
                 return null;
 
-            var product = products[0];
             if (!product.TryGetProperty("LocalizedProperties", out var localizedArr) ||
                 localizedArr.ValueKind != JsonValueKind.Array ||
                 localizedArr.GetArrayLength() == 0)
@@ -182,32 +182,25 @@ public class StoreIconSource(HttpClient httpClient, ILogService logService) : IS
     }
 
     /// <summary>
-    /// Extracts an icon URL from the storeedgefd v9 PDP response shape.
-    /// Tries the documented Payload.Images[] path first; falls back to a
-    /// permissive walk that picks any Images array under any nested object.
-    /// The endpoint's response shape has shifted historically, so the
-    /// fallback insulates against minor schema drift.
+    /// Extracts an icon URL from the storeedgefd v9 products endpoint:
+    /// <c>Payload.Images[]</c>. <c>ImageType</c> values are lowercase
+    /// ("logo", "screenshot", "tile") and the URL is in <c>Url</c>.
     /// </summary>
     private static string? ExtractIconUrlFromStoreEdgeFd(string json)
     {
         try
         {
             using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
 
-            // Documented path: { "Payload": { "Images": [...] } }
-            if (root.TryGetProperty("Payload", out var payload) &&
-                payload.TryGetProperty("Images", out var payloadImages) &&
-                payloadImages.ValueKind == JsonValueKind.Array)
-            {
-                var picked = PickBestImageUrl(payloadImages, purposeFieldName: "ImageType", urlFieldName: "Url")
-                          ?? PickBestImageUrl(payloadImages, purposeFieldName: "ImagePurpose", urlFieldName: "Url")
-                          ?? PickBestImageUrl(payloadImages, purposeFieldName: "ImageType", urlFieldName: "Uri");
-                if (!string.IsNullOrEmpty(picked)) return picked;
-            }
+            if (!doc.RootElement.TryGetProperty("Payload", out var payload) ||
+                payload.ValueKind != JsonValueKind.Object)
+                return null;
 
-            // Fallback: walk every Images array we find anywhere in the tree.
-            return WalkForFirstImage(root);
+            if (!payload.TryGetProperty("Images", out var images) ||
+                images.ValueKind != JsonValueKind.Array)
+                return null;
+
+            return PickBestImageUrl(images, purposeFieldName: "ImageType", urlFieldName: "Url");
         }
         catch
         {
@@ -215,39 +208,11 @@ public class StoreIconSource(HttpClient httpClient, ILogService logService) : IS
         }
     }
 
-    private static string? WalkForFirstImage(JsonElement el)
-    {
-        if (el.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var prop in el.EnumerateObject())
-            {
-                if (prop.NameEquals("Images") && prop.Value.ValueKind == JsonValueKind.Array)
-                {
-                    var url = PickBestImageUrl(prop.Value, "ImageType", "Url")
-                           ?? PickBestImageUrl(prop.Value, "ImagePurpose", "Url")
-                           ?? PickBestImageUrl(prop.Value, "ImageType", "Uri")
-                           ?? PickBestImageUrl(prop.Value, "ImagePurpose", "Uri");
-                    if (!string.IsNullOrEmpty(url)) return url;
-                }
-                var nested = WalkForFirstImage(prop.Value);
-                if (!string.IsNullOrEmpty(nested)) return nested;
-            }
-        }
-        else if (el.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in el.EnumerateArray())
-            {
-                var nested = WalkForFirstImage(item);
-                if (!string.IsNullOrEmpty(nested)) return nested;
-            }
-        }
-        return null;
-    }
-
     /// <summary>
     /// Selects the best icon URL from an Images array. Prefers Logo, then
     /// Tile/BoxArt; among same-priority candidates, prefers the largest
-    /// roughly-square image.
+    /// roughly-square image. Case-insensitive on the purpose field so the
+    /// same logic works for displaycatalog ("Logo") and storeedgefd ("logo").
     /// </summary>
     private static string? PickBestImageUrl(JsonElement images, string purposeFieldName, string urlFieldName)
     {
@@ -264,14 +229,14 @@ public class StoreIconSource(HttpClient httpClient, ILogService logService) : IS
             int priority = 0;
             if (image.TryGetProperty(purposeFieldName, out var purposeProp) && purposeProp.ValueKind == JsonValueKind.String)
             {
-                priority = purposeProp.GetString() switch
+                priority = (purposeProp.GetString() ?? string.Empty).ToLowerInvariant() switch
                 {
-                    "Logo" => 3,
-                    "AppIcon" => 3,
-                    "Tile" => 2,
-                    "TileMedium" => 2,
-                    "BoxArt" => 1,
-                    "Poster" => 1,
+                    "logo" => 3,
+                    "appicon" => 3,
+                    "tile" => 2,
+                    "tilemedium" => 2,
+                    "boxart" => 1,
+                    "poster" => 1,
                     _ => 0,
                 };
             }
