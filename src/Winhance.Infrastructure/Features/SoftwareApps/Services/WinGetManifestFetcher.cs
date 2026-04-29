@@ -46,19 +46,24 @@ public class WinGetManifestFetcher : IWinGetManifestFetcher
         }
     }
 
+    private static readonly TimeSpan PerCallTimeout = TimeSpan.FromSeconds(8);
+
     public async Task<string?> GetIconUrlAsync(string winGetPackageId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(winGetPackageId)) return null;
 
         try
         {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            linked.CancelAfter(PerCallTimeout);
+
             var dir = BuildManifestDir(winGetPackageId);
 
             // Step 1: resolve latest version (memoized).
             string? latest;
             if (!_versionCache.TryGetValue(winGetPackageId, out latest))
             {
-                latest = await ResolveLatestVersionAsync(dir, ct).ConfigureAwait(false);
+                latest = await ResolveLatestVersionAsync(dir, linked.Token).ConfigureAwait(false);
                 if (latest is not null)
                     _versionCache[winGetPackageId] = latest;
             }
@@ -66,15 +71,21 @@ public class WinGetManifestFetcher : IWinGetManifestFetcher
 
             // Step 2: fetch the locale manifest first; fall through to singleton on 404.
             var localePath = $"{dir}/{latest}/{winGetPackageId}.locale.en-US.yaml";
-            var yaml = await FetchRawAsync(localePath, ct).ConfigureAwait(false);
+            var yaml = await FetchRawAsync(localePath, linked.Token).ConfigureAwait(false);
             if (yaml is null)
             {
                 var singletonPath = $"{dir}/{latest}/{winGetPackageId}.yaml";
-                yaml = await FetchRawAsync(singletonPath, ct).ConfigureAwait(false);
+                yaml = await FetchRawAsync(singletonPath, linked.Token).ConfigureAwait(false);
             }
             if (yaml is null) return null;
 
             return ExtractFirstIconUrl(yaml);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // External cancellation propagates; internal-timeout cancellation falls through
+            // to the generic catch and is logged as a normal failure.
+            throw;
         }
         catch (RateLimitExceededException)
         {
@@ -120,11 +131,19 @@ public class WinGetManifestFetcher : IWinGetManifestFetcher
                                  .ToList();
         if (versionDirs.Count == 0) return null;
 
-        // SemVer-aware sort with lexical fallback for non-conforming directory names.
+        // Transitive sort: parseable versions sort to the end (so "latest" is the
+        // last element after sorting). Non-parseable versions (e.g. "2.1-beta",
+        // git SHAs) sort BEFORE all parseable ones, ordered lexically among
+        // themselves. This means stable releases always beat prerelease-style
+        // names — which matches winget-pkgs convention where prerelease entries
+        // are stored as separate version directories alongside stable ones.
         versionDirs.Sort((a, b) =>
         {
-            if (Version.TryParse(a, out var va) && Version.TryParse(b, out var vb))
-                return va.CompareTo(vb);
+            var aParsed = Version.TryParse(a, out var va);
+            var bParsed = Version.TryParse(b, out var vb);
+            if (aParsed && bParsed) return va!.CompareTo(vb);
+            if (aParsed) return 1;   // a is parseable, b isn't → a is "later"
+            if (bParsed) return -1;  // b is parseable, a isn't → b is "later"
             return StringComparer.OrdinalIgnoreCase.Compare(a, b);
         });
         return versionDirs[^1];

@@ -109,6 +109,44 @@ Icons:
     }
 
     [Fact]
+    public async Task GetIconUrlAsync_PrefersParseableVersion_OverNonParseable()
+    {
+        // winget-pkgs sometimes has prerelease entries like "2.1-beta" alongside
+        // numeric releases. The "latest" should be the highest parseable version,
+        // not the lexically-largest non-parseable one.
+        SetupContentsApi("p/PreRelease/App", new[] { "10.0", "2.1-beta", "9.2", "9.1-preview" });
+        SetupRawFetch("p/PreRelease/App/10.0/PreRelease.App.locale.en-US.yaml", """
+Icons:
+- IconUrl: https://example.com/stable.png
+""");
+
+        var result = await _fetcher.GetIconUrlAsync("PreRelease.App");
+        result.Should().Be("https://example.com/stable.png");
+    }
+
+    [Fact]
+    public async Task GetIconUrlAsync_PropagatesExternalCancellation()
+    {
+        // Caller cancels via ct — exception must propagate (not swallowed by the
+        // generic catch). Distinct from internal-timeout cancellation, which falls
+        // through to logged + null.
+        _handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>(async (_, ct) =>
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1), ct);
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            });
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        var act = () => _fetcher.GetIconUrlAsync("Foo.Bar", cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
     public async Task GetIconUrlAsync_ReturnsNullOnContents404()
     {
         // Package not in winget-pkgs (e.g. a private-source-only package).
