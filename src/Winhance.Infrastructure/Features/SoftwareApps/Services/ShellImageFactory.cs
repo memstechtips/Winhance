@@ -141,13 +141,12 @@ public class ShellImageFactory : IShellImageFactory
 
     // --- COM interop ---------------------------------------------------------
 
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-    [return: MarshalAs(UnmanagedType.Interface)]
-    private static extern object SHCreateItemFromParsingName(
-        string pszPath,
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHCreateItemFromParsingName(
+        [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
         IntPtr pbc,
         ref Guid riid,
-        [Out, MarshalAs(UnmanagedType.IUnknown)] out object factory);
+        [MarshalAs(UnmanagedType.Interface)] out object factory);
 
     [ComImport]
     [Guid("BCC18B79-BA16-442F-80C4-8A59C30C463B")]
