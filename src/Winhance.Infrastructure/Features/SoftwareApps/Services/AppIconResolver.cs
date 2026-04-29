@@ -20,10 +20,12 @@ public class AppIconResolver : IAppIconResolver
     private const string StoreCachePrefix = "MsStore_";
     private const string BinaryCachePrefix = "Bin_";
     private const string WinGetCachePrefix = "WinGet_";
-    // Concurrency limit for Store CDN requests. Each unresolved-with-MsStoreId
-    // package costs two HTTP round-trips (catalog metadata + image download);
-    // running them parallel keeps cold-cache load times bounded.
-    private const int StoreFetchConcurrency = 5;
+    // Concurrency limit for Layer 2 online sources (Store CDN + WinGet manifest).
+    // Each entry costs two HTTP round-trips at minimum (catalog metadata + image
+    // download); running them parallel keeps cold-cache load times bounded. Kept
+    // at the original Store-era constant value of 5 — there's no upstream rate
+    // limit pressure that would push this higher.
+    private const int Layer2Concurrency = 5;
 
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
     // available asset/scale to this hint; 96 reliably returns the high-DPI
@@ -161,7 +163,7 @@ public class AppIconResolver : IAppIconResolver
 
             if (layer2Candidates.Count > 0)
             {
-                using var sem = new SemaphoreSlim(StoreFetchConcurrency);
+                using var sem = new SemaphoreSlim(Layer2Concurrency);
                 var tasks = layer2Candidates.Select(async def =>
                 {
                     await sem.WaitAsync(ct).ConfigureAwait(false);
@@ -272,7 +274,9 @@ public class AppIconResolver : IAppIconResolver
         // folder icon via Shell APIs — not useful. Skip Layer 1b for those entries
         // so they fall through to Layer 2. A future enhancement could scan the
         // directory for an exe, but that's out of scope.
-        if (Directory.Exists(hint) && !File.Exists(hint))
+        // Directory.Exists returns true only for directories on Windows;
+        // File.Exists check is redundant. Drop the second clause for clarity.
+        if (Directory.Exists(hint))
             return false;
 
         var key = BinaryCachePrefix + Sha1Hex(hint) + CacheFileSuffix;
@@ -293,7 +297,10 @@ public class AppIconResolver : IAppIconResolver
 
     private async Task<bool> TryResolveFromWinGetAsync(ItemDefinition def, CancellationToken ct)
     {
-        var packageId = def.WinGetPackageId![0];
+        // Defensive: callers gate on (def.WinGetPackageId?.Length > 0), but this
+        // method is private and may grow new call sites; guard internally too.
+        if (def.WinGetPackageId is not { Length: > 0 }) return false;
+        var packageId = def.WinGetPackageId[0];
         var cachePath = Path.Combine(_cacheRoot, WinGetCachePrefix + packageId + CacheFileSuffix);
         if (File.Exists(cachePath))
         {
