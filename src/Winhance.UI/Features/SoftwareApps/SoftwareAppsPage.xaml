@@ -23,10 +23,18 @@
              Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
              largest IconSize) for HiDPI sharpness.
              ============================================================ -->
-        <x:Double x:Key="CardIconSize">28</x:Double>
+        <x:Double x:Key="CardIconSize">20</x:Double>
         <x:Double x:Key="CardFallbackFontSize">14</x:Double>
-        <x:Double x:Key="DataGridIconSize">22</x:Double>
+        <x:Double x:Key="DataGridIconSize">20</x:Double>
         <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
+
+        <!-- Card-view column width. UniformGridLayout uses this as the minimum
+             per-card width; the actual column count is roughly:
+                 floor(panel_width / (CardItemMinWidth + MinColumnSpacing))
+             So increasing this number drops the column count and gives each
+             card more horizontal breathing room. Rough targets on a 2560-wide
+             panel: 260 → 9 cols, 310 → 8 cols, 360 → 7 cols. -->
+        <x:Double x:Key="CardItemMinWidth">310</x:Double>
 
         <!-- First column header: left-rounded corners with select-all checkbox -->
         <Style x:Key="FirstColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
@@ -771,7 +779,7 @@
                                                FontWeight="SemiBold"/>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
                                         <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="2"/>
+                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
@@ -812,7 +820,7 @@
                                                FontWeight="SemiBold"/>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
                                         <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="2"/>
+                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
@@ -853,7 +861,7 @@
                                                FontWeight="SemiBold"/>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
                                         <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="2"/>
+                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
@@ -1059,7 +1067,7 @@
                                                 <Expander.Content>
                                                     <ItemsRepeater ItemsSource="{Binding Apps}" Margin="0,4,0,4">
                                                         <ItemsRepeater.Layout>
-                                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="2"/>
+                                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
                                                         </ItemsRepeater.Layout>
                                                         <ItemsRepeater.ItemTemplate>
                                                             <DataTemplate>
