@@ -33,11 +33,11 @@
 
             <!-- Can be Reinstalled -->
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-                <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
-                    <fluentIcons:SymbolIcon.Foreground>
+                <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
+                    <fluentIcons:FluentIcon.Foreground>
                         <SolidColorBrush Color="#2196F3"/>
-                    </fluentIcons:SymbolIcon.Foreground>
-                </fluentIcons:SymbolIcon>
+                    </fluentIcons:FluentIcon.Foreground>
+                </fluentIcons:FluentIcon>
                 <TextBlock x:Name="CanReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
 
@@ -53,11 +53,11 @@
 
             <!-- Cannot Reinstall -->
             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
-                    <fluentIcons:SymbolIcon.Foreground>
+                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
+                    <fluentIcons:FluentIcon.Foreground>
                         <SolidColorBrush Color="#F44336"/>
-                    </fluentIcons:SymbolIcon.Foreground>
-                </fluentIcons:SymbolIcon>
+                    </fluentIcons:FluentIcon.Foreground>
+                </fluentIcons:FluentIcon>
                 <TextBlock x:Name="CannotReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
         </Grid>

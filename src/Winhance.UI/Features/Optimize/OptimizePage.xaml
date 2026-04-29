@@ -63,9 +63,9 @@
                 </Button>
 
                 <!-- Separator (visible only on detail pages) -->
-                <fluentIcons:SymbolIcon
+                <fluentIcons:FluentIcon
                     x:Name="BreadcrumbSeparator"
-                    Symbol="ChevronRight"
+                    Icon="ChevronRight"
                     IconVariant="Regular"
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -84,7 +84,7 @@
                                 <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                             </Viewbox>
                             <!-- SymbolIcon for FluentIcons-based icons (Update, Sound) -->
-                            <fluentIcons:SymbolIcon x:Name="BreadcrumbSectionSymbol" IconVariant="Regular" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
+                            <fluentIcons:FluentIcon x:Name="BreadcrumbSectionSymbol" IconVariant="Regular" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                             <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
                             <InfoBadge x:Name="BreadcrumbSectionBadge" VerticalAlignment="Center" Visibility="Collapsed"/>
                         </StackPanel>
@@ -135,7 +135,7 @@
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <fluentIcons:SymbolIcon Grid.Column="0" Symbol="ArrowSync" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <fluentIcons:FluentIcon Grid.Column="0" Icon="ArrowSync" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock x:Name="FlyoutTextUpdate" Grid.Column="1" VerticalAlignment="Center"/>
                                         <InfoBadge x:Name="FlyoutBadgeUpdate" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
@@ -155,7 +155,7 @@
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <fluentIcons:SymbolIcon Grid.Column="0" Symbol="Speaker2" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <fluentIcons:FluentIcon Grid.Column="0" Icon="Speaker2" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock x:Name="FlyoutTextSound" Grid.Column="1" VerticalAlignment="Center"/>
                                         <InfoBadge x:Name="FlyoutBadgeSound" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
@@ -430,7 +430,7 @@
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
-                                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular"/>
+                                    <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
@@ -522,7 +522,7 @@
                                     </StackPanel>
                                 </controls:SettingsCard.Header>
                                 <controls:SettingsCard.HeaderIcon>
-                                    <fluentIcons:SymbolIcon Symbol="Speaker2" IconVariant="Regular"/>
+                                    <fluentIcons:FluentIcon Icon="Speaker2" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>

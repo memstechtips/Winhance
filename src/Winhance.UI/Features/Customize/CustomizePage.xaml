@@ -63,9 +63,9 @@
                 </Button>
 
                 <!-- Separator (visible only on detail pages) -->
-                <fluentIcons:SymbolIcon
+                <fluentIcons:FluentIcon
                     x:Name="BreadcrumbSeparator"
-                    Symbol="ChevronRight"
+                    Icon="ChevronRight"
                     IconVariant="Regular"
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"

@@ -86,7 +86,7 @@
                         <!-- Version Info (disabled, for display only) -->
                         <MenuFlyoutItem x:Name="VersionMenuItem" IsEnabled="False">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="Info" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="Info" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
@@ -95,21 +95,21 @@
                         <!-- Documentation -->
                         <MenuFlyoutItem x:Name="DocsMenuItem" Click="MoreMenuItem_Click" Tag="OpenDocs">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
                         <!-- Report a Bug -->
                         <MenuFlyoutItem x:Name="ReportBugMenuItem" Click="MoreMenuItem_Click" Tag="ReportBug">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="Bug" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="Bug" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
                         <!-- Check for Updates -->
                         <MenuFlyoutItem x:Name="CheckUpdatesMenuItem" Click="MoreMenuItem_Click" Tag="CheckUpdates">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
@@ -118,14 +118,14 @@
                         <!-- Winhance Logs -->
                         <MenuFlyoutItem x:Name="OpenLogsMenuItem" Click="MoreMenuItem_Click" Tag="OpenLogs">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="DocumentText" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="DocumentText" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
                         <!-- Winhance Scripts -->
                         <MenuFlyoutItem x:Name="OpenScriptsMenuItem" Click="MoreMenuItem_Click" Tag="OpenScripts">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="Code" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="Code" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
@@ -134,7 +134,7 @@
                         <!-- Close Winhance -->
                         <MenuFlyoutItem x:Name="CloseAppMenuItem" Click="MoreMenuItem_Click" Tag="CloseApp">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>

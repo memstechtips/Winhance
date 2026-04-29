@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.SoftwareApps.Constants;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -119,15 +118,29 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     public bool HasIcon => !string.IsNullOrEmpty(Definition.IconPath);
 
     /// <summary>
-    /// Segoe Fluent Icons codepoint shown in a FontIcon when HasIcon is false.
-    /// Categorised by the kind of definition (AppX vs Capability vs Optional Feature).
+    /// True when the row should render the AppX-style fallback icon (no real
+    /// icon resolved, and the entry is an AppX package or doesn't fit the
+    /// Capability/Optional Feature buckets). Used as visibility for an
+    /// app-shaped icon element in XAML.
     /// </summary>
-    public string FallbackGlyph => Definition switch
-    {
-        { CapabilityName: not null and not "" } => FallbackGlyphs.Capability,
-        { OptionalFeatureName: not null and not "" } => FallbackGlyphs.OptionalFeature,
-        _ => FallbackGlyphs.Package,
-    };
+    public bool IsAppXFallback =>
+        !HasIcon &&
+        string.IsNullOrEmpty(Definition.CapabilityName) &&
+        string.IsNullOrEmpty(Definition.OptionalFeatureName);
+
+    /// <summary>
+    /// True when the row should render the Capability fallback (no real icon,
+    /// definition has a CapabilityName).
+    /// </summary>
+    public bool IsCapabilityFallback =>
+        !HasIcon && !string.IsNullOrEmpty(Definition.CapabilityName);
+
+    /// <summary>
+    /// True when the row should render the Optional Feature fallback
+    /// (no real icon, definition has an OptionalFeatureName).
+    /// </summary>
+    public bool IsOptionalFeatureFallback =>
+        !HasIcon && !string.IsNullOrEmpty(Definition.OptionalFeatureName);
 
     /// <summary>
     /// Raises PropertyChanged for IconSource and HasIcon. Call this after mutating
@@ -140,6 +153,9 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         {
             OnPropertyChanged(nameof(IconSource));
             OnPropertyChanged(nameof(HasIcon));
+            OnPropertyChanged(nameof(IsAppXFallback));
+            OnPropertyChanged(nameof(IsCapabilityFallback));
+            OnPropertyChanged(nameof(IsOptionalFeatureFallback));
         });
     }
 

@@ -414,7 +414,7 @@
                     AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </Button>
@@ -424,7 +424,7 @@
                     AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
@@ -435,7 +435,7 @@
                           AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </ToggleButton>
@@ -446,7 +446,7 @@
                           AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </ToggleButton>
@@ -457,14 +457,14 @@
                     <KeyboardAccelerator Key="F5"/>
                 </Button.KeyboardAccelerators>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
                 </StackPanel>
             </Button>
             <Button Command="{x:Bind ViewModel.ShowHelpCommand}"
                     AutomationProperties.Name="{x:Bind ViewModel.HelpButtonText}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="QuestionCircle" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
                 </StackPanel>
             </Button>
@@ -482,7 +482,7 @@
                                   BorderThickness="0"
                                   CornerRadius="4,0,0,4"
                                   Padding="10,6">
-                        <fluentIcons:SymbolIcon Symbol="TableSimple" IconVariant="Regular" FontSize="18"/>
+                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="18"/>
                     </ToggleButton>
                     <ToggleButton x:Name="CardViewToggle"
                                   IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay}"
@@ -493,7 +493,7 @@
                                   BorderThickness="0"
                                   CornerRadius="0,4,4,0"
                                   Padding="10,6">
-                        <fluentIcons:SymbolIcon Symbol="Grid" IconVariant="Regular" FontSize="18"/>
+                        <fluentIcons:FluentIcon Icon="Grid" IconVariant="Regular" FontSize="18"/>
                     </ToggleButton>
                 </StackPanel>
             </Border>
@@ -701,9 +701,15 @@
                                                            Stretch="Uniform"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource DataGridFallbackFontSize}"
+                                                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                            FontSize="{StaticResource DataGridFallbackFontSize}"
+                                                                            Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource DataGridFallbackFontSize}"
                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                              Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                              Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <FontIcon Glyph="&#xE713;" FontSize="{StaticResource DataGridFallbackFontSize}"
+                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                              Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                 </Grid>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
@@ -797,9 +803,15 @@
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource CardFallbackFontSize}"
+                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                    FontSize="{StaticResource CardFallbackFontSize}"
+                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
@@ -841,9 +853,15 @@
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource CardFallbackFontSize}"
+                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                    FontSize="{StaticResource CardFallbackFontSize}"
+                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
@@ -885,9 +903,15 @@
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource CardFallbackFontSize}"
+                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                    FontSize="{StaticResource CardFallbackFontSize}"
+                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
@@ -993,7 +1017,7 @@
                                                                  VerticalAlignment="Center"
                                                                  Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
                                                     <Viewbox Width="16" Height="16">
-                                                        <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular"/>
+                                                        <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                     </Viewbox>
                                                 </HyperlinkButton>
                                             </StackPanel>
@@ -1091,7 +1115,7 @@
                                                                                          VerticalAlignment="Center"
                                                                                          Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
                                                                             <Viewbox Width="16" Height="16">
-                                                                                <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular"/>
+                                                                                <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                                             </Viewbox>
                                                                         </HyperlinkButton>
                                                                     </StackPanel>

@@ -68,7 +68,7 @@
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <fluentIcons:SymbolIcon Symbol="PersonWrench" IconVariant="Regular"
+                        <fluentIcons:FluentIcon Icon="PersonWrench" IconVariant="Regular"
                                                 FontSize="12" VerticalAlignment="Center"
                                                 Foreground="{ThemeResource BadgeCustomForeground}"/>
                         <TextBlock Text="{x:Bind Label}"

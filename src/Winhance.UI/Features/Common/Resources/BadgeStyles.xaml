@@ -153,8 +153,8 @@
         </converters:BadgeIconTemplateSelector.DefaultTemplate>
         <converters:BadgeIconTemplateSelector.CustomTemplate>
             <DataTemplate>
-                <fluentIcons:SymbolIcon
-                    Symbol="PersonWrench"
+                <fluentIcons:FluentIcon
+                    Icon="PersonWrench"
                     IconVariant="Regular"
                     FontSize="12"
                     VerticalAlignment="Center"

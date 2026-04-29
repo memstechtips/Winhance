@@ -3,7 +3,6 @@ using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.SoftwareApps.Constants;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 
@@ -406,11 +405,11 @@ public class AppItemViewModelTests
     }
 
     // -------------------------------------------------------
-    // FallbackGlyph
+    // Fallback category booleans (drive XAML icon visibility)
     // -------------------------------------------------------
 
     [Fact]
-    public void FallbackGlyph_AppxPackage_ReturnsPackageGlyph()
+    public void IsAppXFallback_WhenAppxAndNoIcon_IsTrue()
     {
         var def = new ItemDefinition
         {
@@ -421,11 +420,13 @@ public class AppItemViewModelTests
         };
         var vm = CreateViewModel(def);
 
-        vm.FallbackGlyph.Should().Be(FallbackGlyphs.Package);
+        vm.IsAppXFallback.Should().BeTrue();
+        vm.IsCapabilityFallback.Should().BeFalse();
+        vm.IsOptionalFeatureFallback.Should().BeFalse();
     }
 
     [Fact]
-    public void FallbackGlyph_Capability_ReturnsCapabilityGlyph()
+    public void IsCapabilityFallback_WhenCapabilityAndNoIcon_IsTrue()
     {
         var def = new ItemDefinition
         {
@@ -436,11 +437,13 @@ public class AppItemViewModelTests
         };
         var vm = CreateViewModel(def);
 
-        vm.FallbackGlyph.Should().Be(FallbackGlyphs.Capability);
+        vm.IsCapabilityFallback.Should().BeTrue();
+        vm.IsAppXFallback.Should().BeFalse();
+        vm.IsOptionalFeatureFallback.Should().BeFalse();
     }
 
     [Fact]
-    public void FallbackGlyph_OptionalFeature_ReturnsOptionalFeatureGlyph()
+    public void IsOptionalFeatureFallback_WhenOptionalFeatureAndNoIcon_IsTrue()
     {
         var def = new ItemDefinition
         {
@@ -451,16 +454,38 @@ public class AppItemViewModelTests
         };
         var vm = CreateViewModel(def);
 
-        vm.FallbackGlyph.Should().Be(FallbackGlyphs.OptionalFeature);
+        vm.IsOptionalFeatureFallback.Should().BeTrue();
+        vm.IsAppXFallback.Should().BeFalse();
+        vm.IsCapabilityFallback.Should().BeFalse();
     }
 
     [Fact]
-    public void FallbackGlyph_NoCategoryMatch_DefaultsToPackage()
+    public void IsAppXFallback_DefaultsToTrueWhenNoCategoryMatches()
     {
         var def = new ItemDefinition { Id = "x", Name = "X", Description = "" };
         var vm = CreateViewModel(def);
 
-        vm.FallbackGlyph.Should().Be(FallbackGlyphs.Package);
+        vm.IsAppXFallback.Should().BeTrue();
+        vm.IsCapabilityFallback.Should().BeFalse();
+        vm.IsOptionalFeatureFallback.Should().BeFalse();
+    }
+
+    [Fact]
+    public void AllFallbacks_AreFalse_WhenIconResolved()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "app1",
+            Name = "App 1",
+            Description = "",
+            AppxPackageName = new[] { "Microsoft.App1" },
+            IconPath = @"C:\Users\test\AppData\Local\Winhance\IconCache\Microsoft.App1.png",
+        };
+        var vm = CreateViewModel(def);
+
+        vm.IsAppXFallback.Should().BeFalse();
+        vm.IsCapabilityFallback.Should().BeFalse();
+        vm.IsOptionalFeatureFallback.Should().BeFalse();
     }
 
     // -------------------------------------------------------
