@@ -25,11 +25,33 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
     private IReadOnlyDictionary<string, Windows.ApplicationModel.Package> _packagesByFullName =
         new Dictionary<string, Windows.ApplicationModel.Package>(StringComparer.OrdinalIgnoreCase);
 
+    // Per-instance cached enumeration result. The resolver runs once per tab (Windows
+    // Apps + External Apps) within a single SoftwareApps page load; both passes call
+    // GetInstalledPackageMapAsync. Without this cache we'd enumerate ~119 packages
+    // twice. Cache lasts the singleton's lifetime; a future install/uninstall flow
+    // that needs fresh data should call InvalidateCache().
+    private IReadOnlyDictionary<string, string>? _cachedMap;
+    private readonly object _cacheLock = new();
+
     private static readonly XNamespace UapNs = "http://schemas.microsoft.com/appx/manifest/uap/windows10";
+
+    /// <summary>Drops the cached package map so the next call re-enumerates.</summary>
+    public void InvalidateCache()
+    {
+        lock (_cacheLock)
+        {
+            _cachedMap = null;
+        }
+    }
 
     public async Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
         CancellationToken ct = default)
     {
+        // Fast path: cached snapshot from a prior call this session.
+        var cached = _cachedMap;
+        if (cached is not null)
+            return cached;
+
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var packageDict = new Dictionary<string, Windows.ApplicationModel.Package>(StringComparer.OrdinalIgnoreCase);
 
@@ -87,6 +109,14 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
         }
 
         _packagesByFullName = packageDict;
+
+        // Cache the snapshot so the second tab's resolver pass reuses it instead
+        // of re-enumerating. Last-writer-wins under concurrent first-callers is
+        // fine: both produce equivalent maps from the same PackageManager state.
+        lock (_cacheLock)
+        {
+            _cachedMap = map;
+        }
         return map;
     }
 
