@@ -663,17 +663,24 @@ public class AppStatusDiscoveryService(
 
                             // Capture DisplayIcon (strip ",index" suffix + quotes + env vars)
                             // or fall back to InstallLocation for Layer 1b icon extraction.
+                            // Note: InstallLocation is typically a directory; Layer 1b's
+                            // BinaryIconSource consumer is responsible for handling both
+                            // file-path and directory-path hints (Shell APIs accept both,
+                            // though directories return generic folder icons).
                             string? iconHint = (subKey.GetValue("DisplayIcon") as string)
                                            ?? (subKey.GetValue("InstallLocation") as string);
-                            if (!string.IsNullOrEmpty(iconHint))
+                            if (!string.IsNullOrWhiteSpace(iconHint))
                             {
                                 var commaIdx = iconHint.IndexOf(',');
-                                if (commaIdx > 0) iconHint = iconHint.Substring(0, commaIdx);
+                                if (commaIdx >= 0) iconHint = iconHint.Substring(0, commaIdx);
                                 iconHint = Environment.ExpandEnvironmentVariables(iconHint.Trim('"'));
 
-                                iconHintsByName[subKeyName] = iconHint;
-                                if (!string.IsNullOrEmpty(displayName) && !iconHintsByName.ContainsKey(displayName))
-                                    iconHintsByName[displayName] = iconHint;
+                                if (!string.IsNullOrWhiteSpace(iconHint))
+                                {
+                                    iconHintsByName[subKeyName] = iconHint;
+                                    if (!string.IsNullOrEmpty(displayName) && !iconHintsByName.ContainsKey(displayName))
+                                        iconHintsByName[displayName] = iconHint;
+                                }
                             }
                         }
                         catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
