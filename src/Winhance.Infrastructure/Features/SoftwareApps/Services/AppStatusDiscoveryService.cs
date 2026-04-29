@@ -588,6 +588,70 @@ public class AppStatusDiscoveryService(
                 }
             }
 
+            // Phase 6: Hint backfill — for entries detected as installed via WinGet,
+            // Chocolatey, or AppX (Phases 1-3), the registry walk in Phase 4 was skipped
+            // because they were already marked installed. That left InstalledBinaryHint
+            // null even though most of these apps install via standard MSI/EXE installers
+            // that DO create a normal uninstall key with DisplayIcon. Look up the hint
+            // for any installed entry that's missing one, using the registry data we
+            // already loaded (or load it on-demand if no prior phase needed it).
+            var entriesNeedingHint = definitionList
+                .Where(d => result.TryGetValue(d.Id, out bool installed) && installed
+                            && string.IsNullOrEmpty(d.InstalledBinaryHint))
+                .ToList();
+
+            if (entriesNeedingHint.Count > 0)
+            {
+                var regInfo = sharedRegInfo ?? await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
+                int hintsBackfilled = 0;
+
+                foreach (var def in entriesNeedingHint)
+                {
+                    string? hint = null;
+
+                    // Direct name match (the dict is keyed by both KeyName and DisplayName).
+                    if (regInfo.IconHintsByName.TryGetValue(def.Name, out var direct))
+                    {
+                        hint = direct;
+                    }
+                    // Pattern match by RegistrySubKeyName against KeyNames.
+                    else if (!string.IsNullOrEmpty(def.RegistrySubKeyName))
+                    {
+                        foreach (var kvp in regInfo.IconHintsByName)
+                        {
+                            if (regInfo.AllKeyNames.Contains(kvp.Key)
+                                && MatchesPattern(kvp.Key, def.RegistrySubKeyName!))
+                            {
+                                hint = kvp.Value;
+                                break;
+                            }
+                        }
+                    }
+                    // Pattern match by RegistryDisplayName against DisplayNames.
+                    if (hint is null && !string.IsNullOrEmpty(def.RegistryDisplayName))
+                    {
+                        foreach (var kvp in regInfo.IconHintsByName)
+                        {
+                            if (regInfo.DisplayNames.Contains(kvp.Key)
+                                && MatchesPattern(kvp.Key, def.RegistryDisplayName!))
+                            {
+                                hint = kvp.Value;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (hint is not null)
+                    {
+                        def.InstalledBinaryHint = hint;
+                        hintsBackfilled++;
+                    }
+                }
+
+                if (hintsBackfilled > 0)
+                    logService.LogInformation($"Backfilled InstalledBinaryHint for {hintsBackfilled}/{entriesNeedingHint.Count} installed entries detected via WinGet/Chocolatey/AppX");
+            }
+
             var totalFound = result.Count(kvp => kvp.Value);
             logService.LogInformation(
                 $"Status check complete: {totalFound}/{definitionList.Count} apps installed ({wingetCount} via WinGet, {chocoCount} via Chocolatey, {appxCount} via AppX, {registryCount} via Registry, {fileSystemCount} via FileSystem)");
