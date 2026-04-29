@@ -30,18 +30,29 @@ public class AppIconResolver : IAppIconResolver
     private static readonly Size LogoSize = new(96, 96);
 
     // Suffix appended to the cache filename so the cache key encodes the
-    // extraction parameters. Bumping LogoSize or the post-process pipeline
-    // requires bumping this suffix; that invalidates older cache files
-    // (PruneOldVersions cleans them up the next time their package version
-    // changes). The "-trim" segment indicates icons are cropped to their
-    // alpha bounding box so they display at uniform visible size regardless
-    // of the source's original transparent-padding convention.
-    private const string CacheFileSuffix = ".96-trim.png";
+    // extraction parameters. Bumping LogoSize, AlphaTrimThreshold, or the
+    // post-process pipeline requires bumping this suffix; that invalidates
+    // older cache files (PruneOldVersions cleans them up the next time
+    // their package version changes). The "-trim" segment indicates icons
+    // are cropped to their alpha bounding box so they display at uniform
+    // visible size regardless of the source's original transparent-padding
+    // convention. The version digit (-trim, -trim2, ...) bumps every time
+    // we change the trim behavior so cached PNGs from older code re-extract.
+    private const string CacheFileSuffix = ".96-trim2.png";
 
+    // ====== TRIM TUNING KNOB ======
     // Pixels with alpha at or below this threshold are treated as transparent
-    // when computing the trim bounding box. Forgives near-edge antialiasing
-    // without losing intentionally-translucent icon parts.
-    private const byte AlphaTrimThreshold = 8;
+    // when computing the trim bounding box. The Square44x44Logo PNGs returned
+    // by DisplayInfo.GetLogo for installed AppX packages typically have
+    // antialiased soft-edge halos around the visible art (alpha ~5-30) which
+    // a low threshold preserves, expanding the bbox and making the cached
+    // icon appear smaller than equivalent Store-CDN icons (which are
+    // hard-edge cropped). Higher threshold → tighter bbox → larger visible
+    // icon at fixed display size, at the cost of clipping legitimately
+    // translucent icon parts. 32 is a reasonable middle ground; 64 if you
+    // want maximum tightening; 8 (original) for maximum softness preservation.
+    // Bump CacheFileSuffix above whenever you change this value.
+    private const byte AlphaTrimThreshold = 32;
 
     private readonly IAppxIconSource _appxSource;
     private readonly IStoreIconSource? _storeSource;
