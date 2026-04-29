@@ -13,6 +13,21 @@
     mc:Ignorable="d">
 
     <Page.Resources>
+        <!-- ============================================================
+             Icon sizing knobs (Software & Apps → Windows Apps tab)
+             Change these to resize the app-icon column. The four templates
+             below (3 Card-view ItemsRepeaters + 1 DataGrid Name column)
+             all bind to these resources, so a single edit propagates.
+             FontIcon size is the fallback glyph that shows when no real
+             icon is resolved; ~half the IconSize is a good default.
+             Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
+             largest IconSize) for HiDPI sharpness.
+             ============================================================ -->
+        <x:Double x:Key="CardIconSize">28</x:Double>
+        <x:Double x:Key="CardFallbackFontSize">14</x:Double>
+        <x:Double x:Key="DataGridIconSize">22</x:Double>
+        <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
+
         <!-- First column header: left-rounded corners with select-all checkbox -->
         <Style x:Key="FirstColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
             <Setter Property="Template">
@@ -670,17 +685,15 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                                <!-- ICON-SIZE KNOB (DataGrid view) — keep Grid Width/Height,
-                                                     RectangleGeometry Rect and Image Width/Height in lockstep. -->
-                                                <Grid Width="22" Height="22" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                    <Grid.Clip>
-                                                        <RectangleGeometry Rect="0,0,22,22"/>
-                                                    </Grid.Clip>
-                                                    <Image Source="{Binding IconSource}" Width="22" Height="22"
+                                                <!-- Icon size driven by DataGridIconSize / DataGridFallbackFontSize resources at the top of the page. -->
+                                                <Grid Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                      VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                    <Image Source="{Binding IconSource}"
+                                                           Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
                                                            Stretch="Uniform"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="12"
+                                                    <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource DataGridFallbackFontSize}"
                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                               Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                 </Grid>
@@ -765,19 +778,15 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <!-- ICON-SIZE KNOB (Card view) — keep all four numbers in lockstep:
-                                                             Grid Width/Height, RectangleGeometry Rect, Image Width/Height
-                                                             (all the same value). FontIcon FontSize is the fallback glyph
-                                                             size, typically ~half of the Grid size. -->
-                                                        <Grid Width="28" Height="28" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,28,28"/>
-                                                            </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="28" Height="28"
+                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                            <Image Source="{Binding IconSource}"
+                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                         </Grid>
@@ -810,19 +819,15 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <!-- ICON-SIZE KNOB (Card view) — keep all four numbers in lockstep:
-                                                             Grid Width/Height, RectangleGeometry Rect, Image Width/Height
-                                                             (all the same value). FontIcon FontSize is the fallback glyph
-                                                             size, typically ~half of the Grid size. -->
-                                                        <Grid Width="28" Height="28" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,28,28"/>
-                                                            </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="28" Height="28"
+                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                            <Image Source="{Binding IconSource}"
+                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                         </Grid>
@@ -855,19 +860,15 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <!-- ICON-SIZE KNOB (Card view) — keep all four numbers in lockstep:
-                                                             Grid Width/Height, RectangleGeometry Rect, Image Width/Height
-                                                             (all the same value). FontIcon FontSize is the fallback glyph
-                                                             size, typically ~half of the Grid size. -->
-                                                        <Grid Width="28" Height="28" VerticalAlignment="Center" Margin="-4,0,0,0">
-                                                            <Grid.Clip>
-                                                                <RectangleGeometry Rect="0,0,28,28"/>
-                                                            </Grid.Clip>
-                                                            <Image Source="{Binding IconSource}" Width="28" Height="28"
+                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                            <Image Source="{Binding IconSource}"
+                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                    Stretch="Uniform"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="14"
+                                                            <FontIcon Glyph="{Binding FallbackGlyph}" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding HasIcon, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                                         </Grid>
