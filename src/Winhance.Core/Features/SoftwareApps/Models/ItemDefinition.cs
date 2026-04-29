@@ -55,4 +55,14 @@ public record ItemDefinition : BaseDefinition
     /// discovery; null for capabilities, optional features, and not-installed AppX entries.
     /// </summary>
     public string? IconPath { get; set; }
+
+    /// <summary>
+    /// Absolute path to the installed binary (.exe, .ico, or install folder) used
+    /// by Layer 1b of the icon resolver to extract a Win32 icon. Stamped by
+    /// AppStatusDiscoveryService from registry DisplayIcon / InstallLocation
+    /// during the uninstall-key walk, or from a matched DetectionPaths entry.
+    /// Null for AppX entries (Layer 1a handles them) and for entries with no
+    /// install hint (Layer 2 takes over).
+    /// </summary>
+    public string? InstalledBinaryHint { get; set; }
 }
