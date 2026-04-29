@@ -72,16 +72,18 @@ public class BinaryIconSourceTests
     }
 
     [Fact]
-    public async Task GetIconStreamAsync_RespectsTimeout()
+    public async Task GetIconStreamAsync_PropagatesExternalCancellation()
     {
-        // Factory hangs forever — orchestrator's outer timeout should cut in.
+        // External cancellation (caller's ct fires) re-throws — see the
+        // "catch (OperationCanceledException) when (ct.IsCancellationRequested) throw"
+        // arm in BinaryIconSource. Distinct from internal-timeout cancellation,
+        // which collapses to null.
         _mockFactory.Setup(f => f.GetIconBytesAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()))
-            .Returns<string, Size, CancellationToken>((_, _, ct) => Task.Delay(TimeSpan.FromMinutes(1), ct).ContinueWith(_ => Array.Empty<byte>()));
+            .Returns<string, Size, CancellationToken>((_, _, ct) => Task.Delay(TimeSpan.FromMinutes(1), ct));
 
-        // We pass a fast cancellation token rather than waiting for the production 8s default.
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        var result = await _source.GetIconStreamAsync("C:\\anything.exe", new Size(96, 96), cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        var act = () => _source.GetIconStreamAsync("C:\\anything.exe", new Size(96, 96), cts.Token);
 
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 }
