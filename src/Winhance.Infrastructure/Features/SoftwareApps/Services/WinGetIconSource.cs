@@ -27,7 +27,10 @@ public class WinGetIconSource : IWinGetIconSource
     private readonly ILogService _logService;
     private readonly Func<string, CancellationToken, Task<string?>> _comIconUrlsAsync;
 
-    private bool _gitHubRateLimited;
+    // volatile: this flag is read+written across thread-pool threads serving
+    // concurrent Layer 2 calls under the resolver's SemaphoreSlim(5). Write-once
+    // (false → true), so volatile is sufficient — no Interlocked needed.
+    private volatile bool _gitHubRateLimited;
 
     /// <summary>Production constructor — wires the COM path to the real session-based catalog call.</summary>
     public WinGetIconSource(
@@ -110,13 +113,17 @@ public class WinGetIconSource : IWinGetIconSource
 
             if (string.IsNullOrEmpty(iconUrl)) return null;
 
-            // Phase 3: download.
-            using var resp = await _httpClient.GetAsync(iconUrl, linked.Token).ConfigureAwait(false);
+            // Phase 3: download. Use ResponseHeadersRead so we don't buffer the
+            // full body before checking the status code — matches StoreIconSource.
+            using var request = new HttpRequestMessage(HttpMethod.Get, iconUrl);
+            using var resp = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linked.Token).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode) return null;
-            var bytes = await resp.Content.ReadAsByteArrayAsync(linked.Token).ConfigureAwait(false);
-            if (bytes is null || bytes.Length == 0) return null;
-
-            return new MemoryStream(bytes, writable: false);
+            await using var srcStream = await resp.Content.ReadAsStreamAsync(linked.Token).ConfigureAwait(false);
+            var collector = new MemoryStream();
+            await srcStream.CopyToAsync(collector, linked.Token).ConfigureAwait(false);
+            if (collector.Length == 0) return null;
+            collector.Position = 0;
+            return collector;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -149,14 +156,15 @@ public class WinGetIconSource : IWinGetIconSource
 
         // COM WinRT calls are synchronous under the hood; run on a thread-pool thread
         // so we don't block the calling async context, mirroring WinGetDetectionService.
-        return await Task.Run(async () =>
+        // We also race the work task against a hard wall-clock timeout via Task.WhenAny
+        // — passing the linked-CTS token through AsTask(ct) registers cancellation with
+        // the WinRT operation, but if WinRT doesn't honour it we'd otherwise block this
+        // thread until the WinRT runtime's internal timeout fires. WinGetDetectionService
+        // uses the same pattern; see GetInstalledPackageIdsViaCom for precedent.
+        var workTask = Task.Run(async () =>
         {
             ct.ThrowIfCancellationRequested();
 
-            // Use the predefined OpenWindowsCatalog (the public winget source).
-            // ConnectAsync is available on this interop build and preferred over
-            // the synchronous Connect() to avoid blocking thread-pool threads on
-            // network I/O during catalog connect.
             var catalogRef = comSession.PackageManager.GetPredefinedPackageCatalog(
                 PredefinedPackageCatalog.OpenWindowsCatalog);
 
@@ -177,9 +185,8 @@ public class WinGetIconSource : IWinGetIconSource
 
             ct.ThrowIfCancellationRequested();
 
-            // FindPackagesAsync is available and preferred for async contexts.
             var findResult = await catalog.FindPackagesAsync(findOptions).AsTask(ct).ConfigureAwait(false);
-            if (findResult.Matches.Count == 0) return null;
+            if (findResult.Matches.Count == 0) return (string?)null;
 
             var version = findResult.Matches[0].CatalogPackage?.DefaultInstallVersion;
             if (version is null) return null;
@@ -200,6 +207,18 @@ public class WinGetIconSource : IWinGetIconSource
                     return icon.Url;
             }
             return null;
-        }, ct).ConfigureAwait(false);
+        }, ct);
+
+        // Hard wall-clock abandonment via Task.WhenAny — same pattern as
+        // WinGetDetectionService.GetInstalledPackageIdsViaCom (lines 133–142).
+        // The outer linked-CTS already has CancelAfter(PerCallTimeout) applied,
+        // so this Task.Delay completes when ct cancels at the 8s mark.
+        var timeoutTask = Task.Delay(PerCallTimeout, ct);
+        if (await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false) == timeoutTask)
+        {
+            logService.LogWarning($"WinGetIconSource: COM lookup hard timeout for '{winGetPackageId}' — abandoning thread, falling back");
+            throw new TimeoutException($"WinGet COM lookup did not complete within {PerCallTimeout.TotalSeconds}s");
+        }
+        return await workTask.ConfigureAwait(false);
     }
 }
