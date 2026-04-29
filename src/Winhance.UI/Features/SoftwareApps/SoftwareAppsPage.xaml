@@ -785,7 +785,10 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
+                                                         if alignment still feels off — 2 for less, 4 for more. -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                               VerticalAlignment="Center" Margin="-4,0,0,0">
@@ -826,7 +829,10 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
+                                                         if alignment still feels off — 2 for less, 4 for more. -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                               VerticalAlignment="Center" Margin="-4,0,0,0">
@@ -867,7 +873,10 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
+                                                         if alignment still feels off — 2 for less, 4 for more. -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                               VerticalAlignment="Center" Margin="-4,0,0,0">
