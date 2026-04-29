@@ -27,10 +27,16 @@ public class WinGetIconSource : IWinGetIconSource
     private readonly ILogService _logService;
     private readonly Func<string, CancellationToken, Task<string?>> _comIconUrlsAsync;
 
-    // volatile: this flag is read+written across thread-pool threads serving
+    // volatile: these flags are read+written across thread-pool threads serving
     // concurrent Layer 2 calls under the resolver's SemaphoreSlim(5). Write-once
     // (false → true), so volatile is sufficient — no Interlocked needed.
     private volatile bool _gitHubRateLimited;
+    // True after the first COM call observed a hard failure (typically E_NOINTERFACE
+    // when the bundled WindowsPackageManager.ComInterop projection's metadata
+    // overload isn't actually implemented by the installed winget COM server).
+    // Once tripped, we skip COM for the rest of the session and go straight to the
+    // GitHub fallback — saves ~30+ identical warnings per app load.
+    private volatile bool _comMetadataUnavailable;
 
     /// <summary>Production constructor — wires the COM path to the real session-based catalog call.</summary>
     public WinGetIconSource(
@@ -71,8 +77,9 @@ public class WinGetIconSource : IWinGetIconSource
             string? iconUrl = null;
             bool comCleanMiss = false; // true = COM ran successfully and returned null (no Icons)
 
-            // Phase 1: COM (skipped if bootstrap reports unavailable).
-            if (_bootstrapper.IsSystemWinGetAvailable)
+            // Phase 1: COM (skipped if bootstrap reports unavailable, or if a prior
+            // call this session already determined the metadata API is missing).
+            if (_bootstrapper.IsSystemWinGetAvailable && !_comMetadataUnavailable)
             {
                 try
                 {
@@ -82,7 +89,16 @@ public class WinGetIconSource : IWinGetIconSource
                 }
                 catch (Exception ex)
                 {
-                    _logService.LogWarning($"WinGetIconSource: COM lookup failed for '{winGetPackageId}', trying GitHub fallback: {ex.Message}");
+                    // First failure: log loudly with the cause, then trip the session flag
+                    // so subsequent entries skip COM silently. Net log volume drops from
+                    // one-warning-per-entry to one-warning-per-session.
+                    if (!_comMetadataUnavailable)
+                    {
+                        _comMetadataUnavailable = true;
+                        _logService.LogWarning(
+                            $"WinGetIconSource: COM metadata API unavailable ({ex.Message}). " +
+                            $"Skipping COM for the remainder of the session; using GitHub manifest fallback only.");
+                    }
                     // iconUrl stays null, comCleanMiss stays false → fall through to fetcher below
                 }
             }
