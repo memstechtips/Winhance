@@ -122,6 +122,12 @@ public static class DomainServicesExtensions
         // not present on this machine in any registered/provisioned form)
         services.AddSingleton<IStoreIconSource, StoreIconSource>();
 
+        // Layer 1b/2b icon sources (shell images, binary icons, WinGet manifest-sourced icons)
+        services.AddSingleton<IShellImageFactory, ShellImageFactory>();
+        services.AddSingleton<IBinaryIconSource, BinaryIconSource>();
+        services.AddSingleton<IWinGetManifestFetcher, WinGetManifestFetcher>();
+        services.AddSingleton<IWinGetIconSource, WinGetIconSource>();
+
         // App icon resolver (cache-first, called from WindowsAppsViewModel after install-status discovery)
         services.AddSingleton<IAppIconResolver, AppIconResolver>();
 
