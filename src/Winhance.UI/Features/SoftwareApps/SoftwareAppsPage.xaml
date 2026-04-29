@@ -28,6 +28,14 @@
         <x:Double x:Key="DataGridIconSize">20</x:Double>
         <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
 
+        <!-- FluentIcon "Apps Color" tends to render smaller than a same-size
+             Segoe FontIcon glyph (the colored variant has intrinsic padding
+             inside its draw box). These resources size the FluentIcon Apps
+             fallback specifically — bump higher than the *FallbackFontSize
+             above to make the Apps icon visually match the puzzle/gear glyphs. -->
+        <x:Double x:Key="CardAppsIconSize">18</x:Double>
+        <x:Double x:Key="DataGridAppsIconSize">16</x:Double>
+
         <!-- Card-view column width. UniformGridLayout uses this as the minimum
              per-card width; the actual column count is roughly:
                  floor(panel_width / (CardItemMinWidth + MinColumnSpacing))
@@ -702,7 +710,7 @@
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                     <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                            FontSize="{StaticResource DataGridFallbackFontSize}"
+                                                                            FontSize="{StaticResource DataGridAppsIconSize}"
                                                                             Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                     <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource DataGridFallbackFontSize}"
                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -804,7 +812,7 @@
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                    FontSize="{StaticResource CardFallbackFontSize}"
+                                                                                    FontSize="{StaticResource CardAppsIconSize}"
                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -854,7 +862,7 @@
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                    FontSize="{StaticResource CardFallbackFontSize}"
+                                                                                    FontSize="{StaticResource CardAppsIconSize}"
                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -904,7 +912,7 @@
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                    FontSize="{StaticResource CardFallbackFontSize}"
+                                                                                    FontSize="{StaticResource CardAppsIconSize}"
                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
