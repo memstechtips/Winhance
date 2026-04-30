@@ -13,12 +13,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 /// <summary>
 /// Layer 2b orchestration: resolves WinGet package icons by querying the local
 /// WinGet COM catalog (fast, in-process, no network rate limit). When COM is
-/// unavailable, throws, or its package metadata API can't surface an icon URL,
-/// falls back to a small in-process override map (see
-/// <see cref="WinGetIconUrlOverrides"/>) of vendor-canonical icon URLs. There
-/// is no GitHub manifest fetcher path — that was removed because the GitHub
-/// Contents API rate-limits unauthenticated callers and the fallback added more
-/// failure modes than it resolved.
+/// unavailable, throws, or its metadata API can't surface an icon URL, falls
+/// back to the UniGetUI community icon database (see
+/// <see cref="WinGetIconUrlOverrides"/>, MIT-licensed, attribution in
+/// <c>THIRD-PARTY-NOTICES.txt</c>).
+///
+/// There is no GitHub manifest fetcher path — that was removed because the
+/// GitHub Contents API rate-limits unauthenticated callers, and because winget
+/// package manifests almost never populate the <c>Icons:</c> schema field
+/// anyway, so scraping them yielded near-zero icons in practice.
 /// </summary>
 public class WinGetIconSource : IWinGetIconSource
 {
@@ -28,7 +31,7 @@ public class WinGetIconSource : IWinGetIconSource
     private readonly HttpClient _httpClient;
     private readonly ILogService _logService;
     private readonly Func<string, CancellationToken, Task<string?>> _comIconUrlsAsync;
-    private readonly Func<string, string?> _overrideLookup;
+    private readonly Func<string, CancellationToken, Task<string?>> _overrideLookup;
 
     // True after the first COM call observed a hard failure (typically E_NOINTERFACE
     // when the bundled WindowsPackageManager.ComInterop projection's metadata
@@ -41,15 +44,16 @@ public class WinGetIconSource : IWinGetIconSource
     private volatile bool _comMetadataUnavailable;
 
     /// <summary>Production constructor — wires the COM path to the real session-based catalog call
-    /// and the override lookup to the static <see cref="WinGetIconUrlOverrides"/> map.</summary>
+    /// and the override lookup to the injected <see cref="IWinGetIconUrlOverrides"/> service.</summary>
     public WinGetIconSource(
         IWinGetBootstrapper bootstrapper,
         HttpClient httpClient,
         ILogService logService,
-        WinGetComSession comSession)
+        WinGetComSession comSession,
+        IWinGetIconUrlOverrides overrides)
         : this(bootstrapper, httpClient, logService,
                comIconUrlsAsync: (id, ct) => GetIconUrlViaComAsync(id, ct, comSession, logService),
-               overrideLookup: id => WinGetIconUrlOverrides.TryGet(id, out var u) ? u : null)
+               overrideLookup: (id, ct) => overrides.TryGetAsync(id, ct))
     {
     }
 
@@ -59,7 +63,7 @@ public class WinGetIconSource : IWinGetIconSource
         HttpClient httpClient,
         ILogService logService,
         Func<string, CancellationToken, Task<string?>> comIconUrlsAsync,
-        Func<string, string?> overrideLookup)
+        Func<string, CancellationToken, Task<string?>> overrideLookup)
     {
         _bootstrapper = bootstrapper;
         _httpClient = httpClient;
@@ -114,7 +118,7 @@ public class WinGetIconSource : IWinGetIconSource
             // exists and authoritatively has no icon, so the override would be guessing.
             if (iconUrl is null && !comCleanMiss && !linked.Token.IsCancellationRequested)
             {
-                iconUrl = _overrideLookup(winGetPackageId);
+                iconUrl = await _overrideLookup(winGetPackageId, linked.Token).ConfigureAwait(false);
             }
 
             if (string.IsNullOrEmpty(iconUrl)) return null;

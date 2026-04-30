@@ -33,14 +33,14 @@ public class WinGetIconSourceTests
     /// </summary>
     private WinGetIconSource BuildSource(
         Func<string, CancellationToken, Task<string?>>? com = null,
-        Func<string, string?>? overrideLookup = null)
+        Func<string, CancellationToken, Task<string?>>? overrideLookup = null)
     {
         return new WinGetIconSource(
             _mockBootstrapper.Object,
             _httpClient,
             _mockLog.Object,
             comIconUrlsAsync: com ?? ((_, _) => Task.FromResult<string?>(null)),
-            overrideLookup: overrideLookup ?? (_ => null));
+            overrideLookup: overrideLookup ?? ((_, _) => Task.FromResult<string?>(null)));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class WinGetIconSourceTests
         bool overrideConsulted = false;
         var source = BuildSource(
             com: (_, _) => Task.FromResult<string?>("https://example.com/com.png"),
-            overrideLookup: id => { overrideConsulted = true; return "https://example.com/should-not-be-used.png"; });
+            overrideLookup: (_, _) => { overrideConsulted = true; return Task.FromResult<string?>("https://example.com/should-not-be-used.png"); });
 
         var result = await source.GetIconStreamAsync("Some.Package");
 
@@ -72,7 +72,7 @@ public class WinGetIconSourceTests
         bool overrideConsulted = false;
         var source = BuildSource(
             com: (_, _) => Task.FromResult<string?>(null),
-            overrideLookup: id => { overrideConsulted = true; return "https://example.com/should-not-be-used.png"; });
+            overrideLookup: (_, _) => { overrideConsulted = true; return Task.FromResult<string?>("https://example.com/should-not-be-used.png"); });
 
         var result = await source.GetIconStreamAsync("Some.Package");
 
@@ -88,7 +88,7 @@ public class WinGetIconSourceTests
 
         var source = BuildSource(
             com: (_, _) => Task.FromException<string?>(new InvalidOperationException("COM glitch")),
-            overrideLookup: id => id == "Some.Package" ? "https://example.com/override.png" : null);
+            overrideLookup: (id, _) => Task.FromResult<string?>(id == "Some.Package" ? "https://example.com/override.png" : null));
 
         var result = await source.GetIconStreamAsync("Some.Package");
 
@@ -102,7 +102,7 @@ public class WinGetIconSourceTests
 
         var source = BuildSource(
             com: (_, _) => Task.FromException<string?>(new InvalidOperationException("COM glitch")),
-            overrideLookup: _ => null);
+            overrideLookup: (_, _) => Task.FromResult<string?>(null));
 
         var result = await source.GetIconStreamAsync("Some.Package");
 
@@ -118,7 +118,7 @@ public class WinGetIconSourceTests
         // COM func should never be invoked when bootstrap reports unavailable — make it throw if called.
         var source = BuildSource(
             com: (_, _) => throw new InvalidOperationException("should not be called"),
-            overrideLookup: _ => "https://example.com/override.png");
+            overrideLookup: (_, _) => Task.FromResult<string?>("https://example.com/override.png"));
 
         var result = await source.GetIconStreamAsync("Some.Package");
 
@@ -132,7 +132,7 @@ public class WinGetIconSourceTests
 
         var source = BuildSource(
             com: (_, _) => throw new InvalidOperationException("should not be called"),
-            overrideLookup: _ => null);
+            overrideLookup: (_, _) => Task.FromResult<string?>(null));
 
         var result = await source.GetIconStreamAsync("Some.Package");
 
