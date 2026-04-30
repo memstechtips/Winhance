@@ -95,7 +95,42 @@ public sealed class WinGetIconUrlOverrides : IWinGetIconUrlOverrides
     {
         if (string.IsNullOrWhiteSpace(winGetPackageId)) return null;
         var map = await _lazyMap.Value.ConfigureAwait(false);
-        return map.TryGetValue(winGetPackageId, out var url) ? url : null;
+
+        // Mirror UniGetUI's own lookup order from BasePkgDetailsHelper.GetIcon():
+        // 1. Manager-prefixed full ID: "Winget.Mozilla.Firefox"
+        // 2. Bare full ID: "Mozilla.Firefox"
+        // 3. Normalized icon ID: take everything after the first dot, normalize
+        //    separators to hyphens (matches UniGetUI's Package.GenerateIconId()).
+        // The vast majority of database entries are keyed under (3); (1) and (2) are
+        // for the rare cases where upstream chose a more specific key.
+        if (map.TryGetValue("Winget." + winGetPackageId, out var url)) return url;
+        if (map.TryGetValue(winGetPackageId, out url)) return url;
+
+        var normalized = NormalizeIconId(winGetPackageId);
+        if (normalized is not null && map.TryGetValue(normalized, out url)) return url;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Mirrors UniGetUI's <c>Package.GenerateIconId()</c>: drop the publisher
+    /// (everything up to and including the first dot), then convert
+    /// <c>_ . space / ,</c> to hyphens. Dictionary lookups are
+    /// case-insensitive, so we don't lower-case here. Returns null when the
+    /// input has no dot or nothing after the dot.
+    /// </summary>
+    private static string? NormalizeIconId(string winGetPackageId)
+    {
+        var dotIndex = winGetPackageId.IndexOf('.');
+        if (dotIndex < 0 || dotIndex == winGetPackageId.Length - 1) return null;
+
+        var afterPublisher = winGetPackageId[(dotIndex + 1)..];
+        return afterPublisher
+            .Replace('_', '-')
+            .Replace('.', '-')
+            .Replace(' ', '-')
+            .Replace('/', '-')
+            .Replace(',', '-');
     }
 
     private async Task<IReadOnlyDictionary<string, string>> LoadAsync()
