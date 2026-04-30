@@ -55,7 +55,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 /// it).
 /// </para>
 /// </summary>
-internal sealed class WinGetIconUrlOverrides : IWinGetIconUrlOverrides
+public sealed class WinGetIconUrlOverrides : IWinGetIconUrlOverrides
 {
     // UniGetUI's icon database — see the class doc comment for context and
     // licensing. If you fork this URL to a Winhance-controlled mirror, make
