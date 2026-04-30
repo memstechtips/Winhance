@@ -31,10 +31,10 @@
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
-    <Version>26.04.29</Version>
-    <FileVersion>26.04.29</FileVersion>
-    <AssemblyVersion>26.04.29</AssemblyVersion>
-    <InformationalVersion>v26.04.29</InformationalVersion>
+    <Version>26.04.30</Version>
+    <FileVersion>26.04.30</FileVersion>
+    <AssemblyVersion>26.04.30</AssemblyVersion>
+    <InformationalVersion>v26.04.30</InformationalVersion>
     <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>
 
@@ -79,9 +79,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
 
-    <!-- Additional packages from WPF project that are UI framework agnostic -->
-    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+    <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
+         transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
+         GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.7" />
   </ItemGroup>
 
   <ItemGroup>

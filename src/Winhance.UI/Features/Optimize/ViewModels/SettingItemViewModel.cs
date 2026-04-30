@@ -1800,7 +1800,7 @@ public partial class SettingItemViewModel : BaseViewModel
             // because the factory default depends on locale). We light the pill whenever
             // the currently-selected option has the flag — no special-casing for subjective
             // settings; the Preference pill is added separately at row-build time.
-            var options = SettingDefinition.ComboBox?.Options;
+            var options = SettingDefinition?.ComboBox?.Options;
             if (options != null && SelectedValue is int currentIndex
                 && currentIndex >= 0 && currentIndex < options.Count)
             {
@@ -1871,6 +1871,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool HasAnyRecommendedData()
     {
+        if (SettingDefinition is null) return false;
         // Toggle-level explicit flag wins.
         if ((InputType == InputType.Toggle || InputType == InputType.CheckBox)
             && SettingDefinition.RecommendedToggleState.HasValue)
@@ -1902,6 +1903,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool HasAnyDefaultData()
     {
+        if (SettingDefinition is null) return false;
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         // Group-policy regs with null DefaultValue are usually write-only enforcers,
         // but for toggle settings the null-sentinel convention (e.g. EnabledValue = [null])
@@ -1929,7 +1931,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private bool IsKnownSelectionValue()
     {
         if (InputType != InputType.Selection) return true;
-        var options = SettingDefinition.ComboBox?.Options;
+        var options = SettingDefinition?.ComboBox?.Options;
         if (options == null || options.Count == 0) return true;
         // Separate AC/DC Selection settings (PowerCfg-backed) drive the UI via AcValue/DcValue
         // rather than SelectedValue — validate those indices instead.

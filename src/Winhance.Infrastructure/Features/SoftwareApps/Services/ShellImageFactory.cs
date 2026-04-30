@@ -18,7 +18,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 /// Shell COM interface <c>IShellItemImageFactory</c> (the same path File Explorer
 /// uses to render thumbnails) and re-encodes the returned HBITMAP as PNG bytes.
 /// </summary>
-[SupportedOSPlatform("windows")]
+// 10.0.10240.0 = Windows 10 RTM, the floor for SoftwareBitmap / BitmapEncoder.
+// Tighter than the project TFM (10.0.19041.0) is fine; the analyzer just needs
+// a version on the attribute so CA1416 stops flagging the WinRT call sites.
+[SupportedOSPlatform("windows10.0.10240.0")]
 public class ShellImageFactory : IShellImageFactory
 {
     private readonly ILogService _logService;

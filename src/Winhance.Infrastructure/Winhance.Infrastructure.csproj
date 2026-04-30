@@ -20,16 +20,16 @@
   </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
         <PackageReference Include="System.Management" Version="8.0.0" />
         <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
         <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
-        <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
-        <PackageReference Include="System.Text.Json" Version="9.0.2" />
+        <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
+             transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
+             GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->
+        <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.7" />
         <PackageReference Include="YamlDotNet" Version="16.2.0" />
-
     </ItemGroup>
 
   <ItemGroup>
