@@ -6,9 +6,9 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
 /// <summary>
 /// Layer 2b of the icon resolution pipeline: source an icon for a WinGet package.
-/// Tries the bundled COM API first (fast, in-process); on COM failure or
-/// unavailability falls back to fetching the raw manifest YAML from
-/// <c>microsoft/winget-pkgs</c> on GitHub. Returns null on any miss.
+/// Tries the local WinGet COM catalog first (fast, in-process, no network rate
+/// limit); on COM failure or unavailability falls back to a small in-process
+/// override map of vendor-canonical icon URLs. Returns null on any miss.
 /// </summary>
 public interface IWinGetIconSource
 {

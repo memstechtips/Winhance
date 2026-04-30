@@ -17,7 +17,6 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class WinGetIconSourceTests
 {
     private readonly Mock<IWinGetBootstrapper> _mockBootstrapper = new();
-    private readonly Mock<IWinGetManifestFetcher> _mockFetcher = new();
     private readonly Mock<HttpMessageHandler> _handler = new(MockBehavior.Strict);
     private readonly Mock<ILogService> _mockLog = new();
     private readonly HttpClient _httpClient;
@@ -28,17 +27,20 @@ public class WinGetIconSourceTests
     }
 
     /// <summary>
-    /// Builds a fresh source per test with a specific COM-fake function. Per-test
-    /// instantiation avoids capturing-delegate problems and keeps each test self-contained.
+    /// Builds a fresh source per test with explicit fakes for the COM path and
+    /// the override-map lookup. Per-test instantiation avoids capturing-delegate
+    /// problems and keeps each test self-contained.
     /// </summary>
-    private WinGetIconSource BuildSource(Func<string, CancellationToken, Task<string?>>? com = null)
+    private WinGetIconSource BuildSource(
+        Func<string, CancellationToken, Task<string?>>? com = null,
+        Func<string, string?>? overrideLookup = null)
     {
         return new WinGetIconSource(
             _mockBootstrapper.Object,
-            _mockFetcher.Object,
             _httpClient,
             _mockLog.Object,
-            comIconUrlsAsync: com ?? ((_, _) => Task.FromResult<string?>(null)));
+            comIconUrlsAsync: com ?? ((_, _) => Task.FromResult<string?>(null)),
+            overrideLookup: overrideLookup ?? (_ => null));
     }
 
     [Fact]
@@ -47,73 +49,94 @@ public class WinGetIconSourceTests
         _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(true);
         SetupIconDownload("https://example.com/com.png", new byte[] { 1, 2, 3 });
 
-        var source = BuildSource(com: (_, _) => Task.FromResult<string?>("https://example.com/com.png"));
+        // Override would also have a URL, but COM should win and the override should not be consulted.
+        bool overrideConsulted = false;
+        var source = BuildSource(
+            com: (_, _) => Task.FromResult<string?>("https://example.com/com.png"),
+            overrideLookup: id => { overrideConsulted = true; return "https://example.com/should-not-be-used.png"; });
+
         var result = await source.GetIconStreamAsync("Some.Package");
 
         result.Should().NotBeNull();
-        _mockFetcher.Verify(f => f.GetIconUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        overrideConsulted.Should().BeFalse("COM provided a URL, override map must not be consulted");
     }
 
     [Fact]
-    public async Task ReturnsStream_FromManifestFetcher_WhenComThrows()
-    {
-        _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(true);
-        _mockFetcher.Setup(f => f.GetIconUrlAsync("Some.Package", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("https://example.com/manifest.png");
-        SetupIconDownload("https://example.com/manifest.png", new byte[] { 9 });
-
-        var source = BuildSource(com: (_, _) => Task.FromException<string?>(new InvalidOperationException("COM glitch")));
-        var result = await source.GetIconStreamAsync("Some.Package");
-
-        result.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task ReturnsNull_WhenComReturnsCleanMiss()
+    public async Task ReturnsNull_WhenComReturnsCleanMiss_DoesNotConsultOverride()
     {
         _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(true);
 
-        // COM returns null (no Icons in manifest) — clean miss, fetcher is NOT consulted.
-        var source = BuildSource(com: (_, _) => Task.FromResult<string?>(null));
+        // COM returns null cleanly (manifest exists, no Icons block) — that's authoritative
+        // for this package. The override map is for cases where COM couldn't tell us, not
+        // for cases where COM told us "no icon."
+        bool overrideConsulted = false;
+        var source = BuildSource(
+            com: (_, _) => Task.FromResult<string?>(null),
+            overrideLookup: id => { overrideConsulted = true; return "https://example.com/should-not-be-used.png"; });
+
         var result = await source.GetIconStreamAsync("Some.Package");
 
         result.Should().BeNull();
-        _mockFetcher.Verify(f => f.GetIconUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        overrideConsulted.Should().BeFalse("COM clean miss is authoritative; override is reserved for COM failure / unavailability");
     }
 
     [Fact]
-    public async Task SkipsCom_WhenSystemWinGetUnavailable()
+    public async Task ReturnsStream_FromOverride_WhenComThrows()
     {
-        _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(false);
-        _mockFetcher.Setup(f => f.GetIconUrlAsync("Some.Package", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("https://example.com/manifest.png");
-        SetupIconDownload("https://example.com/manifest.png", new byte[] { 9 });
+        _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(true);
+        SetupIconDownload("https://example.com/override.png", new byte[] { 9 });
 
-        // COM func should never be invoked when bootstrap reports unavailable — make it throw if called.
-        var source = BuildSource(com: (_, _) => throw new InvalidOperationException("should not be called"));
+        var source = BuildSource(
+            com: (_, _) => Task.FromException<string?>(new InvalidOperationException("COM glitch")),
+            overrideLookup: id => id == "Some.Package" ? "https://example.com/override.png" : null);
+
         var result = await source.GetIconStreamAsync("Some.Package");
 
         result.Should().NotBeNull();
-        _mockFetcher.Verify(f => f.GetIconUrlAsync("Some.Package", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task ShortCircuitsLayer_AfterRateLimitException()
+    public async Task ReturnsNull_WhenComThrows_AndOverrideMisses()
+    {
+        _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(true);
+
+        var source = BuildSource(
+            com: (_, _) => Task.FromException<string?>(new InvalidOperationException("COM glitch")),
+            overrideLookup: _ => null);
+
+        var result = await source.GetIconStreamAsync("Some.Package");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SkipsCom_WhenSystemWinGetUnavailable_AndUsesOverride()
     {
         _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(false);
-        _mockFetcher.SetupSequence(f => f.GetIconUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new WinGetManifestFetcher.RateLimitExceededException(new HttpResponseMessage().Headers))
-            .ReturnsAsync("https://example.com/should-not-be-called.png");
+        SetupIconDownload("https://example.com/override.png", new byte[] { 7 });
 
-        var source = BuildSource();
-        var first = await source.GetIconStreamAsync("Pkg.One");
-        var second = await source.GetIconStreamAsync("Pkg.Two");
+        // COM func should never be invoked when bootstrap reports unavailable — make it throw if called.
+        var source = BuildSource(
+            com: (_, _) => throw new InvalidOperationException("should not be called"),
+            overrideLookup: _ => "https://example.com/override.png");
 
-        first.Should().BeNull();
-        second.Should().BeNull();
-        // Fetcher hit only once — second call short-circuits before the fetcher.
-        _mockFetcher.Verify(f => f.GetIconUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("rate limit"))), Times.Once);
+        var result = await source.GetIconStreamAsync("Some.Package");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SkipsCom_WhenSystemWinGetUnavailable_AndOverrideMisses_ReturnsNull()
+    {
+        _mockBootstrapper.SetupGet(b => b.IsSystemWinGetAvailable).Returns(false);
+
+        var source = BuildSource(
+            com: (_, _) => throw new InvalidOperationException("should not be called"),
+            overrideLookup: _ => null);
+
+        var result = await source.GetIconStreamAsync("Some.Package");
+
+        result.Should().BeNull();
     }
 
     private void SetupIconDownload(string url, byte[] bytes)

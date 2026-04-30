@@ -11,58 +11,61 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 /// <summary>
-/// Layer 2b orchestration: resolves WinGet package icons by trying the bundled
-/// COM API first (fast, in-process), falling back to GitHub raw-manifest fetch
-/// when COM is unavailable or specifically failed for the package. Maintains
-/// session-level short-circuit flags so a layer-wide failure (COM bootstrap dead,
-/// GitHub rate-limit hit) doesn't pay the full per-entry cost on every later call.
+/// Layer 2b orchestration: resolves WinGet package icons by querying the local
+/// WinGet COM catalog (fast, in-process, no network rate limit). When COM is
+/// unavailable, throws, or its package metadata API can't surface an icon URL,
+/// falls back to a small in-process override map (see
+/// <see cref="WinGetIconUrlOverrides"/>) of vendor-canonical icon URLs. There
+/// is no GitHub manifest fetcher path — that was removed because the GitHub
+/// Contents API rate-limits unauthenticated callers and the fallback added more
+/// failure modes than it resolved.
 /// </summary>
 public class WinGetIconSource : IWinGetIconSource
 {
     private static readonly TimeSpan PerCallTimeout = TimeSpan.FromSeconds(8);
 
     private readonly IWinGetBootstrapper _bootstrapper;
-    private readonly IWinGetManifestFetcher _fetcher;
     private readonly HttpClient _httpClient;
     private readonly ILogService _logService;
     private readonly Func<string, CancellationToken, Task<string?>> _comIconUrlsAsync;
+    private readonly Func<string, string?> _overrideLookup;
 
-    // volatile: these flags are read+written across thread-pool threads serving
-    // concurrent Layer 2 calls under the resolver's SemaphoreSlim(5). Write-once
-    // (false → true), so volatile is sufficient — no Interlocked needed.
-    private volatile bool _gitHubRateLimited;
     // True after the first COM call observed a hard failure (typically E_NOINTERFACE
     // when the bundled WindowsPackageManager.ComInterop projection's metadata
     // overload isn't actually implemented by the installed winget COM server).
     // Once tripped, we skip COM for the rest of the session and go straight to the
-    // GitHub fallback — saves ~30+ identical warnings per app load.
+    // override-map fallback — saves ~30+ identical warnings per app load.
+    // volatile: read+written across thread-pool threads serving concurrent Layer 2
+    // calls under the resolver's SemaphoreSlim(5). Write-once (false → true), so
+    // volatile is sufficient — no Interlocked needed.
     private volatile bool _comMetadataUnavailable;
 
-    /// <summary>Production constructor — wires the COM path to the real session-based catalog call.</summary>
+    /// <summary>Production constructor — wires the COM path to the real session-based catalog call
+    /// and the override lookup to the static <see cref="WinGetIconUrlOverrides"/> map.</summary>
     public WinGetIconSource(
         IWinGetBootstrapper bootstrapper,
-        IWinGetManifestFetcher fetcher,
         HttpClient httpClient,
         ILogService logService,
         WinGetComSession comSession)
-        : this(bootstrapper, fetcher, httpClient, logService,
-               comIconUrlsAsync: (id, ct) => GetIconUrlViaComAsync(id, ct, comSession, logService))
+        : this(bootstrapper, httpClient, logService,
+               comIconUrlsAsync: (id, ct) => GetIconUrlViaComAsync(id, ct, comSession, logService),
+               overrideLookup: id => WinGetIconUrlOverrides.TryGet(id, out var u) ? u : null)
     {
     }
 
-    /// <summary>Test constructor — accepts a fake COM callable for unit tests.</summary>
+    /// <summary>Test constructor — accepts a fake COM callable and a fake override lookup for unit tests.</summary>
     internal WinGetIconSource(
         IWinGetBootstrapper bootstrapper,
-        IWinGetManifestFetcher fetcher,
         HttpClient httpClient,
         ILogService logService,
-        Func<string, CancellationToken, Task<string?>> comIconUrlsAsync)
+        Func<string, CancellationToken, Task<string?>> comIconUrlsAsync,
+        Func<string, string?> overrideLookup)
     {
         _bootstrapper = bootstrapper;
-        _fetcher = fetcher;
         _httpClient = httpClient;
         _logService = logService;
         _comIconUrlsAsync = comIconUrlsAsync;
+        _overrideLookup = overrideLookup;
     }
 
     public async Task<Stream?> GetIconStreamAsync(string winGetPackageId, CancellationToken ct = default)
@@ -97,38 +100,21 @@ public class WinGetIconSource : IWinGetIconSource
                         _comMetadataUnavailable = true;
                         _logService.LogWarning(
                             $"WinGetIconSource: COM metadata API unavailable ({ex.Message}). " +
-                            $"Skipping COM for the remainder of the session; using GitHub manifest fallback only.");
+                            $"Skipping COM for the remainder of the session; using override-map fallback only.");
                     }
-                    // iconUrl stays null, comCleanMiss stays false → fall through to fetcher below
+                    // iconUrl stays null, comCleanMiss stays false → fall through to override below
                 }
             }
 
-            // Phase 2: GitHub fallback.
-            // Consult the fetcher when:
-            //   - COM was skipped (WinGet unavailable), OR
+            // Phase 2: override-map fallback.
+            // Consult the override map when:
+            //   - COM was skipped (WinGet unavailable / metadata API broken), OR
             //   - COM threw (exception path, not a clean null return)
-            // Do NOT consult the fetcher when COM returned null cleanly (no Icons in manifest):
-            // that means the package genuinely has no icon in the WinGet catalog; the GitHub
-            // manifest fetcher would hit the same upstream data and return null too.
-            // Also skip when the linked CTS already cancelled (e.g. the per-call timeout fired
-            // during COM) — running the fetcher with an already-cancelled token would just
-            // throw OperationCanceledException and surface as a misleading "unexpected failure"
-            // log entry on top of the COM warning we already wrote.
-            if (iconUrl is null && !comCleanMiss && !_gitHubRateLimited && !linked.Token.IsCancellationRequested)
+            // Do NOT consult the override when COM returned null cleanly: the manifest
+            // exists and authoritatively has no icon, so the override would be guessing.
+            if (iconUrl is null && !comCleanMiss && !linked.Token.IsCancellationRequested)
             {
-                try
-                {
-                    iconUrl = await _fetcher.GetIconUrlAsync(winGetPackageId, linked.Token).ConfigureAwait(false);
-                }
-                catch (WinGetManifestFetcher.RateLimitExceededException rl)
-                {
-                    _gitHubRateLimited = true;
-                    var resetMsg = rl.ResetAt is DateTimeOffset reset
-                        ? $" (resets at {reset:O})"
-                        : string.Empty;
-                    _logService.LogWarning($"WinGetIconSource: GitHub Contents API rate limit hit{resetMsg} — skipping Layer 2b for the rest of the session.");
-                    return null;
-                }
+                iconUrl = _overrideLookup(winGetPackageId);
             }
 
             if (string.IsNullOrEmpty(iconUrl)) return null;

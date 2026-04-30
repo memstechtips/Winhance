@@ -20,10 +20,10 @@ public class AppIconResolver : IAppIconResolver
     private const string StoreCachePrefix = "MsStore_";
     private const string BinaryCachePrefix = "Bin_";
     private const string WinGetCachePrefix = "WinGet_";
-    // Concurrency limit for Layer 2 online sources (Store CDN + WinGet manifest).
-    // Each entry costs two HTTP round-trips at minimum (catalog metadata + image
-    // download); running them parallel keeps cold-cache load times bounded. Kept
-    // at the original Store-era constant value of 5 — there's no upstream rate
+    // Concurrency limit for Layer 2 online sources (Store CDN + WinGet COM catalog).
+    // Each entry costs at least one HTTP round-trip (image download) on top of the
+    // local COM lookup; running them parallel keeps cold-cache load times bounded.
+    // Kept at the original Store-era constant value of 5 — there's no upstream rate
     // limit pressure that would push this higher.
     private const int Layer2Concurrency = 5;
 
@@ -187,7 +187,7 @@ public class AppIconResolver : IAppIconResolver
                             }
                         }
 
-                        // 2b — WinGet manifest fallback (or only path, if no MsStoreId).
+                        // 2b — WinGet COM catalog (or only path, if no MsStoreId).
                         if (def.IconPath is null && (def.WinGetPackageId?.Length > 0) && _winGetSource is not null)
                         {
                             Interlocked.Increment(ref winGetAttempted);
