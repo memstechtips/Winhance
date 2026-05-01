@@ -103,11 +103,19 @@ public sealed class WinGetIconUrlOverrides : IWinGetIconUrlOverrides
         //    separators to hyphens (matches UniGetUI's Package.GenerateIconId()).
         // The vast majority of database entries are keyed under (3); (1) and (2) are
         // for the rare cases where upstream chose a more specific key.
-        if (map.TryGetValue("Winget." + winGetPackageId, out var url)) return url;
+        var managerKey = "Winget." + winGetPackageId;
+        if (map.TryGetValue(managerKey, out var url)) return url;
         if (map.TryGetValue(winGetPackageId, out url)) return url;
 
         var normalized = NormalizeIconId(winGetPackageId);
         if (normalized is not null && map.TryGetValue(normalized, out url)) return url;
+
+        // TEMPORARY: log what we tried so we can identify gaps in upstream's
+        // coverage and decide where to add Winhance-local fallback URLs.
+        // Drop this block (or downgrade to LogDebug) once gaps are characterized.
+        _logService.LogInformation(
+            $"WinGetIconUrlOverrides: miss for '{winGetPackageId}' — tried '{managerKey}', '{winGetPackageId}'"
+            + (normalized is not null ? $", '{normalized}'" : string.Empty));
 
         return null;
     }
