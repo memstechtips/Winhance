@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,12 +20,15 @@ public class AppIconResolver : IAppIconResolver
     private const string CacheSubDir = @"Winhance\IconCache";
     private const string StoreCachePrefix = "MsStore_";
     private const string BinaryCachePrefix = "Bin_";
-    private const string WinGetCachePrefix = "WinGet_";
-    // Concurrency limit for Layer 2 online sources (Store CDN + WinGet COM catalog).
-    // Each entry costs at least one HTTP round-trip (image download) on top of the
-    // local COM lookup; running them parallel keeps cold-cache load times bounded.
-    // Kept at the original Store-era constant value of 5 — there's no upstream rate
-    // limit pressure that would push this higher.
+    private const string IconSourceCachePrefix = "Src_";
+
+    // Per-call timeout for an IconSources URL fetch. Caps per-entry cost so one
+    // slow vendor CDN can't stall the resolver for everyone else.
+    private static readonly TimeSpan IconSourceFetchTimeout = TimeSpan.FromSeconds(8);
+    // Concurrency limit for Layer 2 sources (Store CDN + IconSources URL fetches).
+    // Each entry costs at least one HTTP round-trip; running them parallel keeps
+    // cold-cache load times bounded. There's no upstream rate-limit pressure that
+    // would push this higher.
     private const int Layer2Concurrency = 5;
 
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
@@ -61,7 +65,7 @@ public class AppIconResolver : IAppIconResolver
     private readonly IAppxIconSource _appxSource;
     private readonly IStoreIconSource? _storeSource;
     private readonly IBinaryIconSource? _binarySource;
-    private readonly IWinGetIconSource? _winGetSource;
+    private readonly HttpClient? _httpClient;
     private readonly ILogService _logService;
     private readonly string _cacheRoot;
 
@@ -71,8 +75,8 @@ public class AppIconResolver : IAppIconResolver
         ILogService logService,
         IStoreIconSource storeSource,
         IBinaryIconSource binarySource,
-        IWinGetIconSource winGetSource)
-        : this(appxSource, logService, DefaultCacheRoot(), storeSource, binarySource, winGetSource) { }
+        HttpClient httpClient)
+        : this(appxSource, logService, DefaultCacheRoot(), storeSource, binarySource, httpClient) { }
 
     /// <summary>Test constructor — accepts a custom cache root and optional sources.</summary>
     internal AppIconResolver(
@@ -81,14 +85,14 @@ public class AppIconResolver : IAppIconResolver
         string cacheRoot,
         IStoreIconSource? storeSource = null,
         IBinaryIconSource? binarySource = null,
-        IWinGetIconSource? winGetSource = null)
+        HttpClient? httpClient = null)
     {
         _appxSource = appxSource;
         _logService = logService;
         _cacheRoot = cacheRoot;
         _storeSource = storeSource;
         _binarySource = binarySource;
-        _winGetSource = winGetSource;
+        _httpClient = httpClient;
     }
 
     private static string DefaultCacheRoot() =>
@@ -98,15 +102,16 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
-            // Any entry with a routable identity gets a try. AppX-named entries go
-            // through Layer 1a (local enumeration); entries with InstalledBinaryHint
-            // go through Layer 1b; MsStoreId / WinGetPackageId entries that didn't
-            // resolve locally fall through to Layer 2 (online sources).
+            // Any entry with a routable identity gets a try. AppX-named entries
+            // go through Layer 1a (local enumeration); entries with
+            // InstalledBinaryHint go through Layer 1b; MsStoreId entries fall
+            // through to Layer 2a (Store CDN); entries with IconSources fall
+            // through to Layer 2b (URLs and/or local file paths).
             var candidates = definitions
                 .Where(d => (d.AppxPackageName?.Length > 0)
                          || !string.IsNullOrEmpty(d.MsStoreId)
-                         || (d.WinGetPackageId?.Length > 0)
-                         || !string.IsNullOrEmpty(d.InstalledBinaryHint))
+                         || !string.IsNullOrEmpty(d.InstalledBinaryHint)
+                         || (d.IconSources?.Length > 0))
                 .ToList();
             if (candidates.Count == 0)
                 return;
@@ -114,7 +119,7 @@ public class AppIconResolver : IAppIconResolver
             if (!EnsureCacheDir())
                 return;
 
-            // Layer 1: AppX (current user / all users / provisioned).
+            // Layer 1a: AppX (current user / all users / provisioned).
             var installedMap = await _appxSource.GetInstalledPackageMapAsync(ct).ConfigureAwait(false);
 
             int appxResolved = 0;
@@ -152,13 +157,19 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            // Layer 2: Online sources, preference-ordered per entry, parallel across entries.
+            // Layer 2: per-entry source chain, parallel across entries.
+            //   2a — Store CDN, when MsStoreId is present.
+            //   2b — IconSources (URLs and/or local file paths in the order the
+            //        ItemDefinition lists them; first hit wins).
+            // Order matters per Marco's chosen layering: Store wins over IconSources
+            // because the Store CDN icon is canonical for entries Microsoft has
+            // catalogued. IconSources is the last attempt before the fallback glyph.
             int storeAttempted = 0, storeResolved = 0;
-            int winGetAttempted = 0, winGetResolved = 0;
+            int sourcesAttempted = 0, sourcesResolved = 0;
 
             var layer2Candidates = candidates
                 .Where(d => d.IconPath is null
-                            && (!string.IsNullOrEmpty(d.MsStoreId) || (d.WinGetPackageId?.Length > 0)))
+                            && (!string.IsNullOrEmpty(d.MsStoreId) || (d.IconSources?.Length > 0)))
                 .ToList();
 
             if (layer2Candidates.Count > 0)
@@ -187,18 +198,18 @@ public class AppIconResolver : IAppIconResolver
                             }
                         }
 
-                        // 2b — WinGet COM catalog (or only path, if no MsStoreId).
-                        if (def.IconPath is null && (def.WinGetPackageId?.Length > 0) && _winGetSource is not null)
+                        // 2b — IconSources (URLs / local file paths).
+                        if (def.IconPath is null && (def.IconSources?.Length > 0))
                         {
-                            Interlocked.Increment(ref winGetAttempted);
+                            Interlocked.Increment(ref sourcesAttempted);
                             try
                             {
-                                if (await TryResolveFromWinGetAsync(def, ct).ConfigureAwait(false))
-                                    Interlocked.Increment(ref winGetResolved);
+                                if (await TryResolveFromIconSourcesAsync(def, ct).ConfigureAwait(false))
+                                    Interlocked.Increment(ref sourcesResolved);
                             }
                             catch (Exception ex)
                             {
-                                _logService.LogWarning($"WinGet icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                                _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
                             }
                         }
                     }
@@ -207,18 +218,102 @@ public class AppIconResolver : IAppIconResolver
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
 
-            int unresolved = candidates.Count - appxResolved - binaryResolved - storeResolved - winGetResolved;
+            int unresolved = candidates.Count - appxResolved - binaryResolved - storeResolved - sourcesResolved;
             _logService.LogInformation(
                 $"AppIconResolver: {candidates.Count} candidates → " +
                 $"{appxResolved} via AppX, {binaryResolved} via Binary, " +
                 $"{storeResolved}/{storeAttempted} via Store, " +
-                $"{winGetResolved}/{winGetAttempted} via WinGet, " +
+                $"{sourcesResolved}/{sourcesAttempted} via IconSources, " +
                 $"{unresolved} unresolved");
         }
         catch (Exception ex)
         {
             _logService.LogError("Icon resolution batch failed", ex);
         }
+    }
+
+    /// <summary>
+    /// Layer 2b: walk <see cref="ItemDefinition.IconSources"/> in order, return on
+    /// the first entry that yields a non-empty image. Each entry is either an
+    /// <c>http(s)://</c> URL (fetched via <see cref="HttpClient"/>) or a local
+    /// file path (read with <see cref="File.ReadAllBytesAsync(string, CancellationToken)"/>
+    /// after env-var expansion).
+    /// </summary>
+    private async Task<bool> TryResolveFromIconSourcesAsync(ItemDefinition def, CancellationToken ct)
+    {
+        var sources = def.IconSources;
+        if (sources is null || sources.Length == 0) return false;
+
+        foreach (var source in sources)
+        {
+            if (ct.IsCancellationRequested) return false;
+            if (string.IsNullOrWhiteSpace(source)) continue;
+
+            // Cache key encodes the source string (URL or expanded path) so any
+            // change invalidates the cache automatically. SHA1 is fine — purely a
+            // cache key, not a trust boundary.
+            var isUrl = IsHttpUrl(source);
+            var cacheKeyInput = isUrl ? source : Environment.ExpandEnvironmentVariables(source);
+            var cachePath = Path.Combine(_cacheRoot, IconSourceCachePrefix + Sha1Hex(cacheKeyInput) + CacheFileSuffix);
+            if (File.Exists(cachePath))
+            {
+                def.IconPath = cachePath;
+                return true;
+            }
+
+            try
+            {
+                byte[]? bytes = isUrl
+                    ? await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false)
+                    : await ReadLocalFileBytesAsync(source, ct).ConfigureAwait(false);
+                if (bytes is null || bytes.Length == 0) continue;
+
+                using var ms = new MemoryStream(bytes);
+                await WriteStreamToCacheAsync(ms, cachePath, ct).ConfigureAwait(false);
+                def.IconPath = cachePath;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning(
+                    $"IconSources entry failed for {def.Id} ({def.Name}) <{source}>: {ex.Message}");
+                // Continue to the next source in the array.
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsHttpUrl(string source) =>
+        source.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+        || source.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+    private async Task<byte[]?> FetchUrlBytesAsync(string url, ItemDefinition def, CancellationToken ct)
+    {
+        if (_httpClient is null) return null;
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(IconSourceFetchTimeout);
+
+        using var resp = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linked.Token).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logService.LogInformation(
+                $"IconSources URL returned HTTP {(int)resp.StatusCode} for {def.Id} ({def.Name}) <{url}>");
+            return null;
+        }
+
+        await using var srcStream = await resp.Content.ReadAsStreamAsync(linked.Token).ConfigureAwait(false);
+        using var collector = new MemoryStream();
+        await srcStream.CopyToAsync(collector, linked.Token).ConfigureAwait(false);
+        return collector.Length > 0 ? collector.ToArray() : null;
+    }
+
+    private static async Task<byte[]?> ReadLocalFileBytesAsync(string path, CancellationToken ct)
+    {
+        var expanded = Environment.ExpandEnvironmentVariables(path);
+        if (!File.Exists(expanded)) return null;
+        return await File.ReadAllBytesAsync(expanded, ct).ConfigureAwait(false);
     }
 
     private async Task<bool> TryResolveFromAppxAsync(
@@ -288,27 +383,6 @@ public class AppIconResolver : IAppIconResolver
         }
 
         await using var stream = await _binarySource!.GetIconStreamAsync(hint, LogoSize, ct).ConfigureAwait(false);
-        if (stream is null) return false;
-
-        await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
-        def.IconPath = cachePath;
-        return true;
-    }
-
-    private async Task<bool> TryResolveFromWinGetAsync(ItemDefinition def, CancellationToken ct)
-    {
-        // Defensive: callers gate on (def.WinGetPackageId?.Length > 0), but this
-        // method is private and may grow new call sites; guard internally too.
-        if (def.WinGetPackageId is not { Length: > 0 }) return false;
-        var packageId = def.WinGetPackageId[0];
-        var cachePath = Path.Combine(_cacheRoot, WinGetCachePrefix + packageId + CacheFileSuffix);
-        if (File.Exists(cachePath))
-        {
-            def.IconPath = cachePath;
-            return true;
-        }
-
-        await using var stream = await _winGetSource!.GetIconStreamAsync(packageId, ct).ConfigureAwait(false);
         if (stream is null) return false;
 
         await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);

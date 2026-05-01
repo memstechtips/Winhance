@@ -43,6 +43,26 @@ public record ItemDefinition : BaseDefinition
     public string? WebsiteUrl { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
+    /// <summary>
+    /// Ordered list of icon sources to try when local extraction (AppX / Binary)
+    /// and the Microsoft Store CDN both come up empty. Each entry is one of:
+    /// <list type="bullet">
+    /// <item><description>An <c>http(s)://</c> URL — fetched at runtime and cached locally.
+    /// Vendor-canonical URLs only (vendor's site / CDN, the project's GitHub repo,
+    /// Wikimedia Commons rasterized PNGs). No third-party image hosts —
+    /// Winhance fetches at runtime, so URL stability matters.</description></item>
+    /// <item><description>A local file path — checked with <c>File.Exists</c> after
+    /// <c>Environment.ExpandEnvironmentVariables</c>. Useful when an app leaves a
+    /// usable icon file on disk after uninstall (e.g. OneDrive's
+    /// <c>%SystemRoot%\System32\OneDrive.ico</c> stays around even when the OneDrive
+    /// client is removed).</description></item>
+    /// </list>
+    /// Sources are tried in array order; first one that yields a non-empty image
+    /// wins. List local paths first when you have them — they're zero-network and
+    /// can't rot.
+    /// </summary>
+    public string[]? IconSources { get; init; }
+
     // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
     // via the relevant service (status discovery, icon resolver), proxied
     // through AppItemViewModel for UI binding.

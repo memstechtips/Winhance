@@ -609,6 +609,20 @@ public static class WindowsAppDefinitions
                     GroupName = "System",
                     AppxPackageName = ["Microsoft.OneDriveSync"],
                     WinGetPackageId = ["Microsoft.OneDrive"],
+                    // OneDrive isn't an AppX on a clean install (the
+                    // Microsoft.OneDriveSync entry is just a Sync stub) and isn't
+                    // listed on the Microsoft Store either, so Layer 1 and Layer 2a
+                    // both come up empty. Layer 2b sources, in order:
+                    //  1. The OneDrive.ico file Windows leaves in System32 even
+                    //     after the OneDrive client is uninstalled — works for
+                    //     most users including post-debloat installs.
+                    //  2. Wikimedia Commons rasterization of the current (2025+)
+                    //     Microsoft OneDrive brand mark, for users whose
+                    //     debloater removed the .ico file too.
+                    IconSources = [
+                        @"%SystemRoot%\System32\OneDrive.ico",
+                        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Microsoft_OneDrive_Icon_%282025_-_present%29.svg/330px-Microsoft_OneDrive_Icon_%282025_-_present%29.svg.png",
+                    ],
                     CanBeReinstalled = true,
                     RemovalScript = () => OneDriveRemovalScript.GetScript()
                 },

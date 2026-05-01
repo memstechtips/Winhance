@@ -31,10 +31,10 @@
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
-    <Version>26.04.30</Version>
-    <FileVersion>26.04.30</FileVersion>
-    <AssemblyVersion>26.04.30</AssemblyVersion>
-    <InformationalVersion>v26.04.30</InformationalVersion>
+    <Version>26.05.01</Version>
+    <FileVersion>26.05.01</FileVersion>
+    <AssemblyVersion>26.05.01</AssemblyVersion>
+    <InformationalVersion>v26.05.01</InformationalVersion>
     <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>
 
