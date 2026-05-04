@@ -77,7 +77,7 @@ public class AppIconResolver : IAppIconResolver
     private readonly ILogService _logService;
     private readonly string _cacheRoot;
 
-    /// <summary>Production constructor — uses %LOCALAPPDATA%\Winhance\IconCache.</summary>
+    /// <summary>Production constructor — uses %ProgramData%\Winhance\IconCache.</summary>
     public AppIconResolver(
         IAppxIconSource appxSource,
         ILogService logService,
@@ -103,8 +103,13 @@ public class AppIconResolver : IAppIconResolver
         _httpClient = httpClient;
     }
 
+    // Icons aren't per-user state — they're app-wide reference data that any
+    // logged-in user looking at Winhance's catalog should see. ProgramData
+    // (%CommonApplicationData%) puts the cache alongside Winhance's other
+    // shared state (e.g. C:\ProgramData\Winhance\Logs) and means a single
+    // download per machine instead of per user.
     private static string DefaultCacheRoot() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), CacheSubDir);
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), CacheSubDir);
 
     public async Task ResolveBatchAsync(IEnumerable<ItemDefinition> definitions, CancellationToken ct = default)
     {
