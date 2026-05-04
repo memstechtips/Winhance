@@ -23,7 +23,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Telegram.TelegramDesktop"],
                         ChocoPackageId = "telegram",
-                        WebsiteUrl = "https://telegram.org/"
+                        WebsiteUrl = "https://telegram.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/telegramdesktop/tdesktop/v6.7.5/Telegram/Resources/art/icon256.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/512px-Telegram_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -34,7 +38,10 @@ public static partial class ExternalAppDefinitions
                         AppxPackageName = ["5319275A.WhatsAppDesktop"],
                         ChocoPackageId = "whatsapp",
                         MsStoreId = "9NKSQGP7F2NH",
-                        WebsiteUrl = "https://www.whatsapp.com/"
+                        WebsiteUrl = "https://www.whatsapp.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -45,7 +52,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Zoom.Zoom"],
                         ChocoPackageId = "zoom",
-                        WebsiteUrl = "https://zoom.us/"
+                        WebsiteUrl = "https://zoom.us/",
+                        IconSources = [
+                            "https://st1.zoom.us/zoom.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Zoom_Communications_Logo.svg/512px-Zoom_Communications_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -55,7 +66,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Discord.Discord"],
                         ChocoPackageId = "discord",
-                        WebsiteUrl = "https://discord.com/"
+                        WebsiteUrl = "https://discord.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Discord_color_D.svg/256px-Discord_color_D.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -65,7 +79,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Pidgin.Pidgin"],
                         ChocoPackageId = "pidgin",
-                        WebsiteUrl = "https://pidgin.im/"
+                        WebsiteUrl = "https://pidgin.im/",
+                        IconSources = [
+                            "https://pidgin.im/images/logo.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Pidgin.svg/256px-Pidgin.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -77,7 +95,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Mozilla.Thunderbird"],
                         ChocoPackageId = "thunderbird",
-                        WebsiteUrl = "https://www.thunderbird.net/"
+                        WebsiteUrl = "https://www.thunderbird.net/",
+                        IconSources = [
+                            "https://www.thunderbird.net/media/img/thunderbird/favicon-196.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Thunderbird_2023_icon.svg/256px-Thunderbird_2023_icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -87,7 +109,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["eMClient.eMClient"],
                         ChocoPackageId = "em-client",
-                        WebsiteUrl = "https://www.emclient.com/"
+                        WebsiteUrl = "https://www.emclient.com/",
+                        IconSources = [
+                            "https://www.emclient.com/favicon.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/EM_Client_logo.svg/256px-EM_Client_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -97,7 +123,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Proton.ProtonMail"],
                         ChocoPackageId = "protonmail",
-                        WebsiteUrl = "https://proton.me/mail"
+                        WebsiteUrl = "https://proton.me/mail",
+                        IconSources = [
+                            "https://proton.me/favicon.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/ProtonMail_icon.svg/240px-ProtonMail_icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -108,7 +138,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["CeruleanStudios.Trillian"],
                         ChocoPackageId = "trillian",
-                        WebsiteUrl = "https://www.trillian.im/"
+                        WebsiteUrl = "https://www.trillian.im/",
+                        IconSources = [
+                            "https://www.trillian.im/favicon.ico",
+                            "https://www.trillian.im/shared/images/index/cs_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -118,7 +152,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Element.Element"],
                         ChocoPackageId = "element-desktop",
-                        WebsiteUrl = "https://element.io/"
+                        WebsiteUrl = "https://element.io/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Element_%28software%29_logo_%282024%29.svg/256px-Element_%28software%29_logo_%282024%29.svg.png",
+                        ],
                     }
                 }
             };
