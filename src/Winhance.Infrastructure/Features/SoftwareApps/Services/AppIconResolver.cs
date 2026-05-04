@@ -25,6 +25,14 @@ public class AppIconResolver : IAppIconResolver
     // Per-call timeout for an IconSources URL fetch. Caps per-entry cost so one
     // slow vendor CDN can't stall the resolver for everyone else.
     private static readonly TimeSpan IconSourceFetchTimeout = TimeSpan.FromSeconds(8);
+
+    // User-Agent for icon fetches. Wikimedia's UA policy rejects empty / generic
+    // UAs with HTTP 403 — see https://meta.wikimedia.org/wiki/User-Agent_policy —
+    // and several vendor sites behind Cloudflare do the same. Identifying the
+    // app + a contact URL satisfies both. Set per-request rather than on the
+    // shared HttpClient so other services (download, WIM tooling, etc.) keep
+    // their existing behavior.
+    private const string IconFetchUserAgent = "Winhance/1.0 (+https://github.com/memstechtips/Winhance)";
     // Concurrency limit for Layer 2 sources (Store CDN + IconSources URL fetches).
     // Each entry costs at least one HTTP round-trip; running them parallel keeps
     // cold-cache load times bounded. There's no upstream rate-limit pressure that
@@ -348,7 +356,13 @@ public class AppIconResolver : IAppIconResolver
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
         linked.CancelAfter(IconSourceFetchTimeout);
 
-        using var resp = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linked.Token).ConfigureAwait(false);
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.UserAgent.ParseAdd(IconFetchUserAgent);
+        req.Headers.Accept.ParseAdd("image/*");
+
+        using var resp = await _httpClient
+            .SendAsync(req, HttpCompletionOption.ResponseHeadersRead, linked.Token)
+            .ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode)
         {
             _logService.LogInformation(

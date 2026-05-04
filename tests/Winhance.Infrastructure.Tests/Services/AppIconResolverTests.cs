@@ -400,6 +400,41 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
+    public async Task ResolveBatchAsync_IconSourcesUrl_SendsIdentifyingUserAgent()
+    {
+        // Wikimedia (and various Cloudflare-protected vendor sites) return 403 to
+        // empty-UA requests. Verify every IconSources URL fetch carries an
+        // identifying User-Agent.
+        var def = Def("ext-srcs-ua") with
+        {
+            IconSources = new[] { "https://example.invalid/icon.png" },
+        };
+
+        HttpRequestMessage? captured = null;
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 }),
+            });
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        captured.Should().NotBeNull();
+        captured!.Headers.UserAgent.Should().NotBeEmpty();
+        captured.Headers.UserAgent.ToString().Should().Contain("Winhance");
+    }
+
+    [Fact]
     public async Task ResolveBatchAsync_IconSourcesLocalPath_ReadsFromDisk_NoHttpCall()
     {
         // Write a "local" file in the temp dir to act as the on-disk icon (e.g. OneDrive.ico).
