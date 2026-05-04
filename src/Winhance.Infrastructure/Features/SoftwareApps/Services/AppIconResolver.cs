@@ -234,10 +234,15 @@ public class AppIconResolver : IAppIconResolver
 
     /// <summary>
     /// Layer 2b: walk <see cref="ItemDefinition.IconSources"/> in order, return on
-    /// the first entry that yields a non-empty image. Each entry is either an
-    /// <c>http(s)://</c> URL (fetched via <see cref="HttpClient"/>) or a local
-    /// file path (read with <see cref="File.ReadAllBytesAsync(string, CancellationToken)"/>
-    /// after env-var expansion).
+    /// the first entry that yields a non-empty image. Each entry is one of:
+    /// <list type="bullet">
+    /// <item><description><c>http(s)://</c> URL — fetched via <see cref="HttpClient"/>.</description></item>
+    /// <item><description><c>data:image/&lt;type&gt;;base64,&lt;payload&gt;</c> URI —
+    /// the base64 payload is decoded directly. Useful when a vendor only ships their
+    /// logo embedded in HTML/CSS and no stable raw URL exists.</description></item>
+    /// <item><description>Local file path — read with
+    /// <see cref="File.ReadAllBytesAsync(string, CancellationToken)"/> after env-var expansion.</description></item>
+    /// </list>
     /// </summary>
     private async Task<bool> TryResolveFromIconSourcesAsync(ItemDefinition def, CancellationToken ct)
     {
@@ -249,11 +254,15 @@ public class AppIconResolver : IAppIconResolver
             if (ct.IsCancellationRequested) return false;
             if (string.IsNullOrWhiteSpace(source)) continue;
 
-            // Cache key encodes the source string (URL or expanded path) so any
-            // change invalidates the cache automatically. SHA1 is fine — purely a
-            // cache key, not a trust boundary.
-            var isUrl = IsHttpUrl(source);
-            var cacheKeyInput = isUrl ? source : Environment.ExpandEnvironmentVariables(source);
+            var kind = ClassifyIconSource(source);
+
+            // Cache key encodes the source string so any change invalidates the cache
+            // automatically. Local paths are env-expanded first so two definitions
+            // pointing at the same expanded file share one cache entry. URLs and data:
+            // URIs are hashed verbatim. SHA1 is fine — purely a cache key, not a trust boundary.
+            var cacheKeyInput = kind == IconSourceKind.LocalPath
+                ? Environment.ExpandEnvironmentVariables(source)
+                : source;
             var cachePath = Path.Combine(_cacheRoot, IconSourceCachePrefix + Sha1Hex(cacheKeyInput) + CacheFileSuffix);
             if (File.Exists(cachePath))
             {
@@ -263,9 +272,13 @@ public class AppIconResolver : IAppIconResolver
 
             try
             {
-                byte[]? bytes = isUrl
-                    ? await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false)
-                    : await ReadLocalFileBytesAsync(source, ct).ConfigureAwait(false);
+                byte[]? bytes = kind switch
+                {
+                    IconSourceKind.Url => await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false),
+                    IconSourceKind.DataUri => DecodeBase64DataUri(source),
+                    IconSourceKind.LocalPath => await ReadLocalFileBytesAsync(source, ct).ConfigureAwait(false),
+                    _ => null,
+                };
                 if (bytes is null || bytes.Length == 0) continue;
 
                 using var ms = new MemoryStream(bytes);
@@ -276,7 +289,7 @@ public class AppIconResolver : IAppIconResolver
             catch (Exception ex)
             {
                 _logService.LogWarning(
-                    $"IconSources entry failed for {def.Id} ({def.Name}) <{source}>: {ex.Message}");
+                    $"IconSources entry failed for {def.Id} ({def.Name}) <{Truncate(source, 80)}>: {ex.Message}");
                 // Continue to the next source in the array.
             }
         }
@@ -284,9 +297,49 @@ public class AppIconResolver : IAppIconResolver
         return false;
     }
 
-    private static bool IsHttpUrl(string source) =>
-        source.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-        || source.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+    private enum IconSourceKind { Url, DataUri, LocalPath }
+
+    private static IconSourceKind ClassifyIconSource(string source)
+    {
+        if (source.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return IconSourceKind.Url;
+        if (source.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            return IconSourceKind.DataUri;
+        return IconSourceKind.LocalPath;
+    }
+
+    /// <summary>
+    /// Decodes a <c>data:&lt;media-type&gt;;base64,&lt;payload&gt;</c> URI into raw bytes.
+    /// Returns null for unsupported variants (no <c>;base64</c> marker, missing comma,
+    /// invalid base64). Non-base64 (URL-encoded) payloads are deliberately rejected —
+    /// IconSources is for binary image data, not text.
+    /// </summary>
+    private static byte[]? DecodeBase64DataUri(string source)
+    {
+        // Format: data:[<media-type>][;base64],<payload>
+        var commaIndex = source.IndexOf(',');
+        if (commaIndex < 0) return null;
+
+        var header = source.AsSpan(5, commaIndex - 5); // skip "data:"
+        if (!header.Contains(";base64".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var payload = source.AsSpan(commaIndex + 1);
+        if (payload.IsEmpty) return null;
+
+        try
+        {
+            return Convert.FromBase64String(payload.ToString());
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string Truncate(string s, int max) =>
+        s.Length <= max ? s : s.Substring(0, max) + "...";
 
     private async Task<byte[]?> FetchUrlBytesAsync(string url, ItemDefinition def, CancellationToken ct)
     {

@@ -51,6 +51,9 @@ public record ItemDefinition : BaseDefinition
     /// Vendor-canonical URLs only (vendor's site / CDN, the project's GitHub repo,
     /// Wikimedia Commons rasterized PNGs). No third-party image hosts —
     /// Winhance fetches at runtime, so URL stability matters.</description></item>
+    /// <item><description>A <c>data:image/&lt;type&gt;;base64,&lt;payload&gt;</c> URI —
+    /// the base64 payload is decoded directly into the cache. Useful when a vendor
+    /// only ships their logo embedded in HTML/CSS and there's no stable raw URL.</description></item>
     /// <item><description>A local file path — checked with <c>File.Exists</c> after
     /// <c>Environment.ExpandEnvironmentVariables</c>. Useful when an app leaves a
     /// usable icon file on disk after uninstall (e.g. OneDrive's

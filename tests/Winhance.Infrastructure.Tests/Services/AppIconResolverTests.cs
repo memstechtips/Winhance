@@ -532,4 +532,117 @@ public class AppIconResolverTests : IDisposable
         def.IconPath.Should().NotBeNull();
         Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
     }
+
+    // --- Layer 2b: data: URIs ---
+
+    private static string Sha1HexLower(string input)
+    {
+        using var sha1 = System.Security.Cryptography.SHA1.Create();
+        return Convert.ToHexString(sha1.ComputeHash(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesDataUri_DecodesAndStamps_NoHttpCall()
+    {
+        // Embedded base64 PNG payload. Strict HTTP handler asserts the resolver
+        // never reaches for the network when the source is a data: URI.
+        var payload = Encoding.UTF8.GetBytes("PNG-from-data-uri");
+        var dataUri = "data:image/png;base64," + Convert.ToBase64String(payload);
+
+        var def = Def("ext-srcs-data") with { IconSources = new[] { dataUri } };
+
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-from-data-uri");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesDataUri_CacheHit_DoesNotRedecode()
+    {
+        // Pre-warm the cache at the exact path the resolver will compute. A second
+        // resolve call should short-circuit on the cache hit and leave the file untouched.
+        var payload = Encoding.UTF8.GetBytes("PNG-real-payload");
+        var dataUri = "data:image/png;base64," + Convert.ToBase64String(payload);
+
+        Directory.CreateDirectory(_tempCacheDir);
+        var cachePath = Path.Combine(_tempCacheDir, "Src_" + Sha1HexLower(dataUri) + ".96-trim2.png");
+        File.WriteAllText(cachePath, "pre-cached-bytes");
+
+        var def = Def("ext-srcs-data-cached") with { IconSources = new[] { dataUri } };
+
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().Be(cachePath);
+        File.ReadAllText(cachePath).Should().Be("pre-cached-bytes");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesDataUri_NoBase64Marker_FallsThrough()
+    {
+        // data: URI without ;base64 (e.g. URL-encoded text payload) is rejected;
+        // the resolver should continue to the next source.
+        var def = Def("ext-srcs-data-nobase64") with
+        {
+            IconSources = new[]
+            {
+                "data:image/png,not-base64-encoded",
+                "https://example.invalid/fallback.png",
+            },
+        };
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-fallback"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesDataUri_InvalidBase64_FallsThrough()
+    {
+        // Malformed base64 payload: decoder throws FormatException → resolver
+        // treats it as a miss and tries the next source.
+        var def = Def("ext-srcs-data-badbase64") with
+        {
+            IconSources = new[]
+            {
+                "data:image/png;base64,!!!not valid base64!!!",
+                "https://example.invalid/fallback.png",
+            },
+        };
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-fallback"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
+    }
 }
