@@ -23,7 +23,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["Nilesoft.Shell"],
                         ChocoPackageId = "nilesoft-shell",
-                        WebsiteUrl = "https://nilesoft.org/"
+                        WebsiteUrl = "https://nilesoft.org/",
+                        IconSources = [
+                            "https://nilesoft.org/images/logo.png",
+                            "https://nilesoft.org/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -34,7 +38,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["StartIsBack.StartAllBack"],
                         ChocoPackageId = "startallback",
-                        WebsiteUrl = "https://www.startallback.com/"
+                        WebsiteUrl = "https://www.startallback.com/",
+                        IconSources = [
+                            "https://www.startallback.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -45,7 +52,11 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "StartIsBack++",
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["StartIsBack.StartIsBack"],
-                        WebsiteUrl = "https://www.startisback.com/"
+                        WebsiteUrl = "https://www.startisback.com/",
+                        IconSources = [
+                            "https://www.startisback.com/orb.png",
+                            "https://www.startisback.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -55,7 +66,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["Open-Shell.Open-Shell-Menu"],
                         ChocoPackageId = "open-shell",
-                        WebsiteUrl = "https://open-shell.github.io/Open-Shell-Menu/"
+                        WebsiteUrl = "https://open-shell.github.io/Open-Shell-Menu/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/Open-Shell/Open-Shell-Menu/master/Src/Setup/OpenShell.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -65,7 +79,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["RamenSoftware.Windhawk"],
                         ChocoPackageId = "windhawk",
-                        WebsiteUrl = "https://windhawk.net/"
+                        WebsiteUrl = "https://windhawk.net/",
+                        IconSources = [
+                            "https://windhawk.net/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -75,8 +92,10 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "Lively Wallpaper version {version}",
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["rocksdanister.LivelyWallpaper"],
+                        MsStoreId = "9NTM2QC6QWS7",
                         ChocoPackageId = "lively",
-                        WebsiteUrl = "https://www.rocksdanister.com/lively/"
+                        WebsiteUrl = "https://www.rocksdanister.com/lively/",
+                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                     new ItemDefinition
                     {
@@ -86,7 +105,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["Taiizor.SucroseWallpaperEngine"],
                         ChocoPackageId = "sucrose",
-                        WebsiteUrl = "https://github.com/Taiizor/Sucrose"
+                        WebsiteUrl = "https://github.com/Taiizor/Sucrose",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/Taiizor/Sucrose/develop/.images/Logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -96,7 +118,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["Rainmeter.Rainmeter"],
                         ChocoPackageId = "rainmeter",
-                        WebsiteUrl = "https://www.rainmeter.net/"
+                        WebsiteUrl = "https://www.rainmeter.net/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/rainmeter/rainmeter/master/Application/Rainmeter.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Rainmeter_Icon.svg/256px-Rainmeter_Icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -109,7 +135,14 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://github.com/valinet/ExplorerPatcher/releases/latest/download/ep_setup.exe",
-                        }
+                        },
+                        // No vendor logo asset exists on GitHub or Wikimedia, and the
+                        // explorerpatcher.net WordPress media is Cloudflare-protected.
+                        // Reuse Windows' own explorer.exe icon — visually appropriate
+                        // since the app patches explorer, and present on every machine.
+                        IconSources = [
+                            @"%SystemRoot%\explorer.exe",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -120,7 +153,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["johnsadventures.JohnsBackgroundSwitcher"],
                         ChocoPackageId = "jbs",
-                        WebsiteUrl = "https://johnsad.ventures/software/backgroundswitcher/"
+                        WebsiteUrl = "https://johnsad.ventures/software/backgroundswitcher/",
+                        IconSources = [
+                            "https://i0.wp.com/johnsad.ventures/wp-content/uploads/2007/11/jbslogo-152x152.png",
+                            "https://johnsad.ventures/wp-content/uploads/2007/11/jbslogo-152x152.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -132,7 +169,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.PowerToys"],
                         ChocoPackageId = "powertoys",
                         MsStoreId = "XP89DCGQ3K6VLD",
-                        WebsiteUrl = "https://github.com/microsoft/PowerToys"
+                        WebsiteUrl = "https://github.com/microsoft/PowerToys",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/microsoft/PowerToys/main/installer/PowerToysSetupVNext/Images/logo.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/2020_PowerToys_Icon.svg/256px-2020_PowerToys_Icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -145,7 +186,10 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://www.winstep.net/nexus.zip",
-                        }
+                        },
+                        IconSources = [
+                            "https://www.winstep.net/images/logo_96_nexus.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -164,7 +208,11 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://www.autohotkey.com/download/ahk-v2.exe",
-                        }
+                        },
+                        IconSources = [
+                            "https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/v2.0/source/resources/icon_main.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/256px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -178,7 +226,11 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://www.autohotkey.com/download/ahk-install.exe",
                             RequiresDirectDownload = true,
-                        }
+                        },
+                        IconSources = [
+                            "https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/alpha/source/resources/icon_main.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/256px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
+                        ],
                     }
                 }
             };
