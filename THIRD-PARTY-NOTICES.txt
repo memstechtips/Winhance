@@ -85,3 +85,48 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+=========================================================================
+
+Product icons (External Apps catalog)
+
+Winhance displays icons for third-party software products to help users
+identify applications in its External Apps catalog. These icons come from
+several sources, each with its own posture:
+
+  Trademarks
+    All product logos shown -- whether fetched at runtime from canonical
+    vendor sources or bundled in the application -- remain trademarks of
+    their respective owners. Winhance uses them solely for nominative
+    identification of the products they represent. No endorsement or
+    affiliation is implied.
+
+  Wikimedia Commons
+    A number of icons are sourced from Wikimedia Commons under the
+    licenses listed on each file's description page (typically
+    CC-BY-SA, CC0, or public domain). The direct file URLs in
+    src/Winhance.Core/Features/SoftwareApps/Models/ExternalAppDefinitions.*.cs
+    serve as the per-file attribution; each file's Commons page links
+    to its full license terms and authorship.
+
+  Wikipedia (en, es)
+    A small number of icons are non-free fair-use rasters hosted on
+    language-specific Wikipedias (en.wikipedia.org, es.wikipedia.org).
+    Their use here is consistent with nominative fair use for product
+    identification.
+
+  Vendor sources (GitHub, brand pages)
+    Where a project's own GitHub repo or brand-asset page exposes a
+    stable PNG/ICO, that URL is used directly. Open-source project
+    icons are governed by each project's repository license; vendor
+    brand assets remain trademarks of their respective owners.
+
+  Embedded (data: URIs)
+    A small number of icons are embedded directly in the binary as
+    base64-encoded PNG data. This is reserved for vendors who do not
+    expose a stable PNG URL but whose on-page brand mark would
+    otherwise need to be hot-linked from a non-canonical or
+    bot-protected source. Embedded icons remain trademarks of their
+    respective owners and are bundled solely to identify the
+    corresponding products in the catalog.
+
+=========================================================================
