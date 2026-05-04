@@ -81,7 +81,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "pidgin",
                         WebsiteUrl = "https://pidgin.im/",
                         IconSources = [
-                            "https://pidgin.im/images/logo.png",
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Pidgin.svg/256px-Pidgin.svg.png",
                         ],
                     },
@@ -125,8 +124,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "protonmail",
                         WebsiteUrl = "https://proton.me/mail",
                         IconSources = [
-                            "https://proton.me/favicon.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/ProtonMail_icon.svg/240px-ProtonMail_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/ProtonMail_icon.svg/256px-ProtonMail_icon.svg.png",
                         ],
                     },
                     new ItemDefinition

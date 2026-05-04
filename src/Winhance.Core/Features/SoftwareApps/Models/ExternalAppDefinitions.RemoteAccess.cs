@@ -38,8 +38,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["AnyDesk.AnyDesk"],
                         ChocoPackageId = "anydesk",
                         WebsiteUrl = "https://anydesk.com/",
+                        // Vendor site is Cloudflare-protected and Wikimedia only has
+                        // a wide wordmark. Embed the on-page AnyDesk mark (base64) so
+                        // the resolver decodes it via the data: branch.
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/AnyDesk-logo.svg/256px-AnyDesk-logo.svg.png",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAAAsUlEQVR4AWJwL/ChKx4YC0ctfO9inQ+grQ4wAIZhKAwDQ4HtvgH0RLvGztIrbC0LPPSf7Q2B5vGhTdOrTPrLyDjAxM5ebZJpd6a+AhXLSlQyu2SCQMYYPZ6iiLlRwPwoYH4UMD8KmA/NORXsG9qrEDoOwwiuNKPZCAO20D3qo4m/sQQVdWOVBj/8GH9t1Y4JCCg/f8AAFBSwnTECBRVM+8W2gAXdJv1Ci/fa8Gm1jVoIAMjxngpAp7znAAAAAElFTkSuQmCC",
                         ],
                     },
                     new ItemDefinition
@@ -80,10 +83,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Remote Access",
                         WinGetPackageId = ["RealVNC.VNCServer"],
                         ChocoPackageId = "vnc-connect",
+                        MsStoreId = "XP98VL6ML4GPS9",
                         WebsiteUrl = "https://www.realvnc.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/RealVNC_Logo.svg/256px-RealVNC_Logo.svg.png",
-                        ],
+                        // Icon resolved via MS Store CDN (Layer 2a). The Wikimedia
+                        // RealVNC_Logo is a shared family wordmark — Store has the
+                        // distinct Server vs Viewer marks.
                     },
                     new ItemDefinition
                     {
@@ -94,10 +98,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Remote Access",
                         WinGetPackageId = ["RealVNC.VNCViewer"],
                         ChocoPackageId = "vnc-viewer",
+                        MsStoreId = "XP99DVCPGKTXNJ",
                         WebsiteUrl = "https://www.realvnc.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/RealVNC_Logo.svg/256px-RealVNC_Logo.svg.png",
-                        ],
+                        // Icon resolved via MS Store CDN (Layer 2a). The Wikimedia
+                        // RealVNC_Logo is a shared family wordmark — Store has the
+                        // distinct Server vs Viewer marks.
                     },
                     new ItemDefinition
                     {

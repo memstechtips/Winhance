@@ -176,8 +176,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         ChocoPackageId = "streamlabs-obs",
                         WebsiteUrl = "https://streamlabs.com/",
+                        // Vendor only ships SVG/WebP and the Wikimedia render is a
+                        // narrow wordmark. Embed the on-page Streamlabs Desktop mark
+                        // (base64) so the resolver decodes it via the data: branch.
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Streamlabs_logo.svg/256px-Streamlabs_logo.svg.png",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAbCAMAAABY1h8eAAAAPFBMVEVHcEyA9dKA9dKA9dKA9tKA9dKA9dKF/tpjvaRIjHuA9dIBCBQAAAEgQDwrVE1Xp5F24sM1Z1wJFh1t0rQAnD66AAAAC3RSTlMAE5Da/29t////686eBCMAAACvSURBVHgBldJVAoNADEXRkbSZNA/f/14b3O1Cvg7OOMuHSJti8K7rQ4d9WvvSSV+7Jp3mXaAx3mJwcaQkaYPR/QZSINuc++uRBciLko6QCyDx3PpMNSPJs74q8QITcqYaqrXttkF4QhYUNvUcFmeWQlzpEpsZrR6Bfo4QBWU2J9hw3o6+RpWyhs3xAyn6Aa1RoFMoeImW5GPz54sj8qLxfwY6LVyvocvVd71uL1b8HzIqFClzDZl3AAAAAElFTkSuQmCC",
                         ],
                     },
                     new ItemDefinition
@@ -249,8 +252,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "kdenlive",
                         WebsiteUrl = "https://kdenlive.org/",
                         IconSources = [
-                            "https://raw.githubusercontent.com/KDE/kdenlive/master/data/pics/kdenlive-logo.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Kdenlive-logo.svg/256px-Kdenlive-logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/7/74/Kdenlive-logo-blank.png",
                         ],
                     },
                     new ItemDefinition

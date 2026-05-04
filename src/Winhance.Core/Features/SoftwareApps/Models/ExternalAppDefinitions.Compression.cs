@@ -25,8 +25,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "7zip",
                         WebsiteUrl = "https://www.7-zip.org/",
                         IconSources = [
-                            "https://www.7-zip.org/7ziplogo.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/7ziplogo.svg/256px-7ziplogo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/7-Zip_Icon.svg/256px-7-Zip_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition

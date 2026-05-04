@@ -95,8 +95,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "eclipse-java-oxygen",
                         WebsiteUrl = "https://eclipseide.org/",
                         IconSources = [
-                            "https://www.eclipse.org/eclipse.org-common/themes/solstice/public/images/logo/eclipse-426x100.png",
-                            "https://www.eclipse.org/downloads/assets/public/images/logo-eclipse.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Eclipse-SVG.svg/256px-Eclipse-SVG.svg.png",
                         ],
                     },
                     new ItemDefinition

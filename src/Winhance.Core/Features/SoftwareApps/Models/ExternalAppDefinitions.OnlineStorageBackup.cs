@@ -52,7 +52,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "sugarsync",
                         WebsiteUrl = "https://www.sugarsync.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/en/1/1c/SugarSync_Logo.png",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAbFBMVEVHcEwMeDQLfzgMeDQNfTcPfzsLdjIWqFURbDELdjIWqlYWqFUMejUWq1cLdTILeDMMdzMOhj4MfjgMeDQWqFUVpFIkZzwTnU0sJCQqKiUnNycRkkYWqFUnNCcWWy0kPSgXslwmOSgOgDoTmUstRt+KAAAAJHRSTlMAkSn/nA14xkrCiv+3//9g//7/0NT///9BzP//sbAYcT9g8d7ZxZnpAAAA00lEQVR4AX3RRQLDIBBAURokitdd7n/HzrTxTPjbh8PINmy9jCdUcC5hCI2cc8XynLQCsKzqmsSGQ3oF0Uw9x8LiISyFyjkfSsZii9uRCRd2e70TkrdYjS9uDoC1Fo7/DyQ7Op7OnBsTLloHROf1tadbcb8rDu53hiNe9H/i/fboVkblmNk9GfZqqb2E49j7b3c5u/4/RX4HN8bgbEG+3GV3uOChLPHNZgd3PaCyRbLhB1DviKnQXTWf+gIYCRy+dA05lqWwSKFdwZjCLIXsvilj9gWLvAr+hK5X3AAAAABJRU5ErkJggg==",
                         ],
                     },
                     new ItemDefinition

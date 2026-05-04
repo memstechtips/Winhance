@@ -95,7 +95,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "openrgb",
                         WebsiteUrl = "https://openrgb.org/",
                         IconSources = [
-                            "https://raw.githubusercontent.com/CalcProgrammer1/OpenRGB/master/Documentation/Images/OpenRGB.png",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAACz0lEQVR4Ae3WA4xcURiG4a+2bXu9Ue2ug9q2bTeobdu2bdu27Xb26/lzc2bHM4u4Sd7VxZN7cGcR1DXcozJnzlynRnesabkAj2quwR+pwHjcSds052o55ul93J8ANJ22CDz7FTxMcIlqvKqzqokqWOVrApPNw185N1Zgw1I48O4J+NcEPqM9qLE8BOMxEfE2MxGRZm+MwCZBuMibIF9EgZdVmxyAaTXI7CovjXoO+qZMMyNyNchDKkHfCeoYzGOLmYIkJkiRaYJHIACvc11BzgcF5UFBrYdVwCa2T6exyJZGh+szmy/yuAVl3tgf5GjJHpWnXGIGHWDsb8RxlBXsEgwPD0+8pzzIBqo2Kg3PVx0G31wH2/TDuYRAT0m2hSwUjWkIXGK0otsfl6Dsp8+lQAZJ1vDnCXA4L/I3wawg7jd6uZn58uULcgrKYmEJ0DKNTwnEG2crT55EI8agS7dVDygj4RSsFS/5QqYAzaWFURZQjjkFu7VdB36nwypVGOcaREY6yDXYovc2PCXNfbCoVLkxTkF5fMKP1oWo6nAlypqcgm1WEZtodNwIV4xcDqlM8BuUFkRDqnaqQaq5rIyA3XZYmhon0MY4BeNUCxiFL71PAF5OQUmexEA0NIqCmXCCxAvWQtNH+txUiRv+RE4ZNlUN0haWJ3ez8fU8miHVGjNmQqQeIvOWSJ6AdIbKcbcggNQ70cYhtgmHKMf1ufLqyoAzdIiGrqW8SNyCevG8xiLBrMAeGHrR9tzUGHFVg2a06mPqz0aPQP0SsMTu4TMdfbLLjQU0o0VfOxxKt6Ceo4s4LiBnYT1lCGUlCyzJz/K3zNhpgElP6DmO1b8YXjKUZVJXYbZs2Rwmq1WGVm+BWIG6goUK/nEGlihR/I8+L05AWW1yU2egl5fXlzgF/4NxPoeSn59f9+LFi++3xeRvcizOQZ23t/dyWbGS/Bzd6/8BBv6LPrD9Px8AAAAASUVORK5CYII=",
                         ],
                     },
                     new ItemDefinition
@@ -167,8 +167,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "virtualbox",
                         WebsiteUrl = "https://www.virtualbox.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/VirtualBox_2024_Logo.svg/256px-VirtualBox_2024_Logo.svg.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/f/f2/VirtualBox_logo_64px.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/d/d5/Virtualbox_logo.png",
                         ],
                     }
                 }

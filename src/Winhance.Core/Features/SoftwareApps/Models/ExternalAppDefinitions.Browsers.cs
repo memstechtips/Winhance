@@ -100,7 +100,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "ungoogled-chromium",
                         WebsiteUrl = "https://github.com/ungoogled-software/ungoogled-chromium-windows",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Ungoogled-chromium_logo.svg/512px-Ungoogled-chromium_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Chromium_Logo.svg/256px-Chromium_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -174,7 +174,7 @@ public static partial class ExternalAppDefinitions
                         DetectionPaths = [@"%USERPROFILE%\Desktop\Tor Browser"],
                         WebsiteUrl = "https://www.torproject.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Tor-logo-2011-flat.svg/512px-Tor-logo-2011-flat.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Tor_Browser_icon.svg/256px-Tor_Browser_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -277,7 +277,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "floorp",
                         WebsiteUrl = "https://floorp.app/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Floorp_logo.svg/512px-Floorp_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Floorp_logo_without_text.svg/256px-Floorp_logo_without_text.svg.png",
                         ],
                     },
                     new ItemDefinition

@@ -66,7 +66,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "playnite",
                         WebsiteUrl = "https://playnite.link/",
                         IconSources = [
-                            "https://raw.githubusercontent.com/JosefNemec/Playnite/master/source/Playnite/Resources/Images/DesignIcon.png",
                             "https://playnite.link/applogo.png",
                         ],
                     }

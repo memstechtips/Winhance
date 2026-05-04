@@ -25,7 +25,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "irfanview",
                         WebsiteUrl = "https://www.irfanview.com/",
                         IconSources = [
-                            "https://www.irfanview.com/images/logo.png",
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/IrfanView_Logo2.svg/256px-IrfanView_Logo2.svg.png",
                         ],
                     },
@@ -68,7 +67,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "paint.net",
                         WebsiteUrl = "https://www.getpaint.net/",
                         IconSources = [
-                            "https://www.getpaint.net/images/Logo4.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/c/c4/Pain.net_logo.jpg",
                         ],
                     },
                     new ItemDefinition

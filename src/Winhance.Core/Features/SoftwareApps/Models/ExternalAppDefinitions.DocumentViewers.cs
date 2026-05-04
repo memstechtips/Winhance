@@ -26,7 +26,8 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "libreoffice-fresh",
                         WebsiteUrl = "https://www.libreoffice.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/LibreOffice_Logo_Flat.svg/256px-LibreOffice_Logo_Flat.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/6/6f/Libreoffice_icon_mix.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/LibreOffice_7.5_Writer_Icon.svg/256px-LibreOffice_7.5_Writer_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -98,7 +99,8 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "openoffice",
                         WebsiteUrl = "https://www.openoffice.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Apache_OpenOffice_logo_and_wordmark_%282014%29.svg/256px-Apache_OpenOffice_logo_and_wordmark_%282014%29.svg.png",
+                            "https://www.openoffice.org/ui/VisualDesign/gifs/Icons/refresh_icons/pngs/OOo_Application_256x256.png",
+                            "https://www.openoffice.org/ui/VisualDesign/gifs/brand/OOo_symbol.png",
                         ],
                     },
                     new ItemDefinition

@@ -83,10 +83,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["CodeSector.TeraCopy"],
                         ChocoPackageId = "teracopy",
+                        MsStoreId = "XPDCCPPSK2XPQW",
                         WebsiteUrl = "https://www.codesector.com/teracopy",
-                        IconSources = [
-                            "https://www.codesector.com/favicon.ico",
-                        ],
+                        // Icon resolved via MS Store CDN (Layer 2a). No usable
+                        // catalog URL — vendor site only ships SVG.
                     },
                     new ItemDefinition
                     {

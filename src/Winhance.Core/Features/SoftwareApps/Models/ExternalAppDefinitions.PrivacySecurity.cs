@@ -57,7 +57,9 @@ public static partial class ExternalAppDefinitions
                         WinGetInstallerOverride = "-run -close -install",
                         WebsiteUrl = "https://www.binisoft.org/wfc",
                         IconSources = [
-                            "https://www.binisoft.org/images/logo.png",
+                            // Malwarebytes acquired BiniSoft — use the parent-brand symbol
+                            // to match the other Malwarebytes products in this category.
+                            "https://upload.wikimedia.org/wikipedia/commons/4/47/Malwarebytes_Logo_Symbol.png",
                         ],
                     },
                     new ItemDefinition
