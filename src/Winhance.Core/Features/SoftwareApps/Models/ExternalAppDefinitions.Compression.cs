@@ -23,7 +23,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Compression",
                         WinGetPackageId = ["7zip.7zip"],
                         ChocoPackageId = "7zip",
-                        WebsiteUrl = "https://www.7-zip.org/"
+                        WebsiteUrl = "https://www.7-zip.org/",
+                        IconSources = [
+                            "https://www.7-zip.org/7ziplogo.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/7ziplogo.svg/256px-7ziplogo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -33,7 +37,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Compression",
                         WinGetPackageId = ["RARLab.WinRAR"],
                         ChocoPackageId = "winrar",
-                        WebsiteUrl = "https://www.win-rar.com/"
+                        WebsiteUrl = "https://www.win-rar.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/WinRAR_icon.svg/256px-WinRAR_icon.svg.png",
+                            "https://www.win-rar.com/fileadmin/templates/logo-winrar.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -44,7 +52,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Compression",
                         WinGetPackageId = ["Giorgiotani.Peazip"],
                         ChocoPackageId = "peazip",
-                        WebsiteUrl = "https://peazip.github.io/"
+                        WebsiteUrl = "https://peazip.github.io/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Peazip_ico.svg/256px-Peazip_ico.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -55,7 +66,10 @@ public static partial class ExternalAppDefinitions
                         AppxPackageName = ["40174MouriNaruto.NanaZip"],
                         WinGetPackageId = ["M2Team.NanaZip"],
                         ChocoPackageId = "nanazip",
-                        WebsiteUrl = "https://github.com/M2Team/NanaZip"
+                        WebsiteUrl = "https://github.com/M2Team/NanaZip",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/M2Team/NanaZip/main/Assets/NanaZip.png",
+                        ],
                     }
                 }
             };
