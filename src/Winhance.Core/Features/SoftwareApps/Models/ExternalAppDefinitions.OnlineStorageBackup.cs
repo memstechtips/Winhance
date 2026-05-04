@@ -24,7 +24,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Google.GoogleDrive"],
                         ChocoPackageId = "googledrive",
-                        WebsiteUrl = "https://www.google.com/drive/"
+                        WebsiteUrl = "https://www.google.com/drive/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Google_Drive_icon_%282020%29.svg/512px-Google_Drive_icon_%282020%29.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -34,7 +37,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Dropbox.Dropbox"],
                         ChocoPackageId = "dropbox",
-                        WebsiteUrl = "https://www.dropbox.com/"
+                        WebsiteUrl = "https://www.dropbox.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Dropbox_Icon.svg/512px-Dropbox_Icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -44,7 +50,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["IPVanish.SugarSync"],
                         ChocoPackageId = "sugarsync",
-                        WebsiteUrl = "https://www.sugarsync.com/"
+                        WebsiteUrl = "https://www.sugarsync.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/en/1/1c/SugarSync_Logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -54,7 +63,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Nextcloud.NextcloudDesktop"],
                         ChocoPackageId = "nextcloud-client",
-                        WebsiteUrl = "https://nextcloud.com/"
+                        WebsiteUrl = "https://nextcloud.com/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/nextcloud/desktop/master/theme/colored/Nextcloud-w10starttile.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Nextcloud_Logo.svg/512px-Nextcloud_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -64,7 +77,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Proton.ProtonDrive"],
                         ChocoPackageId = "protondrive",
-                        WebsiteUrl = "https://proton.me/drive"
+                        WebsiteUrl = "https://proton.me/drive",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/ProtonDriveApps/windows-drive/main/assets/ProtonDrive.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Proton_Drive_Logo.svg/512px-Proton_Drive_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -73,7 +90,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Open-source folder comparison and synchronization tool",
                         GroupName = "Online Storage & Backup",
                         ChocoPackageId = "freefilesync",
-                        WebsiteUrl = "https://freefilesync.org/"
+                        WebsiteUrl = "https://freefilesync.org/",
+                        IconSources = [
+                            "https://freefilesync.org/images/FreeFileSync.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -89,7 +109,10 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://hekasoft.com/?download=112",
                             FallbackDownloadUrl = "https://hekasoft.com/?download=612",
-                        }
+                        },
+                        IconSources = [
+                            "https://hekasoft.com/wp-content/uploads/2026/03/hekasoft_logo.png",
+                        ],
                     },
                 }
             };
