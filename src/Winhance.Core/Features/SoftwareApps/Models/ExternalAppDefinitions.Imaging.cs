@@ -23,7 +23,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["IrfanSkiljan.IrfanView"],
                         ChocoPackageId = "irfanview",
-                        WebsiteUrl = "https://www.irfanview.com/"
+                        WebsiteUrl = "https://www.irfanview.com/",
+                        IconSources = [
+                            "https://www.irfanview.com/images/logo.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/IrfanView_Logo2.svg/256px-IrfanView_Logo2.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -34,7 +38,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["KDE.Krita"],
                         ChocoPackageId = "krita",
-                        WebsiteUrl = "https://krita.org/"
+                        WebsiteUrl = "https://krita.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/KDE/krita/master/krita/pics/branding/krita.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Calligrakrita-base.svg/256px-Calligrakrita-base.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -44,7 +52,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["BlenderFoundation.Blender"],
                         ChocoPackageId = "blender",
-                        WebsiteUrl = "https://www.blender.org/"
+                        WebsiteUrl = "https://www.blender.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/blender/blender/main/release/windows/icons/winblender.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Logo_Blender.svg/256px-Logo_Blender.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -54,7 +66,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["dotPDN.PaintDotNet"],
                         ChocoPackageId = "paint.net",
-                        WebsiteUrl = "https://www.getpaint.net/"
+                        WebsiteUrl = "https://www.getpaint.net/",
+                        IconSources = [
+                            "https://www.getpaint.net/images/Logo4.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -65,7 +80,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["GIMP.GIMP.3"],
                         ChocoPackageId = "gimp",
-                        WebsiteUrl = "https://www.gimp.org/"
+                        WebsiteUrl = "https://www.gimp.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/The_GIMP_icon_-_v3.0.svg/256px-The_GIMP_icon_-_v3.0.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -76,7 +94,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["XnSoft.XnViewMP"],
                         ChocoPackageId = "xnviewmp",
-                        WebsiteUrl = "https://www.xnview.com/en/xnviewmp/"
+                        WebsiteUrl = "https://www.xnview.com/en/xnviewmp/",
+                        IconSources = [
+                            "https://www.xnview.com/img/app-xnviewmp-512.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -87,7 +108,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["XnSoft.XnView.Classic"],
                         ChocoPackageId = "xnview",
-                        WebsiteUrl = "https://www.xnview.com/en/xnview/"
+                        WebsiteUrl = "https://www.xnview.com/en/xnview/",
+                        IconSources = [
+                            "https://www.xnview.com/img/app-xnview-512.png",
+                            "https://upload.wikimedia.org/wikipedia/en/7/7e/XnView_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -97,7 +122,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["Inkscape.Inkscape"],
                         ChocoPackageId = "inkscape",
-                        WebsiteUrl = "https://inkscape.org/"
+                        WebsiteUrl = "https://inkscape.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Inkscape_Logo.svg/256px-Inkscape_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -108,7 +136,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["Greenshot.Greenshot"],
                         ChocoPackageId = "greenshot",
-                        WebsiteUrl = "https://getgreenshot.org/"
+                        WebsiteUrl = "https://getgreenshot.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/greenshot/greenshot/main/src/Greenshot/icons/applicationIcon/90.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Greenshot_logo.svg/256px-Greenshot_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -118,7 +150,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["ShareX.ShareX"],
                         ChocoPackageId = "sharex",
-                        WebsiteUrl = "https://getsharex.com/"
+                        WebsiteUrl = "https://getsharex.com/",
+                        IconSources = [
+                            "https://getsharex.com/img/ShareX_Icon.ico",
+                            "https://raw.githubusercontent.com/ShareX/ShareX/master/ShareX/Resources/application-icon-large.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -128,7 +164,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["Flameshot.Flameshot"],
                         ChocoPackageId = "flameshot",
-                        WebsiteUrl = "https://flameshot.org/"
+                        WebsiteUrl = "https://flameshot.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/flameshot-org/flameshot/master/data/img/app/org.flameshot.Flameshot-1024.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flameshot_logo.svg/256px-Flameshot_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -138,7 +178,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["FastStone.Viewer"],
                         ChocoPackageId = "fsviewer",
-                        WebsiteUrl = "https://www.faststone.org/"
+                        WebsiteUrl = "https://www.faststone.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/d/d8/FSViewer_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -150,7 +193,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["DuongDieuPhap.ImageGlass"],
                         MsStoreId = "9N33VZK3C7TH",
                         ChocoPackageId = "imageglass",
-                        WebsiteUrl = "https://imageglass.org/"
+                        WebsiteUrl = "https://imageglass.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/d2phap/ImageGlass/develop/Assets/Logo/2023/logo512.png",
+                            "https://raw.githubusercontent.com/d2phap/ImageGlass/develop/Assets/Logo/2023/icon256.ico",
+                        ],
                     }
                 }
             };
