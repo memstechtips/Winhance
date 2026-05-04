@@ -51,10 +51,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Gaming",
                         WinGetPackageId = ["GOG.Galaxy"],
                         ChocoPackageId = "goggalaxy",
+                        MsStoreId = "XPFFXW40W60KCF",
                         WebsiteUrl = "https://www.gogalaxy.com/en/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/GOG.com_logo.svg/500px-GOG.com_logo.svg.png",
-                        ],
+                        // Icon resolved via MS Store CDN (Layer 2a). Vendor only ships
+                        // SVG and the Wikimedia render is the wide GOG.com wordmark.
                     },
                     new ItemDefinition
                     {
