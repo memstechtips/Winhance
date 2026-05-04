@@ -25,7 +25,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Gaming",
                         WinGetPackageId = ["Valve.Steam"],
                         ChocoPackageId = "steam",
-                        WebsiteUrl = "https://store.steampowered.com/"
+                        WebsiteUrl = "https://store.steampowered.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/256px-Steam_icon_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -35,7 +38,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Gaming",
                         WinGetPackageId = ["EpicGames.EpicGamesLauncher"],
                         ChocoPackageId = "epicgameslauncher",
-                        WebsiteUrl = "https://www.epicgames.com/"
+                        WebsiteUrl = "https://www.epicgames.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/500px-Epic_Games_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -45,7 +51,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Gaming",
                         WinGetPackageId = ["GOG.Galaxy"],
                         ChocoPackageId = "goggalaxy",
-                        WebsiteUrl = "https://www.gogalaxy.com/en/"
+                        WebsiteUrl = "https://www.gogalaxy.com/en/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/GOG.com_logo.svg/500px-GOG.com_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -55,7 +64,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Gaming",
                         WinGetPackageId = ["Playnite.Playnite"],
                         ChocoPackageId = "playnite",
-                        WebsiteUrl = "https://playnite.link/"
+                        WebsiteUrl = "https://playnite.link/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/JosefNemec/Playnite/master/source/Playnite/Resources/Images/DesignIcon.png",
+                            "https://playnite.link/applogo.png",
+                        ],
                     }
                 }
             };
