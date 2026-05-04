@@ -87,11 +87,11 @@ SOFTWARE.
 
 =========================================================================
 
-Product icons (External Apps catalog)
+Product icons
 
-Winhance displays icons for third-party software products to help users
-identify applications in its External Apps catalog. These icons come from
-several sources, each with its own posture:
+Winhance displays icons for third-party software products throughout
+the application to help users identify the apps they're working with.
+These icons come from several sources, each with its own posture:
 
   Trademarks
     All product logos shown -- whether fetched at runtime from canonical
@@ -103,10 +103,9 @@ several sources, each with its own posture:
   Wikimedia Commons
     A number of icons are sourced from Wikimedia Commons under the
     licenses listed on each file's description page (typically
-    CC-BY-SA, CC0, or public domain). The direct file URLs in
-    src/Winhance.Core/Features/SoftwareApps/Models/ExternalAppDefinitions.*.cs
-    serve as the per-file attribution; each file's Commons page links
-    to its full license terms and authorship.
+    CC-BY-SA, CC0, or public domain). The direct file URLs in the
+    Winhance source serve as the per-file attribution; each file's
+    Commons page links to its full license terms and authorship.
 
   Wikipedia (en, es)
     A small number of icons are non-free fair-use rasters hosted on
@@ -127,6 +126,6 @@ several sources, each with its own posture:
     otherwise need to be hot-linked from a non-canonical or
     bot-protected source. Embedded icons remain trademarks of their
     respective owners and are bundled solely to identify the
-    corresponding products in the catalog.
+    corresponding products inside the application.
 
 =========================================================================
