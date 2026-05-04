@@ -7,13 +7,14 @@ public static partial class ExternalAppDefinitions
 {
     public static class RuntimesAndDependencies
     {
-        // Generic runtime/redistributable icon — InstallShield's _setup.dll ships
-        // a setup-icon set that's visually appropriate for "this is a runtime
-        // package". Used as the IconSources entry for every runtime/dependency
-        // that doesn't have a brand of its own (.NET runtimes, VC++ redists).
-        // If _setup.dll isn't present on the machine the resolver falls through
-        // to the fallback glyph — same behavior as a null IconSources.
-        private const string GenericRuntimeIcon = @"%SystemRoot%\System32\InstallShield\_setup.dll";
+        // Generic runtime/redistributable icon — Windows Installer's msiexec.exe
+        // ships the recognizable white-and-blue .msi installer icon as its default
+        // resource (Windows points the .msi file-association DefaultIcon at
+        // msiexec.exe,0). msiexec is core OS, present on every Windows install,
+        // and the resolver's .exe/.dll IconSources branch extracts index 0 — so
+        // every runtime/redist entry that doesn't have a brand of its own gets
+        // a uniform installer-package look.
+        private const string GenericRuntimeIcon = @"%SystemRoot%\System32\msiexec.exe";
 
         public static ItemGroup GetRuntimesAndDependencies()
         {
