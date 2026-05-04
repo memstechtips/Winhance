@@ -68,7 +68,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "discord",
                         WebsiteUrl = "https://discord.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Discord_color_D.svg/256px-Discord_color_D.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Discord_color_D.svg/512px-Discord_color_D.svg.png",
                         ],
                     },
                     new ItemDefinition
