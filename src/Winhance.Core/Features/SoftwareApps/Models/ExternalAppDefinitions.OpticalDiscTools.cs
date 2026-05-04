@@ -24,7 +24,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Optical Disc Tools",
                         WinGetPackageId = ["LIGHTNINGUK.ImgBurn"],
                         ChocoPackageId = "imgburn",
-                        WebsiteUrl = "https://www.imgburn.com/"
+                        WebsiteUrl = "https://www.imgburn.com/",
+                        IconSources = [
+                            "https://www.imgburn.com/images/logo.png",
+                            "https://www.imgburn.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -37,7 +41,11 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://www.anyburn.com/anyburn_setup.exe",
-                        }
+                        },
+                        IconSources = [
+                            "https://www.anyburn.com/images/anyburn_logo.png",
+                            "https://www.anyburn.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -47,7 +55,13 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "CDBurnerXP",
                         GroupName = "Optical Disc Tools",
                         ChocoPackageId = "cdburnerxp",
-                        WebsiteUrl = "https://cdburnerxp.se/"
+                        WebsiteUrl = "https://cdburnerxp.se/",
+                        IconSources = [
+                            // Wikimedia file is 132x132 native — below the usual 256 minimum,
+                            // but accepted here because the vendor site blocks programmatic
+                            // fetches and no other trusted source exists.
+                            "https://upload.wikimedia.org/wikipedia/commons/e/e7/CDBurnerXP_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -58,7 +72,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Optical Disc Tools",
                         WinGetPackageId = ["GuinpinSoft.MakeMKV"],
                         ChocoPackageId = "makemkv",
-                        WebsiteUrl = "https://www.makemkv.com/"
+                        WebsiteUrl = "https://www.makemkv.com/",
+                        IconSources = [
+                            "https://www.makemkv.com/images/mkv_icon.png",
+                            "https://www.makemkv.com/favicon.ico",
+                        ],
                     }
                 }
             };
