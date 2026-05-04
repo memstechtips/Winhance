@@ -35,7 +35,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dotnetcore-3.1-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -48,7 +47,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dotnet-5.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -61,7 +59,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dotnet-6.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -74,7 +71,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dotnet-7.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -87,7 +83,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dotnet-8.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -100,7 +95,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "netfx-4.8.1-devpack",
                         WebsiteUrl = "https://dotnet.microsoft.com/download/dotnet-framework",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -141,7 +135,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2005",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -154,7 +147,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2005",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -167,7 +159,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2008",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -180,7 +171,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2008",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -193,7 +183,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2010",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -206,7 +195,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2010",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -219,7 +207,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2012",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -232,7 +219,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2012",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -245,7 +231,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2013",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -258,7 +243,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist2013",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -271,7 +255,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist140",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {
@@ -284,7 +267,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vcredist140",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
                         IconSources = [GenericRuntimeIcon],
-                        IconSourcesOnly = true,
                     },
                     new ItemDefinition
                     {

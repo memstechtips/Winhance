@@ -301,7 +301,7 @@ public class AppIconResolverTests : IDisposable
             Times.Never);
     }
 
-    // --- Layer 1b: binary icon source ---
+    // --- Layer 3: binary icon source ---
 
     [Fact]
     public async Task ResolveBatchAsync_ResolvesViaBinaryLayer_WhenInstalledBinaryHintSet()
@@ -320,7 +320,7 @@ public class AppIconResolverTests : IDisposable
         def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "C:\\PowerToys\\PowerToys.exe")));
     }
 
-    // --- Layer 2 preference: AppX > Store > IconSources ---
+    // --- Fallback ordering when IconSources is unset: AppX > Binary > Store ---
 
     [Fact]
     public async Task ResolveBatchAsync_PrefersAppxOverEverything_WhenInstalled()
@@ -343,14 +343,14 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        // AppX layer wins — IconPath stamped from the AppX cache write, neither
-        // Layer 1b nor Layer 2a is consulted.
+        // No IconSources, so Layer 1 doesn't apply. AppX (Layer 2) wins;
+        // Binary (Layer 3) and Store (Layer 4) are never consulted.
         def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "Microsoft.PowerToys_0.87.0_x64__abc")));
         _mockBinarySource.Verify(b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()), Times.Never);
         _mockStoreSource.Verify(s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    // --- Layer 2b: per-entry IconSources (URLs and local file paths) ---
+    // --- Layer 1: per-entry IconSources (URLs and local file paths) ---
 
     private AppIconResolver BuildResolverWithHttpClient(HttpClient httpClient) => new(
         _mockIconSource.Object,
@@ -469,8 +469,8 @@ public class AppIconResolverTests : IDisposable
         {
             IconSources = new[]
             {
-                missingPath,                                   // Layer 2b try 1: local file, missing
-                "https://example.invalid/fallback.png",        // Layer 2b try 2: URL, succeeds
+                missingPath,                                   // try 1: local file, missing
+                "https://example.invalid/fallback.png",        // try 2: URL, succeeds
             },
         };
 
@@ -489,41 +489,91 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task ResolveBatchAsync_StoreCdn_PreferredOver_IconSources()
+    public async Task ResolveBatchAsync_IconSources_PreferredOverStoreCdn()
     {
-        // Both MsStoreId and IconSources present — Store CDN wins per Marco's
-        // chosen layering (Layer 2a runs before Layer 2b).
+        // Both MsStoreId and IconSources present — IconSources wins (Layer 1).
+        // Store CDN never gets called.
         var def = Def("ext-srcs-4", msStoreId: "9NBLGGH42THS") with
         {
-            IconSources = new[] { "https://example.invalid/should-not-be-used.png" },
+            IconSources = new[] { "https://example.invalid/sources-wins.png" },
         };
 
-        // Strict handler — would fail if IconSources URL were fetched.
-        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-sources"));
         using var client = new HttpClient(handler.Object);
         var resolver = BuildResolverWithHttpClient(client);
 
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
-        _mockStoreSource.Setup(s => s.GetIconStreamAsync("9NBLGGH42THS", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PngBytes("store-wins"));
 
         await resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "9NBLGGH42THS")));
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-sources");
+        _mockStoreSource.Verify(
+            s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task ResolveBatchAsync_AppxSucceeds_IconSourcesNotConsulted()
+    public async Task ResolveBatchAsync_IconSources_PreferredOverAppx()
     {
-        // AppX (Layer 1a) fires first; once IconPath is set, Layer 2 — including
-        // IconSources — never runs for this entry.
+        // AppX would gladly resolve the icon, but IconSources fires first and wins.
         var def = Def("ext-srcs-5", appxName: "Microsoft.App") with
         {
-            IconSources = new[] { "https://example.invalid/should-not-be-used.png" },
+            IconSources = new[] { "https://example.invalid/sources-wins.png" },
         };
 
-        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-sources"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Microsoft.App"] = "Microsoft.App_1.0_x64__abc" });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("appx-should-not-win"));
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-sources");
+        _mockIconSource.Verify(
+            s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSources_PreferredOverBinaryHint()
+    {
+        // InstalledBinaryHint would normally trigger Layer 3 (binary extraction),
+        // but IconSources runs first and wins.
+        var def = Def("ext-srcs-6", binaryHint: "C:\\Apps\\Foo\\foo.exe") with
+        {
+            IconSources = new[] { "https://example.invalid/sources-wins.png" },
+        };
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-sources"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-sources");
+        _mockBinarySource.Verify(
+            b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesMisses_FallsBackToAppx()
+    {
+        // IconSources URL 404s — fallback layers (AppX in this case) take over.
+        var def = Def("ext-srcs-fallback", appxName: "Microsoft.App") with
+        {
+            IconSources = new[] { "https://example.invalid/will-404.png" },
+        };
+
+        var handler = SetupHandler(HttpStatusCode.NotFound);
         using var client = new HttpClient(handler.Object);
         var resolver = BuildResolverWithHttpClient(client);
 
@@ -531,21 +581,18 @@ public class AppIconResolverTests : IDisposable
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string> { ["Microsoft.App"] = fullName });
         _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PngBytes("appx-wins"));
+            .ReturnsAsync(PngBytes("appx-fallback"));
 
         await resolver.ResolveBatchAsync(new[] { def });
 
-        // AppX layer (1a) wins; the IconPath is the AppX cache file, not a Layer 2b
-        // (IconSources) write. The strict HTTP handler above would have failed if
-        // any URL fetch was attempted.
-        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, fullName)));
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-appx-fallback");
     }
 
     [Fact]
     public async Task ResolveBatchAsync_IconSourcesOnlyEntry_BecomesCandidate_WithoutOtherIdentifiers()
     {
         // An entry with ONLY IconSources (no AppX, MsStoreId, InstalledBinaryHint)
-        // should still be picked up as a candidate and resolved via Layer 2b.
+        // should still be picked up as a candidate and resolved via Layer 1.
         var def = new ItemDefinition
         {
             Id = "srcs-only",
@@ -567,86 +614,7 @@ public class AppIconResolverTests : IDisposable
         Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
     }
 
-    // --- IconSourcesOnly override: forces Layer 2b regardless of other identities ---
-
-    [Fact]
-    public async Task ResolveBatchAsync_IconSourcesOnly_SkipsAppxLayer_EvenWhenAppxAvailable()
-    {
-        // Even though Layer 1a could resolve via AppX, IconSourcesOnly forces the
-        // resolver to skip 1a/1b/2a entirely and go straight to 2b.
-        var def = Def("ext-srcs-only-1", appxName: "Microsoft.SomeApp") with
-        {
-            IconSources = new[] { "https://example.invalid/forced.png" },
-            IconSourcesOnly = true,
-        };
-
-        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-forced"));
-        using var client = new HttpClient(handler.Object);
-        var resolver = BuildResolverWithHttpClient(client);
-
-        // AppX would gladly serve an icon if asked.
-        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string> { ["Microsoft.SomeApp"] = "Microsoft.SomeApp_1.0_x64__abc" });
-        _mockIconSource.Setup(s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PngBytes("appx-should-not-win"));
-
-        await resolver.ResolveBatchAsync(new[] { def });
-
-        File.ReadAllText(def.IconPath!).Should().Be("PNG-forced");
-        _mockIconSource.Verify(
-            s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task ResolveBatchAsync_IconSourcesOnly_SkipsBinaryLayer_EvenWithBinaryHint()
-    {
-        var def = Def("ext-srcs-only-2", binaryHint: "C:\\Apps\\Foo\\foo.exe") with
-        {
-            IconSources = new[] { "https://example.invalid/forced.png" },
-            IconSourcesOnly = true,
-        };
-
-        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-forced"));
-        using var client = new HttpClient(handler.Object);
-        var resolver = BuildResolverWithHttpClient(client);
-
-        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string>());
-
-        await resolver.ResolveBatchAsync(new[] { def });
-
-        File.ReadAllText(def.IconPath!).Should().Be("PNG-forced");
-        _mockBinarySource.Verify(
-            b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task ResolveBatchAsync_IconSourcesOnly_SkipsStoreLayer_EvenWithMsStoreId()
-    {
-        var def = Def("ext-srcs-only-3", msStoreId: "9NBLGGH42THS") with
-        {
-            IconSources = new[] { "https://example.invalid/forced.png" },
-            IconSourcesOnly = true,
-        };
-
-        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-forced"));
-        using var client = new HttpClient(handler.Object);
-        var resolver = BuildResolverWithHttpClient(client);
-
-        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string>());
-
-        await resolver.ResolveBatchAsync(new[] { def });
-
-        File.ReadAllText(def.IconPath!).Should().Be("PNG-forced");
-        _mockStoreSource.Verify(
-            s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    // --- Layer 2b: data: URIs ---
+    // --- Layer 1: data: URIs in IconSources ---
 
     private static string Sha1HexLower(string input)
     {
@@ -763,13 +731,13 @@ public class AppIconResolverTests : IDisposable
         File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
     }
 
-    // --- Layer 2b: .exe / .dll local paths route through binary extractor ---
+    // --- Layer 1: .exe / .dll local paths in IconSources route through binary extractor ---
 
     [Fact]
     public async Task ResolveBatchAsync_IconSourcesExePath_RoutesThroughBinarySource()
     {
         // A .exe file on disk shouldn't be read as raw bytes — it should be handed
-        // to IBinaryIconSource (same path Layer 1b uses for InstalledBinaryHint),
+        // to IBinaryIconSource (same path Layer 3 uses for InstalledBinaryHint),
         // and the extracted PNG cached under <def.Id>.<short-hash>.png.
         Directory.CreateDirectory(_tempCacheDir);
         var fakeExe = Path.Combine(_tempCacheDir, "fake-explorer.exe");
@@ -785,8 +753,8 @@ public class AppIconResolverTests : IDisposable
         await _resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        // Extraction is triggered via IconSources (Layer 2b), not InstalledBinaryHint
-        // (Layer 1b). The Verify().Times.Once below confirms binary source was called.
+        // Extraction is triggered via IconSources (Layer 1), not InstalledBinaryHint
+        // (Layer 3). The Verify().Times.Once below confirms binary source was called.
         Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("PNG-from-exe");
         _mockBinarySource.Verify(

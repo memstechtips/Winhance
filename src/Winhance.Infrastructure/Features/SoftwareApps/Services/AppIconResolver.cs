@@ -37,11 +37,11 @@ public class AppIconResolver : IAppIconResolver
     // shared HttpClient so other services (download, WIM tooling, etc.) keep
     // their existing behavior.
     private const string IconFetchUserAgent = "Winhance/1.0 (+https://github.com/memstechtips/Winhance)";
-    // Concurrency limit for Layer 2 sources (Store CDN + IconSources URL fetches).
-    // Each entry costs at least one HTTP round-trip; running them parallel keeps
-    // cold-cache load times bounded. There's no upstream rate-limit pressure that
-    // would push this higher.
-    private const int Layer2Concurrency = 5;
+    // Concurrency limit for the parallel network batches (IconSources fetches and
+    // Store CDN lookups). Each entry costs at least one HTTP round-trip; running
+    // them parallel keeps cold-cache load times bounded. There's no upstream
+    // rate-limit pressure that would push this higher.
+    private const int NetworkBatchConcurrency = 5;
 
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
     // available asset/scale to this hint; 96 reliably returns the high-DPI
@@ -109,11 +109,12 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
-            // Any entry with a routable identity gets a try. AppX-named entries
-            // go through Layer 1a (local enumeration); entries with
-            // InstalledBinaryHint go through Layer 1b; MsStoreId entries fall
-            // through to Layer 2a (Store CDN); entries with IconSources fall
-            // through to Layer 2b (URLs and/or local file paths).
+            // Any entry with a routable identity gets a try. IconSources entries
+            // go through Layer 1 (URLs / data: URIs / local file paths) — the
+            // canonical source when set. Without (or after) IconSources, AppX-
+            // named entries fall back to Layer 2 (local AppX enumeration),
+            // InstalledBinaryHint to Layer 3 (binary extraction), and MsStoreId
+            // to Layer 4 (Store CDN).
             var candidates = definitions
                 .Where(d => (d.AppxPackageName?.Length > 0)
                          || !string.IsNullOrEmpty(d.MsStoreId)
@@ -126,14 +127,43 @@ public class AppIconResolver : IAppIconResolver
             if (!EnsureCacheDir())
                 return;
 
-            // Layer 1a: AppX (current user / all users / provisioned).
+            // Layer 1: IconSources — the canonical source when set. Runs first
+            // and in parallel because URL fetches benefit from concurrency. Other
+            // layers fall back only for entries where IconSources is unset or
+            // every entry in the array missed.
+            int sourcesAttempted = 0, sourcesResolved = 0;
+            var sourceCandidates = candidates.Where(d => d.IconSources?.Length > 0).ToList();
+
+            if (sourceCandidates.Count > 0)
+            {
+                using var sem = new SemaphoreSlim(NetworkBatchConcurrency);
+                var tasks = sourceCandidates.Select(async def =>
+                {
+                    await sem.WaitAsync(ct).ConfigureAwait(false);
+                    try
+                    {
+                        Interlocked.Increment(ref sourcesAttempted);
+                        if (await TryResolveFromIconSourcesAsync(def, ct).ConfigureAwait(false))
+                            Interlocked.Increment(ref sourcesResolved);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                    }
+                    finally { sem.Release(); }
+                });
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+
+            // Layer 2: AppX (current user / all users / provisioned) — fallback for
+            // entries without IconSources, or where IconSources came up empty.
             var installedMap = await _appxSource.GetInstalledPackageMapAsync(ct).ConfigureAwait(false);
 
             int appxResolved = 0;
             foreach (var def in candidates)
             {
                 if (ct.IsCancellationRequested) return;
-                if (def.IconSourcesOnly) continue;                 // Force IconSources path.
+                if (def.IconPath is not null) continue;            // Already resolved by Layer 1.
                 try
                 {
                     if (await TryResolveFromAppxAsync(def, installedMap, ct).ConfigureAwait(false))
@@ -145,13 +175,12 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            // Layer 1b: Win32 binary extraction for installed externals.
+            // Layer 3: Win32 binary extraction for installed externals.
             int binaryResolved = 0;
             foreach (var def in candidates)
             {
                 if (ct.IsCancellationRequested) return;
-                if (def.IconPath is not null) continue;            // Already resolved by Layer 1a.
-                if (def.IconSourcesOnly) continue;                 // Force IconSources path.
+                if (def.IconPath is not null) continue;
                 if (string.IsNullOrEmpty(def.InstalledBinaryHint)) continue;
                 if (_binarySource is null) continue;               // No source registered (test constructor without it).
 
@@ -166,74 +195,40 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            // Layer 2: per-entry source chain, parallel across entries.
-            //   2a — Store CDN, when MsStoreId is present.
-            //   2b — IconSources (URLs and/or local file paths in the order the
-            //        ItemDefinition lists them; first hit wins).
-            // Order matters per Marco's chosen layering: Store wins over IconSources
-            // because the Store CDN icon is canonical for entries Microsoft has
-            // catalogued. IconSources is the last attempt before the fallback glyph.
+            // Layer 4: Store CDN — final fallback for entries with MsStoreId where
+            // none of the above paid out. Parallel because each is a network call.
             int storeAttempted = 0, storeResolved = 0;
-            int sourcesAttempted = 0, sourcesResolved = 0;
-
-            var layer2Candidates = candidates
-                .Where(d => d.IconPath is null
-                            && (!string.IsNullOrEmpty(d.MsStoreId) || (d.IconSources?.Length > 0)))
+            var storeCandidates = candidates
+                .Where(d => d.IconPath is null && !string.IsNullOrEmpty(d.MsStoreId))
                 .ToList();
 
-            if (layer2Candidates.Count > 0)
+            if (storeCandidates.Count > 0 && _storeSource is not null)
             {
-                using var sem = new SemaphoreSlim(Layer2Concurrency);
-                var tasks = layer2Candidates.Select(async def =>
+                using var sem = new SemaphoreSlim(NetworkBatchConcurrency);
+                var tasks = storeCandidates.Select(async def =>
                 {
                     await sem.WaitAsync(ct).ConfigureAwait(false);
                     try
                     {
-                        // 2a — Store CDN, preferred when MsStoreId is present
-                        // (unless IconSourcesOnly forces the IconSources path).
-                        if (!def.IconSourcesOnly && !string.IsNullOrEmpty(def.MsStoreId) && _storeSource is not null)
-                        {
-                            Interlocked.Increment(ref storeAttempted);
-                            try
-                            {
-                                if (await TryResolveFromStoreAsync(def, ct).ConfigureAwait(false))
-                                {
-                                    Interlocked.Increment(ref storeResolved);
-                                    return;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.LogWarning($"Store icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                            }
-                        }
-
-                        // 2b — IconSources (URLs / local file paths).
-                        if (def.IconPath is null && (def.IconSources?.Length > 0))
-                        {
-                            Interlocked.Increment(ref sourcesAttempted);
-                            try
-                            {
-                                if (await TryResolveFromIconSourcesAsync(def, ct).ConfigureAwait(false))
-                                    Interlocked.Increment(ref sourcesResolved);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                            }
-                        }
+                        Interlocked.Increment(ref storeAttempted);
+                        if (await TryResolveFromStoreAsync(def, ct).ConfigureAwait(false))
+                            Interlocked.Increment(ref storeResolved);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"Store icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
                     }
                     finally { sem.Release(); }
                 });
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
 
-            int unresolved = candidates.Count - appxResolved - binaryResolved - storeResolved - sourcesResolved;
+            int unresolved = candidates.Count - sourcesResolved - appxResolved - binaryResolved - storeResolved;
             _logService.LogInformation(
                 $"AppIconResolver: {candidates.Count} candidates → " +
+                $"{sourcesResolved}/{sourcesAttempted} via IconSources, " +
                 $"{appxResolved} via AppX, {binaryResolved} via Binary, " +
                 $"{storeResolved}/{storeAttempted} via Store, " +
-                $"{sourcesResolved}/{sourcesAttempted} via IconSources, " +
                 $"{unresolved} unresolved");
         }
         catch (Exception ex)
@@ -243,7 +238,7 @@ public class AppIconResolver : IAppIconResolver
     }
 
     /// <summary>
-    /// Layer 2b: walk <see cref="ItemDefinition.IconSources"/> in order, return on
+    /// Layer 1: walk <see cref="ItemDefinition.IconSources"/> in order, return on
     /// the first entry that yields a non-empty image. Each entry is one of:
     /// <list type="bullet">
     /// <item><description><c>http(s)://</c> URL — fetched via <see cref="HttpClient"/>.</description></item>
@@ -381,7 +376,7 @@ public class AppIconResolver : IAppIconResolver
     /// <summary>
     /// Reads bytes for a non-URL <see cref="ItemDefinition.IconSources"/> entry. For
     /// Win32 executables (<c>.exe</c>/<c>.dll</c>) delegates to the binary icon
-    /// extractor — the same code path Layer 1b uses for <see cref="ItemDefinition.InstalledBinaryHint"/>.
+    /// extractor — the same code path Layer 3 uses for <see cref="ItemDefinition.InstalledBinaryHint"/>.
     /// This lets entries reuse system binaries (e.g. <c>%SystemRoot%\explorer.exe</c>
     /// for ExplorerPatcher) without per-app code in the resolver. For everything else
     /// (icon files like <c>.ico</c>/<c>.png</c>) reads the bytes directly.
@@ -464,9 +459,9 @@ public class AppIconResolver : IAppIconResolver
         var hint = def.InstalledBinaryHint!;
 
         // Directory hints (from InstallLocation fallback) would return a generic
-        // folder icon via Shell APIs — not useful. Skip Layer 1b for those entries
-        // so they fall through to Layer 2. A future enhancement could scan the
-        // directory for an exe, but that's out of scope.
+        // folder icon via Shell APIs — not useful. Skip binary extraction for
+        // those entries so they fall through to Store CDN. A future enhancement
+        // could scan the directory for an exe, but that's out of scope.
         // Directory.Exists returns true only for directories on Windows;
         // File.Exists check is redundant. Drop the second clause for clarity.
         if (Directory.Exists(hint))

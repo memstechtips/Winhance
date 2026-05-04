@@ -67,18 +67,14 @@ public record ItemDefinition : BaseDefinition
     /// Sources are tried in array order; first one that yields a non-empty image
     /// wins. List local paths first when you have them — they're zero-network and
     /// can't rot.
+    ///
+    /// When this is set, it's treated as the canonical visual identity for the
+    /// entry: the resolver runs IconSources before AppX (Layer 1a), Binary
+    /// extraction (Layer 1b), and Store CDN (Layer 2a). Those layers only run
+    /// as fallback when IconSources is null/empty or every entry in the array
+    /// failed to fetch.
     /// </summary>
     public string[]? IconSources { get; init; }
-
-    /// <summary>
-    /// When true, the icon resolver skips Layers 1a (AppX), 1b (Binary), and 2a
-    /// (Store CDN) for this entry and goes straight to Layer 2b (<see cref="IconSources"/>).
-    /// Use for entries where the IconSources URL is the canonical visual identity
-    /// regardless of install state — e.g. runtimes / redistributables that we want
-    /// to show with a uniform installer-package icon (msiexec.exe) even when the
-    /// installed binary would otherwise win Layer 1b with a per-version icon.
-    /// </summary>
-    public bool IconSourcesOnly { get; init; }
 
     // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
     // via the relevant service (status discovery, icon resolver), proxied
