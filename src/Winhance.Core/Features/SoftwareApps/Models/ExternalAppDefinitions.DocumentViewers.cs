@@ -24,7 +24,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["TheDocumentFoundation.LibreOffice"],
                         ChocoPackageId = "libreoffice-fresh",
-                        WebsiteUrl = "https://www.libreoffice.org/"
+                        WebsiteUrl = "https://www.libreoffice.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/LibreOffice_Logo_Flat.svg/256px-LibreOffice_Logo_Flat.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -35,7 +38,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["ONLYOFFICE.DesktopEditors"],
                         ChocoPackageId = "onlyoffice",
-                        WebsiteUrl = "https://www.onlyoffice.com/"
+                        WebsiteUrl = "https://www.onlyoffice.com/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/ONLYOFFICE/desktop-apps/master/win-linux/res/icons/app-icon_64.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/9/91/ONLYOFFICE_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -47,7 +54,10 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "PDFgear {version}",
                         WinGetPackageId = ["PDFgear.PDFgear"],
                         ChocoPackageId = "pdfgear",
-                        WebsiteUrl = "https://www.pdfgear.com/"
+                        WebsiteUrl = "https://www.pdfgear.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/f/f8/PDFgear-logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -57,7 +67,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         MsStoreId = "XPFCG5NRKXQPKT", // MS Store package
                         ChocoPackageId = "foxitreader",
-                        WebsiteUrl = "https://www.foxit.com/pdf-reader/"
+                        WebsiteUrl = "https://www.foxit.com/pdf-reader/",
+                        IconSources = [
+                            "https://www.foxit.com/favicon.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/8/8c/Foxit_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -67,7 +81,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["SumatraPDF.SumatraPDF"],
                         ChocoPackageId = "sumatrapdf",
-                        WebsiteUrl = "https://www.sumatrapdfreader.org/"
+                        WebsiteUrl = "https://www.sumatrapdfreader.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/sumatrapdfreader/sumatrapdf/master/gfx/SumatraPDF-256x256x32.png",
+                            "https://raw.githubusercontent.com/sumatrapdfreader/sumatrapdf/master/gfx/SumatraPDF.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -78,7 +96,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Apache.OpenOffice"],
                         ChocoPackageId = "openoffice",
-                        WebsiteUrl = "https://www.openoffice.org/"
+                        WebsiteUrl = "https://www.openoffice.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Apache_OpenOffice_logo_and_wordmark_%282014%29.svg/256px-Apache_OpenOffice_logo_and_wordmark_%282014%29.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -89,7 +110,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         MsStoreId = "XPDP273C0XHQH2", // MS Store package
                         ChocoPackageId = "adobereader",
-                        WebsiteUrl = "https://www.adobe.com/acrobat/pdf-reader.html"
+                        WebsiteUrl = "https://www.adobe.com/acrobat/pdf-reader.html",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Adobe_Acrobat_DC_logo_2020.svg/256px-Adobe_Acrobat_DC_logo_2020.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -100,7 +124,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Evernote.Evernote"],
                         ChocoPackageId = "evernote",
-                        WebsiteUrl = "https://evernote.com/"
+                        WebsiteUrl = "https://evernote.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Evernote_Faenza.svg/256px-Evernote_Faenza.svg.png",
+                            "https://evernote.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -111,7 +139,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Giuspen.Cherrytree"],
                         ChocoPackageId = "cherrytree",
-                        WebsiteUrl = "https://www.giuspen.net/cherrytree/"
+                        WebsiteUrl = "https://www.giuspen.net/cherrytree/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/giuspen/cherrytree/master/icons/cherrytree.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -123,7 +154,10 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["KDE.Okular", "KDE.Okular.AppX"],
                         ChocoPackageId = "okular",
                         MsStoreId = "9N41MSQ1WNM8",
-                        WebsiteUrl = "https://okular.kde.org/"
+                        WebsiteUrl = "https://okular.kde.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Breezeicons-apps-48-okular.svg/256px-Breezeicons-apps-48-okular.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -133,7 +167,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["geeksoftwareGmbH.PDF24Creator"],
                         ChocoPackageId = "pdf24",
-                        WebsiteUrl = "https://www.pdf24.org/"
+                        WebsiteUrl = "https://www.pdf24.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/c/c0/PDF24_Creator_application_logo_256x256.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -145,7 +182,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Microsoft.Office"],
                         ChocoPackageId = "office365business",
-                        WebsiteUrl = "https://www.microsoft.com/microsoft-365"
+                        WebsiteUrl = "https://www.microsoft.com/microsoft-365",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Microsoft_365_%282022%29.svg/256px-Microsoft_365_%282022%29.svg.png",
+                        ],
                     }
                 }
             };
