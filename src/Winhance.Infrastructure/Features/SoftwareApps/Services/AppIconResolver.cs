@@ -133,6 +133,7 @@ public class AppIconResolver : IAppIconResolver
             foreach (var def in candidates)
             {
                 if (ct.IsCancellationRequested) return;
+                if (def.IconSourcesOnly) continue;                 // Force IconSources path.
                 try
                 {
                     if (await TryResolveFromAppxAsync(def, installedMap, ct).ConfigureAwait(false))
@@ -150,6 +151,7 @@ public class AppIconResolver : IAppIconResolver
             {
                 if (ct.IsCancellationRequested) return;
                 if (def.IconPath is not null) continue;            // Already resolved by Layer 1a.
+                if (def.IconSourcesOnly) continue;                 // Force IconSources path.
                 if (string.IsNullOrEmpty(def.InstalledBinaryHint)) continue;
                 if (_binarySource is null) continue;               // No source registered (test constructor without it).
 
@@ -187,8 +189,9 @@ public class AppIconResolver : IAppIconResolver
                     await sem.WaitAsync(ct).ConfigureAwait(false);
                     try
                     {
-                        // 2a — Store CDN, preferred when MsStoreId is present.
-                        if (!string.IsNullOrEmpty(def.MsStoreId) && _storeSource is not null)
+                        // 2a — Store CDN, preferred when MsStoreId is present
+                        // (unless IconSourcesOnly forces the IconSources path).
+                        if (!def.IconSourcesOnly && !string.IsNullOrEmpty(def.MsStoreId) && _storeSource is not null)
                         {
                             Interlocked.Increment(ref storeAttempted);
                             try

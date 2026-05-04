@@ -567,6 +567,85 @@ public class AppIconResolverTests : IDisposable
         Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
     }
 
+    // --- IconSourcesOnly override: forces Layer 2b regardless of other identities ---
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesOnly_SkipsAppxLayer_EvenWhenAppxAvailable()
+    {
+        // Even though Layer 1a could resolve via AppX, IconSourcesOnly forces the
+        // resolver to skip 1a/1b/2a entirely and go straight to 2b.
+        var def = Def("ext-srcs-only-1", appxName: "Microsoft.SomeApp") with
+        {
+            IconSources = new[] { "https://example.invalid/forced.png" },
+            IconSourcesOnly = true,
+        };
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-forced"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        // AppX would gladly serve an icon if asked.
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Microsoft.SomeApp"] = "Microsoft.SomeApp_1.0_x64__abc" });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("appx-should-not-win"));
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-forced");
+        _mockIconSource.Verify(
+            s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesOnly_SkipsBinaryLayer_EvenWithBinaryHint()
+    {
+        var def = Def("ext-srcs-only-2", binaryHint: "C:\\Apps\\Foo\\foo.exe") with
+        {
+            IconSources = new[] { "https://example.invalid/forced.png" },
+            IconSourcesOnly = true,
+        };
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-forced"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-forced");
+        _mockBinarySource.Verify(
+            b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesOnly_SkipsStoreLayer_EvenWithMsStoreId()
+    {
+        var def = Def("ext-srcs-only-3", msStoreId: "9NBLGGH42THS") with
+        {
+            IconSources = new[] { "https://example.invalid/forced.png" },
+            IconSourcesOnly = true,
+        };
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-forced"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-forced");
+        _mockStoreSource.Verify(
+            s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // --- Layer 2b: data: URIs ---
 
     private static string Sha1HexLower(string input)

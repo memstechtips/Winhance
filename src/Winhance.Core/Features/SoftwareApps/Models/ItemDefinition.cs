@@ -70,6 +70,16 @@ public record ItemDefinition : BaseDefinition
     /// </summary>
     public string[]? IconSources { get; init; }
 
+    /// <summary>
+    /// When true, the icon resolver skips Layers 1a (AppX), 1b (Binary), and 2a
+    /// (Store CDN) for this entry and goes straight to Layer 2b (<see cref="IconSources"/>).
+    /// Use for entries where the IconSources URL is the canonical visual identity
+    /// regardless of install state — e.g. runtimes / redistributables that we want
+    /// to show with a uniform installer-package icon (msiexec.exe) even when the
+    /// installed binary would otherwise win Layer 1b with a per-version icon.
+    /// </summary>
+    public bool IconSourcesOnly { get; init; }
+
     // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
     // via the relevant service (status discovery, icon resolver), proxied
     // through AppItemViewModel for UI binding.
