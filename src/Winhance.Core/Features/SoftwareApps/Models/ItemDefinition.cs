@@ -55,10 +55,14 @@ public record ItemDefinition : BaseDefinition
     /// the base64 payload is decoded directly into the cache. Useful when a vendor
     /// only ships their logo embedded in HTML/CSS and there's no stable raw URL.</description></item>
     /// <item><description>A local file path — checked with <c>File.Exists</c> after
-    /// <c>Environment.ExpandEnvironmentVariables</c>. Useful when an app leaves a
-    /// usable icon file on disk after uninstall (e.g. OneDrive's
-    /// <c>%SystemRoot%\System32\OneDrive.ico</c> stays around even when the OneDrive
-    /// client is removed).</description></item>
+    /// <c>Environment.ExpandEnvironmentVariables</c>. Icon files (<c>.ico</c>,
+    /// <c>.png</c>, ...) are read directly. Win32 executables (<c>.exe</c>,
+    /// <c>.dll</c>) are routed through the binary icon extractor — the same code
+    /// path Layer 1b uses — which lets entries reuse system binaries (e.g.
+    /// <c>%SystemRoot%\explorer.exe</c> for ExplorerPatcher) without per-app
+    /// special-casing. Useful when an app leaves a usable icon file on disk after
+    /// uninstall (e.g. OneDrive's <c>%SystemRoot%\System32\OneDrive.ico</c> stays
+    /// around even when the OneDrive client is removed).</description></item>
     /// </list>
     /// Sources are tried in array order; first one that yields a non-empty image
     /// wins. List local paths first when you have them — they're zero-network and

@@ -276,7 +276,7 @@ public class AppIconResolver : IAppIconResolver
                 {
                     IconSourceKind.Url => await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false),
                     IconSourceKind.DataUri => DecodeBase64DataUri(source),
-                    IconSourceKind.LocalPath => await ReadLocalFileBytesAsync(source, ct).ConfigureAwait(false),
+                    IconSourceKind.LocalPath => await ReadLocalSourceBytesAsync(source, ct).ConfigureAwait(false),
                     _ => null,
                 };
                 if (bytes is null || bytes.Length == 0) continue;
@@ -362,12 +362,41 @@ public class AppIconResolver : IAppIconResolver
         return collector.Length > 0 ? collector.ToArray() : null;
     }
 
-    private static async Task<byte[]?> ReadLocalFileBytesAsync(string path, CancellationToken ct)
+    /// <summary>
+    /// Reads bytes for a non-URL <see cref="ItemDefinition.IconSources"/> entry. For
+    /// Win32 executables (<c>.exe</c>/<c>.dll</c>) delegates to the binary icon
+    /// extractor — the same code path Layer 1b uses for <see cref="ItemDefinition.InstalledBinaryHint"/>.
+    /// This lets entries reuse system binaries (e.g. <c>%SystemRoot%\explorer.exe</c>
+    /// for ExplorerPatcher) without per-app code in the resolver. For everything else
+    /// (icon files like <c>.ico</c>/<c>.png</c>) reads the bytes directly.
+    /// </summary>
+    private async Task<byte[]?> ReadLocalSourceBytesAsync(string path, CancellationToken ct)
     {
         var expanded = Environment.ExpandEnvironmentVariables(path);
         if (!File.Exists(expanded)) return null;
+
+        if (IsExecutableExtension(expanded))
+        {
+            // .exe/.dll: raw bytes aren't a valid image — must go through the
+            // binary extractor. If no source is registered (test constructor
+            // without one), treat as a miss so the resolver tries the next entry.
+            if (_binarySource is null) return null;
+
+            await using var stream = await _binarySource
+                .GetIconStreamAsync(expanded, LogoSize, ct)
+                .ConfigureAwait(false);
+            if (stream is null) return null;
+            using var collector = new MemoryStream();
+            await stream.CopyToAsync(collector, ct).ConfigureAwait(false);
+            return collector.Length > 0 ? collector.ToArray() : null;
+        }
+
         return await File.ReadAllBytesAsync(expanded, ct).ConfigureAwait(false);
     }
+
+    private static bool IsExecutableExtension(string path) =>
+        path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 
     private async Task<bool> TryResolveFromAppxAsync(
         ItemDefinition def,

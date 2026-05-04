@@ -645,4 +645,86 @@ public class AppIconResolverTests : IDisposable
         def.IconPath.Should().NotBeNull();
         File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
     }
+
+    // --- Layer 2b: .exe / .dll local paths route through binary extractor ---
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesExePath_RoutesThroughBinarySource()
+    {
+        // A .exe file on disk shouldn't be read as raw bytes — it should be handed
+        // to IBinaryIconSource (same path Layer 1b uses for InstalledBinaryHint),
+        // and the extracted PNG cached under Src_<sha1>.
+        Directory.CreateDirectory(_tempCacheDir);
+        var fakeExe = Path.Combine(_tempCacheDir, "fake-explorer.exe");
+        File.WriteAllText(fakeExe, "this is not a real exe, but File.Exists returns true");
+
+        var def = Def("ext-srcs-exe") with { IconSources = new[] { fakeExe } };
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockBinarySource.Setup(b => b.GetIconStreamAsync(fakeExe, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("from-exe"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        // Cache prefix is Src_ (Layer 2b), not Bin_ (Layer 1b) — extraction is
+        // triggered via IconSources, not InstalledBinaryHint.
+        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-from-exe");
+        _mockBinarySource.Verify(
+            b => b.GetIconStreamAsync(fakeExe, It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesDllPath_RoutesThroughBinarySource()
+    {
+        Directory.CreateDirectory(_tempCacheDir);
+        var fakeDll = Path.Combine(_tempCacheDir, "fake-resource.dll");
+        File.WriteAllText(fakeDll, "fake dll bytes");
+
+        var def = Def("ext-srcs-dll") with { IconSources = new[] { fakeDll } };
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockBinarySource.Setup(b => b.GetIconStreamAsync(fakeDll, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("from-dll"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-from-dll");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_IconSourcesExePath_BinaryReturnsNull_FallsThrough()
+    {
+        // If the binary extractor can't surface an icon (e.g. binary stripped of
+        // resources), the resolver should treat that source as a miss and try the
+        // next entry in the array.
+        Directory.CreateDirectory(_tempCacheDir);
+        var fakeExe = Path.Combine(_tempCacheDir, "no-icons.exe");
+        File.WriteAllText(fakeExe, "no icons here");
+
+        var def = Def("ext-srcs-exe-empty") with
+        {
+            IconSources = new[] { fakeExe, "https://example.invalid/fallback.png" },
+        };
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockBinarySource.Setup(b => b.GetIconStreamAsync(fakeExe, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Stream?)null);
+
+        var handler = SetupHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes("PNG-fallback"));
+        using var client = new HttpClient(handler.Object);
+        var resolver = BuildResolverWithHttpClient(client);
+
+        await resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
+    }
 }
