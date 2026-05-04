@@ -24,8 +24,10 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["7zip.7zip"],
                         ChocoPackageId = "7zip",
                         WebsiteUrl = "https://www.7-zip.org/",
+                        // Wikimedia renders of 7-Zip's SVGs were too small/wordmark-
+                        // heavy in a square cell. Embed the on-page icon mark instead.
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/7-Zip_Icon.svg/256px-7-Zip_Icon.svg.png",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAPklEQVR4AWMYFOA/RRhEkAlQDMBnA9EG4FJEngtgAIc8fgOgAJsXCBsABoQNpLcBCD7Z0YhNjIoJiSI84AAA2wS3V2dXR8sAAAAASUVORK5CYII=",
                         ],
                     },
                     new ItemDefinition

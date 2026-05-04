@@ -126,9 +126,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["TGRMNSoftware.BulkRenameUtility"],
                         ChocoPackageId = "bulkrenameutility",
                         WebsiteUrl = "https://www.bulkrenameutility.co.uk/",
+                        // Vendor's `bru.svg` icon-only mark fits a square cell better
+                        // than `brulogo.png` (wordmark). Embed a PNG render of the
+                        // SVG since the resolver can't decode SVG directly.
                         IconSources = [
-                            "https://www.bulkrenameutility.co.uk/assets/img-bru/brulogo.png",
-                            "https://www.bulkrenameutility.co.uk/favicon.ico",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAABnRSTlMAAAAAAABupgeRAAADtUlEQVR4AbSTRXCbSRCFfV66LfNels7Lu6dlpjAzmJmZmRkrYsksShQLYmZm5jAzSZWntGtKJf3Gqkw9c/f7uueN7dZ+4uISC4uK7J7dASApL8jFwzEjM3vdzUKZXKVvXkFVmloPL79SQ5J+IiOvItjJwx68dQBgcfehiWl0crasUg4L6OChI0wEOD2WqBqOKtL4eIXae/n4rgkgr2kg66s3b4eERkTGRii10tr26vGLtUPnNX2L1Z3zspZZXv1UAQNUDQaV9Xtmqxx8oo4As1YA3KvVZRdujS1e75u50rYqQNzjyO86lGPY45uw19HJpapazg3AFcNdV9sYExdz7d78egHFHbvy2jdF8LfiGikb7g2wafdA2wYAscJ99m6H0Z6eXbjsBggWFbcfXCHA4HQjMtC1yjTNAnVjsbw+r7I2QzeUYwkQd3gmSexhnVtQotA2nhBIRJJyaVk1NwDPRigSXLq+IC0Xenp7RcUmQpExkPkbb78gRydX9oqqeiLii9yPORzNKyyZXrh0/a6pbWguIzsPVtwMAOgfFUFhkLGZS5dvmS5cN517qsWrpvJTdSgAQNGZHJfr4+7lhoHIGrp62wwo5suYtPo6awAGxBPqG5kl65qGYbvnv4K++9l57vISICDcA2UY8PzV28wa9SR00TRNA/PWS6A/KCRi7sJtNrV/JI8AL73+U9/EjbKTdbgNPDPmS7K0JneooW8OqVhvgCKIFb390f+whsCISq0EAM+M3Fewxq7Qme65zOx86w0s69RnhulyIHzz6yZ/AJi1rtH8VyvZe2aR+8xFMyA7t9AaYDmCdxgPPfgckVJJtwQAG5wTQItOnTdBuk4bAPoZHxW4HzSgTts6R81ugVmwtsofi6IFCdGPGcVa9E6cM6GLAwBrcq+q4Rjwh79dWUiaWo4CrAvr0UUjpGmd5QAQHPIM4dn2v/LB7xQSS8hW5Zqh4QXj4NwyAHIHn+5Hph7qmzH2TBlFyiHqz+NpKSSlfglQrR2mlk8/34cfN+2PgTukarIByFS1qAMfoiJyJ3VOGIVyFpIZwEamLgagLm6ApTXErDvGIQBWCQlKyNVSl7zBBiBR1HJat44uCQAWEga3ssY7dgnkoYumqarnAlhakzsBmkcgM4A9kuV2hVYCFMlO5QqVpByBwlJZPCX+yhUSx0BQmcEGgBOy4gF15ZDgy9ZlgHUcbLBySGTdOARtCCCo1K8cEnxJdQNGmX79gCdDjiTU6IFGEhoCFdekgnoSAcMwAQAK+6Xkm4C2WwAAAABJRU5ErkJggg==",
                         ],
                     },
                     new ItemDefinition

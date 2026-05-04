@@ -67,8 +67,13 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Discord.Discord"],
                         ChocoPackageId = "discord",
                         WebsiteUrl = "https://discord.com/",
+                        // Vendor brand page only ships SVG/ZIP and the Wikimedia
+                        // render keeps rotting (Discord_color_D.svg has been
+                        // rehashed/removed twice already). Embed the on-page
+                        // Symbol mark so the resolver decodes it via the data:
+                        // branch — locked-in and immune to URL rot.
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Discord_color_D.svg/512px-Discord_color_D.svg.png",
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC",
                         ],
                     },
                     new ItemDefinition
