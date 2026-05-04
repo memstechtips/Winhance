@@ -109,7 +109,7 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, fullName + ".96-trim2.png"));
+        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, fullName)));
         _mockIconSource.Verify(
             s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -120,7 +120,7 @@ public class AppIconResolverTests : IDisposable
     {
         var def = Def("app1", appxName: "Microsoft.App1");
         var fullName = "Microsoft.App1_1.0.0_x64__abc";
-        var cachePath = Path.Combine(_tempCacheDir, fullName + ".96-trim2.png");
+        var cachePath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, fullName));
 
         Directory.CreateDirectory(_tempCacheDir);
         File.WriteAllBytes(cachePath, new byte[] { 0x89, 0x50, 0x4E, 0x47 }); // PNG header bytes
@@ -149,7 +149,7 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        var expectedPath = Path.Combine(_tempCacheDir, fullName + ".96-trim2.png");
+        var expectedPath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, fullName));
         def.IconPath.Should().Be(expectedPath);
         File.Exists(expectedPath).Should().BeTrue();
         File.ReadAllText(expectedPath).Should().Be("PNG-app1");
@@ -163,7 +163,8 @@ public class AppIconResolverTests : IDisposable
         var newFullName = "Microsoft.App1_2.0.0_x64__abc";
 
         Directory.CreateDirectory(_tempCacheDir);
-        var oldPath = Path.Combine(_tempCacheDir, oldFullName + ".png");
+        // Old version's cache file: same def.Id, old full-name's hash.
+        var oldPath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, oldFullName));
         File.WriteAllText(oldPath, "old version bytes");
 
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
@@ -173,9 +174,9 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        // Prune sweeps any "<package>_*.png" file (covers both old and new
-        // suffix formats) — verifies legacy cache files get cleaned up too.
-        var newPath = Path.Combine(_tempCacheDir, newFullName + ".96-trim2.png");
+        // Prune globs "<def.Id>.*.png" — sibling files for the same entry but a
+        // different package version (different short-hash) get cleaned up.
+        var newPath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, newFullName));
         File.Exists(newPath).Should().BeTrue();
         File.Exists(oldPath).Should().BeFalse();
         def.IconPath.Should().Be(newPath);
@@ -242,7 +243,7 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        var expectedPath = Path.Combine(_tempCacheDir, "MsStore_9NBLGGH42THS.96-trim2.png");
+        var expectedPath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "9NBLGGH42THS"));
         def.IconPath.Should().Be(expectedPath);
         File.Exists(expectedPath).Should().BeTrue();
         File.ReadAllText(expectedPath).Should().Be("PNG-store");
@@ -260,7 +261,7 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, fullName + ".96-trim2.png"));
+        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, fullName)));
         _mockStoreSource.Verify(
             s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -285,7 +286,7 @@ public class AppIconResolverTests : IDisposable
     public async Task ResolveBatchAsync_StoreFallback_CacheHit_DoesNotCallStoreSource()
     {
         var def = Def("app1", appxName: "Microsoft.App1", msStoreId: "9NBLGGH42THS");
-        var cachePath = Path.Combine(_tempCacheDir, "MsStore_9NBLGGH42THS.96-trim2.png");
+        var cachePath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "9NBLGGH42THS"));
         Directory.CreateDirectory(_tempCacheDir);
         File.WriteAllBytes(cachePath, new byte[] { 0x89, 0x50, 0x4E, 0x47 });
 
@@ -316,9 +317,7 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().NotBeNull();
-        def.IconPath.Should().StartWith(_tempCacheDir);
-        Path.GetFileName(def.IconPath!).Should().StartWith("Bin_");
+        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "C:\\PowerToys\\PowerToys.exe")));
     }
 
     // --- Layer 2 preference: AppX > Store > IconSources ---
@@ -344,10 +343,9 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().NotStartWith("Bin_")
-            .And.NotStartWith("MsStore_")
-            .And.NotStartWith("Src_");
+        // AppX layer wins — IconPath stamped from the AppX cache write, neither
+        // Layer 1b nor Layer 2a is consulted.
+        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "Microsoft.PowerToys_0.87.0_x64__abc")));
         _mockBinarySource.Verify(b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()), Times.Never);
         _mockStoreSource.Verify(s => s.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -395,7 +393,7 @@ public class AppIconResolverTests : IDisposable
         await resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("PNG-from-url");
     }
 
@@ -458,7 +456,7 @@ public class AppIconResolverTests : IDisposable
         await resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("ICO-bytes");
     }
 
@@ -486,7 +484,7 @@ public class AppIconResolverTests : IDisposable
         await resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
     }
 
@@ -512,8 +510,7 @@ public class AppIconResolverTests : IDisposable
 
         await resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("MsStore_");
+        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "9NBLGGH42THS")));
     }
 
     [Fact]
@@ -538,8 +535,10 @@ public class AppIconResolverTests : IDisposable
 
         await resolver.ResolveBatchAsync(new[] { def });
 
-        def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().NotStartWith("Src_");
+        // AppX layer (1a) wins; the IconPath is the AppX cache file, not a Layer 2b
+        // (IconSources) write. The strict HTTP handler above would have failed if
+        // any URL fetch was attempted.
+        def.IconPath.Should().Be(Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, fullName)));
     }
 
     [Fact]
@@ -565,7 +564,7 @@ public class AppIconResolverTests : IDisposable
         await resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
     }
 
     // --- Layer 2b: data: URIs ---
@@ -575,6 +574,10 @@ public class AppIconResolverTests : IDisposable
         using var sha1 = System.Security.Cryptography.SHA1.Create();
         return Convert.ToHexString(sha1.ComputeHash(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
     }
+
+    /// <summary>Mirrors AppIconResolver.BuildCacheFileName for path assertions.</summary>
+    private static string BuildCacheFileName(string defId, string sourceKey) =>
+        $"{defId}.{Sha1HexLower(sourceKey).Substring(0, 8)}.png";
 
     [Fact]
     public async Task ResolveBatchAsync_IconSourcesDataUri_DecodesAndStamps_NoHttpCall()
@@ -596,7 +599,7 @@ public class AppIconResolverTests : IDisposable
         await resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("PNG-from-data-uri");
     }
 
@@ -609,7 +612,7 @@ public class AppIconResolverTests : IDisposable
         var dataUri = "data:image/png;base64," + Convert.ToBase64String(payload);
 
         Directory.CreateDirectory(_tempCacheDir);
-        var cachePath = Path.Combine(_tempCacheDir, "Src_" + Sha1HexLower(dataUri) + ".96-trim2.png");
+        var cachePath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, dataUri));
         File.WriteAllText(cachePath, "pre-cached-bytes");
 
         var def = Def("ext-srcs-data-cached") with { IconSources = new[] { dataUri } };
@@ -688,7 +691,7 @@ public class AppIconResolverTests : IDisposable
     {
         // A .exe file on disk shouldn't be read as raw bytes — it should be handed
         // to IBinaryIconSource (same path Layer 1b uses for InstalledBinaryHint),
-        // and the extracted PNG cached under Src_<sha1>.
+        // and the extracted PNG cached under <def.Id>.<short-hash>.png.
         Directory.CreateDirectory(_tempCacheDir);
         var fakeExe = Path.Combine(_tempCacheDir, "fake-explorer.exe");
         File.WriteAllText(fakeExe, "this is not a real exe, but File.Exists returns true");
@@ -703,9 +706,9 @@ public class AppIconResolverTests : IDisposable
         await _resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        // Cache prefix is Src_ (Layer 2b), not Bin_ (Layer 1b) — extraction is
-        // triggered via IconSources, not InstalledBinaryHint.
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        // Extraction is triggered via IconSources (Layer 2b), not InstalledBinaryHint
+        // (Layer 1b). The Verify().Times.Once below confirms binary source was called.
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("PNG-from-exe");
         _mockBinarySource.Verify(
             b => b.GetIconStreamAsync(fakeExe, It.IsAny<Size>(), It.IsAny<CancellationToken>()),
@@ -729,7 +732,7 @@ public class AppIconResolverTests : IDisposable
         await _resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith("Src_");
+        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
         File.ReadAllText(def.IconPath!).Should().Be("PNG-from-dll");
     }
 

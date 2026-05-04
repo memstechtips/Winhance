@@ -18,9 +18,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class AppIconResolver : IAppIconResolver
 {
     private const string CacheSubDir = @"Winhance\IconCache";
-    private const string StoreCachePrefix = "MsStore_";
-    private const string BinaryCachePrefix = "Bin_";
-    private const string IconSourceCachePrefix = "Src_";
+
+    // Cache filenames are <def.Id>.<short-hash>.png. The id makes them readable
+    // when poking around %ProgramData%\Winhance\IconCache, the 8-char hash of
+    // the layer-specific source key (AppX full-name, binary path, MsStoreId,
+    // or IconSources entry) flips when the source changes so old files get
+    // bypassed and PruneOldVersions can clean them up.
+    private const string CacheFileExtension = ".png";
 
     // Per-call timeout for an IconSources URL fetch. Caps per-entry cost so one
     // slow vendor CDN can't stall the resolver for everyone else.
@@ -45,17 +49,6 @@ public class AppIconResolver : IAppIconResolver
     // when displayed at 40 logical pixels on a 200% DPI screen.
     private static readonly Size LogoSize = new(96, 96);
 
-    // Suffix appended to the cache filename so the cache key encodes the
-    // extraction parameters. Bumping LogoSize, AlphaTrimThreshold, or the
-    // post-process pipeline requires bumping this suffix; that invalidates
-    // older cache files (PruneOldVersions cleans them up the next time
-    // their package version changes). The "-trim" segment indicates icons
-    // are cropped to their alpha bounding box so they display at uniform
-    // visible size regardless of the source's original transparent-padding
-    // convention. The version digit (-trim, -trim2, ...) bumps every time
-    // we change the trim behavior so cached PNGs from older code re-extract.
-    private const string CacheFileSuffix = ".96-trim2.png";
-
     // ====== TRIM TUNING KNOB ======
     // Pixels with alpha at or below this threshold are treated as transparent
     // when computing the trim bounding box. The Square44x44Logo PNGs returned
@@ -67,7 +60,8 @@ public class AppIconResolver : IAppIconResolver
     // icon at fixed display size, at the cost of clipping legitimately
     // translucent icon parts. 32 is a reasonable middle ground; 64 if you
     // want maximum tightening; 8 (original) for maximum softness preservation.
-    // Bump CacheFileSuffix above whenever you change this value.
+    // If this changes meaningfully, manually wipe %ProgramData%\Winhance\IconCache
+    // so cached files re-extract.
     private const byte AlphaTrimThreshold = 32;
 
     private readonly IAppxIconSource _appxSource;
@@ -276,7 +270,7 @@ public class AppIconResolver : IAppIconResolver
             var cacheKeyInput = kind == IconSourceKind.LocalPath
                 ? Environment.ExpandEnvironmentVariables(source)
                 : source;
-            var cachePath = Path.Combine(_cacheRoot, IconSourceCachePrefix + Sha1Hex(cacheKeyInput) + CacheFileSuffix);
+            var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, cacheKeyInput));
             if (File.Exists(cachePath))
             {
                 def.IconPath = cachePath;
@@ -426,7 +420,7 @@ public class AppIconResolver : IAppIconResolver
         if (packageName is null) return false;
         if (!installedMap.TryGetValue(packageName, out var fullName)) return false;
 
-        var cachePath = Path.Combine(_cacheRoot, fullName + CacheFileSuffix);
+        var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, fullName));
         if (File.Exists(cachePath))
         {
             def.IconPath = cachePath;
@@ -438,7 +432,7 @@ public class AppIconResolver : IAppIconResolver
             return false;
 
         await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
-        PruneOldVersions(packageName, fullName);
+        PruneOldVersions(def.Id, Path.GetFileName(cachePath));
         def.IconPath = cachePath;
         return true;
     }
@@ -446,7 +440,7 @@ public class AppIconResolver : IAppIconResolver
     private async Task<bool> TryResolveFromStoreAsync(ItemDefinition def, CancellationToken ct)
     {
         var msStoreId = def.MsStoreId!;
-        var cachePath = Path.Combine(_cacheRoot, StoreCachePrefix + msStoreId + CacheFileSuffix);
+        var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, msStoreId));
         if (File.Exists(cachePath))
         {
             def.IconPath = cachePath;
@@ -475,8 +469,7 @@ public class AppIconResolver : IAppIconResolver
         if (Directory.Exists(hint))
             return false;
 
-        var key = BinaryCachePrefix + Sha1Hex(hint) + CacheFileSuffix;
-        var cachePath = Path.Combine(_cacheRoot, key);
+        var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, hint));
         if (File.Exists(cachePath))
         {
             def.IconPath = cachePath;
@@ -491,11 +484,23 @@ public class AppIconResolver : IAppIconResolver
         return true;
     }
 
-    private static string Sha1Hex(string input)
+    /// <summary>
+    /// Builds the cache filename for an entry: <c>&lt;def.Id&gt;.&lt;short-hash&gt;.png</c>.
+    /// The id makes filenames readable; the 8-char SHA1-derived suffix flips when
+    /// the layer-specific source key changes (AppX full-name on version bump,
+    /// IconSources URL on URL-rot, etc.) so the cache invalidates automatically.
+    /// 8 hex chars give 32 bits of distinguishing power — collision probability
+    /// across the catalog is negligible, and a collision would only ever cause
+    /// one entry to display the wrong icon (not a security concern).
+    /// </summary>
+    private static string BuildCacheFileName(string defId, string sourceKey) =>
+        $"{defId}.{ShortSha1Hex(sourceKey)}{CacheFileExtension}";
+
+    private static string ShortSha1Hex(string input)
     {
         using var sha1 = System.Security.Cryptography.SHA1.Create();
         var bytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
+        return Convert.ToHexString(bytes, 0, 4).ToLowerInvariant();
     }
 
     private async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
@@ -606,18 +611,21 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    private void PruneOldVersions(string packageName, string keepFullName)
+    /// <summary>
+    /// After a successful AppX cache write, deletes any other cache files that
+    /// share this entry's def.Id but a different short-hash — i.e. icons cached
+    /// under older AppX package full-names from prior versions of the same app.
+    /// Keeps the cache from accumulating stale per-version entries on long-lived
+    /// installs.
+    /// </summary>
+    private void PruneOldVersions(string defId, string keepFileName)
     {
         try
         {
-            // Pattern matches both old-format (.png) and new-format (.96.png)
-            // files for this package, so this prune step also cleans up cache
-            // files left over from prior CacheFileSuffix versions.
-            var pattern = packageName + "_*.png";
-            var keepFile = keepFullName + CacheFileSuffix;
+            var pattern = defId + ".*" + CacheFileExtension;
             foreach (var path in Directory.EnumerateFiles(_cacheRoot, pattern))
             {
-                if (!string.Equals(Path.GetFileName(path), keepFile, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(Path.GetFileName(path), keepFileName, StringComparison.OrdinalIgnoreCase))
                 {
                     try { File.Delete(path); }
                     catch (Exception ex) { _logService.LogWarning($"Could not prune old icon {path}: {ex.Message}"); }
