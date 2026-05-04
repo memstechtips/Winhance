@@ -24,7 +24,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["WinDirStat.WinDirStat"],
                         ChocoPackageId = "windirstat",
-                        WebsiteUrl = "https://windirstat.net/"
+                        WebsiteUrl = "https://windirstat.net/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/windirstat/windirstat/master/windirstat/logos/logo_256px.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/WinDirStat_Logo_color.svg/256px-WinDirStat_Logo_color.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -35,7 +39,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["AntibodySoftware.WizTree"],
                         ChocoPackageId = "wiztree",
-                        WebsiteUrl = "https://www.diskanalyzer.com/"
+                        WebsiteUrl = "https://www.diskanalyzer.com/",
+                        IconSources = [
+                            "https://antibodysoftware-17031.kxcdn.com/images/wiztree200x.png",
+                            "https://www.diskanalyzer.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -46,7 +54,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["JAMSoftware.TreeSize.Free"],
                         ChocoPackageId = "treesizefree",
-                        WebsiteUrl = "https://www.jam-software.com/treesize_free"
+                        WebsiteUrl = "https://www.jam-software.com/treesize_free",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/b/bd/TreeSize-Icon-256.png",
+                            "https://www.jam-software.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -57,7 +69,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["voidtools.Everything"],
                         ChocoPackageId = "everything",
-                        WebsiteUrl = "https://www.voidtools.com/"
+                        WebsiteUrl = "https://www.voidtools.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/5/52/Everything_%28software%29_logo.png",
+                            "https://www.voidtools.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -67,7 +83,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["CodeSector.TeraCopy"],
                         ChocoPackageId = "teracopy",
-                        WebsiteUrl = "https://www.codesector.com/teracopy"
+                        WebsiteUrl = "https://www.codesector.com/teracopy",
+                        IconSources = [
+                            "https://www.codesector.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -77,7 +96,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["AdrienAllard.FileConverter"],
                         ChocoPackageId = "file-converter",
-                        WebsiteUrl = "https://file-converter.io/"
+                        WebsiteUrl = "https://file-converter.io/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/Tichau/FileConverter/master/Application/FileConverter/Resources/ApplicationIcon.ico",
+                            "https://file-converter.io/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -87,7 +110,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["WsSolInfor.CrystalDiskInfo"],
                         ChocoPackageId = "crystaldiskinfo",
-                        WebsiteUrl = "https://crystalmark.info/en/software/crystaldiskinfo/"
+                        WebsiteUrl = "https://crystalmark.info/en/software/crystaldiskinfo/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/4/42/%D0%9F%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF_%D0%BF%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC%D1%8B_CrystalDiskInfo.png",
+                            "https://crystalmark.info/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -98,7 +125,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["TGRMNSoftware.BulkRenameUtility"],
                         ChocoPackageId = "bulkrenameutility",
-                        WebsiteUrl = "https://www.bulkrenameutility.co.uk/"
+                        WebsiteUrl = "https://www.bulkrenameutility.co.uk/",
+                        IconSources = [
+                            "https://www.bulkrenameutility.co.uk/assets/img-bru/brulogo.png",
+                            "https://www.bulkrenameutility.co.uk/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -108,7 +139,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["IObit.IObitUnlocker"],
                         ChocoPackageId = "iobit-unlocker",
-                        WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php"
+                        WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php",
+                        IconSources = [
+                            "https://www.iobit.com/tpl/images/product-icons/unlocker_60.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/5/52/IObit_logo.png",
+                        ],
                     },
                     // HiBit is unavailable for download due to conflict in the region
                     /*
@@ -135,7 +170,10 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://sddashboarddownloads.sandisk.com/wdDashboard/DashboardSetup.exe",
-                        }
+                        },
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/SanDisk_2024_logo.svg/256px-SanDisk_2024_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -147,7 +185,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Rufus.Rufus"],
                         ChocoPackageId = "rufus",
                         MsStoreId = "9PC3H3V7Q9CH",
-                        WebsiteUrl = "https://rufus.ie/en/"
+                        WebsiteUrl = "https://rufus.ie/en/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/d/de/Rufus-logo.png",
+                            "https://raw.githubusercontent.com/pbatard/rufus/master/res/rufus.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -159,7 +201,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["HulubuluSoftware.AdvancedRenamer"],
                         ChocoPackageId = "advanced-renamer",
                         MsStoreId = "XP9MD3S1KFCPH1",
-                        WebsiteUrl = "https://www.advancedrenamer.com/"
+                        WebsiteUrl = "https://www.advancedrenamer.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/en/0/06/Advanced_Renamer_logo.png",
+                            "https://www.advancedrenamer.com/favicon.ico",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -169,7 +215,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["Ventoy.Ventoy"],
                         ChocoPackageId = "ventoy",
-                        WebsiteUrl = "https://www.ventoy.net/"
+                        WebsiteUrl = "https://www.ventoy.net/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/ventoy/Ventoy/master/ICON/logo_256.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/0/00/Ventoy_Logo.png",
+                        ],
                     }
                 }
             };
