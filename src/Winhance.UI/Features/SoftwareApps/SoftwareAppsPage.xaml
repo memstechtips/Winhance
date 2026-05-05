@@ -908,6 +908,79 @@
                         </controls:DataGrid>
 
                         <!-- Card View for Windows Apps -->
+                        <ScrollViewer Grid.Row="1" x:Name="WindowsAppsCardScrollViewer"
+                                      Visibility="{x:Bind ViewModel.IsCardView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12">
+                            <StackPanel Spacing="20" Padding="4,8,4,8">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllInstalledCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
+                                </StackPanel>
+
+                                <!-- Apps Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}"
+                                                   ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                               MaximumRowsOrColumns="5"
+                                                               ItemsStretch="Fill"
+                                                               MinColumnSpacing="8"
+                                                               MinRowSpacing="8"/>
+                                        </ItemsRepeater.Layout>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Capabilities Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}"
+                                                   ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                               MaximumRowsOrColumns="5"
+                                                               ItemsStretch="Fill"
+                                                               MinColumnSpacing="8"
+                                                               MinRowSpacing="8"/>
+                                        </ItemsRepeater.Layout>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Optional Features Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}"
+                                                   ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                               MaximumRowsOrColumns="5"
+                                                               ItemsStretch="Fill"
+                                                               MinColumnSpacing="8"
+                                                               MinRowSpacing="8"/>
+                                        </ItemsRepeater.Layout>
+                                    </ItemsRepeater>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Compact View for Windows Apps -->
                         <ScrollViewer x:Name="WindowsAppsCompactScrollViewer"
                                       Grid.Row="1"
                                       Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
