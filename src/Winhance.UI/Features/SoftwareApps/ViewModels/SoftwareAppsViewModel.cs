@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.Views;
 using Winhance.Core.Features.Common.Constants;
 
@@ -64,7 +65,11 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public partial string SearchText { get; set; }
 
     [ObservableProperty]
-    public partial bool IsCardViewMode { get; set; }
+    public partial SoftwareAppsViewMode ViewMode { get; set; } = SoftwareAppsViewMode.Card;
+
+    public bool IsCardView => ViewMode == SoftwareAppsViewMode.Card;
+    public bool IsTableView => ViewMode == SoftwareAppsViewMode.Table;
+    public bool IsCompactView => ViewMode == SoftwareAppsViewMode.Compact;
 
     [ObservableProperty]
     public partial bool IsInReviewMode { get; set; }
@@ -245,9 +250,12 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ? WindowsAppsViewModel.IsLoading
         : ExternalAppsViewModel.IsLoading;
 
-    partial void OnIsCardViewModeChanged(bool value)
+    partial void OnViewModeChanged(SoftwareAppsViewMode value)
     {
-        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table").FireAndForget(_logService);
+        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value.ToString()).FireAndForget(_logService);
+        OnPropertyChanged(nameof(IsCardView));
+        OnPropertyChanged(nameof(IsTableView));
+        OnPropertyChanged(nameof(IsCompactView));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -407,7 +415,12 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _isSubscribed = true;
 
         var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
-        IsCardViewMode = savedViewMode == "Card";
+        ViewMode = savedViewMode switch
+        {
+            "Compact" => SoftwareAppsViewMode.Compact,
+            "Table" => SoftwareAppsViewMode.Table,
+            _ => SoftwareAppsViewMode.Card,
+        };
 
         WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
         ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
