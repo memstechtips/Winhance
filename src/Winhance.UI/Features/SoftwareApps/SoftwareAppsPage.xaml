@@ -23,8 +23,8 @@
              Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
              largest IconSize) for HiDPI sharpness.
              ============================================================ -->
-        <x:Double x:Key="CardIconSize">20</x:Double>
-        <x:Double x:Key="CardFallbackFontSize">14</x:Double>
+        <x:Double x:Key="CardIconSize">24</x:Double>
+        <x:Double x:Key="CardFallbackFontSize">16</x:Double>
         <x:Double x:Key="DataGridIconSize">20</x:Double>
         <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
 
@@ -33,7 +33,7 @@
              inside its draw box). These resources size the FluentIcon Apps
              fallback specifically — bump higher than the *FallbackFontSize
              above to make the Apps icon visually match the puzzle/gear glyphs. -->
-        <x:Double x:Key="CardAppsIconSize">22</x:Double>
+        <x:Double x:Key="CardAppsIconSize">26</x:Double>
         <x:Double x:Key="DataGridAppsIconSize">22</x:Double>
 
         <!-- Card-view column width. UniformGridLayout uses this as the minimum
@@ -809,7 +809,7 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
                                                          glyph's built-in vertical offset. Tune the top value (currently 3)
@@ -833,14 +833,14 @@
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
-                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                        <Ellipse Width="11" Height="11" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
                                                         <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  FontSize="14" VerticalAlignment="Center"
                                                                   Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
                                                                   ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
@@ -859,7 +859,7 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
                                                          glyph's built-in vertical offset. Tune the top value (currently 3)
@@ -883,14 +883,14 @@
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
-                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                        <Ellipse Width="11" Height="11" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
                                                         <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  FontSize="14" VerticalAlignment="Center"
                                                                   Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
                                                                   ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
@@ -909,7 +909,7 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,2"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
                                                          glyph's built-in vertical offset. Tune the top value (currently 3)
@@ -933,14 +933,14 @@
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                       Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
-                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                        <Ellipse Width="11" Height="11" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
                                                         <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  FontSize="14" VerticalAlignment="Center"
                                                                   Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
                                                                   ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
@@ -1137,7 +1137,7 @@
                                                         </ItemsRepeater.Layout>
                                                         <ItemsRepeater.ItemTemplate>
                                                             <DataTemplate>
-                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                                          AutomationProperties.Name="{Binding Name}">
                                                                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
                                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
@@ -1152,9 +1152,9 @@
                                                                                                     FontSize="{StaticResource CardAppsIconSize}"
                                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                         </Grid>
-                                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                        <Ellipse Width="11" Height="11" VerticalAlignment="Center"
                                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
-                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
                                                                         <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
                                                                                          Padding="0" MinHeight="0" MinWidth="0"
                                                                                          VerticalAlignment="Center"
