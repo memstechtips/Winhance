@@ -1296,6 +1296,51 @@
                         </controls:DataGrid>
 
                         <!-- Card View for External Apps -->
+                        <ScrollViewer Grid.Row="1" x:Name="ExternalAppsCardScrollViewer"
+                                      Visibility="{x:Bind ViewModel.IsCardView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12">
+                            <StackPanel Spacing="20" Padding="4,8,4,8">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllInstalledCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
+                                </StackPanel>
+
+                                <!-- Categories with apps inside -->
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Spacing="8" Margin="0,0,0,12">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Style="{StaticResource SubtitleTextBlockStyle}"
+                                                           FontWeight="SemiBold"/>
+                                                <ItemsRepeater ItemsSource="{Binding Apps}"
+                                                               ItemTemplate="{StaticResource AppCardTemplate}">
+                                                    <ItemsRepeater.Layout>
+                                                        <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                                           MaximumRowsOrColumns="5"
+                                                                           ItemsStretch="Fill"
+                                                                           MinColumnSpacing="8"
+                                                                           MinRowSpacing="8"/>
+                                                    </ItemsRepeater.Layout>
+                                                </ItemsRepeater>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Compact View for External Apps -->
                         <ScrollViewer x:Name="ExternalAppsCompactScrollViewer"
                                       Grid.Row="1"
                                       Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
