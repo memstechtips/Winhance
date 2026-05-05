@@ -1320,7 +1320,7 @@
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Spacing="8" Margin="0,0,0,12">
-                                                <TextBlock Text="{Binding Name}"
+                                                <TextBlock Text="{Binding DisplayName}"
                                                            Style="{StaticResource SubtitleTextBlockStyle}"
                                                            FontWeight="SemiBold"/>
                                                 <ItemsRepeater ItemsSource="{Binding Apps}"
