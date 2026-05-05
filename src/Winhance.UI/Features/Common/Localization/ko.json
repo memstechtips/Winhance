@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "제작: Memory",
   "Nav_SoftwareAndApps": "소프트웨어 & 앱",
@@ -1213,6 +1213,7 @@
   "SoftwareApps_Tab_ExternalApps": "외부 소프트웨어",
   "ViewMode_Table": "테이블 보기",
   "ViewMode_Card": "카드 보기",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "브라우저",
   "ExternalApps_Category_Compression": "압축",
   "ExternalApps_Category_CustomizationUtilities": "사용자 지정 유틸리티",

@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "deur Memory",
   "Nav_SoftwareAndApps": "Sagteware & Toepassings",
@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Sekuriteit",
   "SettingGroup_Layout": "Uitleg",
   "SettingGroup_Start_Menu_Settings": "Beginlys Instellings",
- "SettingGroup_Start_Menu": "Beginlys",
+  "SettingGroup_Start_Menu": "Beginlys",
   "SettingGroup_Windows_Theme": "Windows Tema",
   "SettingGroup_Theme_Mode": "Tema modus",
   "SettingGroup_Transparency": "Deursigtigheid",
@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "Eksterne Sagteware",
   "ViewMode_Table": "Tabelaansig",
   "ViewMode_Card": "Kaartaansig",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "Blaaiers",
   "ExternalApps_Category_Compression": "Kompressie",
   "ExternalApps_Category_CustomizationUtilities": "Pasmaak Nutsmiddels",

@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "Memory作",
   "Nav_SoftwareAndApps": "ソフトウェアとアプリ",
@@ -163,7 +163,7 @@
   "SettingGroup_Security": "セキュリティ",
   "SettingGroup_Layout": "レイアウト",
   "SettingGroup_Start_Menu_Settings": "スタートメニュー設定",
- "SettingGroup_Start_Menu": "スタートメニュー",
+  "SettingGroup_Start_Menu": "スタートメニュー",
   "SettingGroup_Windows_Theme": "Windowsテーマ",
   "SettingGroup_Theme_Mode": "テーマモード",
   "SettingGroup_Transparency": "透明度",
@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "外部ソフトウェア",
   "ViewMode_Table": "テーブル表示",
   "ViewMode_Card": "カード表示",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "ブラウザ",
   "ExternalApps_Category_Compression": "圧縮",
   "ExternalApps_Category_CustomizationUtilities": "カスタマイズユーティリティ",

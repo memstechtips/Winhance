@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "Внешнее ПО",
   "ViewMode_Table": "Табличный вид",
   "ViewMode_Card": "Вид карточек",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "Браузеры",
   "ExternalApps_Category_Compression": "Сжатие",
   "ExternalApps_Category_CustomizationUtilities": "Утилиты настройки",

@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "von Memory",
   "Nav_SoftwareAndApps": "Software & Apps",
@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Sicherheit",
   "SettingGroup_Layout": "Layout",
   "SettingGroup_Start_Menu_Settings": "Startmenü-Einstellungen",
- "SettingGroup_Start_Menu": "Startmenü",
+  "SettingGroup_Start_Menu": "Startmenü",
   "SettingGroup_Windows_Theme": "Windows-Design",
   "SettingGroup_Theme_Mode": "Design-Modus",
   "SettingGroup_Transparency": "Transparenz",
@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "Externe Software",
   "ViewMode_Table": "Tabellenansicht",
   "ViewMode_Card": "Kartenansicht",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "Browser",
   "ExternalApps_Category_Compression": "Komprimierung",
   "ExternalApps_Category_CustomizationUtilities": "Anpassungs-Dienstprogramme",

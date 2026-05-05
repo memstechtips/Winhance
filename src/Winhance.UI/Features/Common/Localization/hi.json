@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "विनहान्स",
   "App_By": "मेमोरी द्वारा",
   "Nav_SoftwareAndApps": "सॉफ्टवेयर और ऐप्स",
@@ -163,7 +163,7 @@
   "SettingGroup_Security": "सुरक्षा",
   "SettingGroup_Layout": "लेआउट",
   "SettingGroup_Start_Menu_Settings": "स्टार्ट मेनू सेटिंग्स",
- "SettingGroup_Start_Menu": "स्टार्ट मेनू",
+  "SettingGroup_Start_Menu": "स्टार्ट मेनू",
   "SettingGroup_Windows_Theme": "विंडोज थीम",
   "SettingGroup_Theme_Mode": "थीम मोड",
   "SettingGroup_Transparency": "पारदर्शिता",
@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "बाहरी सॉफ़्टवेयर",
   "ViewMode_Table": "तालिका दृश्य",
   "ViewMode_Card": "कार्ड दृश्य",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "ब्राउज़र्स",
   "ExternalApps_Category_Compression": "संपीड़न",
   "ExternalApps_Category_CustomizationUtilities": "अनुकूलन उपयोगिताएँ",

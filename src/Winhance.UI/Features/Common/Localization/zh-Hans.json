@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "外部软件",
   "ViewMode_Table": "表格视图",
   "ViewMode_Card": "卡片视图",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "浏览器",
   "ExternalApps_Category_Compression": "压缩",
   "ExternalApps_Category_CustomizationUtilities": "自定义实用程序",

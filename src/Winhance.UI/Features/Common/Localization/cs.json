@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "od Memory",
   "Nav_SoftwareAndApps": "Software a aplikace",
@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Zabezpečení",
   "SettingGroup_Layout": "Rozložení",
   "SettingGroup_Start_Menu_Settings": "Nastavení nabídky Start",
- "SettingGroup_Start_Menu": "Nabídka Start",
+  "SettingGroup_Start_Menu": "Nabídka Start",
   "SettingGroup_Windows_Theme": "Motiv Windows",
   "SettingGroup_Theme_Mode": "Režim motivu",
   "SettingGroup_Transparency": "Průhlednost",
@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "Externí software",
   "ViewMode_Table": "Zobrazení tabulky",
   "ViewMode_Card": "Zobrazení karet",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "Prohlížeče",
   "ExternalApps_Category_Compression": "Komprese",
   "ExternalApps_Category_CustomizationUtilities": "Nástroje pro přizpůsobení",

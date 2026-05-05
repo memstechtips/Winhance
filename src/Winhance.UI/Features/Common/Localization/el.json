@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "από Memory",
   "Nav_SoftwareAndApps": "Λογισμικό & Εφαρμογές",
@@ -163,7 +163,7 @@
   "SettingGroup_Security": "Ασφάλεια",
   "SettingGroup_Layout": "Διάταξη",
   "SettingGroup_Start_Menu_Settings": "Ρυθμίσεις Μενού Έναρξης",
- "SettingGroup_Start_Menu": "Μενού Έναρξης",
+  "SettingGroup_Start_Menu": "Μενού Έναρξης",
   "SettingGroup_Windows_Theme": "Θέμα Windows",
   "SettingGroup_Theme_Mode": "Λειτουργία θέματος",
   "SettingGroup_Transparency": "Διαφάνεια",
@@ -1178,6 +1178,7 @@
   "SoftwareApps_Tab_ExternalApps": "Εξωτερικό Λογισμικό",
   "ViewMode_Table": "Προβολή πίνακα",
   "ViewMode_Card": "Προβολή καρτών",
+  "ViewMode_Compact": "Compact View",
   "ExternalApps_Category_Browsers": "Προγράμματα Περιήγησης",
   "ExternalApps_Category_Compression": "Συμπίεση",
   "ExternalApps_Category_CustomizationUtilities": "Βοηθητικά Προγράμματα Προσαρμογής",
