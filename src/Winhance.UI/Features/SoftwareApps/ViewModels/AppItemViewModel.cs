@@ -177,4 +177,19 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     }
 
     public string? WebsiteUrl => Definition.WebsiteUrl;
+
+    /// <summary>True when the app has a non-empty Description; drives Card-view visibility.</summary>
+    public bool HasDescription => !string.IsNullOrEmpty(Definition.Description);
+
+    /// <summary>True when the app has a WebsiteUrl; drives the website button's visibility (External Apps only in practice).</summary>
+    public bool HasWebsiteUrl => !string.IsNullOrEmpty(Definition.WebsiteUrl);
+
+    /// <summary>Optional uninstall warning shown beneath the description in Card view.</summary>
+    public string? UninstallWarning => Definition.UninstallWarning;
+
+    /// <summary>True when an UninstallWarning is set; drives the Card-view warning row.</summary>
+    public bool HasUninstallWarning => !string.IsNullOrEmpty(Definition.UninstallWarning);
+
+    /// <summary>True when the item cannot be reinstalled; drives the "Cannot reinstall" chip in Card view.</summary>
+    public bool ShowNonReinstallableChip => !Definition.CanBeReinstalled;
 }

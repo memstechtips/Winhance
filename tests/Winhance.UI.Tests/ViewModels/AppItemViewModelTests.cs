@@ -489,6 +489,83 @@ public class AppItemViewModelTests
     }
 
     // -------------------------------------------------------
+    // HasDescription / HasWebsiteUrl / UninstallWarning / HasUninstallWarning / ShowNonReinstallableChip
+    // -------------------------------------------------------
+
+    [Fact]
+    public void HasDescription_IsTrue_WhenDescriptionPresent()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "An app" };
+        var vm = CreateViewModel(def);
+        vm.HasDescription.Should().BeTrue();
+    }
+
+    [Fact]
+    public void HasDescription_IsFalse_WhenDescriptionNull()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = null! };
+        var vm = CreateViewModel(def);
+        vm.HasDescription.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasDescription_IsFalse_WhenDescriptionEmpty()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "" };
+        var vm = CreateViewModel(def);
+        vm.HasDescription.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasWebsiteUrl_IsTrue_WhenWebsiteSet()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", WebsiteUrl = "https://example.com" };
+        var vm = CreateViewModel(def);
+        vm.HasWebsiteUrl.Should().BeTrue();
+    }
+
+    [Fact]
+    public void HasWebsiteUrl_IsFalse_WhenWebsiteNull()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "" };
+        var vm = CreateViewModel(def);
+        vm.HasWebsiteUrl.Should().BeFalse();
+    }
+
+    [Fact]
+    public void UninstallWarning_FlowsThrough_FromDefinition()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", UninstallWarning = "Warning text" };
+        var vm = CreateViewModel(def);
+        vm.UninstallWarning.Should().Be("Warning text");
+        vm.HasUninstallWarning.Should().BeTrue();
+    }
+
+    [Fact]
+    public void HasUninstallWarning_IsFalse_WhenUnset()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "" };
+        var vm = CreateViewModel(def);
+        vm.HasUninstallWarning.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShowNonReinstallableChip_IsTrue_WhenCannotBeReinstalled()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = false };
+        var vm = CreateViewModel(def);
+        vm.ShowNonReinstallableChip.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ShowNonReinstallableChip_IsFalse_WhenCanBeReinstalled()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = true };
+        var vm = CreateViewModel(def);
+        vm.ShowNonReinstallableChip.Should().BeFalse();
+    }
+
+    // -------------------------------------------------------
     // HasIcon
     // -------------------------------------------------------
 
