@@ -41,6 +41,12 @@ public record ItemDefinition : BaseDefinition
     public string[]? DetectionPaths { get; init; }
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
+    /// <summary>
+    /// Optional warning text shown beneath the description in Card view when the
+    /// item carries a meaningful uninstall risk (e.g. Microsoft Edge: "Uninstalling
+    /// Edge may cause system instability"). Null/empty → no warning row rendered.
+    /// </summary>
+    public string? UninstallWarning { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
     /// <summary>
