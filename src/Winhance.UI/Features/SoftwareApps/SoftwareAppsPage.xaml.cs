@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.SoftwareApps;
@@ -119,26 +120,35 @@ public sealed partial class SoftwareAppsPage : Page
         return null;
     }
 
-    private void TableViewToggle_Click(object sender, RoutedEventArgs e)
-    {
-        if (!ViewModel.IsCardViewMode)
-        {
-            // Already in table mode — keep it checked
-            TableViewToggle.IsChecked = true;
-            return;
-        }
-        ViewModel.IsCardViewMode = false;
-    }
-
     private void CardViewToggle_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.IsCardViewMode)
+        if (ViewModel.IsCardView)
         {
-            // Already in card mode — keep it checked
+            // Already in this mode — keep the toggle visually pressed.
             CardViewToggle.IsChecked = true;
             return;
         }
-        ViewModel.IsCardViewMode = true;
+        ViewModel.ViewMode = SoftwareAppsViewMode.Card;
+    }
+
+    private void TableViewToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.IsTableView)
+        {
+            TableViewToggle.IsChecked = true;
+            return;
+        }
+        ViewModel.ViewMode = SoftwareAppsViewMode.Table;
+    }
+
+    private void CompactViewToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.IsCompactView)
+        {
+            CompactViewToggle.IsChecked = true;
+            return;
+        }
+        ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
     }
 
     private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)
