@@ -219,6 +219,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
+    public string ViewModeCompactTooltip => _localizationService.GetString("ViewMode_Compact");
 
     public string ReviewWindowsAppsBannerText
     {
@@ -313,6 +314,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(HelpButtonText));
         OnPropertyChanged(nameof(ViewModeTableTooltip));
         OnPropertyChanged(nameof(ViewModeCardTooltip));
+        OnPropertyChanged(nameof(ViewModeCompactTooltip));
         OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
         OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
     }
