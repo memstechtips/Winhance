@@ -664,7 +664,7 @@
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="WindowsAppsDataGrid"
                                            Grid.Row="1"
-                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                           Visibility="{x:Bind ViewModel.IsTableView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                            Loaded="WindowsAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
                                            AutoGenerateColumns="False"
@@ -778,8 +778,9 @@
                         </controls:DataGrid>
 
                         <!-- Card View for Windows Apps -->
-                        <ScrollViewer Grid.Row="1"
-                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <ScrollViewer x:Name="WindowsAppsCompactScrollViewer"
+                                      Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,0,0,12">
@@ -981,7 +982,7 @@
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="ExternalAppsDataGrid"
                                            Grid.Row="1"
-                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                           Visibility="{x:Bind ViewModel.IsTableView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                            Loaded="ExternalAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
                                            AutoGenerateColumns="False"
@@ -1092,8 +1093,9 @@
                         </controls:DataGrid>
 
                         <!-- Card View for External Apps -->
-                        <ScrollViewer Grid.Row="1"
-                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <ScrollViewer x:Name="ExternalAppsCompactScrollViewer"
+                                      Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,0,0,12">
