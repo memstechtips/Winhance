@@ -166,13 +166,21 @@ internal sealed class StartupUiCoordinator
             navSidebar.SelectedTag = "SoftwareApps";
             contentFrame.Navigate(typeof(SoftwareAppsPage), "startup");
 
-            // Wait for the SoftwareApps page to finish loading apps + installation status
+            // Block startup on Windows Apps only — those icons resolve fast (mostly
+            // local AppX). External Apps icon resolution hits Wikimedia, which can
+            // take tens of seconds on a cold burst; we kick that off in the
+            // background so the main window appears promptly. The External Apps
+            // tab has its own loading overlay (bound to ExternalAppsViewModel.IsLoading)
+            // that covers the user-clicks-tab-before-ready case.
             var page = contentFrame.Content as SoftwareAppsPage;
             if (page != null)
             {
-                StartupLogger.Log("StartupUiCoordinator", "Awaiting SoftwareApps initialization...");
-                await page.ViewModel.InitializeAsync();
-                StartupLogger.Log("StartupUiCoordinator", "SoftwareApps initialization complete");
+                StartupLogger.Log("StartupUiCoordinator", "Awaiting Windows Apps initialization...");
+                await page.ViewModel.InitializeWindowsAppsAsync();
+                StartupLogger.Log("StartupUiCoordinator", "Windows Apps initialization complete");
+
+                StartupLogger.Log("StartupUiCoordinator", "Kicking off External Apps initialization in background");
+                page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService!);
             }
         }
         catch (Exception ex)

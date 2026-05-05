@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -39,9 +40,46 @@ public class AppIconResolver : IAppIconResolver
     private const string IconFetchUserAgent = "Winhance/1.0 (+https://github.com/memstechtips/Winhance)";
     // Concurrency limit for the parallel network batches (IconSources fetches and
     // Store CDN lookups). Each entry costs at least one HTTP round-trip; running
-    // them parallel keeps cold-cache load times bounded. There's no upstream
-    // rate-limit pressure that would push this higher.
+    // them parallel keeps cold-cache load times bounded. Hosts known to rate-limit
+    // aggressive callers get an additional per-host cap below.
     private const int NetworkBatchConcurrency = 5;
+
+    // Per-host concurrency caps for hosts that throttle aggressive callers below
+    // the global limit. Wikimedia's upload CDN returns HTTP 429 on cold-start
+    // bursts when all slots of the global limit pile onto a single host (Layer 1
+    // piles its slots onto upload.wikimedia.org because that's where most icons
+    // live). Capping in-flight Wikimedia fetches at 2 stays comfortably below
+    // their documented soft limit (~5 RPS for an identified UA) while keeping
+    // cold start fast; any transient stragglers are picked up by the
+    // batch-level retry loop in ResolveBatchAsync. Static so the gate state is
+    // shared across all batches in the process. Never disposed — lifetime is
+    // the resolver class, not the batch call.
+    private static readonly IReadOnlyDictionary<string, SemaphoreSlim> PerHostGates =
+        new Dictionary<string, SemaphoreSlim>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["upload.wikimedia.org"] = new SemaphoreSlim(2, 2),
+        };
+
+    // 429 retry schedule for the batch-level Layer 1 retry loop. After the first
+    // pass through IconSources, any entry that 429'd at least once is retried in
+    // a follow-up pass with this delay in front of it. Schedule is escalating
+    // because Wikimedia's burst limiter usually clears in 1-3 s but a sustained
+    // throttle can stick for tens of seconds. The array length caps total
+    // attempts — after the last delay the loop gives up so the loading spinner
+    // eventually drops on a Wikimedia outage. Total worst case ~3 minutes.
+    private static readonly TimeSpan[] Layer1RetryDelays = new[]
+    {
+        TimeSpan.FromMilliseconds(1500),
+        TimeSpan.FromSeconds(3),
+        TimeSpan.FromSeconds(6),
+        TimeSpan.FromSeconds(10),
+        TimeSpan.FromSeconds(15),
+        TimeSpan.FromSeconds(20),
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromSeconds(30),
+    };
 
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
     // available asset/scale to this hint; 96 reliably returns the high-DPI
@@ -131,28 +169,40 @@ public class AppIconResolver : IAppIconResolver
             // and in parallel because URL fetches benefit from concurrency. Other
             // layers fall back only for entries where IconSources is unset or
             // every entry in the array missed.
+            //
+            // 429 handling: rate-limit responses are tracked per-entry in
+            // 'rateLimited'. After the first pass, any entry that 429'd and is
+            // still unresolved gets re-attempted in a follow-up pass with
+            // backoff (Layer1RetryDelays). Other failure modes (404/403/timeout)
+            // are NOT retried — they fall through to the lower layers as today.
             int sourcesAttempted = 0, sourcesResolved = 0;
             var sourceCandidates = candidates.Where(d => d.IconSources?.Length > 0).ToList();
 
             if (sourceCandidates.Count > 0)
             {
-                using var sem = new SemaphoreSlim(NetworkBatchConcurrency);
-                var tasks = sourceCandidates.Select(async def =>
+                var rateLimited = new ConcurrentDictionary<string, byte>();
+                sourcesAttempted = sourceCandidates.Count;
+                sourcesResolved += await RunLayer1PassAsync(sourceCandidates, rateLimited, ct).ConfigureAwait(false);
+
+                for (int attempt = 0; attempt < Layer1RetryDelays.Length; attempt++)
                 {
-                    await sem.WaitAsync(ct).ConfigureAwait(false);
-                    try
-                    {
-                        Interlocked.Increment(ref sourcesAttempted);
-                        if (await TryResolveFromIconSourcesAsync(def, ct).ConfigureAwait(false))
-                            Interlocked.Increment(ref sourcesResolved);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                    }
-                    finally { sem.Release(); }
-                });
-                await Task.WhenAll(tasks).ConfigureAwait(false);
+                    if (ct.IsCancellationRequested) break;
+
+                    var retryCandidates = sourceCandidates
+                        .Where(d => d.IconPath is null && rateLimited.ContainsKey(d.Id))
+                        .ToList();
+                    if (retryCandidates.Count == 0) break;
+
+                    _logService.LogInformation(
+                        $"AppIconResolver: Layer 1 retry pass {attempt + 1}/{Layer1RetryDelays.Length} — " +
+                        $"{retryCandidates.Count} entries still rate-limited, waiting {Layer1RetryDelays[attempt].TotalSeconds:0.0}s");
+
+                    try { await Task.Delay(Layer1RetryDelays[attempt], ct).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { break; }
+
+                    rateLimited.Clear();
+                    sourcesResolved += await RunLayer1PassAsync(retryCandidates, rateLimited, ct).ConfigureAwait(false);
+                }
             }
 
             // Layer 2: AppX (current user / all users / provisioned) — fallback for
@@ -249,7 +299,41 @@ public class AppIconResolver : IAppIconResolver
     /// <see cref="File.ReadAllBytesAsync(string, CancellationToken)"/> after env-var expansion.</description></item>
     /// </list>
     /// </summary>
-    private async Task<bool> TryResolveFromIconSourcesAsync(ItemDefinition def, CancellationToken ct)
+    /// <summary>
+    /// Runs one Layer 1 pass over the given candidates with parallel HTTP fetches
+    /// bounded by <see cref="NetworkBatchConcurrency"/>. Per-entry 429 outcomes
+    /// are recorded in <paramref name="rateLimited"/> so the caller can drive the
+    /// batch-level retry loop. Returns the count of entries that resolved on this pass.
+    /// </summary>
+    private async Task<int> RunLayer1PassAsync(
+        List<ItemDefinition> candidates,
+        ConcurrentDictionary<string, byte> rateLimited,
+        CancellationToken ct)
+    {
+        int resolved = 0;
+        using var sem = new SemaphoreSlim(NetworkBatchConcurrency);
+        var tasks = candidates.Select(async def =>
+        {
+            await sem.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                if (await TryResolveFromIconSourcesAsync(def, rateLimited, ct).ConfigureAwait(false))
+                    Interlocked.Increment(ref resolved);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+            }
+            finally { sem.Release(); }
+        });
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+        return resolved;
+    }
+
+    private async Task<bool> TryResolveFromIconSourcesAsync(
+        ItemDefinition def,
+        ConcurrentDictionary<string, byte> rateLimited,
+        CancellationToken ct)
     {
         var sources = def.IconSources;
         if (sources is null || sources.Length == 0) return false;
@@ -277,13 +361,22 @@ public class AppIconResolver : IAppIconResolver
 
             try
             {
-                byte[]? bytes = kind switch
+                byte[]? bytes;
+                if (kind == IconSourceKind.Url)
                 {
-                    IconSourceKind.Url => await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false),
-                    IconSourceKind.DataUri => DecodeBase64DataUri(source),
-                    IconSourceKind.LocalPath => await ReadLocalSourceBytesAsync(source, ct).ConfigureAwait(false),
-                    _ => null,
-                };
+                    var (b, wasRateLimited) = await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false);
+                    if (wasRateLimited) rateLimited.TryAdd(def.Id, 0);
+                    bytes = b;
+                }
+                else
+                {
+                    bytes = kind switch
+                    {
+                        IconSourceKind.DataUri => DecodeBase64DataUri(source),
+                        IconSourceKind.LocalPath => await ReadLocalSourceBytesAsync(source, ct).ConfigureAwait(false),
+                        _ => null,
+                    };
+                }
                 if (bytes is null || bytes.Length == 0) continue;
 
                 using var ms = new MemoryStream(bytes);
@@ -346,31 +439,72 @@ public class AppIconResolver : IAppIconResolver
     private static string Truncate(string s, int max) =>
         s.Length <= max ? s : s.Substring(0, max) + "...";
 
-    private async Task<byte[]?> FetchUrlBytesAsync(string url, ItemDefinition def, CancellationToken ct)
+    /// <summary>
+    /// Fetches the bytes for a URL IconSources entry. Returns
+    /// <c>(bytes, wasRateLimited)</c>. <c>wasRateLimited == true</c> means the
+    /// server returned HTTP 429 — the caller (TryResolveFromIconSourcesAsync)
+    /// records this so the batch-level retry loop in ResolveBatchAsync can
+    /// re-attempt the entry. Other failure modes (404, timeouts, network errors)
+    /// produce <c>(null, false)</c> and are not retried.
+    /// </summary>
+    private async Task<(byte[]? Bytes, bool WasRateLimited)> FetchUrlBytesAsync(
+        string url, ItemDefinition def, CancellationToken ct)
     {
-        if (_httpClient is null) return null;
+        if (_httpClient is null) return (null, false);
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        linked.CancelAfter(IconSourceFetchTimeout);
 
+        // Acquire the per-host gate BEFORE arming the per-fetch timeout. If we
+        // armed the timeout first, an entry queued behind a slow earlier fetch
+        // would burn its 8 s budget waiting for the gate to free up and then
+        // get cancelled with no network turn. Linking the wait to the parent
+        // cancellation token lets a batch-cancel still tear it down.
+        SemaphoreSlim? hostGate = null;
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && PerHostGates.TryGetValue(uri.Host, out var gate))
+        {
+            hostGate = gate;
+            await hostGate.WaitAsync(linked.Token).ConfigureAwait(false);
+        }
+
+        try
+        {
+            linked.CancelAfter(IconSourceFetchTimeout);
+
+            using var resp = await SendIconRequestAsync(url, linked.Token).ConfigureAwait(false);
+
+            if ((int)resp.StatusCode == 429)
+            {
+                _logService.LogInformation(
+                    $"IconSources URL returned HTTP 429 for {def.Id} ({def.Name}) <{url}>");
+                return (null, true);
+            }
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logService.LogInformation(
+                    $"IconSources URL returned HTTP {(int)resp.StatusCode} for {def.Id} ({def.Name}) <{url}>");
+                return (null, false);
+            }
+
+            await using var srcStream = await resp.Content.ReadAsStreamAsync(linked.Token).ConfigureAwait(false);
+            using var collector = new MemoryStream();
+            await srcStream.CopyToAsync(collector, linked.Token).ConfigureAwait(false);
+            return (collector.Length > 0 ? collector.ToArray() : null, false);
+        }
+        finally
+        {
+            hostGate?.Release();
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendIconRequestAsync(string url, CancellationToken ct)
+    {
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.UserAgent.ParseAdd(IconFetchUserAgent);
         req.Headers.Accept.ParseAdd("image/*");
-
-        using var resp = await _httpClient
-            .SendAsync(req, HttpCompletionOption.ResponseHeadersRead, linked.Token)
+        return await _httpClient!
+            .SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct)
             .ConfigureAwait(false);
-        if (!resp.IsSuccessStatusCode)
-        {
-            _logService.LogInformation(
-                $"IconSources URL returned HTTP {(int)resp.StatusCode} for {def.Id} ({def.Name}) <{url}>");
-            return null;
-        }
-
-        await using var srcStream = await resp.Content.ReadAsStreamAsync(linked.Token).ConfigureAwait(false);
-        using var collector = new MemoryStream();
-        await srcStream.CopyToAsync(collector, linked.Token).ConfigureAwait(false);
-        return collector.Length > 0 ? collector.ToArray() : null;
     }
 
     /// <summary>
