@@ -11,6 +11,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
+using Windows.System;
 
 namespace Winhance.UI.Features.SoftwareApps;
 
@@ -149,6 +150,21 @@ public sealed partial class SoftwareAppsPage : Page
             return;
         }
         ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
+    }
+
+    private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
+        {
+            try
+            {
+                await Launcher.LaunchUriAsync(new Uri(url));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to launch {url}: {ex.Message}");
+            }
+        }
     }
 
     private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)
