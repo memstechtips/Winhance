@@ -481,27 +481,38 @@
                     BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                     BorderThickness="1">
                 <StackPanel Orientation="Horizontal">
-                    <ToggleButton x:Name="TableViewToggle"
-                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
-                                  Click="TableViewToggle_Click"
-                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
-                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeTableTooltip}"
-                                  Background="Transparent"
-                                  BorderThickness="0"
-                                  CornerRadius="4,0,0,4"
-                                  Padding="10,6">
-                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="18"/>
-                    </ToggleButton>
                     <ToggleButton x:Name="CardViewToggle"
-                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay}"
+                                  IsChecked="{x:Bind ViewModel.IsCardView, Mode=OneWay}"
                                   Click="CardViewToggle_Click"
                                   ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCardTooltip}"
                                   AutomationProperties.Name="{x:Bind ViewModel.ViewModeCardTooltip}"
                                   Background="Transparent"
                                   BorderThickness="0"
-                                  CornerRadius="0,4,4,0"
+                                  CornerRadius="4,0,0,4"
                                   Padding="10,6">
                         <fluentIcons:FluentIcon Icon="Grid" IconVariant="Regular" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="TableViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsTableView, Mode=OneWay}"
+                                  Click="TableViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="0"
+                                  Padding="10,6">
+                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="CompactViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsCompactView, Mode=OneWay}"
+                                  Click="CompactViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCompactTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeCompactTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="0,4,4,0"
+                                  Padding="10,6">
+                        <fluentIcons:FluentIcon Icon="LineHorizontal3" IconVariant="Regular" FontSize="18"/>
                     </ToggleButton>
                 </StackPanel>
             </Border>
