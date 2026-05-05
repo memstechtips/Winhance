@@ -40,7 +40,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "winrar",
                         WebsiteUrl = "https://www.win-rar.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/WinRAR_icon.svg/256px-WinRAR_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/WinRAR_icon.svg/250px-WinRAR_icon.svg.png",
                             "https://www.win-rar.com/fileadmin/templates/logo-winrar.png",
                         ],
                     },
@@ -55,7 +55,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "peazip",
                         WebsiteUrl = "https://peazip.github.io/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Peazip_ico.svg/256px-Peazip_ico.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Peazip_ico.svg/250px-Peazip_ico.svg.png",
                         ],
                     },
                     new ItemDefinition

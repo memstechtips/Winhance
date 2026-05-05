@@ -27,7 +27,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.libreoffice.org/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/6/6f/Libreoffice_icon_mix.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/LibreOffice_7.5_Writer_Icon.svg/256px-LibreOffice_7.5_Writer_Icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/LibreOffice_7.5_Writer_Icon.svg/250px-LibreOffice_7.5_Writer_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -114,7 +114,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "adobereader",
                         WebsiteUrl = "https://www.adobe.com/acrobat/pdf-reader.html",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Adobe_Acrobat_DC_logo_2020.svg/256px-Adobe_Acrobat_DC_logo_2020.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Adobe_Acrobat_DC_logo_2020.svg/250px-Adobe_Acrobat_DC_logo_2020.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -128,7 +128,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "evernote",
                         WebsiteUrl = "https://evernote.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Evernote_Faenza.svg/256px-Evernote_Faenza.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Evernote_Faenza.svg/250px-Evernote_Faenza.svg.png",
                             "https://evernote.com/favicon.ico",
                         ],
                     },
@@ -158,7 +158,7 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "9N41MSQ1WNM8",
                         WebsiteUrl = "https://okular.kde.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Breezeicons-apps-48-okular.svg/256px-Breezeicons-apps-48-okular.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/c/c7/Okular.png",
                         ],
                     },
                     new ItemDefinition
@@ -186,7 +186,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "office365business",
                         WebsiteUrl = "https://www.microsoft.com/microsoft-365",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Microsoft_365_%282022%29.svg/256px-Microsoft_365_%282022%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Microsoft_365_%282022%29.svg/250px-Microsoft_365_%282022%29.svg.png",
                         ],
                     }
                 }

@@ -121,7 +121,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.rainmeter.net/",
                         IconSources = [
                             "https://raw.githubusercontent.com/rainmeter/rainmeter/master/Application/Rainmeter.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Rainmeter_Icon.svg/256px-Rainmeter_Icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Rainmeter_Icon.svg/250px-Rainmeter_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -172,7 +172,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://github.com/microsoft/PowerToys",
                         IconSources = [
                             "https://raw.githubusercontent.com/microsoft/PowerToys/main/installer/PowerToysSetupVNext/Images/logo.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/2020_PowerToys_Icon.svg/256px-2020_PowerToys_Icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/2020_PowerToys_Icon.svg/250px-2020_PowerToys_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -211,7 +211,7 @@ public static partial class ExternalAppDefinitions
                         },
                         IconSources = [
                             "https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/v2.0/source/resources/icon_main.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/256px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/250px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -229,7 +229,7 @@ public static partial class ExternalAppDefinitions
                         },
                         IconSources = [
                             "https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/alpha/source/resources/icon_main.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/256px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/250px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
                         ],
                     }
                 }

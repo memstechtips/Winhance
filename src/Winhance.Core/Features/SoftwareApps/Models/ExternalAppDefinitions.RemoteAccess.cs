@@ -56,7 +56,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.teamviewer.com/",
                         IconSources = [
                             "https://www.teamviewer.com/favicon.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/TeamViewer_logo.svg/256px-TeamViewer_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/TeamViewer_logo.svg/250px-TeamViewer_logo.svg.png",
                         ],
                     },
                     new ItemDefinition

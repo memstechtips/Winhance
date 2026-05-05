@@ -27,7 +27,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "steam",
                         WebsiteUrl = "https://store.steampowered.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/256px-Steam_icon_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/250px-Steam_icon_logo.svg.png",
                         ],
                     },
                     new ItemDefinition

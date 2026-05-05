@@ -39,7 +39,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "itunes",
                         WebsiteUrl = "https://www.apple.com/itunes/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/ITunes_logo.svg/256px-ITunes_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/ITunes_logo.svg/250px-ITunes_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -54,7 +54,7 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "9PCLLLH15SMT",
                         WebsiteUrl = "https://www.aimp.ru/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/AIMP_logo.svg/256px-AIMP_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/0/08/AIMP3_Logo.png",
                         ],
                     },
                     new ItemDefinition
@@ -95,7 +95,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.audacityteam.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/audacity/audacity/master/images/AudacityLogo.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Audacity_Logo.svg/256px-Audacity_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Audacity_Logo.svg/250px-Audacity_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -122,7 +122,7 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "9NCBCSZSJRSB",
                         WebsiteUrl = "https://www.spotify.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/256px-Spotify_logo_without_text.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/250px-Spotify_logo_without_text.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -164,7 +164,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://obsproject.com/",
                         IconSources = [
                             "https://obsproject.com/assets/images/new_icon_small-r.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/OBS_Studio_Logo.svg/256px-OBS_Studio_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/OBS_Studio_Logo.svg/250px-OBS_Studio_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -225,7 +225,7 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://www.capcut.com/activity/download_pc",
                         },
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Capcut-icon.svg/256px-Capcut-icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Capcut-icon.svg/250px-Capcut-icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -265,7 +265,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "mediainfo",
                         WebsiteUrl = "https://mediaarea.net/en/MediaInfo",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/MediaInfo_Logo.svg/256px-MediaInfo_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/MediaInfo_Logo.svg/250px-MediaInfo_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -293,7 +293,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.smplayer.info/",
                         IconSources = [
                             "https://raw.githubusercontent.com/smplayer-dev/smplayer/master/icons/smplayer_icon256.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/SMPlayer_icon.svg/256px-SMPlayer_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/SMPlayer_icon.svg/250px-SMPlayer_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -308,7 +308,7 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "9PLNFFL3P6LR",
                         WebsiteUrl = "https://www.shotcut.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Shotcut_logo.svg/256px-Shotcut_logo.svg.png",
+                            "https://raw.githubusercontent.com/mltframework/shotcut/master/icons/shotcut-logo-64.png",
                         ],
                     },
                     new ItemDefinition
@@ -322,7 +322,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "lossless-cut",
                         WebsiteUrl = "https://github.com/mifi/lossless-cut",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/LosslessCut_icon.svg/256px-LosslessCut_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/LosslessCut_icon.svg/250px-LosslessCut_icon.svg.png",
                         ],
                     },
                     new ItemDefinition

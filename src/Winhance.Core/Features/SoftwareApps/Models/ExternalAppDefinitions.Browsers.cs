@@ -28,7 +28,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "webview2-runtime",
                         WebsiteUrl = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Microsoft_Edge_logo_%282019%29.svg/512px-Microsoft_Edge_logo_%282019%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Microsoft_Edge_logo_%282019%29.svg/500px-Microsoft_Edge_logo_%282019%29.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -73,7 +73,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "firefox",
                         WebsiteUrl = "https://www.mozilla.org/firefox/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/512px-Firefox_logo%2C_2019.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/500px-Firefox_logo%2C_2019.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -86,7 +86,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "googlechrome",
                         WebsiteUrl = "https://www.google.com/chrome/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Google_Chrome_icon_%28February_2022%29.svg/512px-Google_Chrome_icon_%28February_2022%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Google_Chrome_icon_%28February_2022%29.svg/500px-Google_Chrome_icon_%28February_2022%29.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -100,7 +100,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "ungoogled-chromium",
                         WebsiteUrl = "https://github.com/ungoogled-software/ungoogled-chromium-windows",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Chromium_Logo.svg/256px-Chromium_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Chromium_Logo.svg/250px-Chromium_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -128,7 +128,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "opera",
                         WebsiteUrl = "https://www.opera.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Opera_2015_icon.svg/512px-Opera_2015_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Opera_2015_icon.svg/500px-Opera_2015_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -143,7 +143,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "opera-gx",
                         WebsiteUrl = "https://www.opera.com/gx",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Opera_GX_Icon.svg/512px-Opera_GX_Icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Opera_GX_Icon.svg/500px-Opera_GX_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -160,7 +160,7 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://releases.arc.net/windows/ArcInstaller.exe",
                         },
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Arc_%28browser%29_logo.svg/512px-Arc_%28browser%29_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Arc_%28browser%29_logo.svg/500px-Arc_%28browser%29_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -174,7 +174,7 @@ public static partial class ExternalAppDefinitions
                         DetectionPaths = [@"%USERPROFILE%\Desktop\Tor Browser"],
                         WebsiteUrl = "https://www.torproject.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Tor_Browser_icon.svg/256px-Tor_Browser_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Tor_Browser_icon.svg/250px-Tor_Browser_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -187,7 +187,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vivaldi",
                         WebsiteUrl = "https://vivaldi.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Vivaldi_web_browser_logo.svg/512px-Vivaldi_web_browser_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Vivaldi_web_browser_logo.svg/500px-Vivaldi_web_browser_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -202,7 +202,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "waterfox",
                         WebsiteUrl = "https://www.waterfox.net/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Waterfox_logo_2020_%28vectorized%29.svg/512px-Waterfox_logo_2020_%28vectorized%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Waterfox_logo_2020_%28vectorized%29.svg/500px-Waterfox_logo_2020_%28vectorized%29.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -218,7 +218,7 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://github.com/zen-browser/desktop/releases/latest/download/zen.installer.exe",
                         },
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Zen_Browser_logo_%28red_circles%29.svg/512px-Zen_Browser_logo_%28red_circles%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Zen_Browser_logo_%28red_circles%29.svg/500px-Zen_Browser_logo_%28red_circles%29.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -234,8 +234,8 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://mullvad.net/en/download/browser/win64/latest",
                         },
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Mullvad_Browser_logo.svg/512px-Mullvad_Browser_logo.svg.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Mullvad_logo.svg/512px-Mullvad_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Mullvad_Browser_logo.svg/500px-Mullvad_Browser_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Mullvad_logo.svg/500px-Mullvad_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -264,7 +264,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "maxthon",
                         WebsiteUrl = "https://www.maxthon.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maxthon_logo.svg/512px-Maxthon_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maxthon_logo.svg/500px-Maxthon_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -277,7 +277,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "floorp",
                         WebsiteUrl = "https://floorp.app/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Floorp_logo_without_text.svg/256px-Floorp_logo_without_text.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Floorp_logo_without_text.svg/250px-Floorp_logo_without_text.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -307,7 +307,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "librewolf",
                         WebsiteUrl = "https://librewolf.net/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/LibreWolf_icon.svg/512px-LibreWolf_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/LibreWolf_icon.svg/500px-LibreWolf_icon.svg.png",
                         ],
                     }
                 }

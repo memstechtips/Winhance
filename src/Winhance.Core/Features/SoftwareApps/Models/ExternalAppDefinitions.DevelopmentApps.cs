@@ -26,7 +26,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "python3",
                         WebsiteUrl = "https://www.python.org/",
                         IconSources = [
-                            "https://www.python.org/static/img/python-logo.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/250px-Python-logo-notext.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -95,7 +95,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "eclipse-java-oxygen",
                         WebsiteUrl = "https://eclipseide.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Eclipse-SVG.svg/256px-Eclipse-SVG.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Eclipse-SVG.svg/250px-Eclipse-SVG.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -109,7 +109,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vscode",
                         WebsiteUrl = "https://code.visualstudio.com/",
                         IconSources = [
-                            "https://raw.githubusercontent.com/microsoft/vscode/main/resources/win32/code.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Visual_Studio_Code_1.35_icon.svg/250px-Visual_Studio_Code_1.35_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -122,7 +122,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "git",
                         WebsiteUrl = "https://git-scm.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Git-logo.svg/256px-Git-logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Git_icon.svg/250px-Git_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -135,7 +135,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "github-desktop",
                         WebsiteUrl = "https://desktop.github.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/GitHub_Invertocat_Logo.svg/256px-GitHub_Invertocat_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Github-desktop-logo-symbol.svg/250px-Github-desktop-logo-symbol.svg.png",
                         ],
                     },
                     new ItemDefinition

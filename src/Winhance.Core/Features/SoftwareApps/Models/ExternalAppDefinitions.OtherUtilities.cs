@@ -152,8 +152,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "revo-uninstaller",
                         WebsiteUrl = "https://www.revouninstaller.com/products/revo-uninstaller-free/",
                         IconSources = [
-                            "https://www.revouninstaller.com/favicon.ico",
-                            "https://f057a20f961f56a72089-b74530d2d26278124f446233f95622ef.ssl.cf1.rackcdn.com/site/revo-uninstaller-logo-white.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/8/83/Revouninstallerpro_icon.png",
                         ],
                     },
                     new ItemDefinition

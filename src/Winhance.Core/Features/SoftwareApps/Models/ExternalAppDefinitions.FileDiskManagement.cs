@@ -27,7 +27,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://windirstat.net/",
                         IconSources = [
                             "https://raw.githubusercontent.com/windirstat/windirstat/master/windirstat/logos/logo_256px.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/WinDirStat_Logo_color.svg/256px-WinDirStat_Logo_color.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/WinDirStat_Logo_color.svg/250px-WinDirStat_Logo_color.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -54,10 +54,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["JAMSoftware.TreeSize.Free"],
                         ChocoPackageId = "treesizefree",
+                        MsStoreId = "XPDDXV3SD1SB5K",
                         WebsiteUrl = "https://www.jam-software.com/treesize_free",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/b/bd/TreeSize-Icon-256.png",
-                            "https://www.jam-software.com/favicon.ico",
                         ],
                     },
                     new ItemDefinition
@@ -174,7 +174,7 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://sddashboarddownloads.sandisk.com/wdDashboard/DashboardSetup.exe",
                         },
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/SanDisk_2024_logo.svg/256px-SanDisk_2024_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/SanDisk_2024_logo.svg/250px-SanDisk_2024_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -205,8 +205,7 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "XP9MD3S1KFCPH1",
                         WebsiteUrl = "https://www.advancedrenamer.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/en/0/06/Advanced_Renamer_logo.png",
-                            "https://www.advancedrenamer.com/favicon.ico",
+                            "https://www.advancedrenamer.com/pic/arenlogo_1024.png",
                         ],
                     },
                     new ItemDefinition

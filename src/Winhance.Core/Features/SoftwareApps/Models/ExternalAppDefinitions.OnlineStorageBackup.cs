@@ -26,7 +26,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "googledrive",
                         WebsiteUrl = "https://www.google.com/drive/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Google_Drive_icon_%282020%29.svg/512px-Google_Drive_icon_%282020%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Google_Drive_icon_%282020%29.svg/500px-Google_Drive_icon_%282020%29.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -39,7 +39,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dropbox",
                         WebsiteUrl = "https://www.dropbox.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Dropbox_Icon.svg/512px-Dropbox_Icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Dropbox_Icon.svg/500px-Dropbox_Icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -66,7 +66,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://nextcloud.com/",
                         IconSources = [
                             "https://raw.githubusercontent.com/nextcloud/desktop/master/theme/colored/Nextcloud-w10starttile.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Nextcloud_Logo.svg/512px-Nextcloud_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Nextcloud_Logo.svg/500px-Nextcloud_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -80,7 +80,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://proton.me/drive",
                         IconSources = [
                             "https://raw.githubusercontent.com/ProtonDriveApps/windows-drive/main/assets/ProtonDrive.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Proton_Drive_Logo.svg/512px-Proton_Drive_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Proton_Drive_Logo.svg/500px-Proton_Drive_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -110,9 +110,7 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://hekasoft.com/?download=112",
                             FallbackDownloadUrl = "https://hekasoft.com/?download=612",
                         },
-                        IconSources = [
-                            "https://hekasoft.com/wp-content/uploads/2026/03/hekasoft_logo.png",
-                        ],
+                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                 }
             };

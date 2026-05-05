@@ -107,7 +107,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "directx",
                         WebsiteUrl = "https://www.microsoft.com/en-us/download/details.aspx?id=35",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Microsoft-DirectX-Logo-wordmark.svg/256px-Microsoft-DirectX-Logo-wordmark.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Microsoft-DirectX-Logo-wordmark.svg/250px-Microsoft-DirectX-Logo-wordmark.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -121,7 +121,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "jre8",
                         WebsiteUrl = "https://www.oracle.com/java/technologies/downloads/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/fr/thumb/2/2e/Java_Logo.svg/256px-Java_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/fr/thumb/2/2e/Java_Logo.svg/250px-Java_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition

@@ -26,7 +26,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://telegram.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/telegramdesktop/tdesktop/v6.7.5/Telegram/Resources/art/icon256.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/512px-Telegram_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/500px-Telegram_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -55,7 +55,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://zoom.us/",
                         IconSources = [
                             "https://st1.zoom.us/zoom.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Zoom_Communications_Logo.svg/512px-Zoom_Communications_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Zoom_Communications_Logo.svg/500px-Zoom_Communications_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -86,7 +86,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "pidgin",
                         WebsiteUrl = "https://pidgin.im/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Pidgin.svg/256px-Pidgin.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Pidgin.svg/250px-Pidgin.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -102,7 +102,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.thunderbird.net/",
                         IconSources = [
                             "https://www.thunderbird.net/media/img/thunderbird/favicon-196.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Thunderbird_2023_icon.svg/256px-Thunderbird_2023_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Thunderbird_2023_icon.svg/250px-Thunderbird_2023_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -116,7 +116,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.emclient.com/",
                         IconSources = [
                             "https://www.emclient.com/favicon.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/EM_Client_logo.svg/256px-EM_Client_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/EM_Client_logo.svg/250px-EM_Client_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -129,7 +129,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "protonmail",
                         WebsiteUrl = "https://proton.me/mail",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/ProtonMail_icon.svg/256px-ProtonMail_icon.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/ProtonMail_icon.svg/250px-ProtonMail_icon.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -157,7 +157,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "element-desktop",
                         WebsiteUrl = "https://element.io/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Element_%28software%29_logo_%282024%29.svg/256px-Element_%28software%29_logo_%282024%29.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Element_%28software%29_logo_%282024%29.svg/250px-Element_%28software%29_logo_%282024%29.svg.png",
                         ],
                     }
                 }

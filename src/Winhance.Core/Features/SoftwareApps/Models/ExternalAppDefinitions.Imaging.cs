@@ -25,7 +25,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "irfanview",
                         WebsiteUrl = "https://www.irfanview.com/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/IrfanView_Logo2.svg/256px-IrfanView_Logo2.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/IrfanView_Logo2.svg/250px-IrfanView_Logo2.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -40,7 +40,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://krita.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/KDE/krita/master/krita/pics/branding/krita.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Calligrakrita-base.svg/256px-Calligrakrita-base.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Calligrakrita-base.svg/250px-Calligrakrita-base.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -54,7 +54,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.blender.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/blender/blender/main/release/windows/icons/winblender.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Logo_Blender.svg/256px-Logo_Blender.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Logo_Blender.svg/250px-Logo_Blender.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -81,7 +81,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "gimp",
                         WebsiteUrl = "https://www.gimp.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/The_GIMP_icon_-_v3.0.svg/256px-The_GIMP_icon_-_v3.0.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/The_GIMP_icon_-_v3.0.svg/250px-The_GIMP_icon_-_v3.0.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -123,7 +123,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "inkscape",
                         WebsiteUrl = "https://inkscape.org/",
                         IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Inkscape_Logo.svg/256px-Inkscape_Logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Inkscape_Logo.svg/250px-Inkscape_Logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -138,7 +138,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://getgreenshot.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/greenshot/greenshot/main/src/Greenshot/icons/applicationIcon/90.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Greenshot_logo.svg/256px-Greenshot_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Greenshot_logo.svg/250px-Greenshot_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
@@ -166,7 +166,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://flameshot.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/flameshot-org/flameshot/master/data/img/app/org.flameshot.Flameshot-1024.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flameshot_logo.svg/256px-Flameshot_logo.svg.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flameshot_logo.svg/250px-Flameshot_logo.svg.png",
                         ],
                     },
                     new ItemDefinition
