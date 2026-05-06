@@ -50,7 +50,12 @@
              still get 7+ columns of single-line rows on a wide screen. -->
         <x:Double x:Key="CompactItemMinWidth">320</x:Double>
         <x:Double x:Key="CardViewIconSize">36</x:Double>
-        <x:Double x:Key="CardViewFallbackFontSize">22</x:Double>
+        <!-- Fallback glyph FontSize. Real card icons fill the 36×36 container,
+             FontIcons render ~70-75% of their FontSize as visible glyph, so 28
+             lands the visible glyph at ~20px — close enough to read alongside
+             the real icons without overflowing the container. Bump if FontIcon
+             fallbacks (puzzle/gear) still look small next to resolved app art. -->
+        <x:Double x:Key="CardViewFallbackFontSize">28</x:Double>
         <CornerRadius x:Key="CardViewCornerRadius">8</CornerRadius>
         <Thickness x:Key="CardViewPadding">12,10</Thickness>
 
