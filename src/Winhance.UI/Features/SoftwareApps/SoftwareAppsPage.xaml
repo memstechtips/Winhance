@@ -38,16 +38,16 @@
         <x:Double x:Key="CardAppsIconSize">26</x:Double>
         <x:Double x:Key="DataGridAppsIconSize">22</x:Double>
 
-        <!-- Card-view minimum column width. UniformWrapPanel divides the
-             available row width by this to pick the column count, then
-             stretches each cell to fill the leftover space.
-                 cols = floor((panel_width + ColumnSpacing) / (MinItemWidth + ColumnSpacing))
-             Bigger value → fewer, wider cards. Rough targets:
-                 panel ~2300 wide  →  360→6 cols, 420→5 cols, 520→4 cols
-                 panel ~2560 wide  →  360→7 cols, 420→6 cols, 520→4 cols. -->
-        <x:Double x:Key="CardItemMinWidth">420</x:Double>
-        <!-- Compact view item width — tiny single-line rows, kept narrower than
-             the Card view so we still get 7+ columns on a wide screen. -->
+        <!-- Card-view cell width (fixed). UniformWrapPanel renders every cell
+             at exactly this width and wraps when the next cell would overflow,
+             so cards never grow as you widen the window — leftover row space
+             is just empty padding on the right. Column count:
+                 cols = floor((panel_width + ColumnSpacing) / (CardItemWidth + ColumnSpacing))
+             Bigger value → fewer columns. -->
+        <x:Double x:Key="CardItemWidth">420</x:Double>
+        <!-- Compact view's UniformGridLayout still uses MinItemWidth semantics
+             (it stretches to fill). Kept narrower than the Card view so we
+             still get 7+ columns of single-line rows on a wide screen. -->
         <x:Double x:Key="CompactItemMinWidth">320</x:Double>
         <x:Double x:Key="CardViewIconSize">36</x:Double>
         <x:Double x:Key="CardViewFallbackFontSize">22</x:Double>
@@ -1091,14 +1091,14 @@
                                     <!-- Non-virtualising ItemsControl + custom UniformWrapPanel.
                                          ItemsRepeater + UniformGridLayout produced a measure cycle
                                          that snapped the outer ScrollViewer to the top. UniformWrapPanel
-                                         keeps the responsive width (cells stretch to fill the row,
-                                         column count derives from MinItemWidth) without the cycle. -->
+                                         renders every cell at exactly CardItemWidth, wrapping when
+                                         the next would overflow — predictable, no cycle. -->
                                     <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}"
                                                   ItemTemplate="{StaticResource AppCardTemplate}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <winhanceControls:UniformWrapPanel
-                                                    MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                    ItemWidth="{StaticResource CardItemWidth}"
                                                     ItemHeight="{StaticResource CardCellHeight}"
                                                     ColumnSpacing="8"
                                                     RowSpacing="8"/>
@@ -1117,7 +1117,7 @@
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <winhanceControls:UniformWrapPanel
-                                                    MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                    ItemWidth="{StaticResource CardItemWidth}"
                                                     ItemHeight="{StaticResource CardCellHeight}"
                                                     ColumnSpacing="8"
                                                     RowSpacing="8"/>
@@ -1136,7 +1136,7 @@
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <winhanceControls:UniformWrapPanel
-                                                    MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                    ItemWidth="{StaticResource CardItemWidth}"
                                                     ItemHeight="{StaticResource CardCellHeight}"
                                                     ColumnSpacing="8"
                                                     RowSpacing="8"/>
@@ -1497,7 +1497,7 @@
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
                                                             <winhanceControls:UniformWrapPanel
-                                                                MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                                ItemWidth="{StaticResource CardItemWidth}"
                                                                 ItemHeight="{StaticResource CardCellHeight}"
                                                                 ColumnSpacing="8"
                                                                 RowSpacing="8"/>

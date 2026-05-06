@@ -6,27 +6,26 @@ using Windows.Foundation;
 namespace Winhance.UI.Features.Common.Controls;
 
 /// <summary>
-/// Non-virtualising panel that lays children out in a wrapping grid: items
-/// stretch horizontally to fill the available width (column count derives from
-/// MinItemWidth), and every cell is the same fixed ItemHeight. Used as the
-/// ItemsPanel for the Software &amp; Apps card view — replaces the Itempart
-/// pairing of ItemsRepeater + UniformGridLayout (which produced a measure
-/// cycle that snapped the outer ScrollViewer back to the top) without giving
-/// up the responsive width that VariableSizedWrapGrid lacks.
+/// Non-virtualising panel that lays children out in a wrapping grid: every
+/// cell is exactly ItemWidth × ItemHeight, items wrap when the next cell
+/// would overflow the available width, and any leftover row space is left
+/// as empty padding. Used as the ItemsPanel for the Software &amp; Apps card
+/// view — replaces ItemsRepeater + UniformGridLayout (which produced a
+/// measure cycle that snapped the outer ScrollViewer back to the top).
 /// </summary>
 public sealed partial class UniformWrapPanel : Panel
 {
-    public static readonly DependencyProperty MinItemWidthProperty =
+    public static readonly DependencyProperty ItemWidthProperty =
         DependencyProperty.Register(
-            nameof(MinItemWidth),
+            nameof(ItemWidth),
             typeof(double),
             typeof(UniformWrapPanel),
             new PropertyMetadata(0.0, OnLayoutPropertyChanged));
 
-    public double MinItemWidth
+    public double ItemWidth
     {
-        get => (double)GetValue(MinItemWidthProperty);
-        set => SetValue(MinItemWidthProperty, value);
+        get => (double)GetValue(ItemWidthProperty);
+        set => SetValue(ItemWidthProperty, value);
     }
 
     public static readonly DependencyProperty ItemHeightProperty =
@@ -81,10 +80,10 @@ public sealed partial class UniformWrapPanel : Panel
 
         double availableWidth = availableSize.Width;
         if (double.IsInfinity(availableWidth) || double.IsNaN(availableWidth) || availableWidth <= 0)
-            availableWidth = MinItemWidth > 0 ? MinItemWidth * count : 0;
+            availableWidth = ItemWidth > 0 ? ItemWidth * count : 0;
 
         int columns = ComputeColumnCount(availableWidth);
-        double cellWidth = ComputeCellWidth(availableWidth, columns);
+        double cellWidth = ItemWidth > 0 ? ItemWidth : availableWidth / Math.Max(1, columns);
         double cellHeight = ItemHeight > 0 ? ItemHeight : 0;
 
         var childAvailable = new Size(
@@ -107,7 +106,7 @@ public sealed partial class UniformWrapPanel : Panel
             return finalSize;
 
         int columns = ComputeColumnCount(finalSize.Width);
-        double cellWidth = ComputeCellWidth(finalSize.Width, columns);
+        double cellWidth = ItemWidth > 0 ? ItemWidth : finalSize.Width / Math.Max(1, columns);
         double cellHeight = ItemHeight > 0 ? ItemHeight : MaxChildDesiredHeight();
 
         for (int i = 0; i < count; i++)
@@ -135,19 +134,12 @@ public sealed partial class UniformWrapPanel : Panel
 
     private int ComputeColumnCount(double availableWidth)
     {
-        if (MinItemWidth <= 0)
+        if (ItemWidth <= 0)
             return Math.Max(1, Children.Count);
 
         double effective = availableWidth + ColumnSpacing;
-        double per = MinItemWidth + ColumnSpacing;
+        double per = ItemWidth + ColumnSpacing;
         int columns = (int)Math.Floor(effective / per);
         return Math.Max(1, columns);
-    }
-
-    private double ComputeCellWidth(double availableWidth, int columns)
-    {
-        if (columns <= 0)
-            return availableWidth;
-        return (availableWidth - Math.Max(0, columns - 1) * ColumnSpacing) / columns;
     }
 }
