@@ -16,9 +16,9 @@
     <Page.Resources>
         <!-- ============================================================
              Icon sizing knobs (Software & Apps → Windows Apps tab)
-             Change these to resize the app-icon column. The four templates
-             below (3 Card-view ItemsRepeaters + 1 DataGrid Name column)
-             all bind to these resources, so a single edit propagates.
+             Change these to resize the app-icon column. The shared card
+             template, the Compact ItemsRepeaters, and the DataGrid Name
+             column all bind to these resources, so a single edit propagates.
              FontIcon size is the fallback glyph that shows when no real
              icon is resolved; ~half the IconSize is a good default.
              Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
@@ -50,17 +50,123 @@
         <Thickness x:Key="CardViewPadding">12,10</Thickness>
 
         <!-- Card view: every card renders at this fixed inner-grid height regardless
-             of description length or pill count. Equal heights matter both visually
-             (rows align across the grid) and for layout stability — UniformGridLayout
-             treats each row as the tallest item, so variable-height cards used to
-             cause the outer ScrollViewer to mis-measure and snap back to top. -->
-        <x:Double x:Key="CardContentHeight">62</x:Double>
+             of description length or pill count. Equal heights are required by
+             VariableSizedWrapGrid (which uses ItemHeight as a fixed cell size) and
+             keep description wrapping from changing per-card layout. -->
+        <x:Double x:Key="CardContentHeight">82</x:Double>
+        <!-- Total cell height including Border padding (10 top + 10 bottom) and
+             border thickness (1+1). Card content (82) + 22 = 104. Plus a small
+             margin so cards aren't flush. -->
+        <x:Double x:Key="CardCellHeight">108</x:Double>
         <!-- Pill geometry. CornerRadius is set high enough to fully round the ends
              at the rendered pill height (~18px), but kept finite so it clips
              cleanly at HiDPI scales (CornerRadius=999 can render with subpixel
              artefacts on the inner border). -->
         <CornerRadius x:Key="CardPillCornerRadius">10</CornerRadius>
         <Thickness x:Key="CardPillPadding">8,2</Thickness>
+
+        <!-- Card-view selection target. Wrapping the whole card in a templated
+             ToggleButton is what makes "click anywhere on the card" reliably
+             toggle selection — Border + Tapped from the data template was
+             not firing in this hierarchy (ItemsRepeater + StackPanel + ScrollViewer).
+             The ToggleButton's IsChecked is bound two-way to AppItemViewModel.IsSelected,
+             so the inner CheckBox visual indicator only needs OneWay binding and
+             can stay IsHitTestVisible=False (no double-toggle). -->
+        <Style x:Key="CardToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="UseSystemFocusVisuals" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="CardBorder"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource CardViewCornerRadius}"
+                                Padding="{StaticResource CardViewPadding}">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Opacity" To="0.5" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Checked">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderThickness">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="2"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderThickness">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="2"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderThickness">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="2"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedDisabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Opacity" To="0.5" Duration="0"/>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- First column header: left-rounded corners with select-all checkbox -->
         <Style x:Key="FirstColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
@@ -405,29 +511,25 @@
         </Style>
 
         <DataTemplate x:Key="AppCardTemplate" x:DataType="vm:AppItemViewModel">
-            <!-- Outer Border is the click target. Tapped bubbles up from inner
-                 controls (CheckBox, website Button, Warning pill) but those
-                 controls mark Tapped as handled, so clicking them does NOT
-                 fall through to toggle selection. -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{StaticResource CardViewCornerRadius}"
-                    Padding="{StaticResource CardViewPadding}"
-                    Tapped="Card_Tapped">
+            <!-- Wrap the whole card in a templated ToggleButton so clicking
+                 anywhere on it toggles selection. ToggleButton.IsChecked
+                 binds two-way to IsSelected; the inner CheckBox is purely a
+                 visual indicator (IsHitTestVisible=False, OneWay). -->
+            <ToggleButton IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                          Style="{StaticResource CardToggleButtonStyle}"
+                          AutomationProperties.Name="{x:Bind Name}">
                 <Grid ColumnSpacing="12" Height="{StaticResource CardContentHeight}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <CheckBox Grid.Column="0"
-                              IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                              IsChecked="{x:Bind IsSelected, Mode=OneWay}"
+                              IsHitTestVisible="False"
                               MinWidth="0"
-                              VerticalAlignment="Center"
-                              AutomationProperties.Name="{x:Bind Name}"/>
+                              VerticalAlignment="Center"/>
 
                     <Grid Grid.Column="1"
                           Width="{StaticResource CardViewIconSize}"
@@ -449,16 +551,21 @@
                                   Visibility="{x:Bind IsOptionalFeatureFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </Grid>
 
-                    <Grid Grid.Column="2" VerticalAlignment="Center" MinWidth="0">
+                    <Grid Grid.Column="2" VerticalAlignment="Stretch" MinWidth="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="32"/>
+                            <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <Grid Grid.Row="0" ColumnSpacing="6">
+
+                        <!-- Title row: name on the left (truncates with ellipsis when long),
+                             all pills + the website button packed into a right-anchored
+                             StackPanel. StackPanel.Spacing only applies between visible
+                             children, so collapsed pills leave no dead space between them
+                             and the right edge — the row stays tight regardless of which
+                             optional pills render. -->
+                        <Grid Grid.Row="0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
@@ -466,65 +573,80 @@
                                        FontWeight="SemiBold"
                                        FontSize="14"
                                        TextTrimming="CharacterEllipsis"
+                                       Margin="0,0,6,0"
                                        VerticalAlignment="Center"/>
-                            <Border Grid.Column="1"
-                                    Visibility="{x:Bind IsInstalled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
-                                    BorderBrush="{ThemeResource SystemFillColorSuccessBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{StaticResource CardPillCornerRadius}"
-                                    Padding="{StaticResource CardPillPadding}"
-                                    VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                    <FontIcon Glyph="&#xE73E;" FontSize="10"
-                                              Foreground="{ThemeResource SystemFillColorSuccessBrush}"
-                                              VerticalAlignment="Center"/>
-                                    <TextBlock Text="{x:Bind InstalledStatusText, Mode=OneWay}"
-                                               Foreground="{ThemeResource SystemFillColorSuccessBrush}"
-                                               FontSize="11"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="2"
-                                    Visibility="{x:Bind ShowNonReinstallableChip, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
-                                    BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{StaticResource CardPillCornerRadius}"
-                                    Padding="{StaticResource CardPillPadding}"
-                                    VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                    <FontIcon Glyph="&#xE7BA;" FontSize="10"
-                                              Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                              VerticalAlignment="Center"/>
-                                    <TextBlock Text="{x:Bind ReinstallableStatusText, Mode=OneWay}"
-                                               Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                               FontSize="11"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                            <!-- Amber Warning pill: shown when the item is flagged as carrying
-                                 an uninstall risk (e.g. Edge). Tooltip shows a generic, reusable
-                                 instability message rather than per-item text. -->
-                            <Border Grid.Column="3"
-                                    Visibility="{x:Bind HasInstabilityWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
-                                    BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{StaticResource CardPillCornerRadius}"
-                                    Padding="{StaticResource CardPillPadding}"
-                                    VerticalAlignment="Center"
-                                    ToolTipService.ToolTip="{x:Bind InstabilityWarningTooltip, Mode=OneWay}">
-                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                    <FontIcon Glyph="&#xE7BA;" FontSize="10"
-                                              Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                              VerticalAlignment="Center"/>
-                                    <TextBlock Text="{x:Bind InstabilityWarningLabel, Mode=OneWay}"
-                                               Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                               FontSize="11"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="6"
+                                        VerticalAlignment="Center">
+                                <Border Visibility="{x:Bind IsInstalled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                                        BorderBrush="{ThemeResource SystemFillColorSuccessBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource CardPillCornerRadius}"
+                                        Padding="{StaticResource CardPillPadding}"
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                        <FontIcon Glyph="&#xE73E;" FontSize="10"
+                                                  Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                                  VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind InstalledStatusText, Mode=OneWay}"
+                                                   Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Visibility="{x:Bind ShowNonReinstallableChip, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                                        BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource CardPillCornerRadius}"
+                                        Padding="{StaticResource CardPillPadding}"
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="10"
+                                                  Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                  VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind ReinstallableStatusText, Mode=OneWay}"
+                                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Amber Warning pill — BadgeCustom* brushes are an orange-amber,
+                                     visually distinct from the yellow Caution (Cannot Reinstall)
+                                     pill so the two don't blur together. Tooltip is a generic
+                                     instability message reusable across packages. -->
+                                <Border Visibility="{x:Bind HasInstabilityWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Background="{ThemeResource BadgeCustomBackground}"
+                                        BorderBrush="{ThemeResource BadgeCustomBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource CardPillCornerRadius}"
+                                        Padding="{StaticResource CardPillPadding}"
+                                        VerticalAlignment="Center"
+                                        ToolTipService.ToolTip="{x:Bind InstabilityWarningTooltip, Mode=OneWay}">
+                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="10"
+                                                  Foreground="{ThemeResource BadgeCustomForeground}"
+                                                  VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind InstabilityWarningLabel, Mode=OneWay}"
+                                                   Foreground="{ThemeResource BadgeCustomForeground}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <Button Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4"
+                                        MinWidth="0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{x:Bind HasWebsiteUrl, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Click="WebsiteButton_Click"
+                                        Tag="{x:Bind WebsiteUrl}"
+                                        ToolTipService.ToolTip="{x:Bind WebsiteUrl}">
+                                    <FontIcon Glyph="&#xE71B;" FontSize="14"/>
+                                </Button>
+                            </StackPanel>
                         </Grid>
 
                         <TextBlock Grid.Row="1"
@@ -533,25 +655,13 @@
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap"
                                    TextTrimming="CharacterEllipsis"
-                                   MaxLines="2"
+                                   MaxLines="3"
                                    VerticalAlignment="Top"
-                                   Margin="0,2,0,0"
+                                   Margin="0,4,0,0"
                                    Visibility="{x:Bind HasDescription, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </Grid>
-
-                    <Button Grid.Column="3"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="6"
-                            VerticalAlignment="Center"
-                            Visibility="{x:Bind HasWebsiteUrl, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                            Click="WebsiteButton_Click"
-                            Tag="{x:Bind WebsiteUrl}"
-                            ToolTipService.ToolTip="{x:Bind WebsiteUrl}">
-                        <FontIcon Glyph="&#xE71B;" FontSize="14"/>
-                    </Button>
                 </Grid>
-            </Border>
+            </ToggleButton>
         </DataTemplate>
     </Page.Resources>
 
@@ -970,16 +1080,22 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}"
-                                                   ItemTemplate="{StaticResource AppCardTemplate}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
-                                                               MaximumRowsOrColumns="5"
-                                                               ItemsStretch="Fill"
-                                                               MinColumnSpacing="8"
-                                                               MinRowSpacing="8"/>
-                                        </ItemsRepeater.Layout>
-                                    </ItemsRepeater>
+                                    <!-- Switched ItemsRepeater → ItemsControl + VariableSizedWrapGrid.
+                                         ItemsRepeater inside StackPanel inside ScrollViewer was
+                                         producing a measure cycle that immediately reset scroll
+                                         offset to 0 (the bug Marco hit even when dragging the
+                                         scroll thumb). VariableSizedWrapGrid lays out non-virtualised
+                                         children at fixed cell size — no viewport feedback loop. -->
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}"
+                                                  ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VariableSizedWrapGrid Orientation="Horizontal"
+                                                                       ItemWidth="{StaticResource CardItemMinWidth}"
+                                                                       ItemHeight="{StaticResource CardCellHeight}"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <!-- Capabilities Section -->
@@ -987,16 +1103,16 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}"
-                                                   ItemTemplate="{StaticResource AppCardTemplate}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
-                                                               MaximumRowsOrColumns="5"
-                                                               ItemsStretch="Fill"
-                                                               MinColumnSpacing="8"
-                                                               MinRowSpacing="8"/>
-                                        </ItemsRepeater.Layout>
-                                    </ItemsRepeater>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}"
+                                                  ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VariableSizedWrapGrid Orientation="Horizontal"
+                                                                       ItemWidth="{StaticResource CardItemMinWidth}"
+                                                                       ItemHeight="{StaticResource CardCellHeight}"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <!-- Optional Features Section -->
@@ -1004,16 +1120,16 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}"
-                                                   ItemTemplate="{StaticResource AppCardTemplate}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
-                                                               MaximumRowsOrColumns="5"
-                                                               ItemsStretch="Fill"
-                                                               MinColumnSpacing="8"
-                                                               MinRowSpacing="8"/>
-                                        </ItemsRepeater.Layout>
-                                    </ItemsRepeater>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}"
+                                                  ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VariableSizedWrapGrid Orientation="Horizontal"
+                                                                       ItemWidth="{StaticResource CardItemMinWidth}"
+                                                                       ItemHeight="{StaticResource CardCellHeight}"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
                                 </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
@@ -1353,28 +1469,30 @@
                                               Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
                                 </StackPanel>
 
-                                <!-- Categories with apps inside -->
-                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
-                                    <ItemsRepeater.ItemTemplate>
+                                <!-- Categories with apps inside. Both repeaters switched to
+                                     ItemsControl + VariableSizedWrapGrid for the same scroll-cycle
+                                     reason as the Windows Apps card view above. -->
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Spacing="8" Margin="0,0,0,12">
                                                 <TextBlock Text="{Binding DisplayName}"
                                                            Style="{StaticResource SubtitleTextBlockStyle}"
                                                            FontWeight="SemiBold"/>
-                                                <ItemsRepeater ItemsSource="{Binding Apps}"
-                                                               ItemTemplate="{StaticResource AppCardTemplate}">
-                                                    <ItemsRepeater.Layout>
-                                                        <UniformGridLayout MinItemWidth="{StaticResource CardItemMinWidth}"
-                                                                           MaximumRowsOrColumns="5"
-                                                                           ItemsStretch="Fill"
-                                                                           MinColumnSpacing="8"
-                                                                           MinRowSpacing="8"/>
-                                                    </ItemsRepeater.Layout>
-                                                </ItemsRepeater>
+                                                <ItemsControl ItemsSource="{Binding Apps}"
+                                                              ItemTemplate="{StaticResource AppCardTemplate}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <VariableSizedWrapGrid Orientation="Horizontal"
+                                                                                   ItemWidth="{StaticResource CardItemMinWidth}"
+                                                                                   ItemHeight="{StaticResource CardCellHeight}"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                </ItemsControl>
                                             </StackPanel>
                                         </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </ScrollViewer>
 

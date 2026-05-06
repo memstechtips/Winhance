@@ -151,21 +151,6 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
     }
 
-    /// <summary>
-    /// Card-level tap handler: clicking anywhere on a Card-view card (not just
-    /// the checkbox) toggles selection. The checkbox, website button, and
-    /// Warning pill mark Tapped as handled, so clicks on those still do their
-    /// own thing without double-toggling selection.
-    /// </summary>
-    private void Card_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.DataContext is AppItemViewModel vm)
-        {
-            vm.IsSelected = !vm.IsSelected;
-            e.Handled = true;
-        }
-    }
-
     private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
