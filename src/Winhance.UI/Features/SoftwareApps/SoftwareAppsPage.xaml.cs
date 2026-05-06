@@ -11,7 +11,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
-using Windows.System;
 
 namespace Winhance.UI.Features.SoftwareApps;
 
@@ -158,7 +157,7 @@ public sealed partial class SoftwareAppsPage : Page
         {
             try
             {
-                await Launcher.LaunchUriAsync(new Uri(url));
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(url));
             }
             catch (Exception ex)
             {
