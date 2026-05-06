@@ -158,6 +158,24 @@ if ($Clean) {
 Push-Location $repoRoot
 $pushedLocation = $true
 
+# Pre-create per-project bin/ output paths on network shares. Same SMB
+# namespace-commit lag described in the -Clean comment above also bites a
+# cold build when bin/ is missing (e.g. after an out-of-band wipe, killed
+# build, or fresh clone): MSBuild's MakeDir warns MSB3191 and the very next
+# task (GenerateDepsFile, etc.) fails with DirectoryNotFoundException
+# because the SMB server hasn't surfaced the new directory yet. Creating
+# the directories ahead of MSBuild lets the namespace settle before any
+# file write hits it. Cheap no-op when they already exist.
+if ($repoIsRemote) {
+    $tfm = 'net10.0-windows10.0.19041.0'
+    Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory | ForEach-Object {
+        $binTfm = Join-Path $_.FullName "bin\x64\Debug\$tfm"
+        $null = New-Item -ItemType Directory -Path $binTfm -Force
+        # Winhance.UI's WPF/WindowsAppSDK output also has a win-x64 RID subdir.
+        $null = New-Item -ItemType Directory -Path (Join-Path $binTfm 'win-x64') -Force
+    }
+}
+
 # Stream full MSBuild output to the console (so errors come with file/line
 # context) and tee a copy to a log file for after-the-fact review.
 # -v:m (minimal) is the sweet spot: shows warnings + errors with file
