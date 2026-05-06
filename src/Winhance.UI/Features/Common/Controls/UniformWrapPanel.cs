@@ -7,14 +7,14 @@ namespace Winhance.UI.Features.Common.Controls;
 
 /// <summary>
 /// Non-virtualising panel that lays children out in a wrapping grid: every
-/// cell is exactly ItemWidth × ItemHeight, items wrap when the next cell
-/// would overflow the available width, and any leftover row width is
-/// redistributed as extra inter-column spacing (so the rightmost cell
-/// always lands flush with the row's right edge instead of leaving dead
-/// space). ColumnSpacing acts as the minimum gap. Used as the ItemsPanel
-/// for the Software &amp; Apps card view — replaces ItemsRepeater +
-/// UniformGridLayout (which produced a measure cycle that snapped the
-/// outer ScrollViewer back to the top).
+/// cell is exactly ItemWidth × ItemHeight, gaps are fixed at ColumnSpacing /
+/// RowSpacing, and the populated grid is centred horizontally so leftover
+/// row width sits as symmetric outer margin instead of as a dead-zone on
+/// the right. New columns appear automatically at width breakpoints —
+/// matches the Microsoft Store / Windows Settings / App Store card-grid
+/// pattern. Used as the ItemsPanel for the Software &amp; Apps card view —
+/// replaces ItemsRepeater + UniformGridLayout (which produced a measure
+/// cycle that snapped the outer ScrollViewer back to the top).
 /// </summary>
 public sealed partial class UniformWrapPanel : Panel
 {
@@ -111,13 +111,17 @@ public sealed partial class UniformWrapPanel : Panel
         int columns = ComputeColumnCount(finalSize.Width);
         double cellWidth = ItemWidth > 0 ? ItemWidth : finalSize.Width / Math.Max(1, columns);
         double cellHeight = ItemHeight > 0 ? ItemHeight : MaxChildDesiredHeight();
-        double effectiveSpacing = ComputeEffectiveSpacing(finalSize.Width, columns, cellWidth);
+
+        // Centre the populated grid: any leftover row width becomes symmetric
+        // outer margin rather than a dead-zone on the right.
+        double usedWidth = columns * cellWidth + Math.Max(0, columns - 1) * ColumnSpacing;
+        double xOffset = Math.Max(0, (finalSize.Width - usedWidth) / 2);
 
         for (int i = 0; i < count; i++)
         {
             int col = i % columns;
             int row = i / columns;
-            double x = col * (cellWidth + effectiveSpacing);
+            double x = xOffset + col * (cellWidth + ColumnSpacing);
             double y = row * (cellHeight + RowSpacing);
             Children[i].Arrange(new Rect(x, y, cellWidth, cellHeight));
         }
@@ -125,16 +129,6 @@ public sealed partial class UniformWrapPanel : Panel
         int rows = (int)Math.Ceiling((double)count / columns);
         double totalHeight = rows * cellHeight + Math.Max(0, rows - 1) * RowSpacing;
         return new Size(finalSize.Width, totalHeight);
-    }
-
-    private double ComputeEffectiveSpacing(double availableWidth, int columns, double cellWidth)
-    {
-        if (columns < 2)
-            return 0;
-        double minSpacing = ColumnSpacing;
-        double leftover = availableWidth - columns * cellWidth;
-        double distributed = leftover / (columns - 1);
-        return Math.Max(minSpacing, distributed);
     }
 
     private double MaxChildDesiredHeight()

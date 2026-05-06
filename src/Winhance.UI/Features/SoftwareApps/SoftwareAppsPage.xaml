@@ -1100,8 +1100,8 @@
                                                 <winhanceControls:UniformWrapPanel
                                                     ItemWidth="{StaticResource CardItemWidth}"
                                                     ItemHeight="{StaticResource CardCellHeight}"
-                                                    ColumnSpacing="8"
-                                                    RowSpacing="8"/>
+                                                    ColumnSpacing="16"
+                                                    RowSpacing="16"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
@@ -1119,8 +1119,8 @@
                                                 <winhanceControls:UniformWrapPanel
                                                     ItemWidth="{StaticResource CardItemWidth}"
                                                     ItemHeight="{StaticResource CardCellHeight}"
-                                                    ColumnSpacing="8"
-                                                    RowSpacing="8"/>
+                                                    ColumnSpacing="16"
+                                                    RowSpacing="16"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
@@ -1138,8 +1138,8 @@
                                                 <winhanceControls:UniformWrapPanel
                                                     ItemWidth="{StaticResource CardItemWidth}"
                                                     ItemHeight="{StaticResource CardCellHeight}"
-                                                    ColumnSpacing="8"
-                                                    RowSpacing="8"/>
+                                                    ColumnSpacing="16"
+                                                    RowSpacing="16"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
@@ -1499,8 +1499,8 @@
                                                             <winhanceControls:UniformWrapPanel
                                                                 ItemWidth="{StaticResource CardItemWidth}"
                                                                 ItemHeight="{StaticResource CardCellHeight}"
-                                                                ColumnSpacing="8"
-                                                                RowSpacing="8"/>
+                                                                ColumnSpacing="16"
+                                                                RowSpacing="16"/>
                                                         </ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                 </ItemsControl>
