@@ -42,6 +42,8 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     {
         OnPropertyChanged(nameof(InstalledStatusText));
         OnPropertyChanged(nameof(ReinstallableStatusText));
+        OnPropertyChanged(nameof(InstabilityWarningLabel));
+        OnPropertyChanged(nameof(InstabilityWarningTooltip));
     }
 
     public ItemDefinition Definition => _definition;
@@ -184,11 +186,14 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     /// <summary>True when the app has a WebsiteUrl; drives the website button's visibility (External Apps only in practice).</summary>
     public bool HasWebsiteUrl => !string.IsNullOrEmpty(Definition.WebsiteUrl);
 
-    /// <summary>Optional uninstall warning shown beneath the description in Card view.</summary>
-    public string? UninstallWarning => Definition.UninstallWarning;
+    /// <summary>True when the item is marked as carrying an uninstall risk; drives the Card-view "Warning" pill.</summary>
+    public bool HasInstabilityWarning => Definition.HasInstabilityWarning;
 
-    /// <summary>True when an UninstallWarning is set; drives the Card-view warning row.</summary>
-    public bool HasUninstallWarning => !string.IsNullOrEmpty(Definition.UninstallWarning);
+    /// <summary>Localized label for the Card-view "Warning" pill.</summary>
+    public string InstabilityWarningLabel => _localizationService.GetString("Card_Pill_Warning");
+
+    /// <summary>Localized generic instability message shown as the Warning pill's tooltip.</summary>
+    public string InstabilityWarningTooltip => _localizationService.GetString("Card_Pill_InstabilityWarning_Tooltip");
 
     /// <summary>True when the item cannot be reinstalled; drives the "Cannot reinstall" chip in Card view.</summary>
     public bool ShowNonReinstallableChip => !Definition.CanBeReinstalled;

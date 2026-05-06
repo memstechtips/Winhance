@@ -1412,6 +1412,8 @@
   "Status_NotInstalled": "설치되지 않음",
   "Status_CanReinstall": "재설치 가능",
   "Status_CannotReinstall": "재설치 불가",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Windows 앱 도움말",
   "Help_WindowsApps_Content": "위의 활성 Winhance 제거 상태 아이콘을 클릭하면 해당 스크립트와 작업을 삭제할 수 있습니다.\n\n앱 제거:\nPC에서 원하지 않는 항목(설치되지 않은 항목 포함)을 선택하여 제거하십시오. Windows에서 나중에 다시 추가하려고 할 수 있지만, 스크립트와 예약 작업이 활성화되어 있으면 Winhance가 계속 제거합니다.\n\n앱 설치:\n설치할 항목을 선택하고 '선택한 항목 설치' 버튼을 클릭하여 설치를 시작하십시오.\n(참고: 일부 앱만 재설치할 수 있으며, 각 항목 옆의 표시를 확인하십시오)\n\n검색 상자를 사용하여 항목을 빠르게 찾으십시오.\n기본 창의 저장 및 구성 가져오기 버튼을 사용하여 선호하는 선택을 관리하십시오.",
   "Help_ExternalApps_Title": "외부 앱 도움말",

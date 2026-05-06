@@ -489,7 +489,7 @@ public class AppItemViewModelTests
     }
 
     // -------------------------------------------------------
-    // HasDescription / HasWebsiteUrl / UninstallWarning / HasUninstallWarning / ShowNonReinstallableChip
+    // HasDescription / HasWebsiteUrl / HasInstabilityWarning / ShowNonReinstallableChip
     // -------------------------------------------------------
 
     [Fact]
@@ -533,20 +533,19 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void UninstallWarning_FlowsThrough_FromDefinition()
+    public void HasInstabilityWarning_IsTrue_WhenFlagSet()
     {
-        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", UninstallWarning = "Warning text" };
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", HasInstabilityWarning = true };
         var vm = CreateViewModel(def);
-        vm.UninstallWarning.Should().Be("Warning text");
-        vm.HasUninstallWarning.Should().BeTrue();
+        vm.HasInstabilityWarning.Should().BeTrue();
     }
 
     [Fact]
-    public void HasUninstallWarning_IsFalse_WhenUnset()
+    public void HasInstabilityWarning_IsFalse_WhenUnset()
     {
         var def = new ItemDefinition { Id = "a", Name = "A", Description = "" };
         var vm = CreateViewModel(def);
-        vm.HasUninstallWarning.Should().BeFalse();
+        vm.HasInstabilityWarning.Should().BeFalse();
     }
 
     [Fact]

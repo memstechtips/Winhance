@@ -1377,6 +1377,8 @@
   "Status_NotInstalled": "Nincs telepítve",
   "Status_CanReinstall": "Újratelepíthető",
   "Status_CannotReinstall": "Nem telepíthető újra",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Windows alkalmazások súgó",
   "Help_WindowsApps_Content": "Kattintson a fent látható aktív Winhance eltávolítási státusz ikonra a hozzá tartozó szkript és feladat törléséhez.\n\nAlkalmazás eltávolítások:\nVálassza ki a számítógépén nem kívánt elemeket (még a nem telepített elemeket is), és távolítsa el őket. A Windows később megpróbálhatja őket újra hozzáadni, de a Winhance továbbra is eltávolítja őket, ha a szkriptek és az ütemezett feladatok aktívak.\n\nAlkalmazástelepítések:\nVálassza ki a telepíteni kívánt elem(eke)t, majd kattintson a „Kijelölt elemek telepítése” gombra a telepítés elindításához.\n(Megjegyzés: Csak néhány alkalmazás telepíthető újra, lásd az egyes elemek melletti jelzőt)\n\nHasználja a keresőmezőt az elemek gyors megtalálásához.\nA főablakban található Konfiguráció mentése és importálása gombok segítségével kezelheti a kívánt beállításokat.",
   "Help_ExternalApps_Title": "Külső alkalmazások súgója",

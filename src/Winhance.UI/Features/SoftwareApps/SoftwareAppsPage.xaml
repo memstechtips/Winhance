@@ -49,6 +49,19 @@
         <CornerRadius x:Key="CardViewCornerRadius">8</CornerRadius>
         <Thickness x:Key="CardViewPadding">12,10</Thickness>
 
+        <!-- Card view: every card renders at this fixed inner-grid height regardless
+             of description length or pill count. Equal heights matter both visually
+             (rows align across the grid) and for layout stability — UniformGridLayout
+             treats each row as the tallest item, so variable-height cards used to
+             cause the outer ScrollViewer to mis-measure and snap back to top. -->
+        <x:Double x:Key="CardContentHeight">62</x:Double>
+        <!-- Pill geometry. CornerRadius is set high enough to fully round the ends
+             at the rendered pill height (~18px), but kept finite so it clips
+             cleanly at HiDPI scales (CornerRadius=999 can render with subpixel
+             artefacts on the inner border). -->
+        <CornerRadius x:Key="CardPillCornerRadius">10</CornerRadius>
+        <Thickness x:Key="CardPillPadding">8,2</Thickness>
+
         <!-- First column header: left-rounded corners with select-all checkbox -->
         <Style x:Key="FirstColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
             <Setter Property="Template">
@@ -392,12 +405,17 @@
         </Style>
 
         <DataTemplate x:Key="AppCardTemplate" x:DataType="vm:AppItemViewModel">
+            <!-- Outer Border is the click target. Tapped bubbles up from inner
+                 controls (CheckBox, website Button, Warning pill) but those
+                 controls mark Tapped as handled, so clicking them does NOT
+                 fall through to toggle selection. -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CardViewCornerRadius}"
-                    Padding="{StaticResource CardViewPadding}">
-                <Grid ColumnSpacing="12">
+                    Padding="{StaticResource CardViewPadding}"
+                    Tapped="Card_Tapped">
+                <Grid ColumnSpacing="12" Height="{StaticResource CardContentHeight}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
@@ -431,10 +449,15 @@
                                   Visibility="{x:Bind IsOptionalFeatureFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </Grid>
 
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="3" MinWidth="0">
-                        <Grid ColumnSpacing="6">
+                    <Grid Grid.Column="2" VerticalAlignment="Center" MinWidth="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="32"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" ColumnSpacing="6">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
@@ -449,8 +472,8 @@
                                     Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
                                     BorderBrush="{ThemeResource SystemFillColorSuccessBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="999"
-                                    Padding="6,1"
+                                    CornerRadius="{StaticResource CardPillCornerRadius}"
+                                    Padding="{StaticResource CardPillPadding}"
                                     VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal" Spacing="3">
                                     <FontIcon Glyph="&#xE73E;" FontSize="10"
@@ -467,8 +490,8 @@
                                     Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
                                     BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="999"
-                                    Padding="6,1"
+                                    CornerRadius="{StaticResource CardPillCornerRadius}"
+                                    Padding="{StaticResource CardPillPadding}"
                                     VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal" Spacing="3">
                                     <FontIcon Glyph="&#xE7BA;" FontSize="10"
@@ -480,26 +503,41 @@
                                                VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
+                            <!-- Amber Warning pill: shown when the item is flagged as carrying
+                                 an uninstall risk (e.g. Edge). Tooltip shows a generic, reusable
+                                 instability message rather than per-item text. -->
+                            <Border Grid.Column="3"
+                                    Visibility="{x:Bind HasInstabilityWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                                    BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource CardPillCornerRadius}"
+                                    Padding="{StaticResource CardPillPadding}"
+                                    VerticalAlignment="Center"
+                                    ToolTipService.ToolTip="{x:Bind InstabilityWarningTooltip, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <FontIcon Glyph="&#xE7BA;" FontSize="10"
+                                              Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                              VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Bind InstabilityWarningLabel, Mode=OneWay}"
+                                               Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
                         </Grid>
 
-                        <TextBlock Text="{x:Bind Description}"
+                        <TextBlock Grid.Row="1"
+                                   Text="{x:Bind Description}"
                                    FontSize="12"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap"
                                    TextTrimming="CharacterEllipsis"
-                                   MaxLines="1"
+                                   MaxLines="2"
+                                   VerticalAlignment="Top"
+                                   Margin="0,2,0,0"
                                    Visibility="{x:Bind HasDescription, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
-                        <StackPanel Orientation="Horizontal" Spacing="4"
-                                    Visibility="{x:Bind HasUninstallWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <FontIcon Glyph="&#xE7BA;" FontSize="11"
-                                      Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                      VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Bind UninstallWarning}"
-                                       FontSize="11"
-                                       Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </StackPanel>
+                    </Grid>
 
                     <Button Grid.Column="3"
                             Background="Transparent"

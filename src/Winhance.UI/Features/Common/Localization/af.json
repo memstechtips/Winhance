@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "Nie Geïnstalleer",
   "Status_CanReinstall": "Kan Herinstalleer word",
   "Status_CannotReinstall": "Kan Nie Herinstalleer nie",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Windows Toepassings Hulp",
   "Help_WindowsApps_Content": "Klik op 'n aktiewe Winhance verwyderingstatus-ikoon hierbo om die skrip en taak wat daarmee geassosieer word uit te vee.\n\nProgramverwyderings:\nKies die item(s) wat jy nie op jou rekenaar wil hê nie (selfs nie-geïnstalleerde items) en verwyder hulle. Windows mag probeer om hulle later terug te voeg, maar Winhance sal aanhou om hulle vir jou te verwyder as die skripte en geskeduleerde take aktief is.\n\nPrograminstallasies:\nKies die item(s) wat jy wil installeer en klik op die 'Installeer Gekose Items' knoppie om die installasie te begin.\n(Let wel: Slegs sommige toepassings kan herinstalleer word, sien die aanwyser langs elke item)\n\nGebruik die Soekkassie om items vinnig te vind.\nDie Stoor en Voer Konfigurasie In knoppies in die hoofvenster help jou om jou voorkeurkeuses te bestuur.",
   "Help_ExternalApps_Title": "Eksterne Toepassings Hulp",

@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "Chưa cài đặt",
   "Status_CanReinstall": "Có thể cài đặt lại",
   "Status_CannotReinstall": "Không thể cài đặt lại",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Trợ giúp ứng dụng Windows",
   "Help_WindowsApps_Content": "Nhấp vào biểu tượng trạng thái xóa Winhance đang hoạt động ở trên để xóa tập lệnh và tác vụ được liên kết với nó.\n\nLoại bỏ ứng dụng:\nChọn (các) mục bạn không muốn trên PC của mình (ngay cả các mục chưa được cài đặt) và xóa chúng. Windows có thể cố gắng thêm lại chúng sau này, nhưng Winhance sẽ tiếp tục xóa chúng cho bạn nếu các tập lệnh và tác vụ đã lên lịch đang hoạt động.\n\nCài đặt ứng dụng:\nChọn (các) mục bạn muốn cài đặt và nhấp vào nút 'Cài đặt các mục đã chọn' để bắt đầu cài đặt.\n(Lưu ý: Chỉ một số ứng dụng có thể được cài đặt lại, hãy xem chỉ báo bên cạnh mỗi mục)\n\nSử dụng Hộp tìm kiếm để tìm các mục nhanh chóng.\nCác nút Lưu và Nhập cấu hình trong cửa sổ chính giúp bạn quản lý các lựa chọn ưa thích của mình.",
   "Help_ExternalApps_Title": "Trợ giúp ứng dụng bên ngoài",

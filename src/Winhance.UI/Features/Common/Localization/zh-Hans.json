@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "未安装",
   "Status_CanReinstall": "可以重新安装",
   "Status_CannotReinstall": "无法重新安装",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Windows 应用帮助",
   "Help_WindowsApps_Content": "单击上面的活动 Winhance 移除状态图标以删除与其关联的脚本和任务。\n\n应用移除：\n选择您不希望在电脑上出现的项目（即使是未安装的项目）并将其移除。Windows 稍后可能会尝试将它们添加回来，但如果脚本和计划任务处于活动状态，Winhance 将继续为您移除它们。\n\n应用安装：\n选择您要安装的项目，然后单击“安装所选项目”按钮开始安装。\n（注意：只有部分应用可以重新安装，请参阅每个项目旁边的指示器）\n\n使用搜索框快速查找项目。\n主窗口中的“保存”和“导入配置”按钮可帮助您管理您的首选选择。",
   "Help_ExternalApps_Title": "外部应用帮助",

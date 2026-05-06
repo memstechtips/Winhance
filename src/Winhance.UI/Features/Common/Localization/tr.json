@@ -1412,6 +1412,8 @@
   "Status_NotInstalled": "Yüklü Değil",
   "Status_CanReinstall": "Yeniden Yüklenebilir",
   "Status_CannotReinstall": "Yeniden Yüklenemez",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Windows Uygulamaları Yardımı",
   "Help_WindowsApps_Content": "Bununla ilişkili betiği ve görevi silmek için yukarıdaki aktif bir Winhance kaldırma durumu simgesine tıklayın.\n\nUygulama Kaldırmaları:\nBilgisayarınızda istemediğiniz öğeleri (yüklü olmayan öğeler dahil) seçin ve kaldırın. Windows bunları daha sonra tekrar eklemeye çalışabilir, ancak betikler ve zamanlanmış görevler aktifse Winhance bunları sizin için kaldırmaya devam edecektir.\n\nUygulama Yüklemeleri:\nYüklemek istediğiniz öğeleri seçin ve yüklemeyi başlatmak için 'Seçili Öğeleri Yükle' düğmesine tıklayın.\n(Not: Yalnızca bazı uygulamalar yeniden yüklenebilir, her öğenin yanındaki göstergeye bakın)\n\nÖğeleri hızlıca bulmak için Arama Kutusunu kullanın.\nAna penceredeki Yapılandırmayı Kaydet ve İçe Aktar düğmeleri, tercih ettiğiniz seçimleri yönetmenize yardımcı olur.",
   "Help_ExternalApps_Title": "Harici Uygulamalar Yardımı",

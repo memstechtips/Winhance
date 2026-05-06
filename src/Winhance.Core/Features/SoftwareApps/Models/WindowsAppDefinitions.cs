@@ -594,7 +594,7 @@ public static class WindowsAppDefinitions
                     Id = "windows-app-edge",
                     Name = "Microsoft Edge",
                     Description = "Microsoft's web browser",
-                    UninstallWarning = "Uninstalling Edge may cause system instability.",
+                    HasInstabilityWarning = true,
                     GroupName = "Browsers",
                     AppxPackageName = ["Microsoft.MicrosoftEdge.Stable"],
                     WinGetPackageId = ["Microsoft.Edge"],

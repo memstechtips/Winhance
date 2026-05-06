@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "未インストール",
   "Status_CanReinstall": "再インストール可能",
   "Status_CannotReinstall": "再インストール不可",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Windowsアプリのヘルプ",
   "Help_WindowsApps_Content": "上記のアクティブなWinhance削除ステータスアイコンをクリックして、関連するスクリプトとタスクを削除します。\n\nアプリの削除：\nPCに不要な項目（インストールされていない項目も含む）を選択して削除します。Windowsは後でそれらを再追加しようとするかもしれませんが、スクリプトとスケジュールタスクがアクティブであれば、Winhanceがそれらを削除し続けます。\n\nアプリのインストール：\nインストールしたい項目を選択し、「選択した項目をインストール」ボタンをクリックしてインストールを開始します。\n（注：一部のアプリのみ再インストール可能です。各項目の横にあるインジケーターを参照してください）\n\n検索ボックスを使用して、項目をすばやく見つけます。\nメインウィンドウの「構成を保存」および「構成をインポート」ボタンは、お好みの選択を管理するのに役立ちます。",
   "Help_ExternalApps_Title": "外部アプリのヘルプ",

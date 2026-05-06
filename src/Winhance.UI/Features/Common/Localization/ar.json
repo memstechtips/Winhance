@@ -1345,6 +1345,8 @@
   "Status_NotInstalled": "غير مثبت",
   "Status_CanReinstall": "يمكن إعادة التثبيت",
   "Status_CannotReinstall": "لا يمكن إعادة التثبيت",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "مساعدة تطبيقات Windows",
   "Help_WindowsApps_Content": "انقر على أيقونة حالة إزالة Winhance النشطة أعلاه لحذف السكربت والمهمة المرتبطة بها.\n\nإزالة التطبيقات:\nحدد العناصر التي لا تريدها على جهازك (حتى العناصر غير المثبتة) وقم بإزالتها. قد يحاول Windows إضافتها لاحقًا، لكن Winhance سيستمر في إزالتها طالما كانت السكربتات والمهام المجدولة نشطة.\n\nتثبيت التطبيقات:\nحدد العناصر التي تريد تثبيتها وانقر زر 'تثبيت العناصر المحددة' لبدء التثبيت.\n(ملاحظة: لا يمكن إعادة تثبيت بعض التطبيقات، راجع المؤشر بجانب كل عنصر)\n\nاستخدم مربع البحث للعثور على العناصر بسرعة.\nيساعدك زرا حفظ واستيراد الإعدادات في النافذة الرئيسية على إدارة اختياراتك المفضلة.",
   "Help_ExternalApps_Title": "مساعدة البرامج الخارجية",

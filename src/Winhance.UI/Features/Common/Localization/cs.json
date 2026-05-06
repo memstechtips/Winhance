@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "Nenainstalováno",
   "Status_CanReinstall": "Lze znovu nainstalovat",
   "Status_CannotReinstall": "Nelze znovu nainstalovat",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Nápověda k aplikacím Windows",
   "Help_WindowsApps_Content": "Kliknutím na aktivní ikonu stavu odstranění Winhance výše odstraníte skript a úlohu s ní spojenou.\n\nOdstranění aplikací:\nVyberte položky, které nechcete mít na svém PC (i nenainstalované položky) a odstraňte je. Windows se je může pokusit později přidat zpět, ale Winhance je bude nadále odstraňovat, pokud jsou skripty a naplánované úlohy aktivní.\n\nInstalace aplikací:\nVyberte položky, které chcete nainstalovat, a klikněte na tlačítko 'Nainstalovat vybrané položky' pro zahájení instalace.\n(Poznámka: Jen některé aplikace lze znovu nainstalovat, viz indikátor u každé položky)\n\nPoužijte vyhledávací pole k rychlému nalezení položek.\nTlačítka Uložit a Importovat konfiguraci v hlavním okně vám pomohou spravovat vaše preferované výběry.",
   "Help_ExternalApps_Title": "Nápověda k externím aplikacím",

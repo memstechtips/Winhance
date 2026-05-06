@@ -42,11 +42,13 @@ public record ItemDefinition : BaseDefinition
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
     /// <summary>
-    /// Optional warning text shown beneath the description in Card view when the
-    /// item carries a meaningful uninstall risk (e.g. Microsoft Edge: "Uninstalling
-    /// Edge may cause system instability"). Null/empty → no warning row rendered.
+    /// Marks the item as carrying a meaningful uninstall risk (e.g. Microsoft Edge:
+    /// removing it may break Windows components that depend on it). When true, the
+    /// Card view renders an Amber "Warning" pill next to the name; the pill's
+    /// tooltip shows a generic instability message sourced from localization, so
+    /// the same flag is reusable across packages without per-item warning text.
     /// </summary>
-    public string? UninstallWarning { get; init; }
+    public bool HasInstabilityWarning { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
     /// <summary>

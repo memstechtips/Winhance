@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "Não Instalado",
   "Status_CanReinstall": "Pode ser Reinstalado",
   "Status_CannotReinstall": "Não Pode ser Reinstalado",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Ajuda de Aplicativos do Windows",
   "Help_WindowsApps_Content": "Clique em um ícone de status de remoção ativo do Winhance acima para excluir o script e a tarefa associados a ele.\n\nRemoções de Aplicativos:\nSelecione os itens que você não quer no seu PC (mesmo itens não instalados) e remova-os. O Windows pode tentar adicioná-los de volta mais tarde, mas o Winhance continuará a removê-los para você se os scripts e tarefas agendadas estiverem ativos.\n\nInstalações de Aplicativos:\nSelecione os itens que você deseja instalar e clique no botão 'Instalar Itens Selecionados' para iniciar a instalação.\n(Nota: Apenas alguns aplicativos podem ser reinstalados, veja o indicador ao lado de cada item)\n\nUse a Caixa de Pesquisa para encontrar itens rapidamente.\nOs botões Salvar e Importar Configuração na janela principal ajudam você a gerenciar suas seleções preferidas.",
   "Help_ExternalApps_Title": "Ajuda de Aplicativos Externos",

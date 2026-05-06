@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "Niezainstalowane",
   "Status_CanReinstall": "Można ponownie zainstalować",
   "Status_CannotReinstall": "Nie można ponownie zainstalować",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Pomoc dotycząca aplikacji Windows",
   "Help_WindowsApps_Content": "Kliknij aktywną ikonę statusu usuwania Winhance powyżej, aby usunąć skrypt i zadanie z nią związane.\n\nUsuwanie aplikacji:\nWybierz elementy, których nie chcesz na komputerze (nawet niezainstalowane elementy) i usuń je. System Windows może próbować je ponownie dodać później, ale Winhance będzie je usuwać za Ciebie, jeśli skrypty i zaplanowane zadania są aktywne.\n\nInstalowanie aplikacji:\nWybierz elementy, które chcesz zainstalować, i kliknij przycisk 'Zainstaluj wybrane elementy', aby rozpocząć instalację.\n(Uwaga: Tylko niektóre aplikacje można ponownie zainstalować, zobacz wskaźnik obok każdego elementu)\n\nUżyj pola wyszukiwania, aby szybko znaleźć elementy.\nPrzyciski Zapisz i Importuj konfigurację w głównym oknie pomagają zarządzać preferowanymi wyborami.",
   "Help_ExternalApps_Title": "Pomoc dotycząca aplikacji zewnętrznych",

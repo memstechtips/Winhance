@@ -1374,6 +1374,8 @@
   "Status_NotInstalled": "Nicht installiert",
   "Status_CanReinstall": "Kann neu installiert werden",
   "Status_CannotReinstall": "Kann nicht neu installiert werden",
+  "Card_Pill_Warning": "Warning",
+  "Card_Pill_InstabilityWarning_Tooltip": "Removing this package may cause system instability. Proceed with caution.",
   "Help_WindowsApps_Title": "Hilfe zu Windows-Apps",
   "Help_WindowsApps_Content": "Klicken Sie oben auf ein aktives Winhance-Entfernungsstatussymbol, um das zugehörige Skript und die Aufgabe zu löschen.\n\nApp-Entfernungen:\nWählen Sie die Elemente aus, die Sie nicht auf Ihrem PC haben möchten (auch nicht installierte Elemente), und entfernen Sie sie. Windows versucht möglicherweise, sie später wieder hinzuzufügen, aber Winhance wird sie weiterhin für Sie entfernen, wenn die Skripte und geplanten Aufgaben aktiv sind.\n\nApp-Installationen:\nWählen Sie die Elemente aus, die Sie installieren möchten, und klicken Sie auf die Schaltfläche 'Ausgewählte Elemente installieren', um die Installation zu starten.\n(Hinweis: Nur einige Apps können neu installiert werden, siehe Anzeige neben jedem Element)\n\nVerwenden Sie das Suchfeld, um Elemente schnell zu finden.\nDie Schaltflächen 'Konfiguration speichern' und 'Importieren' im Hauptfenster helfen Ihnen bei der Verwaltung Ihrer bevorzugten Auswahlen.",
   "Help_ExternalApps_Title": "Hilfe zu externen Apps",
