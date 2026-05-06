@@ -549,6 +549,37 @@ public class AppItemViewModelTests
     }
 
     [Fact]
+    public void InstabilityWarningLabel_PullsLocalizedCardPillWarningKey()
+    {
+        // Localization mock in this fixture returns the key as the value, so a
+        // matching key here just confirms the property reaches that key.
+        var vm = CreateViewModel();
+        vm.InstabilityWarningLabel.Should().Be("Card_Pill_Warning");
+        _mockLocalization.Verify(l => l.GetString("Card_Pill_Warning"), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void InstabilityWarningTooltip_PullsLocalizedTooltipKey()
+    {
+        var vm = CreateViewModel();
+        vm.InstabilityWarningTooltip.Should().Be("Card_Pill_InstabilityWarning_Tooltip");
+        _mockLocalization.Verify(l => l.GetString("Card_Pill_InstabilityWarning_Tooltip"), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void InstabilityWarningProperties_FireOnLanguageChanged()
+    {
+        var vm = CreateViewModel();
+        var changedProperties = new List<string>();
+        vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
+
+        _mockLocalization.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        changedProperties.Should().Contain(nameof(vm.InstabilityWarningLabel));
+        changedProperties.Should().Contain(nameof(vm.InstabilityWarningTooltip));
+    }
+
+    [Fact]
     public void ShowNonReinstallableChip_IsTrue_WhenCannotBeReinstalled()
     {
         var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = false };
