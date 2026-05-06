@@ -1063,13 +1063,21 @@
                             </controls:DataGrid.Columns>
                         </controls:DataGrid>
 
-                        <!-- Card View for Windows Apps -->
+                        <!-- Card View for Windows Apps. The inner StackPanel is centred
+                             horizontally with a MaxWidth set in code-behind to exactly
+                             cols × CardItemWidth + (cols-1) × ColumnSpacing, so the
+                             section headers, Select-all checkboxes, and the card grid
+                             all share the same horizontal extents. -->
                         <ScrollViewer Grid.Row="1" x:Name="WindowsAppsCardScrollViewer"
                                       Visibility="{x:Bind ViewModel.IsCardView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      Padding="0,0,0,12">
-                            <StackPanel Spacing="20" Padding="4,8,4,8">
+                                      Padding="0,0,0,12"
+                                      SizeChanged="WindowsAppsCardScrollViewer_SizeChanged">
+                            <StackPanel x:Name="WindowsAppsCardContentStack"
+                                        Spacing="20"
+                                        Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
@@ -1467,8 +1475,12 @@
                                       Visibility="{x:Bind ViewModel.IsCardView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      Padding="0,0,0,12">
-                            <StackPanel Spacing="20" Padding="4,8,4,8">
+                                      Padding="0,0,0,12"
+                                      SizeChanged="ExternalAppsCardScrollViewer_SizeChanged">
+                            <StackPanel x:Name="ExternalAppsCardContentStack"
+                                        Spacing="20"
+                                        Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"

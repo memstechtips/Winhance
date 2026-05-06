@@ -151,6 +151,38 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
     }
 
+    /// <summary>
+    /// Centres the card-view content column horizontally by clamping the inner
+    /// StackPanel's MaxWidth to exactly cols × CardItemWidth + (cols-1) × ColumnSpacing.
+    /// Result: the section header, Select-all checkboxes, and the card grid all
+    /// share the same horizontal extents — the leftmost card sits flush with the
+    /// header instead of the cards floating in the middle of a left-aligned panel.
+    /// Same pattern Microsoft Store / Settings use: extra space becomes symmetric
+    /// outer margin, new columns appear at width breakpoints.
+    /// </summary>
+    private void WindowsAppsCardScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCardContentMaxWidth(WindowsAppsCardScrollViewer, WindowsAppsCardContentStack);
+
+    private void ExternalAppsCardScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCardContentMaxWidth(ExternalAppsCardScrollViewer, ExternalAppsCardContentStack);
+
+    private void UpdateCardContentMaxWidth(ScrollViewer scrollViewer, StackPanel contentStack)
+    {
+        // Resource keys live in SoftwareAppsPage.xaml's Page.Resources; fall back to
+        // the same defaults if anything's renamed so the page still lays out.
+        double cardWidth = Resources["CardItemWidth"] is double cw ? cw : 420.0;
+        double spacing = 16.0; // matches ColumnSpacing/RowSpacing on UniformWrapPanel
+
+        double available = scrollViewer.ViewportWidth;
+        if (available <= 0)
+            return;
+
+        int cols = System.Math.Max(1,
+            (int)System.Math.Floor((available + spacing) / (cardWidth + spacing)));
+        double contentWidth = cols * cardWidth + System.Math.Max(0, cols - 1) * spacing;
+        contentStack.MaxWidth = contentWidth;
+    }
+
     private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
