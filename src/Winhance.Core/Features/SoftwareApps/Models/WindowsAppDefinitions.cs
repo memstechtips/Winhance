@@ -30,7 +30,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-mixed-reality-portal",
                     Name = "Mixed Reality Portal",
-                    Description = "Portal for Windows Mixed Reality experiences",
+                    Description = "Setup and launcher for Windows VR headsets (deprecated in Windows 11 24H2)",
                     GroupName = "3D/Mixed Reality",
                     AppxPackageName = ["Microsoft.MixedReality.Portal"],
                     MsStoreId = "9NG1H8B3ZC7M",
@@ -42,7 +42,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-bing-search",
                     Name = "Bing Search",
-                    Description = "Bing search integration for Windows",
+                    Description = "Web search results delivered inside Windows Search and the Start menu",
                     GroupName = "Bing/Search",
                     AppxPackageName = ["Microsoft.BingSearch"],
                     MsStoreId = "9NZBF4GT040C",
@@ -52,7 +52,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-microsoft-news",
                     Name = "Microsoft News",
-                    Description = "Microsoft News app",
+                    Description = "News reader powered by Microsoft Start with personalised headlines",
                     GroupName = "Bing/Search",
                     AppxPackageName = ["Microsoft.BingNews"],
                     MsStoreId = "9WZDNCRFHVFW",
@@ -74,7 +74,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-camera",
                     Name = "Camera",
-                    Description = "Windows Camera app",
+                    Description = "Take photos and record video using your webcam or built-in camera",
                     GroupName = "Camera/Media",
                     AppxPackageName = ["Microsoft.WindowsCamera"],
                     MsStoreId = "9WZDNCRFJBBG",
@@ -84,7 +84,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-clipchamp",
                     Name = "Clipchamp",
-                    Description = "Video editor app",
+                    Description = "Microsoft's video editor with templates, effects, and screen recording",
                     GroupName = "Camera/Media",
                     AppxPackageName = ["Clipchamp.Clipchamp"],
                     MsStoreId = "9P1J8S7CCWWT",
@@ -116,7 +116,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-get-help",
                     Name = "Get Help",
-                    Description = "Microsoft support app",
+                    Description = "Microsoft's built-in help and support assistant for Windows issues",
                     GroupName = "System Utilities",
                     AppxPackageName = ["Microsoft.GetHelp"],
                     MsStoreId = "9PKDZBMV1H3T",
@@ -138,7 +138,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-dev-home",
                     Name = "Dev Home",
-                    Description = "Development environment for Windows",
+                    Description = "Developer dashboard for setting up tools, repos, and dev environments",
                     GroupName = "Development",
                     AppxPackageName = ["Microsoft.Windows.DevHome"],
                     MsStoreId = "9N8MHTPHNGVV", // not available in your market
@@ -160,7 +160,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-mail-calendar",
                     Name = "Mail and Calendar",
-                    Description = "Microsoft Mail and Calendar apps",
+                    Description = "Built-in email client and calendar (replaced by new Outlook in Windows 11)",
                     GroupName = "Communication",
                     AppxPackageName = ["microsoft.windowscommunicationsapps"],
                     MsStoreId = "9WZDNCRFHVQM",
@@ -202,7 +202,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-maps",
                     Name = "Maps",
-                    Description = "Microsoft Maps app",
+                    Description = "Offline-capable maps, search, and turn-by-turn directions powered by Bing",
                     GroupName = "System Tools",
                     AppxPackageName = ["Microsoft.WindowsMaps"],
                     MsStoreId = "9WZDNCRDTBVB", // unavailable in your market
@@ -224,7 +224,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-office-hub",
                     Name = "MS 365 Copilot (Office Hub)",
-                    Description = "Microsoft 365 Copilot (formerly known as Office hub)",
+                    Description = "Launcher and recent-files dashboard for Microsoft 365 apps and Copilot",
                     GroupName = "Office",
                     AppxPackageName = ["Microsoft.MicrosoftOfficeHub"],
                     MsStoreId = "9WZDNCRD29V9",
@@ -234,7 +234,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-outlook",
                     Name = "Outlook for Windows",
-                    Description = "Reimagined Outlook app for Windows",
+                    Description = "New web-based Outlook client replacing the classic Mail and Calendar apps",
                     GroupName = "Office",
                     AppxPackageName = ["Microsoft.OutlookForWindows"],
                     MsStoreId = "9NRX63209R7B",
@@ -323,7 +323,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-solitaire",
                     Name = "Solitaire Collection",
-                    Description = "Microsoft Solitaire Collection games",
+                    Description = "Bundle of card games including Klondike, Spider, and FreeCell (with ads)",
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.MicrosoftSolitaireCollection"],
                     MsStoreId = "9WZDNCRFHWD2", // https://apps.microsoft.com/detail/9wzdncrfhwd2?hl=en-US&gl=ZA
@@ -333,7 +333,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-xbox",
                     Name = "Xbox",
-                    Description = "Xbox App for Windows",
+                    Description = "Game library, Game Pass storefront, and PC game launcher",
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.GamingApp", "Microsoft.XboxApp"],
                     MsStoreId = "9MV0B5HZVK9Z",
@@ -385,7 +385,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-store",
                     Name = "Microsoft Store",
-                    Description = "App store for Windows",
+                    Description = "Official storefront for installing apps, games, and updates on Windows",
                     GroupName = "Store",
                     AppxPackageName = ["Microsoft.WindowsStore"],
                     MsStoreId = "9WZDNCRFJBMP",
@@ -397,7 +397,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-media-player",
                     Name = "Media Player",
-                    Description = "Music player app",
+                    Description = "Plays local music and video files; replaces Groove Music",
                     GroupName = "Media",
                     AppxPackageName = ["Microsoft.ZuneMusic"],
                     MsStoreId = "9WZDNCRFJ3PT",
@@ -407,7 +407,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-movies-tv",
                     Name = "Movies & TV",
-                    Description = "Video player app",
+                    Description = "Plays local video files and rented or purchased Microsoft Store content",
                     GroupName = "Media",
                     AppxPackageName = ["Microsoft.ZuneVideo"],
                     MsStoreId = "9WZDNCRFJ3P2",
@@ -439,7 +439,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-tips",
                     Name = "Tips",
-                    Description = "Windows tutorial app",
+                    Description = "Walk-through tutorials and tips for new Windows features",
                     GroupName = "Productivity",
                     AppxPackageName = ["Microsoft.Getstarted"],
                     CanBeReinstalled = false
@@ -510,7 +510,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-edge-game-assist",
                     Name = "Edge Game Assist",
-                    Description = "Edge Game Assist AI overlay for gaming",
+                    Description = "Browser-based overlay for guides and search while playing PC games",
                     GroupName = "AI",
                     AppxPackageName = ["Microsoft.Edge.GameAssist"],
                     CanBeReinstalled = false,
@@ -537,7 +537,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-writing-assistant",
                     Name = "Writing Assistant",
-                    Description = "Microsoft Office Writing Assistant AI tool",
+                    Description = "Office AI helper for grammar, rewriting, and content suggestions",
                     GroupName = "AI",
                     AppxPackageName = ["Microsoft.WritingAssistant"],
                     CanBeReinstalled = false,
@@ -631,7 +631,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-onenote",
                     Name = "OneNote",
-                    Description = "Microsoft note-taking app",
+                    Description = "Free-form notebook app for typed, handwritten, and clipped notes",
                     GroupName = "Office",
                     AppxPackageName = ["Microsoft.Office.OneNote"],
                     MsStoreId = "XPFFZHVGQWWLHB",

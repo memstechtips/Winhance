@@ -26,7 +26,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-powershell-ise",
                     Name = "PowerShell ISE",
-                    Description = "PowerShell Integrated Scripting Environment",
+                    Description = "Legacy script editor for Windows PowerShell with debugger and IntelliSense",
                     GroupName = "Development",
                     CapabilityName = "Microsoft.Windows.PowerShell.ISE",
                     CanBeReinstalled = true
@@ -80,7 +80,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-paint-legacy",
                     Name = "Paint (Legacy)",
-                    Description = "Classic Paint app",
+                    Description = "Original Win32 Paint binary, kept for users who prefer the old interface",
                     GroupName = "Graphics",
                     CapabilityName = "Microsoft.Windows.MSPaint",
                     CanBeReinstalled = false
