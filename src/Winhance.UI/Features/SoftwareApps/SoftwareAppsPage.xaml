@@ -11,6 +11,7 @@
     NavigationCacheMode="Enabled"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:vm="using:Winhance.UI.Features.SoftwareApps.ViewModels"
+    xmlns:winhanceControls="using:Winhance.UI.Features.Common.Controls"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -49,15 +50,15 @@
         <CornerRadius x:Key="CardViewCornerRadius">8</CornerRadius>
         <Thickness x:Key="CardViewPadding">12,10</Thickness>
 
-        <!-- Card view: every card renders at this fixed inner-grid height regardless
-             of description length or pill count. Equal heights are required by
-             VariableSizedWrapGrid (which uses ItemHeight as a fixed cell size) and
-             keep description wrapping from changing per-card layout. -->
-        <x:Double x:Key="CardContentHeight">82</x:Double>
-        <!-- Total cell height including Border padding (10 top + 10 bottom) and
-             border thickness (1+1). Card content (82) + 22 = 104. Plus a small
-             margin so cards aren't flush. -->
-        <x:Double x:Key="CardCellHeight">108</x:Double>
+        <!-- Card view sizing. UniformWrapPanel forces every cell to CardCellHeight
+             so cards are uniform across rows. CardContentHeight sizes the inner
+             content area; the difference (~24px) is Border padding (10+10) plus
+             border thickness (1+1, or 2+2 when Checked).
+             Tuned so a 2-line description fits comfortably with the title row,
+             with a couple px of breathing room when only one line is rendered.
+             Title row ≈ 22px + 4px margin + 2-line desc ≈ 32px = 58px content. -->
+        <x:Double x:Key="CardContentHeight">60</x:Double>
+        <x:Double x:Key="CardCellHeight">84</x:Double>
         <!-- Pill geometry. CornerRadius is set high enough to fully round the ends
              at the rendered pill height (~18px), but kept finite so it clips
              cleanly at HiDPI scales (CornerRadius=999 can render with subpixel
@@ -528,6 +529,7 @@
                     <CheckBox Grid.Column="0"
                               IsChecked="{x:Bind IsSelected, Mode=OneWay}"
                               IsHitTestVisible="False"
+                              IsTabStop="False"
                               MinWidth="0"
                               VerticalAlignment="Center"/>
 
@@ -551,10 +553,13 @@
                                   Visibility="{x:Bind IsOptionalFeatureFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </Grid>
 
-                    <Grid Grid.Column="2" VerticalAlignment="Stretch" MinWidth="0">
+                    <!-- Content block is Auto-sized and vertically centred inside the
+                         fixed-height outer Grid, so cards with short descriptions
+                         look balanced instead of having text pinned to the top. -->
+                    <Grid Grid.Column="2" VerticalAlignment="Center" MinWidth="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <!-- Title row: name on the left (truncates with ellipsis when long),
@@ -655,9 +660,8 @@
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap"
                                    TextTrimming="CharacterEllipsis"
-                                   MaxLines="3"
-                                   VerticalAlignment="Top"
-                                   Margin="0,4,0,0"
+                                   MaxLines="2"
+                                   Margin="0,2,0,0"
                                    Visibility="{x:Bind HasDescription, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </Grid>
                 </Grid>
@@ -1080,19 +1084,20 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <!-- Switched ItemsRepeater → ItemsControl + VariableSizedWrapGrid.
-                                         ItemsRepeater inside StackPanel inside ScrollViewer was
-                                         producing a measure cycle that immediately reset scroll
-                                         offset to 0 (the bug Marco hit even when dragging the
-                                         scroll thumb). VariableSizedWrapGrid lays out non-virtualised
-                                         children at fixed cell size — no viewport feedback loop. -->
+                                    <!-- Non-virtualising ItemsControl + custom UniformWrapPanel.
+                                         ItemsRepeater + UniformGridLayout produced a measure cycle
+                                         that snapped the outer ScrollViewer to the top. UniformWrapPanel
+                                         keeps the responsive width (cells stretch to fill the row,
+                                         column count derives from MinItemWidth) without the cycle. -->
                                     <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}"
                                                   ItemTemplate="{StaticResource AppCardTemplate}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
-                                                <VariableSizedWrapGrid Orientation="Horizontal"
-                                                                       ItemWidth="{StaticResource CardItemMinWidth}"
-                                                                       ItemHeight="{StaticResource CardCellHeight}"/>
+                                                <winhanceControls:UniformWrapPanel
+                                                    MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                    ItemHeight="{StaticResource CardCellHeight}"
+                                                    ColumnSpacing="8"
+                                                    RowSpacing="8"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
@@ -1107,9 +1112,11 @@
                                                   ItemTemplate="{StaticResource AppCardTemplate}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
-                                                <VariableSizedWrapGrid Orientation="Horizontal"
-                                                                       ItemWidth="{StaticResource CardItemMinWidth}"
-                                                                       ItemHeight="{StaticResource CardCellHeight}"/>
+                                                <winhanceControls:UniformWrapPanel
+                                                    MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                    ItemHeight="{StaticResource CardCellHeight}"
+                                                    ColumnSpacing="8"
+                                                    RowSpacing="8"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
@@ -1124,9 +1131,11 @@
                                                   ItemTemplate="{StaticResource AppCardTemplate}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
-                                                <VariableSizedWrapGrid Orientation="Horizontal"
-                                                                       ItemWidth="{StaticResource CardItemMinWidth}"
-                                                                       ItemHeight="{StaticResource CardCellHeight}"/>
+                                                <winhanceControls:UniformWrapPanel
+                                                    MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                    ItemHeight="{StaticResource CardCellHeight}"
+                                                    ColumnSpacing="8"
+                                                    RowSpacing="8"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
@@ -1469,9 +1478,9 @@
                                               Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
                                 </StackPanel>
 
-                                <!-- Categories with apps inside. Both repeaters switched to
-                                     ItemsControl + VariableSizedWrapGrid for the same scroll-cycle
-                                     reason as the Windows Apps card view above. -->
+                                <!-- Categories with apps inside. Both levels switched to
+                                     non-virtualising ItemsControl with a UniformWrapPanel for the
+                                     inner cards — same scroll-cycle reason as Windows Apps above. -->
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -1483,9 +1492,11 @@
                                                               ItemTemplate="{StaticResource AppCardTemplate}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
-                                                            <VariableSizedWrapGrid Orientation="Horizontal"
-                                                                                   ItemWidth="{StaticResource CardItemMinWidth}"
-                                                                                   ItemHeight="{StaticResource CardCellHeight}"/>
+                                                            <winhanceControls:UniformWrapPanel
+                                                                MinItemWidth="{StaticResource CardItemMinWidth}"
+                                                                ItemHeight="{StaticResource CardCellHeight}"
+                                                                ColumnSpacing="8"
+                                                                RowSpacing="8"/>
                                                         </ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                 </ItemsControl>
