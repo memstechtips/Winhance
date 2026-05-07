@@ -20,7 +20,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-3d-viewer",
                     Name = "3D Viewer",
-                    Description = "View 3D models and animations",
+                    Description = "View 3D models, animations, and AR scenes in glTF, FBX, and OBJ formats",
                     GroupName = "3D/Mixed Reality",
                     AppxPackageName = ["Microsoft.Microsoft3DViewer"],
                     MsStoreId = "9NBLGGH42THS",
@@ -62,7 +62,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-msn-weather",
                     Name = "MSN Weather",
-                    Description = "Weather forecasts and information",
+                    Description = "Weather forecasts, radar, and 10-day outlook from MSN",
                     GroupName = "Bing/Search",
                     AppxPackageName = ["Microsoft.BingWeather"],
                     MsStoreId = "9WZDNCRFJ3Q2",
@@ -106,7 +106,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-cortana",
                     Name = "Cortana",
-                    Description = "Microsoft's virtual assistant",
+                    Description = "Microsoft's voice assistant; deprecated and replaced by Copilot in Windows 11",
                     GroupName = "System Utilities",
                     AppxPackageName = ["Microsoft.549981C3F5F10"],
                     MsStoreId = "9NFFX4SZZ23L", // Package is deprecated
@@ -170,7 +170,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-skype",
                     Name = "Skype",
-                    Description = "Video calling and messaging app",
+                    Description = "Video calling and messaging app; retired by Microsoft in May 2025",
                     GroupName = "Communication",
                     AppxPackageName = ["Microsoft.SkypeApp"],
                     MsStoreId = "9WZDNCRFJ364", // Skype is retired
@@ -180,7 +180,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-teams",
                     Name = "Microsoft Teams",
-                    Description = "Team collaboration and communication app",
+                    Description = "Microsoft's team chat, meetings, and collaboration app",
                     GroupName = "Communication",
                     AppxPackageName = ["MSTeams"],
                     MsStoreId = "XP8BT8DW290MPQ",
@@ -212,7 +212,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-terminal",
                     Name = "Terminal",
-                    Description = "Modern terminal application for Windows",
+                    Description = "Tabbed terminal that hosts PowerShell, Command Prompt, and WSL shells",
                     GroupName = "System Tools",
                     AppxPackageName = ["Microsoft.WindowsTerminal"],
                     MsStoreId = "9N0DX20HK701",
@@ -246,7 +246,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-paint-3d",
                     Name = "Paint 3D",
-                    Description = "3D modeling and editing app",
+                    Description = "3D modeling app for creating and editing scenes; deprecated by Microsoft",
                     GroupName = "Graphics",
                     AppxPackageName = ["Microsoft.MSPaint"],
                     CanBeReinstalled = false
@@ -255,7 +255,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-paint",
                     Name = "Paint",
-                    Description = "Traditional image editing app",
+                    Description = "Classic image editor with brushes, layers, and AI Cocreator generation",
                     GroupName = "Graphics",
                     AppxPackageName = ["Microsoft.Paint"],
                     MsStoreId = "9PCFS5B6T72H",
@@ -265,7 +265,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-photos",
                     Name = "Photos",
-                    Description = "Photo viewing and editing app",
+                    Description = "Default photo viewer and editor with crop, markup, and slideshow tools",
                     GroupName = "Graphics",
                     AppxPackageName = ["Microsoft.Windows.Photos"],
                     MsStoreId = "9WZDNCRFJBH4",
@@ -287,7 +287,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-people",
                     Name = "People",
-                    Description = "Contact management app",
+                    Description = "Contacts hub aggregating accounts from Outlook, Skype, and other services",
                     GroupName = "Social",
                     AppxPackageName = ["Microsoft.People"],
                     MsStoreId = "9NBLGGH10PG8", // unavailable in your market
@@ -299,7 +299,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-power-automate",
                     Name = "Power Automate",
-                    Description = "Desktop automation tool",
+                    Description = "Desktop automation builder for recording and scheduling repetitive tasks",
                     GroupName = "Automation",
                     AppxPackageName = ["Microsoft.PowerAutomateDesktop"],
                     MsStoreId = "9NFTCH6J7FHV",
@@ -311,7 +311,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-quick-assist",
                     Name = "Quick Assist",
-                    Description = "Remote assistance tool",
+                    Description = "Remote assistance app for sharing your screen with someone helping you",
                     GroupName = "Support",
                     AppxPackageName = ["MicrosoftCorporationII.QuickAssist"],
                     MsStoreId = "9P7BP5VNWKX5",
@@ -353,7 +353,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-xbox-game-bar-plugin",
                     Name = "Xbox Game Bar Plugin",
-                    Description = "Extension component for Xbox Game Bar providing additional functionality",
+                    Description = "Game overlay component used by Xbox Game Bar for rendering in fullscreen games",
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.XboxGameOverlay"],
                     MsStoreId = "9NBLGGH537C2", // unavailable in market
@@ -363,7 +363,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-xbox-live-ingame",
                     Name = "Xbox Live In-Game Experience",
-                    Description = "Core component for Xbox Live services within games",
+                    Description = "Title Callable UI for Xbox Live overlays and dialogs shown inside games",
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.Xbox.TCUI"],
                     MsStoreId = "9NKNC0LD5NN6",
@@ -417,7 +417,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-sound-recorder",
                     Name = "Sound Recorder",
-                    Description = "Audio recording app",
+                    Description = "Voice and audio recording app with playback, trim, and export",
                     GroupName = "Media",
                     AppxPackageName = ["Microsoft.WindowsSoundRecorder"],
                     MsStoreId = "9WZDNCRFHWKN",
@@ -429,7 +429,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-sticky-notes",
                     Name = "Sticky Notes",
-                    Description = "Note-taking app",
+                    Description = "On-screen notes that sync across devices via your Microsoft account",
                     GroupName = "Productivity",
                     AppxPackageName = ["Microsoft.MicrosoftStickyNotes"],
                     MsStoreId = "9NBLGGH4QGHW",
@@ -448,7 +448,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-todo",
                     Name = "To Do: Lists, Tasks & Reminders",
-                    Description = "Task management app",
+                    Description = "Cloud-synced task list and reminders, integrated with Outlook tasks",
                     GroupName = "Productivity",
                     AppxPackageName = ["Microsoft.Todos"],
                     MsStoreId = "9NBLGGH5R558",
@@ -458,7 +458,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-notepad",
                     Name = "Notepad",
-                    Description = "Text editing app",
+                    Description = "Default text editor with tabs, autosave, and optional AI rewrite",
                     GroupName = "Productivity",
                     AppxPackageName = ["Microsoft.WindowsNotepad"],
                     MsStoreId = "9MSMLRH6LZF3",
@@ -492,7 +492,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-client-aix",
                     Name = "Windows AI Experience",
-                    Description = "Core Windows AI experience package (MicrosoftWindows.Client.AIX)",
+                    Description = "Core Windows AI platform package powering Copilot and Click to Do features",
                     GroupName = "AI",
                     AppxPackageName = ["MicrosoftWindows.Client.AIX"],
                     CanBeReinstalled = false,
@@ -501,7 +501,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-client-copilot",
                     Name = "Windows Copilot Client",
-                    Description = "System Copilot client package (MicrosoftWindows.Client.CoPilot)",
+                    Description = "System Copilot client powering the Copilot button and shell integrations",
                     GroupName = "AI",
                     AppxPackageName = ["MicrosoftWindows.Client.CoPilot"],
                     CanBeReinstalled = false,
@@ -519,7 +519,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-office-actions-server",
                     Name = "Office Actions Server",
-                    Description = "Office AI Actions Server for automated AI-powered actions",
+                    Description = "Background server that runs Office's AI-powered automated actions",
                     GroupName = "AI",
                     AppxPackageName = ["Microsoft.Office.ActionsServer"],
                     CanBeReinstalled = false,
@@ -528,7 +528,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-ai-manager",
                     Name = "AI Manager",
-                    Description = "Office AI Manager (aimgr) for managing AI services",
+                    Description = "Office AI Manager that brokers local AI requests for Office apps",
                     GroupName = "AI",
                     AppxPackageName = ["aimgr"],
                     CanBeReinstalled = false,
@@ -546,7 +546,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-ai-workloads",
                     Name = "AI Workload Packages",
-                    Description = "Windows AI workload packages including ONNX Runtime, Semantic Text, Image Search, Content Extraction, Screen Region Detection, Text Recognition, and Image Content Moderation",
+                    Description = "On-device AI packages for OCR, image search, super-resolution, and summarization",
                     GroupName = "AI",
                     AppxPackageName = [
                         "WindowsWorkload.OnnxRuntimeGenAI",
@@ -593,7 +593,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-edge",
                     Name = "Microsoft Edge",
-                    Description = "Microsoft's web browser",
+                    Description = "Microsoft's Chromium-based web browser bundled with Windows",
                     HasInstabilityWarning = true,
                     GroupName = "Browsers",
                     AppxPackageName = ["Microsoft.MicrosoftEdge.Stable"],
@@ -606,7 +606,7 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-onedrive",
                     Name = "OneDrive",
-                    Description = "Microsoft's cloud storage service",
+                    Description = "Microsoft's built-in cloud storage and file sync client",
                     GroupName = "System",
                     AppxPackageName = ["Microsoft.OneDriveSync"],
                     WinGetPackageId = ["Microsoft.OneDrive"],

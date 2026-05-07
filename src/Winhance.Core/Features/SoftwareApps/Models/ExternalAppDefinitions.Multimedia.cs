@@ -33,7 +33,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-itunes",
                         Name = "iTunes",
-                        Description = "Media player and library",
+                        Description = "Apple's music and media library; legacy iPhone and iPad sync tool",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["Apple.iTunes"],
                         ChocoPackageId = "itunes",
@@ -187,7 +187,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-mpc-be",
                         Name = "MPC-BE",
-                        Description = "Media Player Classic - Black Edition",
+                        Description = "Lightweight Media Player Classic fork for video and audio playback",
                         RegistryDisplayName = "MPC-BE {arch} {version}",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["MPC-BE.MPC-BE"],
@@ -201,7 +201,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-k-lite-codec-pack",
                         Name = "K-Lite Codec Pack (Mega)",
-                        Description = "Collection of codecs and related tools",
+                        Description = "Codec bundle for playing video formats Windows can't open natively",
                         RegistryDisplayName = "K-Lite Mega Codec Pack {version}",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["CodecGuide.K-LiteCodecPack.Mega"],
@@ -215,7 +215,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-capcut",
                         Name = "CapCut",
-                        Description = "Video editor",
+                        Description = "ByteDance's video editor with templates, effects, and AI tools",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["ByteDance.CapCut"],
                         MsStoreId = "XP9KN75RRB9NHS",

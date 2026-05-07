@@ -59,7 +59,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-nextcloud",
                         Name = "Nextcloud",
-                        Description = "Access, share and protect your files, calendars, contacts, communication & more at home and in your organization",
+                        Description = "Self-hosted cloud platform for files, calendar, contacts, and chat",
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Nextcloud.NextcloudDesktop"],
                         ChocoPackageId = "nextcloud-client",
@@ -99,7 +99,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-hekasoft-backup",
                         Name = "Hekasoft Backup & Restore",
-                        Description = "The complete free solution for browser backup and management",
+                        Description = "Backs up and restores browser bookmarks, settings, and profiles",
                         RegistryDisplayName = "Hekasoft Backup & Restore {version}",
                         GroupName = "Online Storage & Backup",
                         WinGetPackageId = ["Hekasoft.Backup-Restore"],

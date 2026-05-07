@@ -101,7 +101,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-sucrose-wallpaper",
                         Name = "Sucrose Wallpaper Engine",
-                        Description = "Free and open-source animated desktop wallpaper application",
+                        Description = "Open-source alternative to Wallpaper Engine for animated desktop backgrounds",
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["Taiizor.SucroseWallpaperEngine"],
                         ChocoPackageId = "sucrose",

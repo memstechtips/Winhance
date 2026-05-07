@@ -33,7 +33,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-whatsapp",
                         Name = "WhatsApp",
-                        Description = "Instant messaging and voice calling app",
+                        Description = "Meta's instant messaging app with end-to-end encryption",
                         GroupName = "Messaging, Email & Calendar",
                         AppxPackageName = ["5319275A.WhatsAppDesktop"],
                         ChocoPackageId = "whatsapp",
@@ -93,7 +93,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-thunderbird",
                         Name = "Mozilla Thunderbird",
-                        Description = "Free email application",
+                        Description = "Mozilla's open-source email and calendar client",
                         RegistrySubKeyName = "Mozilla Thunderbird {version} ({arch} {locale})",
                         RegistryDisplayName = "Mozilla Thunderbird ({arch} {locale})",
                         GroupName = "Messaging, Email & Calendar",

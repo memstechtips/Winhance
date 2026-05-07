@@ -33,7 +33,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-snappy-driver-installer",
                         Name = "Snappy Driver Installer Origin",
-                        Description = "Driver installer and updater",
+                        Description = "Offline-capable driver installer and updater for Windows",
                         GroupName = "Other Utilities",
                         WinGetPackageId = ["GlennDelahoy.SnappyDriverInstallerOrigin"],
                         ChocoPackageId = "sdio",
@@ -46,7 +46,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-wise-disk-cleaner",
                         Name = "Wise Disk Cleaner",
-                        Description = "Free Disk Cleanup and Defragment Tool",
+                        Description = "Free disk cleanup and defragmentation utility",
                         GroupName = "Other Utilities",
                         RegistrySubKeyName = "Wise Disk Cleaner_is1",
                         RegistryDisplayName = "Wise Disk Cleaner",
@@ -129,7 +129,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-iobit-uninstaller",
                         Name = "IObit Uninstaller",
-                        Description = "Completely Uninstall Unwanted Software, Windows Apps & Browser Plug-ins",
+                        Description = "Removes apps, leftover files, and stubborn browser plug-ins",
                         GroupName = "Other Utilities",
                         RegistrySubKeyName = "IObitUninstall",
                         RegistryDisplayName = "IObit Uninstaller {version}",
@@ -144,7 +144,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-revo-uninstaller",
                         Name = "Revo Uninstaller",
-                        Description = "Revo Uninstaller helps you to uninstall software and remove unwanted programs easily.",
+                        Description = "Uninstaller that scans for and removes leftover files and registry entries",
                         GroupName = "Other Utilities",
                         RegistrySubKeyName = "{A28DBDA2-3CC7-4ADC-8BFE-66D7743C6C97}_is1",
                         RegistryDisplayName = "Revo Uninstaller {version}",

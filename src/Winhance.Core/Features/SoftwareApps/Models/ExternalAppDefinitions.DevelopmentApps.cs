@@ -102,7 +102,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-vscode",
                         Name = "Microsoft Visual Studio Code",
-                        Description = "Code editor with support for development operations",
+                        Description = "Microsoft's code editor with extensions, debugging, and Git integration",
                         RegistryDisplayName = "Microsoft Visual Studio Code ({version})",
                         GroupName = "Development Apps",
                         WinGetPackageId = ["Microsoft.VisualStudioCode"],
@@ -129,7 +129,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-github-desktop",
                         Name = "GitHub Desktop",
-                        Description = "GitHub desktop client",
+                        Description = "GUI for Git and GitHub workflows without the command line",
                         GroupName = "Development Apps",
                         WinGetPackageId = ["GitHub.GitHubDesktop"],
                         ChocoPackageId = "github-desktop",

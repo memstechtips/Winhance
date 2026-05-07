@@ -150,7 +150,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-arc",
                         Name = "Arc Browser",
-                        Description = "Innovative browser with a focus on design and user experience",
+                        Description = "Browser with sidebar tabs and Spaces, focused on design",
                         GroupName = "Browsers",
                         AppxPackageName = ["TheBrowserCompany.Arc"],
                         WinGetPackageId = ["TheBrowserCompany.Arc"],
@@ -209,7 +209,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-zen",
                         Name = "Zen Browser",
-                        Description = "Privacy-focused browser with built-in ad blocking",
+                        Description = "Firefox-based browser with workspaces, split tabs, and a clean UI",
                         GroupName = "Browsers",
                         WinGetPackageId = ["Zen-Team.Zen-Browser"],
                         WebsiteUrl = "https://zen-browser.app/",
@@ -284,7 +284,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-duckduckgo",
                         Name = "DuckDuckGo",
-                        Description = "Privacy-focused search engine with a browser extension",
+                        Description = "Privacy-focused web browser with built-in tracker blocking",
                         GroupName = "Browsers",
                         AppxPackageName = ["DuckDuckGo.DesktopBrowser"],
                         WinGetPackageId = ["DuckDuckGo.DesktopBrowser"],

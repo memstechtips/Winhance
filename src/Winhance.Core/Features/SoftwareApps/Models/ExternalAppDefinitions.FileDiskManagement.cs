@@ -49,7 +49,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-treesize-free",
                         Name = "TreeSize Free",
-                        Description = "Disk space manager",
+                        Description = "Folder size analyzer for finding what's filling up your drive",
                         RegistryDisplayName = "TreeSize Free {version}",
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["JAMSoftware.TreeSize.Free"],
@@ -120,7 +120,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-bulk-rename-utility",
                         Name = "Bulk Rename Utility",
-                        Description = "File renaming software for Windows",
+                        Description = "Powerful batch file renamer with regex and metadata support",
                         RegistryDisplayName = "Bulk Rename Utility {version} ({arch})",
                         GroupName = "File & Disk Management",
                         WinGetPackageId = ["TGRMNSoftware.BulkRenameUtility"],

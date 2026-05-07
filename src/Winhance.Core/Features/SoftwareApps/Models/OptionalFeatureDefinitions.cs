@@ -67,7 +67,7 @@ public static class OptionalFeatureDefinitions
                 {
                     Id = "feature-windows-sandbox",
                     Name = "Windows Sandbox",
-                    Description = "Isolated desktop environment for running applications",
+                    Description = "Throwaway isolated desktop for running suspicious or untrusted apps",
                     GroupName = "Security",
                     OptionalFeatureName = "Containers-DisposableClientVM",
                     RequiresReboot = true,
@@ -77,7 +77,7 @@ public static class OptionalFeatureDefinitions
                 {
                     Id = "feature-recall",
                     Name = "Recall",
-                    Description = "Windows 11 feature that records user activity",
+                    Description = "Windows 11 AI feature that takes periodic screenshots of activity to make them searchable",
                     GroupName = "System",
                     OptionalFeatureName = "Recall",
                     RequiresReboot = false,

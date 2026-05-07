@@ -49,7 +49,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-pdfgear",
                         Name = "PDFgear",
-                        Description = "Read, edit, convert, merge, and sign PDF files across devices, for completely free and without signing up.",
+                        Description = "Free PDF reader, editor, converter, and signer with no sign-up required",
                         GroupName = "Document Viewers",
                         RegistrySubKeyName = "{7DACF63A-4EE4-4837-9AF9-C65D4509FFB4}_is1",
                         RegistryDisplayName = "PDFgear {version}",
@@ -92,7 +92,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-openoffice",
                         Name = "OpenOffice",
-                        Description = "Discontinued open-source office suite. Active successor projects is LibreOffice",
+                        Description = "Largely inactive open-source office suite; users typically migrate to LibreOffice",
                         RegistryDisplayName = "OpenOffice {version}",
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Apache.OpenOffice"],
@@ -107,7 +107,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-adobe-reader",
                         Name = "Adobe Acrobat Reader DC",
-                        Description = "PDF reader and editor",
+                        Description = "Adobe's free PDF reader with form filling and basic markup",
                         RegistryDisplayName = "Adobe Acrobat ({arch})",
                         GroupName = "Document Viewers",
                         MsStoreId = "XPDP273C0XHQH2", // MS Store package
@@ -121,7 +121,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-evernote",
                         Name = "Evernote",
-                        Description = "Note-taking app",
+                        Description = "Cloud-synced notebook for typed notes, web clips, and tasks",
                         RegistryDisplayName = "Evernote {version}",
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Evernote.Evernote"],

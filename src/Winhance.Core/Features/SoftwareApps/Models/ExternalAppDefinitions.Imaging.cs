@@ -47,7 +47,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-blender",
                         Name = "Blender",
-                        Description = "3D creation suite",
+                        Description = "3D modeling, animation, rendering, and video editing suite",
                         GroupName = "Imaging",
                         WinGetPackageId = ["BlenderFoundation.Blender"],
                         ChocoPackageId = "blender",
@@ -74,7 +74,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-gimp",
                         Name = "GIMP",
-                        Description = "GNU Image Manipulation Program",
+                        Description = "Open-source raster image editor with layers, masks, and plugins",
                         RegistryDisplayName = "GIMP {version}",
                         GroupName = "Imaging",
                         WinGetPackageId = ["GIMP.GIMP.3"],
@@ -117,7 +117,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-inkscape",
                         Name = "Inkscape",
-                        Description = "Vector graphics editor",
+                        Description = "Open-source SVG vector graphics editor",
                         GroupName = "Imaging",
                         WinGetPackageId = ["Inkscape.Inkscape"],
                         ChocoPackageId = "inkscape",

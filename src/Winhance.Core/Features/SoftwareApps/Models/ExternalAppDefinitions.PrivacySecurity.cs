@@ -48,7 +48,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-malwarebytes-firewall-control",
                         Name = "Windows Firewall Control",
-                        Description = "Malwarebytes Windows Firewall Control application",
+                        Description = "Friendly UI on top of Windows Firewall by Malwarebytes",
                         GroupName = "Privacy & Security",
                         WinGetPackageId = ["BiniSoft.WindowsFirewallControl"],
                         ChocoPackageId = "windowsfirewallcontrol",

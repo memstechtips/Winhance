@@ -19,7 +19,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-steam",
                         Name = "Steam",
-                        Description = "Digital distribution platform for PC gaming",
+                        Description = "Valve's PC gaming storefront, library, and social platform",
                         RegistryDisplayName = "Steam",
                         DetectionPaths = new[] { @"%ProgramFiles(x86)%\Steam\Steam.exe", @"%ProgramFiles%\Steam\Steam.exe" },
                         GroupName = "Gaming",
@@ -34,7 +34,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-epic-games",
                         Name = "Epic Games Launcher",
-                        Description = "Digital distribution platform for PC gaming",
+                        Description = "Epic's PC game store and launcher with weekly free games",
                         GroupName = "Gaming",
                         WinGetPackageId = ["EpicGames.EpicGamesLauncher"],
                         ChocoPackageId = "epicgameslauncher",
@@ -47,7 +47,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-good-old-games",
                         Name = "GOG GALAXY",
-                        Description = "Digital distribution platform for PC gaming",
+                        Description = "DRM-free PC game store and library manager from CD Projekt",
                         GroupName = "Gaming",
                         WinGetPackageId = ["GOG.Galaxy"],
                         ChocoPackageId = "goggalaxy",

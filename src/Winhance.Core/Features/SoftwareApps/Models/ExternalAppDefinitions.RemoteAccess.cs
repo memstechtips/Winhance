@@ -63,7 +63,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-ultraviewer",
                         Name = "UltraViewer",
-                        Description = "Helps you control your partner's computer to support them as if you were sitting in front of their screen",
+                        Description = "Remote support tool for assisting clients or family members",
                         RegistryDisplayName = "UltraViewer version {version}",
                         GroupName = "Remote Access",
                         WinGetPackageId = ["DucFabulous.UltraViewer"],
@@ -78,7 +78,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-vnc-server",
                         Name = "RealVNC Server",
-                        Description = "Remote access software",
+                        Description = "VNC server for hosting remote access connections",
                         RegistryDisplayName = "RealVNC Server {version}",
                         GroupName = "Remote Access",
                         WinGetPackageId = ["RealVNC.VNCServer"],
@@ -93,7 +93,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-vnc-viewer",
                         Name = "RealVNC Viewer",
-                        Description = "Remote access software",
+                        Description = "VNC client for connecting to remote VNC servers",
                         RegistryDisplayName = "RealVNC Viewer {version}",
                         GroupName = "Remote Access",
                         WinGetPackageId = ["RealVNC.VNCViewer"],
@@ -122,7 +122,7 @@ public static partial class ExternalAppDefinitions
                     {
                         Id = "external-app-parsec",
                         Name = "Parsec",
-                        Description = "Remote desktop reimagined. Secure, flexible, effortless access to whatever you do, at any time, from wherever you go",
+                        Description = "Low-latency remote desktop built for gaming and creative workflows",
                         GroupName = "Remote Access",
                         WinGetPackageId = ["Parsec.Parsec"],
                         ChocoPackageId = "parsec",
