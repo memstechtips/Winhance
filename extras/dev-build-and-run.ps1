@@ -57,19 +57,36 @@ try {
 
 $repoRoot     = Split-Path -Parent $PSScriptRoot
 $csprojPath   = Join-Path $repoRoot 'src\Winhance.UI\Winhance.UI.csproj'
-$buildOutDir  = Join-Path $repoRoot 'src\Winhance.UI\bin\x64\Debug\net10.0-windows10.0.19041.0\win-x64'
-$exePath      = Join-Path $buildOutDir 'Winhance.exe'
 $msbuild      = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
 $buildLogDir  = Join-Path $env:LOCALAPPDATA 'Winhance-dev'
 $buildLog     = Join-Path $buildLogDir 'last-build.log'
 $null = New-Item -ItemType Directory -Path $buildLogDir -Force
 
-# Windows refuses to launch executables from network shares (Internet zone).
-# When the repo lives on a UNC/SMB drive, we mirror the build output to a
-# local path and launch from there. For local repos we just run in place.
+# Detect SMB-mapped drive. When true we redirect MSBuild's bin/ and obj/
+# output to a local path (see "Build" section below). Two reasons:
+#   1. Windows refuses to launch executables from network shares (the
+#      Internet-zone Mark-of-the-Web block) so the binary HAS to end up
+#      local before we Start-Process it.
+#   2. Building straight to the SMB share is fundamentally racy. MSBuild
+#      runs MakeDir then immediately writes into the new dir from a
+#      sibling task; the SMB redirector hasn't surfaced the namespace
+#      change to this client yet, so File.Create fails with
+#      DirectoryNotFoundException (cascading MSB3191/CS2012/MSB4018).
+#      No amount of pre-create or directory-listing cache flushing fixes
+#      this — the race lives inside MSBuild's own task scheduling. The
+#      only reliable cure is keeping bin/ and obj/ off the share entirely.
 $repoIsRemote = ($repoRoot -match '^[A-Z]:\\') -and `
                 ((Get-PSDrive ($repoRoot.Substring(0, 1)) -ErrorAction SilentlyContinue).DisplayRoot -like '\\*')
-$localRunDir  = Join-Path $env:LOCALAPPDATA 'Winhance-dev\win-x64'
+
+$tfm = 'net10.0-windows10.0.19041.0'
+if ($repoIsRemote) {
+    $localBuildRoot = Join-Path $env:LOCALAPPDATA 'Winhance-dev\build'
+    $null = New-Item -ItemType Directory -Path $localBuildRoot -Force
+    $exePath = Join-Path $localBuildRoot "Winhance.UI\bin\x64\Debug\$tfm\win-x64\Winhance.exe"
+}
+else {
+    $exePath = Join-Path $repoRoot "src\Winhance.UI\bin\x64\Debug\$tfm\win-x64\Winhance.exe"
+}
 
 if (-not (Test-Path $csprojPath)) { throw "csproj not found: $csprojPath" }
 if (-not (Test-Path $msbuild))    { throw "MSBuild not found: $msbuild" }
@@ -122,33 +139,35 @@ if ($changed) {
     [System.IO.File]::WriteAllText($csprojPath, $content, $utf8NoBom)
 }
 
-# --- Optional wipe of per-project obj/bin under src/ ---------------------
-# Off by default. Pass -Clean to enable.
+# --- Optional clean wipe -------------------------------------------------
+# Off by default. Pass -Clean to wipe build outputs before rebuilding.
 #
-# Why off by default: when the repo lives on a network share (e.g. an SMB-
-# mapped Z:\) — which $repoIsRemote below detects — wiping obj/ and bin/
-# and immediately asking MSBuild to recreate them produces a cascade of
-# "Could not find a part of the path" errors (MSB3191, CS2012, MSB3026).
-# The SMB server doesn't commit the namespace deletion fast enough for
-# MSBuild's MakeDir tasks; even MSBuild's own 10-retry-with-1s-backoff
-# loop can't outwait it. Incremental builds work fine on SMB because they
-# update existing directories rather than recreating them.
+# When the repo is on a network share, outputs live under $localBuildRoot
+# on C:\ — a clean wipe is just an rm -rf on a local path, fast and safe.
+# When the repo is local, outputs are the per-project src\<proj>\bin and
+# obj\ folders, so we wipe those.
 #
 # When to use -Clean: after a stale-intermediate failure that an
 # incremental build can't shake — e.g. the WindowsAppSDK XAML compiler's
 # WMC9999 ("Could not find file ...MainWindow.xaml"). Run once with
-# -Clean to reset, then go back to incremental. If you're on a network
-# share and -Clean fails with path-creation errors, the fallback is to
-# run "Clean Solution" from Visual Studio (which closes file handles
-# properly before deleting and lets the SMB server settle).
+# -Clean to reset, then go back to incremental.
 if ($Clean) {
-    Write-Host "Clean build requested — wiping all per-project obj/ and bin/" -ForegroundColor Cyan
-    Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory | ForEach-Object {
-        foreach ($sub in @('obj', 'bin')) {
-            $stale = Join-Path $_.FullName $sub
-            if (Test-Path $stale) {
-                Write-Host "Wiping $stale" -ForegroundColor DarkGray
-                Remove-Item -Recurse -Force $stale
+    if ($repoIsRemote) {
+        if (Test-Path $localBuildRoot) {
+            Write-Host "Clean build requested — wiping $localBuildRoot" -ForegroundColor Cyan
+            Remove-Item -Recurse -Force $localBuildRoot
+        }
+        $null = New-Item -ItemType Directory -Path $localBuildRoot -Force
+    }
+    else {
+        Write-Host "Clean build requested — wiping all per-project obj/ and bin/" -ForegroundColor Cyan
+        Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory | ForEach-Object {
+            foreach ($sub in @('obj', 'bin')) {
+                $stale = Join-Path $_.FullName $sub
+                if (Test-Path $stale) {
+                    Write-Host "Wiping $stale" -ForegroundColor DarkGray
+                    Remove-Item -Recurse -Force $stale
+                }
             }
         }
     }
@@ -158,22 +177,25 @@ if ($Clean) {
 Push-Location $repoRoot
 $pushedLocation = $true
 
-# Pre-create per-project bin/ output paths on network shares. Same SMB
-# namespace-commit lag described in the -Clean comment above also bites a
-# cold build when bin/ is missing (e.g. after an out-of-band wipe, killed
-# build, or fresh clone): MSBuild's MakeDir warns MSB3191 and the very next
-# task (GenerateDepsFile, etc.) fails with DirectoryNotFoundException
-# because the SMB server hasn't surfaced the new directory yet. Creating
-# the directories ahead of MSBuild lets the namespace settle before any
-# file write hits it. Cheap no-op when they already exist.
+# When on a network share, redirect MSBuild output (bin/ AND obj/) to a
+# local path via the WINHANCE_LOCAL_BUILD_ROOT env var, which
+# src\Directory.Build.props reads to override BaseIntermediateOutputPath
+# and BaseOutputPath per project. Going through Directory.Build.props
+# (instead of -p: command-line properties) is what actually works:
+#   - Command-line properties are passed as literal strings with no
+#     re-evaluation, so $(MSBuildProjectName) in a -p: value never
+#     expands per project — all 4 csprojs would collide on the same
+#     output dir.
+#   - PowerShell's native-arg quoter also mangles any -p: value that
+#     contains $(...) or ends with backslash, which made the previous
+#     attempt produce two -p: args concatenated into one.
+# An env var sidesteps both problems and Directory.Build.props gets
+# evaluated by MSBuild natively, expanding $(MSBuildProjectName) the
+# normal way. Visual Studio doesn't set the env var, so VS-driven
+# builds still go to the in-tree src\<proj>\bin and obj\.
 if ($repoIsRemote) {
-    $tfm = 'net10.0-windows10.0.19041.0'
-    Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory | ForEach-Object {
-        $binTfm = Join-Path $_.FullName "bin\x64\Debug\$tfm"
-        $null = New-Item -ItemType Directory -Path $binTfm -Force
-        # Winhance.UI's WPF/WindowsAppSDK output also has a win-x64 RID subdir.
-        $null = New-Item -ItemType Directory -Path (Join-Path $binTfm 'win-x64') -Force
-    }
+    Write-Host "Repo on network share — building outputs to $localBuildRoot" -ForegroundColor Cyan
+    $env:WINHANCE_LOCAL_BUILD_ROOT = $localBuildRoot
 }
 
 # Stream full MSBuild output to the console (so errors come with file/line
@@ -194,18 +216,9 @@ if (-not (Test-Path $exePath)) {
     throw "Build succeeded but exe not found at: $exePath"
 }
 
-if ($repoIsRemote) {
-    Write-Host "Repo is on a network share - mirroring output to $localRunDir" -ForegroundColor Cyan
-    $null = New-Item -ItemType Directory -Path $localRunDir -Force
-    & robocopy $buildOutDir $localRunDir /MIR /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
-    $rc = $LASTEXITCODE
-    if ($rc -ge 8) { throw "robocopy failed with exit code $rc" }
-    $global:LASTEXITCODE = 0  # robocopy uses 0-7 for success; reset so script returns clean
-    $launchExe = Join-Path $localRunDir 'Winhance.exe'
-}
-else {
-    $launchExe = $exePath
-}
+# Output is already local (or repo is local). Launch in place — no mirror
+# step needed.
+$launchExe = $exePath
 
 Write-Host "Launching: $launchExe" -ForegroundColor Green
 Start-Process -FilePath $launchExe

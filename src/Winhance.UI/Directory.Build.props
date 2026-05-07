@@ -1,5 +1,14 @@
 <Project>
   <!--
+    Chain to the parent src\Directory.Build.props. MSBuild only auto-imports
+    the FIRST Directory.Build.props it finds walking up, so without this
+    explicit import the src-level file (which redirects bin\/obj\ to a local
+    path when WINHANCE_LOCAL_BUILD_ROOT is set) would never apply to
+    Winhance.UI and the build would still write to the network share.
+  -->
+  <Import Project="..\Directory.Build.props" />
+
+  <!--
     This file is kept for future use if additional properties need to be set
     before the SDK targets are processed.
 
