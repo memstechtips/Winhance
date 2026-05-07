@@ -250,3 +250,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Agent investigation working notes (regenerated; not source-of-truth)
+.agent-plans/
