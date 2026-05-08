@@ -82,7 +82,7 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 
 ## License
 
-Except where otherwise stated (see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)), the content of this repository is provided under the [PolyForm Shield 1.0.0](https://polyformproject.org/licenses/shield/1.0.0/) license by Marco du Plessis.
+Except where otherwise stated (see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)), the content of this repository is provided under the [PolyForm Shield 1.0.0](https://polyformproject.org/licenses/shield/1.0.0) license by Marco du Plessis.
 
 **In plain language:** Winhance is free to use for everyone -- individuals, businesses, and IT professionals. You can use it to service and consult for clients. You just can't fork or rebrand it and redistribute it as a competing product. See the full [LICENSE.txt](LICENSE.txt) for details.
 
