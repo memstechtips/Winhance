@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Windows erlauben, Farbprofile für alle angeschlossenen Bildschirme, die dies unterstützen, automatisch zu verwalten",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Mehrere Anzeigeebenen in Hardware mithilfe der GPU zusammensetzen. Das Deaktivieren kann Bildschirmflackern, schwarze Bildschirme und Ruckeln bei Multi-Monitor-Setups beheben",
+  "Setting_gaming-disable-all-overlays_Name": "Hardware-Overlays",
+  "Setting_gaming-disable-all-overlays_Description": "Erlaubt dem Grafiktreiber, Hardware-Overlay-Flächen für die Komposition zu verwenden. Deaktivieren erzwingt Software-Komposition für alle Overlays und bricht bekanntermaßen die In-Game-Overlays von Steam, Discord und RTSS — aktiviert lassen, sofern nicht ausdrücklich benötigt",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO Mindestbildrate-Anforderung",
   "Setting_gaming-disable-mpo-min-fps_Description": "Desktop Window Manager erlauben, Apps dynamisch zwischen Overlay-Modi basierend auf der Bildrate zu wechseln. Das Deaktivieren kann Ruckeln in Browsern und Discord beheben, ohne MPO vollständig zu deaktivieren",
   "Setting_taskbar-clean_Name": "Taskleiste bereinigen",

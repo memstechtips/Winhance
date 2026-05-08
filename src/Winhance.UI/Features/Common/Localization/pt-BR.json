@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Permitir que o Windows gerencie automaticamente os perfis de cores para todos os monitores conectados que oferecem suporte",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Compor múltiplas camadas de exibição por hardware utilizando a GPU. Desativar pode corrigir cintilação da tela, telas pretas e engasgos em configurações com múltiplos monitores",
+  "Setting_gaming-disable-all-overlays_Name": "Sobreposições de hardware",
+  "Setting_gaming-disable-all-overlays_Description": "Permite que o driver gráfico use superfícies de sobreposição de hardware para composição. Desativá-lo força a composição via software para todas as sobreposições e é conhecido por quebrar as sobreposições no jogo do Steam, Discord e RTSS — mantenha ativado a menos que precise especificamente",
   "Setting_gaming-disable-mpo-min-fps_Name": "Requisito de taxa de quadros mínima do MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Permitir que o Desktop Window Manager alterne dinamicamente os aplicativos entre modos de sobreposição com base na taxa de quadros. Desativar pode corrigir engasgos em navegadores e Discord sem desativar completamente o MPO",
   "Setting_taskbar-clean_Name": "Limpar Barra de Tarefas",

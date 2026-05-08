@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Consenti a Windows di gestire automaticamente i profili colore per tutti i display collegati che lo supportano",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Comporre più livelli di visualizzazione via hardware utilizzando la GPU. La disattivazione può risolvere sfarfallio dello schermo, schermate nere e stuttering su configurazioni multi-monitor",
+  "Setting_gaming-disable-all-overlays_Name": "Sovrapposizioni hardware",
+  "Setting_gaming-disable-all-overlays_Description": "Consente al driver grafico di utilizzare superfici di sovrapposizione hardware per la composizione. Disabilitarle forza la composizione software per tutte le sovrapposizioni ed è noto che interrompa le sovrapposizioni in-game di Steam, Discord e RTSS — lascia abilitato a meno che non ti serva specificamente",
   "Setting_gaming-disable-mpo-min-fps_Name": "Requisito di frame rate minimo MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Consentire al Desktop Window Manager di alternare dinamicamente le applicazioni tra le modalità overlay in base al frame rate. La disattivazione può risolvere lo stuttering nei browser e Discord senza disattivare completamente MPO",
   "Setting_taskbar-clean_Name": "Pulisci barra delle applicazioni",

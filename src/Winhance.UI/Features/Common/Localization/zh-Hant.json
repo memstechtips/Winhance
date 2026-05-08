@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "允許 Windows 自動管理所有支援此功能的已連接顯示器的色彩設定檔",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "使用 GPU 透過硬體合成多個顯示層。停用可修復多螢幕設定中的螢幕閃爍、黑屏和卡頓問題",
+  "Setting_gaming-disable-all-overlays_Name": "硬體疊加層",
+  "Setting_gaming-disable-all-overlays_Description": "允許圖形驅動程式使用硬體疊加表面進行合成。停用會對所有疊加層強制使用軟體合成，已知會破壞 Steam、Discord 和 RTSS 的遊戲內疊加層 — 除非您特別需要，否則請保持啟用",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO 最低幀率要求",
   "Setting_gaming-disable-mpo-min-fps_Description": "允許 Desktop Window Manager 根據幀率動態切換應用程式的疊加模式。停用可修復瀏覽器和 Discord 中的卡頓問題而無需完全停用 MPO",
   "Setting_taskbar-clean_Name": "乾淨工作列",

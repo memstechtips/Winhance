@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Дозволити Windows автоматично керувати кольоровими профілями для всіх підключених дисплеїв, що це підтримують",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Апаратне компонування кількох шарів відображення за допомогою GPU. Вимкнення може виправити мерехтіння екрану, чорні екрани та підсмикування при використанні кількох моніторів",
+  "Setting_gaming-disable-all-overlays_Name": "Апаратні накладення",
+  "Setting_gaming-disable-all-overlays_Description": "Дозволити графічному драйверу використовувати апаратні поверхні накладення для композиції. Вимкнення примусово вмикає програмну композицію для всіх накладень і, як відомо, ламає внутрішньоігрові накладення Steam, Discord та RTSS — залиште увімкненим, якщо вам це спеціально не потрібно",
   "Setting_gaming-disable-mpo-min-fps_Name": "Вимога мінімальної частоти кадрів MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Дозволити Desktop Window Manager динамічно перемикати додатки між режимами накладання на основі частоти кадрів. Вимкнення може виправити підсмикування у браузерах та Discord без повного вимкнення MPO",
   "Setting_taskbar-clean_Name": "Очистити панель завдань",

@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Ļaut Windows automātiski pārvaldīt krāsu profilus visiem pievienotajiem displejiem, kas to atbalsta",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Apvieno vairākus displeja slāņus aparatūrā, izmantojot GPU. Atspējošana var novērst ekrāna mirdzēšanu, melnos ekrānus un raustīšanos vairāku monitoru konfigurācijās",
+  "Setting_gaming-disable-all-overlays_Name": "Aparatūras pārklājumi",
+  "Setting_gaming-disable-all-overlays_Description": "Ļauj grafikas draiverim kompozīcijai izmantot aparatūras pārklājumu virsmas. Atspējošana piespiež programmatūras kompozīciju visiem pārklājumiem un ir zināms, ka tā sabojā Steam, Discord un RTSS spēles pārklājumus — atstājiet ieslēgtu, ja vien jums tas nav īpaši nepieciešams",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO minimālā kadru ātruma prasība",
   "Setting_gaming-disable-mpo-min-fps_Description": "ļaut Desktop Window Manager dinamiski pārslēgt lietotnes starp pārklājuma režīmiem, pamatojoties uz kadru ātrumu. Atspējošana var novērst raustīšanos pārlūkprogrammās un Discord bez pilnīgas MPO atspējošanas",
   "Setting_taskbar-clean_Name": "Tīrīt uzdevumjoslu",

@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Zezwalaj systemowi Windows na automatyczne zarządzanie profilami kolorów dla wszystkich podłączonych wyświetlaczy, które to obsługują",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Składaj wiele warstw wyświetlania sprzętowo za pomocą GPU. Wyłączenie może naprawić migotanie ekranu, czarne ekrany i zacinanie w konfiguracjach z wieloma monitorami",
+  "Setting_gaming-disable-all-overlays_Name": "Nakładki sprzętowe",
+  "Setting_gaming-disable-all-overlays_Description": "Pozwól sterownikowi graficznemu używać sprzętowych powierzchni nakładkowych do kompozycji. Wyłączenie wymusza kompozycję programową dla wszystkich nakładek i wiadomo, że łamie nakładki w grze Steam, Discord i RTSS — pozostaw włączone, chyba że specjalnie tego potrzebujesz",
   "Setting_gaming-disable-mpo-min-fps_Name": "Wymaganie minimalnej częstotliwości klatek MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Pozwól menedżerowi okien pulpitu dynamicznie przełączać aplikacje między trybami nakładki na podstawie częstotliwości klatek. Wyłączenie może naprawić zacinanie w przeglądarkach i Discord bez całkowitego wyłączania MPO",
   "Setting_taskbar-clean_Name": "Wyczyść pasek zadań",

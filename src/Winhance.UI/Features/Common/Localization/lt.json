@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Leisti „Windows” automatiškai valdyti spalvų profilius visiems prijungtiems ekranams, kurie tai palaiko",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Naudojant GPU, aparatūriškai sudėlioja kelis vaizdo sluoksnius. Išjungimas gali ištaisyti ekrano mirgėjimą, juodus ekranus ir mikčiojimą kelių monitorių konfiguracijose",
+  "Setting_gaming-disable-all-overlays_Name": "Aparatinės perdangos",
+  "Setting_gaming-disable-all-overlays_Description": "Leisti grafikos tvarkyklei kompozicijai naudoti aparatines perdangos paviršius. Išjungus, visoms perdangoms taikoma programinė kompozicija ir žinoma, kad ji sugadina Steam, Discord ir RTSS žaidimo perdangas — palikite įjungtą, nebent jums to konkrečiai reikia",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO minimalaus kadrų dažnio reikalavimas",
   "Setting_gaming-disable-mpo-min-fps_Description": "Leisti Desktop Window Manager dinamiškai perjungti programas tarp perdangos režimų pagal kadrų dažnį. Išjungimas gali ištaisyti mikčiojimą naršyklėse ir Discord be visiško MPO išjungimo",
   "Setting_taskbar-clean_Name": "Išvalyti užduočių juostą",

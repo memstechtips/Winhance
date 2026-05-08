@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "この機能をサポートするすべての接続されたディスプレイのカラープロファイルを Windows が自動的に管理することを許可する",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "GPUを使用してハードウェアで複数の表示レイヤーを合成します。無効化すると、マルチモニター環境での画面のちらつき、ブラックスクリーン、カクツキを修正できます",
+  "Setting_gaming-disable-all-overlays_Name": "ハードウェアオーバーレイ",
+  "Setting_gaming-disable-all-overlays_Description": "グラフィックスドライバーがコンポジション用にハードウェアオーバーレイサーフェスを使用できるようにします。無効にするとすべてのオーバーレイでソフトウェアコンポジションが強制され、Steam、Discord、RTSSのゲーム内オーバーレイが壊れることが知られています — 特別な必要がない限り有効のままにしてください",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO最小フレームレート要件",
   "Setting_gaming-disable-mpo-min-fps_Description": "Desktop Window Managerがフレームレートに基づいてアプリのオーバーレイモードを動的に切り替えることを許可します。無効化すると、MPOを完全に無効化せずにブラウザーやDiscordのカクツキを修正できます",
   "Setting_taskbar-clean_Name": "タスクバーをクリーンにする",

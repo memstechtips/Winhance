@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Engedélyezze a Windowsnak, hogy automatikusan kezelje a színprofilokat az összes csatlakoztatott kijelzőhöz, amely támogatja",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Több megjelenítési réteg hardveres összeállítása a GPU segítségével. A letiltás megoldhatja a képernyő villogását, fekete képernyőket és akadozást több monitoros beállításoknál",
+  "Setting_gaming-disable-all-overlays_Name": "Hardveres rátétek",
+  "Setting_gaming-disable-all-overlays_Description": "Engedélyezi, hogy a grafikus illesztőprogram hardveres rátétfelületeket használjon a kompozícióhoz. A letiltás minden rátétnél szoftveres kompozíciót kényszerít ki, és ismert, hogy elrontja a Steam, a Discord és az RTSS játékon belüli rátéteit — hagyd engedélyezve, hacsak nincs rá kifejezett szükséged",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO minimális képkockasebesség követelmény",
   "Setting_gaming-disable-mpo-min-fps_Description": "Engedélyezze a Desktop Window Manager számára, hogy dinamikusan váltsa az alkalmazásokat az átfedési módok között a képkockasebesség alapján. A letiltás megoldhatja az akadozást böngészőkben és Discord-ban az MPO teljes letiltása nélkül",
   "Setting_taskbar-clean_Name": "Tálca tisztítása",

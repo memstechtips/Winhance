@@ -1152,6 +1152,12 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-disable-all-overlays",
+            "Name": "Hardware Overlays",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "gaming-disable-mpo-min-fps",
             "Name": "MPO Minimum Frame Rate Requirement",
             "IsSelected": true,

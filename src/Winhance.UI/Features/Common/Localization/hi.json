@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "सभी कनेक्टेड डिस्प्ले जो इसका समर्थन करते हैं उनके लिए Windows को स्वचालित रूप से रंग प्रोफ़ाइल प्रबंधित करने दें",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "GPU का उपयोग करके हार्डवेयर में कई डिस्प्ले परतों को संयोजित करें। अक्षम करने से मल्टी-मॉनिटर सेटअप में स्क्रीन फ्लिकरिंग, काली स्क्रीन और रुकावट ठीक हो सकती है",
+  "Setting_gaming-disable-all-overlays_Name": "हार्डवेयर ओवरले",
+  "Setting_gaming-disable-all-overlays_Description": "ग्राफ़िक्स ड्राइवर को कंपोज़िशन के लिए हार्डवेयर ओवरले सतहों का उपयोग करने की अनुमति दें। इसे अक्षम करने से सभी ओवरले के लिए सॉफ़्टवेयर कंपोज़िशन लागू हो जाता है और यह Steam, Discord और RTSS के इन-गेम ओवरले को तोड़ने के लिए जाना जाता है — विशेष आवश्यकता न होने पर सक्षम छोड़ दें",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO न्यूनतम फ्रेम दर आवश्यकता",
   "Setting_gaming-disable-mpo-min-fps_Description": "Desktop Window Manager को फ्रेम दर के आधार पर ऐप्स को ओवरले मोड के बीच गतिशील रूप से स्विच करने दें। अक्षम करने से MPO को पूरी तरह अक्षम किए बिना ब्राउज़र और Discord में रुकावट ठीक हो सकती है",
   "Setting_taskbar-clean_Name": "टास्कबार साफ़ करें",

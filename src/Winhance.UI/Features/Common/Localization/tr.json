@@ -305,6 +305,8 @@
   "Setting_gaming-auto-color-management_Description": "Windows'un destekleyen bağlı tüm ekranlar için renk profillerini otomatik olarak yönetmesine izin ver",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "GPU kullanarak birden fazla görüntü katmanını donanımsal olarak birleştirin. Devre dışı bırakmak, çoklu monitör kurulumlarında ekran titremesi, siyah ekranlar ve takılmaları düzeltebilir",
+  "Setting_gaming-disable-all-overlays_Name": "Donanım Bindirmeleri",
+  "Setting_gaming-disable-all-overlays_Description": "Grafik sürücüsünün kompozisyon için donanım bindirme yüzeylerini kullanmasına izin verir. Devre dışı bırakmak tüm bindirmeler için yazılım kompozisyonunu zorlar ve Steam, Discord ve RTSS oyun içi bindirmelerini bozduğu bilinmektedir — özellikle gerekmedikçe etkin bırakın",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO Minimum Kare Hızı Gereksinimi",
   "Setting_gaming-disable-mpo-min-fps_Description": "Desktop Window Manager'ın kare hızına göre uygulamaları yer paylaşıcı modları arasında dinamik olarak değiştirmesine izin verin. Devre dışı bırakmak, MPO'yu tamamen devre dışı bırakmadan tarayıcılar ve Discord'daki takılmaları düzeltebilir",
   "Setting_taskbar-clean_Name": "Temiz Görev Çubuğu",

@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Laat Windows toe om kleurprofiele outomaties te bestuur vir alle gekoppelde skerms wat dit ondersteun",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Stel veelvuldige vertoonlae in hardeware saam met die GPU. Deaktivering kan skermflikker, swart skerms en hakkel op multi-monitor-opstellings oplos",
+  "Setting_gaming-disable-all-overlays_Name": "Hardeware-oorleggings",
+  "Setting_gaming-disable-all-overlays_Description": "Laat die grafiese drywer toe om hardeware-oorleggingsoppervlaktes vir komposisie te gebruik. Deaktivering forseer sagtewarekomposisie vir alle oorleggings en is bekend daarvoor om die in-spel-oorleggings van Steam, Discord en RTSS te breek — laat geaktiveer tensy jy dit spesifiek nodig het",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO Minimum Raamtempo-vereiste",
   "Setting_gaming-disable-mpo-min-fps_Description": "Laat Desktop Window Manager toe om toepassings dinamies tussen oortrekmodi te wissel op grond van raamtempo. Deaktivering kan hakkel in blaaiers en Discord oplos sonder om MPO heeltemal te deaktiveer",
   "Setting_taskbar-clean_Name": "Skoon Taakbalk",

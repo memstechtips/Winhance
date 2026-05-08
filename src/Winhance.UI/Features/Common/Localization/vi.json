@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Cho phép Windows tự động quản lý cấu hình màu cho tất cả màn hình được kết nối có hỗ trợ",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Kết hợp nhiều lớp hiển thị bằng phần cứng sử dụng GPU. Vô hiệu hóa có thể khắc phục nhấp nháy màn hình, màn hình đen và giật lag trên thiết lập đa màn hình",
+  "Setting_gaming-disable-all-overlays_Name": "Lớp phủ phần cứng",
+  "Setting_gaming-disable-all-overlays_Description": "Cho phép trình điều khiển đồ họa sử dụng các bề mặt lớp phủ phần cứng để tổng hợp. Tắt sẽ buộc tổng hợp bằng phần mềm cho tất cả các lớp phủ và được biết là làm hỏng các lớp phủ trong trò chơi của Steam, Discord và RTSS — hãy bật trừ khi bạn thực sự cần",
   "Setting_gaming-disable-mpo-min-fps_Name": "Yêu cầu tốc độ khung hình tối thiểu MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Cho phép Desktop Window Manager tự động chuyển đổi ứng dụng giữa các chế độ lớp phủ dựa trên tốc độ khung hình. Vô hiệu hóa có thể khắc phục giật lag trong trình duyệt và Discord mà không cần tắt hoàn toàn MPO",
   "Setting_taskbar-clean_Name": "Làm sạch thanh tác vụ",

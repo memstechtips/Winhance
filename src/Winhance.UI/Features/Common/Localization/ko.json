@@ -305,6 +305,8 @@
   "Setting_gaming-auto-color-management_Description": "이 기능을 지원하는 연결된 모든 디스플레이의 색상 프로필을 Windows에서 자동으로 관리하도록 허용",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "GPU를 사용하여 하드웨어에서 여러 디스플레이 레이어를 합성합니다. 비활성화하면 다중 모니터 환경에서의 화면 깜박임, 검은 화면 및 끊김 문제를 해결할 수 있습니다",
+  "Setting_gaming-disable-all-overlays_Name": "하드웨어 오버레이",
+  "Setting_gaming-disable-all-overlays_Description": "그래픽 드라이버가 컴포지션을 위해 하드웨어 오버레이 표면을 사용할 수 있도록 허용합니다. 비활성화하면 모든 오버레이에 대해 소프트웨어 컴포지션이 강제되며 Steam, Discord 및 RTSS 게임 내 오버레이를 손상시키는 것으로 알려져 있습니다 — 특별히 필요한 경우가 아니라면 활성화 상태로 두세요",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO 최소 프레임 레이트 요구 사항",
   "Setting_gaming-disable-mpo-min-fps_Description": "Desktop Window Manager가 프레임 레이트에 따라 앱의 오버레이 모드를 동적으로 전환하는 것을 허용합니다. 비활성화하면 MPO를 완전히 비활성화하지 않고도 브라우저 및 Discord의 끊김을 해결할 수 있습니다",
   "Setting_taskbar-clean_Name": "작업 표시줄 정리",

@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Permitir que Windows administre automáticamente los perfiles de color para todas las pantallas conectadas que lo admitan",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Componer múltiples capas de visualización por hardware usando la GPU. Desactivar puede solucionar el parpadeo de pantalla, pantallas negras y tartamudeos en configuraciones de múltiples monitores",
+  "Setting_gaming-disable-all-overlays_Name": "Superposiciones de hardware",
+  "Setting_gaming-disable-all-overlays_Description": "Permite que el controlador gráfico utilice superficies de superposición de hardware para la composición. Desactivarlo fuerza la composición por software para todas las superposiciones y se sabe que rompe las superposiciones en el juego de Steam, Discord y RTSS — déjalo activado salvo que lo necesites específicamente",
   "Setting_gaming-disable-mpo-min-fps_Name": "Requisito de frecuencia de cuadros mínima de MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Permitir que el Desktop Window Manager cambie dinámicamente las aplicaciones entre modos de superposición según la frecuencia de cuadros. Desactivar puede solucionar tartamudeos en navegadores y Discord sin desactivar completamente MPO",
   "Setting_taskbar-clean_Name": "Limpiar Barra de Tareas",

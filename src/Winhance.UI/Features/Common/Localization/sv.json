@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Låt Windows automatiskt hantera färgprofiler för alla anslutna skärmar som stöder det",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Sammanställ flera visningslager i hårdvara med hjälp av GPU. Inaktivering kan åtgärda skärmflimmer, svarta skärmar och hackningar vid konfigurationer med flera bildskärmar",
+  "Setting_gaming-disable-all-overlays_Name": "Hårdvaruöverlägg",
+  "Setting_gaming-disable-all-overlays_Description": "Tillåt grafikdrivrutinen att använda hårdvaruöverläggsytor för komposition. Att inaktivera tvingar mjukvarukomposition för alla överlägg och är känt för att förstöra in-game-överläggen i Steam, Discord och RTSS — lämna aktiverat om du inte specifikt behöver det",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO Minimikrav för bildrutefrekvens",
   "Setting_gaming-disable-mpo-min-fps_Description": "Låt Desktop Window Manager dynamiskt växla appar mellan överläggslägen baserat på bildrutefrekvens. Inaktivering kan åtgärda hackningar i webbläsare och Discord utan att helt inaktivera MPO",
   "Setting_taskbar-clean_Name": "Rensa Aktivitetsfältet",

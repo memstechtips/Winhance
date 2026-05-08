@@ -305,6 +305,8 @@
   "Setting_gaming-auto-color-management_Description": "Allow Windows to automatically manage color profiles for all connected displays that support it",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Composite multiple display layers in hardware using the GPU. Disabling can fix screen flickering, black screens, and stuttering on multi-monitor setups",
+  "Setting_gaming-disable-all-overlays_Name": "Hardware Overlays",
+  "Setting_gaming-disable-all-overlays_Description": "Allow the graphics driver to use hardware overlay surfaces for compositing. Disabling forces software composition for all overlays and is known to break the Steam, Discord, and RTSS in-game overlays — leave enabled unless you specifically need this",
   "Setting_gaming-disable-mpo-min-fps_Name": "MPO Minimum Frame Rate Requirement",
   "Setting_gaming-disable-mpo-min-fps_Description": "Allow Desktop Window Manager to dynamically switch apps between overlay modes based on frame rate. Disabling can fix stuttering in browsers and Discord without fully disabling MPO",
   "Setting_taskbar-clean_Name": "Clean Taskbar",

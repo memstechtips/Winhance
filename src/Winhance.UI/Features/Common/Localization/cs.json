@@ -270,6 +270,8 @@
   "Setting_gaming-auto-color-management_Description": "Povolit systému Windows automaticky spravovat barevné profily pro všechny připojené displeje, které to podporují",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "Skládá více vrstev zobrazení hardwarově pomocí GPU. Zakázání může opravit blikání obrazovky, černé obrazovky a zasekávání u sestav s více monitory",
+  "Setting_gaming-disable-all-overlays_Name": "Hardwarové překryvy",
+  "Setting_gaming-disable-all-overlays_Description": "Umožnit grafickému ovladači používat hardwarové překryvové plochy pro kompozici. Vypnutí vynutí softwarovou kompozici pro všechny překryvy a je známo, že rozbije herní překryvy Steam, Discordu a RTSS — ponechte zapnuté, pokud to specificky nepotřebujete",
   "Setting_gaming-disable-mpo-min-fps_Name": "Požadavek na minimální snímkovou frekvenci MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "Umožnit Správci oken plochy dynamicky přepínat aplikace mezi režimy překrytí na základě snímkové frekvence. Zakázání může opravit zasekávání v prohlížečích a Discord bez úplného zakázání MPO",
   "Setting_taskbar-clean_Name": "Vyčistit hlavní panel",

@@ -253,6 +253,8 @@
   "Setting_gaming-auto-color-management_Description": "السماح لـ Windows بإدارة ملفات تعريف الألوان تلقائيًا لجميع الشاشات المتصلة التي تدعم ذلك",
   "Setting_gaming-disable-mpo_Name": "Multi-Plane Overlay (MPO)",
   "Setting_gaming-disable-mpo_Description": "دمج طبقات العرض المتعددة عبر الأجهزة باستخدام GPU. يمكن أن يصلح التعطيل وميض الشاشة والشاشات السوداء والتقطع في إعدادات الشاشات المتعددة",
+  "Setting_gaming-disable-all-overlays_Name": "تراكبات الأجهزة",
+  "Setting_gaming-disable-all-overlays_Description": "السماح لبرنامج تشغيل الرسومات باستخدام أسطح التراكب الأجهزة للتركيب. يؤدي التعطيل إلى فرض تركيب البرامج لجميع التراكبات ومن المعروف أنه يكسر تراكبات Steam وDiscord وRTSS داخل اللعبة — اتركها مفعلة إلا إذا كنت تحتاجها بشكل خاص",
   "Setting_gaming-disable-mpo-min-fps_Name": "متطلب الحد الأدنى لمعدل إطارات MPO",
   "Setting_gaming-disable-mpo-min-fps_Description": "السماح لـ Desktop Window Manager بالتبديل الديناميكي للتطبيقات بين أوضاع التراكب بناءً على معدل الإطارات. يمكن أن يصلح التعطيل التقطع في المتصفحات وDiscord دون تعطيل MPO بالكامل",
   "Setting_taskbar-clean_Name": "تنظيف شريط المهام",

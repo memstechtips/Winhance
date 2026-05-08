@@ -809,6 +809,22 @@ public static class GamingAndPerformanceOptimizations
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-disable-all-overlays",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Hardware Overlays",
+                    Description = "Allow the graphics driver to use hardware overlay surfaces for compositing. Disabling forces software composition for all overlays and is known to break the Steam, Discord, and RTSS in-game overlays — leave enabled unless you specifically need this",
+                    GroupName = "Graphics",
+                    Icon = "MonitorDashboard",
+                    InputType = InputType.Toggle,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.05.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers",
