@@ -8,7 +8,7 @@
     <InternalsVisibleTo Include="Winhance.Core.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7"/>
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0-preview.6.24327.6" />
     <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
