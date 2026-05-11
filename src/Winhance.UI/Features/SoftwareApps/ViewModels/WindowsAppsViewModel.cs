@@ -233,7 +233,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[WindowsAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
+            _logService.LogWarning(
+                $"[WindowsAppsViewModel] Install status check failed, items loaded without status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
 
         await ResolveIconsAsync();
@@ -247,7 +248,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[WindowsAppsViewModel] Error finalizing: {ex.Message}");
+            _logService.LogWarning(
+                $"[WindowsAppsViewModel] Error finalizing ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
         finally
         {
@@ -309,20 +311,31 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             var definitions = Items.Select(item => item.Definition).ToList();
             var statusResults = await _windowsAppsService.CheckBatchInstalledAsync(definitions);
 
-            using (ItemsView.DeferRefresh())
+            // NotificationDeferrer.Dispose() fires VectorChanged events the bound
+            // DataGrid handles by reading its ItemsSource DependencyProperty —
+            // DPs throw WinRT HRESULT off the UI thread.
+            _logService.LogDebug(
+                $"[WindowsAppsViewModel] CheckInstallationStatusAsync pre-dispatch HasThreadAccess={_dispatcherService.HasThreadAccess}");
+            await _dispatcherService.RunOnUIThreadAsync(() =>
             {
-                foreach (var item in Items)
+                using (ItemsView.DeferRefresh())
                 {
-                    if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                    foreach (var item in Items)
                     {
-                        item.IsInstalled = isInstalled;
+                        if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                        {
+                            item.IsInstalled = isInstalled;
+                        }
                     }
                 }
-            }
+                return Task.CompletedTask;
+            });
         }
         catch (Exception ex)
         {
-            _logService.LogError("Error checking installation status", ex);
+            _logService.LogError(
+                $"Error checking installation status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}",
+                ex);
             StatusText = $"Error checking status: {ex.Message}";
         }
     }
