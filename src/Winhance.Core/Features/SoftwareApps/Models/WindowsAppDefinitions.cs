@@ -597,7 +597,7 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = false,
                 },
 
-                // Special Items that require dedicated scripts
+                // Special Items that require dedicated scripts or carry instability warnings
                 new ItemDefinition
                 {
                     Id = "windows-app-edge",
@@ -610,6 +610,18 @@ public static class WindowsAppDefinitions
                     MsStoreId = "XPFFTQ037JWMHS",
                     CanBeReinstalled = true,
                     RemovalScript = () => EdgeRemovalScript.GetScript()
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-app-installer",
+                    Name = "App Installer",
+                    Description = "Microsoft's MSIX/AppX installer and winget command-line package manager",
+                    HasInstabilityWarning = true,
+                    GroupName = "System",
+                    AppxPackageName = ["Microsoft.DesktopAppInstaller"],
+                    WinGetPackageId = ["Microsoft.AppInstaller"],
+                    MsStoreId = "9NBLGGH4NNS1",
+                    CanBeReinstalled = true,
                 },
                 new ItemDefinition
                 {
