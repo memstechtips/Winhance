@@ -298,24 +298,8 @@ public class OscdimgToolManager : IOscdimgToolManager
                 TerminalOutput = "Starting ADK installation via winget..."
             });
 
-            // Prefer system winget (kept up-to-date via Store) over bundled CLI
-            var systemAvailable = _winGetBootstrapper.IsSystemWinGetAvailable
-                || WinGetCliRunner.IsSystemWinGetAvailable();
-
-            string wingetExe;
-            if (systemAvailable)
-            {
-                // GetWinGetExePath checks system PATH → WindowsApps → bundled, in order
-                wingetExe = WinGetCliRunner.GetWinGetExePath() ?? "winget";
-                _logService.LogInformation($"Using system winget for ADK install: {wingetExe}");
-            }
-            else
-            {
-                wingetExe = WinGetCliRunner.GetBundledWinGetExePath()
-                    ?? WinGetCliRunner.GetWinGetExePath()
-                    ?? "winget";
-                _logService.LogInformation($"No system winget — using bundled CLI for ADK install: {wingetExe}");
-            }
+            var wingetExe = WinGetCliRunner.GetWinGetExePath() ?? "winget";
+            _logService.LogInformation($"Using winget for ADK install: {wingetExe}");
 
             var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync(wingetExe, arguments, progress, cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
@@ -377,23 +361,8 @@ public class OscdimgToolManager : IOscdimgToolManager
 
             var arguments = "install Microsoft.OSCDIMG --exact --silent --scope machine --accept-package-agreements --accept-source-agreements";
 
-            // Prefer system winget (kept up-to-date via Store) over bundled CLI
-            var systemAvailable = _winGetBootstrapper.IsSystemWinGetAvailable
-                || WinGetCliRunner.IsSystemWinGetAvailable();
-
-            string wingetExe;
-            if (systemAvailable)
-            {
-                wingetExe = WinGetCliRunner.GetWinGetExePath() ?? "winget";
-                _logService.LogInformation($"Using system winget for OSCDIMG install: {wingetExe}");
-            }
-            else
-            {
-                wingetExe = WinGetCliRunner.GetBundledWinGetExePath()
-                    ?? WinGetCliRunner.GetWinGetExePath()
-                    ?? "winget";
-                _logService.LogInformation($"No system winget — using bundled CLI for OSCDIMG install: {wingetExe}");
-            }
+            var wingetExe = WinGetCliRunner.GetWinGetExePath() ?? "winget";
+            _logService.LogInformation($"Using winget for OSCDIMG install: {wingetExe}");
 
             var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync(wingetExe, arguments, progress, cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)

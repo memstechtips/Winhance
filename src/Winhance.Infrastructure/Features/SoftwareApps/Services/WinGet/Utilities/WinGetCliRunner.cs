@@ -19,33 +19,36 @@ public static class WinGetCliRunner
 
     /// <summary>
     /// Returns the path to winget.exe.
-    /// Priority: system-installed winget (stays current via Store updates) →
-    /// bundled copy (fallback for fresh installs / missing DesktopAppInstaller).
+    /// Priority: bundled copy (version-locked, ships with the app) →
+    /// system winget (fallback only when bundled is missing).
+    ///
+    /// Bundled is preferred because system winget can be arbitrarily stale on
+    /// machines with Microsoft Store updates blocked — newer flags
+    /// (e.g. --disable-interactivity, added in winget 1.4) cause hard exits on
+    /// old versions. The bundled copy is a controlled, known-good version.
     /// </summary>
     public static string? GetWinGetExePath(IInteractiveUserService? interactiveUserService = null)
     {
-        // Under OTS elevation, the system PATH contains the admin user's WindowsApps.
-        // We must skip PATH and resolve from the interactive (logged-in) user's paths,
-        // falling back to the bundled copy.
+        // 1. Bundled (preferred — registration-free, version-locked).
+        var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
+        if (File.Exists(bundledPath))
+            return bundledPath;
+
+        // 2. System fallback — only reached if the bundled CLI is missing
+        //    (corrupted Winhance install, dev build, etc.).
         if (interactiveUserService != null && interactiveUserService.IsOtsElevation)
         {
-            // 1. Interactive user's WindowsApps (DesktopAppInstaller registered for them)
+            // Under OTS, the admin's PATH points at admin's WindowsApps. Resolve
+            // from the interactive user's profile instead.
             var interactiveAppData = interactiveUserService.GetInteractiveUserFolderPath(
                 Environment.SpecialFolder.LocalApplicationData);
             var interactiveWinGet = Path.Combine(interactiveAppData, "Microsoft", "WindowsApps", "winget.exe");
             if (File.Exists(interactiveWinGet))
                 return interactiveWinGet;
 
-            // 2. Bundled copy (fallback)
-            var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
-            if (File.Exists(bundled))
-                return bundled;
-
             return null;
         }
 
-        // Non-OTS: standard resolution order
-        // 1. System PATH (preferred — kept up-to-date via Microsoft Store)
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
@@ -61,17 +64,10 @@ public static class WinGetCliRunner
             }
         }
 
-        // 2. WindowsApps (standard MSIX install location, may not be on PATH)
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var windowsAppsPath = Path.Combine(localAppData, "Microsoft", "WindowsApps", "winget.exe");
         if (File.Exists(windowsAppsPath))
             return windowsAppsPath;
-
-        // 3. Bundled copy (fallback — ships with Winhance for fresh installs
-        //    where DesktopAppInstaller isn't registered yet)
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
-        if (File.Exists(bundledPath))
-            return bundledPath;
 
         return null;
     }
@@ -122,6 +118,19 @@ public static class WinGetCliRunner
     {
         var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
         return File.Exists(bundledPath) ? bundledPath : null;
+    }
+
+    /// <summary>
+    /// Returns a short log tag identifying which winget binary <paramref name="exePath"/> is —
+    /// "bundled-winget" for the copy that ships with the app, "system-winget" for anything else.
+    /// Used in log line prefixes so support transcripts make it obvious which CLI ran.
+    /// </summary>
+    public static string GetLogTag(string? exePath)
+    {
+        var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
+        return string.Equals(exePath, bundled, StringComparison.OrdinalIgnoreCase)
+            ? "bundled-winget"
+            : "system-winget";
     }
 
     /// <summary>

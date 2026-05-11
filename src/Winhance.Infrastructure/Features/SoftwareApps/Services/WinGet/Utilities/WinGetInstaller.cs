@@ -144,7 +144,7 @@ public class WinGetInstaller
 
                         // Log the translated line (skip noise and suppressed lines)
                         if (!IsWinGetOutputNoise(line) && displayLine != null)
-                            _logService?.LogInformation($"[winget-bundled] {displayLine}");
+                            _logService?.LogInformation($"[bundled-winget] {displayLine}");
 
                         // Parse progress and report to the TaskProgressControl terminal output
                         var parsed = WinGetProgressParser.ParseLine(line);
@@ -192,7 +192,7 @@ public class WinGetInstaller
                         _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
                     }
                 },
-                onErrorLine: line => _logService?.LogWarning($"[winget-bundled-err] {line}"),
+                onErrorLine: line => _logService?.LogWarning($"[bundled-winget-err] {line}"),
                 cancellationToken: cancellationToken,
                 timeoutMs: 300_000,
                 exePathOverride: bundledPath,
