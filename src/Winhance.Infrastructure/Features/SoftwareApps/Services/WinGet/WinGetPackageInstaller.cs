@@ -208,6 +208,10 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 onOutputLine: HandleOutputLine,
                 onErrorLine: HandleErrorLine,
                 cancellationToken: cancellationToken,
+                // Install can legitimately take >5 min for slow CDNs / large packages.
+                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
+                timeoutMs: 0,
+                idleTimeoutMs: 180_000,
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: HandleProgressLine).ConfigureAwait(false);
 
@@ -383,6 +387,10 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     _logService?.LogWarning($"[{logTag}-err] {line}");
                 },
                 cancellationToken: cancellationToken,
+                // Uninstall can legitimately take >5 min when MSI uninstallers run quietly.
+                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
+                timeoutMs: 0,
+                idleTimeoutMs: 180_000,
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: line =>
                 {

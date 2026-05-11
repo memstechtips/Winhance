@@ -194,7 +194,10 @@ public class WinGetInstaller
                 },
                 onErrorLine: line => _logService?.LogWarning($"[bundled-winget-err] {line}"),
                 cancellationToken: cancellationToken,
-                timeoutMs: 300_000,
+                // Install can legitimately take >5 min for slow CDNs / large packages.
+                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
+                timeoutMs: 0,
+                idleTimeoutMs: 180_000,
                 exePathOverride: bundledPath,
                 onProgressLine: line =>
                 {

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +15,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
 /// </summary>
 public static class WinGetCliRunner
 {
-    private const int DefaultTimeoutMs = 300_000; // 5 minutes
+    private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
 
     public record WinGetCliResult(int ExitCode, string StandardOutput, string StandardError);
 
@@ -136,6 +138,16 @@ public static class WinGetCliRunner
     /// <summary>
     /// Runs winget.exe with the given arguments, streaming stdout/stderr.
     /// </summary>
+    /// <param name="timeoutMs">
+    /// Wall-clock kill timeout. Pass 0 (or Timeout.Infinite = -1) to disable — useful when
+    /// the caller relies on <paramref name="idleTimeoutMs"/> instead. Default 5 minutes.
+    /// </param>
+    /// <param name="idleTimeoutMs">
+    /// Optional idle-output kill timeout. When &gt; 0, the process is killed if no output
+    /// (stdout, stderr, or progress line) arrives for this many milliseconds. The timer
+    /// resets on every line, so legitimately slow-but-progressing installs (large CDN
+    /// downloads, slow disks) keep renewing their deadline indefinitely. 0 = disabled.
+    /// </param>
     /// <param name="exePathOverride">
     /// If provided, uses this path instead of auto-resolving via <see cref="GetWinGetExePath"/>.
     /// Useful for forcing the bundled copy (e.g. when installing AppInstaller itself).
@@ -152,12 +164,15 @@ public static class WinGetCliRunner
         int timeoutMs = DefaultTimeoutMs,
         string? exePathOverride = null,
         IInteractiveUserService? interactiveUserService = null,
-        Action<string>? onProgressLine = null)
+        Action<string>? onProgressLine = null,
+        int idleTimeoutMs = 0)
     {
         var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
             ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
 
-        // OTS: run winget as the interactive user so packages install to their scope
+        // OTS: run winget as the interactive user so packages install to their scope.
+        // Idle-timeout is not plumbed through the OTS helper; callers that need it
+        // pass a generous wall-clock timeoutMs as the fallback.
         if (interactiveUserService != null
             && interactiveUserService.IsOtsElevation
             && interactiveUserService.HasInteractiveUserToken)
@@ -167,81 +182,131 @@ public static class WinGetCliRunner
             return new WinGetCliResult(result.ExitCode, result.StandardOutput, result.StandardError);
         }
 
-        // When real-time progress is requested, use ConPTY so that winget sees
-        // isatty(stdout)==true and outputs progress bars with std::flush.
-        // Without ConPTY, winget detects a pipe and suppresses progress output.
-        if (onProgressLine != null)
+        CancellationTokenSource? wallClockCts = null;
+        CancellationTokenSource? idleCts = null;
+        CancellationTokenSource? linkedCts = null;
+        try
         {
-            try
+            var tokens = new List<CancellationToken> { cancellationToken };
+            if (timeoutMs > 0)
             {
-                using var conPty = new ConPtyProcess();
-                return await conPty.RunAsync(
-                    exePath, arguments,
-                    onOutputLine, onErrorLine, onProgressLine,
-                    cancellationToken, timeoutMs).ConfigureAwait(false);
+                wallClockCts = new CancellationTokenSource(timeoutMs);
+                tokens.Add(wallClockCts.Token);
             }
-            catch (Exception ex) when (
-                ex is InvalidOperationException or
-                EntryPointNotFoundException or
-                DllNotFoundException)
+            if (idleTimeoutMs > 0)
             {
-                // ConPTY unavailable (old Windows build or API failure)
-                // — fall through silently to pipe mode
+                idleCts = new CancellationTokenSource(idleTimeoutMs);
+                tokens.Add(idleCts.Token);
             }
-        }
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(tokens.ToArray());
 
-        var stdoutBuilder = new StringBuilder();
-        var stderrBuilder = new StringBuilder();
-
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = exePath,
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-        };
-
-        process.Start();
-
-        using var timeoutCts = new CancellationTokenSource(timeoutMs);
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-        // Kill process tree on cancellation
-        using var registration = linkedCts.Token.Register(() =>
-        {
-            try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
-        });
-
-        // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
-        // ReadLineAsync peeks ahead after \r which blocks until the next char arrives,
-        // preventing real-time progress bar updates.
-        var readStdout = Task.Run(async () =>
-        {
-            await ReadStdoutCharByCharAsync(
-                process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine).ConfigureAwait(false);
-        }, CancellationToken.None);
-
-        var readStderr = Task.Run(async () =>
-        {
-            while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
+            // Wrap callbacks so any output line resets the idle deadline. Wall-clock CTS
+            // is NOT reset — it stays an absolute upper bound. When idleCts is null the
+            // wrappers are unnecessary, but keeping them uniform avoids branchy plumbing.
+            var capturedIdleCts = idleCts;
+            var capturedIdleMs = idleTimeoutMs;
+            Action<string>? wrapOutput = (onOutputLine == null && capturedIdleCts == null) ? null : line =>
             {
-                stderrBuilder.AppendLine(line);
+                ResetIdle(capturedIdleCts, capturedIdleMs);
+                onOutputLine?.Invoke(line);
+            };
+            Action<string>? wrapError = (onErrorLine == null && capturedIdleCts == null) ? null : line =>
+            {
+                ResetIdle(capturedIdleCts, capturedIdleMs);
                 onErrorLine?.Invoke(line);
+            };
+            Action<string>? wrapProgress = (onProgressLine == null && capturedIdleCts == null) ? null : line =>
+            {
+                ResetIdle(capturedIdleCts, capturedIdleMs);
+                onProgressLine?.Invoke(line);
+            };
+
+            // When real-time progress is requested, use ConPTY so that winget sees
+            // isatty(stdout)==true and outputs progress bars with std::flush.
+            // Without ConPTY, winget detects a pipe and suppresses progress output.
+            if (onProgressLine != null)
+            {
+                try
+                {
+                    using var conPty = new ConPtyProcess();
+                    return await conPty.RunAsync(
+                        exePath, arguments,
+                        wrapOutput, wrapError, wrapProgress,
+                        linkedCts.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (
+                    ex is InvalidOperationException or
+                    EntryPointNotFoundException or
+                    DllNotFoundException)
+                {
+                    // ConPTY unavailable (old Windows build or API failure)
+                    // — fall through silently to pipe mode
+                }
             }
-        }, CancellationToken.None);
 
-        await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
-        await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+            var stdoutBuilder = new StringBuilder();
+            var stderrBuilder = new StringBuilder();
 
-        return new WinGetCliResult(
-            process.ExitCode,
-            stdoutBuilder.ToString(),
-            stderrBuilder.ToString());
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+            };
+
+            process.Start();
+
+            // Kill process tree on cancellation
+            using var registration = linkedCts.Token.Register(() =>
+            {
+                try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
+            });
+
+            // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
+            // ReadLineAsync peeks ahead after \r which blocks until the next char arrives,
+            // preventing real-time progress bar updates.
+            var readStdout = Task.Run(async () =>
+            {
+                await ReadStdoutCharByCharAsync(
+                    process.StandardOutput, stdoutBuilder, wrapOutput, wrapProgress).ConfigureAwait(false);
+            }, CancellationToken.None);
+
+            var readStderr = Task.Run(async () =>
+            {
+                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
+                {
+                    stderrBuilder.AppendLine(line);
+                    wrapError?.Invoke(line);
+                }
+            }, CancellationToken.None);
+
+            await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
+            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+
+            return new WinGetCliResult(
+                process.ExitCode,
+                stdoutBuilder.ToString(),
+                stderrBuilder.ToString());
+        }
+        finally
+        {
+            linkedCts?.Dispose();
+            wallClockCts?.Dispose();
+            idleCts?.Dispose();
+        }
+    }
+
+    private static void ResetIdle(CancellationTokenSource? cts, int idleTimeoutMs)
+    {
+        if (cts == null) return;
+        try { cts.CancelAfter(idleTimeoutMs); }
+        catch (ObjectDisposedException) { /* race with cleanup; idle no longer relevant */ }
     }
 
     /// <summary>
