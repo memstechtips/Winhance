@@ -125,6 +125,7 @@ public class AppUninstallService(
                 return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
+            await CleanupStaleChocoRecordAsync(item, cancellationToken).ConfigureAwait(false);
             return OperationResult<bool>.Succeeded(true);
         }
         catch (OperationCanceledException)
@@ -194,6 +195,7 @@ public class AppUninstallService(
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
             taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");
 
+            await CleanupStaleChocoRecordAsync(item, cancellationToken).ConfigureAwait(false);
             return OperationResult<bool>.Succeeded(true);
         }
         catch (OperationCanceledException)
@@ -204,6 +206,30 @@ public class AppUninstallService(
         {
             logService.LogError($"Registry uninstall error for {item.Name}: {ex.Message}", ex);
             return OperationResult<bool>.Failed($"Uninstall failed: {ex.Message}");
+        }
+    }
+
+    // Best-effort: when WinGet or Registry has just removed the actual app, clear any
+    // Chocolatey package record left behind (Chocolatey doesn't notice out-of-band
+    // uninstalls, so its lib folder keeps reporting the package and the next detection
+    // pass surfaces a ghost). No-op when the item wasn't tracked by Choco or the record
+    // is already gone. Never fails the parent uninstall — this is hygiene, not correctness.
+    private async Task CleanupStaleChocoRecordAsync(ItemDefinition item, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(item.ChocoPackageId))
+            return;
+
+        try
+        {
+            if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false))
+                return;
+
+            await chocolateyService.CleanupStalePackageRecordAsync(item.ChocoPackageId, item.Name, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            logService.LogWarning($"Chocolatey ghost-record cleanup for {item.Name} errored: {ex.Message}");
         }
     }
 
