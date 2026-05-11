@@ -27,7 +27,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IAppIconResolver? _iconResolver;
 
@@ -39,7 +38,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        IInternetConnectivityService connectivityService,
         IDispatcherService dispatcherService,
         IAppIconResolver? iconResolver = null)
     {
@@ -50,7 +48,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
         _iconResolver = iconResolver;
 
@@ -393,14 +390,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             await _dialogService.ShowWarningAsync(
                 "Please select at least one item for installation.",
                 "No Items Selected");
-            return;
-        }
-
-        if (!await _connectivityService.IsInternetConnectedAsync(true))
-        {
-            await _dialogService.ShowWarningAsync(
-                "An internet connection is required to install apps.",
-                "No Internet Connection");
             return;
         }
 

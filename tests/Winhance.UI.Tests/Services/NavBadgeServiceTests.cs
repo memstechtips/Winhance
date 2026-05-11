@@ -28,7 +28,6 @@ public class NavBadgeServiceTests : IDisposable
         var mockDialogService = new Mock<IDialogService>();
         var mockLocalizationService = new Mock<ILocalizationService>();
         mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => key);
-        var mockConnectivityService = new Mock<IInternetConnectivityService>();
         var mockDispatcherService = new Mock<IDispatcherService>();
         mockDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>())).Callback<Action>(a => a());
 
@@ -40,7 +39,6 @@ public class NavBadgeServiceTests : IDisposable
             mockLogService.Object,
             mockDialogService.Object,
             mockLocalizationService.Object,
-            mockConnectivityService.Object,
             mockDispatcherService.Object);
 
         var mockExternalAppsService = new Mock<IExternalAppsService>();
@@ -51,7 +49,6 @@ public class NavBadgeServiceTests : IDisposable
             mockLogService.Object,
             mockDialogService.Object,
             mockLocalizationService.Object,
-            mockConnectivityService.Object,
             mockDispatcherService.Object);
 
         _sut = new NavBadgeService(

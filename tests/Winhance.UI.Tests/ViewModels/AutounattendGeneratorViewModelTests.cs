@@ -26,7 +26,6 @@ public class AutounattendGeneratorViewModelTests
     private readonly Mock<ILogService> _winLogService = new();
     private readonly Mock<IDialogService> _winDialogService = new();
     private readonly Mock<ILocalizationService> _winLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _connectivityService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
 
     public AutounattendGeneratorViewModelTests()
@@ -50,7 +49,6 @@ public class AutounattendGeneratorViewModelTests
         _winLogService.Object,
         _winDialogService.Object,
         _winLocalizationService.Object,
-        _connectivityService.Object,
         _dispatcherService.Object);
 
     private AutounattendGeneratorViewModel CreateSut(WindowsAppsViewModel? windowsAppsVm = null)

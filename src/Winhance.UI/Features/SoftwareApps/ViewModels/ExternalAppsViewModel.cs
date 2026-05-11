@@ -26,7 +26,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IAppIconResolver? _iconResolver;
 
@@ -36,7 +35,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        IInternetConnectivityService connectivityService,
         IDispatcherService dispatcherService,
         IAppIconResolver? iconResolver = null)
     {
@@ -45,7 +43,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
         _iconResolver = iconResolver;
 
@@ -385,17 +382,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
         if (!selectedItems.Any()) return;
 
-        if (!await _connectivityService.IsInternetConnectedAsync(true))
-        {
-            if (!skipConfirmation)
-            {
-                await _dialogService.ShowWarningAsync(
-                    "An internet connection is required to install apps.",
-                    "No Internet Connection");
-            }
-            return;
-        }
-
         if (!skipConfirmation)
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
@@ -415,14 +401,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             await _dialogService.ShowWarningAsync(
                 "Please select at least one app for installation.",
                 "No Apps Selected");
-            return;
-        }
-
-        if (!await _connectivityService.IsInternetConnectedAsync(true))
-        {
-            await _dialogService.ShowWarningAsync(
-                "An internet connection is required to install apps.",
-                "No Internet Connection");
             return;
         }
 

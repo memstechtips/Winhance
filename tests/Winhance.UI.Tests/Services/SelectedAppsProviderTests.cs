@@ -21,7 +21,6 @@ public class SelectedAppsProviderTests : IDisposable
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _mockConnectivityService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
 
     private WindowsAppsViewModel? _windowsAppsVm;
@@ -56,7 +55,6 @@ public class SelectedAppsProviderTests : IDisposable
             _mockLogService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
-            _mockConnectivityService.Object,
             _mockDispatcherService.Object);
         return _windowsAppsVm;
     }

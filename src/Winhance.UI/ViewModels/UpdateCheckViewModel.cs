@@ -27,7 +27,6 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
     private readonly IVersionService _versionService;
-    private readonly IInternetConnectivityService _internetConnectivityService;
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
 
@@ -66,12 +65,10 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 
     public UpdateCheckViewModel(
         IVersionService versionService,
-        IInternetConnectivityService internetConnectivityService,
         ILocalizationService localizationService,
         ILogService logService)
     {
         _versionService = versionService;
-        _internetConnectivityService = internetConnectivityService;
         _localizationService = localizationService;
         _logService = logService;
 
@@ -204,14 +201,6 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     {
         try
         {
-            var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
-            if (!hasInternet)
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                    "Startup: No internet connection -- skipping update check");
-                return;
-            }
-
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking for updates...");
 
             var latestVersion = await _versionService.CheckForUpdateAsync();

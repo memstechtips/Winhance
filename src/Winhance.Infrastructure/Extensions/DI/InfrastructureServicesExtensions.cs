@@ -102,12 +102,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
 
-        // Internet Connectivity
-        services.AddSingleton<IInternetConnectivityService>(provider =>
-            new InternetConnectivityService(
-                provider.GetRequiredService<ILogService>(),
-                provider.GetRequiredService<System.Net.Http.HttpClient>()));
-
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
         services.AddSingleton<ISystemBackupService, SystemBackupService>();

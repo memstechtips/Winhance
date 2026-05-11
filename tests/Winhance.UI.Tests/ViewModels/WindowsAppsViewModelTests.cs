@@ -20,7 +20,6 @@ public class WindowsAppsViewModelTests
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IInternetConnectivityService> _connectivityService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
 
     public WindowsAppsViewModelTests()
@@ -43,7 +42,6 @@ public class WindowsAppsViewModelTests
         _logService.Object,
         _dialogService.Object,
         _localizationService.Object,
-        _connectivityService.Object,
         _dispatcherService.Object);
 
     private ItemDefinition CreateTestItem(string id, string name = "Test App",
@@ -272,27 +270,6 @@ public class WindowsAppsViewModelTests
 
         _dialogService.Verify(d => d.ShowWarningAsync(
             It.Is<string>(s => s.Contains("select at least one")),
-            It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task InstallAppsAsync_WhenNoInternet_ShowsWarning()
-    {
-        _windowsAppsService.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
-        _connectivityService.Setup(c => c.IsInternetConnectedAsync(true))
-            .ReturnsAsync(false);
-
-        var sut = CreateSut();
-        await sut.LoadAppsAndCheckInstallationStatusAsync();
-        sut.Items[0].IsSelected = true;
-
-        await sut.InstallAppsAsync();
-
-        _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("internet connection")),
             It.IsAny<string>()), Times.Once);
     }
 

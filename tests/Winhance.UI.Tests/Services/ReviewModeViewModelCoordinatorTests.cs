@@ -23,7 +23,6 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<ILogService> _winLogService = new();
     private readonly Mock<IDialogService> _winDialogService = new();
     private readonly Mock<ILocalizationService> _winLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _winConnectivityService = new();
     private readonly Mock<IDispatcherService> _winDispatcherService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
@@ -31,7 +30,6 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<ILogService> _extLogService = new();
     private readonly Mock<IDialogService> _extDialogService = new();
     private readonly Mock<ILocalizationService> _extLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _extConnectivityService = new();
     private readonly Mock<IDispatcherService> _extDispatcherService = new();
 
     private readonly Mock<ILocalizationService> _softLocalizationService = new();
@@ -80,7 +78,6 @@ public class ReviewModeViewModelCoordinatorTests
         _winLogService.Object,
         _winDialogService.Object,
         _winLocalizationService.Object,
-        _winConnectivityService.Object,
         _winDispatcherService.Object);
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
@@ -89,7 +86,6 @@ public class ReviewModeViewModelCoordinatorTests
         _extLogService.Object,
         _extDialogService.Object,
         _extLocalizationService.Object,
-        _extConnectivityService.Object,
         _extDispatcherService.Object);
 
     private SoftwareAppsViewModel CreateSoftwareAppsVm(

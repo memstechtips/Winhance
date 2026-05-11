@@ -85,9 +85,6 @@ public class InfrastructureContainerSmokeTests
         using var provider = BuildProvider();
 
         // Act & Assert — these are registered via factory lambdas
-        var connectivity = provider.GetService<IInternetConnectivityService>();
-        connectivity.Should().NotBeNull("IInternetConnectivityService (factory registration) should resolve");
-
         var recommended = provider.GetService<IRecommendedSettingsService>();
         recommended.Should().NotBeNull("IRecommendedSettingsService (factory registration) should resolve");
     }
