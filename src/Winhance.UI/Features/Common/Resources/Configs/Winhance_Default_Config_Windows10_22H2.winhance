@@ -701,9 +701,9 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "explorer-disable-autoplay",
-            "Name": "Disable Autoplay",
-            "IsSelected": false,
+            "Id": "explorer-autoplay",
+            "Name": "Autoplay",
+            "IsSelected": true,
             "InputType": 0
           }
         ]

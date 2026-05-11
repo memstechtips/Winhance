@@ -89,6 +89,11 @@
     "Default": 1,
     "InputType": "Toggle"
   },
+  "explorer-autoplay": {
+    "Recommended": 1,
+    "Default": null,
+    "InputType": "Toggle"
+  },
   "explorer-context-menu-chkdsk": {
     "Recommended": null,
     "Default": null,
@@ -447,11 +452,6 @@
       "value": 0
     },
     "InputType": "Selection"
-  },
-  "explorer-disable-autoplay": {
-    "Recommended": 1,
-    "Default": 0,
-    "InputType": "Toggle"
   },
   "explorer-enable-photo-viewer": {
     "Recommended": "PhotoViewer.FileAssoc.Tiff",

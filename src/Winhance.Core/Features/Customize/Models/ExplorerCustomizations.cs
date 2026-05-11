@@ -2619,38 +2619,42 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
-                    Id = "explorer-disable-autoplay",
+                    Id = "explorer-autoplay",
                     RecommendedToggleState = true,
-                    Name = "Disable Autoplay",
-                    Description = "Prevents Windows from automatically opening a dialog or running programs when you insert a USB drive, DVD, or SD card",
-                    GroupName = "Autoplay",
+                    Name = "Autoplay",
+                    Description = "Allow Windows to automatically open a dialog or run programs when you insert a USB drive, DVD, or SD card",
+                    GroupName = "Devices and Peripherals",
                     InputType = InputType.Toggle,
-                    Icon = "UsbFlashDriveOff",
+                    Icon = "PlayBox",
                     AddedInVersion = "26.04.24",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            // Toggle ON (Autoplay enabled = Windows default) → key absent.
+                            // Toggle OFF (Autoplay suppressed) → DisableAutoplay = 1.
+                            // Recommended/Default toggle state derive from RecommendedToggleState=true
+                            // + EnabledValue=[null] (null sentinel → toggle on / Windows default).
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers",
                             ValueName = "DisableAutoplay",
-                            EnabledValue = [1],
-                            DisabledValue = [null],
-                            DefaultValue = 0,
-                            RecommendedValue = 1,
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            RecommendedValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             // Windows ships NoDriveTypeAutoRun = 0x91 (145) — autorun blocked for
-                            // Unknown, CD-ROM, and Removable drive types. Toggling OFF must NOT leave
-                            // the value at 0 (autorun allowed for ALL drive types — less secure than
-                            // a fresh install). Delete the policy so Windows applies its own default.
+                            // Unknown, CD-ROM, and Removable drive types. Toggle ON leaves the policy
+                            // absent so Windows applies its 145 default; toggle OFF writes 255 to block
+                            // autorun on every drive type. Never write 0 (allows autorun everywhere).
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
                             ValueName = "NoDriveTypeAutoRun",
-                            EnabledValue = [255],
-                            DisabledValue = [null],
-                            DefaultValue = 145,
-                            RecommendedValue = 255,
+                            EnabledValue = [null],
+                            DisabledValue = [255],
+                            DefaultValue = null,
+                            RecommendedValue = null,
                             ValueType = RegistryValueKind.DWord,
                             IsGroupPolicy = true,
                         },
