@@ -80,6 +80,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Other Utilities",
                         WinGetPackageId = ["MartiCliment.UniGetUI"],
                         ChocoPackageId = "wingetui",
+                        MsStoreId = "XPFFTQ032PTPHF",
                         WebsiteUrl = "https://www.marticliment.com/unigetui/",
                         IconSources = [
                             "https://raw.githubusercontent.com/marticliment/UniGetUI/main/media/icon.png",
@@ -118,8 +119,10 @@ public static partial class ExternalAppDefinitions
                         Name = "NAPS2",
                         Description = "Document scanning application with OCR support",
                         GroupName = "Other Utilities",
+                        AppxPackageName = ["NAPS2Software.NAPS2-NotAnotherPDFScanner"],
                         WinGetPackageId = ["Cyanfish.NAPS2"],
                         ChocoPackageId = "naps2",
+                        MsStoreId = "9N3QQ9W0B23Q",
                         WebsiteUrl = "https://www.naps2.com/",
                         IconSources = [
                             "https://raw.githubusercontent.com/cyanfish/naps2/master/NAPS2.Lib/Icons/favicon.ico",
@@ -135,6 +138,7 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "IObit Uninstaller {version}",
                         WinGetPackageId = ["IObit.Uninstaller"],
                         ChocoPackageId = "iobit-uninstaller",
+                        MsStoreId = "XP8K2SCQWD27VT",
                         WebsiteUrl = "https://www.iobit.com/en/advanceduninstaller.php",
                         IconSources = [
                             "https://www.iobit.com/tpl/images/product-icons/iu_96.png",
@@ -150,6 +154,7 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "Revo Uninstaller {version}",
                         WinGetPackageId = ["RevoUninstaller.RevoUninstaller"],
                         ChocoPackageId = "revo-uninstaller",
+                        MsStoreId = "XPFFVD4CMXN8VN",
                         WebsiteUrl = "https://www.revouninstaller.com/products/revo-uninstaller-free/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/8/83/Revouninstallerpro_icon.png",

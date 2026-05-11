@@ -22,8 +22,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Python programming language",
                         RegistryDisplayName = "Python {version} ({arch})",
                         GroupName = "Development Apps",
+                        AppxPackageName = ["PythonSoftwareFoundation.Python.3.13"],
                         WinGetPackageId = ["Python.Python.3.13"],
                         ChocoPackageId = "python3",
+                        MsStoreId = "9PNRBTZXMB4Z",
                         WebsiteUrl = "https://www.python.org/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/250px-Python-logo-notext.svg.png",
@@ -49,8 +51,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Free SFTP, SCP, Amazon S3, WebDAV, and FTP client",
                         RegistryDisplayName = "WinSCP {version}",
                         GroupName = "Development Apps",
+                        AppxPackageName = ["MartinPikryl.WinSCP"],
                         WinGetPackageId = ["WinSCP.WinSCP"],
                         ChocoPackageId = "winscp",
+                        MsStoreId = "9P0PQ8B65N8X",
                         WebsiteUrl = "https://winscp.net/",
                         IconSources = [
                             "https://winscp-static-746341.c.cdn77.org/assets/images/logos/logo.png",
@@ -65,6 +69,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Development Apps",
                         WinGetPackageId = ["PuTTY.PuTTY"],
                         ChocoPackageId = "putty",
+                        MsStoreId = "XPFNZKSKLBP7RJ",
                         WebsiteUrl = "https://www.putty.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/github/putty/master/windows/puttygen.ico",
@@ -107,6 +112,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Development Apps",
                         WinGetPackageId = ["Microsoft.VisualStudioCode"],
                         ChocoPackageId = "vscode",
+                        MsStoreId = "XP9KHM4BK9FZ7Q",
                         WebsiteUrl = "https://code.visualstudio.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Visual_Studio_Code_1.35_icon.svg/250px-Visual_Studio_Code_1.35_icon.svg.png",

@@ -38,6 +38,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["StartIsBack.StartAllBack"],
                         ChocoPackageId = "startallback",
+                        MsStoreId = "XPFMHKP3QHRQRH",
                         WebsiteUrl = "https://www.startallback.com/",
                         IconSources = [
                             "https://www.startallback.com/favicon.ico",
@@ -105,6 +106,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["Taiizor.SucroseWallpaperEngine"],
                         ChocoPackageId = "sucrose",
+                        MsStoreId = "XP8JGPBHTJGLCQ",
                         WebsiteUrl = "https://github.com/Taiizor/Sucrose",
                         IconSources = [
                             "https://raw.githubusercontent.com/Taiizor/Sucrose/develop/.images/Logo.png",
@@ -151,8 +153,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Automatically changes your desktop wallpaper at regular intervals",
                         RegistryDisplayName = "John's Background Switcher {version}",
                         GroupName = "Customization Utilities",
+                        AppxPackageName = ["32808ManuelKurtz.BackgroundSwitcher"],
                         WinGetPackageId = ["johnsadventures.JohnsBackgroundSwitcher"],
                         ChocoPackageId = "jbs",
+                        MsStoreId = "9MWKCB9MH93K",
                         WebsiteUrl = "https://johnsad.ventures/software/backgroundswitcher/",
                         IconSources = [
                             "https://i0.wp.com/johnsad.ventures/wp-content/uploads/2007/11/jbslogo-152x152.png",

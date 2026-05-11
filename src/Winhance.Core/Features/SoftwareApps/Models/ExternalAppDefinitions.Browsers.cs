@@ -69,8 +69,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Popular web browser known for privacy and customization",
                         RegistrySubKeyName = "Mozilla Firefox {version} ({arch} {locale})",
                         GroupName = "Browsers",
+                        AppxPackageName = ["Mozilla.Firefox"],
                         WinGetPackageId = ["Mozilla.Firefox"],
                         ChocoPackageId = "firefox",
+                        MsStoreId = "9NZVDKPMR9RD",
                         WebsiteUrl = "https://www.mozilla.org/firefox/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/500px-Firefox_logo%2C_2019.svg.png",
@@ -111,6 +113,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         WinGetPackageId = ["Brave.Brave"],
                         ChocoPackageId = "brave",
+                        MsStoreId = "XP8C9QZMS2PC1T",
                         WebsiteUrl = "https://brave.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Brave_lion_icon.svg/500px-Brave_lion_icon.svg.png",
@@ -126,6 +129,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         WinGetPackageId = ["Opera.Opera"],
                         ChocoPackageId = "opera",
+                        MsStoreId = "XP8CF6S8G2D5T6",
                         WebsiteUrl = "https://www.opera.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Opera_2015_icon.svg/500px-Opera_2015_icon.svg.png",
@@ -141,6 +145,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         WinGetPackageId = ["Opera.OperaGX"],
                         ChocoPackageId = "opera-gx",
+                        MsStoreId = "XPDBZ4MPRKNN30",
                         WebsiteUrl = "https://www.opera.com/gx",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Opera_GX_Icon.svg/500px-Opera_GX_Icon.svg.png",
@@ -154,6 +159,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         AppxPackageName = ["TheBrowserCompany.Arc"],
                         WinGetPackageId = ["TheBrowserCompany.Arc"],
+                        MsStoreId = "XPFMDW72VHTTX9",
                         WebsiteUrl = "https://arc.net/",
                         ExternalApp = new ExternalAppMetadata
                         {
@@ -185,6 +191,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         WinGetPackageId = ["Vivaldi.Vivaldi"],
                         ChocoPackageId = "vivaldi",
+                        MsStoreId = "XP99GVQDX7JPR4",
                         WebsiteUrl = "https://vivaldi.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Vivaldi_web_browser_logo.svg/500px-Vivaldi_web_browser_logo.svg.png",
@@ -248,6 +255,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Browsers",
                         WinGetPackageId = ["MoonchildProductions.PaleMoon"],
                         ChocoPackageId = "palemoon",
+                        MsStoreId = "XPDKN9FQ75F2MZ",
                         WebsiteUrl = "https://www.palemoon.org/",
                         IconSources = [
                             "https://www.palemoon.org/images/branding/logo128.png",
@@ -286,8 +294,9 @@ public static partial class ExternalAppDefinitions
                         Name = "DuckDuckGo",
                         Description = "Privacy-focused web browser with built-in tracker blocking",
                         GroupName = "Browsers",
-                        AppxPackageName = ["DuckDuckGo.DesktopBrowser"],
+                        AppxPackageName = ["DuckDuckGo.DesktopBrowser", "63909DuckDuckGoInc.DuckDuckGoPrivateBrowser"],
                         WinGetPackageId = ["DuckDuckGo.DesktopBrowser"],
+                        MsStoreId = "9N74NHXCH1N6",
                         WebsiteUrl = "https://duckduckgo.com/",
                         ExternalApp = new ExternalAppMetadata
                         {
@@ -303,8 +312,10 @@ public static partial class ExternalAppDefinitions
                         Name = "LibreWolf",
                         Description = "A custom version of Firefox, focused on privacy, security and freedom",
                         GroupName = "Browsers",
+                        AppxPackageName = ["31856maltejur.LibreWolf"],
                         WinGetPackageId = ["LibreWolf.LibreWolf"],
                         ChocoPackageId = "librewolf",
+                        MsStoreId = "9NVN9SZ8KFD7",
                         WebsiteUrl = "https://librewolf.net/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/LibreWolf_icon.svg/500px-LibreWolf_icon.svg.png",

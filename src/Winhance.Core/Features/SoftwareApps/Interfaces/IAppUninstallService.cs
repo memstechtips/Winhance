@@ -20,5 +20,6 @@ public enum UninstallMethod
     WinGet,
     Chocolatey,
     Registry,
-    FileSystem
+    FileSystem,
+    AppX
 }

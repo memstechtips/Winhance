@@ -22,8 +22,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Free and open-source office suite",
                         RegistryDisplayName = "LibreOffice {version}",
                         GroupName = "Document Viewers",
+                        AppxPackageName = ["TheDocumentFoundation.LibreOfficeMSIX"],
                         WinGetPackageId = ["TheDocumentFoundation.LibreOffice"],
                         ChocoPackageId = "libreoffice-fresh",
+                        MsStoreId = "9PB80DCFP83W",
                         WebsiteUrl = "https://www.libreoffice.org/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/6/6f/Libreoffice_icon_mix.png",
@@ -39,6 +41,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["ONLYOFFICE.DesktopEditors"],
                         ChocoPackageId = "onlyoffice",
+                        MsStoreId = "XPDLH3XBZXQV23",
                         WebsiteUrl = "https://www.onlyoffice.com/",
                         IconSources = [
                             "https://raw.githubusercontent.com/ONLYOFFICE/desktop-apps/master/win-linux/res/icons/app-icon_64.png",
@@ -55,6 +58,7 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "PDFgear {version}",
                         WinGetPackageId = ["PDFgear.PDFgear"],
                         ChocoPackageId = "pdfgear",
+                        MsStoreId = "XPDLNJ2FWVCXR1",
                         WebsiteUrl = "https://www.pdfgear.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/f/f8/PDFgear-logo.png",
@@ -97,6 +101,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Apache.OpenOffice"],
                         ChocoPackageId = "openoffice",
+                        MsStoreId = "XP89J5462CMGJD",
                         WebsiteUrl = "https://www.openoffice.org/",
                         IconSources = [
                             "https://www.openoffice.org/ui/VisualDesign/gifs/Icons/refresh_icons/pngs/OOo_Application_256x256.png",
@@ -124,8 +129,10 @@ public static partial class ExternalAppDefinitions
                         Description = "Cloud-synced notebook for typed notes, web clips, and tasks",
                         RegistryDisplayName = "Evernote {version}",
                         GroupName = "Document Viewers",
+                        AppxPackageName = ["Evernote.Evernote"],
                         WinGetPackageId = ["Evernote.Evernote"],
                         ChocoPackageId = "evernote",
+                        MsStoreId = "9WZDNCRFJ3MB",
                         WebsiteUrl = "https://evernote.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Evernote_Faenza.svg/250px-Evernote_Faenza.svg.png",
@@ -169,6 +176,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["geeksoftwareGmbH.PDF24Creator"],
                         ChocoPackageId = "pdf24",
+                        MsStoreId = "XPFD51H3VQZFM0",
                         WebsiteUrl = "https://www.pdf24.org/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/c/c0/PDF24_Creator_application_logo_256x256.png",
@@ -184,6 +192,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Document Viewers",
                         WinGetPackageId = ["Microsoft.Office"],
                         ChocoPackageId = "office365business",
+                        MsStoreId = "9WZDNCRD29V9",
                         WebsiteUrl = "https://www.microsoft.com/microsoft-365",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Microsoft_365_%282022%29.svg/250px-Microsoft_365_%282022%29.svg.png",

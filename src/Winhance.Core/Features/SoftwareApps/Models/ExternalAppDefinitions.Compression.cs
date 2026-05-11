@@ -67,6 +67,7 @@ public static partial class ExternalAppDefinitions
                         AppxPackageName = ["40174MouriNaruto.NanaZip"],
                         WinGetPackageId = ["M2Team.NanaZip"],
                         ChocoPackageId = "nanazip",
+                        MsStoreId = "9N8G7TSCL18R",
                         WebsiteUrl = "https://github.com/M2Team/NanaZip",
                         IconSources = [
                             "https://raw.githubusercontent.com/M2Team/NanaZip/main/Assets/NanaZip.png",

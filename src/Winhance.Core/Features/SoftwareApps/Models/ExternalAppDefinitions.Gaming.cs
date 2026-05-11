@@ -38,6 +38,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Gaming",
                         WinGetPackageId = ["EpicGames.EpicGamesLauncher"],
                         ChocoPackageId = "epicgameslauncher",
+                        MsStoreId = "XP99VR1BPSBQJ2",
                         WebsiteUrl = "https://www.epicgames.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/500px-Epic_Games_logo.svg.png",

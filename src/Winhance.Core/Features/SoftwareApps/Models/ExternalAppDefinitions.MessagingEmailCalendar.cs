@@ -21,8 +21,10 @@ public static partial class ExternalAppDefinitions
                         Name = "Telegram Desktop",
                         Description = "Instant messaging and voice calling app",
                         GroupName = "Messaging, Email & Calendar",
+                        AppxPackageName = ["TelegramMessengerLLP.TelegramDesktop"],
                         WinGetPackageId = ["Telegram.TelegramDesktop"],
                         ChocoPackageId = "telegram",
+                        MsStoreId = "9NZTWSQNTD0S",
                         WebsiteUrl = "https://telegram.org/",
                         IconSources = [
                             "https://raw.githubusercontent.com/telegramdesktop/tdesktop/v6.7.5/Telegram/Resources/art/icon256.png",
@@ -52,6 +54,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Zoom.Zoom"],
                         ChocoPackageId = "zoom",
+                        MsStoreId = "XP99J3KP4XZ4VV",
                         WebsiteUrl = "https://zoom.us/",
                         IconSources = [
                             "https://st1.zoom.us/zoom.ico",
@@ -66,6 +69,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Messaging, Email & Calendar",
                         WinGetPackageId = ["Discord.Discord"],
                         ChocoPackageId = "discord",
+                        MsStoreId = "XPDC2RH70K22MN",
                         WebsiteUrl = "https://discord.com/",
                         // Vendor brand page only ships SVG/ZIP and the Wikimedia
                         // render keeps rotting (Discord_color_D.svg has been
@@ -97,8 +101,10 @@ public static partial class ExternalAppDefinitions
                         RegistrySubKeyName = "Mozilla Thunderbird {version} ({arch} {locale})",
                         RegistryDisplayName = "Mozilla Thunderbird ({arch} {locale})",
                         GroupName = "Messaging, Email & Calendar",
+                        AppxPackageName = ["MozillaThunderbird.MozillaThunderbirdRelease"],
                         WinGetPackageId = ["Mozilla.Thunderbird"],
                         ChocoPackageId = "thunderbird",
+                        MsStoreId = "9MX7TGVGQFCL",
                         WebsiteUrl = "https://www.thunderbird.net/",
                         IconSources = [
                             "https://www.thunderbird.net/media/img/thunderbird/favicon-196.png",
@@ -111,8 +117,10 @@ public static partial class ExternalAppDefinitions
                         Name = "eM Client",
                         Description = "Email client with calendar, tasks, and chat",
                         GroupName = "Messaging, Email & Calendar",
+                        AppxPackageName = ["eMClient.20054CA46072C"],
                         WinGetPackageId = ["eMClient.eMClient"],
                         ChocoPackageId = "em-client",
+                        MsStoreId = "9NM8S4PVF0N2",
                         WebsiteUrl = "https://www.emclient.com/",
                         IconSources = [
                             "https://www.emclient.com/favicon.ico",

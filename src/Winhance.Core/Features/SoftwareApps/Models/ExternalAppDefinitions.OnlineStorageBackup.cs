@@ -35,8 +35,10 @@ public static partial class ExternalAppDefinitions
                         Name = "Dropbox",
                         Description = "File hosting service that offers cloud storage, file synchronization, personal cloud",
                         GroupName = "Online Storage & Backup",
+                        AppxPackageName = ["DropboxInc.Dropbox"],
                         WinGetPackageId = ["Dropbox.Dropbox"],
                         ChocoPackageId = "dropbox",
+                        MsStoreId = "9NK4T08DHQ80",
                         WebsiteUrl = "https://www.dropbox.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Dropbox_Icon.svg/500px-Dropbox_Icon.svg.png",

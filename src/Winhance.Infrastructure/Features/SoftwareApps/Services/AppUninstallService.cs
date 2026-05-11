@@ -32,6 +32,7 @@ public class AppUninstallService(
         {
             UninstallMethod.WinGet => await UninstallViaWinGetAsync(item, cancellationToken).ConfigureAwait(false),
             UninstallMethod.Chocolatey => await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false),
+            UninstallMethod.AppX => await UninstallViaAppxAsync(item, cancellationToken).ConfigureAwait(false),
             UninstallMethod.Registry => await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false),
             UninstallMethod.FileSystem => await UninstallViaFileSystemAsync(item, cancellationToken).ConfigureAwait(false),
             _ => OperationResult<bool>.Failed($"No uninstall method available for {item.Name}")
@@ -41,12 +42,17 @@ public class AppUninstallService(
     private async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
     {
         // Use the detection source to pick the most appropriate uninstall method.
-        // If the app was detected via Chocolatey, prefer Chocolatey uninstall
-        // (WinGet won't know about Chocolatey-installed packages).
+        // Each source owns the path that knows how to undo what it detected — WinGet
+        // can't see Chocolatey-installed packages, can't see Store-UI-installed AppX
+        // packages, etc. Dispatching on DetectedVia keeps detection and uninstall
+        // symmetric.
         switch (item.DetectedVia)
         {
             case DetectionSource.Chocolatey when !string.IsNullOrEmpty(item.ChocoPackageId):
                 return UninstallMethod.Chocolatey;
+
+            case DetectionSource.AppX when item.AppxPackageName?.Length > 0:
+                return UninstallMethod.AppX;
 
             case DetectionSource.Registry:
                 var (regFound, _) = await GetUninstallStringAsync(item).ConfigureAwait(false);
@@ -110,7 +116,11 @@ public class AppUninstallService(
 
             if (!success)
             {
-                // Fallback: try Chocolatey if available, then registry
+                // Fallback: try Chocolatey if available, then AppX, then registry.
+                // AppX defends against detection mis-classification: if the item carries
+                // an AppxPackageName but DetectedVia routed to WinGet (e.g. a Store-UI
+                // install that winget surfaces as MSIX\... and fails to uninstall by ID),
+                // the AppX path can still find and remove the actual installed package.
                 if (!string.IsNullOrEmpty(item.ChocoPackageId))
                 {
                     logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting Chocolatey fallback");
@@ -118,6 +128,15 @@ public class AppUninstallService(
                     var chocoResult = await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false);
                     if (chocoResult.Success)
                         return chocoResult;
+                }
+
+                if (item.AppxPackageName?.Length > 0)
+                {
+                    logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting AppX fallback");
+                    taskProgressService.UpdateProgress(0, $"Trying AppX fallback for {item.Name}...");
+                    var appxResult = await UninstallViaAppxAsync(item, cancellationToken).ConfigureAwait(false);
+                    if (appxResult.Success)
+                        return appxResult;
                 }
 
                 logService.LogWarning($"Uninstall failed for {item.Name}, attempting registry fallback");
@@ -230,6 +249,92 @@ public class AppUninstallService(
         catch (Exception ex)
         {
             logService.LogWarning($"Chocolatey ghost-record cleanup for {item.Name} errored: {ex.Message}");
+        }
+    }
+
+    // AppX uninstall for External Apps. Uses the WinRT PackageManager API directly
+    // (in-process, not via a saved PowerShell script). Persistent-removal scripts
+    // are intentionally a Windows-Apps-only concern (see IBloatRemovalService); for
+    // External Apps the user runs an uninstall once and sees terminal progress,
+    // matching the WinGet/Chocolatey/Registry paths above.
+    //
+    // Scope is per-user (FindPackagesForUser("")) — we never call RemovePackageAsync
+    // with the AllUsers option for External Apps. Provisioned-package deprovisioning
+    // (which bloatware needs to stop re-install on new user creation) is also
+    // intentionally absent here; Store-installed external apps don't carry that
+    // re-provisioning concern.
+    private async Task<OperationResult<bool>> UninstallViaAppxAsync(ItemDefinition item, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (item.AppxPackageName == null || item.AppxPackageName.Length == 0)
+                return OperationResult<bool>.Failed($"No AppxPackageName configured for {item.Name}");
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var packageManager = new Windows.Management.Deployment.PackageManager();
+            var packages = packageManager.FindPackagesForUser("")
+                .Where(p => item.AppxPackageName!.Any(name =>
+                    string.Equals(p.Id.Name, name, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (packages.Count == 0)
+            {
+                logService.LogWarning($"No installed AppX package found for {item.Name} (looked for: {string.Join(", ", item.AppxPackageName!)})");
+                return OperationResult<bool>.Failed($"No installed AppX package found for {item.Name}");
+            }
+
+            logService.LogInformation($"AppX uninstall for {item.Name}: removing {packages.Count} package(s)");
+            taskProgressService.UpdateProgress(10, $"Removing {item.Name}...");
+
+            int removed = 0;
+            foreach (var package in packages)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var fullName = package.Id.FullName;
+                logService.LogInformation($"AppX: removing {fullName}");
+
+                var op = packageManager.RemovePackageAsync(fullName);
+                op.Progress = (info, progress) =>
+                {
+                    // DeploymentProgress.percentage is 0–100 but the registry/winget
+                    // paths reserve 100% for the completion log line, so cap reports
+                    // at 95% to keep the terminal output visually consistent. Also
+                    // skip the WinRT API's initial 0% callback — we already reported
+                    // 10% before calling RemovePackageAsync, and the bar mustn't go
+                    // backwards.
+                    var pct = Math.Min(95, (int)progress.percentage);
+                    if (pct <= 10) return;
+                    taskProgressService.UpdateProgress(pct, $"Removing {item.Name}... {pct}%");
+                };
+                using var ctReg = cancellationToken.Register(() => op.Cancel());
+                var result = await op.AsTask().ConfigureAwait(false);
+
+                if (result.ExtendedErrorCode != null)
+                {
+                    var errMsg = !string.IsNullOrEmpty(result.ErrorText)
+                        ? result.ErrorText
+                        : result.ExtendedErrorCode.Message;
+                    logService.LogError($"AppX removal of {fullName} failed: {errMsg}");
+                    return OperationResult<bool>.Failed($"AppX uninstall failed: {errMsg}");
+                }
+                removed++;
+            }
+
+            logService.LogInformation($"AppX uninstall for {item.Name} completed ({removed} package(s) removed)");
+            taskProgressService.UpdateProgress(100, $"Uninstall of {item.Name} completed successfully");
+
+            await CleanupStaleChocoRecordAsync(item, cancellationToken).ConfigureAwait(false);
+            return OperationResult<bool>.Succeeded(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return OperationResult<bool>.Cancelled("Uninstall cancelled");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"AppX uninstall error for {item.Name}: {ex.Message}", ex);
+            return OperationResult<bool>.Failed($"AppX uninstall failed: {ex.Message}");
         }
     }
 

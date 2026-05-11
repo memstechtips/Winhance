@@ -53,6 +53,7 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Remote Access",
                         WinGetPackageId = ["TeamViewer.TeamViewer"],
                         ChocoPackageId = "teamviewer",
+                        MsStoreId = "XPDM17HK323C4X",
                         WebsiteUrl = "https://www.teamviewer.com/",
                         IconSources = [
                             "https://www.teamviewer.com/favicon.ico",
