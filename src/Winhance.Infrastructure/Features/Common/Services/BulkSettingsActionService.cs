@@ -43,11 +43,9 @@ public class BulkSettingsActionService(
                     IsActive = true
                 });
 
-                var recommendedValue = GetRecommendedValueForSetting(setting);
-
                 if (setting.InputType == InputType.Toggle)
                 {
-                    var toggleState = ResolveRecommendedToggleState(setting, recommendedValue);
+                    var toggleState = SettingDefinitionToggleState.GetRecommendedToggleState(setting);
                     if (toggleState is not bool enableValue)
                     {
                         // No recommendation across any backing store — nothing to apply.
@@ -55,11 +53,12 @@ public class BulkSettingsActionService(
                         continue;
                     }
 
+                    // Mirror per-card HandleToggleAsync: pass only SettingId + Enable.
+                    // The apply pipeline derives the registry write from EnabledValue/DisabledValue.
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
                         Enable = enableValue,
-                        Value = recommendedValue,
                         SkipValuePrerequisites = true
                     }).ConfigureAwait(false);
                 }
@@ -95,7 +94,8 @@ public class BulkSettingsActionService(
                 }
                 else
                 {
-                    var valueToApply = recommendedValue ?? BuildPowerCfgApplyValue(setting, useRecommended: true);
+                    var valueToApply = GetRecommendedValueForSetting(setting)
+                        ?? BuildPowerCfgApplyValue(setting, useRecommended: true);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
@@ -154,22 +154,21 @@ public class BulkSettingsActionService(
                     IsActive = true
                 });
 
-                var defaultValue = GetDefaultValueForSetting(setting);
-
                 if (setting.InputType == InputType.Toggle)
                 {
-                    var toggleState = ResolveDefaultToggleState(setting, defaultValue);
+                    var toggleState = SettingDefinitionToggleState.GetDefaultToggleState(setting);
                     if (toggleState is not bool enableValue)
                     {
                         logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
                         continue;
                     }
 
+                    // Mirror per-card HandleToggleAsync: pass only SettingId + Enable + ResetToDefault.
+                    // The apply pipeline derives the registry write from EnabledValue/DisabledValue.
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
                         Enable = enableValue,
-                        Value = defaultValue,
                         ResetToDefault = true,
                         SkipValuePrerequisites = true
                     }).ConfigureAwait(false);
@@ -208,7 +207,8 @@ public class BulkSettingsActionService(
                 }
                 else
                 {
-                    var valueToApply = defaultValue ?? BuildPowerCfgApplyValue(setting, useRecommended: false);
+                    var valueToApply = GetDefaultValueForSetting(setting)
+                        ?? BuildPowerCfgApplyValue(setting, useRecommended: false);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
@@ -254,10 +254,13 @@ public class BulkSettingsActionService(
         {
             try
             {
+                // Counter must agree with the apply path. HasRecommendedValue / HasDefaultValue
+                // route through SettingDefinitionToggleState so the count never reports a
+                // setting that the loop above would silently skip.
                 bool wouldChange = actionType switch
                 {
                     BulkActionType.ApplyRecommended => HasRecommendedValue(setting),
-                    BulkActionType.ResetToDefaults => HasDefaultValue(setting) || HasGroupPolicySettings(setting),
+                    BulkActionType.ResetToDefaults => HasDefaultValue(setting),
                     _ => false
                 };
 
@@ -356,7 +359,7 @@ public class BulkSettingsActionService(
 
     private static bool HasRecommendedValue(SettingDefinition setting)
     {
-        if (ResolveRecommendedToggleState(setting, GetRecommendedValueForSetting(setting)).HasValue) return true;
+        if (SettingDefinitionToggleState.GetRecommendedToggleState(setting).HasValue) return true;
         if (setting.PowerCfgSettings?.Any(p => p.RecommendedValueAC.HasValue || p.RecommendedValueDC.HasValue) == true) return true;
         if (setting.ComboBox?.Options?.Any(o => o.IsRecommended) == true) return true;
         return false;
@@ -364,15 +367,10 @@ public class BulkSettingsActionService(
 
     private static bool HasDefaultValue(SettingDefinition setting)
     {
-        if (ResolveDefaultToggleState(setting, GetDefaultValueForSetting(setting)).HasValue) return true;
+        if (SettingDefinitionToggleState.GetDefaultToggleState(setting).HasValue) return true;
         if (setting.PowerCfgSettings?.Any(p => p.DefaultValueAC.HasValue || p.DefaultValueDC.HasValue) == true) return true;
         if (setting.ComboBox?.Options?.Any(o => o.IsDefault) == true) return true;
         return false;
-    }
-
-    private static bool HasGroupPolicySettings(SettingDefinition setting)
-    {
-        return setting.RegistrySettings?.Any(rs => rs.IsGroupPolicy) == true;
     }
 
     private static int? GetRecommendedIndex(SettingDefinition setting)
@@ -390,67 +388,6 @@ public class BulkSettingsActionService(
         if (opts is null) return null;
         for (int i = 0; i < opts.Count; i++)
             if (opts[i].IsDefault) return i;
-        return null;
-    }
-
-    // Resolves the target Enable flag for a Toggle setting under "Apply Recommended".
-    // Priority matches SettingItemViewModel.ToggleRecommendedState so per-card and bulk
-    // agree:
-    //   1. SettingDefinition.RecommendedToggleState (explicit override — wins over any
-    //      per-key RecommendedValue, e.g. when a primary key's recommendation is "no
-    //      change" but a secondary key has a value for a different reason).
-    //   2. RegistrySetting with non-null RecommendedValue → derive from EnabledValue match
-    //   3. First ScheduledTaskSetting with RecommendedState set → use directly
-    //   4. Null → caller should skip (no recommendation exists)
-    private static bool? ResolveRecommendedToggleState(SettingDefinition setting, object? recommendedRegistryValue)
-    {
-        if (setting.RecommendedToggleState is bool explicitState)
-            return explicitState;
-
-        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
-        if (registrySetting != null && recommendedRegistryValue != null)
-        {
-            return registrySetting.EnabledValue?.Any(ev => ev != null && recommendedRegistryValue.Equals(ev)) == true;
-        }
-
-        var taskSetting = setting.ScheduledTaskSettings?.FirstOrDefault(ts => ts.RecommendedState.HasValue);
-        if (taskSetting?.RecommendedState is bool taskState)
-            return taskState;
-
-        return null;
-    }
-
-    // Resolves the target Enable flag for a Toggle setting under "Reset to Default".
-    //   1. RegistrySetting with DefaultValue → derive from EnabledValue match
-    //   2. RegistrySetting that is a group policy → disabled (key-absent)
-    //   3. Key-absent default: DefaultValue null AND EnabledValue/DisabledValue carries a
-    //      null sentinel — mirrors SettingItemViewModel.ToggleDefaultState so Quick Actions
-    //      resets settings like start-power-lock-option the same way the per-card button does.
-    //   4. First ScheduledTaskSetting with DefaultState set → use directly
-    //   5. Null → caller should skip
-    private static bool? ResolveDefaultToggleState(SettingDefinition setting, object? defaultRegistryValue)
-    {
-        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.DefaultValue != null || rs.IsGroupPolicy);
-        if (registrySetting != null)
-        {
-            if (defaultRegistryValue != null)
-                return registrySetting.EnabledValue?.Any(ev => ev != null && defaultRegistryValue.Equals(ev)) == true;
-            if (registrySetting.IsGroupPolicy)
-                return false;
-        }
-
-        var primaryReg = setting.RegistrySettings?.FirstOrDefault(r => r.IsPrimary)
-                      ?? setting.RegistrySettings?.FirstOrDefault();
-        if (primaryReg != null && primaryReg.DefaultValue == null)
-        {
-            if (primaryReg.EnabledValue?.Any(ev => ev == null) == true) return true;
-            if (primaryReg.DisabledValue?.Any(dv => dv == null) == true) return false;
-        }
-
-        var taskSetting = setting.ScheduledTaskSettings?.FirstOrDefault(ts => ts.DefaultState.HasValue);
-        if (taskSetting?.DefaultState is bool taskState)
-            return taskState;
-
         return null;
     }
 

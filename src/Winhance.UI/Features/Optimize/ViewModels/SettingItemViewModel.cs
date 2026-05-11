@@ -375,7 +375,7 @@ public partial class SettingItemViewModel : BaseViewModel
             {
                 var display = ConvertFromSystemUnits(v);
                 NumericValue = display;
-                HandleValueChangedAsync(display).FireAndForget(_logService);
+                HandleValueChangedAsync(display, resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setNumericToDefaultCommand;
@@ -397,7 +397,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (AcDefaultValue is int v)
             {
                 AcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+                HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setAcNumericToDefaultCommand;
@@ -419,7 +419,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (DcDefaultValue is int v)
             {
                 DcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+                HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setDcNumericToDefaultCommand;
@@ -438,55 +438,24 @@ public partial class SettingItemViewModel : BaseViewModel
     /// The strict step never derives state from the EnabledValue/DisabledValue null sentinel —
     /// recommendations against the key-absent state must be expressed via RecommendedToggleState.
     /// </summary>
-    public bool? ToggleRecommendedState
-    {
-        get
-        {
-            if (SettingDefinition?.RecommendedToggleState is bool explicitState) return explicitState;
-            return ResolveToggleState(PrimaryRegistrySetting?.RecommendedValue, deriveFromKeyAbsent: false);
-        }
-    }
+    public bool? ToggleRecommendedState =>
+        SettingDefinition is { } sd ? SettingDefinitionToggleState.GetRecommendedToggleState(sd) : null;
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
     /// When DefaultValue is null, the state is derived from which of EnabledValue /
     /// DisabledValue contains the null sentinel (key-absent convention).
     /// </summary>
-    public bool? ToggleDefaultState => ResolveToggleState(
-        PrimaryRegistrySetting?.DefaultValue, deriveFromKeyAbsent: true);
-
-    private bool? ResolveToggleState(object? targetValue, bool deriveFromKeyAbsent)
-    {
-        var reg = PrimaryRegistrySetting;
-        if (reg == null) return null;
-        if (targetValue == null && !deriveFromKeyAbsent) return null;
-        // Key-existence toggles: Windows default is key-present (enabled = true).
-        if (targetValue == null && deriveFromKeyAbsent && IsKeyExistenceToggle(reg))
-            return true;
-        return ToggleTargetState(targetValue, reg.EnabledValue, reg.DisabledValue);
-    }
+    public bool? ToggleDefaultState =>
+        SettingDefinition is { } sd ? SettingDefinitionToggleState.GetDefaultToggleState(sd) : null;
 
     /// <summary>
-    /// Resolves a target value into the toggle state it represents. When
-    /// <paramref name="targetValue"/> is null, the result is derived from which of
-    /// EnabledValue / DisabledValue contains the null sentinel — i.e. "key absent" implies
-    /// that state. Callers pick whether to use this derivation: Default does, Recommended
-    /// does not (see ResolveToggleState).
+    /// Resolves a target value into the toggle state it represents. Thin delegate to
+    /// <see cref="SettingDefinitionToggleState.ToggleTargetState"/> — kept here because
+    /// other call sites (badge state computation) reference it locally.
     /// </summary>
-    internal static bool? ToggleTargetState(object? targetValue, object?[]? enabledValue, object?[]? disabledValue)
-    {
-        if (targetValue == null)
-        {
-            if (ArrayContainsNull(enabledValue)) return true;
-            if (ArrayContainsNull(disabledValue)) return false;
-            return null;
-        }
-        if (IsValueInArray(targetValue, enabledValue)) return true;
-        if (IsValueInArray(targetValue, disabledValue)) return false;
-        return null;
-    }
-
-    private static bool ArrayContainsNull(object?[]? array) => array?.Any(v => v == null) == true;
+    internal static bool? ToggleTargetState(object? targetValue, object?[]? enabledValue, object?[]? disabledValue) =>
+        SettingDefinitionToggleState.ToggleTargetState(targetValue, enabledValue, disabledValue);
 
     private string ToggleStateText(bool state) => state ? OnText : OffText;
 
@@ -522,7 +491,7 @@ public partial class SettingItemViewModel : BaseViewModel
         new RelayCommand(() =>
         {
             if (ToggleDefaultState is bool v)
-                HandleToggleAsync(v).FireAndForget(_logService);
+                HandleToggleAsync(v, resetToDefault: true).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToDefaultCommand;
 
@@ -580,7 +549,7 @@ public partial class SettingItemViewModel : BaseViewModel
         new RelayCommand(() =>
         {
             if (SelectionDefaultIndex is int i)
-                HandleValueChangedAsync(i).FireAndForget(_logService);
+                HandleValueChangedAsync(i, resetToDefault: true).FireAndForget(_logService);
         });
     private RelayCommand? _setSelectionToDefaultCommand;
 
@@ -672,7 +641,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (AcSelectionDefaultIndex is int i)
             {
                 AcValue = i;
-                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+                HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setAcSelectionToDefaultCommand;
@@ -694,7 +663,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (DcSelectionDefaultIndex is int i)
             {
                 DcValue = i;
-                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+                HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
@@ -1241,7 +1210,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #region Apply Logic
 
-    private async Task HandleToggleAsync(bool newValue)
+    private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
@@ -1259,7 +1228,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, CheckboxResult = checkboxChecked });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, ResetToDefault = resetToDefault, CheckboxResult = checkboxChecked });
 
             if (!result.Success)
             {
@@ -1285,7 +1254,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleValueChangedAsync(object? value)
+    private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
     {
         _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
 
@@ -1324,7 +1293,7 @@ public partial class SettingItemViewModel : BaseViewModel
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
             _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
 
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, CheckboxResult = checkboxChecked });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, ResetToDefault = resetToDefault, CheckboxResult = checkboxChecked });
 
             _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
 
@@ -1389,7 +1358,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleACDCSelectionChangedAsync()
+    private async Task HandleACDCSelectionChangedAsync(bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
@@ -1398,7 +1367,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict, ResetToDefault = resetToDefault });
 
             if (!result.Success)
             {
@@ -1422,7 +1391,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleACDCNumericChangedAsync()
+    private async Task HandleACDCNumericChangedAsync(bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
@@ -1431,7 +1400,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict, ResetToDefault = resetToDefault });
 
             if (!result.Success)
             {
