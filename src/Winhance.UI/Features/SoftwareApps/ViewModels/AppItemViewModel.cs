@@ -44,6 +44,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         OnPropertyChanged(nameof(ReinstallableStatusText));
         OnPropertyChanged(nameof(InstabilityWarningLabel));
         OnPropertyChanged(nameof(InstabilityWarningTooltip));
+        OnPropertyChanged(nameof(OpenWebsiteAutomationName));
     }
 
     public ItemDefinition Definition => _definition;
@@ -185,6 +186,9 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
 
     /// <summary>True when the app has a WebsiteUrl; drives the website button's visibility (External Apps only in practice).</summary>
     public bool HasWebsiteUrl => !string.IsNullOrEmpty(Definition.WebsiteUrl);
+
+    /// <summary>Localized screen-reader label for the per-app website button (its visual tooltip remains the raw URL).</summary>
+    public string OpenWebsiteAutomationName => _localizationService.GetString("Tooltip_OpenWebsite");
 
     /// <summary>True when the item is marked as carrying an uninstall risk; drives the Card-view "Warning" pill.</summary>
     public bool HasInstabilityWarning => Definition.HasInstabilityWarning;

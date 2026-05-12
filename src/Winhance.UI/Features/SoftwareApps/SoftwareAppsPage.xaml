@@ -662,7 +662,8 @@
                                         Visibility="{x:Bind HasWebsiteUrl, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         Click="WebsiteButton_Click"
                                         Tag="{x:Bind WebsiteUrl}"
-                                        ToolTipService.ToolTip="{x:Bind WebsiteUrl}">
+                                        ToolTipService.ToolTip="{x:Bind WebsiteUrl}"
+                                        AutomationProperties.Name="{x:Bind OpenWebsiteAutomationName, Mode=OneWay}">
                                     <FontIcon Glyph="&#xE71B;" FontSize="14"/>
                                 </Button>
                             </StackPanel>
@@ -1435,7 +1436,8 @@
                                                 <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
                                                                  Padding="0" MinHeight="0" MinWidth="0"
                                                                  VerticalAlignment="Center"
-                                                                 Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
+                                                                 Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}"
+                                                                 AutomationProperties.Name="{Binding OpenWebsiteAutomationName}">
                                                     <Viewbox Width="16" Height="16">
                                                         <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                     </Viewbox>
@@ -1599,7 +1601,8 @@
                                                                         <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
                                                                                          Padding="0" MinHeight="0" MinWidth="0"
                                                                                          VerticalAlignment="Center"
-                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
+                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}"
+                                                                                         AutomationProperties.Name="{Binding OpenWebsiteAutomationName}">
                                                                             <Viewbox Width="16" Height="16">
                                                                                 <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                                             </Viewbox>

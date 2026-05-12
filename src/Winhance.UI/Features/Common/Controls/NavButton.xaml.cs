@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.System;
@@ -265,6 +267,16 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         }
     }
 
+    protected override AutomationPeer OnCreateAutomationPeer()
+        => new NavButtonAutomationPeer(this);
+
+    // Lets the automation peer route Narrator's Invoke through the same gates as pointer / keyboard.
+    internal void InvokeFromAutomation()
+    {
+        if (IsLoading || IsLocked) return;
+        Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
+    }
+
     private void NavButton_GotFocus(object sender, RoutedEventArgs e)
     {
         _isFocused = true;
@@ -463,5 +475,36 @@ public class NavButtonClickedEventArgs : EventArgs
     public NavButtonClickedEventArgs(object? navigationTag)
     {
         NavigationTag = navigationTag;
+    }
+}
+
+/// <summary>
+/// Automation peer that exposes NavButton as a Button to UI Automation clients
+/// (Narrator etc.) and routes the Invoke pattern through NavButton.InvokeFromAutomation.
+/// </summary>
+public sealed class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
+{
+    public NavButtonAutomationPeer(NavButton owner) : base(owner) { }
+
+    protected override AutomationControlType GetAutomationControlTypeCore()
+        => AutomationControlType.Button;
+
+    protected override string GetClassNameCore() => nameof(NavButton);
+
+    protected override object GetPatternCore(PatternInterface patternInterface)
+    {
+        if (patternInterface == PatternInterface.Invoke)
+        {
+            return this;
+        }
+        return base.GetPatternCore(patternInterface);
+    }
+
+    public void Invoke()
+    {
+        if (Owner is NavButton navButton)
+        {
+            navButton.InvokeFromAutomation();
+        }
     }
 }
