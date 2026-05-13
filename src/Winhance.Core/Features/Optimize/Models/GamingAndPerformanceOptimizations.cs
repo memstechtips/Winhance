@@ -4094,15 +4094,16 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
-                // System Group — natively-detected toggles
+                // Natively-detected (DetectionType.SystemRestore) — no GroupName so it
+                // lands in the "Other" bucket in the UI.
                 new SettingDefinition
                 {
                     Id = "system-restore-protection",
                     IsSubjectivePreference = true,
                     RecommendedToggleState = true,
+                    DefaultToggleState = true,
                     Name = "System Protection (Restore Points)",
                     Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
-                    GroupName = "System",
                     Icon = "History",
                     InputType = InputType.Toggle,
                     AddedInVersion = "26.05.13",

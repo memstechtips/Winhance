@@ -51,4 +51,19 @@ public sealed record SettingDefinition : BaseDefinition, ISettingItem
     /// RecommendedValue, or no Recommended badge if those are also null".
     /// </summary>
     public bool? RecommendedToggleState { get; init; }
+
+    /// <summary>
+    /// For Toggle/CheckBox settings: explicit Windows default state (true = enabled,
+    /// false = disabled). Parallel to <see cref="RecommendedToggleState"/>.
+    ///
+    /// Set this when the Windows default cannot be encoded as a non-null
+    /// <c>RegistrySetting.DefaultValue</c> — typically for settings whose detection
+    /// path is native (e.g. <c>DetectionType.SystemRestore</c>) and therefore has no
+    /// RegistrySetting to carry the default value. When set, this wins over per-key
+    /// DefaultValue derivation for badge / quick-set logic.
+    ///
+    /// Null means "no explicit toggle-level default; fall back to per-key
+    /// DefaultValue, or no Default badge if those are also null".
+    /// </summary>
+    public bool? DefaultToggleState { get; init; }
 }

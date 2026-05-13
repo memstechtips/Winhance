@@ -10,9 +10,8 @@ namespace Winhance.Core.Features.Common.Models;
 /// (BulkSettingsActionService) both call into here so the two paths can never disagree.
 ///
 /// Algorithm:
-///   1. Recommended only — explicit <see cref="SettingDefinition.RecommendedToggleState"/>
-///      override wins. (Default has no parallel override field today; if an override is
-///      ever needed, add it here in the same shape.)
+///   1. Explicit <see cref="SettingDefinition.RecommendedToggleState"/> /
+///      <see cref="SettingDefinition.DefaultToggleState"/> override wins.
 ///   2. Otherwise, evaluate the primary RegistrySetting (first IsPrimary, else first overall):
 ///      - Map DefaultValue / RecommendedValue to a toggle state by checking which of
 ///        EnabledValue / DisabledValue contains it.
@@ -48,6 +47,8 @@ public static class SettingDefinitionToggleState
 
     public static bool? GetDefaultToggleState(SettingDefinition setting)
     {
+        if (setting.DefaultToggleState is bool explicitState) return explicitState;
+
         var reg = GetPrimaryRegistrySetting(setting);
         if (reg != null)
         {

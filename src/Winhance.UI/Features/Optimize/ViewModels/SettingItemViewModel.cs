@@ -1595,6 +1595,23 @@ public partial class SettingItemViewModel : BaseViewModel
         bool matchesRecommended = true;
         bool matchesDefault = true;
 
+        // Toggle-level explicit override — parallel to HasAnyRecommendedData/HasAnyDefaultData,
+        // which check these fields first. Required for settings whose state lives outside
+        // RegistrySettings / ScheduledTaskSettings / PowerCfgSettings (e.g. natively-detected
+        // toggles like DetectionType.SystemRestore) — otherwise the loops below find no
+        // evidence and both flags stay at their initial true, lighting badges regardless of
+        // actual state.
+        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        if (isToggleLike)
+        {
+            if (SettingDefinition.RecommendedToggleState.HasValue
+                && IsSelected != SettingDefinition.RecommendedToggleState.Value)
+                matchesRecommended = false;
+            if (SettingDefinition.DefaultToggleState.HasValue
+                && IsSelected != SettingDefinition.DefaultToggleState.Value)
+                matchesDefault = false;
+        }
+
         // Check RegistrySettings
         foreach (var reg in SettingDefinition.RegistrySettings)
         {
@@ -1874,6 +1891,9 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (SettingDefinition is null) return false;
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        // Toggle-level explicit flag wins — parallel to HasAnyRecommendedData's first check.
+        if (isToggleLike && SettingDefinition.DefaultToggleState.HasValue)
+            return true;
         // Group-policy regs with null DefaultValue are usually write-only enforcers,
         // but for toggle settings the null-sentinel convention (e.g. EnabledValue = [null])
         // CAN express a meaningful default ("key absent = Windows default"). Include
