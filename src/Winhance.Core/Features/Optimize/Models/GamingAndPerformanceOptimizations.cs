@@ -4113,10 +4113,25 @@ public static class GamingAndPerformanceOptimizations
                         {
                             DetectionScript = """
                                 try {
-                                    $cDevice = (Get-CimInstance Win32_Volume -Filter "DriveLetter='C:'" -ErrorAction Stop).DeviceID
-                                    [bool](Get-CimInstance Win32_ShadowStorage -ErrorAction Stop |
-                                           Where-Object { $_.Volume.DeviceID -eq $cDevice } |
-                                           Select-Object -First 1)
+                                    # Group-policy override: if DisableSR=1, SR is forced off system-wide.
+                                    $policy = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore' -Name 'DisableSR' -ErrorAction SilentlyContinue).DisableSR
+                                    if ($policy -eq 1) { $false; return }
+
+                                    # Canonical per-volume protection state: SPP\Clients' System Restore client (GUID
+                                    # {09F7EDC5-294E-4180-AF6A-FB0E6A0E9513}) is a REG_MULTI_SZ listing every volume
+                                    # currently protected. Updates synchronously with Enable-/Disable-ComputerRestore,
+                                    # before any restore point exists — same key sysdm.cpl writes.
+                                    $vol = Get-CimInstance Win32_Volume -Filter "DriveLetter='C:'" -ErrorAction Stop
+                                    if (-not $vol) { $false; return }
+                                    $volId = $vol.DeviceID
+
+                                    $sppKey = Get-Item -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SPP\Clients' -ErrorAction SilentlyContinue
+                                    if (-not $sppKey) { $false; return }
+
+                                    $entries = $sppKey.GetValue('{09F7EDC5-294E-4180-AF6A-FB0E6A0E9513}')
+                                    if (-not $entries) { $false; return }
+
+                                    [bool]($entries | Where-Object { $_ -like "$volId*" })
                                 } catch {
                                     $false
                                 }
