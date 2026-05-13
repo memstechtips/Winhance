@@ -69,6 +69,7 @@ public static class InfrastructureServicesExtensions
 
         // PowerShell Runner
         services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
+        services.AddSingleton<IPowerShellDetectionService, Winhance.Infrastructure.Features.Common.Utilities.PowerShellDetectionService>();
 
         // Driver Categorizer
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IDriverCategorizer,
