@@ -106,6 +106,7 @@ public static class InfrastructureServicesExtensions
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
         services.AddSingleton<ISystemBackupService, SystemBackupService>();
+        services.AddSingleton<ISystemRestoreService, SystemRestoreService>();
         services.AddSingleton<IVersionService, VersionService>();
 
         // Script Services
