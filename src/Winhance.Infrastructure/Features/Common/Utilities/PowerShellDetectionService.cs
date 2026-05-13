@@ -33,6 +33,14 @@ public sealed class PowerShellDetectionService(ILogService logService) : IPowerS
 
         foreach (var (id, script) in jobs)
         {
+            if (ct.IsCancellationRequested)
+            {
+                logService.Log(LogLevel.Info,
+                    $"[PowerShellDetectionService] Cancellation requested; '{id}' and any remaining settings recorded as Disabled");
+                results[id] = false;
+                continue;
+            }
+
             if (sw.Elapsed >= BatchTimeout)
             {
                 logService.Log(LogLevel.Warning,
@@ -54,6 +62,8 @@ public sealed class PowerShellDetectionService(ILogService logService) : IPowerS
                 if (completed != invokeTask)
                 {
                     try { ps.Stop(); } catch { /* best effort */ }
+                    try { await invokeTask.ConfigureAwait(false); }
+                    catch { /* expected after Stop — PipelineStoppedException, OperationCanceledException, etc. */ }
                     logService.Log(LogLevel.Warning,
                         $"[PowerShellDetectionService] Detection script for '{id}' timed out within batch budget; recording as Disabled");
                     results[id] = false;
@@ -89,15 +99,33 @@ public sealed class PowerShellDetectionService(ILogService logService) : IPowerS
             var obj = output[i]?.BaseObject;
             if (obj is null) continue;
 
-            if (obj is bool b) return b;
-
-            // PowerShell's invariant True/False / numeric / "1"/"0" string forms — coerce via LanguagePrimitives.
-            if (LanguagePrimitives.TryConvertTo<bool>(obj, out var coerced))
-                return coerced;
+            switch (obj)
+            {
+                case bool b:
+                    return b;
+                case int n:
+                    return n != 0;
+                case long n:
+                    return n != 0;
+                case short n:
+                    return n != 0;
+                case byte n:
+                    return n != 0;
+                case sbyte n:
+                    return n != 0;
+                case uint n:
+                    return n != 0;
+                case ulong n:
+                    return n != 0;
+                case ushort n:
+                    return n != 0;
+                default:
+                    continue; // Skip strings, hashtables, anything else — not a valid output.
+            }
         }
 
         logService.Log(LogLevel.Warning,
-            $"[PowerShellDetectionService] Detection script for '{settingId}' returned no boolean-coercible value; recording as Disabled");
+            $"[PowerShellDetectionService] Detection script for '{settingId}' returned no boolean-or-numeric value (contract: emit $true/$false or 1/0); recording as Disabled");
         return false;
     }
 }
