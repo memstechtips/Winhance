@@ -12,6 +12,13 @@
 # Pass -Clean to wipe per-project obj/ and bin/ before the build. Default is
 # incremental — much faster and survives the network-share gotchas a forced
 # wipe creates (see comment on the wipe block below).
+#
+# On network-share repos, in-tree src\*\obj and src\*\bin are ALWAYS wiped
+# before build (regardless of -Clean), because those dirs should be empty
+# when WINHANCE_LOCAL_BUILD_ROOT is in effect — a populated in-tree obj/
+# is a leak from VS or a bare dotnet build and causes 2k+ duplicate-
+# definition errors. The local build root under $env:LOCALAPPDATA is left
+# alone unless -Clean is passed.
 [CmdletBinding()]
 param(
     [switch]$Clean
@@ -168,6 +175,39 @@ if ($Clean) {
                     Write-Host "Wiping $stale" -ForegroundColor DarkGray
                     Remove-Item -Recurse -Force $stale
                 }
+            }
+        }
+    }
+}
+
+# --- Strip leaked in-tree obj/bin (network-share repos only) -------------
+# When $repoIsRemote, the script writes outputs to $localBuildRoot on C:\
+# (via WINHANCE_LOCAL_BUILD_ROOT + src\Directory.Build.props). The in-tree
+# src\<proj>\obj and bin folders should therefore stay empty.
+#
+# But if a build ran *without* the env var (Visual Studio, a bare `dotnet
+# build`, `msbuild` invoked directly) it populates the in-tree obj/bin.
+# Next time this script runs, MSBuild's default Compile glob walks the
+# repo and pulls in the stale generated files (Generated Files\CsWinRT\*,
+# *AssemblyInfo.cs) ALONGSIDE the freshly-generated ones under
+# $localBuildRoot. Result: thousands of CS0579 / CS0101 / CS0111 duplicate
+# definition errors that have nothing to do with the user's actual code.
+#
+# Cheap unconditional pre-step: when remote, wipe in-tree obj/bin. Empty
+# dirs cost nothing; populated ones are the bug. We log per-dir if and
+# only if something was removed, so a leaked build is visible.
+if ($repoIsRemote) {
+    $leakedCount = 0
+    Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        foreach ($sub in @('obj', 'bin')) {
+            $stale = Join-Path $_.FullName $sub
+            if (Test-Path $stale) {
+                if ($leakedCount -eq 0) {
+                    Write-Host "Stripping leaked in-tree obj/bin (network-share repo expects outputs under $localBuildRoot):" -ForegroundColor Cyan
+                }
+                Write-Host "  Removing $stale" -ForegroundColor DarkGray
+                Remove-Item -Recurse -Force $stale
+                $leakedCount++
             }
         }
     }
