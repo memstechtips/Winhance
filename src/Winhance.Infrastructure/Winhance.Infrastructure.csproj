@@ -25,12 +25,20 @@
         <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
-        <!-- In-process PowerShell hosting for read-only setting-state detection scripts
-             (IPowerShellDetectionService). Reference-assemblies only — the actual
-             System.Management.Automation implementation is loaded at runtime from the
-             Windows-bundled PowerShell 5.1 install. If this NuGet doesn't load PS 5.1
-             cleanly on .NET 10 + WinUI 3, fall back to Microsoft.PowerShell.SDK (PS 7). -->
-        <PackageReference Include="Microsoft.PowerShell.5.ReferenceAssemblies" Version="1.1.0" />
+        <!-- In-process PowerShell 7 hosting for read-only setting-state detection scripts
+             (IPowerShellDetectionService). The SDK bundles its own PS 7 runtime into the
+             app's output (~60–80 MB) so users don't need PowerShell 7 installed. This is
+             SEPARATE from the existing PowerShellRunner.cs path which still spawns the
+             OS-bundled Windows PowerShell 5.1 (C:\Windows\System32\WindowsPowerShell\v1.0\
+             powershell.exe) for apply scripts (Enable-ComputerRestore, BloatRemoval.ps1,
+             OneDriveRemoval.ps1, EdgeRemoval.ps1, etc.) — those continue to use 5.1.
+
+             We tried Microsoft.PowerShell.5.ReferenceAssemblies 1.1.0 first: it builds
+             but throws InvalidProgramException at runtime on .NET 10 + WinUI 3 because
+             the reference-assemblies package targets .NET Framework only and the runtime
+             loader can't bind it cleanly on modern .NET. The SDK package is properly
+             multi-targeted and works without that warning. -->
+        <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.6" />
         <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
              transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
              GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->

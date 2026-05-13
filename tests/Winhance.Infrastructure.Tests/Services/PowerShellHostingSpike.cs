@@ -5,14 +5,15 @@ using Xunit;
 namespace Winhance.Infrastructure.Tests.Services;
 
 /// <summary>
-/// Spike: verifies that Microsoft.PowerShell.5.ReferenceAssemblies (compile-time)
-/// resolves to a working in-process PowerShell host at runtime on .NET 10 + WinUI 3
-/// targeting net10.0-windows10.0.19041.0.
+/// Smoke test for the in-process PowerShell host that backs the upcoming
+/// IPowerShellDetectionService. Uses Microsoft.PowerShell.SDK (PS 7, app-bundled).
 ///
-/// If this test fails with a runtime "Assembly not found" / type-load error, the
-/// reference-assemblies package isn't enough on this TFM. Drop it from the csproj
-/// and replace with Microsoft.PowerShell.SDK (PS 7 in-process) per the plan in
-/// .agent-plans/2026-05-13-ps-detection-framework.md Task 3 Step 1b.
+/// History: an earlier revision of this spike referenced
+/// Microsoft.PowerShell.5.ReferenceAssemblies 1.1.0, which built cleanly but
+/// threw InvalidProgramException at runtime on .NET 10 + WinUI 3 — the package's
+/// .NETFramework-only metadata doesn't bind on the modern runtime. Switching to
+/// the SDK package (which carries its own PS 7 runtime) is what made these
+/// tests pass.
 ///
 /// Delete this file once Task 3 lands the production IPowerShellDetectionService
 /// (which has full test coverage of the same surface).
