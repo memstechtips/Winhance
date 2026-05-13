@@ -1892,5 +1892,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Zaplanowane zadania Windows AI, w tym konfiguracja Recall. Wyłącz, aby zapobiec uruchamianiu funkcji AI w tle",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Zaplanowane zadanie Office AI Actions Server. Wyłącz, aby zapobiec uruchamianiu Office AI w tle"
+  "Setting_gaming-task-office-actions-server_Description": "Zaplanowane zadanie Office AI Actions Server. Wyłącz, aby zapobiec uruchamianiu Office AI w tle",
+  "Setting_system-restore-protection_Name": "Ochrona systemu (Punkty przywracania)",
+  "Setting_system-restore-protection_Description": "Zezwól systemowi Windows na automatyczne tworzenie punktów przywracania dla dysku C:"
 }

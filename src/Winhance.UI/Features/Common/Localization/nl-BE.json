@@ -1892,5 +1892,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Geplande Windows AI-taken inclusief Recall-configuratie. Schakel uit om te voorkomen dat AI-functies op de achtergrond worden uitgevoerd",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Geplande taak Office AI Actions Server. Schakel uit om te voorkomen dat Office AI op de achtergrond wordt uitgevoerd"
+  "Setting_gaming-task-office-actions-server_Description": "Geplande taak Office AI Actions Server. Schakel uit om te voorkomen dat Office AI op de achtergrond wordt uitgevoerd",
+  "Setting_system-restore-protection_Name": "Systeembeveiliging (Herstelpunten)",
+  "Setting_system-restore-protection_Description": "Sta Windows toe om automatisch herstelpunten voor schijf C: te maken"
 }

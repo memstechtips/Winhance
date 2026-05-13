@@ -1892,5 +1892,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Tarefas agendadas do Windows AI, incluindo configuração do Recall. Desative para impedir que recursos de IA sejam executados em segundo plano",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Tarefa agendada do Office AI Actions Server. Desative para impedir que a IA do Office seja executada em segundo plano"
+  "Setting_gaming-task-office-actions-server_Description": "Tarefa agendada do Office AI Actions Server. Desative para impedir que a IA do Office seja executada em segundo plano",
+  "Setting_system-restore-protection_Name": "Proteção do sistema (Pontos de restauração)",
+  "Setting_system-restore-protection_Description": "Permite que o Windows crie automaticamente pontos de restauração para a unidade C:"
 }

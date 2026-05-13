@@ -1892,5 +1892,7 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Windows AI ieplānotie uzdevumi, ieskaitot Recall konfigurāciju. Atspējojiet, lai novērstu AI funkciju darbību fonā",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ieplānotais uzdevums. Atspējojiet, lai novērstu Office AI darbību fonā"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server ieplānotais uzdevums. Atspējojiet, lai novērstu Office AI darbību fonā",
+  "Setting_system-restore-protection_Name": "Sistēmas aizsardzība (Atjaunošanas punkti)",
+  "Setting_system-restore-protection_Description": "Atļaut Windows automātiski izveidot atjaunošanas punktus C: diskdzinim"
 }
