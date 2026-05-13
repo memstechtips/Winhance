@@ -4094,6 +4094,40 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
+                // System Group — PowerShell-detected toggles
+                new SettingDefinition
+                {
+                    Id = "system-restore-protection",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "System Protection (Restore Points)",
+                    Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
+                    GroupName = "System",
+                    Icon = "ArrowCounterclockwise",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.05.13",
+                    DetectionType = DetectionType.PowerShellScript,
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            DetectionScript = """
+                                try {
+                                    $vol = Get-CimInstance Win32_Volume -Filter "DriveLetter='C:'" -ErrorAction Stop
+                                    if (-not $vol) { $false; return }
+                                    $sr = Get-CimInstance Win32_ShadowStorage -Filter "Volume='$($vol.__PATH.Replace("'", "''"))'" -ErrorAction SilentlyContinue
+                                    [bool]$sr
+                                } catch {
+                                    $false
+                                }
+                                """,
+                            EnabledScript = @"Enable-ComputerRestore -Drive 'C:\'",
+                            DisabledScript = @"Disable-ComputerRestore -Drive 'C:\'",
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
+                        },
+                    },
+                },
             },
         };
     }
