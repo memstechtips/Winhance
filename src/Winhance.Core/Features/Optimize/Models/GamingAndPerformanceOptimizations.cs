@@ -4113,10 +4113,10 @@ public static class GamingAndPerformanceOptimizations
                         {
                             DetectionScript = """
                                 try {
-                                    $vol = Get-CimInstance Win32_Volume -Filter "DriveLetter='C:'" -ErrorAction Stop
-                                    if (-not $vol) { $false; return }
-                                    $sr = Get-CimInstance Win32_ShadowStorage -Filter "Volume='$($vol.__PATH.Replace("'", "''"))'" -ErrorAction SilentlyContinue
-                                    [bool]$sr
+                                    $cDevice = (Get-CimInstance Win32_Volume -Filter "DriveLetter='C:'" -ErrorAction Stop).DeviceID
+                                    [bool](Get-CimInstance Win32_ShadowStorage -ErrorAction Stop |
+                                           Where-Object { $_.Volume.DeviceID -eq $cDevice } |
+                                           Select-Object -First 1)
                                 } catch {
                                     $false
                                 }

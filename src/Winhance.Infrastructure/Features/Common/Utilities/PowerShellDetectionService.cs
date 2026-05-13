@@ -72,6 +72,8 @@ public sealed class PowerShellDetectionService(ILogService logService) : IPowerS
 
                 var output = await invokeTask.ConfigureAwait(false);
                 results[id] = InterpretOutput(output, id);
+                logService.Log(LogLevel.Info,
+                    $"[PowerShellDetectionService] '{id}' detection: {results[id]} (raw output: [{StringifyOutput(output)}])");
             }
             catch (Exception ex)
             {
@@ -127,5 +129,17 @@ public sealed class PowerShellDetectionService(ILogService logService) : IPowerS
         logService.Log(LogLevel.Warning,
             $"[PowerShellDetectionService] Detection script for '{settingId}' returned no boolean-or-numeric value (contract: emit $true/$false or 1/0); recording as Disabled");
         return false;
+    }
+
+    private static string StringifyOutput(System.Collections.ObjectModel.Collection<PSObject>? output)
+    {
+        if (output is null || output.Count == 0) return "<empty>";
+        return string.Join(", ", output.Select(o =>
+        {
+            var baseObj = o?.BaseObject;
+            if (baseObj is null) return "<null>";
+            var s = baseObj.ToString() ?? "<null>";
+            return $"{baseObj.GetType().Name}:{s}";
+        }));
     }
 }
