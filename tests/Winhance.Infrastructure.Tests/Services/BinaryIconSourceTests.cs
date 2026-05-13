@@ -79,7 +79,11 @@ public class BinaryIconSourceTests
         // arm in BinaryIconSource. Distinct from internal-timeout cancellation,
         // which collapses to null.
         _mockFactory.Setup(f => f.GetIconBytesAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()))
-            .Returns<string, Size, CancellationToken>((_, _, ct) => Task.Delay(TimeSpan.FromMinutes(1), ct));
+            .Returns<string, Size, CancellationToken>(async (_, _, ct) =>
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1), ct);
+                return Array.Empty<byte>();
+            });
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
         var act = () => _source.GetIconStreamAsync("C:\\anything.exe", new Size(96, 96), cts.Token);

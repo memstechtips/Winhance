@@ -658,11 +658,11 @@ public class AppIconResolverTests : IDisposable
         var payload = Encoding.UTF8.GetBytes("PNG-real-payload");
         var dataUri = "data:image/png;base64," + Convert.ToBase64String(payload);
 
+        var def = Def("ext-srcs-data-cached") with { IconSources = new[] { dataUri } };
+
         Directory.CreateDirectory(_tempCacheDir);
         var cachePath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, dataUri));
         File.WriteAllText(cachePath, "pre-cached-bytes");
-
-        var def = Def("ext-srcs-data-cached") with { IconSources = new[] { dataUri } };
 
         var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         using var client = new HttpClient(handler.Object);
