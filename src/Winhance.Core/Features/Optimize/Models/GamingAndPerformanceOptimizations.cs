@@ -4094,42 +4094,6 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
-                // System Group
-                new SettingDefinition
-                {
-                    Id = "system-restore-protection",
-                    IsSubjectivePreference = true,
-                    RecommendedToggleState = true,
-                    Name = "System Protection (Restore Points)",
-                    Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
-                    GroupName = "System",
-                    Icon = "ArrowCounterclockwise",
-                    InputType = InputType.Toggle,
-                    AddedInVersion = "26.04.24",
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore",
-                            ValueName = "RPSessionInterval",
-                            EnabledValue = [1440],
-                            DisabledValue = [0],
-                            DefaultValue = 1440,
-                            RecommendedValue = 1440,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                    PowerShellScripts = new List<PowerShellScriptSetting>
-                    {
-                        new PowerShellScriptSetting
-                        {
-                            EnabledScript = @"Enable-ComputerRestore -Drive 'C:\'",
-                            DisabledScript = @"Disable-ComputerRestore -Drive 'C:\'",
-                            RequiresElevation = true,
-                            RunContext = RunContext.System,
-                        },
-                    },
-                },
             },
         };
     }

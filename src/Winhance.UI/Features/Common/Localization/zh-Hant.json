@@ -717,7 +717,6 @@
   "SettingGroup_Scheduled_Tasks": "排程工作",
   "SettingGroup_Visual_Effects": "視覺效果",
   "SettingGroup_Accessibility": "協助工具",
-  "SettingGroup_System": "系統",
   "Setting_gaming-game-mode_Name": "遊戲模式",
   "Setting_gaming-game-mode_Description": "關閉背景事務以最佳化您的電腦遊戲體驗",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "增強指標精準度",
@@ -1893,7 +1892,5 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Windows AI 排程工作，包括 Recall 設定。停用以防止 AI 功能在背景執行",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 排程工作。停用以防止 Office AI 在背景執行",
-  "Setting_system-restore-protection_Name": "系統保護（還原點）",
-  "Setting_system-restore-protection_Description": "允許 Windows 自動為 C: 磁碟建立還原點，以便在發生問題時能夠復原系統變更"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 排程工作。停用以防止 Office AI 在背景執行"
 }

@@ -1892,7 +1892,5 @@
   "Setting_gaming-task-windows-ai_Name": "مهام Windows AI",
   "Setting_gaming-task-windows-ai_Description": "مهام Windows AI المجدولة بما فيها تكوين Recall. عطّلها لمنع تشغيل ميزات الذكاء الاصطناعي في الخلفية",
   "Setting_gaming-task-office-actions-server_Name": "مهمة خادم إجراءات Office",
-  "Setting_gaming-task-office-actions-server_Description": "مهمة Office AI Actions Server المجدولة. عطّلها لمنع تشغيل Office AI في الخلفية",
-  "Setting_system-restore-protection_Name": "حماية النظام (نقاط الاستعادة)",
-  "Setting_system-restore-protection_Description": "السماح لـ Windows بإنشاء نقاط استعادة تلقائية لمحرك C:, مما يجعل من الممكن التراجع عن تغييرات النظام إذا حدث خطأ"
+  "Setting_gaming-task-office-actions-server_Description": "مهمة Office AI Actions Server المجدولة. عطّلها لمنع تشغيل Office AI في الخلفية"
 }

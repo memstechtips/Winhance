@@ -717,7 +717,6 @@
   "SettingGroup_Scheduled_Tasks": "スケジュールされたタスク",
   "SettingGroup_Visual_Effects": "視覚効果",
   "SettingGroup_Accessibility": "アクセシビリティ",
-  "SettingGroup_System": "システム",
   "Setting_gaming-game-mode_Name": "ゲームモード",
   "Setting_gaming-game-mode_Description": "バックグラウンドのものをオフにして、PCをプレイ用に最適化する",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "ポインターの精度を高める",
@@ -1893,7 +1892,5 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Recall 設定を含む Windows AI スケジュールタスク。AI 機能がバックグラウンドで実行されないよう無効にしてください",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server スケジュールタスク。Office AI がバックグラウンドで実行されないよう無効にしてください",
-  "Setting_system-restore-protection_Name": "システムの保護 (復元ポイント)",
-  "Setting_system-restore-protection_Description": "Windows が C: ドライブの復元ポイントを自動的に作成できるようにし、問題が発生した際にシステム変更を元に戻せるようにします"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server スケジュールタスク。Office AI がバックグラウンドで実行されないよう無効にしてください"
 }

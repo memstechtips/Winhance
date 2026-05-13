@@ -752,7 +752,6 @@
   "SettingGroup_Scheduled_Tasks": "예약된 작업",
   "SettingGroup_Visual_Effects": "시각 효과",
   "SettingGroup_Accessibility": "접근성",
-  "SettingGroup_System": "시스템",
   "Setting_gaming-game-mode_Name": "게임 모드",
   "Setting_gaming-game-mode_Description": "백그라운드 작업을 중지하여 게임 플레이에 최적화된 PC 환경을 구성합니다",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "포인터 정밀도 향상",
@@ -1893,7 +1892,5 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Recall 구성을 포함한 Windows AI 예약 작업입니다. AI 기능이 백그라운드에서 실행되지 않도록 비활성화하세요",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 예약 작업입니다. Office AI가 백그라운드에서 실행되지 않도록 비활성화하세요",
-  "Setting_system-restore-protection_Name": "시스템 보호 (복원 지점)",
-  "Setting_system-restore-protection_Description": "Windows가 C: 드라이브에 자동으로 복원 지점을 생성할 수 있도록 허용하여 문제가 발생할 경우 시스템 변경 사항을 실행 취소할 수 있습니다"
+  "Setting_gaming-task-office-actions-server_Description": "Office AI Actions Server 예약 작업입니다. Office AI가 백그라운드에서 실행되지 않도록 비활성화하세요"
 }

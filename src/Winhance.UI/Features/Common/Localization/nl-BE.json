@@ -717,7 +717,6 @@
   "SettingGroup_Scheduled_Tasks": "Geplande Taken",
   "SettingGroup_Visual_Effects": "Visuele Effecten",
   "SettingGroup_Accessibility": "Toegankelijkheid",
-  "SettingGroup_System": "Systeem",
   "Setting_gaming-game-mode_Name": "Spelmodus",
   "Setting_gaming-game-mode_Description": "Optimaliseer uw pc voor spelen door dingen op de achtergrond uit te schakelen",
   "Setting_gaming-performance-explorer-mouse-precision_Name": "Aanwijzerprecisie verbeteren",
@@ -1893,7 +1892,5 @@
   "Setting_gaming-task-windows-ai_Name": "Windows AI Tasks",
   "Setting_gaming-task-windows-ai_Description": "Geplande Windows AI-taken inclusief Recall-configuratie. Schakel uit om te voorkomen dat AI-functies op de achtergrond worden uitgevoerd",
   "Setting_gaming-task-office-actions-server_Name": "Office Actions Server Task",
-  "Setting_gaming-task-office-actions-server_Description": "Geplande taak Office AI Actions Server. Schakel uit om te voorkomen dat Office AI op de achtergrond wordt uitgevoerd",
-  "Setting_system-restore-protection_Name": "Systeembeveiliging (Herstelpunten)",
-  "Setting_system-restore-protection_Description": "Sta Windows toe automatisch herstelpunten voor station C: te maken, zodat systeemwijzigingen ongedaan kunnen worden gemaakt als er iets misgaat"
+  "Setting_gaming-task-office-actions-server_Description": "Geplande taak Office AI Actions Server. Schakel uit om te voorkomen dat Office AI op de achtergrond wordt uitgevoerd"
 }
