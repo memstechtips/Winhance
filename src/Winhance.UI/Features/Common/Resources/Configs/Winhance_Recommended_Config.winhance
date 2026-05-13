@@ -1942,6 +1942,12 @@
             "Name": "High Contrast Hotkey (Alt+Shift+PrtScn)",
             "IsSelected": false,
             "InputType": 0
+          },
+          {
+            "Id": "system-restore-protection",
+            "Name": "System Protection (Restore Points)",
+            "IsSelected": true,
+            "InputType": 0
           }
         ]
       },
