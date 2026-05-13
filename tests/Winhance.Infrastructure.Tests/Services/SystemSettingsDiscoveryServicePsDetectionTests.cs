@@ -125,4 +125,41 @@ public class SystemSettingsDiscoveryServicePsDetectionTests
 
         _psDetection.Verify(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default), Times.Never);
     }
+
+    [Fact]
+    public async Task GetSettingStates_PsDetection_OverridesRegistrySettings_WhenDetectionTypeIsPowerShellScript()
+    {
+        var setting = new SettingDefinition
+        {
+            Id = "hybrid",
+            Name = "hybrid",
+            Description = "hybrid",
+            DetectionType = DetectionType.PowerShellScript,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\Foo",
+                    ValueName = "Bar",
+                    ValueType = RegistryValueKind.DWord,
+                    EnabledValue = new object?[] { 1 },
+                }
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { DetectionScript = "$true" }
+            }
+        };
+
+        _registry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+        _psDetection
+            .Setup(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default))
+            .ReturnsAsync(new Dictionary<string, bool> { ["hybrid"] = true });
+
+        var service = NewService();
+        var states = await service.GetSettingStatesAsync(new[] { setting });
+
+        states["hybrid"].IsEnabled.Should().BeTrue();
+    }
 }

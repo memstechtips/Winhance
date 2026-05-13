@@ -475,6 +475,13 @@ public class SystemSettingsDiscoveryService(
         if (rawValues == null || rawValues.Count == 0)
             return false;
 
+        if (setting.DetectionType == DetectionType.PowerShellScript)
+        {
+            if (rawValues.TryGetValue("PowerShellDetectedState", out var v) && v is bool b)
+                return b;
+            return false;
+        }
+
         if (setting.RegistrySettings?.Count > 0)
         {
             foreach (var registrySetting in setting.RegistrySettings)
