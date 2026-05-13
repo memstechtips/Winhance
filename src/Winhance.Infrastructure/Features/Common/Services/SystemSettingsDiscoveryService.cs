@@ -17,7 +17,8 @@ public class SystemSettingsDiscoveryService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
     IDomainServiceRouter domainServiceRouter,
-    IScheduledTaskService scheduledTaskService) : ISystemSettingsDiscoveryService
+    IScheduledTaskService scheduledTaskService,
+    IPowerShellDetectionService powerShellDetectionService) : ISystemSettingsDiscoveryService
 {
     public async Task<Dictionary<string, Dictionary<string, object?>>> GetRawSettingsValuesAsync(IEnumerable<SettingDefinition> settings)
     {
@@ -224,6 +225,41 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
+        var psDetectionSettings = settingsList
+            .Where(s => s.DetectionType == DetectionType.PowerShellScript
+                     && s.PowerShellScripts?.Any(p => !string.IsNullOrWhiteSpace(p.DetectionScript)) == true)
+            .ToList();
+
+        if (psDetectionSettings.Count > 0)
+        {
+            try
+            {
+                var psStates = await powerShellDetectionService
+                    .DetectAsync(psDetectionSettings)
+                    .ConfigureAwait(false);
+
+                foreach (var setting in psDetectionSettings)
+                {
+                    if (psStates.TryGetValue(setting.Id, out var isEnabled))
+                    {
+                        results[setting.Id] = new Dictionary<string, object?>
+                        {
+                            ["PowerShellDetectedState"] = isEnabled
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning,
+                    $"[SystemSettingsDiscoveryService] PowerShell detection batch failed: {ex.Message}");
+                foreach (var setting in psDetectionSettings)
+                {
+                    results[setting.Id] = new Dictionary<string, object?> { ["PowerShellDetectedState"] = false };
+                }
+            }
+        }
+
         var settingsByDomain = settingsList
             .Where(s => s.InputType == InputType.Selection)
             .GroupBy(s => domainServiceRouter.GetDomainService(s.Id).DomainName);
@@ -253,7 +289,7 @@ public class SystemSettingsDiscoveryService(
         }
 
         var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
-        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
+        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), PsDetection({psDetectionSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
         return (results, batchedRegistryValues);
     }
 

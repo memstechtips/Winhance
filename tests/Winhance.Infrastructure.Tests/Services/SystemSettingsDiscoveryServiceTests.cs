@@ -17,6 +17,7 @@ public class SystemSettingsDiscoveryServiceTests
     private readonly Mock<IPowerSettingsQueryService> _mockPowerQuery = new();
     private readonly Mock<IDomainServiceRouter> _mockDomainRouter = new();
     private readonly Mock<IScheduledTaskService> _mockScheduledTask = new();
+    private readonly Mock<IPowerShellDetectionService> _mockPsDetection = new();
     private readonly SystemSettingsDiscoveryService _service;
 
     public SystemSettingsDiscoveryServiceTests()
@@ -26,7 +27,8 @@ public class SystemSettingsDiscoveryServiceTests
             _mockLog.Object,
             _mockPowerQuery.Object,
             _mockDomainRouter.Object,
-            _mockScheduledTask.Object);
+            _mockScheduledTask.Object,
+            _mockPsDetection.Object);
     }
 
     private static SettingDefinition CreateRegistrySetting(string id, string keyPath, string valueName, object?[]? enabledValue = null)
