@@ -25,6 +25,12 @@
         <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
+        <!-- In-process PowerShell hosting for read-only setting-state detection scripts
+             (IPowerShellDetectionService). Reference-assemblies only — the actual
+             System.Management.Automation implementation is loaded at runtime from the
+             Windows-bundled PowerShell 5.1 install. If this NuGet doesn't load PS 5.1
+             cleanly on .NET 10 + WinUI 3, fall back to Microsoft.PowerShell.SDK (PS 7). -->
+        <PackageReference Include="Microsoft.PowerShell.5.ReferenceAssemblies" Version="1.1.0" />
         <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
              transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
              GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->
