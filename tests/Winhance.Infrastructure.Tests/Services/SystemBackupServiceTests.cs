@@ -12,6 +12,7 @@ public class SystemBackupServiceTests
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
+    private readonly Mock<ISystemRestoreService> _mockSystemRestore = new();
     private readonly SystemBackupService _sut;
 
     public SystemBackupServiceTests()
@@ -24,7 +25,8 @@ public class SystemBackupServiceTests
         _sut = new SystemBackupService(
             _mockLog.Object,
             _mockLocalization.Object,
-            _mockProcessExecutor.Object);
+            _mockProcessExecutor.Object,
+            _mockSystemRestore.Object);
     }
 
     // ── CreateRestorePointAsync ──

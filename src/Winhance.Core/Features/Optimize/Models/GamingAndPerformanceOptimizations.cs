@@ -4094,7 +4094,7 @@ public static class GamingAndPerformanceOptimizations
                         },
                     },
                 },
-                // System Group — PowerShell-detected toggles
+                // System Group — natively-detected toggles
                 new SettingDefinition
                 {
                     Id = "system-restore-protection",
@@ -4103,48 +4103,14 @@ public static class GamingAndPerformanceOptimizations
                     Name = "System Protection (Restore Points)",
                     Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
                     GroupName = "System",
-                    Icon = "ArrowCounterclockwise",
+                    Icon = "History",
                     InputType = InputType.Toggle,
                     AddedInVersion = "26.05.13",
-                    DetectionType = DetectionType.PowerShellScript,
+                    DetectionType = DetectionType.SystemRestore,
                     PowerShellScripts = new List<PowerShellScriptSetting>
                     {
                         new PowerShellScriptSetting
                         {
-                            DetectionScript = """
-                                try {
-                                    # Step markers: each non-empty step emits a "diag:..." string. These are
-                                    # skipped by the detection-service output interpreter (which only consumes
-                                    # bool/int) but show up in the raw-output log to localise where the script
-                                    # short-circuited, e.g. ENV: which CimCmdlets module loaded.
-                                    "diag:0-start"
-
-                                    $policy = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore' -Name 'DisableSR' -ErrorAction SilentlyContinue).DisableSR
-                                    "diag:1-policy=[$policy]"
-                                    if ($policy -eq 1) { $false; return }
-
-                                    $vol = Get-CimInstance Win32_Volume -Filter "DriveLetter='C:'" -ErrorAction Stop
-                                    "diag:2-vol_devid=[$($vol.DeviceID)]"
-                                    if (-not $vol) { $false; return }
-                                    $volId = $vol.DeviceID
-
-                                    $sppKey = Get-Item -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SPP\Clients' -ErrorAction SilentlyContinue
-                                    "diag:3-sppkey_present=[$($null -ne $sppKey)]"
-                                    if (-not $sppKey) { $false; return }
-
-                                    $entries = $sppKey.GetValue('{09F7EDC5-294E-4180-AF6A-FB0E6A0E9513}')
-                                    "diag:4-entries_count=[$(($entries | Measure-Object).Count)] entries_join=[$($entries -join '|')]"
-                                    if (-not $entries) { $false; return }
-
-                                    $matchedAny = $false
-                                    foreach ($e in @($entries)) { if ($e -like "$volId*") { $matchedAny = $true; break } }
-                                    "diag:5-matched=[$matchedAny]"
-                                    $matchedAny
-                                } catch {
-                                    "diag:CATCH=[$($_.Exception.GetType().FullName): $($_.Exception.Message)]"
-                                    $false
-                                }
-                                """,
                             EnabledScript = @"Enable-ComputerRestore -Drive 'C:\'",
                             DisabledScript = @"Disable-ComputerRestore -Drive 'C:\'",
                             RequiresElevation = true,

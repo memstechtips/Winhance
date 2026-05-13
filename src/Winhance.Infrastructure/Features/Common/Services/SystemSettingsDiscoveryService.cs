@@ -18,7 +18,7 @@ public class SystemSettingsDiscoveryService(
     IPowerSettingsQueryService powerSettingsQueryService,
     IDomainServiceRouter domainServiceRouter,
     IScheduledTaskService scheduledTaskService,
-    IPowerShellDetectionService powerShellDetectionService) : ISystemSettingsDiscoveryService
+    ISystemRestoreService systemRestoreService) : ISystemSettingsDiscoveryService
 {
     public async Task<Dictionary<string, Dictionary<string, object?>>> GetRawSettingsValuesAsync(IEnumerable<SettingDefinition> settings)
     {
@@ -225,38 +225,24 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        var psDetectionSettings = settingsList
-            .Where(s => s.DetectionType == DetectionType.PowerShellScript
-                     && s.PowerShellScripts?.Any(p => !string.IsNullOrWhiteSpace(p.DetectionScript)) == true)
+        var systemRestoreSettings = settingsList
+            .Where(s => s.DetectionType == DetectionType.SystemRestore)
             .ToList();
 
-        if (psDetectionSettings.Count > 0)
+        foreach (var setting in systemRestoreSettings)
         {
             try
             {
-                var psStates = await powerShellDetectionService
-                    .DetectAsync(psDetectionSettings)
-                    .ConfigureAwait(false);
-
-                foreach (var setting in psDetectionSettings)
+                results[setting.Id] = new Dictionary<string, object?>
                 {
-                    if (psStates.TryGetValue(setting.Id, out var isEnabled))
-                    {
-                        results[setting.Id] = new Dictionary<string, object?>
-                        {
-                            ["PowerShellDetectedState"] = isEnabled
-                        };
-                    }
-                }
+                    ["SystemRestoreEnabled"] = systemRestoreService.IsEnabledForC()
+                };
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Warning,
-                    $"[SystemSettingsDiscoveryService] PowerShell detection batch failed: {ex.Message}");
-                foreach (var setting in psDetectionSettings)
-                {
-                    results[setting.Id] = new Dictionary<string, object?> { ["PowerShellDetectedState"] = false };
-                }
+                    $"[SystemSettingsDiscoveryService] SystemRestore detection failed for '{setting.Id}': {ex.Message}");
+                results[setting.Id] = new Dictionary<string, object?> { ["SystemRestoreEnabled"] = false };
             }
         }
 
@@ -289,7 +275,7 @@ public class SystemSettingsDiscoveryService(
         }
 
         var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
-        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), PsDetection({psDetectionSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
+        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), SystemRestore({systemRestoreSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
         return (results, batchedRegistryValues);
     }
 
@@ -475,9 +461,9 @@ public class SystemSettingsDiscoveryService(
         if (rawValues == null || rawValues.Count == 0)
             return false;
 
-        if (setting.DetectionType == DetectionType.PowerShellScript)
+        if (setting.DetectionType == DetectionType.SystemRestore)
         {
-            if (rawValues.TryGetValue("PowerShellDetectedState", out var v) && v is bool b)
+            if (rawValues.TryGetValue("SystemRestoreEnabled", out var v) && v is bool b)
                 return b;
             return false;
         }

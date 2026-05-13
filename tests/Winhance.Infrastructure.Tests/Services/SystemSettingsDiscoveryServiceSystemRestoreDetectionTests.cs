@@ -9,14 +9,14 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-public class SystemSettingsDiscoveryServicePsDetectionTests
+public class SystemSettingsDiscoveryServiceSystemRestoreDetectionTests
 {
     private readonly Mock<IWindowsRegistryService> _registry = new();
     private readonly Mock<ILogService> _log = new();
     private readonly Mock<IPowerSettingsQueryService> _powerQuery = new();
     private readonly Mock<IDomainServiceRouter> _domainRouter = new();
     private readonly Mock<IScheduledTaskService> _scheduledTask = new();
-    private readonly Mock<IPowerShellDetectionService> _psDetection = new();
+    private readonly Mock<ISystemRestoreService> _systemRestore = new();
 
     private SystemSettingsDiscoveryService NewService() => new(
         _registry.Object,
@@ -24,81 +24,57 @@ public class SystemSettingsDiscoveryServicePsDetectionTests
         _powerQuery.Object,
         _domainRouter.Object,
         _scheduledTask.Object,
-        _psDetection.Object);
+        _systemRestore.Object);
 
-    private static SettingDefinition Setting(string id, string detectionScript) => new()
+    private static SettingDefinition Setting(string id) => new()
     {
         Id = id,
         Name = id,
         Description = id,
-        DetectionType = DetectionType.PowerShellScript,
-        PowerShellScripts = new[]
-        {
-            new PowerShellScriptSetting
-            {
-                DetectionScript = detectionScript,
-                EnabledScript = "Enable",
-                DisabledScript = "Disable",
-            }
-        }
+        DetectionType = DetectionType.SystemRestore,
     };
 
     [Fact]
-    public async Task GetSettingStates_UsesPsDetection_WhenDetectionTypeIsPowerShellScript()
+    public async Task GetSettingStates_UsesSystemRestoreService_WhenDetectionTypeIsSystemRestore()
     {
-        _psDetection
-            .Setup(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default))
-            .ReturnsAsync(new Dictionary<string, bool> { ["sr"] = true });
+        _systemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
 
         var service = NewService();
-        var states = await service.GetSettingStatesAsync(new[] { Setting("sr", "$true") });
+        var states = await service.GetSettingStatesAsync(new[] { Setting("sr") });
 
         states["sr"].Success.Should().BeTrue();
         states["sr"].IsEnabled.Should().BeTrue();
     }
 
     [Fact]
-    public async Task GetSettingStates_ReportsDisabled_WhenDetectionServiceReturnsFalse()
+    public async Task GetSettingStates_ReportsDisabled_WhenServiceReturnsFalse()
     {
-        _psDetection
-            .Setup(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default))
-            .ReturnsAsync(new Dictionary<string, bool> { ["sr"] = false });
+        _systemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
 
         var service = NewService();
-        var states = await service.GetSettingStatesAsync(new[] { Setting("sr", "$false") });
+        var states = await service.GetSettingStatesAsync(new[] { Setting("sr") });
 
         states["sr"].IsEnabled.Should().BeFalse();
     }
 
     [Fact]
-    public async Task GetSettingStates_BatchesAllPsDetectionInOneCall()
+    public async Task GetSettingStates_CallsSystemRestoreService_Once_PerBatch()
     {
-        _psDetection
-            .Setup(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default))
-            .ReturnsAsync(new Dictionary<string, bool>
-            {
-                ["a"] = true,
-                ["b"] = false,
-                ["c"] = true,
-            });
+        _systemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
 
         var service = NewService();
         var settings = new[]
         {
-            Setting("a", "$true"),
-            Setting("b", "$false"),
-            Setting("c", "$true"),
+            Setting("a"),
         };
 
         await service.GetSettingStatesAsync(settings);
 
-        _psDetection.Verify(
-            p => p.DetectAsync(It.Is<IEnumerable<SettingDefinition>>(s => s.Count() == 3), default),
-            Times.Once);
+        _systemRestore.Verify(s => s.IsEnabledForC(), Times.Once);
     }
 
     [Fact]
-    public async Task GetSettingStates_SkipsPsDetection_WhenNoPsDetectionSettings()
+    public async Task GetSettingStates_SkipsSystemRestoreService_WhenNoSuchSettings()
     {
         var service = NewService();
 
@@ -123,18 +99,18 @@ public class SystemSettingsDiscoveryServicePsDetectionTests
 
         await service.GetSettingStatesAsync(new[] { regSetting });
 
-        _psDetection.Verify(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default), Times.Never);
+        _systemRestore.Verify(s => s.IsEnabledForC(), Times.Never);
     }
 
     [Fact]
-    public async Task GetSettingStates_PsDetection_OverridesRegistrySettings_WhenDetectionTypeIsPowerShellScript()
+    public async Task GetSettingStates_SystemRestore_OverridesRegistrySettings_WhenDetectionTypeIsSystemRestore()
     {
         var setting = new SettingDefinition
         {
             Id = "hybrid",
             Name = "hybrid",
             Description = "hybrid",
-            DetectionType = DetectionType.PowerShellScript,
+            DetectionType = DetectionType.SystemRestore,
             RegistrySettings = new[]
             {
                 new RegistrySetting
@@ -145,17 +121,11 @@ public class SystemSettingsDiscoveryServicePsDetectionTests
                     EnabledValue = new object?[] { 1 },
                 }
             },
-            PowerShellScripts = new[]
-            {
-                new PowerShellScriptSetting { DetectionScript = "$true" }
-            }
         };
 
         _registry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
             .Returns(new Dictionary<string, object?>());
-        _psDetection
-            .Setup(p => p.DetectAsync(It.IsAny<IEnumerable<SettingDefinition>>(), default))
-            .ReturnsAsync(new Dictionary<string, bool> { ["hybrid"] = true });
+        _systemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
 
         var service = NewService();
         var states = await service.GetSettingStatesAsync(new[] { setting });

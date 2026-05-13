@@ -7,5 +7,5 @@ public enum DetectionType
     ScheduledTask,
     PowerPlan,
     DnsServer,
-    PowerShellScript,
+    SystemRestore,
 }
