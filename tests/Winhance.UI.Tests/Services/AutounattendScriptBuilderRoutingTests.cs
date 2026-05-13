@@ -413,4 +413,45 @@ public class AutounattendScriptBuilderRoutingTests
         system.Should().Contain(@"HKLM:\SOFTWARE\Winhance\TestKey");
         user.Should().NotContain(@"HKLM:\SOFTWARE\Winhance\TestKey");
     }
+
+    // ------------------------------------------------------------------------------------------
+    // DetectionScript must NEVER leak into the unattend output
+    // ------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task PowerShellOnly_Setting_EmitsEnabledScript_AndDetectionScriptNeverLeaks()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "ps-only",
+            Name = "ps-only",
+            Description = "PS-only setting whose state is read via DetectionScript at runtime",
+            InputType = InputType.Toggle,
+            DetectionType = DetectionType.PowerShellScript,
+            PowerShellScripts = new List<PowerShellScriptSetting>
+            {
+                new()
+                {
+                    // Sentinel inside the detection body — if this appears in the emitted unattend
+                    // script we know a future change has started leaking DetectionScript into it.
+                    DetectionScript = "# winhance-detection-script-sentinel-do-not-emit\n$true",
+                    EnabledScript = "Enable-ComputerRestore -Drive 'C:\\'",
+                    DisabledScript = "Disable-ComputerRestore -Drive 'C:\\'",
+                    RunContext = RunContext.System,
+                },
+            },
+        };
+        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        var builder = CreateBuilder(out _);
+
+        var script = await builder.BuildWinhancementsScriptAsync(
+            ConfigWithOptimize("GamingAndPerformance", item),
+            SingleSetting("GamingAndPerformance", def));
+
+        var (system, _) = SplitPasses(script);
+        system.Should().Contain("Enable-ComputerRestore");
+        script.Should().NotContain(
+            "winhance-detection-script-sentinel-do-not-emit",
+            because: "DetectionScript is for in-app state reading only and must not leak into Winhancements.ps1");
+    }
 }
