@@ -43,7 +43,7 @@ public class SettingOperationExecutorTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         _mockPowerShell
-            .Setup(p => p.RunScriptAsync(It.IsAny<string>(), null, default))
+            .Setup(p => p.RunScriptInMemoryAsync(It.IsAny<string>(), null, default))
             .ReturnsAsync(string.Empty);
 
         _mockFileSystem
@@ -337,7 +337,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, true, null);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync("Set-Feature -Enabled $true", null, default),
+            p => p.RunScriptInMemoryAsync("Set-Feature -Enabled $true", null, default),
             Times.Once);
     }
 
@@ -360,7 +360,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, false, null);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync("Set-Feature -Enabled $false", null, default),
+            p => p.RunScriptInMemoryAsync("Set-Feature -Enabled $false", null, default),
             Times.Once);
     }
 
@@ -383,7 +383,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, false, null);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            p => p.RunScriptInMemoryAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -406,7 +406,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, true, null);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            p => p.RunScriptInMemoryAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -442,7 +442,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, true, 0);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync("Disable-Thing", null, default),
+            p => p.RunScriptInMemoryAsync("Disable-Thing", null, default),
             Times.Once);
     }
 
@@ -475,7 +475,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, true, 2);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync("Enable-Thing", null, default),
+            p => p.RunScriptInMemoryAsync("Enable-Thing", null, default),
             Times.Once);
     }
 
@@ -507,7 +507,7 @@ public class SettingOperationExecutorTests
         await _executor.ApplySettingOperationsAsync(setting, true, 0);
 
         _mockPowerShell.Verify(
-            p => p.RunScriptAsync("Enable-Thing", null, default),
+            p => p.RunScriptInMemoryAsync("Enable-Thing", null, default),
             Times.Once);
     }
 
@@ -648,7 +648,7 @@ public class SettingOperationExecutorTests
         result.Success.Should().BeTrue();
         _mockRegistry.Verify(r => r.ApplySetting(regSetting, true, null), Times.Once);
         _mockScheduledTask.Verify(s => s.EnableTaskAsync(@"\CombTask"), Times.Once);
-        _mockPowerShell.Verify(p => p.RunScriptAsync("Enable-CombinedFeature", null, default), Times.Once);
+        _mockPowerShell.Verify(p => p.RunScriptInMemoryAsync("Enable-CombinedFeature", null, default), Times.Once);
         _mockPowerCfg.Verify(p => p.ApplyPowerCfgSettingsAsync(setting, true, null), Times.Once);
         _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(setting), Times.Once);
     }
@@ -686,7 +686,7 @@ public class SettingOperationExecutorTests
 
         _mockRegistry.Verify(r => r.ApplySetting(regSetting, false, null), Times.Once);
         _mockScheduledTask.Verify(s => s.DisableTaskAsync(@"\Task"), Times.Once);
-        _mockPowerShell.Verify(p => p.RunScriptAsync("Disable-Feature", null, default), Times.Once);
+        _mockPowerShell.Verify(p => p.RunScriptInMemoryAsync("Disable-Feature", null, default), Times.Once);
     }
 
     // ---------------------------------------------------------------

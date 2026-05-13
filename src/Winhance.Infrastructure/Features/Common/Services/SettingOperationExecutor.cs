@@ -185,7 +185,7 @@ public class SettingOperationExecutor(
 
                 if (!string.IsNullOrEmpty(script))
                 {
-                    await powerShellRunner.RunScriptAsync(script).ConfigureAwait(false);
+                    await powerShellRunner.RunScriptInMemoryAsync(script).ConfigureAwait(false);
                 }
             }
         }
