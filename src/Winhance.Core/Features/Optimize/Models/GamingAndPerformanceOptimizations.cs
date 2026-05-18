@@ -1918,9 +1918,6 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
-                    // MIGRATION-CHECK: worksheet listed (IsRecommended=1, IsDefault=2) but this service uses the
-                    // "DisabledRecommended" naming pattern; both shipped configs (Recommended/Default) select
-                    // SelectedIndex=0, so IsRecommended=0 and IsDefault=0.
                     Id = "gaming-fax-service",
                     Name = "Fax Service",
                     Description = "Enables sending and receiving faxes. Safe to disable for most users as fax functionality is rarely used on modern systems",
@@ -1965,9 +1962,6 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
-                    // MIGRATION-CHECK: worksheet listed (IsRecommended=1, IsDefault=2) but this service uses the
-                    // "DisabledRecommended" naming pattern; Recommended config has SelectedIndex=0 and
-                    // Default config has SelectedIndex=1, so IsRecommended=0 and IsDefault=1.
                     Id = "gaming-wmp-network-service",
                     Name = "Windows Media Player Network Sharing Service",
                     Description = "Shares Windows Media Player libraries to other networked players and media devices. Safe to disable if you don't share media over your network",
@@ -2021,9 +2015,6 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
-                        // service (OS ships it disabled on non-VR hardware), not Automatic. Unlike
-                        // the other gaming-*-service entries where Default == Recommended == index 1.
                         Options = new[]
                         {
                             new ComboBoxOption
@@ -2697,9 +2688,6 @@ public static class GamingAndPerformanceOptimizations
                     AddedInVersion = "26.04.03",
                     ComboBox = new ComboBoxMetadata
                     {
-                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
-                        // service, not Automatic. Unlike the other gaming-*-service entries where
-                        // Default == Recommended == index 1.
                         Options = new[]
                         {
                             new ComboBoxOption
@@ -2902,9 +2890,6 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        // MIGRATION-CHECK: Recommended is Disabled (index 0) — the Recommended config
-                        // ships this AI service disabled (privacy-by-default). Default stays on
-                        // Automatic (index 2), matching Windows' shipped service state.
                         Options = new[]
                         {
                             new ComboBoxOption

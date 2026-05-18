@@ -2528,7 +2528,6 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
-                    // MIGRATION-CHECK: explorer-customization-measurement-system — pre-migration RegistrySetting had DefaultOption="U.S. (Imperial)" (idx 1) and DefaultValue="1", but both shipped Default configs (Windows10_22H2 and Windows11_25H2) use SelectedIndex=0 (Metric), and the Recommended config also uses idx 0. Configs win over DefaultOption/DefaultValue per sourcing authority; IsDefault placed on idx 0 (Metric), IsRecommended on idx 0.
                     Id = "explorer-customization-measurement-system",
                     IsSubjectivePreference = true,
                     Name = "Measurement System",
