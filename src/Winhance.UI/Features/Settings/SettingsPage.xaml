@@ -68,8 +68,13 @@
                                 MinWidth="200"
                                 ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}"
                                 SelectedValue="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
-                                DisplayMemberPath="DisplayText"
-                                SelectedValuePath="Value"/>
+                                SelectedValuePath="Value">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayText}" FlowDirection="LeftToRight"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </controls:SettingsCard>
 
                         <!-- Theme Setting -->

@@ -31,7 +31,7 @@ public static class StringKeys
         public static readonly Dictionary<string, string> SupportedLanguages = new()
         {
             { "af", "Afrikaans" },
-            { "ar", "⁦العربية (Arabic)⁩" },
+            { "ar", "العربية (Arabic)" },
             { "en", "English" },
             { "es", "Español (Spanish)" },
             { "fr", "Français (French)" },
@@ -57,7 +57,7 @@ public static class StringKeys
             { "uk", "Українська (Ukrainian)" },
             { "el", "Ελληνικά (Greek)" },
             { "tr", "Türkçe (Turkish)" },
-            { "fa", "⁦فارسی (Persian)⁩" }
+            { "fa", "فارسی (Persian)" }
         };
     }
 
