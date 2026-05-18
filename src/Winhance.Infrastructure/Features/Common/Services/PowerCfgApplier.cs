@@ -198,7 +198,10 @@ public class PowerCfgApplier(
         {
             "minutes" => displayValue * 60,
             "hours" => displayValue * 3600,
-            "milliseconds" => displayValue / 1000,
+            // Mirror of UnitConversionHelper: "Milliseconds" is the only setting where the
+            // system unit and display unit match 1:1. Was `/ 1000`, which silently divided
+            // every USB suspend timeout write by 1000.
+            "milliseconds" => displayValue,
             _ => displayValue
         };
     }

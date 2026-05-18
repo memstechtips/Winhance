@@ -475,7 +475,8 @@ public class BulkSettingsActionService(
         {
             "minutes" => systemValue / 60,
             "hours" => systemValue / 3600,
-            "milliseconds" => systemValue * 1000,
+            // 1:1 — see UnitConversionHelper for the rationale.
+            "milliseconds" => systemValue,
             _ => systemValue
         };
     }

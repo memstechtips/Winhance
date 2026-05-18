@@ -739,6 +739,13 @@ public partial class SettingItemViewModel : BaseViewModel
     partial void OnIsInReviewModeChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveIsEnabled));
+
+        // When entering Review Mode, force every expander open so children carrying
+        // review diffs are visible. A parent collapsed before import would otherwise
+        // hide its children behind a disabled card and Apply Config would stay gated.
+        // The user can still toggle the chevron overlay to collapse a subtree after.
+        if (value)
+            IsExpanderExpanded = true;
     }
 
     partial void OnIsReviewApprovedChanged(bool value)
@@ -975,7 +982,10 @@ public partial class SettingItemViewModel : BaseViewModel
                 {
                     if (selDict.TryGetValue("ACValue", out var ac) && TryReadInt(ac, out var acIdx))
                         AcValue = acIdx;
-                    if (selDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcIdx))
+                    // On non-battery systems PowerCfgApplier skips the DC write — don't pretend
+                    // we applied a DC value the system never received. Otherwise a subsequent
+                    // system-state refresh would visibly correct the VM and flip the badge.
+                    if (HasBattery && selDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcIdx))
                         DcValue = dcIdx;
                 }
                 else if (value != null)
@@ -990,7 +1000,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 {
                     if (numDict.TryGetValue("ACValue", out var ac) && TryReadInt(ac, out var acNum))
                         AcNumericValue = acNum;
-                    if (numDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcNum))
+                    if (HasBattery && numDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcNum))
                         DcNumericValue = dcNum;
                 }
                 else if (value is int intValue)
@@ -1646,23 +1656,26 @@ public partial class SettingItemViewModel : BaseViewModel
             {
                 if (pcfg.PowerModeSupport == PowerModeSupport.Separate)
                 {
+                    // On systems without a battery (desktops), DC values aren't writable by
+                    // PowerCfgApplier and aren't user-visible in the UI. Treat the setting as
+                    // AC-only for badge purposes — comparing DC against recommended/default
+                    // would otherwise produce spurious mismatches after a system-state refresh.
+                    bool considerDc = HasBattery;
+
                     if (InputType == InputType.Selection)
                     {
-                        // AC/DC selection - compare indices against recommended/default PowerCfg values
-                        if (pcfg.RecommendedValueAC.HasValue || pcfg.RecommendedValueDC.HasValue)
-                        {
-                            if (pcfg.RecommendedValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value))
-                                matchesRecommended = false;
-                            if (pcfg.RecommendedValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value))
-                                matchesRecommended = false;
-                        }
-                        if (pcfg.DefaultValueAC.HasValue || pcfg.DefaultValueDC.HasValue)
-                        {
-                            if (pcfg.DefaultValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value))
-                                matchesDefault = false;
-                            if (pcfg.DefaultValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value))
-                                matchesDefault = false;
-                        }
+                        // AC/DC selection - compare indices against recommended/default PowerCfg values.
+                        // On battery-less systems DC isn't writable by PowerCfgApplier and the DC
+                        // control isn't shown — skip DC comparisons or a system-state refresh would
+                        // visibly correct the VM and flip the badge.
+                        if (pcfg.RecommendedValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value))
+                            matchesRecommended = false;
+                        if (considerDc && pcfg.RecommendedValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value))
+                            matchesRecommended = false;
+                        if (pcfg.DefaultValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value))
+                            matchesDefault = false;
+                        if (considerDc && pcfg.DefaultValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value))
+                            matchesDefault = false;
                     }
                     else if (InputType == InputType.NumericRange)
                     {
@@ -1670,11 +1683,11 @@ public partial class SettingItemViewModel : BaseViewModel
                         // pcfg values are in system units (e.g. Seconds). Convert before compare.
                         if (pcfg.RecommendedValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value))
                             matchesRecommended = false;
-                        if (pcfg.RecommendedValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value))
+                        if (considerDc && pcfg.RecommendedValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value))
                             matchesRecommended = false;
                         if (pcfg.DefaultValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueAC.Value))
                             matchesDefault = false;
-                        if (pcfg.DefaultValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueDC.Value))
+                        if (considerDc && pcfg.DefaultValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueDC.Value))
                             matchesDefault = false;
                     }
                 }
@@ -1699,7 +1712,7 @@ public partial class SettingItemViewModel : BaseViewModel
             }
         }
 
-        var row = new List<BadgePillState>(capacity: 4);
+        var row = new List<BadgePillState>(capacity: 8);
 
         if (SettingDefinition.IsSubjectivePreference)
         {
@@ -1707,19 +1720,36 @@ public partial class SettingItemViewModel : BaseViewModel
             row.Add(new BadgePillState(SettingBadgeKind.Preference, IsHighlighted: true, label, tooltip));
         }
 
-        if (HasAnyRecommendedData())
-        {
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended);
-            row.Add(new BadgePillState(SettingBadgeKind.Recommended, IsHighlighted: matchesRecommended, label, tooltip));
-        }
+        // For PowerCfg AC/DC Separate settings with a battery present, emit per-mode pills so
+        // the user can see at a glance which mode matches recommended/default and which is
+        // custom. On battery-less systems (desktops) DC is hidden and not writable, so we
+        // keep the single-pill behaviour that the rest of the catalog uses.
+        bool perModeBadges = SupportsSeparateACDC
+            && HasBattery
+            && SettingDefinition.PowerCfgSettings is { Count: > 0 } pcfgList
+            && pcfgList[0].PowerModeSupport == PowerModeSupport.Separate;
 
-        if (HasAnyDefaultData())
+        if (perModeBadges)
         {
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default);
-            row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
+            var pcfg = SettingDefinition.PowerCfgSettings![0];
+            AddAcDcRecommendedPills(row, pcfg);
+            AddAcDcDefaultPills(row, pcfg);
+            AddAcDcCustomPills(row, pcfg);
         }
-
+        else
         {
+            if (HasAnyRecommendedData())
+            {
+                var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended);
+                row.Add(new BadgePillState(SettingBadgeKind.Recommended, IsHighlighted: matchesRecommended, label, tooltip));
+            }
+
+            if (HasAnyDefaultData())
+            {
+                var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default);
+                row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
+            }
+
             // Selection: Custom when SelectedValue/AcValue/DcValue falls outside known options.
             // NumericRange: Custom when the current value matches neither Recommended nor Default.
             bool isCustom = InputType switch
@@ -1729,11 +1759,104 @@ public partial class SettingItemViewModel : BaseViewModel
                     && !matchesRecommended && !matchesDefault,
                 _ => false
             };
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: isCustom, label, tooltip));
+            var (cLabel, cTooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: isCustom, cLabel, cTooltip));
         }
 
         BadgeRow = row;
+    }
+
+    private void AddAcDcRecommendedPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    {
+        if (pcfg.RecommendedValueAC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? AcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value)
+                : PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended, SettingBadgeMode.AC);
+            row.Add(new BadgePillState(SettingBadgeKind.Recommended, match, label, tooltip, SettingBadgeMode.AC));
+        }
+        if (pcfg.RecommendedValueDC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? DcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value)
+                : PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended, SettingBadgeMode.DC);
+            row.Add(new BadgePillState(SettingBadgeKind.Recommended, match, label, tooltip, SettingBadgeMode.DC));
+        }
+    }
+
+    private void AddAcDcDefaultPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    {
+        if (pcfg.DefaultValueAC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? AcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueAC.Value)
+                : PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default, SettingBadgeMode.AC);
+            row.Add(new BadgePillState(SettingBadgeKind.Default, match, label, tooltip, SettingBadgeMode.AC));
+        }
+        if (pcfg.DefaultValueDC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? DcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueDC.Value)
+                : PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default, SettingBadgeMode.DC);
+            row.Add(new BadgePillState(SettingBadgeKind.Default, match, label, tooltip, SettingBadgeMode.DC));
+        }
+    }
+
+    private void AddAcDcCustomPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    {
+        // Custom (per-mode) lights when the current value matches neither Recommended
+        // nor Default on that side, AND the setting actually has comparison data on that
+        // side. For Selection we also treat an out-of-range index as Custom.
+        bool acCustom = false, dcCustom = false;
+
+        if (InputType == InputType.Selection)
+        {
+            var options = SettingDefinition?.ComboBox?.Options;
+            if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+            {
+                bool acRec = pcfg.RecommendedValueAC.HasValue && PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value);
+                bool acDef = pcfg.DefaultValueAC.HasValue && PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value);
+                bool acOutOfRange = options != null && (AcValue < 0 || AcValue >= options.Count);
+                acCustom = acOutOfRange || (!acRec && !acDef);
+            }
+            if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+            {
+                bool dcRec = pcfg.RecommendedValueDC.HasValue && PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value);
+                bool dcDef = pcfg.DefaultValueDC.HasValue && PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value);
+                bool dcOutOfRange = options != null && (DcValue < 0 || DcValue >= options.Count);
+                dcCustom = dcOutOfRange || (!dcRec && !dcDef);
+            }
+        }
+        else if (InputType == InputType.NumericRange)
+        {
+            if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+            {
+                bool acRec = pcfg.RecommendedValueAC.HasValue && AcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value);
+                bool acDef = pcfg.DefaultValueAC.HasValue && AcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueAC.Value);
+                acCustom = !acRec && !acDef;
+            }
+            if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+            {
+                bool dcRec = pcfg.RecommendedValueDC.HasValue && DcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value);
+                bool dcDef = pcfg.DefaultValueDC.HasValue && DcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueDC.Value);
+                dcCustom = !dcRec && !dcDef;
+            }
+        }
+
+        if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.AC);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, acCustom, label, tooltip, SettingBadgeMode.AC));
+        }
+        if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.DC);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, dcCustom, label, tooltip, SettingBadgeMode.DC));
+        }
     }
 
     private (bool matchesRecommended, bool matchesDefault) EvaluateRegistrySetting(RegistrySetting reg)
@@ -1930,22 +2053,35 @@ public partial class SettingItemViewModel : BaseViewModel
         return SelectedValue is int idx && idx >= 0 && idx < options.Count;
     }
 
-    private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind) => kind switch
+    private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind, SettingBadgeMode mode = SettingBadgeMode.None)
     {
-        SettingBadgeKind.Recommended => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-            _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
-        SettingBadgeKind.Default => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-            _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
-        SettingBadgeKind.Custom => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-            _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
-        SettingBadgeKind.Preference => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
-            _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
-        _ => ("", ""),
-    };
+        var (baseLabel, tooltip) = kind switch
+        {
+            SettingBadgeKind.Recommended => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
+                _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
+            SettingBadgeKind.Default => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
+                _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
+            SettingBadgeKind.Custom => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
+                _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
+            SettingBadgeKind.Preference => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
+                _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
+            _ => ("", ""),
+        };
+
+        // AC/DC are technical terms ("AC" = mains power, "DC" = battery) that are not
+        // translated in Windows' Power Options either — leave them as-is across all locales.
+        var label = mode switch
+        {
+            SettingBadgeMode.AC => $"{baseLabel} (AC)",
+            SettingBadgeMode.DC => $"{baseLabel} (DC)",
+            _ => baseLabel,
+        };
+        return (label, tooltip);
+    }
 
     /// <summary>
     /// Initializes HasBadgeData based on whether the definition has comparable

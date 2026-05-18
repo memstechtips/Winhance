@@ -261,6 +261,13 @@ public sealed partial class OptimizePage : Page
         ViewModel.CurrentSectionKey = "Overview";
         InnerContentFrame.Content = null;
         UpdateContentVisibility();
+        // Re-aggregate per-card pills/new badges from the latest setting state.
+        // The overview is hosted inside OptimizePage, so toggling back from a sub-page
+        // doesn't fire OnNavigatedTo — without this, the cards keep showing whatever
+        // the SettingAppliedEvent subscriber last computed (which can lag behind any
+        // state mutation that happens while the user is on the sub-page).
+        UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
     }
 
     private void InnerContentFrame_Navigated(object sender, NavigationEventArgs e)

@@ -13,9 +13,15 @@ internal static class UnitConversionHelper
     {
         return displayUnits?.ToLowerInvariant() switch
         {
-            "minutes" => systemValue / 60,
+            "minutes" => systemValue / 60,        // powercfg stores time in seconds
             "hours" => systemValue / 3600,
-            "milliseconds" => systemValue * 1000,
+            // USB selective suspend timeout (the sole "Milliseconds" setting today) is
+            // stored natively in milliseconds in the registry, so the display unit matches
+            // the system unit 1:1. Previously this branch returned `systemValue * 1000`,
+            // which inflated RecDC=1000 to a display value of 1,000,000 — exceeding the
+            // NumericRange MaxValue of 100,000, getting clamped by the NumberBox, then
+            // re-applied to the registry as a corrupted value.
+            "milliseconds" => systemValue,
             _ => systemValue
         };
     }

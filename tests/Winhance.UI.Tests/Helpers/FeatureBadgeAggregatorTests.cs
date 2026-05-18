@@ -41,4 +41,11 @@ public class FeatureBadgeAggregatorTests
         result.CustomCount.Should().Be(0);
         result.NewCount.Should().Be(0);
     }
+
+    // NOTE: per-mode AC/DC pill accounting (a single setting with both AC-Rec and DC-Rec
+    // lit must contribute 1, not 2, to RecommendedCount) is covered indirectly by
+    // SettingItemViewModelTests.BadgeRow_AcDcSeparate_WithBattery_* — those assert the
+    // shape of the BadgeRow that the aggregator then reduces. Adding a direct aggregator
+    // test would require constructing real SettingItemViewModel instances through the
+    // full DI pipeline.
 }

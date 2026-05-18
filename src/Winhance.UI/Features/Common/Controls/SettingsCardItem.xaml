@@ -171,12 +171,20 @@
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
                         </StackPanel>
+                        <!-- Pinned to 120 px in both directions. After the popup opens
+                             and closes, the ComboBox remeasures against the widest item
+                             in the dropdown and a lone Width="120" doesn't always survive
+                             that pass; MinWidth + MaxWidth + HorizontalAlignment=Left
+                             together hold the closed-state size no matter how wide the
+                             items are. With both AC + DC shown, growing the comboboxes
+                             squeezes the left column and clips the badges. -->
                         <local:ComboBoxEx
                             ItemsSource="{x:Bind ComboBoxOptions}"
                             SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
                             DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
                             DisplayMemberPath="DisplayText"
-                            MinWidth="100"/>
+                            Width="120" MinWidth="120" MaxWidth="120"
+                            HorizontalAlignment="Left"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Spacing="4">
@@ -201,12 +209,14 @@
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
                         </StackPanel>
+                        <!-- Same pin as the AC ComboBox above — see comment there. -->
                         <local:ComboBoxEx
                             ItemsSource="{x:Bind ComboBoxOptions}"
                             SelectedIndex="{x:Bind DcValue, Mode=OneWay}"
                             DropDownClosed="{x:Bind OnDCComboBoxDropDownClosed}"
                             DisplayMemberPath="DisplayText"
-                            MinWidth="100"/>
+                            Width="120" MinWidth="120" MaxWidth="120"
+                            HorizontalAlignment="Left"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
