@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "av Memory",
+  "Common_CustomState": "Anpassad",
   "Nav_SoftwareAndApps": "Programvara och appar",
   "Nav_Optimize": "Optimera",
   "Nav_Customize": "Anpassa",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows Search Indexeringstjänst",
   "Setting_gaming-windows-search-service_Description": "Indexerar filer och mappar för snabbare sökresultat. Att inaktivera minskar bakgrunds-CPU och diskaktivitet, men bryter Outlook-sökning och gör sökning i Start-menyn och Utforskaren långsam eller opålitlig",
   "Setting_gaming-windows-search-service_OptionWarning_0": "VARNING: Att inaktivera WSearch stoppar indexering av filinnehåll. Outlook-sökning, sökning i Start-menyn och sökning i Utforskaren blir långsam eller returnerar inga resultat förrän den återaktiveras.",
+  "Setting_gaming-telephony-service_Name": "Telefonitjänst",
+  "Setting_gaming-telephony-service_Description": "Hanterar telefoni (TAPI) för ljudöverföring i Phone Link, modem, fax och VoIP-mjukvarutelefoner. Lämna inställningen på Manuell (Windows-standard) såvida du inte använder någon telefoniprogramvara",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Att inaktivera Telefoni bryter Phone Links ljudvidarebefordran, faxprogram, uppringningsmodem och VoIP-softphones (t.ex. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Print Spooler-tjänst",
   "Setting_gaming-print-spooler-service_Description": "Hanterar utskriftsjobb som skickas till skrivare. Om du inte använder en skrivare, ställ in på Manuell eller Inaktiverad för att frigöra systemresurser",
   "Setting_gaming-telemetry-service_Name": "Tjänsten Anslutna användarupplevelser och telemetri",

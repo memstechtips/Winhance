@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "bởi Memory",
+  "Common_CustomState": "Tùy chỉnh",
   "Nav_SoftwareAndApps": "Phần mềm & Ứng dụng",
   "Nav_Optimize": "Tối ưu hóa",
   "Nav_Customize": "Tùy chỉnh",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Dịch vụ lập chỉ mục tìm kiếm Windows",
   "Setting_gaming-windows-search-service_Description": "Lập chỉ mục các tệp và thư mục để có kết quả tìm kiếm nhanh hơn. Việc tắt làm giảm hoạt động của CPU và đĩa nền nhưng làm hỏng tìm kiếm Outlook và khiến tìm kiếm trong Menu Bắt đầu cũng như File Explorer trở nên chậm hoặc không đáng tin cậy",
   "Setting_gaming-windows-search-service_OptionWarning_0": "CẢNH BÁO: Tắt WSearch sẽ dừng việc lập chỉ mục nội dung tệp. Cho đến khi bật lại, tìm kiếm Outlook, tìm kiếm Menu Bắt đầu và tìm kiếm File Explorer sẽ trở nên chậm hoặc không trả về kết quả.",
+  "Setting_gaming-telephony-service_Name": "Dịch vụ Điện thoại",
+  "Setting_gaming-telephony-service_Description": "Quản lý điện thoại (TAPI) cho việc chuyển tiếp âm thanh của Phone Link, modem, fax và softphone VoIP. Hãy để ở chế độ Thủ công (mặc định của Windows) trừ khi bạn không dùng phần mềm điện thoại nào",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Tắt dịch vụ Điện thoại sẽ làm hỏng tính năng chuyển tiếp âm thanh của Phone Link, phần mềm fax, modem quay số và softphone VoIP (ví dụ: 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Dịch vụ bộ đệm in",
   "Setting_gaming-print-spooler-service_Description": "Quản lý các công việc in được gửi đến máy in. Nếu bạn không sử dụng máy in, hãy đặt thành Thủ công hoặc Tắt để giải phóng tài nguyên hệ thống",
   "Setting_gaming-telemetry-service_Name": "Dịch vụ trải nghiệm người dùng được kết nối và đo từ xa",

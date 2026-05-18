@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "от Memory",
+  "Common_CustomState": "Пользовательский",
   "Nav_SoftwareAndApps": "Программы",
   "Nav_Optimize": "Оптимизация",
   "Nav_Customize": "Настройка",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Служба индексирования Поиска Windows",
   "Setting_gaming-windows-search-service_Description": "Индексирует файлы и папки для более быстрых результатов поиска. Отключение снижает фоновую активность ЦП и диска, но нарушает поиск в Outlook и делает поиск в меню 'Пуск' и Проводнике медленным или ненадежным",
   "Setting_gaming-windows-search-service_OptionWarning_0": "ПРЕДУПРЕЖДЕНИЕ: Отключение WSearch останавливает индексирование содержимого файлов. Поиск в Outlook, меню 'Пуск' и Проводнике станет медленным или перестанет возвращать результаты до повторного включения.",
+  "Setting_gaming-telephony-service_Name": "Служба телефонии",
+  "Setting_gaming-telephony-service_Description": "Управляет телефонией (TAPI) для передачи звука в Phone Link, модемов, факса и программных VoIP-телефонов. Оставьте значение Вручную (по умолчанию в Windows), если только вы не используете программы телефонии",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Отключение службы телефонии нарушает передачу звука Phone Link, работу факсимильного ПО, коммутируемых модемов и VoIP-софтфонов (например, 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Служба диспетчера очереди печати",
   "Setting_gaming-print-spooler-service_Description": "Управляет заданиями печати, отправляемыми на принтеры. Если вы не используете принтер, установите 'Вручную' или 'Отключено', чтобы освободить системные ресурсы",
   "Setting_gaming-telemetry-service_Name": "Служба подключенных пользовательских возможностей и телеметрии",

@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "제작: Memory",
+  "Common_CustomState": "사용자 지정",
   "Nav_SoftwareAndApps": "소프트웨어 & 앱",
   "Nav_Optimize": "최적화",
   "Nav_Customize": "사용자 지정",
@@ -859,6 +860,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows 검색 인덱싱 서비스",
   "Setting_gaming-windows-search-service_Description": "더 빠른 검색 결과를 위해 파일과 폴더를 인덱싱합니다. 비활성화하면 백그라운드 CPU 및 디스크 활동이 줄어들지만, Outlook 검색이 작동하지 않으며 시작 메뉴 및 파일 탐색기 검색이 느려지거나 신뢰할 수 없게 됩니다",
   "Setting_gaming-windows-search-service_OptionWarning_0": "경고: WSearch를 사용 안 함으로 설정하면 파일 콘텐츠 인덱싱이 중지됩니다. 다시 사용하도록 설정할 때까지 Outlook 검색, 시작 메뉴 검색 및 파일 탐색기 검색이 느려지거나 결과를 반환하지 않습니다.",
+  "Setting_gaming-telephony-service_Name": "전화 서비스",
+  "Setting_gaming-telephony-service_Description": "Phone Link 오디오 릴레이, 모뎀, 팩스 및 VoIP 소프트폰을 위한 전화(TAPI)를 관리합니다. 전화 관련 소프트웨어를 사용하지 않는 경우가 아니라면 수동(Windows 기본값)으로 두십시오",
+  "Setting_gaming-telephony-service_OptionWarning_0": "전화 서비스를 사용하지 않도록 설정하면 Phone Link 오디오 릴레이, 팩스 소프트웨어, 전화 접속 모뎀, VoIP 소프트폰(예: 3CX, Cisco Jabber)이 작동하지 않습니다.",
   "Setting_gaming-print-spooler-service_Name": "인쇄 스풀러 서비스",
   "Setting_gaming-print-spooler-service_Description": "프린터로 전송된 인쇄 작업을 관리합니다. 프린터를 사용하지 않는 경우 수동 또는 사용 안 함으로 설정하여 시스템 리소스를 확보하십시오",
   "Setting_gaming-telemetry-service_Name": "연결된 사용자 환경 및 원격 분석 서비스",

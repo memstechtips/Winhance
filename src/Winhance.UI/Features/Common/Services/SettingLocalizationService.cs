@@ -38,16 +38,9 @@ public class SettingLocalizationService : ISettingLocalizationService
 
             var localizedComboBox = comboBox with
             {
-                Options = LocalizeComboBoxOptions(setting)
+                Options = LocalizeComboBoxOptions(setting),
+                CustomStateDisplayName = GetLocalizedCustomState(setting)
             };
-
-            if (comboBox.CustomStateDisplayName != null)
-            {
-                localizedComboBox = localizedComboBox with
-                {
-                    CustomStateDisplayName = GetLocalizedCustomState(setting)
-                };
-            }
 
             localized = localized with { ComboBox = localizedComboBox };
         }
@@ -132,9 +125,15 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     private string GetLocalizedCustomState(SettingDefinition setting)
     {
-        var key = $"Setting_{setting.Id}_Option_Custom";
-        var original = setting.ComboBox!.CustomStateDisplayName!;
-        return GetStringOrFallback(key, original);
+        // Per-setting override key takes precedence (e.g. "Custom (User Defined)" on UAC slider).
+        var perSettingKey = $"Setting_{setting.Id}_Option_Custom";
+        var perSetting = _localization.GetString(perSettingKey);
+        if (!perSetting.StartsWith("[") || !perSetting.EndsWith("]"))
+        {
+            return perSetting;
+        }
+        // Generic localized fallback used by every Selection setting on state mismatch.
+        return GetStringOrFallback("Common_CustomState", setting.ComboBox?.CustomStateDisplayName ?? "Custom");
     }
 
     private IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> LocalizeComboBoxOptions(SettingDefinition setting)

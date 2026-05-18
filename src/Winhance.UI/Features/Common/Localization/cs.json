@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "od Memory",
+  "Common_CustomState": "Vlastní",
   "Nav_SoftwareAndApps": "Software a aplikace",
   "Nav_Optimize": "Optimalizovat",
   "Nav_Customize": "Přizpůsobit",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Indexovací služba Windows Search",
   "Setting_gaming-windows-search-service_Description": "Indexuje soubory a složky pro rychlejší výsledky vyhledávání. Vypnutí snižuje aktivitu CPU a disku na pozadí, ale naruší vyhledávání v Outlooku a způsobí, že vyhledávání v nabídce Start a v Průzkumníku souborů bude pomalé nebo nespolehlivé",
   "Setting_gaming-windows-search-service_OptionWarning_0": "UPOZORNĚNÍ: Vypnutí WSearch zastaví indexování obsahu souborů. Vyhledávání v Outlooku, v nabídce Start a v Průzkumníku souborů bude pomalé nebo nebude vracet žádné výsledky, dokud ho znovu nezapnete.",
+  "Setting_gaming-telephony-service_Name": "Služba telefonie",
+  "Setting_gaming-telephony-service_Description": "Spravuje telefonii (TAPI) pro přenos zvuku v aplikaci Phone Link, modemy, fax a softwarové VoIP telefony. Ponechte na hodnotě Ručně (výchozí ve Windows), pokud nepoužíváte žádný telefonní software",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Zakázání telefonních služeb naruší přenos zvuku v Phone Link, faxový software, vytáčené modemy a softwarové telefony VoIP (např. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Služba zařazování tisku",
   "Setting_gaming-print-spooler-service_Description": "Spravuje tiskové úlohy odeslané do tiskáren. Pokud tiskárnu nepoužíváte, nastavte na Ručně nebo Zakázáno, abyste uvolnili systémové prostředky",
   "Setting_gaming-telemetry-service_Name": "Služba pro propojené uživatelské prostředí a telemetrii",

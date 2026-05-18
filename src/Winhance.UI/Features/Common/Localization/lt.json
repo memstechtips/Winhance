@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "sukurta Memory",
+  "Common_CustomState": "Pasirinktinis",
   "Nav_SoftwareAndApps": "Programos ir programėlės",
   "Nav_Optimize": "Optimizuoti",
   "Nav_Customize": "Pritaikyti",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows paieškos indeksavimo paslauga",
   "Setting_gaming-windows-search-service_Description": "Indeksuoja failus ir aplankus greitesniems paieškos rezultatams. Išjungimas sumažina foninį CPU ir disko aktyvumą, tačiau sutrikdo Outlook paiešką ir padaro Pradžios meniu bei Failų naršyklės paiešką lėtą arba nepatikimą",
   "Setting_gaming-windows-search-service_OptionWarning_0": "ĮSPĖJIMAS: Išjungus WSearch sustabdomas failų turinio indeksavimas. Outlook paieška, Pradžios meniu paieška ir Failų naršyklės paieška taps lėta arba negrąžins rezultatų, kol nebus vėl įjungta.",
+  "Setting_gaming-telephony-service_Name": "Telefonijos tarnyba",
+  "Setting_gaming-telephony-service_Description": "Tvarko telefoniją (TAPI), skirtą „Phone Link“ garso perdavimui, modemams, faksui ir VoIP programiniams telefonams. Palikite ties Rankinis (numatytasis „Windows“ nustatymas), nebent nenaudojate jokios telefonijos programinės įrangos",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Išjungus telefoniją sutrinka Phone Link garso perdavimas, fakso programinė įranga, telefoninio ryšio modemai ir VoIP programiniai telefonai (pvz., 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Spausdinimo buferio paslauga",
   "Setting_gaming-print-spooler-service_Description": "Valdo spausdinimo užduotis, siunčiamas spausdintuvams. Jei nenaudojate spausdintuvo, nustatykite į rankinį arba išjungtą, kad atlaisvintumėte sistemos išteklius",
   "Setting_gaming-telemetry-service_Name": "Prijungtų vartotojų patirčių ir telemetrijos paslauga",

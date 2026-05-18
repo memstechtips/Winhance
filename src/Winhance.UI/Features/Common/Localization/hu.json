@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "a Memory-tól",
+  "Common_CustomState": "Egyéni",
   "Nav_SoftwareAndApps": "Programok és appok",
   "Nav_Optimize": "Optimalizálás",
   "Nav_Customize": "Testreszabás",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows keresési indexelő szolgáltatás",
   "Setting_gaming-windows-search-service_Description": "Fájlokat és mappákat indexel, hogy gyorsabb keresési eredményeket kapjon. A kikapcsolás csökkenti a háttérben lévő CPU- és lemezaktivitást, de tönkreteszi az Outlook-keresést, valamint lassúvá vagy megbízhatatlanná teszi a Start menü és a Fájlkezelő keresést",
   "Setting_gaming-windows-search-service_OptionWarning_0": "FIGYELMEZTETÉS: A WSearch kikapcsolása leállítja a fájlok tartalomindexelését. Az Outlook-keresés, a Start menü keresés és a Fájlkezelő keresés lelassul vagy nem ad találatot az újraengedélyezésig.",
+  "Setting_gaming-telephony-service_Name": "Telefonszolgáltatás",
+  "Setting_gaming-telephony-service_Description": "Kezeli a telefonálást (TAPI) a Phone Link hangtovábbításához, modemekhez, faxhoz és VoIP szoftvertelefonokhoz. Hagyja Kézi értéken (Windows alapértelmezés), kivéve, ha nem használ telefonálási szoftvert",
+  "Setting_gaming-telephony-service_OptionWarning_0": "A Telefonszolgáltatás letiltása megszakítja a Phone Link hangtovábbítását, a faxszoftvereket, a betárcsázós modemeket és a VoIP-szoftvertelefonokat (pl. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Nyomtatási sorkezelő szolgáltatás",
   "Setting_gaming-print-spooler-service_Description": "Kezeli a nyomtatóknak küldött nyomtatási feladatokat. Ha nem használ nyomtatót, állítsa a Kézi vagy Letiltott értékre a rendszererőforrások felszabadításához",
   "Setting_gaming-telemetry-service_Name": "Csatlakoztatott felhasználói élmények és telemetriai szolgáltatás",

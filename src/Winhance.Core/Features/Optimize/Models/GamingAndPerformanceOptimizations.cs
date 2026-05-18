@@ -568,8 +568,6 @@ public static class GamingAndPerformanceOptimizations
                                 ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 10485760 },
                             },
                         },
-                        SupportsCustomState = true,
-                        CustomStateDisplayName = "Custom",
                     },
                 },
                 // Graphics Group
@@ -1000,8 +998,6 @@ public static class GamingAndPerformanceOptimizations
                                 ScriptVariables = new Dictionary<string, string> { ["primary"] = "9.9.9.9", ["secondary"] = "149.112.112.112", ["dohtemplate"] = "https://dns.quad9.net/dns-query" },
                             },
                         },
-                        SupportsCustomState = true,
-                        CustomStateDisplayName = "Custom (User Defined)",
                     },
                     PowerShellScripts = new List<PowerShellScriptSetting>
                     {
@@ -2750,16 +2746,55 @@ public static class GamingAndPerformanceOptimizations
                         },
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv",
-                            ValueName = "Start",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
+                            ValueName = "IsInputAppPreloadEnabled",
                             RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-telephony-service",
+                    IsSubjectivePreference = true,
+                    Name = "Telephony Service",
+                    Description = "Manages telephony (TAPI) for Phone Link audio relay, modems, fax, and VoIP softphones. Leave at Manual (Windows default) unless you use no telephony software",
+                    GroupName = "System Services",
+                    Icon = "PhoneClassic",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.05.18",
+                    RequiresRestart = true,
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                Warning = "Disabling Telephony breaks Phone Link audio relay, fax software, dial-up modems, and VoIP softphones (e.g. 3CX, Cisco Jabber).",
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
-                            ValueName = "IsInputAppPreloadEnabled",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv",
+                            ValueName = "Start",
                             RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,

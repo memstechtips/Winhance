@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "ساخته‌ی Memory",
+  "Common_CustomState": "دستی",
   "Nav_SoftwareAndApps": "نرم‌افزارها و برنامه‌ها",
   "Nav_Optimize": "بهینه‌سازی",
   "Nav_Customize": "سفارشی‌سازی",
@@ -859,6 +860,9 @@
   "Setting_gaming-windows-search-service_Name": "سرویس فهرست‌بندی جستجوی ویندوز",
   "Setting_gaming-windows-search-service_Description": "فایل‌ها و پوشه‌ها را فهرست‌بندی می‌کند تا نتایج جستجو سریع‌تر باشد. غیرفعال کردن آن فعالیت CPU و دیسک در پس‌زمینه را کاهش می‌دهد، اما جستجوی Outlook را غیرفعال می‌کند و جستجوی منوی استارت و File Explorer را کند یا غیرقابل اعتماد می‌کند",
   "Setting_gaming-windows-search-service_OptionWarning_0": "⚠️ هشدار: غیرفعال کردن WSearch فهرست‌بندی محتوای فایل را متوقف می‌کند. جستجوی Outlook، جستجوی منوی استارت و جستجوی File Explorer کند می‌شوند یا تا زمانی که دوباره فعال نشوند هیچ نتیجه‌ای برنمی‌گردانند",
+  "Setting_gaming-telephony-service_Name": "سرویس تلفن",
+  "Setting_gaming-telephony-service_Description": "تلفن (TAPI) را برای انتقال صدای Phone Link، مودم‌ها، فکس و نرم‌افزارهای تلفن VoIP مدیریت می‌کند. روی «دستی» (پیش‌فرض Windows) رها کنید مگر اینکه از هیچ نرم‌افزار تلفنی استفاده نکنید",
+  "Setting_gaming-telephony-service_OptionWarning_0": "غیرفعال کردن تلفن، انتقال صدای Phone Link، نرم‌افزارهای فکس، مودم‌های dial-up و نرم‌افزارهای تلفن VoIP (مانند 3CX و Cisco Jabber) را مختل می‌کند.",
   "Setting_gaming-print-spooler-service_Name": "سرویس Print Spooler",
   "Setting_gaming-print-spooler-service_Description": "وظایف چاپ ارسال شده به چاپگرها را مدیریت می‌کند. اگر از چاپگر استفاده نمی‌کنید، روی دستی یا غیرفعال تنظیم کنید تا منابع سیستم ذخیره شود",
   "Setting_gaming-telemetry-service_Name": "سرویس تجارب کاربر متصل و راه‌دور",

@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "por Memory",
+  "Common_CustomState": "Personalizado",
   "Nav_SoftwareAndApps": "Software e Aplicações",
   "Nav_Optimize": "Otimizar",
   "Nav_Customize": "Personalizar",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Serviço de Indexação da Pesquisa do Windows",
   "Setting_gaming-windows-search-service_Description": "Indexa ficheiros e pastas para resultados de pesquisa mais rápidos. Desativar reduz a atividade de CPU e disco em segundo plano, mas impede a pesquisa do Outlook e torna a pesquisa do Menu Iniciar e do Explorador de Ficheiros lenta ou pouco fiável",
   "Setting_gaming-windows-search-service_OptionWarning_0": "AVISO: Desativar o WSearch interrompe a indexação do conteúdo dos ficheiros. A pesquisa do Outlook, a pesquisa do Menu Iniciar e a pesquisa do Explorador de Ficheiros ficarão lentas ou não devolverão resultados até serem reativadas.",
+  "Setting_gaming-telephony-service_Name": "Serviço de Telefonia",
+  "Setting_gaming-telephony-service_Description": "Gere a telefonia (TAPI) para o retransmissão de áudio do Phone Link, modems, fax e softphones VoIP. Mantenha em Manual (predefinição do Windows), exceto se não utilizar software de telefonia",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Desativar a Telefonia interrompe a retransmissão de áudio do Phone Link, software de fax, modems de acesso telefónico e softphones VoIP (p. ex., 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Serviço de Spooler de Impressão",
   "Setting_gaming-print-spooler-service_Description": "Gere trabalhos de impressão enviados para impressoras. Se não usar uma impressora, defina como Manual ou Desativado para libertar recursos do sistema",
   "Setting_gaming-telemetry-service_Name": "Serviço de Experiências de Utilizador Ligado e Telemetria",

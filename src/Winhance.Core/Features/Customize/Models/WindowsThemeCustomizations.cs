@@ -94,8 +94,6 @@ public static class WindowsThemeCustomizations
                                 IsRecommended = true,
                             },
                         },
-                        SupportsCustomState = true,
-                        CustomStateDisplayName = "Custom",
                     },
                 },
                 new SettingDefinition

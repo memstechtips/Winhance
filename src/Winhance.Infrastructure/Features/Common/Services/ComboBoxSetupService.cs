@@ -70,7 +70,6 @@ public class ComboBoxSetupService(
             return false;
 
         var options = comboBox.Options;
-        var supportsCustomState = comboBox.SupportsCustomState;
         var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
 
         for (int i = 0; i < options.Count; i++)
@@ -86,9 +85,9 @@ public class ComboBoxSetupService(
             });
         }
 
-        if (supportsCustomState && isCustomState)
+        if (isCustomState)
         {
-            var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom (User Defined)";
+            var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom";
             result.Options.Add(new ComboBoxDisplayOption(
                 customDisplayName,
                 ComboBoxConstants.CustomStateIndex,

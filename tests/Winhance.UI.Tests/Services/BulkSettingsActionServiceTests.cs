@@ -69,7 +69,6 @@ public class BulkSettingsActionServiceTests
     private static SettingDefinition MakeSelectionSetting(
         int? recommendedIndex,
         int defaultIndex,
-        bool supportsCustomState = false,
         string id = TestSettingId)
     {
         var options = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>
@@ -103,8 +102,6 @@ public class BulkSettingsActionServiceTests
             ComboBox = new ComboBoxMetadata
             {
                 Options = options,
-                SupportsCustomState = supportsCustomState,
-                CustomStateDisplayName = supportsCustomState ? "Custom" : null,
             },
         };
     }
@@ -160,26 +157,6 @@ public class BulkSettingsActionServiceTests
                 (int)r.Value == 0 &&
                 r.Enable == true &&
                 r.ResetToDefault == true)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ApplyRecommended_Selection_SupportsCustomStateDoesNotFail()
-    {
-        var setting = MakeSelectionSetting(
-            recommendedIndex: 1,
-            defaultIndex: 0,
-            supportsCustomState: true);
-        var sut = CreateSut(setting);
-
-        var action = () => sut.ApplyRecommendedAsync(new[] { setting.Id });
-        await action.Should().NotThrowAsync();
-
-        _applicationService.Verify(
-            s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-                r.SettingId == TestSettingId &&
-                r.Value != null &&
-                (int)r.Value == 1)),
             Times.Once);
     }
 

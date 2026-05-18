@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "Memory作",
+  "Common_CustomState": "カスタム",
   "Nav_SoftwareAndApps": "ソフトウェアとアプリ",
   "Nav_Optimize": "最適化",
   "Nav_Customize": "カスタマイズ",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows検索インデックスサービス",
   "Setting_gaming-windows-search-service_Description": "より高速な検索結果のためにファイルとフォルダーをインデックス化します。無効にすると、バックグラウンドのCPUとディスクのアクティビティは減少しますが、Outlookの検索が機能しなくなり、スタートメニューやエクスプローラーの検索が遅くなるか、信頼できない結果になります。",
   "Setting_gaming-windows-search-service_OptionWarning_0": "警告: WSearchを無効にすると、ファイル内容のインデックス作成が停止します。Outlook検索、スタートメニュー検索、エクスプローラー検索は、再度有効にするまで遅くなるか、結果を返さなくなります。",
+  "Setting_gaming-telephony-service_Name": "Telephony サービス",
+  "Setting_gaming-telephony-service_Description": "Phone Link の音声リレー、モデム、FAX、VoIP ソフトフォン向けにテレフォニー (TAPI) を管理します。テレフォニー ソフトウェアを使用しない場合を除き、手動 (Windows の既定) のままにしてください",
+  "Setting_gaming-telephony-service_OptionWarning_0": "テレフォニーを無効にすると、Phone Link のオーディオ転送、FAX ソフト、ダイヤルアップモデム、VoIP ソフトフォン (3CX、Cisco Jabber など) が動作しなくなります。",
   "Setting_gaming-print-spooler-service_Name": "印刷スプーラーサービス",
   "Setting_gaming-print-spooler-service_Description": "プリンターに送信された印刷ジョブを管理します。プリンターを使用しない場合は、手動または無効に設定してシステムリソースを解放します。",
   "Setting_gaming-telemetry-service_Name": "接続されたユーザーエクスペリエンスとテレメトリサービス",

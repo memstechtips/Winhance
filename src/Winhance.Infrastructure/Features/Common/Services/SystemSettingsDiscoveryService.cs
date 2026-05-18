@@ -587,13 +587,7 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        var supportsCustomState = setting.ComboBox?.SupportsCustomState == true;
-        if (supportsCustomState)
-        {
-            return -1;
-        }
-
-        return 0;
+        return ComboBoxConstants.CustomStateIndex;
     }
 
     private static bool ValuesAreEqual(object? value1, object? value2)

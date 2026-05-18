@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "od Memory",
+  "Common_CustomState": "Niestandardowy",
   "Nav_SoftwareAndApps": "Programy i Aplikacje",
   "Nav_Optimize": "Optymalizuj",
   "Nav_Customize": "Dostosuj",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Usługa indeksowania wyszukiwania systemu Windows",
   "Setting_gaming-windows-search-service_Description": "Indeksuje pliki i foldery dla szybszych wyników wyszukiwania. Wyłączenie zmniejsza aktywność procesora i dysku w tle, ale uniemożliwia wyszukiwanie w Outlooku oraz spowalnia lub zawodzi wyszukiwanie w menu Start i Eksploratorze plików",
   "Setting_gaming-windows-search-service_OptionWarning_0": "OSTRZEŻENIE: Wyłączenie usługi WSearch zatrzymuje indeksowanie zawartości plików. Wyszukiwanie w Outlooku, wyszukiwanie w menu Start i wyszukiwanie w Eksploratorze plików staną się wolne lub nie będą zwracać wyników aż do ponownego włączenia.",
+  "Setting_gaming-telephony-service_Name": "Usługa telefonii",
+  "Setting_gaming-telephony-service_Description": "Zarządza telefonią (TAPI) na potrzeby przekazywania dźwięku przez Phone Link, modemów, faksu i programowych telefonów VoIP. Pozostaw wartość Ręcznie (ustawienie domyślne systemu Windows), chyba że nie używasz żadnego oprogramowania telefonicznego",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Wyłączenie Telefonii przerywa przekazywanie dźwięku przez Phone Link, działanie oprogramowania faksowego, modemów wdzwanianych i softphone'ów VoIP (np. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Usługa Bufor wydruku",
   "Setting_gaming-print-spooler-service_Description": "Zarządza zadaniami drukowania wysyłanymi do drukarek. Jeśli nie używasz drukarki, ustaw na Ręczne lub Wyłączone, aby zwolnić zasoby systemowe",
   "Setting_gaming-telemetry-service_Name": "Usługi połączonych doświadczeń użytkownika i telemetrii",

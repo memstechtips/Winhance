@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "від Memory",
+  "Common_CustomState": "Користувацький",
   "Nav_SoftwareAndApps": "Програми та додатки",
   "Nav_Optimize": "Оптимізація",
   "Nav_Customize": "Налаштування",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Служба індексації пошуку Windows",
   "Setting_gaming-windows-search-service_Description": "Індексує файли та папки для швидших результатів пошуку. Вимкнення зменшує фонову активність ЦП та диска, але порушує пошук в Outlook і робить пошук у меню Пуск та Провіднику повільним або ненадійним",
   "Setting_gaming-windows-search-service_OptionWarning_0": "УВАГА: Вимкнення WSearch зупиняє індексацію вмісту файлів. Пошук в Outlook, пошук у меню Пуск і пошук у Провіднику файлів стануть повільними або повертатимуть порожні результати до повторного ввімкнення.",
+  "Setting_gaming-telephony-service_Name": "Служба телефонії",
+  "Setting_gaming-telephony-service_Description": "Керує телефонією (TAPI) для передавання звуку в Phone Link, модемів, факсу та програмних VoIP-телефонів. Залиште значення Вручну (стандартне для Windows), якщо ви не використовуєте програмне забезпечення телефонії",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Вимкнення служби телефонії порушує передавання звуку Phone Link, роботу факсимільного ПЗ, комутованих модемів і VoIP-софтфонів (наприклад, 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Служба диспетчера друку",
   "Setting_gaming-print-spooler-service_Description": "Керує завданнями друку, що надсилаються на принтери. Якщо ви не використовуєте принтер, встановіть режим Ручний або Вимкнений, щоб звільнити системні ресурси",
   "Setting_gaming-telemetry-service_Name": "Служба підключених користувацьких можливостей та телеметрії",

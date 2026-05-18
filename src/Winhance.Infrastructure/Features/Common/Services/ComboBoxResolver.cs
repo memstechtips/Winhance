@@ -150,13 +150,7 @@ public class ComboBoxResolver(
             }
         }
 
-        var supportsCustomState = setting.ComboBox?.SupportsCustomState == true;
-        if (supportsCustomState)
-        {
-            return ComboBoxConstants.CustomStateIndex;
-        }
-
-        return 0;
+        return ComboBoxConstants.CustomStateIndex;
     }
 
     public Dictionary<string, object?> ResolveIndexToRawValues(SettingDefinition setting, int index)

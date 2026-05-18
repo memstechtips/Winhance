@@ -1515,6 +1515,12 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "gaming-telephony-service",
+            "Name": "Telephony Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
             "Id": "gaming-print-spooler-service",
             "Name": "Print Spooler Service",
             "InputType": 1,

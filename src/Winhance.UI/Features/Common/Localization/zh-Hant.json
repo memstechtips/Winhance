@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "由 Memory 開發",
+  "Common_CustomState": "自訂",
   "Nav_SoftwareAndApps": "軟體與應用程式",
   "Nav_Optimize": "最佳化",
   "Nav_Customize": "自訂",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows Search 索引服務",
   "Setting_gaming-windows-search-service_Description": "索引檔案與資料夾以加快搜尋結果。停用可減少背景 CPU 與磁碟活動，但會中斷 Outlook 搜尋，並使開始功能表與檔案總管搜尋變慢或不可靠",
   "Setting_gaming-windows-search-service_OptionWarning_0": "警告：停用 WSearch 會停止檔案內容索引。在重新啟用之前，Outlook 搜尋、開始功能表搜尋與檔案總管搜尋都將變慢或不會傳回任何結果。",
+  "Setting_gaming-telephony-service_Name": "電話服務",
+  "Setting_gaming-telephony-service_Description": "管理用於 Phone Link 音訊中繼、數據機、傳真和 VoIP 軟體電話的電話功能 (TAPI)。除非您未使用任何電話軟體，否則請保持為「手動」（Windows 預設值）",
+  "Setting_gaming-telephony-service_OptionWarning_0": "停用電話服務會中斷 Phone Link 的音訊轉送、傳真軟體、撥接數據機以及 VoIP 軟體電話（例如 3CX、Cisco Jabber）。",
   "Setting_gaming-print-spooler-service_Name": "Print Spooler 服務",
   "Setting_gaming-print-spooler-service_Description": "管理傳送到印表機的列印工作。如果您不使用印表機，設為手動或停用可釋放系統資源",
   "Setting_gaming-telemetry-service_Name": "連線使用者體驗與遙測服務",

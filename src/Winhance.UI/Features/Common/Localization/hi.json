@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "विनहान्स",
   "App_By": "मेमोरी द्वारा",
+  "Common_CustomState": "कस्टम",
   "Nav_SoftwareAndApps": "सॉफ्टवेयर और ऐप्स",
   "Nav_Optimize": "ऑप्टिमाइज़",
   "Nav_Customize": "कस्टमाइज़",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "विंडोज खोज अनुक्रमण सेवा",
   "Setting_gaming-windows-search-service_Description": "तेजी से खोज परिणामों के लिए फ़ाइलों और फ़ोल्डरों को अनुक्रमित करता है। अक्षम करने से पृष्ठभूमि सीपीयू और डिस्क गतिविधि कम हो जाती है, लेकिन यह Outlook खोज को तोड़ देता है और Start Menu तथा File Explorer खोज को धीमा या अविश्वसनीय बना देता है",
   "Setting_gaming-windows-search-service_OptionWarning_0": "चेतावनी: WSearch को अक्षम करने से फ़ाइल सामग्री अनुक्रमण बंद हो जाता है। पुनः सक्षम करने तक Outlook खोज, Start Menu खोज, और File Explorer खोज धीमी हो जाएंगी या कोई परिणाम नहीं लौटाएंगी।",
+  "Setting_gaming-telephony-service_Name": "टेलीफ़ोनी सेवा",
+  "Setting_gaming-telephony-service_Description": "Phone Link ऑडियो रिले, मॉडेम, फ़ैक्स और VoIP सॉफ़्टफ़ोन के लिए टेलीफ़ोनी (TAPI) प्रबंधित करती है. जब तक आप कोई टेलीफ़ोनी सॉफ़्टवेयर उपयोग न करें, इसे मैन्युअल (Windows डिफ़ॉल्ट) पर ही रहने दें",
+  "Setting_gaming-telephony-service_OptionWarning_0": "टेलीफ़ोनी अक्षम करने से Phone Link का ऑडियो रिले, फ़ैक्स सॉफ़्टवेयर, डायल-अप मॉडेम और VoIP सॉफ़्टफ़ोन (जैसे 3CX, Cisco Jabber) काम करना बंद कर देते हैं।",
   "Setting_gaming-print-spooler-service_Name": "प्रिंट स्पूलर सेवा",
   "Setting_gaming-print-spooler-service_Description": "प्रिंटर को भेजे गए प्रिंट कार्यों का प्रबंधन करता है। यदि आप प्रिंटर का उपयोग नहीं करते हैं, तो सिस्टम संसाधनों को खाली करने के लिए मैनुअल या अक्षम पर सेट करें",
   "Setting_gaming-telemetry-service_Name": "कनेक्टेड उपयोगकर्ता अनुभव और टेलीमेट्री सेवा",

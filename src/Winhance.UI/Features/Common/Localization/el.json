@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "από Memory",
+  "Common_CustomState": "Προσαρμοσμένο",
   "Nav_SoftwareAndApps": "Λογισμικό & Εφαρμογές",
   "Nav_Optimize": "Βελτίωση",
   "Nav_Customize": "Προσαρμογή",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Υπηρεσία Ευρετηρίασης Αναζήτησης Windows",
   "Setting_gaming-windows-search-service_Description": "Ευρετηριάζει αρχεία και φακέλους για γρηγορότερα αποτελέσματα αναζήτησης. Η απενεργοποίηση μειώνει τη δραστηριότητα CPU και δίσκου στο παρασκήνιο, αλλά καταστρέφει την αναζήτηση του Outlook και κάνει την αναζήτηση στο μενού Έναρξη και στην Εξερεύνηση αρχείων αργή ή αναξιόπιστη",
   "Setting_gaming-windows-search-service_OptionWarning_0": "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Η απενεργοποίηση του WSearch σταματά την ευρετηρίαση περιεχομένου αρχείων. Η αναζήτηση στο Outlook, στο μενού Έναρξη και στην Εξερεύνηση αρχείων θα γίνει αργή ή δεν θα επιστρέφει αποτελέσματα μέχρι την εκ νέου ενεργοποίηση.",
+  "Setting_gaming-telephony-service_Name": "Υπηρεσία τηλεφωνίας",
+  "Setting_gaming-telephony-service_Description": "Διαχειρίζεται την τηλεφωνία (TAPI) για τη μεταφορά ήχου του Phone Link, μόντεμ, φαξ και λογισμικά τηλέφωνα VoIP. Αφήστε τη ρύθμιση στο Μη αυτόματο (προεπιλογή των Windows), εκτός αν δεν χρησιμοποιείτε λογισμικό τηλεφωνίας",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Η απενεργοποίηση της Τηλεφωνίας διακόπτει την αναμετάδοση ήχου του Phone Link, το λογισμικό φαξ, τα μόντεμ dial-up και τα softphone VoIP (π.χ. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Υπηρεσία Ουράς Εκτύπωσης",
   "Setting_gaming-print-spooler-service_Description": "Διαχειρίζεται εργασίες εκτύπωσης που στέλνονται σε εκτυπωτές. Αν δεν χρησιμοποιείτε εκτυπωτή, ορίστε σε Χειροκίνητο ή Απενεργοποιημένο για απελευθέρωση πόρων συστήματος",
   "Setting_gaming-telemetry-service_Name": "Υπηρεσία Συνδεδεμένων Εμπειριών Χρήστη και Τηλεμετρίας",

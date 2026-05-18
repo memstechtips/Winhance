@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "by Memory",
+  "Common_CustomState": "Custom",
   "Nav_SoftwareAndApps": "Software & Apps",
   "Nav_Optimize": "Optimize",
   "Nav_Customize": "Customize",
@@ -859,6 +860,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows Search Indexing Service",
   "Setting_gaming-windows-search-service_Description": "Indexes files and folders for faster search results. Disabling reduces background CPU and disk activity but breaks Outlook search and makes Start Menu and File Explorer search slow or unreliable",
   "Setting_gaming-windows-search-service_OptionWarning_0": "WARNING: Disabling WSearch stops file content indexing. Outlook search, Start Menu search, and File Explorer search will become slow or return no results until re-enabled.",
+  "Setting_gaming-telephony-service_Name": "Telephony Service",
+  "Setting_gaming-telephony-service_Description": "Manages telephony (TAPI) for Phone Link audio relay, modems, fax, and VoIP softphones. Leave at Manual (Windows default) unless you use no telephony software",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Disabling Telephony breaks Phone Link audio relay, fax software, dial-up modems, and VoIP softphones (e.g. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Print Spooler Service",
   "Setting_gaming-print-spooler-service_Description": "Manages print jobs sent to printers. If you don't use a printer, set to Manual or Disabled to free up system resources",
   "Setting_gaming-telemetry-service_Name": "Connected User Experiences and Telemetry Service",

@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "door Memory",
+  "Common_CustomState": "Aangepast",
   "Nav_SoftwareAndApps": "Software & Apps",
   "Nav_Optimize": "Optimaliseren",
   "Nav_Customize": "Aanpassen",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows Search Indexeringsservice",
   "Setting_gaming-windows-search-service_Description": "Indexeert bestanden en mappen voor snellere zoekresultaten. Uitschakelen vermindert achtergrond-CPU en schijfactiviteit, maar breekt Outlook-zoeken en maakt zoeken in het Startmenu en de Verkenner traag of onbetrouwbaar",
   "Setting_gaming-windows-search-service_OptionWarning_0": "WAARSCHUWING: WSearch uitschakelen stopt de indexering van bestandsinhoud. Outlook-zoeken, zoeken in het Startmenu en zoeken in de Verkenner worden traag of geven geen resultaten meer terug totdat ze opnieuw worden ingeschakeld.",
+  "Setting_gaming-telephony-service_Name": "Telefoniedienst",
+  "Setting_gaming-telephony-service_Description": "Beheert telefonie (TAPI) voor audiodoorgifte van Phone Link, modems, fax en VoIP-softphones. Laat op Handmatig staan (standaard van Windows), tenzij je geen telefoniesoftware gebruikt",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Het uitschakelen van Telefonie verstoort de audiodoorgifte van Phone Link, faxsoftware, inbelmodems en VoIP-softphones (bijv. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Print Spooler Service",
   "Setting_gaming-print-spooler-service_Description": "Beheert afdruktaken die naar printers worden verzonden. Als u geen printer gebruikt, stel in op Handmatig of Uitgeschakeld om systeembronnen vrij te maken",
   "Setting_gaming-telemetry-service_Name": "Verbonden gebruikerservaringen en telemetrie-service",

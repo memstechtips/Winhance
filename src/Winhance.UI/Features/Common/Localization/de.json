@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "von Memory",
+  "Common_CustomState": "Benutzerdefiniert",
   "Nav_SoftwareAndApps": "Software & Apps",
   "Nav_Optimize": "Optimieren",
   "Nav_Customize": "Anpassen",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows-Suchindizierungsdienst",
   "Setting_gaming-windows-search-service_Description": "Indiziert Dateien und Ordner für schnellere Suchergebnisse. Das Deaktivieren reduziert die Hintergrund-CPU- und Festplattenaktivität, beeinträchtigt jedoch die Outlook-Suche und macht die Suche im Startmenü und im Datei-Explorer langsam oder unzuverlässig",
   "Setting_gaming-windows-search-service_OptionWarning_0": "WARNUNG: Das Deaktivieren von WSearch stoppt die Indizierung von Dateiinhalten. Die Outlook-Suche, die Startmenü-Suche und die Datei-Explorer-Suche werden langsam oder liefern keine Ergebnisse mehr, bis sie wieder aktiviert werden.",
+  "Setting_gaming-telephony-service_Name": "Telefoniedienst",
+  "Setting_gaming-telephony-service_Description": "Verwaltet die Telefonie (TAPI) für die Audioweiterleitung von Phone Link, Modems, Fax und VoIP-Softphones. Belassen Sie die Einstellung auf Manuell (Windows-Standard), sofern Sie keine Telefoniesoftware verwenden",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Das Deaktivieren der Telefonie unterbricht die Audioweiterleitung von Phone Link, Faxsoftware, Einwahlmodems und VoIP-Softphones (z. B. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Druckwarteschlangendienst",
   "Setting_gaming-print-spooler-service_Description": "Verwaltet Druckaufträge, die an Drucker gesendet werden. Wenn Sie keinen Drucker verwenden, auf Manuell oder Deaktiviert setzen, um Systemressourcen freizugeben",
   "Setting_gaming-telemetry-service_Name": "Dienst für verbundene Benutzererfahrungen und Telemetrie",

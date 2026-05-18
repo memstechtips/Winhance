@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "izveidoja Memory",
+  "Common_CustomState": "Pielāgots",
   "Nav_SoftwareAndApps": "Programmas un lietotnes",
   "Nav_Optimize": "Optimizēt",
   "Nav_Customize": "Pielāgot",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows meklēšanas indeksēšanas pakalpojums",
   "Setting_gaming-windows-search-service_Description": "Indeksē failus un mapes ātrākiem meklēšanas rezultātiem. Atspējošana samazina fona CPU un diska aktivitāti, taču sabojā Outlook meklēšanu un padara Sākuma izvēlnes un Failu pārlūka meklēšanu lēnu vai neuzticamu",
   "Setting_gaming-windows-search-service_OptionWarning_0": "BRĪDINĀJUMS: WSearch atspējošana pārtrauc failu satura indeksēšanu. Outlook meklēšana, Sākuma izvēlnes meklēšana un Failu pārlūka meklēšana kļūs lēna vai neatgriezīs rezultātus, līdz tā tiks atkārtoti iespējota.",
+  "Setting_gaming-telephony-service_Name": "Telefonijas pakalpojums",
+  "Setting_gaming-telephony-service_Description": "Pārvalda telefoniju (TAPI) Phone Link audio pārraidei, modemiem, faksam un VoIP programmatūras tālruņiem. Atstājiet vērtību Manuāli (Windows noklusējums), ja vien neizmantojat telefonijas programmatūru",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Telefonijas atspējošana pārtrauc Phone Link audio pārraidi, faksa programmatūru, iezvanpieejas modemus un VoIP programmtālruņus (piem., 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Drukas spolētāja pakalpojums",
   "Setting_gaming-print-spooler-service_Description": "Pārvalda drukas darbus, kas nosūtīti printeriem. Ja neizmantojat printeri, iestatiet uz Manuāli vai Atspējots, lai atbrīvotu sistēmas resursus",
   "Setting_gaming-telemetry-service_Name": "Savienoto lietotāju pieredzes un telemetrijas pakalpojums",

@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "deur Memory",
+  "Common_CustomState": "Pasgemaak",
   "Nav_SoftwareAndApps": "Sagteware & Toepassings",
   "Nav_Optimize": "Optimaliseer",
   "Nav_Customize": "Pasmaak",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows Soek Indekseringsdiens",
   "Setting_gaming-windows-search-service_Description": "Indekseer lêers en gidse vir vinniger soekresultate. Deaktivering verminder agtergrond SVE en skyfaktiwiteit, maar breek Outlook-soek en maak die Begin-kieslys en File Explorer-soek stadig of onbetroubaar",
   "Setting_gaming-windows-search-service_OptionWarning_0": "WAARSKUWING: Om WSearch te deaktiveer stop lêerinhoud-indeksering. Outlook-soek, Begin-kieslys-soek en File Explorer-soek sal stadig wees of geen resultate teruggee nie totdat dit weer geaktiveer word.",
+  "Setting_gaming-telephony-service_Name": "Telefoniediens",
+  "Setting_gaming-telephony-service_Description": "Bestuur telefonie (TAPI) vir Phone Link-klankoordrag, modems, faks en VoIP-sagteonfone. Laat op Handmatig (Windows-verstek) tensy jy geen telefoniesagteware gebruik nie",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Deaktivering van Telefonie breek Phone Link se klankaflei, faksprogrammatuur, inbelmodems en VoIP-sagtefone (bv. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Drukker Spooler Diens",
   "Setting_gaming-print-spooler-service_Description": "Bestuur druktake wat na drukkers gestuur word. As jy nie 'n drukker gebruik nie, stel na Handmatig of Gedeaktiveer om stelselhulpbronne vry te maak",
   "Setting_gaming-telemetry-service_Name": "Gekoppelde Gebruikerservarings en Telemetrie Diens",

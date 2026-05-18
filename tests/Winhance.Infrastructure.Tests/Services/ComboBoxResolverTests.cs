@@ -122,7 +122,7 @@ public class ComboBoxResolverTests
     }
 
     [Fact]
-    public void ResolveRawValuesToIndex_NoMatchAndSupportsCustomState_ReturnsCustomStateIndex()
+    public void ResolveRawValuesToIndex_NoMatch_ReturnsCustomStateIndex()
     {
         var mappings = new Dictionary<int, Dictionary<string, object?>>
         {
@@ -139,7 +139,6 @@ public class ComboBoxResolverTests
             ComboBox = new ComboBoxMetadata
             {
                 Options = BuildOptionsFromMappings(mappings),
-                SupportsCustomState = true,
             },
             RegistrySettings = new[]
             {

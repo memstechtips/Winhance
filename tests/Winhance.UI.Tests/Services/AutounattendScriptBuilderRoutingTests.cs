@@ -188,7 +188,6 @@ public class AutounattendScriptBuilderRoutingTests
                     ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" },
                 },
             },
-            SupportsCustomState = true,
         },
         PowerShellScripts = new List<PowerShellScriptSetting>
         {

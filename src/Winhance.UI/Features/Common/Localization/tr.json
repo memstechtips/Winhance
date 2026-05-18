@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "Memory tarafından",
+  "Common_CustomState": "Özel",
   "Nav_SoftwareAndApps": "Yazılım ve Uygulamalar",
   "Nav_Optimize": "Optimize Et",
   "Nav_Customize": "Özelleştir",
@@ -859,6 +860,9 @@
   "Setting_gaming-windows-search-service_Name": "Windows Arama Dizini Oluşturma Hizmeti",
   "Setting_gaming-windows-search-service_Description": "Daha hızlı arama sonuçları için dosyaları ve klasörleri dizine ekler. Devre dışı bırakmak arka plan CPU ve disk etkinliğini azaltır, ancak Outlook aramasını bozar; Başlat Menüsü ve Dosya Gezgini aramasını yavaş veya güvenilmez hale getirir",
   "Setting_gaming-windows-search-service_OptionWarning_0": "UYARI: WSearch'ü devre dışı bırakmak dosya içeriği dizinlemesini durdurur. Outlook araması, Başlat Menüsü araması ve Dosya Gezgini araması yeniden etkinleştirilene kadar yavaşlar veya sonuç döndürmez.",
+  "Setting_gaming-telephony-service_Name": "Telefon Hizmeti",
+  "Setting_gaming-telephony-service_Description": "Phone Link ses aktarımı, modemler, faks ve VoIP yazılım telefonları için telefon işlevselliğini (TAPI) yönetir. Herhangi bir telefon yazılımı kullanmıyorsanız Manuel (Windows varsayılanı) ayarında bırakın",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Telefon Hizmeti'ni devre dışı bırakmak Phone Link ses aktarımını, faks yazılımlarını, çevirmeli modemleri ve VoIP yazılım telefonlarını (ör. 3CX, Cisco Jabber) bozar.",
   "Setting_gaming-print-spooler-service_Name": "Yazdırma Biriktiricisi Hizmeti",
   "Setting_gaming-print-spooler-service_Description": "Yazıcılara gönderilen yazdırma işlerini yönetir. Yazıcı kullanmıyorsanız, sistem kaynaklarını boşaltmak için Manuel veya Devre Dışı olarak ayarlayın",
   "Setting_gaming-telemetry-service_Name": "Bağlı Kullanıcı Deneyimleri ve Telemetri Hizmeti",

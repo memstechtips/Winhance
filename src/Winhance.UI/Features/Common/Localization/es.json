@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "por Memory",
+  "Common_CustomState": "Personalizado",
   "Nav_SoftwareAndApps": "Software y Aplicaciones",
   "Nav_Optimize": "Optimizar",
   "Nav_Customize": "Personalizar",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Servicio de Indexación de Búsqueda de Windows",
   "Setting_gaming-windows-search-service_Description": "Indexa archivos y carpetas para resultados de búsqueda más rápidos. Deshabilitarlo reduce la actividad de CPU y disco en segundo plano, pero rompe la búsqueda de Outlook y hace que la búsqueda del menú Inicio y del Explorador de archivos sea lenta o poco fiable",
   "Setting_gaming-windows-search-service_OptionWarning_0": "ADVERTENCIA: Deshabilitar WSearch detiene la indexación del contenido de los archivos. La búsqueda de Outlook, la búsqueda del menú Inicio y la búsqueda del Explorador de archivos se volverán lentas o no devolverán resultados hasta que se vuelvan a habilitar.",
+  "Setting_gaming-telephony-service_Name": "Servicio de telefonía",
+  "Setting_gaming-telephony-service_Description": "Administra la telefonía (TAPI) para la retransmisión de audio de Phone Link, módems, fax y softphones VoIP. Déjelo en Manual (valor predeterminado de Windows) a menos que no use software de telefonía",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Deshabilitar la Telefonía interrumpe la transmisión de audio de Phone Link, el software de fax, los módems de acceso telefónico y los softphones VoIP (p. ej., 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Servicio Cola de Impresión",
   "Setting_gaming-print-spooler-service_Description": "Gestiona los trabajos de impresión enviados a las impresoras. Si no usas una impresora, configúralo en Manual o Deshabilitado para liberar recursos del sistema",
   "Setting_gaming-telemetry-service_Name": "Experiencias de Usuario Conectadas y Servicio de Telemetría",

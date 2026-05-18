@@ -1,6 +1,7 @@
 ﻿{
   "App_Title": "Winhance",
   "App_By": "di Memory",
+  "Common_CustomState": "Personalizzato",
   "Nav_SoftwareAndApps": "Software e App",
   "Nav_Optimize": "Ottimizza",
   "Nav_Customize": "Personalizza",
@@ -824,6 +825,9 @@
   "Setting_gaming-windows-search-service_Name": "Servizio di indicizzazione di Windows Search",
   "Setting_gaming-windows-search-service_Description": "Indicizza file e cartelle per risultati di ricerca più rapidi. La disabilitazione riduce l'attività di CPU e disco in background, ma compromette la ricerca di Outlook e rende la ricerca del menu Start e di Esplora file lenta o inaffidabile",
   "Setting_gaming-windows-search-service_OptionWarning_0": "AVVISO: Disabilitare WSearch interrompe l'indicizzazione del contenuto dei file. La ricerca di Outlook, del menu Start e di Esplora file diventerà lenta o non restituirà risultati finché non verrà riabilitata.",
+  "Setting_gaming-telephony-service_Name": "Servizio di telefonia",
+  "Setting_gaming-telephony-service_Description": "Gestisce la telefonia (TAPI) per il trasferimento audio di Phone Link, modem, fax e softphone VoIP. Lasciare su Manuale (impostazione predefinita di Windows) a meno che non si utilizzi alcun software di telefonia",
+  "Setting_gaming-telephony-service_OptionWarning_0": "Disabilitare la Telefonia interrompe il trasferimento audio di Phone Link, i software fax, i modem dial-up e i softphone VoIP (es. 3CX, Cisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "Servizio spooler di stampa",
   "Setting_gaming-print-spooler-service_Description": "Gestisce i lavori di stampa inviati alle stampanti. Se non si utilizza una stampante, impostare su Manuale o Disabilitato per liberare risorse di sistema",
   "Setting_gaming-telemetry-service_Name": "Servizio Esperienze utente connesse e telemetria",
