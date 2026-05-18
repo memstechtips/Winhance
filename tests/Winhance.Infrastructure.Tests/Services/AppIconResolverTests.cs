@@ -360,9 +360,20 @@ public class AppIconResolverTests : IDisposable
         _mockBinarySource.Object,
         httpClient);
 
-    private static Mock<HttpMessageHandler> SetupHandler(HttpStatusCode status, byte[]? body = null)
+    // HttpClient.Dispose() forwards to HttpMessageHandler.Dispose(bool), which a
+    // Strict mock rejects without an explicit setup. Every test wraps the mock in
+    // `using var client = new HttpClient(...)`, so stub Dispose on every handler
+    // we hand back.
+    private static Mock<HttpMessageHandler> NewStrictHandler()
     {
         var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        handler.Protected().Setup("Dispose", ItExpr.IsAny<bool>());
+        return handler;
+    }
+
+    private static Mock<HttpMessageHandler> SetupHandler(HttpStatusCode status, byte[]? body = null)
+    {
+        var handler = NewStrictHandler();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
@@ -409,7 +420,7 @@ public class AppIconResolverTests : IDisposable
         };
 
         HttpRequestMessage? captured = null;
-        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var handler = NewStrictHandler();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
@@ -446,7 +457,7 @@ public class AppIconResolverTests : IDisposable
         };
 
         // Strict handler — fails the test if any HTTP call is made.
-        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var handler = NewStrictHandler();
         using var client = new HttpClient(handler.Object);
         var resolver = BuildResolverWithHttpClient(client);
 
@@ -636,7 +647,7 @@ public class AppIconResolverTests : IDisposable
 
         var def = Def("ext-srcs-data") with { IconSources = new[] { dataUri } };
 
-        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var handler = NewStrictHandler();
         using var client = new HttpClient(handler.Object);
         var resolver = BuildResolverWithHttpClient(client);
 
@@ -664,7 +675,7 @@ public class AppIconResolverTests : IDisposable
         var cachePath = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, dataUri));
         File.WriteAllText(cachePath, "pre-cached-bytes");
 
-        var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var handler = NewStrictHandler();
         using var client = new HttpClient(handler.Object);
         var resolver = BuildResolverWithHttpClient(client);
 
