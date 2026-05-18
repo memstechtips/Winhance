@@ -137,11 +137,12 @@ public static class WindowsAppDefinitions
                 new ItemDefinition
                 {
                     Id = "windows-app-dev-home",
-                    Name = "Dev Home",
-                    Description = "Developer dashboard for setting up tools, repos, and dev environments",
+                    Name = "Windows Advanced Settings",
+                    Description = "Power-user Settings page: sudo, long paths, Dev Drive, Git in Explorer",
                     GroupName = "Development",
                     AppxPackageName = ["Microsoft.Windows.DevHome"],
-                    MsStoreId = "9N8MHTPHNGVV", // not available in your market
+                    // Successor to Dev Home (same MSIX family); backs System > Advanced page on Win11 25H2.
+                    MsStoreId = "9N8MHTPHNGVV",
                     CanBeReinstalled = true
                 },
 
@@ -205,11 +206,11 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-maps",
                     Name = "Maps",
-                    Description = "Offline-capable maps, search, and turn-by-turn directions powered by Bing",
+                    Description = "Offline maps and turn-by-turn directions (removed from Store July 2025)",
                     GroupName = "System Tools",
                     AppxPackageName = ["Microsoft.WindowsMaps"],
-                    MsStoreId = "9WZDNCRDTBVB", // unavailable in your market
-                    CanBeReinstalled = true
+                    MsStoreId = "9WZDNCRDTBVB", // globally Accessible=false; Microsoft removed July 2025
+                    CanBeReinstalled = false
                 },
                 new ItemDefinition
                 {
@@ -293,11 +294,11 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-people",
                     Name = "People",
-                    Description = "Contacts hub aggregating accounts from Outlook, Skype, and other services",
+                    Description = "Contacts hub for Outlook, Skype, and other accounts (no longer installable)",
                     GroupName = "Social",
                     AppxPackageName = ["Microsoft.People"],
-                    MsStoreId = "9NBLGGH10PG8", // unavailable in your market
-                    CanBeReinstalled = true
+                    MsStoreId = "9NBLGGH10PG8", // globally Accessible=false; Microsoft deprecated
+                    CanBeReinstalled = false
                 },
 
                 // Automation
@@ -359,11 +360,11 @@ public static class WindowsAppDefinitions
                 {
                     Id = "windows-app-xbox-game-bar-plugin",
                     Name = "Xbox Game Bar Plugin",
-                    Description = "Game overlay component used by Xbox Game Bar for rendering in fullscreen games",
+                    Description = "Game Bar overlay component (Microsoft unpublished; auto-installed with Game Bar)",
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.XboxGameOverlay"],
-                    MsStoreId = "9NBLGGH537C2", // unavailable in market
-                    CanBeReinstalled = true
+                    MsStoreId = "9NBLGGH537C2", // globally Accessible=false since 2020-06; bundled with Xbox Game Bar
+                    CanBeReinstalled = false
                 },
                 new ItemDefinition
                 {
