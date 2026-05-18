@@ -57,7 +57,7 @@ public static class StringKeys
             { "uk", "Українська (Ukrainian)" },
             { "el", "Ελληνικά (Greek)" },
             { "tr", "Türkçe (Turkish)" },
-            { "per", "پارسی (Persian)" }
+            { "fa", "فارسی (Persian)" }
         };
     }
 
