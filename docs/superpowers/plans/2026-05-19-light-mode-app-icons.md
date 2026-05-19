@@ -10,9 +10,10 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-19-light-mode-app-icons-design.md`
 
-**Marco's verification rules (CLAUDE.md):**
-- This is a non-trivial Winhance behavior change. **Do NOT push, do NOT open a PR, do NOT comment on any GitHub issue.** Commit locally on `agent/light-mode-app-icons`, dispatch the reviewer agent, then hand off to Marco for a Windows build.
+**Marco's verification rules (CLAUDE.md + memory):**
+- This is a non-trivial Winhance behavior change. **Do NOT push, do NOT open a PR, do NOT comment on any GitHub issue.** Per memory: Winhance work commits directly on local `dev` (no feature branches); push waits for Marco's Windows build + confirmation.
 - Do NOT run `dotnet build` or `dotnet test` from this Linux host. Verification of compile correctness happens via the Opus-pinned sub-agent in Task 7.
+- Per memory: planned execution runs end-to-end without per-step asks. Single notify-when-done at Task 7 Step 4.
 
 ---
 
@@ -1077,24 +1078,24 @@ If Step 1 only verified existing documentation, there is nothing to commit. Move
 
 ## Task 7: Reviewer agent, manual cache wipe, hand off to Marco
 
-**Goal:** Run the Opus-pinned compile-correctness reviewer per CLAUDE.md (Winhance cannot build on Linux). Leave the branch unpushed for Marco to test on his Windows PC.
+**Goal:** Run the Opus-pinned compile-correctness reviewer per CLAUDE.md (Winhance cannot build on Linux). Leave commits on local `dev` unpushed for Marco to test on his Windows PC.
 
 - [ ] **Step 1: Sanity-check the working tree**
 
 ```bash
 cd /srv/projects/winhance
 git status
-git log --oneline agent/light-mode-app-icons ^dev
+git log --oneline origin/dev..dev
 ```
 
-Expected: working tree clean (modulo Marco's pre-existing unstaged changes that were carried in at branch creation — those are NOT part of this work). The log should show the spec commit + Tasks 1, 2, 3, 4, 5 commits, in that order.
+Expected: the log should show the spec commit + plan commit + Tasks 1, 2, 3, 4, 5 commits, in that order, on top of `origin/dev`. Marco's pre-existing unstaged changes are NOT part of this work — do not touch them.
 
 - [ ] **Step 2: Dispatch the Opus-pinned reviewer agent**
 
 Use the `Agent` tool with `subagent_type: general-purpose` and `model: opus`. Prompt:
 
 ```
-Review the changes on the agent/light-mode-app-icons branch of the Winhance
+Review the unpushed commits on local `dev` (since `origin/dev`) in the Winhance
 repo at /srv/projects/winhance against the spec at
 docs/superpowers/specs/2026-05-19-light-mode-app-icons-design.md.
 
@@ -1144,7 +1145,7 @@ If the reviewer returns issues, fix them locally, commit, then re-dispatch the r
 Post a status message in the conversation:
 
 ```
-agent/light-mode-app-icons is ready for your Windows test.
+Local `dev` (unpushed, ahead of origin/dev) is ready for your Windows test.
 
 Local commits (not pushed):
   - docs spec
