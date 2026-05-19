@@ -751,9 +751,10 @@ public class AppItemViewModelTests
     }
 
     /// <summary>
-    /// 1×1 transparent PNG — small enough to roundtrip without expensive setup.
-    /// Just needs to exist on disk; BitmapImage construction is lazy and the
-    /// tests assert on UriSource, not decoded pixels.
+    /// PNG-ish junk bytes — sufficient for File.Exists checks and lazy
+    /// BitmapImage URI assignment. The tests in this file only inspect
+    /// `BitmapImage.UriSource.LocalPath`, so the decoder never runs over
+    /// these bytes and their malformed CRC/payload doesn't matter.
     /// </summary>
     private static byte[] MinimalPng() => new byte[]
     {

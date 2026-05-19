@@ -773,14 +773,26 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
+            // Keep both <stem>.png (primary) and <stem>.light.png (synthesized
+            // light-mode variant from LightVariantSynthesizer). Without the
+            // sibling carve-out, the freshly-written .light.png would be
+            // deleted here on every resolve, since it doesn't equal
+            // keepFileName.
+            var keepStem = Path.GetFileNameWithoutExtension(keepFileName);
+            var keepLightName = keepStem + ".light" + CacheFileExtension;
+
             var pattern = defId + ".*" + CacheFileExtension;
             foreach (var path in Directory.EnumerateFiles(_cacheRoot, pattern))
             {
-                if (!string.Equals(Path.GetFileName(path), keepFileName, StringComparison.OrdinalIgnoreCase))
+                var name = Path.GetFileName(path);
+                if (string.Equals(name, keepFileName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(name, keepLightName, StringComparison.OrdinalIgnoreCase))
                 {
-                    try { File.Delete(path); }
-                    catch (Exception ex) { _logService.LogWarning($"Could not prune old icon {path}: {ex.Message}"); }
+                    continue;
                 }
+
+                try { File.Delete(path); }
+                catch (Exception ex) { _logService.LogWarning($"Could not prune old icon {path}: {ex.Message}"); }
             }
         }
         catch (Exception ex)
