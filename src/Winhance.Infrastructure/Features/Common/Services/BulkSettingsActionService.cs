@@ -9,7 +9,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class BulkSettingsActionService(
-    IDomainServiceRouter domainServiceRouter,
+    ICompatibleSettingsRegistry settingsRegistry,
     IWindowsVersionService versionService,
     ISettingApplicationService settingApplicationService,
     IProcessRestartManager processRestartManager,
@@ -278,7 +278,7 @@ public class BulkSettingsActionService(
         return count;
     }
 
-    private async Task<List<SettingDefinition>> ResolveSettingsAsync(IEnumerable<string> settingIds)
+    private Task<List<SettingDefinition>> ResolveSettingsAsync(IEnumerable<string> settingIds)
     {
         var osInfo = new OSInfo
         {
@@ -288,32 +288,22 @@ public class BulkSettingsActionService(
         };
 
         var result = new List<SettingDefinition>();
-        // Cache domain settings lookups to avoid repeated calls for the same domain
-        var domainSettingsCache = new Dictionary<string, List<SettingDefinition>>();
         var idSet = settingIds.ToHashSet();
 
         foreach (var settingId in idSet)
         {
             try
             {
-                var domainService = domainServiceRouter.GetDomainService(settingId);
-                var domainName = domainService.DomainName;
-
-                if (!domainSettingsCache.TryGetValue(domainName, out var domainSettings))
+                var setting = settingsRegistry.GetById(settingId);
+                if (setting == null)
                 {
-                    var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
-                    domainSettings = allSettings.ToList();
-                    domainSettingsCache[domainName] = domainSettings;
+                    logService.Log(LogLevel.Warning, $"[BulkSettings] Setting '{settingId}' not found in registry");
+                    continue;
                 }
 
-                var setting = domainSettings.FirstOrDefault(s => s.Id == settingId);
-                if (setting != null && IsCompatibleWithCurrentOS(setting, osInfo))
+                if (IsCompatibleWithCurrentOS(setting, osInfo))
                 {
                     result.Add(setting);
-                }
-                else if (setting == null)
-                {
-                    logService.Log(LogLevel.Warning, $"[BulkSettings] Setting '{settingId}' not found in domain '{domainName}'");
                 }
             }
             catch (Exception ex)
@@ -322,7 +312,7 @@ public class BulkSettingsActionService(
             }
         }
 
-        return result;
+        return Task.FromResult(result);
     }
 
     private static bool IsCompatibleWithCurrentOS(SettingDefinition setting, OSInfo osInfo)

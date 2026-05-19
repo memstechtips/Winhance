@@ -11,7 +11,7 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class BulkSettingsActionServiceTests
 {
-    private readonly Mock<IDomainServiceRouter> _mockRouter = new();
+    private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IWindowsVersionService> _mockVersionService = new();
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
     private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
@@ -21,7 +21,7 @@ public class BulkSettingsActionServiceTests
     public BulkSettingsActionServiceTests()
     {
         _service = new BulkSettingsActionService(
-            _mockRouter.Object,
+            _mockRegistry.Object,
             _mockVersionService.Object,
             _mockAppService.Object,
             _mockProcessRestartManager.Object,
@@ -139,10 +139,11 @@ public class BulkSettingsActionServiceTests
         IEnumerable<SettingDefinition> settings,
         string domainName = "TestDomain")
     {
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.DomainName).Returns(domainName);
-        mockDomain.Setup(d => d.GetSettingsAsync()).ReturnsAsync(settings);
-        _mockRouter.Setup(r => r.GetDomainService(settingId)).Returns(mockDomain.Object);
+        // domainName is retained for call-site readability but unused — the registry's
+        // GetById is O(1) and domain-agnostic.
+        _ = domainName;
+        var match = settings.FirstOrDefault(s => s.Id == settingId);
+        _mockRegistry.Setup(r => r.GetById(settingId)).Returns(match);
     }
 
     // ---------------------------------------------------------------

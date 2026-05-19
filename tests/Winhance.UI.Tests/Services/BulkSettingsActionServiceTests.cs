@@ -25,10 +25,8 @@ namespace Winhance.UI.Tests.Services;
 public class BulkSettingsActionServiceTests
 {
     private const string TestSettingId = "test-selection";
-    private const string TestDomain = "TestDomain";
 
-    private readonly Mock<IDomainServiceRouter> _domainServiceRouter = new();
-    private readonly Mock<IDomainService> _domainService = new();
+    private readonly Mock<ICompatibleSettingsRegistry> _settingsRegistry = new();
     private readonly Mock<IWindowsVersionService> _versionService = new();
     private readonly Mock<ISettingApplicationService> _applicationService = new();
     private readonly Mock<IProcessRestartManager> _processRestartManager = new();
@@ -38,18 +36,15 @@ public class BulkSettingsActionServiceTests
     {
         _versionService.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
         _versionService.Setup(v => v.IsWindows11()).Returns(true);
-
-        _domainService.SetupGet(d => d.DomainName).Returns(TestDomain);
-        _domainServiceRouter
-            .Setup(r => r.GetDomainService(It.IsAny<string>()))
-            .Returns(_domainService.Object);
     }
 
     private BulkSettingsActionService CreateSut(params SettingDefinition[] settings)
     {
-        _domainService
-            .Setup(d => d.GetSettingsAsync())
-            .ReturnsAsync(settings.AsEnumerable());
+        foreach (var s in settings)
+        {
+            var captured = s;
+            _settingsRegistry.Setup(r => r.GetById(captured.Id)).Returns(captured);
+        }
 
         _processRestartManager
             .Setup(p => p.SuppressRestarts())
@@ -59,7 +54,7 @@ public class BulkSettingsActionServiceTests
             .Returns(Task.CompletedTask);
 
         return new BulkSettingsActionService(
-            _domainServiceRouter.Object,
+            _settingsRegistry.Object,
             _versionService.Object,
             _applicationService.Object,
             _processRestartManager.Object,
