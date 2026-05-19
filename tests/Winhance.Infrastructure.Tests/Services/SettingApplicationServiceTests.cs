@@ -11,7 +11,9 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class SettingApplicationServiceTests
 {
-    private readonly Mock<IDomainServiceRouter> _mockRouter = new();
+    private readonly Mock<ICompatibleSettingsRegistry> _mockSettingsRegistry = new();
+    private readonly Mock<ISpecialSettingHandlerRegistry> _mockSpecialHandlerRegistry = new();
+    private readonly Mock<IActionCommandRegistry> _mockActionCommandRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IGlobalSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
@@ -30,7 +32,8 @@ public class SettingApplicationServiceTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         _service = new SettingApplicationService(
-            _mockRouter.Object, _mockLog.Object, _mockRegistry.Object,
+            _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
+            _mockActionCommandRegistry.Object, _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object);
     }
@@ -42,30 +45,19 @@ public class SettingApplicationServiceTests
         Description = $"Description for {id}",
     };
 
-    private void SetupDomainServiceWithSetting(string settingId, IDomainService? domainService = null)
+    private void SetupSettingInRegistry(string settingId, string featureId = "TestDomain")
     {
         var setting = CreateSetting(settingId);
-        var mockDomain = domainService != null ? null : new Mock<IDomainService>();
-
-        if (mockDomain != null)
-        {
-            mockDomain.Setup(d => d.GetSettingsAsync())
-                .ReturnsAsync(new[] { setting });
-            mockDomain.Setup(d => d.DomainName).Returns("TestDomain");
-            _mockRouter.Setup(r => r.GetDomainService(settingId))
-                .Returns(mockDomain.Object);
-        }
-        else
-        {
-            _mockRouter.Setup(r => r.GetDomainService(settingId))
-                .Returns(domainService!);
-        }
+        _mockSettingsRegistry.Setup(r => r.GetById(settingId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(settingId)).Returns(featureId);
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings(featureId))
+            .Returns(new[] { setting });
     }
 
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_ReturnsSuccess()
     {
-        SetupDomainServiceWithSetting("test-setting");
+        SetupSettingInRegistry("test-setting");
 
         var result = await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -79,7 +71,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_PublishesEvent()
     {
-        SetupDomainServiceWithSetting("test-setting");
+        SetupSettingInRegistry("test-setting");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -94,7 +86,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_CallsOperationExecutor()
     {
-        SetupDomainServiceWithSetting("test-setting");
+        SetupSettingInRegistry("test-setting");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -111,12 +103,8 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SettingNotFound_ThrowsArgumentException()
     {
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.GetSettingsAsync())
-            .ReturnsAsync(Array.Empty<SettingDefinition>());
-        mockDomain.Setup(d => d.DomainName).Returns("TestDomain");
-        _mockRouter.Setup(r => r.GetDomainService("missing"))
-            .Returns(mockDomain.Object);
+        _mockSettingsRegistry.Setup(r => r.GetById("missing"))
+            .Returns((SettingDefinition?)null);
 
         var action = () => _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -131,14 +119,11 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_WithCommandString_ExecutesCommand()
     {
-        var mockDomain = new Mock<IDomainService>();
-        var mockCommand = mockDomain.As<IActionCommandProvider>();
-        mockDomain.Setup(d => d.GetSettingsAsync())
-            .ReturnsAsync(new[] { CreateSetting("cmd-setting") });
-        mockDomain.Setup(d => d.DomainName).Returns("TestDomain");
+        SetupSettingInRegistry("cmd-setting");
+        var mockCommand = new Mock<IActionCommandProvider>();
         mockCommand.Setup(c => c.SupportedCommands).Returns(new HashSet<string> { "do-action" });
-        _mockRouter.Setup(r => r.GetDomainService("cmd-setting"))
-            .Returns(mockDomain.Object);
+        _mockActionCommandRegistry.Setup(r => r.TryGet("cmd-setting"))
+            .Returns(mockCommand.Object);
 
         var result = await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -154,7 +139,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_RegistersSettingInGlobalRegistry()
     {
-        SetupDomainServiceWithSetting("test-setting");
+        SetupSettingInRegistry("test-setting");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -169,7 +154,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_HandlesDependencies()
     {
-        SetupDomainServiceWithSetting("test-setting");
+        SetupSettingInRegistry("test-setting");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -188,7 +173,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SkipValuePrerequisites_SkipsDependencies()
     {
-        SetupDomainServiceWithSetting("test-setting");
+        SetupSettingInRegistry("test-setting");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -221,7 +206,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ExecutorFails_PropagatesFailedResult()
     {
-        SetupDomainServiceWithSetting("fail-setting");
+        SetupSettingInRegistry("fail-setting");
         _mockExecutor
             .Setup(e => e.ApplySettingOperationsAsync(
                 It.Is<SettingDefinition>(s => s.Id == "fail-setting"),
@@ -241,7 +226,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ExecutorFails_StillPublishesEvent()
     {
-        SetupDomainServiceWithSetting("fail-event");
+        SetupSettingInRegistry("fail-event");
         _mockExecutor
             .Setup(e => e.ApplySettingOperationsAsync(
                 It.Is<SettingDefinition>(s => s.Id == "fail-event"),
@@ -261,7 +246,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ExecutorSucceeds_ReturnsSuccess()
     {
-        SetupDomainServiceWithSetting("ok-setting");
+        SetupSettingInRegistry("ok-setting");
         _mockExecutor
             .Setup(e => e.ApplySettingOperationsAsync(
                 It.Is<SettingDefinition>(s => s.Id == "ok-setting"),
