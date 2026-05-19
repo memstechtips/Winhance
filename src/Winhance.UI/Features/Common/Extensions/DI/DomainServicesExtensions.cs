@@ -32,9 +32,7 @@ public static class DomainServicesExtensions
             .AddOptimizationDomainServices()
             .AddSoftwareAppServices();
 
-        // Phase 1/6 of the domain services cleanup: id-keyed dispatchers that
-        // will replace IDomainServiceRouter in Phase 2 onward. Both surfaces
-        // coexist during the transition; nothing reads these yet.
+        // Id-keyed dispatcher registries — settingId → handler mapping.
         services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
             new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>
             {
@@ -77,11 +75,9 @@ public static class DomainServicesExtensions
 
         // Register StartMenuService
         services.AddSingleton<StartMenuService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<StartMenuService>());
 
         // Register TaskbarService
         services.AddSingleton<TaskbarService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<TaskbarService>());
 
         return services;
     }
@@ -91,7 +87,7 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddOptimizationDomainServices(this IServiceCollection services)
     {
-        // Register PowerService (keeps factory — 3 registrations with IPowerService forwarding)
+        // Register PowerService (keeps factory — IPowerService forwards to the concrete)
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
@@ -102,12 +98,10 @@ public static class DomainServicesExtensions
             sp.GetRequiredService<IFileSystemService>(),
             sp.GetRequiredService<IPowerSchemeOperations>()
         ));
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 
         // Register UpdateService
         services.AddSingleton<UpdateService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 
         return services;
     }

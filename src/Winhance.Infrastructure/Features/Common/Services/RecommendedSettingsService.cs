@@ -20,8 +20,6 @@ public class RecommendedSettingsService(
     IWindowsVersionService versionService,
     ILogService logService) : IRecommendedSettingsService
 {
-    public string DomainName => "RecommendedSettings";
-
     public Task<IEnumerable<SettingDefinition>> GetRecommendedSettingsAsync(string settingId)
     {
         try
@@ -98,10 +96,5 @@ public class RecommendedSettingsService(
         }
 
         return true;
-    }
-
-    public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
-    {
-        return Task.FromResult(Enumerable.Empty<SettingDefinition>());
     }
 }

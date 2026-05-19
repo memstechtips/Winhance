@@ -35,7 +35,6 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IPowerSettingsValidationService))]
     [InlineData(typeof(IComboBoxResolver))]
     [InlineData(typeof(IComboBoxSetupService))]
-    [InlineData(typeof(IDomainServiceRouter))]
     [InlineData(typeof(ISystemSettingsDiscoveryService))]
     [InlineData(typeof(ISettingApplicationService))]
     [InlineData(typeof(IConfigImportState))]
@@ -115,8 +114,8 @@ public class InfrastructureContainerSmokeTests
 
         // Act & Assert — building the provider should succeed
         // Note: ValidateOnBuild is not used here because some services have
-        // cross-layer dependencies (e.g., DomainServiceRouter needs domain services
-        // registered by the UI layer). We verify individual resolution instead.
+        // cross-layer dependencies (e.g., dispatcher registries need domain
+        // services registered by the UI layer). We verify individual resolution instead.
         var action = () => services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,

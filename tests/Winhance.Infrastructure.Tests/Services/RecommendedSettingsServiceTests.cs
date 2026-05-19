@@ -88,20 +88,6 @@ public class RecommendedSettingsServiceTests
     }
 
     [Fact]
-    public void DomainName_ReturnsRecommendedSettings()
-    {
-        _sut.DomainName.Should().Be("RecommendedSettings");
-    }
-
-    [Fact]
-    public async Task GetSettingsAsync_ReturnsEmpty()
-    {
-        var result = await _sut.GetSettingsAsync();
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task GetRecommendedSettingsAsync_ReturnsSettingsWithRecommendedValues()
     {
         SetupWindows11();

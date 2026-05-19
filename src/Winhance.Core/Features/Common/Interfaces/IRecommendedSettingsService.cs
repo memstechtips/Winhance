@@ -8,7 +8,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 /// Service interface for querying recommended settings across all domains.
 /// Provides a universal way to retrieve RecommendedValue settings for any domain.
 /// </summary>
-public interface IRecommendedSettingsService : IDomainService
+public interface IRecommendedSettingsService
 {
     /// <summary>
     /// Gets all recommended settings for the domain of the specified setting that are compatible with the current OS.

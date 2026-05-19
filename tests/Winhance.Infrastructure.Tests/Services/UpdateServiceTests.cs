@@ -11,7 +11,6 @@ public class UpdateServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IWindowsRegistryService> _mockRegistryService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -22,97 +21,10 @@ public class UpdateServiceTests
         _service = new UpdateService(
             _mockLogService.Object,
             _mockRegistryService.Object,
-            _mockCompatibleSettingsRegistry.Object,
             _mockProcessExecutor.Object,
             _mockPowerShellRunner.Object,
             _mockFileSystemService.Object);
     }
-
-    #region DomainName
-
-    [Fact]
-    public void DomainName_ReturnsUpdate()
-    {
-        _service.DomainName.Should().Be("Update");
-    }
-
-    #endregion
-
-    #region GetSettingsAsync
-
-    [Fact]
-    public async Task GetSettingsAsync_ReturnsSettingsFromRegistry()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            new SettingDefinition
-            {
-                Id = "updates-policy-mode",
-                Name = "Windows Update Policy",
-                Description = "Control Windows Update behavior"
-            }
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Update"))
-            .Returns(settings);
-
-        // Act
-        var result = await _service.GetSettingsAsync();
-
-        // Assert
-        result.Should().BeSameAs(settings);
-        result.Should().HaveCount(1);
-    }
-
-    [Fact]
-    public async Task GetSettingsAsync_WhenRegistryThrows_ReturnsEmptyAndLogs()
-    {
-        // Arrange
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Update"))
-            .Throws(new InvalidOperationException("Update registry failure"));
-
-        // Act
-        var result = await _service.GetSettingsAsync();
-
-        // Assert
-        result.Should().BeEmpty();
-        _mockLogService.Verify(
-            l => l.Log(
-                Core.Features.Common.Enums.LogLevel.Error,
-                It.Is<string>(s => s.Contains("Update") && s.Contains("Update registry failure"))),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task GetSettingsAsync_CalledTwice_ReturnsSameReference()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            new SettingDefinition
-            {
-                Id = "updates-policy-mode",
-                Name = "Policy Mode",
-                Description = "Test"
-            }
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Update"))
-            .Returns(settings);
-
-        // Act
-        var result1 = await _service.GetSettingsAsync();
-        var result2 = await _service.GetSettingsAsync();
-
-        // Assert
-        result1.Should().BeSameAs(result2);
-    }
-
-    #endregion
 
     #region TryApplySpecialSettingAsync
 

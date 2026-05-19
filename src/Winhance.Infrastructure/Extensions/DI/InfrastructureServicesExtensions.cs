@@ -84,9 +84,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
-        // Domain Service Router
-        services.AddSingleton<IDomainServiceRouter, DomainServiceRouter>();
-
         // ComboBox Services
         services.AddSingleton<IComboBoxSetupService, ComboBoxSetupService>();
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();

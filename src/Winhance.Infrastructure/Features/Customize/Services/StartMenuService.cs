@@ -18,54 +18,11 @@ namespace Winhance.Infrastructure.Features.Customize.Services;
 public class StartMenuService(
     IScheduledTaskService scheduledTaskService,
     ILogService logService,
-    ICompatibleSettingsRegistry compatibleSettingsRegistry,
     IInteractiveUserService interactiveUserService,
     IProcessExecutor processExecutor,
     IFileSystemService fileSystemService,
-    IWindowsRegistryService windowsRegistryService) : IDomainService, IActionCommandProvider
+    IWindowsRegistryService windowsRegistryService) : IActionCommandProvider
 {
-    // Caching fields
-    private volatile IEnumerable<SettingDefinition>? _cachedSettings;
-    private readonly object _cacheLock = new object();
-
-    public string DomainName => FeatureIds.StartMenu;
-
-    public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
-    {
-        // Return cached settings if available
-        if (_cachedSettings != null)
-            return _cachedSettings;
-
-        lock (_cacheLock)
-        {
-            // Double-check locking pattern
-            if (_cachedSettings != null)
-                return _cachedSettings;
-
-            try
-            {
-                logService.Log(LogLevel.Info, "Loading Start Menu settings");
-
-                _cachedSettings = compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.StartMenu);
-                return _cachedSettings;
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Error, $"Error loading Start Menu settings: {ex.Message}");
-                return Enumerable.Empty<SettingDefinition>();
-            }
-        }
-    }
-
-    public void InvalidateCache()
-    {
-        lock (_cacheLock)
-        {
-            _cachedSettings = null;
-            logService.Log(LogLevel.Debug, "Start Menu settings cache cleared");
-        }
-    }
-
     public async Task CleanWindows10StartMenuAsync()
     {
         try
