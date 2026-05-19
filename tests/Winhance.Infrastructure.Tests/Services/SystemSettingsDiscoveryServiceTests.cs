@@ -15,18 +15,22 @@ public class SystemSettingsDiscoveryServiceTests
     private readonly Mock<IWindowsRegistryService> _mockRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerQuery = new();
-    private readonly Mock<IDomainServiceRouter> _mockDomainRouter = new();
+    private readonly Mock<ISpecialDiscoveryRegistry> _mockDiscoveryRegistry = new();
     private readonly Mock<IScheduledTaskService> _mockScheduledTask = new();
     private readonly Mock<ISystemRestoreService> _mockSystemRestore = new();
     private readonly SystemSettingsDiscoveryService _service;
 
     public SystemSettingsDiscoveryServiceTests()
     {
+        // Default: no discovery handlers registered. Tests that need handler
+        // behaviour can override _mockDiscoveryRegistry.Setup(r => r.All) locally.
+        _mockDiscoveryRegistry.Setup(r => r.All).Returns(Array.Empty<ISpecialSettingHandler>());
+
         _service = new SystemSettingsDiscoveryService(
             _mockRegistry.Object,
             _mockLog.Object,
             _mockPowerQuery.Object,
-            _mockDomainRouter.Object,
+            _mockDiscoveryRegistry.Object,
             _mockScheduledTask.Object,
             _mockSystemRestore.Object);
     }
@@ -129,10 +133,6 @@ public class SystemSettingsDiscoveryServiceTests
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 1 },
             });
-
-        // Need to set up the domain service router for Selection input type settings
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.DomainName).Returns("TestDomain");
 
         var result = await _service.GetRawSettingsValuesAsync(new[] { setting });
 

@@ -14,17 +14,21 @@ public class SystemSettingsDiscoveryServiceSystemRestoreDetectionTests
     private readonly Mock<IWindowsRegistryService> _registry = new();
     private readonly Mock<ILogService> _log = new();
     private readonly Mock<IPowerSettingsQueryService> _powerQuery = new();
-    private readonly Mock<IDomainServiceRouter> _domainRouter = new();
+    private readonly Mock<ISpecialDiscoveryRegistry> _discoveryRegistry = new();
     private readonly Mock<IScheduledTaskService> _scheduledTask = new();
     private readonly Mock<ISystemRestoreService> _systemRestore = new();
 
-    private SystemSettingsDiscoveryService NewService() => new(
-        _registry.Object,
-        _log.Object,
-        _powerQuery.Object,
-        _domainRouter.Object,
-        _scheduledTask.Object,
-        _systemRestore.Object);
+    private SystemSettingsDiscoveryService NewService()
+    {
+        _discoveryRegistry.Setup(r => r.All).Returns(Array.Empty<ISpecialSettingHandler>());
+        return new SystemSettingsDiscoveryService(
+            _registry.Object,
+            _log.Object,
+            _powerQuery.Object,
+            _discoveryRegistry.Object,
+            _scheduledTask.Object,
+            _systemRestore.Object);
+    }
 
     private static SettingDefinition Setting(string id) => new()
     {

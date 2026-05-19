@@ -51,12 +51,14 @@ public static class DomainServicesExtensions
                 [SettingIds.StartMenuCleanWin11]  = sp.GetRequiredService<StartMenuService>(),
             }));
 
+        // WindowsThemeService does not override DiscoverSpecialSettingsAsync, so it
+        // has nothing to contribute to the discovery loop — only handlers that
+        // actually self-filter and return raw values belong here.
         services.AddSingleton<ISpecialDiscoveryRegistry>(sp =>
             new SpecialDiscoveryRegistry(new List<ISpecialSettingHandler>
             {
                 sp.GetRequiredService<PowerService>(),
                 sp.GetRequiredService<UpdateService>(),
-                sp.GetRequiredService<WindowsThemeService>(),
             }));
 
         return services;

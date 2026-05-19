@@ -16,7 +16,7 @@ public class SystemSettingsDiscoveryService(
     IWindowsRegistryService registryService,
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
-    IDomainServiceRouter domainServiceRouter,
+    ISpecialDiscoveryRegistry specialDiscoveryRegistry,
     IScheduledTaskService scheduledTaskService,
     ISystemRestoreService systemRestoreService) : ISystemSettingsDiscoveryService
 {
@@ -246,19 +246,15 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        var settingsByDomain = settingsList
-            .Where(s => s.InputType == InputType.Selection)
-            .GroupBy(s => domainServiceRouter.GetDomainService(s.Id).DomainName);
+        var selectionSettings = settingsList.Where(s => s.InputType == InputType.Selection).ToList();
 
-        foreach (var group in settingsByDomain)
+        int handlersInvoked = 0;
+        foreach (var handler in specialDiscoveryRegistry.All)
         {
+            handlersInvoked++;
             try
             {
-                var domainService = domainServiceRouter.GetDomainService(group.First().Id);
-                if (domainService is not ISpecialSettingHandler specialHandler)
-                    continue;
-
-                var discoveredValues = await specialHandler.DiscoverSpecialSettingsAsync(group).ConfigureAwait(false);
+                var discoveredValues = await handler.DiscoverSpecialSettingsAsync(selectionSettings).ConfigureAwait(false);
 
                 foreach (var (settingId, values) in discoveredValues)
                 {
@@ -270,12 +266,13 @@ public class SystemSettingsDiscoveryService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"Exception discovering special settings for domain '{group.Key}': {ex.Message}");
+                logService.Log(LogLevel.Warning,
+                    $"Exception discovering special settings via handler '{handler.GetType().Name}': {ex.Message}");
             }
         }
 
         var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
-        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), SystemRestore({systemRestoreSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
+        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), SystemRestore({systemRestoreSettings.Count}), DomainSpecial({handlersInvoked} handlers)");
         return (results, batchedRegistryValues);
     }
 
