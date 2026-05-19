@@ -657,9 +657,24 @@ public class AppIconResolver : IAppIconResolver
 
         await WriteBytesAtomicAsync(cachePath, primaryBytes, ct).ConfigureAwait(false);
 
-        var (lightBytes, darkBytes) = await LightVariantSynthesizer
-            .TryGenerateAsync(primaryBytes, ct)
-            .ConfigureAwait(false);
+        // Variant synthesis is best-effort: the primary is already on disk
+        // and IconPath will still resolve. Any WinRT failure inside the
+        // synthesizer lands here with a logged warning so it shows up in
+        // %ProgramData%\Winhance\Logs instead of silently dropping the
+        // light/dark companions.
+        byte[]? lightBytes = null;
+        byte[]? darkBytes = null;
+        try
+        {
+            (lightBytes, darkBytes) = await LightVariantSynthesizer
+                .TryGenerateAsync(primaryBytes, ct)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning(
+                $"Light/dark variant synthesis failed for {Path.GetFileName(cachePath)}: {ex.Message}");
+        }
 
         if (lightBytes is not null)
             await WriteBytesAtomicAsync(LightVariantPath(cachePath), lightBytes, ct).ConfigureAwait(false);

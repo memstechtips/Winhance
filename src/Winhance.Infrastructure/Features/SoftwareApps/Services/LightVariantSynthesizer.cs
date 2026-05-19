@@ -51,7 +51,12 @@ public static class LightVariantSynthesizer
     /// Returns the synthesized light-mode and dark-mode variants for the
     /// given primary icon bytes. Each may be <c>null</c> independently. Both
     /// <c>null</c> means no variant should be written (colored icon, mid-grey,
-    /// or decode error). Errors during decode/encode produce <c>(null, null)</c>.
+    /// or fully-transparent input). Exceptions propagate to the caller —
+    /// <see cref="AppIconResolver"/>'s WriteStreamToCacheAsync wraps the call
+    /// in its own try/catch with a warning log so a synthesizer failure
+    /// produces a debuggable log entry rather than silently dropping both
+    /// variants (the previous catch swallowed WinRT errors during the second
+    /// encode for mono-dark icons, hiding the root cause).
     /// </summary>
     public static async Task<(byte[]? LightVariant, byte[]? DarkVariant)> TryGenerateAsync(
         byte[] primaryBytes,
@@ -60,54 +65,51 @@ public static class LightVariantSynthesizer
         if (primaryBytes is null || primaryBytes.Length == 0)
             return (null, null);
 
-        try
+        // Decode once. Read pixels into a managed byte[] so each variant can
+        // operate on its own private copy — no shared SoftwareBitmap, no
+        // shared pixel buffer, no cross-encode lifecycle questions.
+        int width;
+        int height;
+        byte[] sourcePixels;
         {
             using var inStream = new InMemoryRandomAccessStream();
             await inStream.WriteAsync(primaryBytes.AsBuffer());
             inStream.Seek(0);
 
             var decoder = await BitmapDecoder.CreateAsync(inStream);
-
             var sw = await decoder.GetSoftwareBitmapAsync(
                 BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight);
 
-            int width = (int)sw.PixelWidth;
-            int height = (int)sw.PixelHeight;
+            width = (int)sw.PixelWidth;
+            height = (int)sw.PixelHeight;
             if (width <= 0 || height <= 0) return (null, null);
 
             var buffer = new Windows.Storage.Streams.Buffer((uint)(width * height * 4));
             sw.CopyToBuffer(buffer);
-            var pixels = buffer.ToArray();
-
-            var classification = Classify(pixels);
-            if (classification == MonochromeClass.NotMonochrome)
-                return (null, null);
-
-            byte[]? lightVariant = null;
-            byte[]? darkVariant = null;
-
-            // Light-mode variant: any monochrome icon gets a uniform dark
-            // recolor for the light-card background. (Mono-light primary
-            // already needs this; mono-dark primary needs it too because
-            // its source tone reads as faded against the light card.)
-            lightVariant = await RecolorAndEncodeAsync(sw, pixels, LightVariantTargetColor, ct)
-                .ConfigureAwait(false);
-
-            // Dark-mode variant: only mono-dark sources need this. Mono-light
-            // primary (e.g. plain white) renders correctly against the dark
-            // card unchanged, so we skip the extra cache file.
-            if (classification == MonochromeClass.MonochromeDark)
-            {
-                darkVariant = await RecolorAndEncodeAsync(sw, pixels, DarkVariantTargetColor, ct)
-                    .ConfigureAwait(false);
-            }
-
-            return (lightVariant, darkVariant);
+            sourcePixels = buffer.ToArray();
         }
-        catch
-        {
+
+        var classification = Classify(sourcePixels);
+        if (classification == MonochromeClass.NotMonochrome)
             return (null, null);
+
+        // Light-mode variant: any monochrome icon gets a uniform dark recolor
+        // for the light card. (Mono-light primary needs this; mono-dark primary
+        // needs it too because its source tone reads as faded against light.)
+        var lightVariant = await EncodeRecoloredAsync(
+            sourcePixels, width, height, LightVariantTargetColor, ct).ConfigureAwait(false);
+
+        // Dark-mode variant: only mono-dark sources need this. Mono-light
+        // primary (e.g. plain white) renders correctly against the dark card
+        // unchanged, so we skip the extra cache file.
+        byte[]? darkVariant = null;
+        if (classification == MonochromeClass.MonochromeDark)
+        {
+            darkVariant = await EncodeRecoloredAsync(
+                sourcePixels, width, height, DarkVariantTargetColor, ct).ConfigureAwait(false);
         }
+
+        return (lightVariant, darkVariant);
     }
 
     private enum MonochromeClass { NotMonochrome, MonochromeLight, MonochromeDark }
@@ -152,17 +154,29 @@ public static class LightVariantSynthesizer
     }
 
     /// <summary>
-    /// Produces re-encoded PNG bytes with opaque pixels recolored to the
-    /// given target. The input pixel buffer is mutated; the SoftwareBitmap
-    /// is reused as the encoder source. Callers requesting multiple recolors
-    /// from the same source must call this sequentially (the buffer is shared
-    /// state); for the two variants we generate, that's already the order:
-    /// light first (mutates buffer to #1F1F1F), then dark (overwrites to #FFFFFF).
+    /// Produces re-encoded PNG bytes for one variant. Each call gets its own
+    /// pixel buffer copy and its own <see cref="SoftwareBitmap"/> — no state
+    /// is shared with any other variant produced from the same source. This
+    /// avoids the lifecycle hazard we hit before: after the first encoder
+    /// flush, reusing the same SoftwareBitmap with a new
+    /// <see cref="SoftwareBitmap.CopyFromBuffer"/> would silently fail for
+    /// some inputs (notably mono-dark Xbox Game Bar at 111×114 — the second
+    /// encode threw inside WinRT and the synthesizer's catch dropped both
+    /// variants).
     /// </summary>
-    private static async Task<byte[]?> RecolorAndEncodeAsync(
-        SoftwareBitmap sw, byte[] pixels, (byte R, byte G, byte B) target, CancellationToken ct)
+    private static async Task<byte[]> EncodeRecoloredAsync(
+        byte[] sourcePixels,
+        int width,
+        int height,
+        (byte R, byte G, byte B) target,
+        CancellationToken ct)
     {
+        var pixels = new byte[sourcePixels.Length];
+        Array.Copy(sourcePixels, pixels, sourcePixels.Length);
         RecolorOpaquePixels(pixels, target);
+
+        using var sw = new SoftwareBitmap(
+            BitmapPixelFormat.Bgra8, width, height, BitmapAlphaMode.Straight);
         sw.CopyFromBuffer(pixels.AsBuffer());
 
         using var outStream = new InMemoryRandomAccessStream();
