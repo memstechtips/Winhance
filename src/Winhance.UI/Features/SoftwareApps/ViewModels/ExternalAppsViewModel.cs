@@ -27,6 +27,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IThemeService _themeService;
     private readonly IAppIconResolver? _iconResolver;
 
     public ExternalAppsViewModel(
@@ -36,6 +37,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         IDialogService dialogService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
+        IThemeService themeService,
         IAppIconResolver? iconResolver = null)
     {
         _externalAppsService = externalAppsService;
@@ -44,6 +46,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         _dialogService = dialogService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+        _themeService = themeService;
         _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
@@ -264,7 +267,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             var viewModel = new AppItemViewModel(
                 definition,
                 _localizationService,
-                _dispatcherService);
+                _dispatcherService,
+                _themeService);
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }

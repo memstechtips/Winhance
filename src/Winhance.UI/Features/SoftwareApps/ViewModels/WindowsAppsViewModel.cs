@@ -28,6 +28,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IThemeService _themeService;
     private readonly IAppIconResolver? _iconResolver;
 
     public WindowsAppsViewModel(
@@ -39,6 +40,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         IDialogService dialogService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
+        IThemeService themeService,
         IAppIconResolver? iconResolver = null)
     {
         _windowsAppsService = windowsAppsService;
@@ -49,6 +51,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         _dialogService = dialogService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+        _themeService = themeService;
         _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
@@ -261,7 +264,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             var viewModel = new AppItemViewModel(
                 definition,
                 _localizationService,
-                _dispatcherService);
+                _dispatcherService,
+                _themeService);
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }

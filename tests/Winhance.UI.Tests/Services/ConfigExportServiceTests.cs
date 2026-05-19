@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -26,6 +27,7 @@ public class ConfigExportServiceTests
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
+    private readonly Mock<IThemeService> _mockThemeService = new();
 
     public ConfigExportServiceTests()
     {
@@ -40,6 +42,10 @@ public class ConfigExportServiceTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] args) => string.Format(key, args));
+
+        _mockThemeService
+            .Setup(t => t.GetEffectiveTheme())
+            .Returns(ElementTheme.Dark);
     }
 
     private ConfigExportService CreateService()
@@ -302,7 +308,8 @@ public class ConfigExportServiceTests
         var vm = new AppItemViewModel(
             definition,
             _mockLocalizationService.Object,
-            _mockDispatcher.Object);
+            _mockDispatcher.Object,
+            _mockThemeService.Object);
 
         vm.IsSelected = isSelected;
         return vm;

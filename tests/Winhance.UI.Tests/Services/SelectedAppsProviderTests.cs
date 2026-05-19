@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using FluentAssertions;
+using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -22,6 +23,7 @@ public class SelectedAppsProviderTests : IDisposable
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
+    private readonly Mock<IThemeService> _mockThemeService = new();
 
     private WindowsAppsViewModel? _windowsAppsVm;
 
@@ -38,6 +40,10 @@ public class SelectedAppsProviderTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockThemeService
+            .Setup(t => t.GetEffectiveTheme())
+            .Returns(ElementTheme.Dark);
     }
 
     public void Dispose()
@@ -55,7 +61,8 @@ public class SelectedAppsProviderTests : IDisposable
             _mockLogService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
-            _mockDispatcherService.Object);
+            _mockDispatcherService.Object,
+            _mockThemeService.Object);
         return _windowsAppsVm;
     }
 
@@ -85,7 +92,8 @@ public class SelectedAppsProviderTests : IDisposable
         var vm = new AppItemViewModel(
             definition,
             _mockLocalizationService.Object,
-            _mockDispatcherService.Object);
+            _mockDispatcherService.Object,
+            _mockThemeService.Object);
 
         vm.IsSelected = isSelected;
         return vm;
@@ -396,7 +404,8 @@ public class SelectedAppsProviderTests : IDisposable
         var appVm = new AppItemViewModel(
             definition,
             _mockLocalizationService.Object,
-            _mockDispatcherService.Object);
+            _mockDispatcherService.Object,
+            _mockThemeService.Object);
         appVm.IsSelected = true;
         vm.Items.Add(appVm);
 

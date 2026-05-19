@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -30,6 +31,8 @@ public class NavBadgeServiceTests : IDisposable
         mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => key);
         var mockDispatcherService = new Mock<IDispatcherService>();
         mockDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>())).Callback<Action>(a => a());
+        var mockThemeService = new Mock<IThemeService>();
+        mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
 
         _windowsAppsVm = new WindowsAppsViewModel(
             mockWindowsAppsService.Object,
@@ -39,7 +42,8 @@ public class NavBadgeServiceTests : IDisposable
             mockLogService.Object,
             mockDialogService.Object,
             mockLocalizationService.Object,
-            mockDispatcherService.Object);
+            mockDispatcherService.Object,
+            mockThemeService.Object);
 
         var mockExternalAppsService = new Mock<IExternalAppsService>();
 
@@ -49,7 +53,8 @@ public class NavBadgeServiceTests : IDisposable
             mockLogService.Object,
             mockDialogService.Object,
             mockLocalizationService.Object,
-            mockDispatcherService.Object);
+            mockDispatcherService.Object,
+            mockThemeService.Object);
 
         _sut = new NavBadgeService(
             _mockModeService.Object,
