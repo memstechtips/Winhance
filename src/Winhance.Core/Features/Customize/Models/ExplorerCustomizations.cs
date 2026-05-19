@@ -1858,13 +1858,33 @@ if (Test-Path $appPathsKey) {
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
-                            ValueName = null,
-                            RecommendedValue = null,
-                            EnabledValue = [null],
-                            DisabledValue = null,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            ValueName = "System.IsPinnedToNameSpaceTree",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -1882,13 +1902,33 @@ if (Test-Path $appPathsKey) {
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
-                            ValueName = null,
-                            RecommendedValue = null,
-                            EnabledValue = [null],
-                            DisabledValue = null,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            ValueName = "System.IsPinnedToNameSpaceTree",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
