@@ -12,7 +12,6 @@ namespace Winhance.UI.Tests.Services;
 public class SettingLocalizationServiceTests
 {
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IDomainServiceRouter> _domainServiceRouter = new();
     private readonly Mock<ICompatibleSettingsRegistry> _compatibleSettingsRegistry = new();
 
     public SettingLocalizationServiceTests()
@@ -24,7 +23,6 @@ public class SettingLocalizationServiceTests
 
     private SettingLocalizationService CreateSut() => new(
         _localizationService.Object,
-        _domainServiceRouter.Object,
         _compatibleSettingsRegistry.Object);
 
     private SettingDefinition CreateTestSetting(
@@ -485,10 +483,8 @@ public class SettingLocalizationServiceTests
             ["privacy-child1"] = "Setting_Child1_Name"
         };
 
-        var mockDomainService = new Mock<IDomainService>();
-        mockDomainService.Setup(d => d.DomainName).Returns("Privacy");
-        _domainServiceRouter.Setup(r => r.GetDomainService("privacy-child1"))
-            .Returns(mockDomainService.Object);
+        _compatibleSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("privacy-child1"))
+            .Returns("Privacy");
 
         var childSetting = new SettingDefinition
         {
@@ -520,15 +516,15 @@ public class SettingLocalizationServiceTests
     }
 
     [Fact]
-    public void BuildCrossGroupInfoMessage_WhenDomainServiceThrows_SkipsSetting()
+    public void BuildCrossGroupInfoMessage_WhenFeatureIdNotFound_SkipsSetting()
     {
         var crossGroupSettings = new Dictionary<string, string>
         {
             ["unknown-child1"] = "Setting_Unknown_Name"
         };
 
-        _domainServiceRouter.Setup(r => r.GetDomainService("unknown-child1"))
-            .Throws(new InvalidOperationException("Unknown setting"));
+        _compatibleSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("unknown-child1"))
+            .Returns((string?)null);
 
         var sut = CreateSut();
         var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);

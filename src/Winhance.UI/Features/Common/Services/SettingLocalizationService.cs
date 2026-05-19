@@ -10,16 +10,13 @@ namespace Winhance.UI.Features.Common.Services;
 public class SettingLocalizationService : ISettingLocalizationService
 {
     private readonly ILocalizationService _localization;
-    private readonly IDomainServiceRouter _domainServiceRouter;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
 
     public SettingLocalizationService(
         ILocalizationService localization,
-        IDomainServiceRouter domainServiceRouter,
         ICompatibleSettingsRegistry compatibleSettingsRegistry)
     {
         _localization = localization;
-        _domainServiceRouter = domainServiceRouter;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
     }
 
@@ -228,8 +225,10 @@ public class SettingLocalizationService : ISettingLocalizationService
         {
             try
             {
-                var domainService = _domainServiceRouter.GetDomainService(childSettingId);
-                var filteredSettings = _compatibleSettingsRegistry.GetFilteredSettings(domainService.DomainName);
+                var featureId = _compatibleSettingsRegistry.GetFeatureIdForSetting(childSettingId);
+                if (featureId == null) continue;
+
+                var filteredSettings = _compatibleSettingsRegistry.GetFilteredSettings(featureId);
                 var childSetting = filteredSettings.FirstOrDefault(s => s.Id == childSettingId);
 
                 if (childSetting == null) continue;
