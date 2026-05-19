@@ -40,7 +40,7 @@ public static class DomainServicesExtensions
             {
                 [SettingIds.PowerPlanSelection] = sp.GetRequiredService<PowerService>(),
                 [SettingIds.UpdatesPolicyMode]  = sp.GetRequiredService<UpdateService>(),
-                [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<WindowsThemeService>(),
+                [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<ThemeWallpaperApplier>(),
             }));
 
         services.AddSingleton<IActionCommandRegistry>(sp =>
@@ -75,6 +75,11 @@ public static class DomainServicesExtensions
         // Register WindowsThemeService
         services.AddSingleton<WindowsThemeService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<WindowsThemeService>());
+
+        // Register ThemeWallpaperApplier (replaces WindowsThemeService in the
+        // special-handler dispatcher; the explorer refresh is now declarative
+        // via SettingDefinition.RestartProcess).
+        services.AddSingleton<ThemeWallpaperApplier>();
 
         // Register StartMenuService
         services.AddSingleton<StartMenuService>();
