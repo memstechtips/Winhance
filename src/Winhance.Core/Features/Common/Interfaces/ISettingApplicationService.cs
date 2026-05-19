@@ -6,5 +6,5 @@ namespace Winhance.Core.Features.Common.Interfaces;
 public interface ISettingApplicationService
 {
     Task<OperationResult> ApplySettingAsync(ApplySettingRequest request);
-    Task ApplyRecommendedSettingsForDomainAsync(string settingId);
+    Task ApplyRecommendedSettingsForFeatureAsync(string settingId);
 }

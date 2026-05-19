@@ -919,7 +919,7 @@ public class PowerService(
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
             logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-            await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(SettingIds.PowerPlanSelection).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection).ConfigureAwait(false);
             logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
         }
         catch (Exception ex)

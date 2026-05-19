@@ -158,8 +158,8 @@ public class SettingApplicationService(
         return OperationResult.Succeeded();
     }
 
-    public Task ApplyRecommendedSettingsForDomainAsync(string settingId) =>
-        recommendedSettingsApplier.ApplyRecommendedSettingsForDomainAsync(settingId, this);
+    public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
+        recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
 
     private async Task ExecuteActionCommand(IActionCommandProvider commandProvider, SettingDefinition setting, string commandString, bool applyRecommended, string settingId)
     {
@@ -175,7 +175,7 @@ public class SettingApplicationService(
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for feature containing '{settingId}'");
             try
             {
-                await ApplyRecommendedSettingsForDomainAsync(settingId).ConfigureAwait(false);
+                await ApplyRecommendedSettingsForFeatureAsync(settingId).ConfigureAwait(false);
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
             }
             catch (Exception ex)

@@ -12,7 +12,7 @@ public class RecommendedSettingsApplier(
     IRecommendedSettingsService recommendedSettingsService,
     ILogService logService) : IRecommendedSettingsApplier
 {
-    public async Task ApplyRecommendedSettingsForDomainAsync(string settingId, ISettingApplicationService settingApplicationService)
+    public async Task ApplyRecommendedSettingsForFeatureAsync(string settingId, ISettingApplicationService settingApplicationService)
     {
         try
         {

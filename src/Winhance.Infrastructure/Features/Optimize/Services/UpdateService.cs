@@ -90,7 +90,7 @@ public class UpdateService(
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -110,7 +110,7 @@ public class UpdateService(
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

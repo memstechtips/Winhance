@@ -191,11 +191,11 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task ApplyRecommendedSettingsForDomainAsync_DelegatesToApplier()
+    public async Task ApplyRecommendedSettingsForFeatureAsync_DelegatesToApplier()
     {
-        await _service.ApplyRecommendedSettingsForDomainAsync("test-id");
+        await _service.ApplyRecommendedSettingsForFeatureAsync("test-id");
 
-        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForDomainAsync(
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             "test-id", _service), Times.Once);
     }
 
