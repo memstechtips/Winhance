@@ -321,6 +321,26 @@ public class CompatibleSettingsRegistryTests
         _sut.GetFeatureIdForSetting("does-not-exist").Should().BeNull();
     }
 
+    [Fact]
+    public async Task GetById_NullSettingId_ThrowsArgumentNullException()
+    {
+        // Must be initialized first so we exercise the null-guard rather than the not-init throw.
+        await _sut.InitializeAsync();
+
+        Action act = () => _sut.GetById(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task GetFeatureIdForSetting_NullSettingId_ThrowsArgumentNullException()
+    {
+        // Must be initialized first so we exercise the null-guard rather than the not-init throw.
+        await _sut.InitializeAsync();
+
+        Action act = () => _sut.GetFeatureIdForSetting(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
     private static SettingDefinition CreateSetting(string id, string name)
     {
         return new SettingDefinition

@@ -69,7 +69,9 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
     public SettingDefinition? GetById(string settingId)
     {
         if (!_isInitialized)
-            throw new InvalidOperationException("Registry not initialized");
+            throw new InvalidOperationException("Registry not initialized. Call InitializeAsync first.");
+
+        ArgumentNullException.ThrowIfNull(settingId);
 
         var index = _filterEnabled ? _filteredById : _bypassedById;
         return index.TryGetValue(settingId, out var s) ? s : null;
@@ -78,7 +80,9 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
     public string? GetFeatureIdForSetting(string settingId)
     {
         if (!_isInitialized)
-            throw new InvalidOperationException("Registry not initialized");
+            throw new InvalidOperationException("Registry not initialized. Call InitializeAsync first.");
+
+        ArgumentNullException.ThrowIfNull(settingId);
 
         var index = _filterEnabled ? _filteredSettingIdToFeatureId : _bypassedSettingIdToFeatureId;
         return index.TryGetValue(settingId, out var f) ? f : null;
@@ -144,6 +148,11 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
         {
             foreach (var s in settings)
             {
+                if (_filteredSettingIdToFeatureId.TryGetValue(s.Id, out var prevFeature))
+                {
+                    _logService.Log(LogLevel.Warning,
+                        $"Duplicate setting id '{s.Id}' — previously registered under feature '{prevFeature}', now overwritten by '{featureId}'");
+                }
                 _filteredById[s.Id] = s;
                 _filteredSettingIdToFeatureId[s.Id] = featureId;
             }
@@ -155,6 +164,11 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
         {
             foreach (var s in settings)
             {
+                if (_bypassedSettingIdToFeatureId.TryGetValue(s.Id, out var prevFeature))
+                {
+                    _logService.Log(LogLevel.Warning,
+                        $"Duplicate setting id '{s.Id}' — previously registered under feature '{prevFeature}', now overwritten by '{featureId}' (bypassed)");
+                }
                 _bypassedById[s.Id] = s;
                 _bypassedSettingIdToFeatureId[s.Id] = featureId;
             }
