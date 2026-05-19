@@ -133,7 +133,7 @@ public static class InfrastructureServicesExtensions
         // Recommended Settings Service
         services.AddSingleton<IRecommendedSettingsService>(provider =>
             new RecommendedSettingsService(
-                provider.GetRequiredService<IDomainServiceRouter>(),
+                provider.GetRequiredService<ICompatibleSettingsRegistry>(),
                 provider.GetRequiredService<IWindowsVersionService>(),
                 provider.GetRequiredService<ILogService>()));
 

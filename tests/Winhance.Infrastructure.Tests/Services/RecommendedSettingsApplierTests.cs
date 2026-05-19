@@ -14,7 +14,7 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class RecommendedSettingsApplierTests
 {
-    private readonly Mock<IDomainServiceRouter> _mockRouter = new();
+    private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IRecommendedSettingsService> _mockRecommendedService = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
@@ -23,7 +23,7 @@ public class RecommendedSettingsApplierTests
     public RecommendedSettingsApplierTests()
     {
         _applier = new RecommendedSettingsApplier(
-            _mockRouter.Object,
+            _mockRegistry.Object,
             _mockRecommendedService.Object,
             _mockLog.Object);
     }
@@ -90,11 +90,9 @@ public class RecommendedSettingsApplierTests
         };
     }
 
-    private void SetupDomainService(string settingId, string domainName = "TestDomain")
+    private void SetupFeatureLookup(string settingId, string featureId = "TestFeature")
     {
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.DomainName).Returns(domainName);
-        _mockRouter.Setup(r => r.GetDomainService(settingId)).Returns(mockDomain.Object);
+        _mockRegistry.Setup(r => r.GetFeatureIdForSetting(settingId)).Returns(featureId);
     }
 
     // ---------------------------------------------------------------
@@ -108,7 +106,7 @@ public class RecommendedSettingsApplierTests
         // the returned setting has a different Id to avoid self-exclusion
         const string callerId = "caller-setting";
         const string targetId = "toggle-setting";
-        SetupDomainService(callerId);
+        SetupFeatureLookup(callerId);
 
         var setting = CreateToggleSetting(targetId, recommendedValue: 1, enabledValue: [1]);
         _mockRecommendedService
@@ -137,7 +135,7 @@ public class RecommendedSettingsApplierTests
         // Arrange: RecommendedValue = 0, EnabledValue = [1] => enableValue = false
         const string callerId = "caller-disable";
         const string targetId = "toggle-disable";
-        SetupDomainService(callerId);
+        SetupFeatureLookup(callerId);
 
         var setting = CreateToggleSetting(targetId, recommendedValue: 0, enabledValue: [1]);
         _mockRecommendedService
@@ -165,7 +163,7 @@ public class RecommendedSettingsApplierTests
     {
         // Arrange
         const string settingId = "first-setting";
-        SetupDomainService(settingId);
+        SetupFeatureLookup(settingId);
 
         var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1, enabledValue: [1]);
         var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0, enabledValue: [1]);
@@ -201,7 +199,7 @@ public class RecommendedSettingsApplierTests
         // Arrange
         const string callerId = "caller-selection";
         const string targetId = "selection-setting";
-        SetupDomainService(callerId);
+        SetupFeatureLookup(callerId);
 
         // ComboBoxOptions are ordered alphabetically by key: "High"=3, "Low"=1, "Medium"=2
         // Sorted order: High(0), Low(1), Medium(2)
@@ -242,7 +240,7 @@ public class RecommendedSettingsApplierTests
         // to the else branch using recommendedValue directly.
         const string callerId = "caller-fallback";
         const string targetId = "selection-fallback";
-        SetupDomainService(callerId);
+        SetupFeatureLookup(callerId);
 
         var setting = new SettingDefinition
         {
@@ -293,7 +291,7 @@ public class RecommendedSettingsApplierTests
     {
         // Arrange
         const string settingId = "no-recommended";
-        SetupDomainService(settingId);
+        SetupFeatureLookup(settingId);
 
         _mockRecommendedService
             .Setup(s => s.GetRecommendedSettingsAsync(settingId))
@@ -313,7 +311,7 @@ public class RecommendedSettingsApplierTests
     {
         // Arrange
         const string settingId = "empty-domain";
-        SetupDomainService(settingId, "EmptyDomain");
+        SetupFeatureLookup(settingId, "EmptyFeature");
 
         _mockRecommendedService
             .Setup(s => s.GetRecommendedSettingsAsync(settingId))
@@ -330,23 +328,23 @@ public class RecommendedSettingsApplierTests
     }
 
     // ---------------------------------------------------------------
-    // Test Case 4: Domain service not found - handles gracefully
+    // Test Case 4: Unknown setting (no feature mapping) - throws and logs
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplyRecommendedSettingsForDomainAsync_DomainServiceNotFound_ThrowsAndLogs()
+    public async Task ApplyRecommendedSettingsForDomainAsync_UnknownSetting_ThrowsAndLogs()
     {
-        // Arrange: Router throws when domain is not found
-        const string settingId = "unknown-domain";
-        _mockRouter
-            .Setup(r => r.GetDomainService(settingId))
-            .Throws(new ArgumentException($"No domain service found for '{settingId}'"));
+        // Arrange: Registry returns null feature id for an unmapped setting
+        const string settingId = "unknown-setting";
+        _mockRegistry
+            .Setup(r => r.GetFeatureIdForSetting(settingId))
+            .Returns((string?)null);
 
         // Act
         var action = () => _applier.ApplyRecommendedSettingsForDomainAsync(settingId, _mockAppService.Object);
 
         // Assert: The outer catch re-throws after logging
-        await action.Should().ThrowAsync<ArgumentException>()
+        await action.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage($"*{settingId}*");
 
         _mockLog.Verify(l => l.Log(
@@ -360,7 +358,7 @@ public class RecommendedSettingsApplierTests
     {
         // Arrange: Two settings, first one fails during ApplySetting
         const string settingId = "partial-fail";
-        SetupDomainService(settingId);
+        SetupFeatureLookup(settingId);
 
         var setting1 = CreateToggleSetting("fail-setting", recommendedValue: 1, enabledValue: [1]);
         var setting2 = CreateToggleSetting("succeed-setting", recommendedValue: 1, enabledValue: [1]);
@@ -398,7 +396,7 @@ public class RecommendedSettingsApplierTests
         // Arrange: A setting with a non-Toggle, non-Selection input type (e.g., NumericRange)
         const string callerId = "caller-numeric";
         const string targetId = "numeric-setting";
-        SetupDomainService(callerId);
+        SetupFeatureLookup(callerId);
 
         var setting = new SettingDefinition
         {
@@ -449,7 +447,7 @@ public class RecommendedSettingsApplierTests
         // Arrange: Simulate the updates-policy-mode scenario where the calling setting
         // appears in its own domain's recommended settings list
         const string settingId = "updates-policy-mode";
-        SetupDomainService(settingId, "Update");
+        SetupFeatureLookup(settingId, "update");
 
         var selfSetting = CreateSelectionSetting(settingId, "Paused", new Dictionary<string, int>
         {
