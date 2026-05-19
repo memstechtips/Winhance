@@ -916,6 +916,81 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
+    public async Task ResolveBatchAsync_IconWithUniformBackplate_TrimsBackplateBeforeCaching()
+    {
+        // Regression for Sticky Notes: an 20×20 fully-opaque AppX asset
+        // where a vivid yellow shape sits in an 8×4 inner region surrounded
+        // by a uniform dark-grey backplate. Without backplate detection the
+        // alpha trim is a no-op (no transparent pixels exist), so the cached
+        // file stays 20×20 and the yellow shape ends up tiny when rendered
+        // at the card icon size. Backplate detection should crop to the
+        // inner 8×4 yellow rectangle.
+        var def = Def("sticky-notes-like", appxName: "Vendor.StickyNotesLike");
+        var fullName = "Vendor.StickyNotesLike_1.0.0_x64__abc";
+        var input = await PngTestHelper.MakePngAsync(20, 20, (x, y) =>
+        {
+            bool isYellowShape = x >= 8 && x < 16 && y >= 8 && y < 12;
+            return isYellowShape
+                ? ((byte)0x00, (byte)0xE0, (byte)0xE0, (byte)0xFF)   // BGRA: vivid yellow
+                : ((byte)0x40, (byte)0x40, (byte)0x40, (byte)0xFF);  // dark-grey backplate
+        });
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.StickyNotesLike"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(input));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        var cachedBytes = await File.ReadAllBytesAsync(def.IconPath!);
+
+        using var stream = new InMemoryRandomAccessStream();
+        await stream.WriteAsync(cachedBytes.AsBuffer());
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+
+        decoder.PixelWidth.Should().Be(8, "backplate trim should crop to the inner yellow rectangle's width");
+        decoder.PixelHeight.Should().Be(4, "backplate trim should crop to the inner yellow rectangle's height");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_TransparentBorderedIcon_StillTrimsByAlphaUnchanged()
+    {
+        // Regression guard for the existing trim path: a transparent-bordered
+        // icon (e.g. typical AppX logo) must continue to trim via alpha alone,
+        // unaffected by the new backplate detection (which should not trigger
+        // because the corner pixels are transparent, not opaque).
+        var def = Def("transparent-border-icon", appxName: "Vendor.TransparentBorder");
+        var fullName = "Vendor.TransparentBorder_1.0.0_x64__abc";
+        var input = await PngTestHelper.MakePngAsync(20, 20, (x, y) =>
+        {
+            bool isOpaqueWhite = x >= 6 && x < 14 && y >= 6 && y < 14;
+            return isOpaqueWhite
+                ? ((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF)
+                : ((byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00);  // fully transparent
+        });
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.TransparentBorder"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(input));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        var cachedBytes = await File.ReadAllBytesAsync(def.IconPath!);
+
+        using var stream = new InMemoryRandomAccessStream();
+        await stream.WriteAsync(cachedBytes.AsBuffer());
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+
+        decoder.PixelWidth.Should().Be(8);
+        decoder.PixelHeight.Should().Be(8);
+    }
+
+    [Fact]
     public async Task ResolveBatchAsync_MultipleAppxNames_UsesFirstMatchInInstalledMap()
     {
         // Mirrors the Xbox case: a definition declares BOTH a modern and a

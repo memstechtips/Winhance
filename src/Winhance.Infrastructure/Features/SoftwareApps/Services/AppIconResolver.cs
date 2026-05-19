@@ -87,7 +87,7 @@ public class AppIconResolver : IAppIconResolver
     // when displayed at 40 logical pixels on a 200% DPI screen.
     private static readonly Size LogoSize = new(96, 96);
 
-    // ====== TRIM TUNING KNOB ======
+    // ====== TRIM TUNING KNOBS ======
     // Pixels with alpha at or below this threshold are treated as transparent
     // when computing the trim bounding box. The Square44x44Logo PNGs returned
     // by DisplayInfo.GetLogo for installed AppX packages typically have
@@ -101,6 +101,26 @@ public class AppIconResolver : IAppIconResolver
     // If this changes meaningfully, manually wipe %ProgramData%\Winhance\IconCache
     // so cached files re-extract.
     private const byte AlphaTrimThreshold = 32;
+
+    // ====== BACKPLATE DETECTION KNOBS ======
+    // Sticky Notes (and similar UWP icons that ship their tile chrome inside
+    // the Square44x44Logo asset) come back from AppX GetLogo as a small
+    // colored shape sitting on a fully-opaque uniform background. The alpha
+    // trim above can't crop those because there's no transparency to detect.
+    // The backplate trim looks at the 4 corners — if they're all near-opaque
+    // AND agree on a single color within BackplateCornerColorTolerance, that
+    // color is treated as the backplate. Pixels matching the backplate
+    // within BackplateMatchColorTolerance are excluded from the visible-content
+    // bbox so the crop tightens to just the inner art.
+    //
+    // Corner tolerance is intentionally tight (4): we want to detect
+    // *deliberate* uniform backplates, not icons whose content happens to
+    // share approximate corner colors. Match tolerance is slightly looser (8)
+    // to absorb encoding/scaling noise within the backplate itself.
+    // MinAlpha guards against detecting backplate from transparent corners.
+    private const byte BackplateMinAlpha = 240;
+    private const int BackplateCornerColorTolerance = 4;
+    private const int BackplateMatchColorTolerance = 8;
 
     private readonly IAppxIconSource _appxSource;
     private readonly IStoreIconSource? _storeSource;
@@ -719,13 +739,23 @@ public class AppIconResolver : IAppIconResolver
     }
 
     /// <summary>
-    /// Crops the source PNG/JPG to the bounding box of its non-transparent
-    /// pixels and re-encodes as PNG. Normalizes icons across AppX packages
-    /// that follow Microsoft's tile-with-padding convention vs. those that
-    /// fill the canvas (e.g. Edge), so all cached icons display at uniform
-    /// visible size when rendered at a fixed Image control size.
-    /// Returns null on any decoder/encoder failure — caller falls back to
-    /// the untrimmed source bytes.
+    /// Crops the source PNG/JPG to the bounding box of its visible content
+    /// and re-encodes as PNG. Visible content excludes both transparent
+    /// borders AND uniform-color backplates (e.g. Sticky Notes ships its
+    /// AppX logo as a small yellow shape on a fully-opaque dark-grey card —
+    /// without backplate detection, the yellow shape ends up tiny relative
+    /// to the cached 150×150 canvas).
+    ///
+    /// Backplate detection requires all four corner pixels to be near-opaque
+    /// AND match each other within <see cref="BackplateCornerColorTolerance"/>.
+    /// Pixels matching the detected backplate color within
+    /// <see cref="BackplateMatchColorTolerance"/> count as border for the
+    /// bbox computation. Tolerances are tight on purpose — we want to detect
+    /// deliberate backplates without misclassifying an icon whose content
+    /// happens to share corner colors.
+    ///
+    /// Returns null on any decoder/encoder failure or when the input has no
+    /// visible content — caller falls back to the untrimmed source bytes.
     /// </summary>
     private async Task<byte[]?> TryTrimTransparentBordersAsync(byte[] source, CancellationToken ct)
     {
@@ -748,14 +778,38 @@ public class AppIconResolver : IAppIconResolver
             swBitmap.CopyToBuffer(pixelBuffer);
             var pixels = pixelBuffer.ToArray();
 
+            bool hasBackplate = TryDetectUniformBackplate(
+                pixels, width, height,
+                out byte bpR, out byte bpG, out byte bpB);
+
             int minX = width, minY = height, maxX = -1, maxY = -1;
             for (int y = 0; y < height; y++)
             {
                 int rowStart = y * width * 4;
                 for (int x = 0; x < width; x++)
                 {
-                    byte alpha = pixels[rowStart + x * 4 + 3];
-                    if (alpha > AlphaTrimThreshold)
+                    int idx = rowStart + x * 4;
+                    byte alpha = pixels[idx + 3];
+
+                    bool isBorder;
+                    if (alpha <= AlphaTrimThreshold)
+                    {
+                        isBorder = true;
+                    }
+                    else if (hasBackplate
+                        && alpha >= BackplateMinAlpha
+                        && IsBackplateColor(
+                            pixels[idx + 2], pixels[idx + 1], pixels[idx + 0],
+                            bpR, bpG, bpB))
+                    {
+                        isBorder = true;
+                    }
+                    else
+                    {
+                        isBorder = false;
+                    }
+
+                    if (!isBorder)
                     {
                         if (x < minX) minX = x;
                         if (y < minY) minY = y;
@@ -765,7 +819,8 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            // Fully transparent input — nothing to trim, return original bytes.
+            // No visible content (all transparent, or all backplate) — caller
+            // falls back to source bytes unchanged.
             if (maxX < minX || maxY < minY) return null;
 
             uint cropX = (uint)minX;
@@ -802,6 +857,57 @@ public class AppIconResolver : IAppIconResolver
             return null;
         }
     }
+
+    /// <summary>
+    /// Inspects the 4 corner pixels. If all four are near-opaque AND match
+    /// each other within <see cref="BackplateCornerColorTolerance"/>, returns
+    /// true with the detected backplate color set into the out parameters.
+    /// Returns false (and zeroed out params) otherwise — the trim then falls
+    /// back to alpha-only border detection.
+    /// </summary>
+    private static bool TryDetectUniformBackplate(
+        byte[] pixels, int width, int height,
+        out byte r, out byte g, out byte b)
+    {
+        r = g = b = 0;
+        if (width < 2 || height < 2) return false;
+
+        int[] offsets =
+        {
+            0,                                                  // (0, 0)
+            (width - 1) * 4,                                    // (w-1, 0)
+            (height - 1) * width * 4,                           // (0, h-1)
+            ((height - 1) * width + (width - 1)) * 4,           // (w-1, h-1)
+        };
+
+        byte[] cr = new byte[4], cg = new byte[4], cb = new byte[4], ca = new byte[4];
+        for (int i = 0; i < 4; i++)
+        {
+            cb[i] = pixels[offsets[i] + 0];
+            cg[i] = pixels[offsets[i] + 1];
+            cr[i] = pixels[offsets[i] + 2];
+            ca[i] = pixels[offsets[i] + 3];
+
+            if (ca[i] < BackplateMinAlpha) return false;
+        }
+
+        for (int i = 1; i < 4; i++)
+        {
+            if (Math.Abs(cr[i] - cr[0]) > BackplateCornerColorTolerance) return false;
+            if (Math.Abs(cg[i] - cg[0]) > BackplateCornerColorTolerance) return false;
+            if (Math.Abs(cb[i] - cb[0]) > BackplateCornerColorTolerance) return false;
+        }
+
+        r = cr[0]; g = cg[0]; b = cb[0];
+        return true;
+    }
+
+    private static bool IsBackplateColor(
+        byte pixelR, byte pixelG, byte pixelB,
+        byte bpR, byte bpG, byte bpB) =>
+        Math.Abs(pixelR - bpR) <= BackplateMatchColorTolerance
+        && Math.Abs(pixelG - bpG) <= BackplateMatchColorTolerance
+        && Math.Abs(pixelB - bpB) <= BackplateMatchColorTolerance;
 
     /// <summary>
     /// After a successful AppX cache write, deletes any other cache files that
