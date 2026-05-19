@@ -155,7 +155,7 @@ public class PowerService(
     /// by ApplyRecommendedSettingsToPlanAsync when populating a freshly-imported plan.
     /// </summary>
     /// <returns>
-    /// The filtered settings for the power domain, or an empty enumerable
+    /// The filtered settings for the power feature, or an empty enumerable
     /// if loading fails (failure is logged, never thrown).
     /// </returns>
     private Task<IEnumerable<SettingDefinition>> GetSettingsAsync()

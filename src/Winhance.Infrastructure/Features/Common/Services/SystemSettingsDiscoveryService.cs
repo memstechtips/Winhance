@@ -272,7 +272,7 @@ public class SystemSettingsDiscoveryService(
         }
 
         var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
-        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), SystemRestore({systemRestoreSettings.Count}), DomainSpecial({handlersInvoked} handlers)");
+        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), SystemRestore({systemRestoreSettings.Count}), SpecialDiscovery({handlersInvoked} handlers)");
         return (results, batchedRegistryValues);
     }
 
