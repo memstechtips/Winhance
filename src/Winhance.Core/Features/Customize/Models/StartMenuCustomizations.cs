@@ -19,7 +19,7 @@ public static class StartMenuCustomizations
             {
                 new SettingDefinition
                 {
-                    Id = "start-menu-clean-10",
+                    Id = SettingIds.StartMenuCleanWin10,
                     Name = "Clean Start Menu",
                     Description = "Removes all pinned items and applies clean layout",
                     GroupName = "Layout",
@@ -31,7 +31,7 @@ public static class StartMenuCustomizations
                 },
                 new SettingDefinition
                 {
-                    Id = "start-menu-clean-11",
+                    Id = SettingIds.StartMenuCleanWin11,
                     Name = "Clean Start Menu",
                     Description = "Removes all pinned items and applies clean layout",
                     GroupName = "Layout",

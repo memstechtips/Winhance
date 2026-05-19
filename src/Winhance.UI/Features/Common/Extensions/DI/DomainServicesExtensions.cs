@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
@@ -25,10 +27,39 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
-        return services
+        services
             .AddCustomizationDomainServices()
             .AddOptimizationDomainServices()
             .AddSoftwareAppServices();
+
+        // Phase 1/6 of the domain services cleanup: id-keyed dispatchers that
+        // will replace IDomainServiceRouter in Phase 2 onward. Both surfaces
+        // coexist during the transition; nothing reads these yet.
+        services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
+            new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>
+            {
+                [SettingIds.PowerPlanSelection] = sp.GetRequiredService<PowerService>(),
+                [SettingIds.UpdatesPolicyMode]  = sp.GetRequiredService<UpdateService>(),
+                [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<WindowsThemeService>(),
+            }));
+
+        services.AddSingleton<IActionCommandRegistry>(sp =>
+            new ActionCommandRegistry(new Dictionary<string, IActionCommandProvider>
+            {
+                [SettingIds.TaskbarClean]         = sp.GetRequiredService<TaskbarService>(),
+                [SettingIds.StartMenuCleanWin10]  = sp.GetRequiredService<StartMenuService>(),
+                [SettingIds.StartMenuCleanWin11]  = sp.GetRequiredService<StartMenuService>(),
+            }));
+
+        services.AddSingleton<ISpecialDiscoveryRegistry>(sp =>
+            new SpecialDiscoveryRegistry(new List<ISpecialSettingHandler>
+            {
+                sp.GetRequiredService<PowerService>(),
+                sp.GetRequiredService<UpdateService>(),
+                sp.GetRequiredService<WindowsThemeService>(),
+            }));
+
+        return services;
     }
 
     /// <summary>

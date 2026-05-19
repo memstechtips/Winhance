@@ -17,7 +17,7 @@ public static class TaskbarCustomizations
             {
                 new SettingDefinition
                 {
-                    Id = "taskbar-clean",
+                    Id = SettingIds.TaskbarClean,
                     IsSubjectivePreference = true,
                     Name = "Clean Taskbar",
                     Description = "Removes all pinned items from the Taskbar",
