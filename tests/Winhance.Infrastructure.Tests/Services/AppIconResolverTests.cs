@@ -866,7 +866,7 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task ResolveBatchAsync_ColoredAppxIcon_DoesNotWriteLightVariant()
+    public async Task ResolveBatchAsync_ColoredAppxIcon_DoesNotWriteAnyVariant()
     {
         var def = Def("green-app", appxName: "Vendor.GreenApp");
         var fullName = "Vendor.GreenApp_1.0.0_x64__abc";
@@ -880,7 +880,53 @@ public class AppIconResolverTests : IDisposable
         await _resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().NotBeNull();
-        var lightPath = Path.ChangeExtension(def.IconPath!, null) + ".light.png";
-        File.Exists(lightPath).Should().BeFalse("colored icons get no .light.png");
+        var stem = Path.ChangeExtension(def.IconPath!, null);
+        File.Exists(stem + ".light.png").Should().BeFalse("colored icons get no .light.png");
+        File.Exists(stem + ".dark.png").Should().BeFalse("colored icons get no .dark.png");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_DarkGreyAppxIcon_WritesBothLightAndDarkVariants()
+    {
+        // Mirror of the Xbox Game Bar case from production: source icon is
+        // dark grey (#333), which reads as "faded" against either card. The
+        // resolver should write both a .light.png (uniform #1F1F1F) and a
+        // .dark.png (uniform white) sibling.
+        var def = Def("xbox-game-bar-like", appxName: "Vendor.XboxGameBarLike");
+        var fullName = "Vendor.XboxGameBarLike_1.0.0_x64__abc";
+        var greyPngBytes = await PngTestHelper.MakeSolidPngAsync(16, 16, 0x33, 0x33, 0x33);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.XboxGameBarLike"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(greyPngBytes));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        var stem = Path.ChangeExtension(def.IconPath!, null);
+        var lightPath = stem + ".light.png";
+        var darkPath = stem + ".dark.png";
+
+        File.Exists(lightPath).Should().BeTrue("mono-dark icons need a light-mode variant");
+        File.Exists(darkPath).Should().BeTrue("mono-dark icons need a dark-mode variant");
+
+        (await SampleFirstPixelAsync(lightPath)).Should().Be(((byte)0x1F, (byte)0x1F, (byte)0x1F, (byte)0xFF));
+        (await SampleFirstPixelAsync(darkPath)).Should().Be(((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF));
+    }
+
+    private static async Task<(byte R, byte G, byte B, byte A)> SampleFirstPixelAsync(string path)
+    {
+        var bytes = await File.ReadAllBytesAsync(path);
+        using var stream = new InMemoryRandomAccessStream();
+        await stream.WriteAsync(bytes.AsBuffer());
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+        var sw = await decoder.GetSoftwareBitmapAsync(
+            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight);
+        var buffer = new Windows.Storage.Streams.Buffer((uint)(sw.PixelWidth * sw.PixelHeight * 4));
+        sw.CopyToBuffer(buffer);
+        var pixels = buffer.ToArray();
+        return (pixels[2], pixels[1], pixels[0], pixels[3]);
     }
 }

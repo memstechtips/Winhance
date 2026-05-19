@@ -643,11 +643,15 @@ public class AppIconResolver : IAppIconResolver
 
         await WriteBytesAtomicAsync(cachePath, primaryBytes, ct).ConfigureAwait(false);
 
-        var lightBytes = await LightVariantSynthesizer.TryGenerateAsync(primaryBytes, ct).ConfigureAwait(false);
+        var (lightBytes, darkBytes) = await LightVariantSynthesizer
+            .TryGenerateAsync(primaryBytes, ct)
+            .ConfigureAwait(false);
+
         if (lightBytes is not null)
-        {
             await WriteBytesAtomicAsync(LightVariantPath(cachePath), lightBytes, ct).ConfigureAwait(false);
-        }
+
+        if (darkBytes is not null)
+            await WriteBytesAtomicAsync(DarkVariantPath(cachePath), darkBytes, ct).ConfigureAwait(false);
     }
 
     private static async Task WriteBytesAtomicAsync(string path, byte[] bytes, CancellationToken ct)
@@ -659,12 +663,20 @@ public class AppIconResolver : IAppIconResolver
 
     /// <summary>
     /// Sibling path for the light-mode variant of <paramref name="primaryPath"/>.
-    /// Replaces the trailing <c>.png</c> with <c>.light.png</c>. Pairs with the
-    /// primary on prune since both share the <c>&lt;id&gt;.</c> prefix used by
-    /// <see cref="PruneOldVersions"/>.
+    /// Replaces the trailing <c>.png</c> with <c>.light.png</c>. Survives prune
+    /// alongside the primary — see <see cref="PruneOldVersions"/>.
     /// </summary>
     internal static string LightVariantPath(string primaryPath) =>
         Path.ChangeExtension(primaryPath, null) + ".light.png";
+
+    /// <summary>
+    /// Sibling path for the dark-mode variant of <paramref name="primaryPath"/>.
+    /// Replaces the trailing <c>.png</c> with <c>.dark.png</c>. Only written for
+    /// mono-dark source icons (e.g. Xbox Game Bar's <c>#333</c> grey) where the
+    /// primary's tone reads as faded against the dark card background.
+    /// </summary>
+    internal static string DarkVariantPath(string primaryPath) =>
+        Path.ChangeExtension(primaryPath, null) + ".dark.png";
 
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken ct)
     {
@@ -773,20 +785,22 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
-            // Keep both <stem>.png (primary) and <stem>.light.png (synthesized
-            // light-mode variant from LightVariantSynthesizer). Without the
-            // sibling carve-out, the freshly-written .light.png would be
-            // deleted here on every resolve, since it doesn't equal
-            // keepFileName.
+            // Keep <stem>.png (primary) plus its synthesized variants
+            // <stem>.light.png and <stem>.dark.png from LightVariantSynthesizer.
+            // Without the sibling carve-out, the freshly-written variants
+            // would be deleted here on every resolve, since they don't
+            // equal keepFileName.
             var keepStem = Path.GetFileNameWithoutExtension(keepFileName);
             var keepLightName = keepStem + ".light" + CacheFileExtension;
+            var keepDarkName = keepStem + ".dark" + CacheFileExtension;
 
             var pattern = defId + ".*" + CacheFileExtension;
             foreach (var path in Directory.EnumerateFiles(_cacheRoot, pattern))
             {
                 var name = Path.GetFileName(path);
                 if (string.Equals(name, keepFileName, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, keepLightName, StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(name, keepLightName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(name, keepDarkName, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
