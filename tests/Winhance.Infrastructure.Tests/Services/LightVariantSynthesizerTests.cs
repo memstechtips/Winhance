@@ -57,6 +57,54 @@ public class LightVariantSynthesizerTests
     }
 
     [Fact]
+    public async Task TryGenerateAsync_StickyNotesLikeIcon_ReturnsNoVariants()
+    {
+        // Regression for the Sticky Notes case: a vivid yellow shape sitting
+        // on a much larger dark-grey background. Mean saturation across the
+        // whole image is well below 0.15 (the grey area dilutes it), but the
+        // yellow pixels are unmistakably colored and the icon must not be
+        // recolored. The count-based check catches this where the mean check
+        // didn't.
+        //
+        // 20×20 image: ~20% of opaque pixels are saturated yellow, the rest
+        // are dark grey. Total opaque saturation mean ≈ 0.10 (below the old
+        // 0.15 mean threshold), but the yellow count is way above 5% of opaque.
+        var input = await PngTestHelper.MakePngAsync(20, 20, (x, y) =>
+        {
+            bool isYellowShape = x >= 8 && x < 16 && y >= 8 && y < 12;
+            return isYellowShape
+                ? ((byte)0x00, (byte)0xE0, (byte)0xE0, (byte)0xFF)   // BGR: yellow (R=0xE0, G=0xE0, B=0x00)
+                : ((byte)0x40, (byte)0x40, (byte)0x40, (byte)0xFF);  // dark grey
+        });
+
+        var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
+
+        light.Should().BeNull("colored content must not be recolored to monochrome");
+        dark.Should().BeNull("colored content must not be recolored to monochrome");
+    }
+
+    [Fact]
+    public async Task TryGenerateAsync_MonoWithTrivialColorNoise_StillClassifiedAsMonochrome()
+    {
+        // Two pixels out of 64 carry a vivid red. 2/64 = 3.1% — under the
+        // 5% colored-pixel tolerance — so the icon should still classify as
+        // mono-light and produce a .light.png. Guards against the count-based
+        // detection being too sensitive on icons with a few stray noise pixels
+        // (rounding artifacts in source PNGs, JPEG compression bleed-through).
+        var input = await PngTestHelper.MakePngAsync(8, 8, (x, y) =>
+        {
+            if ((x == 0 && y == 0) || (x == 7 && y == 7))
+                return ((byte)0x00, (byte)0x00, (byte)0xFF, (byte)0xFF); // BGR: red noise
+            return ((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);     // white
+        });
+
+        var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
+
+        light.Should().NotBeNull("two noise pixels (3% of 64) should not disqualify a mono-light icon");
+        dark.Should().BeNull("mono-light primary already works in dark mode");
+    }
+
+    [Fact]
     public async Task TryGenerateAsync_MidGreyMonochrome_ReturnsNoVariants()
     {
         // Mean lightness ~0.5 (#808080) — sits in the dead zone between

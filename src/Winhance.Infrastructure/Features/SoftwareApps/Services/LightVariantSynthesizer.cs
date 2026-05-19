@@ -38,14 +38,28 @@ public static class LightVariantSynthesizer
     // by the halo dragging mean saturation around.
     private const byte AlphaDetectionThreshold = 32;
 
-    // Detection thresholds. A "monochrome" icon has mean saturation below
-    // MonochromeMaxSaturation (no real color). It is then classified as:
-    //   - mono-light if mean lightness > MonochromeMinLightness (e.g. white)
-    //   - mono-dark  if mean lightness < MonochromeMaxLightness (e.g. #333)
-    //   - mid-grey otherwise (no variants generated; either background works)
+    // Detection thresholds. An icon is "monochrome" only if essentially none
+    // of its opaque pixels carry real color. We measure this per-pixel rather
+    // than via the mean: an icon like Sticky Notes is a vivid yellow shape on
+    // a mostly-grey background, and its mean saturation is well below 0.15
+    // (the grey area dilutes it), but the yellow region is unambiguously
+    // colored and must NOT be recolored to monochrome.
+    //
+    // A pixel is "colored" if its HSL saturation exceeds
+    // ColoredPixelSaturationThreshold. If more than ColoredPixelMaxFraction
+    // of opaque pixels are colored, the icon is treated as colored (no
+    // variants generated). The 5% fraction is generous toward JPEG-style
+    // color cast on otherwise-mono icons while still catching Sticky-Notes-
+    // shaped cases where ~20%+ of the icon is vividly colored.
+    //
+    // For monochrome icons, classification falls back to mean lightness:
+    //   - mono-light if > MonochromeMinLightness (e.g. white vendor mark)
+    //   - mono-dark  if < MonochromeMaxLightness (e.g. Xbox Game Bar #333)
+    //   - mid-grey   otherwise (no variants; either background works)
     private const double MonochromeMinLightness = 0.85;
     private const double MonochromeMaxLightness = 0.40;
-    private const double MonochromeMaxSaturation = 0.15;
+    private const double ColoredPixelSaturationThreshold = 0.20;
+    private const double ColoredPixelMaxFraction = 0.05;
 
     /// <summary>
     /// Returns the synthesized light-mode and dark-mode variants for the
@@ -117,8 +131,8 @@ public static class LightVariantSynthesizer
     private static MonochromeClass Classify(byte[] pixels)
     {
         double sumLightness = 0;
-        double sumSaturation = 0;
         int opaqueCount = 0;
+        int coloredCount = 0;
 
         for (int i = 0; i < pixels.Length; i += 4)
         {
@@ -130,17 +144,22 @@ public static class LightVariantSynthesizer
             byte r = pixels[i + 2];
             var (l, s) = RgbToLightnessSaturation(r, g, b);
             sumLightness += l;
-            sumSaturation += s;
             opaqueCount++;
+
+            if (s > ColoredPixelSaturationThreshold)
+                coloredCount++;
         }
 
         if (opaqueCount == 0) return MonochromeClass.NotMonochrome;
 
-        double meanLightness = sumLightness / opaqueCount;
-        double meanSaturation = sumSaturation / opaqueCount;
-
-        if (meanSaturation >= MonochromeMaxSaturation)
+        // Bail if any meaningful fraction of the icon carries real color.
+        // This is the Sticky-Notes guard: the yellow shape is a minority of
+        // total pixels (so mean saturation is low) but still represents real
+        // visual content that must not be recolored to grey.
+        if (coloredCount > opaqueCount * ColoredPixelMaxFraction)
             return MonochromeClass.NotMonochrome;
+
+        double meanLightness = sumLightness / opaqueCount;
 
         if (meanLightness > MonochromeMinLightness)
             return MonochromeClass.MonochromeLight;
