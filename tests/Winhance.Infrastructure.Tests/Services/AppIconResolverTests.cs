@@ -915,6 +915,37 @@ public class AppIconResolverTests : IDisposable
         (await SampleFirstPixelAsync(darkPath)).Should().Be(((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF));
     }
 
+    [Fact]
+    public async Task ResolveBatchAsync_MultipleAppxNames_UsesFirstMatchInInstalledMap()
+    {
+        // Mirrors the Xbox case: a definition declares BOTH a modern and a
+        // legacy AppX identity. The installed map only carries one of them.
+        // The resolver must iterate the array and resolve via the present
+        // package, not silently fail on the first absent name.
+        var def = new ItemDefinition
+        {
+            Id = "xbox",
+            Name = "Xbox",
+            Description = "Game library",
+            AppxPackageName = new[] { "Microsoft.GamingApp", "Microsoft.XboxApp" },
+            IsInstalled = true,
+        };
+        var legacyFullName = "Microsoft.XboxApp_48.86.5.0_x64__8wekyb3d8bbwe";
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Microsoft.XboxApp"] = legacyFullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(legacyFullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("xbox-legacy"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        def.IconPath!.Should().Contain("xbox.");
+        _mockIconSource.Verify(
+            s => s.GetLogoStreamAsync(legacyFullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static async Task<(byte R, byte G, byte B, byte A)> SampleFirstPixelAsync(string path)
     {
         var bytes = await File.ReadAllBytesAsync(path);

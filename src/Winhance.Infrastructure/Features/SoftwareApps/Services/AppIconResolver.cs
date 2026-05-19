@@ -548,9 +548,23 @@ public class AppIconResolver : IAppIconResolver
         IReadOnlyDictionary<string, string> installedMap,
         CancellationToken ct)
     {
-        var packageName = def.AppxPackageName?.Length > 0 ? def.AppxPackageName[0] : null;
-        if (packageName is null) return false;
-        if (!installedMap.TryGetValue(packageName, out var fullName)) return false;
+        var packageNames = def.AppxPackageName;
+        if (packageNames is null || packageNames.Length == 0) return false;
+
+        // Walk every declared AppX name and use the first one present in the
+        // installed map. Apps like Xbox declare BOTH a modern and a legacy
+        // identity (Microsoft.GamingApp + Microsoft.XboxApp); checking only
+        // the first name would silently skip the resolve on machines where
+        // only the other one is installed.
+        string? fullName = null;
+        foreach (var packageName in packageNames)
+        {
+            if (string.IsNullOrEmpty(packageName)) continue;
+            if (installedMap.TryGetValue(packageName, out fullName))
+                break;
+            fullName = null;
+        }
+        if (fullName is null) return false;
 
         var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, fullName));
         if (File.Exists(cachePath))
