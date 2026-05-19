@@ -1,4 +1,6 @@
+using System.IO;
 using FluentAssertions;
+using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -12,6 +14,7 @@ public class AppItemViewModelTests
 {
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
+    private readonly Mock<IThemeService> _mockThemeService = new();
     private readonly ItemDefinition _defaultDefinition;
 
     public AppItemViewModelTests()
@@ -24,6 +27,11 @@ public class AppItemViewModelTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        // Default to dark theme so existing tests are unaffected.
+        _mockThemeService
+            .Setup(t => t.GetEffectiveTheme())
+            .Returns(ElementTheme.Dark);
 
         _defaultDefinition = new ItemDefinition
         {
@@ -41,7 +49,8 @@ public class AppItemViewModelTests
         return new AppItemViewModel(
             definition ?? _defaultDefinition,
             _mockLocalization.Object,
-            _mockDispatcher.Object);
+            _mockDispatcher.Object,
+            _mockThemeService.Object);
     }
 
     // -------------------------------------------------------
@@ -630,4 +639,132 @@ public class AppItemViewModelTests
 
         vm.HasIcon.Should().BeTrue();
     }
+
+    // -------------------------------------------------------
+    // Theme-aware icon path resolution
+    // -------------------------------------------------------
+
+    [Fact]
+    public void IconSource_LightTheme_WithLightSibling_DecodesFromLightPath()
+    {
+        var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
+        Directory.CreateDirectory(tmpDir);
+        try
+        {
+            var primaryPath = Path.Combine(tmpDir, "icon.f7a3.png");
+            var lightPath = Path.Combine(tmpDir, "icon.f7a3.light.png");
+            File.WriteAllBytes(primaryPath, MinimalPng());
+            File.WriteAllBytes(lightPath, MinimalPng());
+
+            var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = primaryPath };
+            _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
+
+            var vm = CreateViewModel(def);
+            var bmp = vm.IconSource;
+
+            bmp.Should().NotBeNull();
+            bmp!.UriSource.LocalPath.Should().Be(lightPath);
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IconSource_LightTheme_NoLightSibling_FallsBackToPrimary()
+    {
+        var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
+        Directory.CreateDirectory(tmpDir);
+        try
+        {
+            var primaryPath = Path.Combine(tmpDir, "icon.b8e1.png");
+            File.WriteAllBytes(primaryPath, MinimalPng());
+
+            var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = primaryPath };
+            _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
+
+            var vm = CreateViewModel(def);
+            vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IconSource_DarkTheme_AlwaysUsesPrimary()
+    {
+        var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
+        Directory.CreateDirectory(tmpDir);
+        try
+        {
+            var primaryPath = Path.Combine(tmpDir, "icon.f7a3.png");
+            var lightPath = Path.Combine(tmpDir, "icon.f7a3.light.png");
+            File.WriteAllBytes(primaryPath, MinimalPng());
+            File.WriteAllBytes(lightPath, MinimalPng());
+
+            var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = primaryPath };
+            _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
+
+            var vm = CreateViewModel(def);
+            vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ThemeChanged_RaisesPropertyChangedForIconSource()
+    {
+        var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = "C:\\fake\\icon.png" };
+        _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
+
+        var vm = CreateViewModel(def);
+
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
+
+        raised.Should().Contain(nameof(AppItemViewModel.IconSource));
+    }
+
+    [Fact]
+    public void Dispose_UnsubscribesFromThemeChanged()
+    {
+        var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = "C:\\fake\\icon.png" };
+        _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
+
+        var vm = CreateViewModel(def);
+        vm.Dispose();
+
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
+
+        raised.Should().NotContain(nameof(AppItemViewModel.IconSource));
+    }
+
+    /// <summary>
+    /// 1×1 transparent PNG — small enough to roundtrip without expensive setup.
+    /// Just needs to exist on disk; BitmapImage construction is lazy and the
+    /// tests assert on UriSource, not decoded pixels.
+    /// </summary>
+    private static byte[] MinimalPng() => new byte[]
+    {
+        0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,
+        0x00,0x00,0x00,0x0D,0x49,0x48,0x44,0x52,
+        0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x01,
+        0x08,0x06,0x00,0x00,0x00,0x1F,0x15,0xC4,
+        0x89,0x00,0x00,0x00,0x0D,0x49,0x44,0x41,
+        0x54,0x78,0x9C,0x62,0x00,0x01,0x00,0x00,
+        0x05,0x00,0x01,0x0D,0x0A,0x2D,0xB4,0x00,
+        0x00,0x00,0x00,0x49,0x45,0x4E,0x44,0xAE,
+        0x42,0x60,0x82
+    };
 }

@@ -1,4 +1,6 @@
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -15,18 +17,22 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     private readonly ItemDefinition _definition;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IThemeService _themeService;
     private bool _disposed;
 
     public AppItemViewModel(
         ItemDefinition definition,
         ILocalizationService localizationService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IThemeService themeService)
     {
         _definition = definition;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+        _themeService = themeService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _themeService.ThemeChanged += OnThemeChanged;
     }
 
     public void Dispose()
@@ -34,6 +40,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         if (!_disposed)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+            _themeService.ThemeChanged -= OnThemeChanged;
             _disposed = true;
         }
     }
@@ -45,6 +52,11 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         OnPropertyChanged(nameof(InstabilityWarningLabel));
         OnPropertyChanged(nameof(InstabilityWarningTooltip));
         OnPropertyChanged(nameof(OpenWebsiteAutomationName));
+    }
+
+    private void OnThemeChanged(object? sender, WinhanceTheme theme)
+    {
+        _dispatcherService.RunOnUIThread(() => OnPropertyChanged(nameof(IconSource)));
     }
 
     public ItemDefinition Definition => _definition;
@@ -99,22 +111,38 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     {
         get
         {
-            var currentPath = Definition.IconPath;
-            if (string.IsNullOrEmpty(currentPath))
+            var basePath = Definition.IconPath;
+            if (string.IsNullOrEmpty(basePath))
             {
                 _iconSource = null;
                 _iconSourcePath = null;
                 return null;
             }
-            if (_iconSource is not null && _iconSourcePath == currentPath)
+
+            var resolvedPath = ResolveThemeAwarePath(basePath);
+
+            if (_iconSource is not null && _iconSourcePath == resolvedPath)
                 return _iconSource;
 
             var bmp = new BitmapImage { DecodePixelWidth = 64 };
-            bmp.UriSource = new Uri(currentPath);
+            bmp.UriSource = new Uri(resolvedPath);
             _iconSource = bmp;
-            _iconSourcePath = currentPath;
+            _iconSourcePath = resolvedPath;
             return _iconSource;
         }
+    }
+
+    // Mirrors AppIconResolver.LightVariantPath (in a different assembly) —
+    // kept inline as a one-liner to avoid crossing the assembly boundary for
+    // a single static string-derivation. If the naming convention ever
+    // changes, update both sites.
+    private string ResolveThemeAwarePath(string basePath)
+    {
+        if (_themeService.GetEffectiveTheme() != ElementTheme.Light)
+            return basePath;
+
+        var lightPath = Path.ChangeExtension(basePath, null) + ".light.png";
+        return File.Exists(lightPath) ? lightPath : basePath;
     }
 
     /// <summary>True when a real app icon is available; false → render fallback glyph.</summary>
