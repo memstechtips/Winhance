@@ -694,8 +694,10 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void IconSource_DarkTheme_AlwaysUsesPrimary()
+    public void IconSource_DarkTheme_NoDarkSibling_UsesPrimary()
     {
+        // Mono-light source (white): no .dark.png written; primary is the
+        // correct dark-mode rendering.
         var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
         Directory.CreateDirectory(tmpDir);
         try
@@ -710,6 +712,34 @@ public class AppItemViewModelTests
 
             var vm = CreateViewModel(def);
             vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IconSource_DarkTheme_WithDarkSibling_DecodesFromDarkPath()
+    {
+        // Mono-dark source (e.g. Xbox Game Bar #333): synthesizer wrote a
+        // .dark.png; the VM must prefer it in dark mode.
+        var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
+        Directory.CreateDirectory(tmpDir);
+        try
+        {
+            var primaryPath = Path.Combine(tmpDir, "icon.7c44.png");
+            var lightPath = Path.Combine(tmpDir, "icon.7c44.light.png");
+            var darkPath = Path.Combine(tmpDir, "icon.7c44.dark.png");
+            File.WriteAllBytes(primaryPath, MinimalPng());
+            File.WriteAllBytes(lightPath, MinimalPng());
+            File.WriteAllBytes(darkPath, MinimalPng());
+
+            var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = primaryPath };
+            _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
+
+            var vm = CreateViewModel(def);
+            vm.IconSource!.UriSource.LocalPath.Should().Be(darkPath);
         }
         finally
         {

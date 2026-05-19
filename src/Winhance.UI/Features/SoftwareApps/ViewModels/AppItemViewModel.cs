@@ -132,17 +132,30 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         }
     }
 
-    // Mirrors AppIconResolver.LightVariantPath (in a different assembly) —
-    // kept inline as a one-liner to avoid crossing the assembly boundary for
-    // a single static string-derivation. If the naming convention ever
-    // changes, update both sites.
+    // Mirrors AppIconResolver.LightVariantPath / DarkVariantPath (in a
+    // different assembly) — kept inline as one-liners to avoid crossing the
+    // assembly boundary for static string derivation. If the naming
+    // convention ever changes, update both sites.
     private string ResolveThemeAwarePath(string basePath)
     {
-        if (_themeService.GetEffectiveTheme() != ElementTheme.Light)
-            return basePath;
+        var stem = Path.ChangeExtension(basePath, null);
 
-        var lightPath = Path.ChangeExtension(basePath, null) + ".light.png";
-        return File.Exists(lightPath) ? lightPath : basePath;
+        // Light theme: prefer .light.png if synthesized. Dark theme: prefer
+        // .dark.png if synthesized (only mono-dark sources have one, e.g.
+        // Xbox Game Bar; mono-light sources fall through to the primary
+        // which already renders correctly in dark mode).
+        if (_themeService.GetEffectiveTheme() == ElementTheme.Light)
+        {
+            var lightPath = stem + ".light.png";
+            if (File.Exists(lightPath)) return lightPath;
+        }
+        else
+        {
+            var darkPath = stem + ".dark.png";
+            if (File.Exists(darkPath)) return darkPath;
+        }
+
+        return basePath;
     }
 
     /// <summary>True when a real app icon is available; false → render fallback glyph.</summary>
