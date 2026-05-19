@@ -122,8 +122,9 @@ public class LightVariantSynthesizerTests
     [Fact]
     public async Task TryGenerateAsync_MixedWhiteAndSaturatedAccent_ReturnsNoVariants()
     {
-        // 8x8 image: 75% white pixels + 25% saturated red. Mean saturation
-        // pulls above MonochromeMaxSaturation (0.15) so classification rejects it.
+        // 8x8 image: 75% white pixels + 25% saturated red. 25% of opaque
+        // pixels carry saturation > 0.20, well above the 5% colored-pixel
+        // fraction, so classification rejects it as NotMonochrome.
         var input = await PngTestHelper.MakePngAsync(8, 8, (x, y) =>
             (x < 6) ? ((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF)
                     : ((byte)0x00, (byte)0x00, (byte)0xC0, (byte)0xFF));
