@@ -3,7 +3,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 /// <summary>
 /// Maps setting ids to the ISpecialSettingHandler that handles them at apply time.
-/// Registered in DI from a fixed table (see DomainServicesExtensions).
+/// Registered in DI from a fixed table (see SettingServicesExtensions).
 /// </summary>
 public interface ISpecialSettingHandlerRegistry
 {

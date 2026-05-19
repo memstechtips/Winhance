@@ -18,18 +18,18 @@ using Winhance.Core.Features.Common.Events;
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
 /// <summary>
-/// Extension methods for registering domain services.
+/// Extension methods for registering setting services and dispatcher registries.
 /// </summary>
-public static class DomainServicesExtensions
+public static class SettingServicesExtensions
 {
     /// <summary>
-    /// Registers all domain services for the Winhance application.
+    /// Registers all setting services for the Winhance application.
     /// </summary>
-    public static IServiceCollection AddDomainServices(this IServiceCollection services)
+    public static IServiceCollection AddSettingServices(this IServiceCollection services)
     {
         services
-            .AddCustomizationDomainServices()
-            .AddOptimizationDomainServices()
+            .AddCustomizationServices()
+            .AddOptimizationServices()
             .AddSoftwareAppServices();
 
         // Id-keyed dispatcher registries — settingId → handler mapping.
@@ -62,9 +62,9 @@ public static class DomainServicesExtensions
     }
 
     /// <summary>
-    /// Registers customization domain services.
+    /// Registers customization setting services.
     /// </summary>
-    public static IServiceCollection AddCustomizationDomainServices(this IServiceCollection services)
+    public static IServiceCollection AddCustomizationServices(this IServiceCollection services)
     {
         // Register WallpaperService (consumed by ThemeWallpaperApplier)
         services.AddSingleton<IWallpaperService, WallpaperService>();
@@ -83,9 +83,9 @@ public static class DomainServicesExtensions
     }
 
     /// <summary>
-    /// Registers optimization domain services.
+    /// Registers optimization setting services.
     /// </summary>
-    public static IServiceCollection AddOptimizationDomainServices(this IServiceCollection services)
+    public static IServiceCollection AddOptimizationServices(this IServiceCollection services)
     {
         // Register PowerService (keeps factory — IPowerService forwards to the concrete)
         services.AddSingleton<PowerService>(sp => new PowerService(
@@ -107,11 +107,11 @@ public static class DomainServicesExtensions
     }
 
     /// <summary>
-    /// Registers software apps domain services.
+    /// Registers software apps setting services.
     /// </summary>
     public static IServiceCollection AddSoftwareAppServices(this IServiceCollection services)
     {
-        // Domain Services (Singleton - consumed by Singleton ViewModels)
+        // Software apps services (Singleton - consumed by Singleton ViewModels)
         services.AddSingleton<IWindowsAppsService, WindowsAppsService>();
         services.AddSingleton<IExternalAppsService, ExternalAppsService>();
         services.AddSingleton<IAppInstallationService, AppInstallationService>();
