@@ -637,15 +637,34 @@ public class AppIconResolver : IAppIconResolver
 
     private async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
     {
-        var tmpPath = cachePath + ".tmp";
-
         var sourceBytes = await ReadAllBytesAsync(source, ct).ConfigureAwait(false);
-        var bytesToWrite = await TryTrimTransparentBordersAsync(sourceBytes, ct).ConfigureAwait(false)
+        var primaryBytes = await TryTrimTransparentBordersAsync(sourceBytes, ct).ConfigureAwait(false)
                           ?? sourceBytes;
 
-        await File.WriteAllBytesAsync(tmpPath, bytesToWrite, ct).ConfigureAwait(false);
-        File.Move(tmpPath, cachePath, overwrite: true);
+        await WriteBytesAtomicAsync(cachePath, primaryBytes, ct).ConfigureAwait(false);
+
+        var lightBytes = await LightVariantSynthesizer.TryGenerateAsync(primaryBytes, ct).ConfigureAwait(false);
+        if (lightBytes is not null)
+        {
+            await WriteBytesAtomicAsync(LightVariantPath(cachePath), lightBytes, ct).ConfigureAwait(false);
+        }
     }
+
+    private static async Task WriteBytesAtomicAsync(string path, byte[] bytes, CancellationToken ct)
+    {
+        var tmpPath = path + ".tmp";
+        await File.WriteAllBytesAsync(tmpPath, bytes, ct).ConfigureAwait(false);
+        File.Move(tmpPath, path, overwrite: true);
+    }
+
+    /// <summary>
+    /// Sibling path for the light-mode variant of <paramref name="primaryPath"/>.
+    /// Replaces the trailing <c>.png</c> with <c>.light.png</c>. Pairs with the
+    /// primary on prune since both share the <c>&lt;id&gt;.</c> prefix used by
+    /// <see cref="PruneOldVersions"/>.
+    /// </summary>
+    internal static string LightVariantPath(string primaryPath) =>
+        Path.ChangeExtension(primaryPath, null) + ".light.png";
 
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken ct)
     {

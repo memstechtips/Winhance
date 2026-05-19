@@ -1,15 +1,19 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using Windows.Foundation;
+using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.Infrastructure.Tests.Helpers;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
@@ -822,5 +826,61 @@ public class AppIconResolverTests : IDisposable
 
         def.IconPath.Should().NotBeNull();
         File.ReadAllText(def.IconPath!).Should().Be("PNG-fallback");
+    }
+
+    // ===== Light-mode variant generation =====
+
+    [Fact]
+    public async Task ResolveBatchAsync_WhiteAppxIcon_WritesLightVariantSibling()
+    {
+        var def = Def("white-app", appxName: "Vendor.WhiteApp");
+        var fullName = "Vendor.WhiteApp_1.0.0_x64__abc";
+        var whitePngBytes = await PngTestHelper.MakeSolidPngAsync(16, 16, 0xFF, 0xFF, 0xFF);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.WhiteApp"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(whitePngBytes));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        var primaryPath = def.IconPath!;
+        var lightPath = Path.ChangeExtension(primaryPath, null) + ".light.png";
+        File.Exists(lightPath).Should().BeTrue("a monochrome-white primary must produce a .light.png sibling");
+
+        var lightBytes = await File.ReadAllBytesAsync(lightPath);
+        using var stream = new InMemoryRandomAccessStream();
+        await stream.WriteAsync(lightBytes.AsBuffer());
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+        var sw = await decoder.GetSoftwareBitmapAsync(
+            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight);
+        var buffer = new Windows.Storage.Streams.Buffer((uint)(sw.PixelWidth * sw.PixelHeight * 4));
+        sw.CopyToBuffer(buffer);
+        var pixels = buffer.ToArray();
+        pixels[0].Should().Be(0x1F);
+        pixels[1].Should().Be(0x1F);
+        pixels[2].Should().Be(0x1F);
+        pixels[3].Should().Be(0xFF);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_ColoredAppxIcon_DoesNotWriteLightVariant()
+    {
+        var def = Def("green-app", appxName: "Vendor.GreenApp");
+        var fullName = "Vendor.GreenApp_1.0.0_x64__abc";
+        var greenPngBytes = await PngTestHelper.MakeSolidPngAsync(16, 16, 0x10, 0xC0, 0x20);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.GreenApp"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(greenPngBytes));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        var lightPath = Path.ChangeExtension(def.IconPath!, null) + ".light.png";
+        File.Exists(lightPath).Should().BeFalse("colored icons get no .light.png");
     }
 }
