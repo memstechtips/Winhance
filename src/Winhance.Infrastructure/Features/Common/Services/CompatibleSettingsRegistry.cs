@@ -23,6 +23,10 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
     private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
     private readonly Dictionary<string, IEnumerable<SettingDefinition>> _preFilteredSettings = new();
     private readonly Dictionary<string, IEnumerable<SettingDefinition>> _windowsFilterBypassedSettings = new();
+    private Dictionary<string, SettingDefinition> _filteredById = new();
+    private Dictionary<string, SettingDefinition> _bypassedById = new();
+    private Dictionary<string, string> _filteredSettingIdToFeatureId = new();
+    private Dictionary<string, string> _bypassedSettingIdToFeatureId = new();
     private bool _filterEnabled = true;
 
     public bool IsInitialized => _isInitialized;
@@ -52,6 +56,7 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
 
             await PreFilterAllFeatureSettingsAsync().ConfigureAwait(false);
 
+            RebuildIdIndexes();
             _isInitialized = true;
             _logService.Log(LogLevel.Info, $"Compatible settings registry initialized with {_preFilteredSettings.Count} pre-filtered features");
         }
@@ -59,6 +64,24 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
         {
             _initializationLock.Release();
         }
+    }
+
+    public SettingDefinition? GetById(string settingId)
+    {
+        if (!_isInitialized)
+            throw new InvalidOperationException("Registry not initialized");
+
+        var index = _filterEnabled ? _filteredById : _bypassedById;
+        return index.TryGetValue(settingId, out var s) ? s : null;
+    }
+
+    public string? GetFeatureIdForSetting(string settingId)
+    {
+        if (!_isInitialized)
+            throw new InvalidOperationException("Registry not initialized");
+
+        var index = _filterEnabled ? _filteredSettingIdToFeatureId : _bypassedSettingIdToFeatureId;
+        return index.TryGetValue(settingId, out var f) ? f : null;
     }
 
     public IEnumerable<SettingDefinition> GetFilteredSettings(string featureId)
@@ -111,6 +134,31 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
             throw new InvalidOperationException("Registry not initialized");
 
         return _windowsFilterBypassedSettings;
+    }
+
+    private void RebuildIdIndexes()
+    {
+        _filteredById = new Dictionary<string, SettingDefinition>();
+        _filteredSettingIdToFeatureId = new Dictionary<string, string>();
+        foreach (var (featureId, settings) in _preFilteredSettings)
+        {
+            foreach (var s in settings)
+            {
+                _filteredById[s.Id] = s;
+                _filteredSettingIdToFeatureId[s.Id] = featureId;
+            }
+        }
+
+        _bypassedById = new Dictionary<string, SettingDefinition>();
+        _bypassedSettingIdToFeatureId = new Dictionary<string, string>();
+        foreach (var (featureId, settings) in _windowsFilterBypassedSettings)
+        {
+            foreach (var s in settings)
+            {
+                _bypassedById[s.Id] = s;
+                _bypassedSettingIdToFeatureId[s.Id] = featureId;
+            }
+        }
     }
 
     private async Task PreFilterAllFeatureSettingsAsync()
