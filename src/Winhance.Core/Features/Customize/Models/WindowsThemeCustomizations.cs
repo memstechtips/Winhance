@@ -48,6 +48,7 @@ public static class WindowsThemeCustomizations
                     InputType = InputType.Selection,
                     Icon = "BrushVariant",
                     RequiresConfirmation = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
