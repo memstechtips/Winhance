@@ -51,9 +51,8 @@ public static class DomainServicesExtensions
                 [SettingIds.StartMenuCleanWin11]  = sp.GetRequiredService<StartMenuService>(),
             }));
 
-        // WindowsThemeService does not override DiscoverSpecialSettingsAsync, so it
-        // has nothing to contribute to the discovery loop — only handlers that
-        // actually self-filter and return raw values belong here.
+        // Only handlers that override DiscoverSpecialSettingsAsync (i.e. self-filter
+        // and return raw values) belong in the discovery registry.
         services.AddSingleton<ISpecialDiscoveryRegistry>(sp =>
             new SpecialDiscoveryRegistry(new List<ISpecialSettingHandler>
             {
@@ -69,16 +68,11 @@ public static class DomainServicesExtensions
     /// </summary>
     public static IServiceCollection AddCustomizationDomainServices(this IServiceCollection services)
     {
-        // Register WallpaperService (required by WindowsThemeService)
+        // Register WallpaperService (consumed by ThemeWallpaperApplier)
         services.AddSingleton<IWallpaperService, WallpaperService>();
 
-        // Register WindowsThemeService
-        services.AddSingleton<WindowsThemeService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<WindowsThemeService>());
-
-        // Register ThemeWallpaperApplier (replaces WindowsThemeService in the
-        // special-handler dispatcher; the explorer refresh is now declarative
-        // via SettingDefinition.RestartProcess).
+        // Register ThemeWallpaperApplier (special handler for theme-mode-windows;
+        // the explorer refresh is now declarative via SettingDefinition.RestartProcess).
         services.AddSingleton<ThemeWallpaperApplier>();
 
         // Register StartMenuService
@@ -88,10 +82,6 @@ public static class DomainServicesExtensions
         // Register TaskbarService
         services.AddSingleton<TaskbarService>();
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<TaskbarService>());
-
-        // Register ExplorerCustomizationService
-        services.AddSingleton<ExplorerCustomizationService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<ExplorerCustomizationService>());
 
         return services;
     }
@@ -114,22 +104,6 @@ public static class DomainServicesExtensions
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
-
-        // Register PrivacyAndSecurityService
-        services.AddSingleton<PrivacyAndSecurityService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PrivacyAndSecurityService>());
-
-        // Register GamingPerformanceService
-        services.AddSingleton<GamingPerformanceService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<GamingPerformanceService>());
-
-        // Register NotificationService
-        services.AddSingleton<NotificationService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<NotificationService>());
-
-        // Register SoundService
-        services.AddSingleton<SoundService>();
-        services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SoundService>());
 
         // Register UpdateService
         services.AddSingleton<UpdateService>();
