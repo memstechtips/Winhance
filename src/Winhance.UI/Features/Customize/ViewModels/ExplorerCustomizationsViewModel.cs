@@ -11,13 +11,12 @@ namespace Winhance.UI.Features.Customize.ViewModels;
 public partial class ExplorerCustomizationsViewModel : BaseSettingsFeatureViewModel, ICustomizationFeatureViewModel
 {
     public ExplorerCustomizationsViewModel(
-        IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IEventBus eventBus)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
     }
 

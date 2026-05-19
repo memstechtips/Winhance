@@ -12,7 +12,6 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class SoundOptimizationsViewModelTests
 {
-    private readonly Mock<IDomainServiceRouter> _mockDomainServiceRouter;
     private readonly Mock<ISettingsLoadingService> _mockSettingsLoadingService;
     private readonly Mock<ILogService> _mockLogService;
     private readonly Mock<ILocalizationService> _mockLocalizationService;
@@ -21,7 +20,6 @@ public class SoundOptimizationsViewModelTests
 
     public SoundOptimizationsViewModelTests()
     {
-        _mockDomainServiceRouter = new Mock<IDomainServiceRouter>();
         _mockSettingsLoadingService = new Mock<ISettingsLoadingService>();
         _mockLogService = new Mock<ILogService>();
         _mockLocalizationService = new Mock<ILocalizationService>();
@@ -46,7 +44,6 @@ public class SoundOptimizationsViewModelTests
     private SoundOptimizationsViewModel CreateViewModel()
     {
         return new SoundOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -257,28 +254,10 @@ public class SoundOptimizationsViewModelTests
     }
 
     [Fact]
-    public void Constructor_WithNullDomainServiceRouter_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new SoundOptimizationsViewModel(
-            null!,
-            _mockSettingsLoadingService.Object,
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            _mockDispatcherService.Object,
-            _mockEventBus.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("domainServiceRouter");
-    }
-
-    [Fact]
     public void Constructor_WithNullSettingsLoadingService_ThrowsArgumentNullException()
     {
         // Act
         var action = () => new SoundOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             null!,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -295,7 +274,6 @@ public class SoundOptimizationsViewModelTests
     {
         // Act
         var action = () => new SoundOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             null!,
             _mockLocalizationService.Object,
@@ -312,7 +290,6 @@ public class SoundOptimizationsViewModelTests
     {
         // Act
         var action = () => new SoundOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             null!,
@@ -329,7 +306,6 @@ public class SoundOptimizationsViewModelTests
     {
         // Act
         var action = () => new SoundOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -346,7 +322,6 @@ public class SoundOptimizationsViewModelTests
     {
         // Act
         var action = () => new SoundOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,

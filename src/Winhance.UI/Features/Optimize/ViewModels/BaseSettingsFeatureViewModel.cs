@@ -18,7 +18,6 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 
 public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISettingsFeatureViewModel
 {
-    protected readonly IDomainServiceRouter _domainServiceRouter;
     protected readonly ISettingsLoadingService _settingsLoadingService;
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
@@ -91,14 +90,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     public IRelayCommand ToggleExpandCommand { get; }
 
     protected BaseSettingsFeatureViewModel(
-        IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IEventBus eventBus)
     {
-        _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
@@ -326,7 +323,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             }
 
             var loadedSettings = await _settingsLoadingService.LoadConfiguredSettingsAsync(
-                _domainServiceRouter.GetDomainService(ModuleId),
                 ModuleId,
                 $"Loading {DisplayName} settings...",
                 this

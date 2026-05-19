@@ -28,36 +28,31 @@ public class TestableSettingsFeatureViewModel : BaseSettingsFeatureViewModel
     protected override string GetDisplayNameKey() => TestDisplayNameKey;
 
     public TestableSettingsFeatureViewModel(
-        IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IEventBus eventBus)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
     }
 }
 
 public class BaseSettingsFeatureViewModelTests : IDisposable
 {
-    private readonly Mock<IDomainServiceRouter> _mockDomainServiceRouter;
     private readonly Mock<ISettingsLoadingService> _mockSettingsLoadingService;
     private readonly Mock<ILogService> _mockLogService;
     private readonly Mock<ILocalizationService> _mockLocalizationService;
     private readonly Mock<IDispatcherService> _mockDispatcherService;
     private readonly Mock<IEventBus> _mockEventBus;
-    private readonly Mock<IDomainService> _mockDomainService;
 
     public BaseSettingsFeatureViewModelTests()
     {
-        _mockDomainServiceRouter = new Mock<IDomainServiceRouter>();
         _mockSettingsLoadingService = new Mock<ISettingsLoadingService>();
         _mockLogService = new Mock<ILogService>();
         _mockLocalizationService = new Mock<ILocalizationService>();
         _mockDispatcherService = new Mock<IDispatcherService>();
         _mockEventBus = new Mock<IEventBus>();
-        _mockDomainService = new Mock<IDomainService>();
 
         // Default localization: return the key itself
         _mockLocalizationService
@@ -72,11 +67,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         _mockDispatcherService
             .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Returns<Func<Task>>(asyncAction => asyncAction());
-
-        // Domain service router returns a mock domain service
-        _mockDomainServiceRouter
-            .Setup(r => r.GetDomainService(It.IsAny<string>()))
-            .Returns(_mockDomainService.Object);
 
         // Event bus subscribe returns a mock subscription token
         _mockEventBus
@@ -98,7 +88,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     private TestableSettingsFeatureViewModel CreateViewModel()
     {
         return new TestableSettingsFeatureViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -199,28 +188,10 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_WithNullDomainServiceRouter_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new TestableSettingsFeatureViewModel(
-            null!,
-            _mockSettingsLoadingService.Object,
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            _mockDispatcherService.Object,
-            _mockEventBus.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("domainServiceRouter");
-    }
-
-    [Fact]
     public void Constructor_WithNullSettingsLoadingService_ThrowsArgumentNullException()
     {
         // Act
         var action = () => new TestableSettingsFeatureViewModel(
-            _mockDomainServiceRouter.Object,
             null!,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -237,7 +208,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     {
         // Act
         var action = () => new TestableSettingsFeatureViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             null!,
             _mockLocalizationService.Object,
@@ -254,7 +224,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     {
         // Act
         var action = () => new TestableSettingsFeatureViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             null!,
@@ -271,7 +240,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     {
         // Act
         var action = () => new TestableSettingsFeatureViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -288,7 +256,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     {
         // Act
         var action = () => new TestableSettingsFeatureViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -490,7 +457,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -516,7 +482,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -540,7 +505,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -565,7 +529,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -589,7 +552,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -615,7 +577,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -644,7 +605,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -667,7 +627,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -698,7 +657,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -708,13 +666,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         await vm.LoadSettingsAsync();
 
         // Assert
-        _mockDomainServiceRouter.Verify(
-            r => r.GetDomainService(TestableSettingsFeatureViewModel.TestModuleId),
-            Times.Once);
-
         _mockSettingsLoadingService.Verify(
             s => s.LoadConfiguredSettingsAsync(
-                _mockDomainService.Object,
                 TestableSettingsFeatureViewModel.TestModuleId,
                 It.IsAny<string>(),
                 vm),
@@ -734,7 +687,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -781,7 +733,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -812,7 +763,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -848,7 +798,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -934,7 +883,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -962,7 +910,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -998,7 +945,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1026,7 +972,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1052,7 +997,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1076,7 +1020,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1103,7 +1046,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1136,7 +1078,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1204,7 +1145,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1231,7 +1171,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1259,7 +1198,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1285,7 +1223,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
@@ -1311,7 +1248,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1343,7 +1280,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1367,7 +1304,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1393,7 +1330,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1420,7 +1357,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1451,7 +1388,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1483,7 +1420,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1515,7 +1452,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1546,7 +1483,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1585,7 +1522,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1623,7 +1560,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
@@ -1667,7 +1604,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(() =>
             {
@@ -1695,7 +1632,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(), It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(() =>
             {
@@ -1728,7 +1665,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<IDomainService>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ISettingsFeatureViewModel>()))
