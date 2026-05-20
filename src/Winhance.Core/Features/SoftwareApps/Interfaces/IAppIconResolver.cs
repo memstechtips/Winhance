@@ -24,5 +24,14 @@ public interface IAppIconResolver
     /// and stamps ItemDefinition.IconPath on success. Failures are logged and
     /// swallowed — IconPath stays null on any per-entry or batch-level failure.
     /// </summary>
-    Task ResolveBatchAsync(IEnumerable<ItemDefinition> definitions, CancellationToken ct = default);
+    /// <param name="applyThemeAdaptation">
+    /// When true (Windows Apps), cached icons get theme adaptation: uniform
+    /// backplates are cropped and monochrome icons get synthesized light/dark
+    /// variants. When false (External Apps), vendor brand logos are cached
+    /// exactly as shipped — only the basic transparent-border trim is applied.
+    /// </param>
+    Task ResolveBatchAsync(
+        IEnumerable<ItemDefinition> definitions,
+        bool applyThemeAdaptation = true,
+        CancellationToken ct = default);
 }

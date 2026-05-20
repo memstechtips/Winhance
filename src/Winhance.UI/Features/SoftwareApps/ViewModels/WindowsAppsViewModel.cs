@@ -292,7 +292,9 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         try
         {
             var definitions = Items.Select(item => item.Definition).ToList();
-            await _iconResolver.ResolveBatchAsync(definitions);
+            // Windows Apps get theme adaptation — backplate crop + light/dark
+            // variant synthesis for monochrome system icons.
+            await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: true);
 
             foreach (var item in Items)
                 item.NotifyIconChanged();

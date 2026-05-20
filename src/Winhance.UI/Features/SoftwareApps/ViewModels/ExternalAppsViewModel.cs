@@ -300,7 +300,9 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         try
         {
             var definitions = Items.Select(item => item.Definition).ToList();
-            await _iconResolver.ResolveBatchAsync(definitions);
+            // External Apps are vendor brand logos — cache them exactly as
+            // shipped (no backplate crop, no light/dark variant synthesis).
+            await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: false);
 
             foreach (var item in Items)
                 item.NotifyIconChanged();

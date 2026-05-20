@@ -991,6 +991,64 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
+    public async Task ResolveBatchAsync_ThemeAdaptationDisabled_DoesNotWriteVariants()
+    {
+        // External Apps path: applyThemeAdaptation=false. A monochrome-white
+        // icon that WOULD normally produce a .light.png must not — vendor
+        // brand logos are cached exactly as shipped.
+        var def = Def("vendor-white-logo", appxName: "Vendor.WhiteLogo");
+        var fullName = "Vendor.WhiteLogo_1.0.0_x64__abc";
+        var whitePngBytes = await PngTestHelper.MakeSolidPngAsync(16, 16, 0xFF, 0xFF, 0xFF);
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.WhiteLogo"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(whitePngBytes));
+
+        await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: false);
+
+        def.IconPath.Should().NotBeNull();
+        var stem = Path.ChangeExtension(def.IconPath!, null);
+        File.Exists(stem + ".light.png").Should().BeFalse("theme adaptation off → no .light.png");
+        File.Exists(stem + ".dark.png").Should().BeFalse("theme adaptation off → no .dark.png");
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_ThemeAdaptationDisabled_DoesNotCropBackplate()
+    {
+        // External Apps path: a vendor logo with a uniform-color border must
+        // NOT be backplate-cropped — the vendor's framing is preserved. The
+        // basic alpha trim still runs but is a no-op here (fully opaque).
+        var def = Def("vendor-framed-logo", appxName: "Vendor.FramedLogo");
+        var fullName = "Vendor.FramedLogo_1.0.0_x64__abc";
+        var input = await PngTestHelper.MakePngAsync(20, 20, (x, y) =>
+        {
+            bool isYellowShape = x >= 8 && x < 16 && y >= 8 && y < 12;
+            return isYellowShape
+                ? ((byte)0x00, (byte)0xE0, (byte)0xE0, (byte)0xFF)
+                : ((byte)0x40, (byte)0x40, (byte)0x40, (byte)0xFF);
+        });
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.FramedLogo"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(input));
+
+        await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: false);
+
+        def.IconPath.Should().NotBeNull();
+        var cachedBytes = await File.ReadAllBytesAsync(def.IconPath!);
+
+        using var stream = new InMemoryRandomAccessStream();
+        await stream.WriteAsync(cachedBytes.AsBuffer());
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+
+        decoder.PixelWidth.Should().Be(20, "theme adaptation off → backplate is not cropped");
+        decoder.PixelHeight.Should().Be(20, "theme adaptation off → backplate is not cropped");
+    }
+
+    [Fact]
     public async Task ResolveBatchAsync_MultipleAppxNames_UsesFirstMatchInInstalledMap()
     {
         // Mirrors the Xbox case: a definition declares BOTH a modern and a

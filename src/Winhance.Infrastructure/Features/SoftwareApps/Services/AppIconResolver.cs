@@ -163,7 +163,10 @@ public class AppIconResolver : IAppIconResolver
     private static string DefaultCacheRoot() =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), CacheSubDir);
 
-    public async Task ResolveBatchAsync(IEnumerable<ItemDefinition> definitions, CancellationToken ct = default)
+    public async Task ResolveBatchAsync(
+        IEnumerable<ItemDefinition> definitions,
+        bool applyThemeAdaptation = true,
+        CancellationToken ct = default)
     {
         try
         {
@@ -202,7 +205,7 @@ public class AppIconResolver : IAppIconResolver
             {
                 var rateLimited = new ConcurrentDictionary<string, byte>();
                 sourcesAttempted = sourceCandidates.Count;
-                sourcesResolved += await RunLayer1PassAsync(sourceCandidates, rateLimited, ct).ConfigureAwait(false);
+                sourcesResolved += await RunLayer1PassAsync(sourceCandidates, rateLimited, applyThemeAdaptation, ct).ConfigureAwait(false);
 
                 for (int attempt = 0; attempt < Layer1RetryDelays.Length; attempt++)
                 {
@@ -221,7 +224,7 @@ public class AppIconResolver : IAppIconResolver
                     catch (OperationCanceledException) { break; }
 
                     rateLimited.Clear();
-                    sourcesResolved += await RunLayer1PassAsync(retryCandidates, rateLimited, ct).ConfigureAwait(false);
+                    sourcesResolved += await RunLayer1PassAsync(retryCandidates, rateLimited, applyThemeAdaptation, ct).ConfigureAwait(false);
                 }
             }
 
@@ -236,7 +239,7 @@ public class AppIconResolver : IAppIconResolver
                 if (def.IconPath is not null) continue;            // Already resolved by Layer 1.
                 try
                 {
-                    if (await TryResolveFromAppxAsync(def, installedMap, ct).ConfigureAwait(false))
+                    if (await TryResolveFromAppxAsync(def, installedMap, applyThemeAdaptation, ct).ConfigureAwait(false))
                         appxResolved++;
                 }
                 catch (Exception ex)
@@ -256,7 +259,7 @@ public class AppIconResolver : IAppIconResolver
 
                 try
                 {
-                    if (await TryResolveFromBinaryAsync(def, ct).ConfigureAwait(false))
+                    if (await TryResolveFromBinaryAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
                         binaryResolved++;
                 }
                 catch (Exception ex)
@@ -281,7 +284,7 @@ public class AppIconResolver : IAppIconResolver
                     try
                     {
                         Interlocked.Increment(ref storeAttempted);
-                        if (await TryResolveFromStoreAsync(def, ct).ConfigureAwait(false))
+                        if (await TryResolveFromStoreAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
                             Interlocked.Increment(ref storeResolved);
                     }
                     catch (Exception ex)
@@ -328,6 +331,7 @@ public class AppIconResolver : IAppIconResolver
     private async Task<int> RunLayer1PassAsync(
         List<ItemDefinition> candidates,
         ConcurrentDictionary<string, byte> rateLimited,
+        bool applyThemeAdaptation,
         CancellationToken ct)
     {
         int resolved = 0;
@@ -337,7 +341,7 @@ public class AppIconResolver : IAppIconResolver
             await sem.WaitAsync(ct).ConfigureAwait(false);
             try
             {
-                if (await TryResolveFromIconSourcesAsync(def, rateLimited, ct).ConfigureAwait(false))
+                if (await TryResolveFromIconSourcesAsync(def, rateLimited, applyThemeAdaptation, ct).ConfigureAwait(false))
                     Interlocked.Increment(ref resolved);
             }
             catch (Exception ex)
@@ -353,6 +357,7 @@ public class AppIconResolver : IAppIconResolver
     private async Task<bool> TryResolveFromIconSourcesAsync(
         ItemDefinition def,
         ConcurrentDictionary<string, byte> rateLimited,
+        bool applyThemeAdaptation,
         CancellationToken ct)
     {
         var sources = def.IconSources;
@@ -400,7 +405,7 @@ public class AppIconResolver : IAppIconResolver
                 if (bytes is null || bytes.Length == 0) continue;
 
                 using var ms = new MemoryStream(bytes);
-                await WriteStreamToCacheAsync(ms, cachePath, ct).ConfigureAwait(false);
+                await WriteStreamToCacheAsync(ms, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
                 def.IconPath = cachePath;
                 return true;
             }
@@ -566,6 +571,7 @@ public class AppIconResolver : IAppIconResolver
     private async Task<bool> TryResolveFromAppxAsync(
         ItemDefinition def,
         IReadOnlyDictionary<string, string> installedMap,
+        bool applyThemeAdaptation,
         CancellationToken ct)
     {
         var packageNames = def.AppxPackageName;
@@ -597,13 +603,13 @@ public class AppIconResolver : IAppIconResolver
         if (stream is null)
             return false;
 
-        await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
+        await WriteStreamToCacheAsync(stream, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
         PruneOldVersions(def.Id, Path.GetFileName(cachePath));
         def.IconPath = cachePath;
         return true;
     }
 
-    private async Task<bool> TryResolveFromStoreAsync(ItemDefinition def, CancellationToken ct)
+    private async Task<bool> TryResolveFromStoreAsync(ItemDefinition def, bool applyThemeAdaptation, CancellationToken ct)
     {
         var msStoreId = def.MsStoreId!;
         var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, msStoreId));
@@ -617,12 +623,12 @@ public class AppIconResolver : IAppIconResolver
         if (stream is null)
             return false;
 
-        await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
+        await WriteStreamToCacheAsync(stream, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
         def.IconPath = cachePath;
         return true;
     }
 
-    private async Task<bool> TryResolveFromBinaryAsync(ItemDefinition def, CancellationToken ct)
+    private async Task<bool> TryResolveFromBinaryAsync(ItemDefinition def, bool applyThemeAdaptation, CancellationToken ct)
     {
         var hint = def.InstalledBinaryHint!;
 
@@ -645,7 +651,7 @@ public class AppIconResolver : IAppIconResolver
         await using var stream = await _binarySource!.GetIconStreamAsync(hint, LogoSize, ct).ConfigureAwait(false);
         if (stream is null) return false;
 
-        await WriteStreamToCacheAsync(stream, cachePath, ct).ConfigureAwait(false);
+        await WriteStreamToCacheAsync(stream, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
         def.IconPath = cachePath;
         return true;
     }
@@ -669,13 +675,24 @@ public class AppIconResolver : IAppIconResolver
         return Convert.ToHexString(bytes, 0, 4).ToLowerInvariant();
     }
 
-    private async Task WriteStreamToCacheAsync(Stream source, string cachePath, CancellationToken ct)
+    private async Task WriteStreamToCacheAsync(
+        Stream source, string cachePath, bool applyThemeAdaptation, CancellationToken ct)
     {
         var sourceBytes = await ReadAllBytesAsync(source, ct).ConfigureAwait(false);
-        var primaryBytes = await TryTrimTransparentBordersAsync(sourceBytes, ct).ConfigureAwait(false)
+
+        // Backplate detection is theme adaptation — Windows Apps only. External
+        // App vendor logos keep whatever framing the vendor shipped; only the
+        // basic transparent-border trim runs for them.
+        var primaryBytes = await TryTrimTransparentBordersAsync(sourceBytes, applyThemeAdaptation, ct).ConfigureAwait(false)
                           ?? sourceBytes;
 
         await WriteBytesAtomicAsync(cachePath, primaryBytes, ct).ConfigureAwait(false);
+
+        // Light/dark variant synthesis is theme adaptation — Windows Apps only.
+        // External App vendor logos are single brand marks (no monochrome
+        // light/dark pair), so we never recolor them.
+        if (!applyThemeAdaptation)
+            return;
 
         // Variant synthesis is best-effort: the primary is already on disk
         // and IconPath will still resolve. Any WinRT failure inside the
@@ -756,8 +773,14 @@ public class AppIconResolver : IAppIconResolver
     ///
     /// Returns null on any decoder/encoder failure or when the input has no
     /// visible content — caller falls back to the untrimmed source bytes.
+    ///
+    /// <paramref name="detectBackplate"/> gates the uniform-backplate crop:
+    /// true for Windows Apps, false for External App vendor logos (which keep
+    /// whatever framing the vendor shipped). The basic transparent-border trim
+    /// runs regardless.
     /// </summary>
-    private async Task<byte[]?> TryTrimTransparentBordersAsync(byte[] source, CancellationToken ct)
+    private async Task<byte[]?> TryTrimTransparentBordersAsync(
+        byte[] source, bool detectBackplate, CancellationToken ct)
     {
         try
         {
@@ -778,9 +801,11 @@ public class AppIconResolver : IAppIconResolver
             swBitmap.CopyToBuffer(pixelBuffer);
             var pixels = pixelBuffer.ToArray();
 
-            bool hasBackplate = TryDetectUniformBackplate(
-                pixels, width, height,
-                out byte bpR, out byte bpG, out byte bpB);
+            // Pre-declared (not inline `out`) so they stay definitely-assigned
+            // when the short-circuit skips TryDetectUniformBackplate.
+            byte bpR = 0, bpG = 0, bpB = 0;
+            bool hasBackplate = detectBackplate
+                && TryDetectUniformBackplate(pixels, width, height, out bpR, out bpG, out bpB);
 
             int minX = width, minY = height, maxX = -1, maxY = -1;
             for (int y = 0; y < height; y++)
