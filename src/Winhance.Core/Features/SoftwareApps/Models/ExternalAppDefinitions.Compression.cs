@@ -41,7 +41,7 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.win-rar.com/",
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/WinRAR_icon.svg/250px-WinRAR_icon.svg.png",
-                            "https://www.win-rar.com/fileadmin/templates/logo-winrar.png",
+                            "https://www.win-rar.com/uploads/pics/rar-archive_77.png",
                         ],
                     },
                     new ItemDefinition
