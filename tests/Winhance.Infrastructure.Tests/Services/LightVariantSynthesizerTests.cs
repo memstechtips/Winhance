@@ -138,12 +138,12 @@ public class LightVariantSynthesizerTests
         // near-solid-block requirement keeps the two-tone guard from
         // catching it.
         //
-        // 12×12: a 6×6 dark-and-light block centered in an otherwise
-        // transparent canvas. Transparent fraction = (144-36)/144 = 75%,
-        // far above the 5% solid-block ceiling, so the guard does NOT fire.
-        // The 6×6 block is 18 dark #202020 + 18 light #E0E0E0 → mean
-        // lightness ≈ 0.50 lands in mid-grey... so tilt it dark to land in
-        // the mono-dark band: 24 dark + 12 light.
+        // 12×12: a 6×6 block centered in an otherwise transparent canvas.
+        // Transparent fraction = (144-36)/144 = 75%, far above the 5%
+        // solid-block ceiling, so the two-tone guard does NOT fire. The 6×6
+        // block is dark-weighted — 24 dark #202020 (rows 3-6) + 12 light
+        // #E0E0E0 (rows 7-8) — so mean lightness ≈ 0.38 lands in the
+        // mono-dark band rather than the mid-grey dead zone.
         var input = await PngTestHelper.MakePngAsync(12, 12, (x, y) =>
         {
             bool inBlock = x >= 3 && x < 9 && y >= 3 && y < 9;
