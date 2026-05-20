@@ -105,16 +105,17 @@ public class LightVariantSynthesizerTests
     }
 
     [Fact]
-    public async Task TryGenerateAsync_TwoToneMonochromeIcon_ReturnsNoVariants()
+    public async Task TryGenerateAsync_TwoToneSolidBlockIcon_ReturnsNoVariants()
     {
         // Regression for Windows Terminal: a pure-monochrome icon (S=0) that
-        // is composed of a dark region AND a light region — a dark window
-        // with a light `>_` glyph. mean lightness lands in the mono-dark
-        // band, but flattening every opaque pixel to one tone would collapse
-        // it into a solid square. The two-tone guard must reject it.
+        // is a filled CONTAINER — a dark window with a light `>_` glyph,
+        // occupying the whole canvas as a solid opaque block. Flattening
+        // every opaque pixel to one tone would collapse it into a square.
+        // The two-tone guard must reject it.
         //
-        // 10×10: columns 0-6 dark #202020 (70%), columns 7-9 light #E0E0E0
-        // (30%). Both bands far exceed the 10% TwoToneMinBandFraction.
+        // 10×10, fully opaque: columns 0-6 dark #202020 (70%), columns 7-9
+        // light #E0E0E0 (30%). Both bands exceed 10%; transparent fraction
+        // is 0%, well under the 5% solid-block ceiling.
         var input = await PngTestHelper.MakePngAsync(10, 10, (x, y) =>
             x < 7
                 ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)   // dark
@@ -122,8 +123,40 @@ public class LightVariantSynthesizerTests
 
         var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
 
-        light.Should().BeNull("a composed dark+light icon must not be flattened");
-        dark.Should().BeNull("a composed dark+light icon must not be flattened");
+        light.Should().BeNull("a composed dark+light container icon must not be flattened");
+        dark.Should().BeNull("a composed dark+light container icon must not be flattened");
+    }
+
+    [Fact]
+    public async Task TryGenerateAsync_TwoToneShapeOnTransparency_StillGeneratesVariants()
+    {
+        // Regression guard for Xbox Game Bar: a shaded single object (an
+        // isometric box — light top face, dark side faces) floating on
+        // transparency. It has mass in both lightness bands like Terminal,
+        // but it is NOT a filled container — flattening it to one tone is
+        // the desired theme adaptation (the box shape survives). The
+        // near-solid-block requirement keeps the two-tone guard from
+        // catching it.
+        //
+        // 12×12: a 6×6 dark-and-light block centered in an otherwise
+        // transparent canvas. Transparent fraction = (144-36)/144 = 75%,
+        // far above the 5% solid-block ceiling, so the guard does NOT fire.
+        // The 6×6 block is 18 dark #202020 + 18 light #E0E0E0 → mean
+        // lightness ≈ 0.50 lands in mid-grey... so tilt it dark to land in
+        // the mono-dark band: 24 dark + 12 light.
+        var input = await PngTestHelper.MakePngAsync(12, 12, (x, y) =>
+        {
+            bool inBlock = x >= 3 && x < 9 && y >= 3 && y < 9;
+            if (!inBlock) return ((byte)0, (byte)0, (byte)0, (byte)0); // transparent
+            return y < 7
+                ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)    // dark (rows 3-6)
+                : ((byte)0xE0, (byte)0xE0, (byte)0xE0, (byte)0xFF);   // light (rows 7-8)
+        });
+
+        var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
+
+        light.Should().NotBeNull("a shaded shape on transparency should still be theme-adapted");
+        dark.Should().NotBeNull("a shaded mono-dark shape needs a dark-mode variant");
     }
 
     [Fact]

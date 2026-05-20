@@ -61,18 +61,26 @@ public static class LightVariantSynthesizer
     private const double ColoredPixelSaturationThreshold = 0.20;
     private const double ColoredPixelMaxFraction = 0.05;
 
-    // Two-tone guard. A recolorable "silhouette" icon has its opaque pixels
-    // clustered on ONE side of the lightness scale (all light, or all dark).
-    // An icon with meaningful mass in BOTH bands is a *composed* icon — e.g.
-    // Windows Terminal is a dark window with a light `>_` glyph — and
-    // flattening every opaque pixel to a single tone would erase that
-    // internal contrast (the glyph vanishes into the window). A pixel is
-    // "dark-band" below TwoToneDarkLightness, "light-band" above
-    // TwoToneLightLightness. If each band holds more than TwoToneMinBandFraction
-    // of the opaque pixels, the icon is composed and gets no variants.
+    // Two-tone guard. Some monochrome icons must NOT be flattened to a single
+    // tone — e.g. Windows Terminal is a dark window CONTAINING a light `>_`
+    // glyph; recoloring every opaque pixel to one tone erases the glyph.
+    //
+    // But "has both dark and light pixels" alone is too broad: Xbox Game Bar
+    // is a shaded isometric box (light top face, dark side faces) and SHOULD
+    // be flattened — that's the desired theme adaptation, the box shape
+    // survives. The distinguisher is shape:
+    //   - A composed icon you must not flatten is a filled CONTAINER — it
+    //     occupies its whole canvas as a near-solid opaque block (Terminal
+    //     is 100% opaque).
+    //   - A shaded single object floats on transparency (Xbox Game Bar is
+    //     ~21% transparent).
+    // So the guard fires only when the icon has meaningful mass in BOTH
+    // lightness bands AND is a near-solid block (transparent fraction below
+    // TwoToneMaxTransparentFraction).
     private const double TwoToneDarkLightness = 0.30;
     private const double TwoToneLightLightness = 0.70;
     private const double TwoToneMinBandFraction = 0.10;
+    private const double TwoToneMaxTransparentFraction = 0.05;
 
     /// <summary>
     /// Returns the synthesized light-mode and dark-mode variants for the
@@ -148,11 +156,17 @@ public static class LightVariantSynthesizer
         int coloredCount = 0;
         int darkBandCount = 0;
         int lightBandCount = 0;
+        int transparentCount = 0;
+        int totalPixels = pixels.Length / 4;
 
         for (int i = 0; i < pixels.Length; i += 4)
         {
             byte alpha = pixels[i + 3];
-            if (alpha <= AlphaDetectionThreshold) continue;
+            if (alpha <= AlphaDetectionThreshold)
+            {
+                transparentCount++;
+                continue;
+            }
 
             byte b = pixels[i + 0];
             byte g = pixels[i + 1];
@@ -178,10 +192,17 @@ public static class LightVariantSynthesizer
             return MonochromeClass.NotMonochrome;
 
         // Bail on composed two-tone icons (e.g. Windows Terminal: a dark
-        // window with a light `>_` glyph). Flattening every opaque pixel to
-        // one tone would collapse the design into a solid square.
+        // window CONTAINING a light `>_` glyph) — flattening every opaque
+        // pixel to one tone collapses the design into a solid square. The
+        // near-solid-block requirement keeps this from also catching shaded
+        // single objects like Xbox Game Bar (an isometric box on
+        // transparency), which SHOULD be flattened.
+        double transparentFraction = totalPixels > 0
+            ? (double)transparentCount / totalPixels
+            : 0;
         if (darkBandCount > opaqueCount * TwoToneMinBandFraction
-            && lightBandCount > opaqueCount * TwoToneMinBandFraction)
+            && lightBandCount > opaqueCount * TwoToneMinBandFraction
+            && transparentFraction < TwoToneMaxTransparentFraction)
             return MonochromeClass.NotMonochrome;
 
         double meanLightness = sumLightness / opaqueCount;
