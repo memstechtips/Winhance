@@ -61,6 +61,19 @@ public static class LightVariantSynthesizer
     private const double ColoredPixelSaturationThreshold = 0.20;
     private const double ColoredPixelMaxFraction = 0.05;
 
+    // Two-tone guard. A recolorable "silhouette" icon has its opaque pixels
+    // clustered on ONE side of the lightness scale (all light, or all dark).
+    // An icon with meaningful mass in BOTH bands is a *composed* icon — e.g.
+    // Windows Terminal is a dark window with a light `>_` glyph — and
+    // flattening every opaque pixel to a single tone would erase that
+    // internal contrast (the glyph vanishes into the window). A pixel is
+    // "dark-band" below TwoToneDarkLightness, "light-band" above
+    // TwoToneLightLightness. If each band holds more than TwoToneMinBandFraction
+    // of the opaque pixels, the icon is composed and gets no variants.
+    private const double TwoToneDarkLightness = 0.30;
+    private const double TwoToneLightLightness = 0.70;
+    private const double TwoToneMinBandFraction = 0.10;
+
     /// <summary>
     /// Returns the synthesized light-mode and dark-mode variants for the
     /// given primary icon bytes. Each may be <c>null</c> independently. Both
@@ -133,6 +146,8 @@ public static class LightVariantSynthesizer
         double sumLightness = 0;
         int opaqueCount = 0;
         int coloredCount = 0;
+        int darkBandCount = 0;
+        int lightBandCount = 0;
 
         for (int i = 0; i < pixels.Length; i += 4)
         {
@@ -148,6 +163,9 @@ public static class LightVariantSynthesizer
 
             if (s > ColoredPixelSaturationThreshold)
                 coloredCount++;
+
+            if (l < TwoToneDarkLightness) darkBandCount++;
+            else if (l > TwoToneLightLightness) lightBandCount++;
         }
 
         if (opaqueCount == 0) return MonochromeClass.NotMonochrome;
@@ -157,6 +175,13 @@ public static class LightVariantSynthesizer
         // total pixels (so mean saturation is low) but still represents real
         // visual content that must not be recolored to grey.
         if (coloredCount > opaqueCount * ColoredPixelMaxFraction)
+            return MonochromeClass.NotMonochrome;
+
+        // Bail on composed two-tone icons (e.g. Windows Terminal: a dark
+        // window with a light `>_` glyph). Flattening every opaque pixel to
+        // one tone would collapse the design into a solid square.
+        if (darkBandCount > opaqueCount * TwoToneMinBandFraction
+            && lightBandCount > opaqueCount * TwoToneMinBandFraction)
             return MonochromeClass.NotMonochrome;
 
         double meanLightness = sumLightness / opaqueCount;

@@ -105,6 +105,49 @@ public class LightVariantSynthesizerTests
     }
 
     [Fact]
+    public async Task TryGenerateAsync_TwoToneMonochromeIcon_ReturnsNoVariants()
+    {
+        // Regression for Windows Terminal: a pure-monochrome icon (S=0) that
+        // is composed of a dark region AND a light region — a dark window
+        // with a light `>_` glyph. mean lightness lands in the mono-dark
+        // band, but flattening every opaque pixel to one tone would collapse
+        // it into a solid square. The two-tone guard must reject it.
+        //
+        // 10×10: columns 0-6 dark #202020 (70%), columns 7-9 light #E0E0E0
+        // (30%). Both bands far exceed the 10% TwoToneMinBandFraction.
+        var input = await PngTestHelper.MakePngAsync(10, 10, (x, y) =>
+            x < 7
+                ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)   // dark
+                : ((byte)0xE0, (byte)0xE0, (byte)0xE0, (byte)0xFF)); // light
+
+        var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
+
+        light.Should().BeNull("a composed dark+light icon must not be flattened");
+        dark.Should().BeNull("a composed dark+light icon must not be flattened");
+    }
+
+    [Fact]
+    public async Task TryGenerateAsync_DarkIconWithMinorLightHighlights_StillClassifiedAsMonoDark()
+    {
+        // Guards against the two-tone check being too eager: a dark
+        // silhouette with a few light highlight pixels (under the 10% band
+        // fraction) is still a recolorable mono-dark icon. 10×10 = 100 px,
+        // 6 light highlight pixels = 6% — below TwoToneMinBandFraction.
+        var input = await PngTestHelper.MakePngAsync(10, 10, (x, y) =>
+        {
+            bool isHighlight = y == 0 && x < 6;
+            return isHighlight
+                ? ((byte)0xF0, (byte)0xF0, (byte)0xF0, (byte)0xFF)   // light highlight
+                : ((byte)0x33, (byte)0x33, (byte)0x33, (byte)0xFF);  // dark body
+        });
+
+        var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
+
+        light.Should().NotBeNull("6% light highlights should not trip the two-tone guard");
+        dark.Should().NotBeNull("mono-dark icon still needs a dark-mode variant");
+    }
+
+    [Fact]
     public async Task TryGenerateAsync_MidGreyMonochrome_ReturnsNoVariants()
     {
         // Mean lightness ~0.5 (#808080) — sits in the dead zone between
