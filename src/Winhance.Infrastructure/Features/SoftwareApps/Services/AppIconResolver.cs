@@ -103,15 +103,21 @@ public class AppIconResolver : IAppIconResolver
     private const byte AlphaTrimThreshold = 32;
 
     // ====== BACKPLATE DETECTION KNOBS ======
-    // Sticky Notes (and similar UWP icons that ship their tile chrome inside
-    // the Square44x44Logo asset) come back from AppX GetLogo as a small
-    // colored shape sitting on a fully-opaque uniform background. The alpha
-    // trim above can't crop those because there's no transparency to detect.
-    // The backplate trim looks at the 4 corners — if they're all near-opaque
+    // Two unrelated icon sources ship art on a uniform opaque background:
+    //   - Sticky Notes (and similar UWP icons) come back from AppX GetLogo
+    //     as a small shape on a fully-opaque colored card.
+    //   - Microsoft Store CDN icons (the Layer 4 fallback) often arrive as a
+    //     logo on a flat WHITE background — e.g. Teams / To Do when the
+    //     curated IconSources URL is unreachable and the resolver falls back.
+    // The plain alpha trim can't touch either because there's no transparency.
+    //
+    // The backplate pass looks at the 4 corners — if they're all near-opaque
     // AND agree on a single color within BackplateCornerColorTolerance, that
-    // color is treated as the backplate. Pixels matching the backplate
-    // within BackplateMatchColorTolerance are excluded from the visible-content
-    // bbox so the crop tightens to just the inner art.
+    // color is the backplate. It is then flood-filled to transparent from the
+    // image edges inward (FloodFillBackplateToTransparent): every backplate-
+    // colored pixel reachable from the border becomes transparent, while
+    // backplate-colored pixels *enclosed* by the artwork are preserved. The
+    // ordinary alpha trim afterwards crops the now-transparent border.
     //
     // Corner tolerance is intentionally tight (4): we want to detect
     // *deliberate* uniform backplates, not icons whose content happens to
@@ -756,25 +762,30 @@ public class AppIconResolver : IAppIconResolver
     }
 
     /// <summary>
-    /// Crops the source PNG/JPG to the bounding box of its visible content
-    /// and re-encodes as PNG. Visible content excludes both transparent
-    /// borders AND uniform-color backplates (e.g. Sticky Notes ships its
-    /// AppX logo as a small yellow shape on a fully-opaque dark-grey card —
-    /// without backplate detection, the yellow shape ends up tiny relative
-    /// to the cached 150×150 canvas).
+    /// Normalizes a source PNG/JPG: when a uniform opaque backplate is
+    /// detected, it is flood-filled to transparent from the image edges; the
+    /// result is then cropped to the bounding box of its non-transparent
+    /// pixels and re-encoded as PNG.
+    ///
+    /// This handles two cases the plain alpha trim cannot:
+    ///   - Sticky Notes ships its AppX logo as a small shape on a fully-opaque
+    ///     colored card — flood-filling the card leaves just the inner art.
+    ///   - Store CDN icons (Teams / To Do) often arrive as a logo on a flat
+    ///     white background — flood-filling the white yields a clean
+    ///     transparent icon.
     ///
     /// Backplate detection requires all four corner pixels to be near-opaque
     /// AND match each other within <see cref="BackplateCornerColorTolerance"/>.
-    /// Pixels matching the detected backplate color within
-    /// <see cref="BackplateMatchColorTolerance"/> count as border for the
-    /// bbox computation. Tolerances are tight on purpose — we want to detect
-    /// deliberate backplates without misclassifying an icon whose content
+    /// The flood-fill clears every backplate-colored pixel reachable from the
+    /// border (<see cref="BackplateMatchColorTolerance"/>); backplate-colored
+    /// pixels enclosed by the artwork are preserved. Tolerances are tight on
+    /// purpose — we want deliberate backplates, not icons whose content
     /// happens to share corner colors.
     ///
     /// Returns null on any decoder/encoder failure or when the input has no
     /// visible content — caller falls back to the untrimmed source bytes.
     ///
-    /// <paramref name="detectBackplate"/> gates the uniform-backplate crop:
+    /// <paramref name="detectBackplate"/> gates the backplate flood-fill:
     /// true for Windows Apps, false for External App vendor logos (which keep
     /// whatever framing the vendor shipped). The basic transparent-border trim
     /// runs regardless.
@@ -807,34 +818,20 @@ public class AppIconResolver : IAppIconResolver
             bool hasBackplate = detectBackplate
                 && TryDetectUniformBackplate(pixels, width, height, out bpR, out bpG, out bpB);
 
+            // Flood-fill the detected backplate to transparent. After this the
+            // bbox computation below is a pure alpha trim — the formerly-opaque
+            // backplate now reads as transparent border.
+            if (hasBackplate)
+                FloodFillBackplateToTransparent(pixels, width, height, bpR, bpG, bpB);
+
             int minX = width, minY = height, maxX = -1, maxY = -1;
             for (int y = 0; y < height; y++)
             {
                 int rowStart = y * width * 4;
                 for (int x = 0; x < width; x++)
                 {
-                    int idx = rowStart + x * 4;
-                    byte alpha = pixels[idx + 3];
-
-                    bool isBorder;
-                    if (alpha <= AlphaTrimThreshold)
-                    {
-                        isBorder = true;
-                    }
-                    else if (hasBackplate
-                        && alpha >= BackplateMinAlpha
-                        && IsBackplateColor(
-                            pixels[idx + 2], pixels[idx + 1], pixels[idx + 0],
-                            bpR, bpG, bpB))
-                    {
-                        isBorder = true;
-                    }
-                    else
-                    {
-                        isBorder = false;
-                    }
-
-                    if (!isBorder)
+                    byte alpha = pixels[rowStart + x * 4 + 3];
+                    if (alpha > AlphaTrimThreshold)
                     {
                         if (x < minX) minX = x;
                         if (y < minY) minY = y;
@@ -853,14 +850,23 @@ public class AppIconResolver : IAppIconResolver
             uint cropW = (uint)(maxX - minX + 1);
             uint cropH = (uint)(maxY - minY + 1);
 
-            // Source has no transparent border — re-encoding wouldn't change
-            // anything visible, so skip the round-trip.
-            if (cropX == 0 && cropY == 0 && cropW == width && cropH == height)
+            // No crop needed AND no flood-fill happened — re-encoding wouldn't
+            // change anything, so skip the round-trip. When a backplate was
+            // flood-filled the pixels changed even if the bbox is full, so we
+            // must re-encode.
+            if (!hasBackplate && cropX == 0 && cropY == 0 && cropW == width && cropH == height)
                 return null;
+
+            // Encode from the (possibly flood-filled) pixel buffer rather than
+            // the original decoder bitmap, so the transparency edits land in
+            // the output. The crop transform tightens to the visible bbox.
+            using var outBitmap = new SoftwareBitmap(
+                BitmapPixelFormat.Bgra8, width, height, BitmapAlphaMode.Premultiplied);
+            outBitmap.CopyFromBuffer(pixels.AsBuffer());
 
             using var outStream = new InMemoryRandomAccessStream();
             var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, outStream);
-            encoder.SetSoftwareBitmap(swBitmap);
+            encoder.SetSoftwareBitmap(outBitmap);
             encoder.BitmapTransform.Bounds = new BitmapBounds
             {
                 X = cropX,
@@ -933,6 +939,62 @@ public class AppIconResolver : IAppIconResolver
         Math.Abs(pixelR - bpR) <= BackplateMatchColorTolerance
         && Math.Abs(pixelG - bpG) <= BackplateMatchColorTolerance
         && Math.Abs(pixelB - bpB) <= BackplateMatchColorTolerance;
+
+    /// <summary>
+    /// 4-connected flood fill from the image border: every near-opaque pixel
+    /// matching the backplate color, reachable from an edge without crossing
+    /// the artwork, is set fully transparent. Backplate-colored pixels that
+    /// are enclosed by the artwork are not reached and stay intact. The
+    /// <paramref name="pixels"/> buffer is mutated in place (BGRA, premultiplied).
+    /// </summary>
+    private static void FloodFillBackplateToTransparent(
+        byte[] pixels, int width, int height, byte bpR, byte bpG, byte bpB)
+    {
+        var visited = new bool[width * height];
+        var queue = new Queue<int>();
+
+        void TryEnqueue(int x, int y)
+        {
+            if (x < 0 || x >= width || y < 0 || y >= height) return;
+            int idx = y * width + x;
+            if (visited[idx]) return;
+
+            int p = idx * 4;
+            if (pixels[p + 3] < BackplateMinAlpha) return;
+            if (!IsBackplateColor(pixels[p + 2], pixels[p + 1], pixels[p + 0], bpR, bpG, bpB)) return;
+
+            visited[idx] = true;
+            queue.Enqueue(idx);
+        }
+
+        for (int x = 0; x < width; x++)
+        {
+            TryEnqueue(x, 0);
+            TryEnqueue(x, height - 1);
+        }
+        for (int y = 0; y < height; y++)
+        {
+            TryEnqueue(0, y);
+            TryEnqueue(width - 1, y);
+        }
+
+        while (queue.Count > 0)
+        {
+            int idx = queue.Dequeue();
+            int p = idx * 4;
+            pixels[p + 0] = 0;
+            pixels[p + 1] = 0;
+            pixels[p + 2] = 0;
+            pixels[p + 3] = 0;
+
+            int x = idx % width;
+            int y = idx / width;
+            TryEnqueue(x - 1, y);
+            TryEnqueue(x + 1, y);
+            TryEnqueue(x, y - 1);
+            TryEnqueue(x, y + 1);
+        }
+    }
 
     /// <summary>
     /// After a successful AppX cache write, deletes any other cache files that

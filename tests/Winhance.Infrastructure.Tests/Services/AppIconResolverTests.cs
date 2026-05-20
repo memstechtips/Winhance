@@ -955,6 +955,59 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
+    public async Task ResolveBatchAsync_WhiteBackgroundIcon_FloodFillsWhiteToTransparent()
+    {
+        // Regression for Teams / To Do resolved via the Store CDN fallback:
+        // a logo on a flat white background. The white must be flood-filled
+        // to transparent, not left as an opaque white card. Two separate
+        // colored blocks on white — the white between them (within the crop
+        // bbox) must come back transparent.
+        var def = Def("white-bg-logo", appxName: "Vendor.WhiteBgLogo");
+        var fullName = "Vendor.WhiteBgLogo_1.0.0_x64__abc";
+        var input = await PngTestHelper.MakePngAsync(20, 20, (x, y) =>
+        {
+            bool block1 = x >= 4 && x < 7 && y >= 4 && y < 7;
+            bool block2 = x >= 13 && x < 16 && y >= 13 && y < 16;
+            return (block1 || block2)
+                ? ((byte)0x20, (byte)0x10, (byte)0xC0, (byte)0xFF)   // BGRA: saturated reddish
+                : ((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);  // white background
+        });
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Vendor.WhiteBgLogo"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(input));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().NotBeNull();
+        var cachedBytes = await File.ReadAllBytesAsync(def.IconPath!);
+
+        using var stream = new InMemoryRandomAccessStream();
+        await stream.WriteAsync(cachedBytes.AsBuffer());
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+        var sw = await decoder.GetSoftwareBitmapAsync(
+            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight);
+        var buffer = new Windows.Storage.Streams.Buffer((uint)(sw.PixelWidth * sw.PixelHeight * 4));
+        sw.CopyToBuffer(buffer);
+        var pixels = buffer.ToArray();
+
+        // Crop bbox spans (4,4)-(15,15) → 12×12.
+        sw.PixelWidth.Should().Be(12);
+        sw.PixelHeight.Should().Be(12);
+
+        // Cropped-local (6,6) maps to original (10,10) — formerly white
+        // background between the two blocks — must now be transparent.
+        int centerIdx = (6 * (int)sw.PixelWidth + 6) * 4;
+        pixels[centerIdx + 3].Should().Be(0, "white background must be flood-filled to transparent");
+
+        // Cropped-local (0,0) maps to original (4,4) — a colored block pixel —
+        // must survive intact.
+        pixels[0 + 3].Should().Be(0xFF, "the logo's colored pixels must be preserved");
+    }
+
+    [Fact]
     public async Task ResolveBatchAsync_TransparentBorderedIcon_StillTrimsByAlphaUnchanged()
     {
         // Regression guard for the existing trim path: a transparent-bordered
