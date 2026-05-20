@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-public class AppUninstallServiceTests
+public class ExternalAppUninstallServiceTests
 {
     private readonly Mock<IWinGetPackageInstaller> _winGetPackageInstaller = new();
     private readonly Mock<IChocolateyService> _chocolateyService = new();
@@ -19,7 +19,7 @@ public class AppUninstallServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IProcessExecutor> _processExecutor = new();
 
-    private AppUninstallService CreateSut() => new(
+    private ExternalAppUninstallService CreateSut() => new(
         _winGetPackageInstaller.Object,
         _chocolateyService.Object,
         _logService.Object,

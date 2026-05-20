@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -17,7 +18,7 @@ public class ExternalAppsService(
     IWinGetDetectionService winGetDetectionService,
     IWinGetBootstrapper winGetBootstrapper,
     IAppStatusDiscoveryService appStatusDiscoveryService,
-    IAppUninstallService appUninstallService,
+    IExternalAppUninstallService externalAppUninstallService,
     IDirectDownloadService directDownloadService,
     ITaskProgressService taskProgressService,
     IChocolateyService chocolateyService,
@@ -35,11 +36,6 @@ public class ExternalAppsService(
 
     public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
 
-    private CancellationToken GetCurrentCancellationToken()
-    {
-        return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
-    }
-
     public Task<IEnumerable<ItemDefinition>> GetAppsAsync()
     {
         return Task.FromResult<IEnumerable<ItemDefinition>>(ExternalAppDefinitions.GetExternalApps().Items);
@@ -47,7 +43,7 @@ public class ExternalAppsService(
 
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
     {
-        var cancellationToken = GetCurrentCancellationToken();
+        var cancellationToken = taskProgressService.GetCurrentCancellationToken();
 
         try
         {
@@ -358,8 +354,8 @@ $Shortcut.Save()
     {
         try
         {
-            var cancellationToken = GetCurrentCancellationToken();
-            var result = await appUninstallService.UninstallAsync(item, progress, cancellationToken).ConfigureAwait(false);
+            var cancellationToken = taskProgressService.GetCurrentCancellationToken();
+            var result = await externalAppUninstallService.UninstallAsync(item, progress, cancellationToken).ConfigureAwait(false);
 
             if (result.Success)
             {

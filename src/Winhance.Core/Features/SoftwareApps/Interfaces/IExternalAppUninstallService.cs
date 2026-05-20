@@ -6,7 +6,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
-public interface IAppUninstallService
+public interface IExternalAppUninstallService
 {
     Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,

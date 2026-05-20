@@ -17,7 +17,7 @@ public class SelectedAppsProviderTests : IDisposable
 {
     private readonly Mock<IWindowsAppsService> _mockWindowsAppsService = new();
     private readonly Mock<IAppInstallationService> _mockAppInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _mockAppUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _mockWindowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _mockProgressService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -56,7 +56,7 @@ public class SelectedAppsProviderTests : IDisposable
         _windowsAppsVm = new WindowsAppsViewModel(
             _mockWindowsAppsService.Object,
             _mockAppInstallationService.Object,
-            _mockAppUninstallationService.Object,
+            _mockWindowsAppUninstallService.Object,
             _mockProgressService.Object,
             _mockLogService.Object,
             _mockDialogService.Object,

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-public class AppUninstallationServiceTests
+public class WindowsAppUninstallServiceTests
 {
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
@@ -18,7 +18,7 @@ public class AppUninstallationServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IMultiScriptProgressService> _multiScriptProgressService = new();
 
-    private AppUninstallationService CreateSut() => new(
+    private WindowsAppUninstallService CreateSut() => new(
         _logService.Object,
         _windowsAppsService.Object,
         _bloatRemovalService.Object,

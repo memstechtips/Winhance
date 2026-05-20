@@ -23,7 +23,7 @@ public class NavBadgeServiceTests : IDisposable
         // Create real WindowsAppsViewModel and ExternalAppsViewModel with mocked dependencies
         var mockWindowsAppsService = new Mock<IWindowsAppsService>();
         var mockAppInstallService = new Mock<IAppInstallationService>();
-        var mockAppUninstallService = new Mock<IAppUninstallationService>();
+        var mockExternalAppUninstallService = new Mock<IWindowsAppUninstallService>();
         var mockProgressService = new Mock<ITaskProgressService>();
         var mockLogService = new Mock<ILogService>();
         var mockDialogService = new Mock<IDialogService>();
@@ -37,7 +37,7 @@ public class NavBadgeServiceTests : IDisposable
         _windowsAppsVm = new WindowsAppsViewModel(
             mockWindowsAppsService.Object,
             mockAppInstallService.Object,
-            mockAppUninstallService.Object,
+            mockExternalAppUninstallService.Object,
             mockProgressService.Object,
             mockLogService.Object,
             mockDialogService.Object,
@@ -49,6 +49,7 @@ public class NavBadgeServiceTests : IDisposable
 
         _externalAppsVm = new ExternalAppsViewModel(
             mockExternalAppsService.Object,
+            mockAppInstallService.Object,
             mockProgressService.Object,
             mockLogService.Object,
             mockDialogService.Object,

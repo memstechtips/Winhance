@@ -28,21 +28,14 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
     // Per-instance cached enumeration result. The resolver runs once per tab (Windows
     // Apps + External Apps) within a single SoftwareApps page load; both passes call
     // GetInstalledPackageMapAsync. Without this cache we'd enumerate ~119 packages
-    // twice. Cache lasts the singleton's lifetime; a future install/uninstall flow
-    // that needs fresh data should call InvalidateCache().
+    // twice. Cache lasts the singleton's lifetime — no invalidation hook on purpose:
+    // nothing re-resolves an app's icon after an in-session install/uninstall (a
+    // removed app's row just stops showing its icon, it isn't re-fetched), and the
+    // map is rebuilt fresh on next launch, so a stale entry is never read.
     private IReadOnlyDictionary<string, string>? _cachedMap;
     private readonly object _cacheLock = new();
 
     private static readonly XNamespace UapNs = "http://schemas.microsoft.com/appx/manifest/uap/windows10";
-
-    /// <summary>Drops the cached package map so the next call re-enumerates.</summary>
-    public void InvalidateCache()
-    {
-        lock (_cacheLock)
-        {
-            _cachedMap = null;
-        }
-    }
 
     public async Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
         CancellationToken ct = default)

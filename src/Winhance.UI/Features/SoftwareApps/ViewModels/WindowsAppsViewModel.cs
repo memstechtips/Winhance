@@ -22,7 +22,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 {
     private readonly IWindowsAppsService _windowsAppsService;
     private readonly IAppInstallationService _appInstallationService;
-    private readonly IAppUninstallationService _appUninstallationService;
+    private readonly IWindowsAppUninstallService _windowsAppUninstallService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
@@ -34,7 +34,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
         IAppInstallationService appInstallationService,
-        IAppUninstallationService appUninstallationService,
+        IWindowsAppUninstallService windowsAppUninstallService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
@@ -45,7 +45,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     {
         _windowsAppsService = windowsAppsService;
         _appInstallationService = appInstallationService;
-        _appUninstallationService = appUninstallationService;
+        _windowsAppUninstallService = windowsAppUninstallService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
@@ -515,7 +515,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         try
         {
             var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _appUninstallationService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
+            var result = await _windowsAppUninstallService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
 
             if (result.Success)
             {

@@ -48,11 +48,4 @@ public interface IDispatcherService
     /// <param name="asyncAction">The async action to run on the UI thread.</param>
     /// <returns>A task representing the completion of the action.</returns>
     Task RunOnUIThreadAsync(DispatcherQueuePriority priority, Func<Task> asyncAction);
-
-    /// <summary>
-    /// Creates a timer on the dispatcher queue.
-    /// Replaces WPF's DispatcherTimer.
-    /// </summary>
-    /// <returns>A DispatcherQueueTimer.</returns>
-    DispatcherQueueTimer CreateTimer();
 }

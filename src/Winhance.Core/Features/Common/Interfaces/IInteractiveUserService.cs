@@ -26,11 +26,6 @@ public interface IInteractiveUserService
     string InteractiveUserName { get; }
 
     /// <summary>
-    /// The interactive user's profile folder path (e.g. C:\Users\Standard), or current user's if not OTS.
-    /// </summary>
-    string InteractiveUserProfilePath { get; }
-
-    /// <summary>
     /// Returns the interactive user's equivalent of a SpecialFolder path.
     /// Falls back to Environment.GetFolderPath() if not OTS.
     /// Supports: LocalApplicationData, Programs, UserProfile.

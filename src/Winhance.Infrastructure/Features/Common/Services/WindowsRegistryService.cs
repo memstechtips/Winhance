@@ -211,25 +211,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    public bool RegistryValueExists(RegistrySetting setting)
-    {
-        try
-        {
-            if (setting?.ValueName == null)
-                return KeyExists(setting?.KeyPath ?? "");
-
-            if (!KeyExists(setting.KeyPath))
-                return false;
-
-            return ValueExists(setting.KeyPath, setting.ValueName);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error checking registry value existence for {setting?.KeyPath}\\{setting?.ValueName}: {ex.Message}");
-            return false;
-        }
-    }
-
     public bool IsRegistryValueInEnabledState(RegistrySetting setting, object? currentValue, bool valueExists)
     {
         if (setting == null)

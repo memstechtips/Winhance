@@ -22,6 +22,7 @@ public record AppCategory(string GroupName, string DisplayName, string IconGlyph
 public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsProvider
 {
     private readonly IExternalAppsService _externalAppsService;
+    private readonly IAppInstallationService _appInstallationService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
@@ -32,6 +33,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
+        IAppInstallationService appInstallationService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
@@ -41,6 +43,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         IAppIconResolver? iconResolver = null)
     {
         _externalAppsService = externalAppsService;
+        _appInstallationService = appInstallationService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
@@ -442,7 +445,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
                     QueueNextItemName = nextName
                 });
 
-                var result = await _externalAppsService.InstallAppAsync(app.Definition, progress);
+                var result = await _appInstallationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: false);
                 if (result.Success && result.Result)
                 {
                     app.IsInstalled = true;

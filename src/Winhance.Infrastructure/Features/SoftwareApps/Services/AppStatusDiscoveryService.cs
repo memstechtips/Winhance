@@ -144,37 +144,6 @@ public class AppStatusDiscoveryService(
         }
     }
 
-    public async Task<Dictionary<string, bool>> GetInstallationStatusByIdAsync(IEnumerable<string> appIds)
-    {
-        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var appIdList = appIds.ToList();
-
-        if (!appIdList.Any()) return result;
-
-        try
-        {
-            var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
-            foreach (var appId in appIdList)
-            {
-                if (installedPackageNames.Contains(appId))
-                {
-                    result[appId] = true;
-                    logService.LogInformation($"Installed (AppX): {appId}");
-                }
-                else
-                {
-                    result[appId] = false;
-                }
-            }
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logService.LogError("Error checking installation status by ID", ex);
-            return appIdList.ToDictionary(id => id, id => false, StringComparer.OrdinalIgnoreCase);
-        }
-    }
-
     private async Task<Dictionary<string, bool>> CheckCapabilitiesAsync(List<string> capabilities)
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);

@@ -115,7 +115,7 @@ public static class SettingServicesExtensions
         services.AddSingleton<IWindowsAppsService, WindowsAppsService>();
         services.AddSingleton<IExternalAppsService, ExternalAppsService>();
         services.AddSingleton<IAppInstallationService, AppInstallationService>();
-        services.AddSingleton<IAppUninstallationService, AppUninstallationService>();
+        services.AddSingleton<IWindowsAppUninstallService, WindowsAppUninstallService>();
 
         // AppX package source (PackageManager COM → WMI → PowerShell fallback)
         services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
@@ -150,7 +150,7 @@ public static class SettingServicesExtensions
         services.AddSingleton<IChocolateyService, ChocolateyService>();
 
         // App Uninstall Service
-        services.AddSingleton<IAppUninstallService, AppUninstallService>();
+        services.AddSingleton<IExternalAppUninstallService, ExternalAppUninstallService>();
 
         // Store Download Service (Fallback for market-restricted apps)
         services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
@@ -158,15 +158,9 @@ public static class SettingServicesExtensions
         // Direct Download Service (For non-WinGet apps)
         services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
 
-        // Legacy Capability and Optional Feature Services (Singleton - depends on Singleton IWindowsAppsService)
-        services.AddSingleton<ILegacyCapabilityService>(provider => new LegacyCapabilityService(
-            provider.GetRequiredService<ILogService>(),
-            provider.GetRequiredService<IWindowsAppsService>()
-        ));
-        services.AddSingleton<IOptionalFeatureService>(provider => new OptionalFeatureService(
-            provider.GetRequiredService<ILogService>(),
-            provider.GetRequiredService<IWindowsAppsService>()
-        ));
+        // Legacy Capability and Optional Feature Services (Singleton)
+        services.AddSingleton<ILegacyCapabilityService, LegacyCapabilityService>();
+        services.AddSingleton<IOptionalFeatureService, OptionalFeatureService>();
 
         // App Removal Service (Singleton - Simplified removal logic)
         services.AddSingleton<IBloatRemovalService, BloatRemovalService>();

@@ -34,7 +34,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
     public bool IsOtsElevation => _isOtsElevation;
     public string? InteractiveUserSid => _interactiveUserSid;
     public string InteractiveUserName => _interactiveUserName;
-    public string InteractiveUserProfilePath => _interactiveUserProfilePath;
     public bool HasInteractiveUserToken => _interactiveUserToken != IntPtr.Zero;
 
     public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor)

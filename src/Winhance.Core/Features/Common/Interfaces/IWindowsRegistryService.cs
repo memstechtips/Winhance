@@ -13,7 +13,6 @@ public interface IWindowsRegistryService
     bool KeyExists(string keyPath);
     bool ValueExists(string keyPath, string valueName);
     string[] GetSubKeyNames(string keyPath);
-    bool RegistryValueExists(RegistrySetting setting);
     bool IsSettingApplied(RegistrySetting setting);
     bool IsRegistryValueInEnabledState(RegistrySetting setting, object? currentValue, bool valueExists);
 

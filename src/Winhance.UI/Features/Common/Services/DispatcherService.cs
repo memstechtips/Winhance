@@ -95,13 +95,6 @@ public class DispatcherService : IDispatcherService
         await tcs.Task;
     }
 
-    /// <inheritdoc/>
-    public DispatcherQueueTimer CreateTimer()
-    {
-        EnsureInitialized();
-        return _dispatcherQueue!.CreateTimer();
-    }
-
     private void EnsureInitialized()
     {
         if (_dispatcherQueue == null)

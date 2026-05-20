@@ -18,7 +18,7 @@ public class ReviewModeViewModelCoordinatorTests
     // Mocks for child ViewModels' dependencies
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _appUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _winProgressService = new();
     private readonly Mock<ILogService> _winLogService = new();
     private readonly Mock<IDialogService> _winDialogService = new();
@@ -73,7 +73,7 @@ public class ReviewModeViewModelCoordinatorTests
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
         _appInstallationService.Object,
-        _appUninstallationService.Object,
+        _windowsAppUninstallService.Object,
         _winProgressService.Object,
         _winLogService.Object,
         _winDialogService.Object,
@@ -299,7 +299,7 @@ public class ReviewModeViewModelCoordinatorTests
         await sut.RemoveWindowsAppsAsync(skipConfirmation: true, saveRemovalScripts: false);
 
         // Verify it was called (even if no items selected, it should not throw)
-        _appUninstallationService.Verify(s => s.UninstallAppsInParallelAsync(
+        _windowsAppUninstallService.Verify(s => s.UninstallAppsInParallelAsync(
             It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()), Times.Never);
     }
 

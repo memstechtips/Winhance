@@ -13,13 +13,13 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppUninstallService(
+public class ExternalAppUninstallService(
     IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,
     IInteractiveUserService interactiveUserService,
     ITaskProgressService taskProgressService,
-    IProcessExecutor processExecutor) : IAppUninstallService
+    IProcessExecutor processExecutor) : IExternalAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,

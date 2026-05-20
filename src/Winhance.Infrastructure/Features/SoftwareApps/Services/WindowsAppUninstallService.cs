@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
@@ -12,21 +13,16 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppUninstallationService(
+public class WindowsAppUninstallService(
     ILogService logService,
     IWindowsAppsService windowsAppsService,
     IBloatRemovalService bloatRemovalService,
     ITaskProgressService taskProgressService,
-    IMultiScriptProgressService multiScriptProgressService) : IAppUninstallationService
+    IMultiScriptProgressService multiScriptProgressService) : IWindowsAppUninstallService
 {
-    private CancellationToken GetCurrentCancellationToken()
-    {
-        return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
-    }
-
     public async Task<OperationResult<bool>> UninstallAppAsync(string appId, IProgress<TaskProgressDetail>? progress = null)
     {
-        var cancellationToken = GetCurrentCancellationToken();
+        var cancellationToken = taskProgressService.GetCurrentCancellationToken();
 
         try
         {
@@ -74,7 +70,7 @@ public class AppUninstallationService(
 
     public async Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool saveRemovalScripts = true)
     {
-        var cancellationToken = GetCurrentCancellationToken();
+        var cancellationToken = taskProgressService.GetCurrentCancellationToken();
 
         try
         {

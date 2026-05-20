@@ -15,7 +15,7 @@ public class SoftwareAppsViewModelTests
 {
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _appUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _progressService = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IDialogService> _dialogService = new();
@@ -69,7 +69,7 @@ public class SoftwareAppsViewModelTests
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
         _appInstallationService.Object,
-        _appUninstallationService.Object,
+        _windowsAppUninstallService.Object,
         _progressService.Object,
         _logService.Object,
         _dialogService.Object,

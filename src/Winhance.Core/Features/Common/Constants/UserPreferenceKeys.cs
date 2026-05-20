@@ -16,8 +16,3 @@ public static class UserPreferenceKeys
     public const string ShowNewBadges = "ShowNewBadges";
     public const string HighestSeenAddedInVersion = "HighestSeenAddedInVersion";
 }
-
-public static class DebugFlags
-{
-    public static bool ShowRegistryStateDebugging = false;
-}
