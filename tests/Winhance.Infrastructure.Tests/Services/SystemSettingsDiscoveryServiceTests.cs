@@ -392,6 +392,57 @@ public class SystemSettingsDiscoveryServiceTests
     }
 
     [Fact]
+    public async Task GetSettingStatesAsync_SelectionSetting_AllRegistryValuesAbsent_ReturnsDefaultOptionIndex()
+    {
+        // A pristine system (backing registry value absent) is the Windows default, not "Custom".
+        var setting = new SettingDefinition
+        {
+            Id = "test-selection",
+            Name = "Test Selection",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 0 } },
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1 (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 1 } },
+                        IsDefault = true,
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        // Registry key/value absent: GetBatchValues returns nothing.
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result.Should().ContainKey("test-selection");
+        result["test-selection"].Success.Should().BeTrue();
+        result["test-selection"].CurrentValue.Should().Be(1);
+    }
+
+    [Fact]
     public async Task GetSettingStatesAsync_PowerCfgSetting_ReturnsEnabledWhenValueNonZero()
     {
         var setting = CreatePowerCfgSetting("test-power", "guid-power");

@@ -584,6 +584,18 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
+        // No option matched, but every backing registry value is absent: Windows default, not "Custom".
+        if (currentValues.Count > 0 && currentValues.Values.All(v => v is null))
+        {
+            for (int i = 0; i < options.Count; i++)
+            {
+                if (options[i].IsDefault)
+                {
+                    return i;
+                }
+            }
+        }
+
         return ComboBoxConstants.CustomStateIndex;
     }
 

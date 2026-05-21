@@ -150,6 +150,19 @@ public class ComboBoxResolver(
             }
         }
 
+        // No option matched, but every backing registry value is absent: Windows default, not "Custom".
+        if (currentValues.Count > 0 && currentValues.Values.All(v => v is null)
+            && setting.ComboBox?.Options is { } defaultOptions)
+        {
+            for (int i = 0; i < defaultOptions.Count; i++)
+            {
+                if (defaultOptions[i].IsDefault)
+                {
+                    return i;
+                }
+            }
+        }
+
         return ComboBoxConstants.CustomStateIndex;
     }
 

@@ -213,6 +213,101 @@ public class ComboBoxResolverTests
         result.Should().Be(1);
     }
 
+    [Fact]
+    public void ResolveRawValuesToIndex_AllRegistryValuesAbsent_ReturnsDefaultOptionIndex()
+    {
+        // A pristine system (backing registry value absent) is the Windows default, not "Custom".
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 0 } },
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1 (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 1 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 2",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 2 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        // Registry value absent - nothing discovered.
+        var result = _sut.ResolveRawValuesToIndex(setting, new Dictionary<string, object?>());
+
+        result.Should().Be(1);
+    }
+
+    [Fact]
+    public void ResolveRawValuesToIndex_AllRegistryValuesAbsent_NoDefaultOption_ReturnsCustomStateIndex()
+    {
+        // Absent values with no IsDefault option declared stay genuinely Custom.
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 0 } },
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 1 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        var result = _sut.ResolveRawValuesToIndex(setting, new Dictionary<string, object?>());
+
+        result.Should().Be(ComboBoxConstants.CustomStateIndex);
+    }
+
     #endregion
 
     #region ResolveIndexToRawValues
