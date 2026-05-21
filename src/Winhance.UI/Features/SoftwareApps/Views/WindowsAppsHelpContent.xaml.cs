@@ -17,6 +17,7 @@ public sealed partial class WindowsAppsHelpContent : UserControl
         NotInstalledText.Text = localizationService.GetString("Status_NotInstalled");
         CanReinstallText.Text = localizationService.GetString("Status_CanReinstall");
         CannotReinstallText.Text = localizationService.GetString("Status_CannotReinstall");
+        WarningText.Text = localizationService.GetString("Card_Pill_Warning");
         WinhanceStatusLabel.Text = localizationService.GetString("Help_WinhanceStatus");
         HelpContentText.Text = localizationService.GetString("Help_WindowsApps_Content");
 

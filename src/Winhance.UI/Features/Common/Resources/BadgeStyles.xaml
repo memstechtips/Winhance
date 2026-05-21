@@ -28,6 +28,11 @@
             <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#4080B3FF"/>
             <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
 
+            <!-- Danger: red -->
+            <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22F25555"/>
+            <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40F25555"/>
+            <SolidColorBrush x:Key="BadgeDangerForeground" Color="#FFF25555"/>
+
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -50,6 +55,11 @@
             <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#221E5FBF"/>
             <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#401E5FBF"/>
             <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF1E5FBF"/>
+
+            <!-- Danger: darker red for legibility on white -->
+            <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22C42B1C"/>
+            <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40C42B1C"/>
+            <SolidColorBrush x:Key="BadgeDangerForeground" Color="#FFC42B1C"/>
 
         </ResourceDictionary>
 
@@ -100,6 +110,24 @@
     <Style x:Key="BadgePreferenceStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
         <Setter Property="Background"  Value="{ThemeResource BadgePreferenceBackground}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
+    </Style>
+
+    <!-- ==================== Software Apps Status Pill Styles ==================== -->
+    <!-- Status badges on the Software Apps cards. Same BadgePillBase capsule as the
+         settings badges so the two views share one visual vocabulary. -->
+    <Style x:Key="BadgeInstalledStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background"  Value="{ThemeResource BadgeRecommendedBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeRecommendedBorder}"/>
+    </Style>
+
+    <Style x:Key="BadgeNonReinstallableStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background"  Value="{ThemeResource BadgeDangerBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeDangerBorder}"/>
+    </Style>
+
+    <Style x:Key="BadgeWarningStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background"  Value="{ThemeResource BadgeCustomBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
     </Style>
 
     <!-- ==================== NEW Badge Style ==================== -->
