@@ -16,27 +16,32 @@
 
     <Page.Resources>
         <!-- ============================================================
-             Icon sizing knobs (Software & Apps → Windows Apps tab)
-             Change these to resize the app-icon column. The shared card
-             template, the Compact ItemsRepeaters, and the DataGrid Name
-             column all bind to these resources, so a single edit propagates.
+             Icon sizing knobs (Software & Apps tabs).
+             Each view has its OWN icon-size pair — they are NOT shared:
+               • CardIconSize / CardFallbackFontSize        → Compact view
+                 (Windows Apps + External Apps ItemsRepeaters)
+               • DataGridIconSize / DataGridFallbackFontSize → Table view
+               • CardViewIconSize / CardViewFallbackFontSize → Card view
+                 (defined further down)
              FontIcon size is the fallback glyph that shows when no real
-             icon is resolved; ~half the IconSize is a good default.
+             icon is resolved; ~half the icon size is a good default.
              Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
-             largest IconSize) for HiDPI sharpness.
+             largest icon size) for HiDPI sharpness.
              ============================================================ -->
-        <x:Double x:Key="CardIconSize">24</x:Double>
+        <x:Double x:Key="CardIconSize">20</x:Double>
         <x:Double x:Key="CardFallbackFontSize">16</x:Double>
         <x:Double x:Key="DataGridIconSize">20</x:Double>
         <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
 
-        <!-- FluentIcon "Apps Color" tends to render smaller than a same-size
-             Segoe FontIcon glyph (the colored variant has intrinsic padding
-             inside its draw box). These resources size the FluentIcon Apps
-             fallback specifically — bump higher than the *FallbackFontSize
-             above to make the Apps icon visually match the puzzle/gear glyphs. -->
-        <x:Double x:Key="CardAppsIconSize">26</x:Double>
-        <x:Double x:Key="DataGridAppsIconSize">22</x:Double>
+        <!-- FluentIcon "Apps Color" carries intrinsic padding inside its draw
+             box, so it renders a little smaller than its nominal FontSize.
+             These size the Apps fallback specifically. Keep each value ≤ its
+             matching icon size (CardAppsIconSize ≤ CardIconSize, and
+             DataGridAppsIconSize ≤ DataGridIconSize) so the fallback never
+             overflows its square icon cell — the intrinsic padding still lands
+             the visible glyph close to the puzzle/gear FontIcon fallbacks. -->
+        <x:Double x:Key="CardAppsIconSize">20</x:Double>
+        <x:Double x:Key="DataGridAppsIconSize">20</x:Double>
 
         <!-- Card-view cell width (fixed). UniformWrapPanel renders every cell
              at exactly this width and wraps when the next cell would overflow,
@@ -1212,7 +1217,7 @@
                                                     <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                              VerticalAlignment="Center">
                                                             <Image Source="{Binding IconSource}"
                                                                    Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                    Stretch="Uniform"
@@ -1220,6 +1225,7 @@
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
                                                                                     FontSize="{StaticResource CardAppsIconSize}"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -1287,7 +1293,7 @@
                                                     <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                              VerticalAlignment="Center">
                                                             <Image Source="{Binding IconSource}"
                                                                    Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                    Stretch="Uniform"
@@ -1295,6 +1301,7 @@
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
                                                                                     FontSize="{StaticResource CardAppsIconSize}"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -1362,7 +1369,7 @@
                                                     <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                              VerticalAlignment="Center">
                                                             <Image Source="{Binding IconSource}"
                                                                    Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                    Stretch="Uniform"
@@ -1370,6 +1377,7 @@
                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
                                                                                     FontSize="{StaticResource CardAppsIconSize}"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -1674,7 +1682,7 @@
                                                                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
                                                                         <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
                                                                         <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                                              VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                                              VerticalAlignment="Center">
                                                                             <Image Source="{Binding IconSource}"
                                                                                    Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
                                                                                    Stretch="Uniform"
@@ -1682,6 +1690,7 @@
                                                                                    Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                             <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
                                                                                                     FontSize="{StaticResource CardAppsIconSize}"
+                                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                                     Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                         </Grid>
                                                                         <Viewbox Width="18" Height="18" VerticalAlignment="Center"
