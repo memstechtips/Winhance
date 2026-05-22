@@ -54,6 +54,53 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = $PSScriptRoot
 $solutionDir = Resolve-Path "$scriptRoot\.."
 $projectPath = "$solutionDir\src\Winhance.UI\Winhance.UI.csproj"
+$tfm = "net10.0-windows10.0.19041.0"
+
+# --- Network-share (SMB) repo handling -----------------------------------
+# When the repo lives on an SMB-mapped drive, MSBuild cannot reliably build
+# into the in-tree src\<proj>\bin and obj\ folders: its MakeDir-then-write
+# task ordering races the SMB redirector's namespace cache and breaks the
+# build (DirectoryNotFoundException / MSB3191 / CS2012). `dotnet test` is
+# worse - Windows flatly refuses to launch testhost.exe from a network
+# share (Win32Exception 5). The cure, identical to dev-build-and-run.ps1,
+# is to redirect every project's bin\ and obj\ to a local path under
+# %LOCALAPPDATA% via the WINHANCE_LOCAL_BUILD_ROOT env var, which both
+# src\Directory.Build.props and tests\Directory.Build.props read. The env
+# var is process-wide, so the child run-winhance-tests.ps1 inherits it too.
+$repoRoot = "$solutionDir"
+$repoIsRemote = ($repoRoot -match '^[A-Z]:\\') -and `
+                ((Get-PSDrive ($repoRoot.Substring(0, 1)) -ErrorAction SilentlyContinue).DisplayRoot -like '\\*')
+
+if ($repoIsRemote) {
+    $localBuildRoot = Join-Path $env:LOCALAPPDATA 'Winhance-dev\build'
+    $null = New-Item -ItemType Directory -Path $localBuildRoot -Force
+    $env:WINHANCE_LOCAL_BUILD_ROOT = $localBuildRoot
+    Write-Host "Repo on network share - redirecting build outputs to $localBuildRoot" -ForegroundColor Cyan
+
+    # Strip any leaked in-tree obj\ / bin\ on the share. If a build ever ran
+    # without the env var (Visual Studio, a bare `dotnet build`), it
+    # populated src\<proj>\obj and bin on the share. A later redirected
+    # build's default Compile glob then pulls those stale generated files
+    # in alongside the fresh ones - thousands of CS0579/CS0101/CS0111
+    # duplicate-definition errors. Empty in-tree dirs cost nothing to
+    # remove; populated ones are the bug.
+    $leakedCount = 0
+    foreach ($area in @('src', 'tests')) {
+        Get-ChildItem -Path (Join-Path $repoRoot $area) -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            foreach ($sub in @('obj', 'bin')) {
+                $stale = Join-Path $_.FullName $sub
+                if (Test-Path $stale) {
+                    if ($leakedCount -eq 0) {
+                        Write-Host "Stripping leaked in-tree obj\ / bin\ (network-share repo expects outputs under $localBuildRoot):" -ForegroundColor Cyan
+                    }
+                    Write-Host "  Removing $stale" -ForegroundColor DarkGray
+                    Remove-Item -Recurse -Force $stale
+                    $leakedCount++
+                }
+            }
+        }
+    }
+}
 
 # Function to find and select a code signing certificate
 function Get-SigningCertificate {
@@ -182,7 +229,16 @@ function Set-FileSignature {
     }
 }
 
-$publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64"
+# Publish output path. When the repo is on a network share the build was
+# redirected to $localBuildRoot (see "Network-share repo handling" above),
+# so Winhance.UI's publish output lands under <root>\Winhance.UI\bin\...
+# instead of in-tree. Match whichever location the build actually used.
+if ($repoIsRemote) {
+    $publishOutputPath = "$localBuildRoot\Winhance.UI\bin\x64\Release\$tfm\win-x64"
+}
+else {
+    $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\$tfm\win-x64"
+}
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
 

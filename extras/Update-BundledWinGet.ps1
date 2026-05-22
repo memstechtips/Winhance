@@ -82,14 +82,17 @@ try {
     # ============================================================
     #  1. WinGet CLI — check current vs latest version
     # ============================================================
-    $wingetExe = Join-Path $OutputDir "winget.exe"
+    $wingetExe     = Join-Path $OutputDir "winget.exe"
+    $versionMarker = Join-Path $OutputDir "winget-version.txt"
+    # Read the bundled WinGet version from a marker file written at bundle
+    # time below. We deliberately do NOT run `winget.exe --version` here:
+    # when the repo lives on a network share, Windows blocks launching
+    # executables from the share ("Access is denied" / Win32 error 5). A
+    # plain text read works regardless of where the repo lives, and the
+    # marker stores the exact release tag so the comparison stays exact.
     $currentWingetVersion = $null
-    if (Test-Path $wingetExe) {
-        try {
-            $currentWingetVersion = (& $wingetExe --version 2>&1).ToString().Trim()
-        } catch {
-            Write-Warning "Could not query bundled winget.exe version: $_"
-        }
+    if ((Test-Path $wingetExe) -and (Test-Path $versionMarker)) {
+        $currentWingetVersion = (Get-Content -Path $versionMarker -Raw).Trim()
     }
 
     $release         = Get-ReleaseInfo
@@ -184,6 +187,11 @@ try {
         if ($wingetMissing.Count -gt 0) {
             Write-Warning "Missing files (may not exist in this release): $($wingetMissing -join ', ')"
         }
+
+        # Record the bundled release tag so the next run can detect "up to
+        # date" by reading this file — without launching winget.exe, which
+        # Windows blocks when the repo is on a network share.
+        Set-Content -Path $versionMarker -Value $latestWingetTag -NoNewline
     }
 
     # ============================================================
@@ -303,16 +311,18 @@ try {
     # ============================================================
     #  5. Verify and summarize
     # ============================================================
-    $wingetExe = Join-Path $OutputDir "winget.exe"
     if (Test-Path $wingetExe) {
         Write-Host ""
         Write-Host "Verifying winget.exe ..."
-        try {
-            $versionOutput = (& $wingetExe --version 2>&1).ToString().Trim()
-            Write-Host "Bundled WinGet version: $versionOutput"
-        } catch {
-            Write-Warning "winget.exe --version failed: $_"
+        # Don't launch winget.exe — Windows blocks running executables from a
+        # network share. Confirm the binary is present and report the
+        # bundled release tag from the marker file written above.
+        $bundledTag = if (Test-Path $versionMarker) {
+            (Get-Content -Path $versionMarker -Raw).Trim()
+        } else {
+            "(version marker missing)"
         }
+        Write-Host "Bundled WinGet version: $bundledTag"
     }
 
     # Final file inventory
