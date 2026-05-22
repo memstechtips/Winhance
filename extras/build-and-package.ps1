@@ -307,10 +307,16 @@ else {
     $nugetVersion = $Version
 }
 
-# Update version in csproj file
+# Update version in csproj file.
+# Use .NET IO with explicit UTF-8-no-BOM encoding rather than
+# Get-Content -Raw / Set-Content: Set-Content appends a trailing newline on
+# every write, so the old round-trip grew the csproj by a blank line on each
+# packaging run. WriteAllText writes the string verbatim. (Same approach as
+# dev-build-and-run.ps1.)
 Write-Host "Updating version in project file..." -ForegroundColor Green
 $csprojPath = "$solutionDir\src\Winhance.UI\Winhance.UI.csproj"
-$csprojContent = Get-Content -Path $csprojPath -Raw
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+$csprojContent = [System.IO.File]::ReadAllText($csprojPath, [System.Text.Encoding]::UTF8)
 
 # Update version properties in csproj
 # AssemblyVersion and FileVersion must be numeric only (no -beta suffix)
@@ -319,8 +325,8 @@ $csprojContent = $csprojContent -replace '<FileVersion>.*?</FileVersion>', "<Fil
 $csprojContent = $csprojContent -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$Version</AssemblyVersion>"
 $csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$displayVersion</InformationalVersion>"
 
-# Write updated csproj content
-Set-Content -Path $csprojPath -Value $csprojContent
+# Write updated csproj content (verbatim — no appended newline, no BOM)
+[System.IO.File]::WriteAllText($csprojPath, $csprojContent, $utf8NoBom)
 
 # Find MSBuild.exe (required for WinUI3/WindowsAppSDK projects)
 Write-Host "Locating MSBuild..." -ForegroundColor Green
