@@ -43,7 +43,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Windows App SDK 1.8.x. 1.7 went out of support 2026-03-18. -->
+    <!-- Windows App SDK 1.8.x. 1.7 went out of support 2026-03-18.
+         Keep the Microsoft.WindowsAppSDK *metapackage* - do NOT switch to the
+         .WinUI component package. Material.Icons.WinUI3 / CommunityToolkit.WinUI /
+         FluentIcons / Xaml.Behaviors all transitively depend on the metapackage,
+         so referencing the component package as well pulls in BOTH families and
+         the duplicate WinAppSDK build props break the build (MSB4011 + the MSIX
+         CustomBeforeMicrosoftCommonTargets error). The metapackage bundles ~38 MB
+         of Windows ML DLLs (onnxruntime.dll + DirectML.dll) that Winhance never
+         uses; those are stripped from the installer instead - see
+         extras/Winhance.Installer.iss. Ref: microsoft/WindowsAppSDK#5969. -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
     <!-- CsWinRT - WinRT projections for .NET (needed for CommunityToolkit.WinUI 8.2+) -->
