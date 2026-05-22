@@ -207,15 +207,32 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
-    [RelayCommand]
-    public async Task LoadAppsAndCheckInstallationStatusAsync()
-    {
-        if (IsInitialized)
-        {
-            _logService.LogInformation("[ExternalAppsViewModel] Already initialized, skipping");
-            return;
-        }
+    private readonly object _loadGate = new();
+    private Task? _loadTask;
 
+    /// <summary>
+    /// Loads app definitions, checks installation status and resolves icons — exactly once.
+    /// Idempotent: startup triggers this from two independent paths — the UI init
+    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
+    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
+    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
+    /// ran concurrently, clobbering the shared Items collection and racing over the
+    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
+    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
+    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
+    /// </summary>
+    [RelayCommand]
+    public Task LoadAppsAndCheckInstallationStatusAsync()
+    {
+        lock (_loadGate)
+        {
+            return _loadTask ??= _dispatcherService.RunOnUIThreadWithContextAsync(
+                LoadAppsAndCheckInstallationStatusCoreAsync);
+        }
+    }
+
+    private async Task LoadAppsAndCheckInstallationStatusCoreAsync()
+    {
         IsLoading = true;
         StatusText = _localizationService.GetString("Progress_LoadingExternalApps");
 
@@ -244,8 +261,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             _logService.LogWarning($"[ExternalAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
         }
 
-        await ResolveIconsAsync();
-
         try
         {
             NotifySelectionStateChanged();
@@ -261,6 +276,14 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         {
             IsLoading = false;
         }
+
+        // Resolve icons in the background — never block the load flow. Callers such
+        // as config-import review-mode setup await LoadItemsAsync, and the icon
+        // pipeline is network-bound (rate-limit retries can run for over a minute).
+        // Awaiting it here kept the import command's task pending that whole time,
+        // leaving the Import Config button greyed out. ResolveIconsAsync logs and
+        // swallows its own failures and refreshes each item's icon as it completes.
+        ResolveIconsAsync().FireAndForget(_logService);
     }
 
     private void LoadAppsIntoItems(IEnumerable<ItemDefinition> definitions)
@@ -313,11 +336,19 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
     }
 
+    // Serializes the install-status re-check. It runs from the Refresh button,
+    // the WinGetReady event (OnWinGetInstalled) and post-install/remove
+    // (RefreshAfterOperationAsync — including config-apply); none are mutually
+    // exclusive. Overlapping callers queue here instead of interleaving access
+    // to the shared Items collection and the detection cache.
+    private readonly SemaphoreSlim _statusCheckGate = new(1, 1);
+
     [RelayCommand]
     public async Task CheckInstallationStatusAsync()
     {
         if (_externalAppsService == null) return;
 
+        await _statusCheckGate.WaitAsync();
         try
         {
             var definitions = Items.Select(item => item.Definition).ToList();
@@ -338,6 +369,10 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         {
             _logService.LogError("Error checking installation status", ex);
             StatusText = $"Error checking status: {ex.Message}";
+        }
+        finally
+        {
+            _statusCheckGate.Release();
         }
     }
 
@@ -577,6 +612,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
                 item.PropertyChanged -= Item_PropertyChanged;
                 item.Dispose();
             }
+            _statusCheckGate.Dispose();
         }
         base.Dispose(disposing);
     }

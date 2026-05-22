@@ -195,15 +195,32 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
-    [RelayCommand]
-    public async Task LoadAppsAndCheckInstallationStatusAsync()
-    {
-        if (IsInitialized)
-        {
-            _logService.LogInformation("[WindowsAppsViewModel] Already initialized, skipping");
-            return;
-        }
+    private readonly object _loadGate = new();
+    private Task? _loadTask;
 
+    /// <summary>
+    /// Loads app definitions, checks installation status and resolves icons — exactly once.
+    /// Idempotent: startup triggers this from two independent paths — the UI init
+    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
+    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
+    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
+    /// ran concurrently, clobbering the shared Items collection and racing over the
+    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
+    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
+    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
+    /// </summary>
+    [RelayCommand]
+    public Task LoadAppsAndCheckInstallationStatusAsync()
+    {
+        lock (_loadGate)
+        {
+            return _loadTask ??= _dispatcherService.RunOnUIThreadWithContextAsync(
+                LoadAppsAndCheckInstallationStatusCoreAsync);
+        }
+    }
+
+    private async Task LoadAppsAndCheckInstallationStatusCoreAsync()
+    {
         IsLoading = true;
         StatusText = _localizationService.GetString("Progress_LoadingWindowsApps");
 
@@ -305,10 +322,18 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
     }
 
+    // Serializes the install-status re-check. It runs from the Refresh button,
+    // the WinGetReady event (OnWinGetInstalled) and post-install/remove
+    // (RefreshAfterOperationAsync — including config-apply); none are mutually
+    // exclusive. Overlapping callers queue here instead of interleaving access
+    // to the shared Items collection and the detection cache.
+    private readonly SemaphoreSlim _statusCheckGate = new(1, 1);
+
     public async Task CheckInstallationStatusAsync()
     {
         if (_windowsAppsService == null) return;
 
+        await _statusCheckGate.WaitAsync();
         try
         {
             var definitions = Items.Select(item => item.Definition).ToList();
@@ -340,6 +365,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
                 $"Error checking installation status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}",
                 ex);
             StatusText = $"Error checking status: {ex.Message}";
+        }
+        finally
+        {
+            _statusCheckGate.Release();
         }
     }
 
@@ -592,6 +621,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
                 item.PropertyChanged -= Item_PropertyChanged;
                 item.Dispose();
             }
+            _statusCheckGate.Dispose();
         }
         base.Dispose(disposing);
     }

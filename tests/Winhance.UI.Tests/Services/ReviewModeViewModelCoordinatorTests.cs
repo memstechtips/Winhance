@@ -52,10 +52,16 @@ public class ReviewModeViewModelCoordinatorTests
         _winDispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _winDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
 
         _extDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _extDispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
+        _extDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
 

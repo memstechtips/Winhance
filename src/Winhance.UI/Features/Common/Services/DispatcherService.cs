@@ -1,3 +1,4 @@
+using System.Threading;
 using Microsoft.UI.Dispatching;
 using Winhance.UI.Features.Common.Interfaces;
 
@@ -93,6 +94,53 @@ public class DispatcherService : IDispatcherService
         }
 
         await tcs.Task;
+    }
+
+    /// <inheritdoc/>
+    public Task RunOnUIThreadWithContextAsync(Func<Task> asyncAction)
+    {
+        EnsureInitialized();
+
+        var tcs = new TaskCompletionSource();
+
+        void Start()
+        {
+            // A bare DispatcherQueue.TryEnqueue callback (and a background thread)
+            // carry no SynchronizationContext, so `await` continuations inside
+            // asyncAction would resume on thread-pool threads. Install the
+            // dispatcher context so they marshal back to the UI thread.
+            if (SynchronizationContext.Current is null)
+            {
+                SynchronizationContext.SetSynchronizationContext(
+                    new DispatcherQueueSynchronizationContext(_dispatcherQueue!));
+            }
+
+            _ = InvokeAsync();
+        }
+
+        async Task InvokeAsync()
+        {
+            try
+            {
+                await asyncAction();
+                tcs.SetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        }
+
+        if (_dispatcherQueue!.HasThreadAccess)
+        {
+            Start();
+        }
+        else if (!_dispatcherQueue.TryEnqueue(Start))
+        {
+            throw new InvalidOperationException("Failed to enqueue action to dispatcher queue.");
+        }
+
+        return tcs.Task;
     }
 
     private void EnsureInitialized()

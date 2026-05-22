@@ -36,6 +36,10 @@ public class SelectedAppsProviderTests : IDisposable
             .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _mockDispatcherService
+            .Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
 
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))

@@ -29,6 +29,9 @@ public class WindowsAppsViewModelTests
         _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
 
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);

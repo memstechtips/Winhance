@@ -48,4 +48,17 @@ public interface IDispatcherService
     /// <param name="asyncAction">The async action to run on the UI thread.</param>
     /// <returns>A task representing the completion of the action.</returns>
     Task RunOnUIThreadAsync(DispatcherQueuePriority priority, Func<Task> asyncAction);
+
+    /// <summary>
+    /// Runs an async action on the UI thread with a DispatcherQueueSynchronizationContext
+    /// installed for the duration, so that every <c>await</c> inside
+    /// <paramref name="asyncAction"/> marshals its continuation back to the UI thread.
+    /// Use this for multi-stage UI work that may be triggered from a background thread or
+    /// from a bare DispatcherQueue.TryEnqueue callback — neither installs a
+    /// SynchronizationContext of its own, so plain RunOnUIThreadAsync would let
+    /// continuations after genuinely-async awaits resume on thread-pool threads.
+    /// </summary>
+    /// <param name="asyncAction">The async action to run on the UI thread.</param>
+    /// <returns>A task representing the completion of the action.</returns>
+    Task RunOnUIThreadWithContextAsync(Func<Task> asyncAction);
 }
