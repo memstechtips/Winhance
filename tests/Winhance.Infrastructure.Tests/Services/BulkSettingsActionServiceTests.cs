@@ -11,7 +11,7 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class BulkSettingsActionServiceTests
 {
-    private readonly Mock<IDomainServiceRouter> _mockRouter = new();
+    private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IWindowsVersionService> _mockVersionService = new();
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
     private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
@@ -21,7 +21,7 @@ public class BulkSettingsActionServiceTests
     public BulkSettingsActionServiceTests()
     {
         _service = new BulkSettingsActionService(
-            _mockRouter.Object,
+            _mockRegistry.Object,
             _mockVersionService.Object,
             _mockAppService.Object,
             _mockProcessRestartManager.Object,
@@ -46,6 +46,7 @@ public class BulkSettingsActionServiceTests
         object? recommendedValue,
         object? defaultValue = null,
         object?[]? enabledValue = null,
+        object?[]? disabledValue = null,
         bool isGroupPolicy = false) => new()
     {
         Id = id,
@@ -62,6 +63,7 @@ public class BulkSettingsActionServiceTests
                 RecommendedValue = recommendedValue,
                 DefaultValue = defaultValue,
                 EnabledValue = enabledValue ?? (recommendedValue != null ? [recommendedValue] : null),
+                DisabledValue = disabledValue,
                 IsGroupPolicy = isGroupPolicy,
             }
         }
@@ -137,10 +139,11 @@ public class BulkSettingsActionServiceTests
         IEnumerable<SettingDefinition> settings,
         string domainName = "TestDomain")
     {
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.DomainName).Returns(domainName);
-        mockDomain.Setup(d => d.GetSettingsAsync()).ReturnsAsync(settings);
-        _mockRouter.Setup(r => r.GetDomainService(settingId)).Returns(mockDomain.Object);
+        // domainName is retained for call-site readability but unused — the registry's
+        // GetById is O(1) and domain-agnostic.
+        _ = domainName;
+        var match = settings.FirstOrDefault(s => s.Id == settingId);
+        _mockRegistry.Setup(r => r.GetById(settingId)).Returns(match);
     }
 
     // ---------------------------------------------------------------
@@ -150,9 +153,12 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ApplyRecommendedAsync_AppliesRecommendedValues_ToAllSettings()
     {
-        // Arrange
-        var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1, enabledValue: [1]);
-        var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0, enabledValue: [1]);
+        // Arrange — both fixtures populate EnabledValue and DisabledValue so the unified
+        // toggle-state algorithm can map RecommendedValue → Enable.
+        var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1,
+            enabledValue: [1], disabledValue: [0]);
+        var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0,
+            enabledValue: [1], disabledValue: [0]);
 
         SetupDomainWithSettings("setting-a", new[] { setting1 }, "DomainA");
         SetupDomainWithSettings("setting-b", new[] { setting2 }, "DomainB");
@@ -160,20 +166,19 @@ public class BulkSettingsActionServiceTests
         // Act
         var applied = await _service.ApplyRecommendedAsync(new[] { "setting-a", "setting-b" });
 
-        // Assert
+        // Assert: bulk Toggle apply mirrors per-card HandleToggleAsync — passes only
+        // SettingId + Enable, no Value (apply pipeline derives it from EnabledValue/DisabledValue).
         applied.Should().Be(2);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "setting-a" &&
             r.Enable == true &&
-            r.Value != null && r.Value.Equals(1) &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "setting-b" &&
             r.Enable == false &&
-            r.Value != null && r.Value.Equals(0) &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
     }
@@ -239,9 +244,13 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ApplyRecommendedAsync_DoesNotSkipSettings_AlreadyAtRecommendedValue()
     {
-        // Arrange: two settings that are "already" at their recommended value
-        var setting1 = CreateToggleSetting("already-rec-a", recommendedValue: 1, enabledValue: [1]);
-        var setting2 = CreateToggleSetting("already-rec-b", recommendedValue: 0, enabledValue: [1]);
+        // Arrange: two settings that are "already" at their recommended value.
+        // Both fixtures supply Enabled and Disabled value arrays so the unified
+        // toggle-state algorithm resolves both Recommended targets.
+        var setting1 = CreateToggleSetting("already-rec-a", recommendedValue: 1,
+            enabledValue: [1], disabledValue: [0]);
+        var setting2 = CreateToggleSetting("already-rec-b", recommendedValue: 0,
+            enabledValue: [1], disabledValue: [0]);
 
         SetupDomainWithSettings("already-rec-a", new[] { setting1 }, "DomainA");
         SetupDomainWithSettings("already-rec-b", new[] { setting2 }, "DomainB");
@@ -261,9 +270,14 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_AppliesDefaultValues_ToAllSettings()
     {
-        // Arrange: setting-a default=1 (enabled), setting-b default=0 (disabled)
-        var settingA = CreateToggleSetting("reset-a", recommendedValue: 0, defaultValue: 1, enabledValue: [1]);
-        var settingB = CreateToggleSetting("reset-b", recommendedValue: 1, defaultValue: 0, enabledValue: [1]);
+        // Arrange: setting-a default=1 (enabled), setting-b default=0 (disabled).
+        // Both fixtures must populate EnabledValue and DisabledValue so the unified
+        // toggle-state algorithm can map DefaultValue → Enable. (Real catalog settings
+        // always supply both arrays.)
+        var settingA = CreateToggleSetting("reset-a", recommendedValue: 0, defaultValue: 1,
+            enabledValue: [1], disabledValue: [0]);
+        var settingB = CreateToggleSetting("reset-b", recommendedValue: 1, defaultValue: 0,
+            enabledValue: [1], disabledValue: [0]);
 
         SetupDomainWithSettings("reset-a", new[] { settingA }, "DomainA");
         SetupDomainWithSettings("reset-b", new[] { settingB }, "DomainB");
@@ -271,13 +285,13 @@ public class BulkSettingsActionServiceTests
         // Act
         var applied = await _service.ResetToDefaultsAsync(new[] { "reset-a", "reset-b" });
 
-        // Assert
+        // Assert: bulk Toggle apply mirrors per-card HandleToggleAsync — passes only
+        // SettingId + Enable + ResetToDefault, no Value (apply pipeline derives it).
         applied.Should().Be(2);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "reset-a" &&
             r.Enable == true &&
-            r.Value != null && r.Value.Equals(1) &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
@@ -285,7 +299,6 @@ public class BulkSettingsActionServiceTests
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "reset-b" &&
             r.Enable == false &&
-            r.Value != null && r.Value.Equals(0) &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
@@ -299,12 +312,15 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_HandlesNullDefaultValue_ForGroupPolicyKeys()
     {
-        // Arrange: group policy setting with no DefaultValue
+        // Arrange: group policy setting with no DefaultValue. The Windows default for
+        // a GP key is "key absent" — expressed by the null sentinel in DisabledValue.
+        // The unified toggle-state algorithm reads that sentinel and resolves Default → false.
         var gpSetting = CreateToggleSetting(
             "gp-setting",
             recommendedValue: 1,
             defaultValue: null,
             enabledValue: [1],
+            disabledValue: [null],
             isGroupPolicy: true);
 
         SetupDomainWithSettings("gp-setting", new[] { gpSetting }, "PolicyDomain");
@@ -312,13 +328,13 @@ public class BulkSettingsActionServiceTests
         // Act
         var applied = await _service.ResetToDefaultsAsync(new[] { "gp-setting" });
 
-        // Assert: Enable=false, Value=null, ResetToDefault=true
+        // Assert: Enable=false, ResetToDefault=true. Bulk Toggle apply no longer passes Value;
+        // the apply pipeline derives the registry write from DisabledValue (= [null] → delete).
         applied.Should().Be(1);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "gp-setting" &&
             r.Enable == false &&
-            r.Value == null &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
@@ -333,14 +349,17 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task GetAffectedCountAsync_ReturnsCorrectCount_ExcludingAlreadyMatching()
     {
-        // Arrange:
-        //   settingWithRec   – has RecommendedValue   → counted for ApplyRecommended
-        //   settingWithDef   – has DefaultValue        → counted for ResetToDefaults
-        //   settingNoValues  – neither                 → excluded from both counts
-        //   settingGP        – IsGroupPolicy, no Def   → counted for ResetToDefaults
+        // Arrange — the count must agree with the apply path. After unification the
+        // apply path's toggle-state resolver is the only judge of "would this change":
+        //   settingWithRec        – RecommendedValue=1, EnabledValue=[1]    → recommended yes
+        //   settingWithDef        – DefaultValue=0, EnabledValue=[1], DisabledValue=[0] → default yes
+        //   settingNoValues       – neither                                  → both no
+        //   settingGpKeyAbsent    – GP, no DefaultValue, DisabledValue=[null] → default yes (key-absent sentinel)
+        //   settingGpUnresolvable – GP, no DefaultValue, no null sentinel    → default no (silently skipped at apply too)
 
         var settingWithRec = CreateToggleSetting("has-rec", recommendedValue: 1);
-        var settingWithDef = CreateToggleSetting("has-def", recommendedValue: null, defaultValue: 0);
+        var settingWithDef = CreateToggleSetting("has-def", recommendedValue: null, defaultValue: 0,
+            enabledValue: [1], disabledValue: [0]);
         var settingNoValues = new SettingDefinition
         {
             Id = "no-values",
@@ -360,28 +379,32 @@ public class BulkSettingsActionServiceTests
                 }
             }
         };
-        var settingGP = CreateToggleSetting("gp-only", recommendedValue: null, defaultValue: null, isGroupPolicy: true);
+        var settingGpKeyAbsent = CreateToggleSetting("gp-key-absent",
+            recommendedValue: null, defaultValue: null,
+            enabledValue: [1], disabledValue: [null], isGroupPolicy: true);
+        var settingGpUnresolvable = CreateToggleSetting("gp-unresolvable",
+            recommendedValue: null, defaultValue: null, isGroupPolicy: true);
 
-        var allIds = new[] { "has-rec", "has-def", "no-values", "gp-only" };
+        var allIds = new[] { "has-rec", "has-def", "no-values", "gp-key-absent", "gp-unresolvable" };
 
-        SetupDomainWithSettings("has-rec",    new[] { settingWithRec },  "D1");
-        SetupDomainWithSettings("has-def",    new[] { settingWithDef },  "D2");
-        SetupDomainWithSettings("no-values",  new[] { settingNoValues }, "D3");
-        SetupDomainWithSettings("gp-only",    new[] { settingGP },       "D4");
+        SetupDomainWithSettings("has-rec",          new[] { settingWithRec },        "D1");
+        SetupDomainWithSettings("has-def",          new[] { settingWithDef },        "D2");
+        SetupDomainWithSettings("no-values",        new[] { settingNoValues },       "D3");
+        SetupDomainWithSettings("gp-key-absent",    new[] { settingGpKeyAbsent },    "D4");
+        SetupDomainWithSettings("gp-unresolvable",  new[] { settingGpUnresolvable }, "D5");
 
         // Act
         var recCount     = await _service.GetAffectedCountAsync(allIds, BulkActionType.ApplyRecommended);
         var defaultCount = await _service.GetAffectedCountAsync(allIds, BulkActionType.ResetToDefaults);
 
         // Assert
-        // ApplyRecommended counts settings with a RecommendedValue → 1 (has-rec)
+        // ApplyRecommended → has-rec only (everything else has null RecommendedValue + nothing else recommends).
         recCount.Should().Be(1);
 
-        // ResetToDefaults counts settings with DefaultValue OR IsGroupPolicy → 3 (has-def + gp-only + has-rec has no default... wait)
-        // has-def  → DefaultValue=0    → yes
-        // gp-only  → IsGroupPolicy     → yes
-        // no-values → neither          → no
-        // has-rec  → no DefaultValue, not GP → no
+        // ResetToDefaults → has-def (DefaultValue=0 maps via DisabledValue) + gp-key-absent
+        // (null sentinel in DisabledValue maps Default → Enable=false). gp-unresolvable
+        // is GP-only with no DefaultValue and no null sentinel, so the unified algorithm
+        // returns null and the apply path skips it; the counter MUST agree, hence 2 not 3.
         defaultCount.Should().Be(2);
     }
 
@@ -420,11 +443,11 @@ public class BulkSettingsActionServiceTests
         // Assert: all three applied
         applied.Should().Be(3);
 
-        // Toggle: Enable=true, Value=1
+        // Toggle: Enable=true. Bulk Toggle apply mirrors per-card HandleToggleAsync —
+        // no Value param; the apply pipeline derives the registry write from EnabledValue.
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "toggle-input" &&
             r.Enable == true &&
-            r.Value != null && r.Value.Equals(1) &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
 

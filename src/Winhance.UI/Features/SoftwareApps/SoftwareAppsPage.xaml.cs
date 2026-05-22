@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.SoftwareApps;
@@ -119,26 +120,122 @@ public sealed partial class SoftwareAppsPage : Page
         return null;
     }
 
-    private void TableViewToggle_Click(object sender, RoutedEventArgs e)
-    {
-        if (!ViewModel.IsCardViewMode)
-        {
-            // Already in table mode — keep it checked
-            TableViewToggle.IsChecked = true;
-            return;
-        }
-        ViewModel.IsCardViewMode = false;
-    }
-
     private void CardViewToggle_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.IsCardViewMode)
+        if (ViewModel.IsCardView)
         {
-            // Already in card mode — keep it checked
+            // Already in this mode — keep the toggle visually pressed.
             CardViewToggle.IsChecked = true;
             return;
         }
-        ViewModel.IsCardViewMode = true;
+        ViewModel.ViewMode = SoftwareAppsViewMode.Card;
+    }
+
+    private void TableViewToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.IsTableView)
+        {
+            TableViewToggle.IsChecked = true;
+            return;
+        }
+        ViewModel.ViewMode = SoftwareAppsViewMode.Table;
+    }
+
+    private void CompactViewToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.IsCompactView)
+        {
+            CompactViewToggle.IsChecked = true;
+            return;
+        }
+        ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
+    }
+
+    /// <summary>
+    /// Centres the card-view content column horizontally by clamping the inner
+    /// StackPanel's MaxWidth to exactly cols × CardItemWidth + (cols-1) × ColumnSpacing.
+    /// Result: the section header, Select-all checkboxes, and the card grid all
+    /// share the same horizontal extents — the leftmost card sits flush with the
+    /// header instead of the cards floating in the middle of a left-aligned panel.
+    /// Same pattern Microsoft Store / Settings use: extra space becomes symmetric
+    /// outer margin, new columns appear at width breakpoints.
+    /// </summary>
+    private void WindowsAppsCardScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCardContentMaxWidth(WindowsAppsCardScrollViewer, WindowsAppsCardContentStack);
+
+    private void ExternalAppsCardScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCardContentMaxWidth(ExternalAppsCardScrollViewer, ExternalAppsCardContentStack);
+
+    private void UpdateCardContentMaxWidth(ScrollViewer scrollViewer, StackPanel contentStack)
+    {
+        // Resource keys live in SoftwareAppsPage.xaml's Page.Resources; fall back to
+        // the same defaults if anything's renamed so the page still lays out.
+        double cardWidth = Resources["CardItemWidth"] is double cw ? cw : 420.0;
+        double spacing = 16.0; // matches ColumnSpacing/RowSpacing on UniformWrapPanel
+
+        double available = scrollViewer.ViewportWidth;
+        if (available <= 0)
+            return;
+
+        int cols = System.Math.Max(1,
+            (int)System.Math.Floor((available + spacing) / (cardWidth + spacing)));
+        double contentWidth = cols * cardWidth + System.Math.Max(0, cols - 1) * spacing;
+        contentStack.MaxWidth = contentWidth;
+    }
+
+    /// <summary>
+    /// Compact-view counterpart of <see cref="UpdateCardContentMaxWidth"/>.
+    /// Clamps the compact content StackPanel's MaxWidth to exactly
+    /// cols × CompactItemWidth + (cols-1) × ColumnSpacing so the section
+    /// headers, Select-all checkboxes and the row grid share one centred
+    /// column — leftover width becomes symmetric outer margin and columns
+    /// appear at width breakpoints, identical to the card view.
+    ///
+    /// External Apps nests each category's grid inside an Expander, so the
+    /// grid only gets the clamp width minus the Expander's horizontal content
+    /// chrome (border + content padding). <see cref="CompactExternalExpanderChrome"/>
+    /// accounts for that: if category grids show a right-hand gap, lower it;
+    /// if a column wraps away too early, raise it. Windows Apps has no
+    /// Expander, so it passes 0.
+    /// </summary>
+    private const double CompactExternalExpanderChrome = 34.0;
+
+    private void WindowsAppsCompactScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCompactContentMaxWidth(WindowsAppsCompactScrollViewer, WindowsAppsCompactContentStack, 0.0);
+
+    private void ExternalAppsCompactScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCompactContentMaxWidth(ExternalAppsCompactScrollViewer, ExternalAppsCompactContentStack, CompactExternalExpanderChrome);
+
+    private void UpdateCompactContentMaxWidth(ScrollViewer scrollViewer, StackPanel contentStack, double expanderChrome)
+    {
+        // Resource key lives in SoftwareAppsPage.xaml's Page.Resources; fall back
+        // to the same default if it is renamed so the page still lays out.
+        double itemWidth = Resources["CompactItemWidth"] is double iw ? iw : 320.0;
+        double spacing = 8.0; // matches ColumnSpacing on the compact UniformWrapPanels
+
+        double available = scrollViewer.ViewportWidth - expanderChrome;
+        if (available <= 0)
+            return;
+
+        int cols = System.Math.Max(1,
+            (int)System.Math.Floor((available + spacing) / (itemWidth + spacing)));
+        double contentWidth = cols * itemWidth + System.Math.Max(0, cols - 1) * spacing + expanderChrome;
+        contentStack.MaxWidth = contentWidth;
+    }
+
+    private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
+        {
+            try
+            {
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(url));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to launch {url}: {ex.Message}");
+            }
+        }
     }
 
     private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)

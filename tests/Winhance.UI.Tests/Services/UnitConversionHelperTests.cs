@@ -72,30 +72,32 @@ public class UnitConversionHelperTests
     }
 
     // -------------------------------------------------------
-    // ConvertFromSystemUnits - "milliseconds" multiplies by 1000
+    // ConvertFromSystemUnits - "milliseconds" passes through 1:1
+    // (Win32 powercfg stores USB selective suspend timeout natively in ms.)
     // -------------------------------------------------------
 
     [Fact]
-    public void ConvertFromSystemUnits_Milliseconds_MultipliesBy1000()
+    public void ConvertFromSystemUnits_Milliseconds_PassesThroughUnchanged()
     {
         var result = UnitConversionHelper.ConvertFromSystemUnits(5, "milliseconds");
 
-        result.Should().Be(5000);
+        result.Should().Be(5);
     }
 
     [Fact]
-    public void ConvertFromSystemUnits_Milliseconds_1Returns1000()
+    public void ConvertFromSystemUnits_Milliseconds_1Returns1()
     {
         var result = UnitConversionHelper.ConvertFromSystemUnits(1, "milliseconds");
 
-        result.Should().Be(1000);
+        result.Should().Be(1);
     }
 
     [Theory]
     [InlineData(0, 0)]
-    [InlineData(1, 1000)]
-    [InlineData(10, 10000)]
-    [InlineData(100, 100000)]
+    [InlineData(1, 1)]
+    [InlineData(10, 10)]
+    [InlineData(100, 100)]
+    [InlineData(1000, 1000)]
     public void ConvertFromSystemUnits_Milliseconds_VariousValues(int systemValue, int expected)
     {
         var result = UnitConversionHelper.ConvertFromSystemUnits(systemValue, "milliseconds");
@@ -200,11 +202,11 @@ public class UnitConversionHelperTests
     }
 
     [Fact]
-    public void ConvertFromSystemUnits_NegativeWithMilliseconds_MultipliesCorrectly()
+    public void ConvertFromSystemUnits_NegativeWithMilliseconds_PassesThroughUnchanged()
     {
         var result = UnitConversionHelper.ConvertFromSystemUnits(-5, "milliseconds");
 
-        result.Should().Be(-5000);
+        result.Should().Be(-5);
     }
 
     [Fact]
@@ -244,11 +246,11 @@ public class UnitConversionHelperTests
     }
 
     [Fact]
-    public void ConvertFromSystemUnits_UppercaseMilliseconds_StillConverts()
+    public void ConvertFromSystemUnits_UppercaseMilliseconds_StillPassesThrough()
     {
         var result = UnitConversionHelper.ConvertFromSystemUnits(5, "Milliseconds");
 
-        result.Should().Be(5000);
+        result.Should().Be(5);
     }
 
     [Theory]
@@ -257,8 +259,8 @@ public class UnitConversionHelperTests
     [InlineData("mInUtEs", 120, 2)]
     [InlineData("HOURS", 3600, 1)]
     [InlineData("Hours", 3600, 1)]
-    [InlineData("MILLISECONDS", 5, 5000)]
-    [InlineData("Milliseconds", 5, 5000)]
+    [InlineData("MILLISECONDS", 5, 5)]
+    [InlineData("Milliseconds", 5, 5)]
     public void ConvertFromSystemUnits_CaseInsensitive(string units, int systemValue, int expected)
     {
         var result = UnitConversionHelper.ConvertFromSystemUnits(systemValue, units);

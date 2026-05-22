@@ -16,8 +16,9 @@ public class SystemSettingsDiscoveryService(
     IWindowsRegistryService registryService,
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
-    IDomainServiceRouter domainServiceRouter,
-    IScheduledTaskService scheduledTaskService) : ISystemSettingsDiscoveryService
+    ISpecialDiscoveryRegistry specialDiscoveryRegistry,
+    IScheduledTaskService scheduledTaskService,
+    ISystemRestoreService systemRestoreService) : ISystemSettingsDiscoveryService
 {
     public async Task<Dictionary<string, Dictionary<string, object?>>> GetRawSettingsValuesAsync(IEnumerable<SettingDefinition> settings)
     {
@@ -224,19 +225,36 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        var settingsByDomain = settingsList
-            .Where(s => s.InputType == InputType.Selection)
-            .GroupBy(s => domainServiceRouter.GetDomainService(s.Id).DomainName);
+        var systemRestoreSettings = settingsList
+            .Where(s => s.DetectionType == DetectionType.SystemRestore)
+            .ToList();
 
-        foreach (var group in settingsByDomain)
+        foreach (var setting in systemRestoreSettings)
         {
             try
             {
-                var domainService = domainServiceRouter.GetDomainService(group.First().Id);
-                if (domainService is not ISpecialSettingHandler specialHandler)
-                    continue;
+                results[setting.Id] = new Dictionary<string, object?>
+                {
+                    ["SystemRestoreEnabled"] = systemRestoreService.IsEnabledForC()
+                };
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning,
+                    $"[SystemSettingsDiscoveryService] SystemRestore detection failed for '{setting.Id}': {ex.Message}");
+                results[setting.Id] = new Dictionary<string, object?> { ["SystemRestoreEnabled"] = false };
+            }
+        }
 
-                var discoveredValues = await specialHandler.DiscoverSpecialSettingsAsync(group).ConfigureAwait(false);
+        var selectionSettings = settingsList.Where(s => s.InputType == InputType.Selection).ToList();
+
+        int handlersInvoked = 0;
+        foreach (var handler in specialDiscoveryRegistry.All)
+        {
+            handlersInvoked++;
+            try
+            {
+                var discoveredValues = await handler.DiscoverSpecialSettingsAsync(selectionSettings).ConfigureAwait(false);
 
                 foreach (var (settingId, values) in discoveredValues)
                 {
@@ -248,12 +266,13 @@ public class SystemSettingsDiscoveryService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"Exception discovering special settings for domain '{group.Key}': {ex.Message}");
+                logService.Log(LogLevel.Warning,
+                    $"Exception discovering special settings via handler '{handler.GetType().Name}': {ex.Message}");
             }
         }
 
         var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
-        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
+        logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), SystemRestore({systemRestoreSettings.Count}), SpecialDiscovery({handlersInvoked} handlers)");
         return (results, batchedRegistryValues);
     }
 
@@ -439,6 +458,13 @@ public class SystemSettingsDiscoveryService(
         if (rawValues == null || rawValues.Count == 0)
             return false;
 
+        if (setting.DetectionType == DetectionType.SystemRestore)
+        {
+            if (rawValues.TryGetValue("SystemRestoreEnabled", out var v) && v is bool b)
+                return b;
+            return false;
+        }
+
         if (setting.RegistrySettings?.Count > 0)
         {
             foreach (var registrySetting in setting.RegistrySettings)
@@ -558,13 +584,23 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        var supportsCustomState = setting.ComboBox?.SupportsCustomState == true;
-        if (supportsCustomState)
+        // No option matched. Fall back to the IsDefault option when either:
+        //  - every backing registry value is absent (a pristine system is the Windows default), or
+        //  - the setting opts in via ResolveUnmatchedToDefault (its default state isn't a single
+        //    enumerable value, so any unrecognised state is treated as the default).
+        bool allBackingValuesAbsent = currentValues.Count > 0 && currentValues.Values.All(v => v is null);
+        if (allBackingValuesAbsent || setting.ResolveUnmatchedToDefault)
         {
-            return -1;
+            for (int i = 0; i < options.Count; i++)
+            {
+                if (options[i].IsDefault)
+                {
+                    return i;
+                }
+            }
         }
 
-        return 0;
+        return ComboBoxConstants.CustomStateIndex;
     }
 
     private static bool ValuesAreEqual(object? value1, object? value2)

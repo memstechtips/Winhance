@@ -21,9 +21,14 @@ public static partial class ExternalAppDefinitions
                         Name = "IrfanView64",
                         Description = "Fast and compact image viewer and converter",
                         GroupName = "Imaging",
+                        AppxPackageName = ["30067IrfanSkiljanIrfanVie.IrfanView64"],
                         WinGetPackageId = ["IrfanSkiljan.IrfanView"],
                         ChocoPackageId = "irfanview",
-                        WebsiteUrl = "https://www.irfanview.com/"
+                        MsStoreId = "9PJZ3BTL5PV6",
+                        WebsiteUrl = "https://www.irfanview.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/IrfanView_Logo2.svg/250px-IrfanView_Logo2.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -32,19 +37,31 @@ public static partial class ExternalAppDefinitions
                         Description = "Digital painting and illustration software",
                         RegistryDisplayName = "Krita ({arch}) {version}",
                         GroupName = "Imaging",
+                        AppxPackageName = ["49800KritaProject.Krita"],
                         WinGetPackageId = ["KDE.Krita"],
                         ChocoPackageId = "krita",
-                        WebsiteUrl = "https://krita.org/"
+                        MsStoreId = "9N6X57ZGRW96",
+                        WebsiteUrl = "https://krita.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/KDE/krita/master/krita/pics/branding/krita.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Calligrakrita-base.svg/250px-Calligrakrita-base.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-blender",
                         Name = "Blender",
-                        Description = "3D creation suite",
+                        Description = "3D modeling, animation, rendering, and video editing suite",
                         GroupName = "Imaging",
+                        AppxPackageName = ["BlenderFoundation.Blender"],
                         WinGetPackageId = ["BlenderFoundation.Blender"],
                         ChocoPackageId = "blender",
-                        WebsiteUrl = "https://www.blender.org/"
+                        MsStoreId = "9PP3C07GTVRH",
+                        WebsiteUrl = "https://www.blender.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/blender/blender/main/release/windows/icons/winblender.ico",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Logo_Blender.svg/250px-Logo_Blender.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -52,20 +69,28 @@ public static partial class ExternalAppDefinitions
                         Name = "Paint.NET",
                         Description = "Image and photo editing software",
                         GroupName = "Imaging",
+                        AppxPackageName = ["dotPDNLLC.paint.net"],
                         WinGetPackageId = ["dotPDN.PaintDotNet"],
                         ChocoPackageId = "paint.net",
-                        WebsiteUrl = "https://www.getpaint.net/"
+                        MsStoreId = "9NBHCS1LX4R0",
+                        WebsiteUrl = "https://www.getpaint.net/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/c/c4/Pain.net_logo.jpg",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-gimp",
                         Name = "GIMP",
-                        Description = "GNU Image Manipulation Program",
+                        Description = "Open-source raster image editor with layers, masks, and plugins",
                         RegistryDisplayName = "GIMP {version}",
                         GroupName = "Imaging",
                         WinGetPackageId = ["GIMP.GIMP.3"],
                         ChocoPackageId = "gimp",
-                        WebsiteUrl = "https://www.gimp.org/"
+                        WebsiteUrl = "https://www.gimp.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/The_GIMP_icon_-_v3.0.svg/250px-The_GIMP_icon_-_v3.0.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -76,27 +101,40 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["XnSoft.XnViewMP"],
                         ChocoPackageId = "xnviewmp",
-                        WebsiteUrl = "https://www.xnview.com/en/xnviewmp/"
+                        WebsiteUrl = "https://www.xnview.com/en/xnviewmp/",
+                        IconSources = [
+                            "https://www.xnview.com/img/app-xnviewmp-512.png",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-xnview-classic",
                         Name = "XnView",
                         Description = "Image viewer, browser and converter (Classic Version)",
+                        RegistryDisplayName = "XnView",
                         GroupName = "Imaging",
                         WinGetPackageId = ["XnSoft.XnView.Classic"],
                         ChocoPackageId = "xnview",
-                        WebsiteUrl = "https://www.xnview.com/en/xnview/"
+                        WebsiteUrl = "https://www.xnview.com/en/xnview/",
+                        IconSources = [
+                            "https://www.xnview.com/img/app-xnview-512.png",
+                            "https://upload.wikimedia.org/wikipedia/en/7/7e/XnView_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-inkscape",
                         Name = "Inkscape",
-                        Description = "Vector graphics editor",
+                        Description = "Open-source SVG vector graphics editor",
                         GroupName = "Imaging",
+                        AppxPackageName = ["25415Inkscape.Inkscape"],
                         WinGetPackageId = ["Inkscape.Inkscape"],
                         ChocoPackageId = "inkscape",
-                        WebsiteUrl = "https://inkscape.org/"
+                        MsStoreId = "9PD9BHGLFC7H",
+                        WebsiteUrl = "https://inkscape.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Inkscape_Logo.svg/250px-Inkscape_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -107,7 +145,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["Greenshot.Greenshot"],
                         ChocoPackageId = "greenshot",
-                        WebsiteUrl = "https://getgreenshot.org/"
+                        WebsiteUrl = "https://getgreenshot.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/greenshot/greenshot/main/src/Greenshot/icons/applicationIcon/90.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Greenshot_logo.svg/250px-Greenshot_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -115,9 +157,15 @@ public static partial class ExternalAppDefinitions
                         Name = "ShareX",
                         Description = "Screen capture, file sharing and productivity tool",
                         GroupName = "Imaging",
+                        AppxPackageName = ["19568ShareX.ShareX"],
                         WinGetPackageId = ["ShareX.ShareX"],
                         ChocoPackageId = "sharex",
-                        WebsiteUrl = "https://getsharex.com/"
+                        MsStoreId = "9NBLGGH4Z1SP",
+                        WebsiteUrl = "https://getsharex.com/",
+                        IconSources = [
+                            "https://getsharex.com/img/ShareX_Icon.ico",
+                            "https://raw.githubusercontent.com/ShareX/ShareX/master/ShareX/Resources/application-icon-large.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -127,7 +175,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["Flameshot.Flameshot"],
                         ChocoPackageId = "flameshot",
-                        WebsiteUrl = "https://flameshot.org/"
+                        WebsiteUrl = "https://flameshot.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/flameshot-org/flameshot/master/data/img/app/org.flameshot.Flameshot-1024.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flameshot_logo.svg/250px-Flameshot_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -137,7 +189,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Imaging",
                         WinGetPackageId = ["FastStone.Viewer"],
                         ChocoPackageId = "fsviewer",
-                        WebsiteUrl = "https://www.faststone.org/"
+                        WebsiteUrl = "https://www.faststone.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/d/d8/FSViewer_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -149,7 +204,11 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["DuongDieuPhap.ImageGlass"],
                         MsStoreId = "9N33VZK3C7TH",
                         ChocoPackageId = "imageglass",
-                        WebsiteUrl = "https://imageglass.org/"
+                        WebsiteUrl = "https://imageglass.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/d2phap/ImageGlass/develop/Assets/Logo/2023/logo512.png",
+                            "https://raw.githubusercontent.com/d2phap/ImageGlass/develop/Assets/Logo/2023/icon256.ico",
+                        ],
                     }
                 }
             };

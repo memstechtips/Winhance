@@ -345,6 +345,10 @@ public static class PowerOptimizations
                         },
                     },
                 },
+                // Lives in Power because it's a child of power-hibernation-enable and
+                // ParentSettingId currently only resolves within the same feature page.
+                // The `start-` prefix reflects what the setting controls (the Start Menu
+                // power flyout's Hibernate entry), not where the SettingDefinition is hosted.
                 new SettingDefinition
                 {
                     Id = "start-power-hibernate-option",

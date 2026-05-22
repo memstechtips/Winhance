@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -18,6 +19,11 @@ public class UserPreferencesService : IUserPreferencesService
     private readonly ILogService _logService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
+
+    // Serializes file I/O — multiple fire-and-forget SetPreferenceAsync calls
+    // from startup paths (NewBadgeService, ScriptMigrationService, StartupOrchestrator)
+    // raced through read-modify-write and lost writes.
+    private readonly SemaphoreSlim _fileLock = new(1, 1);
 
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
@@ -71,6 +77,19 @@ public class UserPreferencesService : IUserPreferencesService
 
     public async Task<Dictionary<string, object>> GetPreferencesAsync()
     {
+        await _fileLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            return await GetPreferencesUnsafeAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+    }
+
+    private async Task<Dictionary<string, object>> GetPreferencesUnsafeAsync()
+    {
         try
         {
             string filePath = GetPreferencesFilePath();
@@ -116,6 +135,19 @@ public class UserPreferencesService : IUserPreferencesService
 
     public async Task<OperationResult> SavePreferencesAsync(Dictionary<string, object> preferences)
     {
+        await _fileLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            return await SavePreferencesUnsafeAsync(preferences).ConfigureAwait(false);
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+    }
+
+    private async Task<OperationResult> SavePreferencesUnsafeAsync(Dictionary<string, object> preferences)
+    {
         try
         {
             string filePath = GetPreferencesFilePath();
@@ -154,6 +186,7 @@ public class UserPreferencesService : IUserPreferencesService
 
     public async Task<T> GetPreferenceAsync<T>(string key, T defaultValue)
     {
+        // GetPreferencesAsync acquires _fileLock for us; no extra locking needed here.
         var preferences = await GetPreferencesAsync().ConfigureAwait(false);
 
         if (preferences.TryGetValue(key, out var value))
@@ -227,13 +260,16 @@ public class UserPreferencesService : IUserPreferencesService
 
     public async Task<OperationResult> SetPreferenceAsync<T>(string key, T value)
     {
+        // Hold the file lock across the whole read-modify-write so concurrent
+        // SetPreferenceAsync calls don't clobber each other's writes.
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            var preferences = await GetPreferencesAsync().ConfigureAwait(false);
+            var preferences = await GetPreferencesUnsafeAsync().ConfigureAwait(false);
 
             preferences[key] = value!;
 
-            var result = await SavePreferencesAsync(preferences).ConfigureAwait(false);
+            var result = await SavePreferencesUnsafeAsync(preferences).ConfigureAwait(false);
 
             if (result.Success)
             {
@@ -250,6 +286,10 @@ public class UserPreferencesService : IUserPreferencesService
         {
             _logService.Log(LogLevel.Error, $"Error setting preference '{key}': {ex.Message}");
             return OperationResult.Failed(ex.Message, ex);
+        }
+        finally
+        {
+            _fileLock.Release();
         }
     }
 

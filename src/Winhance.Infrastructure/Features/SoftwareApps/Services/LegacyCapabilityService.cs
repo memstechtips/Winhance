@@ -10,8 +10,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class LegacyCapabilityService(
-    ILogService logService,
-    IWindowsAppsService windowsAppsService) : ILegacyCapabilityService
+    ILogService logService) : ILegacyCapabilityService
 {
     public Task<bool> EnableCapabilityAsync(
         string capabilityName,
@@ -60,52 +59,6 @@ public class LegacyCapabilityService(
                 LogLevel = Core.Features.Common.Enums.LogLevel.Error
             });
             return Task.FromResult(false);
-        }
-    }
-
-    public async Task<bool> DisableCapabilityAsync(
-        string capabilityName,
-        string? displayName = null,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
-    {
-        displayName ??= capabilityName;
-
-        try
-        {
-            logService?.LogInformation($"Disabling Windows Capability: {displayName} ({capabilityName})");
-
-            var item = new ItemDefinition
-            {
-                Id = capabilityName,
-                Name = displayName,
-                Description = string.Empty,
-                CapabilityName = capabilityName
-            };
-
-            var result = await windowsAppsService.RemoveCapabilityAsync(item, cancellationToken).ConfigureAwait(false);
-
-            if (result.Success)
-            {
-                logService?.LogInformation($"Capability '{capabilityName}' removed successfully via DISM.");
-            }
-            else
-            {
-                logService?.LogError($"DISM failed to remove capability '{capabilityName}': {result.ErrorMessage}");
-            }
-
-            return result.Success;
-        }
-        catch (Exception ex)
-        {
-            logService?.LogError($"Error disabling capability {capabilityName}: {ex.Message}");
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = $"Failed to disable {displayName}: {ex.Message}",
-                IsIndeterminate = false,
-                LogLevel = Core.Features.Common.Enums.LogLevel.Error
-            });
-            return false;
         }
     }
 }

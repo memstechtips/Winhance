@@ -12,13 +12,12 @@ public partial class GamingOptimizationsViewModel : BaseSettingsFeatureViewModel
     protected override string GetDisplayNameKey() => "Feature_GamingPerformance_Name";
 
     public GamingOptimizationsViewModel(
-        IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IEventBus eventBus)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
     }
 }

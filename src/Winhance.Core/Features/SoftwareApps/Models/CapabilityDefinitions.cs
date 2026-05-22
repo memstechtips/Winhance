@@ -26,7 +26,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-powershell-ise",
                     Name = "PowerShell ISE",
-                    Description = "PowerShell Integrated Scripting Environment",
+                    Description = "Legacy script editor for Windows PowerShell with debugger and IntelliSense",
                     GroupName = "Development",
                     CapabilityName = "Microsoft.Windows.PowerShell.ISE",
                     CanBeReinstalled = true
@@ -35,7 +35,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-quick-assist",
                     Name = "Quick Assist (Legacy)",
-                    Description = "Remote assistance app",
+                    Description = "Older Quick Assist remote help app, replaced by the Microsoft Store version",
                     GroupName = "System",
                     CapabilityName = "App.Support.QuickAssist",
                     CanBeReinstalled = false
@@ -44,7 +44,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-steps-recorder",
                     Name = "Steps Recorder",
-                    Description = "Screen recording tool",
+                    Description = "Captures screenshots of each click for documenting steps in a problem report",
                     GroupName = "Utilities",
                     CapabilityName = "App.StepsRecorder",
                     CanBeReinstalled = true
@@ -53,7 +53,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-windows-media-player",
                     Name = "Windows Media Player",
-                    Description = "Classic media player",
+                    Description = "Classic media player for music, video, CDs, and DVDs",
                     GroupName = "Media",
                     CapabilityName = "Media.WindowsMediaPlayer",
                     CanBeReinstalled = true
@@ -62,7 +62,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-wordpad",
                     Name = "WordPad",
-                    Description = "Rich text editor",
+                    Description = "Rich text editor for RTF and DOC files; removed by default in Windows 11 24H2",
                     GroupName = "Productivity",
                     CapabilityName = "Microsoft.Windows.WordPad",
                     CanBeReinstalled = false
@@ -71,7 +71,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-notepad",
                     Name = "Notepad (Legacy)",
-                    Description = "Simple text editor",
+                    Description = "Original Notepad without tabs, AI rewrite, or autosave",
                     GroupName = "Productivity",
                     CapabilityName = "Microsoft.Windows.Notepad",
                     CanBeReinstalled = false
@@ -80,7 +80,7 @@ public static class CapabilityDefinitions
                 {
                     Id = "capability-paint-legacy",
                     Name = "Paint (Legacy)",
-                    Description = "Classic Paint app",
+                    Description = "Original Win32 Paint binary, kept for users who prefer the old interface",
                     GroupName = "Graphics",
                     CapabilityName = "Microsoft.Windows.MSPaint",
                     CanBeReinstalled = false

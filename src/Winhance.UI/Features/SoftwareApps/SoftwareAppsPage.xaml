@@ -10,9 +10,191 @@
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:vm="using:Winhance.UI.Features.SoftwareApps.ViewModels"
+    xmlns:winhanceControls="using:Winhance.UI.Features.Common.Controls"
     mc:Ignorable="d">
 
     <Page.Resources>
+        <!-- ============================================================
+             Icon sizing knobs (Software & Apps tabs).
+             Each view has its OWN icon-size pair — they are NOT shared:
+               • CardIconSize / CardFallbackFontSize        → Compact view
+                 (Windows Apps + External Apps compact lists)
+               • DataGridIconSize / DataGridFallbackFontSize → Table view
+               • CardViewIconSize / CardViewFallbackFontSize → Card view
+                 (defined further down)
+             FontIcon size is the fallback glyph that shows when no real
+             icon is resolved; ~half the icon size is a good default.
+             Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
+             largest icon size) for HiDPI sharpness.
+             ============================================================ -->
+        <x:Double x:Key="CardIconSize">20</x:Double>
+        <x:Double x:Key="CardFallbackFontSize">16</x:Double>
+        <x:Double x:Key="DataGridIconSize">20</x:Double>
+        <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
+
+        <!-- FluentIcon "Apps Color" carries intrinsic padding inside its draw
+             box, so it renders a little smaller than its nominal FontSize.
+             These size the Apps fallback specifically. Keep each value ≤ its
+             matching icon size (CardAppsIconSize ≤ CardIconSize, and
+             DataGridAppsIconSize ≤ DataGridIconSize) so the fallback never
+             overflows its square icon cell — the intrinsic padding still lands
+             the visible glyph close to the puzzle/gear FontIcon fallbacks. -->
+        <x:Double x:Key="CardAppsIconSize">20</x:Double>
+        <x:Double x:Key="DataGridAppsIconSize">20</x:Double>
+
+        <!-- Card-view cell width (fixed). UniformWrapPanel renders every cell
+             at exactly this width and wraps when the next cell would overflow,
+             so cards never grow as you widen the window — leftover row space
+             is just empty padding on the right. Column count:
+                 cols = floor((panel_width + ColumnSpacing) / (CardItemWidth + ColumnSpacing))
+             Bigger value → fewer columns. -->
+        <x:Double x:Key="CardItemWidth">420</x:Double>
+        <!-- Compact-view cell width (fixed). Like CardItemWidth, the compact
+             ItemsControl + UniformWrapPanel renders every row at exactly this
+             width and wraps when the next would overflow; the containing
+             StackPanel is centred via a code-behind MaxWidth clamp so leftover
+             space becomes symmetric outer margin (Microsoft Store pattern).
+             Kept narrower than the Card view so a wide window still fits
+             several columns of single-line rows. -->
+        <x:Double x:Key="CompactItemWidth">320</x:Double>
+        <x:Double x:Key="CardViewIconSize">36</x:Double>
+        <!-- FontIcon fallback glyph FontSize (puzzle for Capability, gear for
+             Optional Feature). Real card icons fill the 36×36 container; FontIcons
+             render ~70-75% of their FontSize as visible glyph, so 28 lands the
+             visible glyph at ~20px — comparable to the real-icon weight. -->
+        <x:Double x:Key="CardViewFallbackFontSize">28</x:Double>
+        <!-- FluentIcon "Apps" (color variant) needs more FontSize than the
+             FontIcons above because the colored variant has extra intrinsic
+             padding around its draw box (same gap that exists in Compact view
+             between CardFallbackFontSize and CardAppsIconSize). +10 keeps
+             visible Apps glyph weight in line with the puzzle/gear glyphs. -->
+        <x:Double x:Key="CardViewAppsIconSize">38</x:Double>
+        <CornerRadius x:Key="CardViewCornerRadius">8</CornerRadius>
+        <Thickness x:Key="CardViewPadding">12,10</Thickness>
+
+        <!-- Card view sizing. UniformWrapPanel forces every cell to CardCellHeight
+             so cards are uniform across rows. CardContentHeight sizes the inner
+             content area; the difference (~24px) is Border padding (10+10) plus
+             border thickness (1+1, or 2+2 when Checked).
+             Tuned so a 2-line description fits comfortably with the title row,
+             with a couple px of breathing room when only one line is rendered.
+             Title row ≈ 22px + 4px margin + 2-line desc ≈ 32px = 58px content. -->
+        <x:Double x:Key="CardContentHeight">84</x:Double>
+        <x:Double x:Key="CardCellHeight">108</x:Double>
+        <!-- Pill geometry. CornerRadius is set high enough to fully round the ends
+             at the rendered pill height (~18px), but kept finite so it clips
+             cleanly at HiDPI scales (CornerRadius=999 can render with subpixel
+             artefacts on the inner border). -->
+        <CornerRadius x:Key="CardPillCornerRadius">10</CornerRadius>
+        <Thickness x:Key="CardPillPadding">8,2</Thickness>
+
+        <!-- Card-view selection target. Wrapping the whole card in a templated
+             ToggleButton is what makes "click anywhere on the card" reliably
+             toggle selection — Border + Tapped from the data template was
+             not firing in this hierarchy (ItemsRepeater + StackPanel + ScrollViewer).
+             The ToggleButton's IsChecked is bound two-way to AppItemViewModel.IsSelected,
+             so the inner CheckBox visual indicator only needs OneWay binding and
+             can stay IsHitTestVisible=False (no double-toggle). -->
+        <Style x:Key="CardToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="UseSystemFocusVisuals" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="CardBorder"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource CardViewCornerRadius}"
+                                Padding="{StaticResource CardViewPadding}">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ControlStrongStrokeColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Opacity" To="0.5" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Checked">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderThickness">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="2"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderThickness">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="2"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderThickness">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="2"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedDisabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="Opacity" To="0.5" Duration="0"/>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CardBorder" Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- First column header: left-rounded corners with select-all checkbox -->
         <Style x:Key="FirstColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
             <Setter Property="Template">
@@ -354,6 +536,146 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <DataTemplate x:Key="AppCardTemplate" x:DataType="vm:AppItemViewModel">
+            <!-- Wrap the whole card in a templated ToggleButton so clicking
+                 anywhere on it toggles selection. ToggleButton.IsChecked
+                 binds two-way to IsSelected; the inner CheckBox is purely a
+                 visual indicator (IsHitTestVisible=False, OneWay). -->
+            <ToggleButton IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                          Style="{StaticResource CardToggleButtonStyle}"
+                          AutomationProperties.Name="{x:Bind Name}">
+                <Grid ColumnSpacing="12" Height="{StaticResource CardContentHeight}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox Grid.Column="0"
+                              IsChecked="{x:Bind IsSelected, Mode=OneWay}"
+                              IsHitTestVisible="False"
+                              IsTabStop="False"
+                              MinWidth="0"
+                              VerticalAlignment="Center"/>
+
+                    <Grid Grid.Column="1"
+                          Width="{StaticResource CardViewIconSize}"
+                          Height="{StaticResource CardViewIconSize}"
+                          VerticalAlignment="Center">
+                        <Image Source="{x:Bind IconSource, Mode=OneWay}"
+                               Stretch="Uniform"
+                               Visibility="{x:Bind HasIcon, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                FontSize="{StaticResource CardViewAppsIconSize}"
+                                                Visibility="{x:Bind IsAppXFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <FontIcon Glyph="&#xE9F9;"
+                                  FontSize="{StaticResource CardViewFallbackFontSize}"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Visibility="{x:Bind IsCapabilityFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <FontIcon Glyph="&#xE713;"
+                                  FontSize="{StaticResource CardViewFallbackFontSize}"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Visibility="{x:Bind IsOptionalFeatureFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </Grid>
+
+                    <!-- Content: name row, description, then status badges below
+                         the description — mirrors the Optimize/Customize settings
+                         card layout. Name row no longer shares space with the pills,
+                         so long names no longer get clipped. -->
+                    <Grid Grid.Column="2" VerticalAlignment="Center" MinWidth="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Row 0: name + website button -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{x:Bind Name}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="1"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="4"
+                                    MinWidth="0"
+                                    VerticalAlignment="Center"
+                                    Visibility="{x:Bind HasWebsiteUrl, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Click="WebsiteButton_Click"
+                                    Tag="{x:Bind WebsiteUrl}"
+                                    ToolTipService.ToolTip="{x:Bind WebsiteUrl}"
+                                    AutomationProperties.Name="{x:Bind OpenWebsiteAutomationName, Mode=OneWay}">
+                                <Viewbox Width="16" Height="16">
+                                    <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
+                                </Viewbox>
+                            </Button>
+                        </Grid>
+
+                        <!-- Row 1: description -->
+                        <TextBlock Grid.Row="1"
+                                   Text="{x:Bind Description}"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxLines="2"
+                                   Margin="0,2,0,0"
+                                   Visibility="{x:Bind HasDescription, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <!-- Row 2: status badges. StackPanel.Spacing only applies
+                             between visible children, so collapsed pills leave no gap. -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+                            <Border Style="{StaticResource BadgeInstalledStyle}"
+                                    Visibility="{x:Bind IsInstalled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Viewbox Width="14" Height="14" Margin="0,0,4,2" VerticalAlignment="Center">
+                                        <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind InstalledStatusText, Mode=OneWay}"
+                                               Style="{StaticResource BadgeTextStyle}"
+                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource BadgeNonReinstallableStyle}"
+                                    Visibility="{x:Bind ShowNonReinstallableChip, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Viewbox Width="12" Height="12" Margin="0,0,4,2" VerticalAlignment="Center">
+                                        <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                  Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind ReinstallableStatusText, Mode=OneWay}"
+                                               Style="{StaticResource BadgeTextStyle}"
+                                               Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource BadgeWarningStyle}"
+                                    Visibility="{x:Bind HasInstabilityWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTipService.ToolTip="{x:Bind InstabilityWarningTooltip, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Viewbox Width="12" Height="12" Margin="0,0,4,2" VerticalAlignment="Center">
+                                        <PathIcon Data="{StaticResource AlertIconPath}"
+                                                  Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind InstabilityWarningLabel, Mode=OneWay}"
+                                               Style="{StaticResource BadgeTextStyle}"
+                                               Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </ToggleButton>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid Padding="0,0,12,0">
@@ -391,7 +713,7 @@
                     AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </Button>
@@ -401,7 +723,7 @@
                     AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
@@ -412,7 +734,7 @@
                           AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </ToggleButton>
@@ -423,7 +745,7 @@
                           AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </ToggleButton>
@@ -434,14 +756,14 @@
                     <KeyboardAccelerator Key="F5"/>
                 </Button.KeyboardAccelerators>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
                 </StackPanel>
             </Button>
             <Button Command="{x:Bind ViewModel.ShowHelpCommand}"
                     AutomationProperties.Name="{x:Bind ViewModel.HelpButtonText}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="QuestionCircle" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
                 </StackPanel>
             </Button>
@@ -450,27 +772,38 @@
                     BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                     BorderThickness="1">
                 <StackPanel Orientation="Horizontal">
-                    <ToggleButton x:Name="TableViewToggle"
-                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
-                                  Click="TableViewToggle_Click"
-                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
-                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeTableTooltip}"
-                                  Background="Transparent"
-                                  BorderThickness="0"
-                                  CornerRadius="4,0,0,4"
-                                  Padding="10,6">
-                        <fluentIcons:SymbolIcon Symbol="TableSimple" IconVariant="Regular" FontSize="18"/>
-                    </ToggleButton>
                     <ToggleButton x:Name="CardViewToggle"
-                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay}"
+                                  IsChecked="{x:Bind ViewModel.IsCardView, Mode=OneWay}"
                                   Click="CardViewToggle_Click"
                                   ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCardTooltip}"
                                   AutomationProperties.Name="{x:Bind ViewModel.ViewModeCardTooltip}"
                                   Background="Transparent"
                                   BorderThickness="0"
+                                  CornerRadius="4,0,0,4"
+                                  Padding="10,6">
+                        <fluentIcons:FluentIcon Icon="Grid" IconVariant="Regular" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="TableViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsTableView, Mode=OneWay}"
+                                  Click="TableViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="0"
+                                  Padding="10,6">
+                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="CompactViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsCompactView, Mode=OneWay}"
+                                  Click="CompactViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCompactTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeCompactTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
                                   CornerRadius="0,4,4,0"
                                   Padding="10,6">
-                        <fluentIcons:SymbolIcon Symbol="Grid" IconVariant="Regular" FontSize="18"/>
+                        <fluentIcons:FluentIcon Icon="LineHorizontal3" IconVariant="Regular" FontSize="18"/>
                     </ToggleButton>
                 </StackPanel>
             </Border>
@@ -622,7 +955,7 @@
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="WindowsAppsDataGrid"
                                            Grid.Row="1"
-                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                           Visibility="{x:Bind ViewModel.IsTableView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                            Loaded="WindowsAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
                                            AutoGenerateColumns="False"
@@ -669,8 +1002,34 @@
                                 <controls:DataGridTemplateColumn Header="Name" Width="*" Tag="Name">
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <!-- Icon size driven by DataGridIconSize / DataGridFallbackFontSize resources at the top of the page. -->
+                                                <Grid Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                      VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                    <Image Source="{Binding IconSource}"
+                                                           Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                           Stretch="Uniform"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                            FontSize="{StaticResource DataGridAppsIconSize}"
+                                                                            Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource DataGridFallbackFontSize}"
+                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                              Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <FontIcon Glyph="&#xE713;" FontSize="{StaticResource DataGridFallbackFontSize}"
+                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                              Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                </Grid>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                         Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                         ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
+                                                    <PathIcon Data="{StaticResource AlertIconPath}"
+                                                              Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                </Viewbox>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </controls:DataGridTemplateColumn.CellTemplate>
                                 </controls:DataGridTemplateColumn>
@@ -690,8 +1049,16 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Ellipse Width="10" Height="10"
-                                                         Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                         Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                              Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                </Viewbox>
+                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                         Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                    <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                              Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                </Viewbox>
                                                 <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </DataTemplate>
@@ -704,9 +1071,16 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                          FontSize="14"
-                                                          Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                         Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                              Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                </Viewbox>
+                                                <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                         Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                    <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                              Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                </Viewbox>
                                                 <TextBlock Text="{Binding ReinstallableStatusText}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </DataTemplate>
@@ -715,13 +1089,112 @@
                             </controls:DataGrid.Columns>
                         </controls:DataGrid>
 
-                        <!-- Card View for Windows Apps -->
-                        <ScrollViewer Grid.Row="1"
-                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <!-- Card View for Windows Apps. The inner StackPanel is centred
+                             horizontally with a MaxWidth set in code-behind to exactly
+                             cols × CardItemWidth + (cols-1) × ColumnSpacing, so the
+                             section headers, Select-all checkboxes, and the card grid
+                             all share the same horizontal extents. -->
+                        <ScrollViewer Grid.Row="1" x:Name="WindowsAppsCardScrollViewer"
+                                      Visibility="{x:Bind ViewModel.IsCardView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      Padding="0,0,0,12">
-                            <StackPanel Spacing="16" Padding="4,8,4,8">
+                                      Padding="0,0,0,12"
+                                      SizeChanged="WindowsAppsCardScrollViewer_SizeChanged">
+                            <StackPanel x:Name="WindowsAppsCardContentStack"
+                                        Spacing="20"
+                                        Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllInstalledCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
+                                </StackPanel>
+
+                                <!-- Apps Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <!-- Non-virtualising ItemsControl + custom UniformWrapPanel.
+                                         ItemsRepeater + UniformGridLayout produced a measure cycle
+                                         that snapped the outer ScrollViewer to the top. UniformWrapPanel
+                                         renders every cell at exactly CardItemWidth, wrapping when
+                                         the next would overflow — predictable, no cycle. -->
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}"
+                                                  ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel
+                                                    ItemWidth="{StaticResource CardItemWidth}"
+                                                    ItemHeight="{StaticResource CardCellHeight}"
+                                                    ColumnSpacing="16"
+                                                    RowSpacing="16"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Capabilities Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}"
+                                                  ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel
+                                                    ItemWidth="{StaticResource CardItemWidth}"
+                                                    ItemHeight="{StaticResource CardCellHeight}"
+                                                    ColumnSpacing="16"
+                                                    RowSpacing="16"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Optional Features Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}"
+                                                  ItemTemplate="{StaticResource AppCardTemplate}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel
+                                                    ItemWidth="{StaticResource CardItemWidth}"
+                                                    ItemHeight="{StaticResource CardCellHeight}"
+                                                    ColumnSpacing="16"
+                                                    RowSpacing="16"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Compact View for Windows Apps -->
+                        <ScrollViewer x:Name="WindowsAppsCompactScrollViewer"
+                                      Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12"
+                                      SizeChanged="WindowsAppsCompactScrollViewer_SizeChanged">
+                            <!-- Centred + MaxWidth-clamped in code-behind (UpdateCompactContentMaxWidth)
+                                 so headers, Select-all checkboxes and the row grid share one column —
+                                 same Microsoft Store pattern as the card view above. -->
+                            <StackPanel x:Name="WindowsAppsCompactContentStack"
+                                        Spacing="16" Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
@@ -740,28 +1213,77 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
-                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                                  FontSize="12" VerticalAlignment="Center"
-                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
-                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
+                                                         if alignment still feels off — 2 for less, 4 for more. -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
+                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                              VerticalAlignment="Center">
+                                                            <Image Source="{Binding IconSource}"
+                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                   Stretch="Uniform"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                    FontSize="{StaticResource CardAppsIconSize}"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                        </Grid>
+                                                        <!-- Installed status: green tower when installed, faded grey tower when not -->
+                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                        </Viewbox>
+                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                        </Viewbox>
+                                                        <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                            <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                                      Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                        </Viewbox>
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                            <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                                      Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                        </Viewbox>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
+                                                            <PathIcon Data="{StaticResource AlertIconPath}"
+                                                                      Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                        </Viewbox>
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <!-- Capabilities Section -->
@@ -769,28 +1291,77 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
-                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                                  FontSize="12" VerticalAlignment="Center"
-                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
-                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
+                                                         if alignment still feels off — 2 for less, 4 for more. -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
+                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                              VerticalAlignment="Center">
+                                                            <Image Source="{Binding IconSource}"
+                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                   Stretch="Uniform"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                    FontSize="{StaticResource CardAppsIconSize}"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                        </Grid>
+                                                        <!-- Installed status: green tower when installed, faded grey tower when not -->
+                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                        </Viewbox>
+                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                        </Viewbox>
+                                                        <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                            <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                                      Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                        </Viewbox>
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                            <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                                      Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                        </Viewbox>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
+                                                            <PathIcon Data="{StaticResource AlertIconPath}"
+                                                                      Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                        </Viewbox>
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <!-- Optional Features Section -->
@@ -798,28 +1369,77 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
-                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                                  FontSize="12" VerticalAlignment="Center"
-                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
-                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
+                                                         if alignment still feels off — 2 for less, 4 for more. -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
+                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                              VerticalAlignment="Center">
+                                                            <Image Source="{Binding IconSource}"
+                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                   Stretch="Uniform"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                    FontSize="{StaticResource CardAppsIconSize}"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                        </Grid>
+                                                        <!-- Installed status: green tower when installed, faded grey tower when not -->
+                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                        </Viewbox>
+                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                        </Viewbox>
+                                                        <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                            <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                                      Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                        </Viewbox>
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                            <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                                      Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                        </Viewbox>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
+                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
+                                                            <PathIcon Data="{StaticResource AlertIconPath}"
+                                                                      Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                        </Viewbox>
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
@@ -856,7 +1476,7 @@
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="ExternalAppsDataGrid"
                                            Grid.Row="1"
-                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                           Visibility="{x:Bind ViewModel.IsTableView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                            Loaded="ExternalAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
                                            AutoGenerateColumns="False"
@@ -903,15 +1523,28 @@
                                 <controls:DataGridTemplateColumn Header="Name" Width="*" Tag="Name">
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <!-- Icon size driven by DataGridIconSize / DataGridFallbackFontSize resources at the top of the page. -->
+                                                <Grid Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                      VerticalAlignment="Center" Margin="-4,0,0,0">
+                                                    <Image Source="{Binding IconSource}"
+                                                           Width="{StaticResource DataGridIconSize}" Height="{StaticResource DataGridIconSize}"
+                                                           Stretch="Uniform"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                            FontSize="{StaticResource DataGridAppsIconSize}"
+                                                                            Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                </Grid>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                                                 <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
                                                                  Padding="0" MinHeight="0" MinWidth="0"
                                                                  VerticalAlignment="Center"
-                                                                 Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
+                                                                 Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}"
+                                                                 AutomationProperties.Name="{Binding OpenWebsiteAutomationName}">
                                                     <Viewbox Width="16" Height="16">
-                                                        <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular"/>
+                                                        <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                     </Viewbox>
                                                 </HyperlinkButton>
                                             </StackPanel>
@@ -934,8 +1567,16 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Ellipse Width="10" Height="10"
-                                                         Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                         Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                              Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                </Viewbox>
+                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                         Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                    <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                              Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                </Viewbox>
                                                 <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </DataTemplate>
@@ -955,12 +1596,72 @@
                         </controls:DataGrid>
 
                         <!-- Card View for External Apps -->
-                        <ScrollViewer Grid.Row="1"
-                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <ScrollViewer Grid.Row="1" x:Name="ExternalAppsCardScrollViewer"
+                                      Visibility="{x:Bind ViewModel.IsCardView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      Padding="0,0,0,12">
-                            <StackPanel Spacing="12" Padding="4,8,4,8">
+                                      Padding="0,0,0,12"
+                                      SizeChanged="ExternalAppsCardScrollViewer_SizeChanged">
+                            <StackPanel x:Name="ExternalAppsCardContentStack"
+                                        Spacing="20"
+                                        Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllInstalledCommand}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
+                                </StackPanel>
+
+                                <!-- Categories with apps inside. Both levels switched to
+                                     non-virtualising ItemsControl with a UniformWrapPanel for the
+                                     inner cards — same scroll-cycle reason as Windows Apps above. -->
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Spacing="8" Margin="0,0,0,12">
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           Style="{StaticResource SubtitleTextBlockStyle}"
+                                                           FontWeight="SemiBold"/>
+                                                <ItemsControl ItemsSource="{Binding Apps}"
+                                                              ItemTemplate="{StaticResource AppCardTemplate}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <winhanceControls:UniformWrapPanel
+                                                                ItemWidth="{StaticResource CardItemWidth}"
+                                                                ItemHeight="{StaticResource CardCellHeight}"
+                                                                ColumnSpacing="16"
+                                                                RowSpacing="16"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Compact View for External Apps -->
+                        <ScrollViewer x:Name="ExternalAppsCompactScrollViewer"
+                                      Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12"
+                                      SizeChanged="ExternalAppsCompactScrollViewer_SizeChanged">
+                            <!-- Centred + MaxWidth-clamped in code-behind (UpdateCompactContentMaxWidth)
+                                 so the Select-all checkboxes and the category Expanders share one
+                                 centred column — same Microsoft Store pattern as the card view. -->
+                            <StackPanel x:Name="ExternalAppsCompactContentStack"
+                                        Spacing="12" Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
@@ -992,31 +1693,57 @@
                                                     </StackPanel>
                                                 </Expander.Header>
                                                 <Expander.Content>
-                                                    <ItemsRepeater ItemsSource="{Binding Apps}" Margin="0,4,0,4">
-                                                        <ItemsRepeater.Layout>
-                                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
-                                                        </ItemsRepeater.Layout>
-                                                        <ItemsRepeater.ItemTemplate>
+                                                    <ItemsControl ItemsSource="{Binding Apps}" Margin="0,4,0,4">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                                          AutomationProperties.Name="{Binding Name}">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
-                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
+                                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                              VerticalAlignment="Center">
+                                                                            <Image Source="{Binding IconSource}"
+                                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                                   Stretch="Uniform"
+                                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                                    FontSize="{StaticResource CardAppsIconSize}"
+                                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                        </Grid>
+                                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                        </Viewbox>
+                                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                                        </Viewbox>
+                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
                                                                         <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
                                                                                          Padding="0" MinHeight="0" MinWidth="0"
                                                                                          VerticalAlignment="Center"
-                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}">
+                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}"
+                                                                                         AutomationProperties.Name="{Binding OpenWebsiteAutomationName}">
                                                                             <Viewbox Width="16" Height="16">
-                                                                                <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular"/>
+                                                                                <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                                             </Viewbox>
                                                                         </HyperlinkButton>
                                                                     </StackPanel>
                                                                 </CheckBox>
                                                             </DataTemplate>
-                                                        </ItemsRepeater.ItemTemplate>
-                                                    </ItemsRepeater>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                 </Expander.Content>
                                             </Expander>
                                         </DataTemplate>

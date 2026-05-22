@@ -16,6 +16,7 @@ public class SystemBackupService : ISystemBackupService
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
+    private readonly ISystemRestoreService _systemRestoreService;
 
     private const int VerificationMaxRetries = 10;
     private static readonly TimeSpan VerificationRetryDelay = TimeSpan.FromSeconds(3);
@@ -29,11 +30,13 @@ public class SystemBackupService : ISystemBackupService
     public SystemBackupService(
         ILogService logService,
         ILocalizationService localization,
-        IProcessExecutor processExecutor)
+        IProcessExecutor processExecutor,
+        ISystemRestoreService systemRestoreService)
     {
         _logService = logService;
         _localization = localization;
         _processExecutor = processExecutor;
+        _systemRestoreService = systemRestoreService;
     }
 
     public async Task<BackupResult> CreateRestorePointAsync(
@@ -55,7 +58,7 @@ public class SystemBackupService : ISystemBackupService
                 IsIndeterminate = true
             });
 
-            var isEnabled = await CheckSystemRestoreEnabledAsync().ConfigureAwait(false);
+            var isEnabled = _systemRestoreService.IsEnabledForC();
             if (!isEnabled)
             {
                 _logService.Log(LogLevel.Warning, "System Restore is currently disabled, enabling...");
@@ -146,26 +149,6 @@ public class SystemBackupService : ISystemBackupService
         }
 
         return null;
-    }
-
-    private async Task<bool> CheckSystemRestoreEnabledAsync()
-    {
-        return await Task.Run(() =>
-        {
-            try
-            {
-                using var searcher = new ManagementObjectSearcher(
-                    @"root\default",
-                    "SELECT * FROM SystemRestore");
-                using var results = searcher.Get();
-                return results.Count > 0;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Warning, $"Failed to check System Restore status: {ex.Message}");
-                return false;
-            }
-        }).ConfigureAwait(false);
     }
 
     private async Task<DateTime?> FindRestorePointAsync(string description)

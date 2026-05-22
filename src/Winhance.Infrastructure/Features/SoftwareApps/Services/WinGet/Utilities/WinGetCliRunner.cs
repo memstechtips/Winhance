@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,39 +15,42 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
 /// </summary>
 public static class WinGetCliRunner
 {
-    private const int DefaultTimeoutMs = 300_000; // 5 minutes
+    private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
 
     public record WinGetCliResult(int ExitCode, string StandardOutput, string StandardError);
 
     /// <summary>
     /// Returns the path to winget.exe.
-    /// Priority: system-installed winget (stays current via Store updates) →
-    /// bundled copy (fallback for fresh installs / missing DesktopAppInstaller).
+    /// Priority: bundled copy (version-locked, ships with the app) →
+    /// system winget (fallback only when bundled is missing).
+    ///
+    /// Bundled is preferred because system winget can be arbitrarily stale on
+    /// machines with Microsoft Store updates blocked — newer flags
+    /// (e.g. --disable-interactivity, added in winget 1.4) cause hard exits on
+    /// old versions. The bundled copy is a controlled, known-good version.
     /// </summary>
     public static string? GetWinGetExePath(IInteractiveUserService? interactiveUserService = null)
     {
-        // Under OTS elevation, the system PATH contains the admin user's WindowsApps.
-        // We must skip PATH and resolve from the interactive (logged-in) user's paths,
-        // falling back to the bundled copy.
+        // 1. Bundled (preferred — registration-free, version-locked).
+        var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
+        if (File.Exists(bundledPath))
+            return bundledPath;
+
+        // 2. System fallback — only reached if the bundled CLI is missing
+        //    (corrupted Winhance install, dev build, etc.).
         if (interactiveUserService != null && interactiveUserService.IsOtsElevation)
         {
-            // 1. Interactive user's WindowsApps (DesktopAppInstaller registered for them)
+            // Under OTS, the admin's PATH points at admin's WindowsApps. Resolve
+            // from the interactive user's profile instead.
             var interactiveAppData = interactiveUserService.GetInteractiveUserFolderPath(
                 Environment.SpecialFolder.LocalApplicationData);
             var interactiveWinGet = Path.Combine(interactiveAppData, "Microsoft", "WindowsApps", "winget.exe");
             if (File.Exists(interactiveWinGet))
                 return interactiveWinGet;
 
-            // 2. Bundled copy (fallback)
-            var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
-            if (File.Exists(bundled))
-                return bundled;
-
             return null;
         }
 
-        // Non-OTS: standard resolution order
-        // 1. System PATH (preferred — kept up-to-date via Microsoft Store)
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
@@ -61,17 +66,10 @@ public static class WinGetCliRunner
             }
         }
 
-        // 2. WindowsApps (standard MSIX install location, may not be on PATH)
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var windowsAppsPath = Path.Combine(localAppData, "Microsoft", "WindowsApps", "winget.exe");
         if (File.Exists(windowsAppsPath))
             return windowsAppsPath;
-
-        // 3. Bundled copy (fallback — ships with Winhance for fresh installs
-        //    where DesktopAppInstaller isn't registered yet)
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
-        if (File.Exists(bundledPath))
-            return bundledPath;
 
         return null;
     }
@@ -125,8 +123,31 @@ public static class WinGetCliRunner
     }
 
     /// <summary>
+    /// Returns a short log tag identifying which winget binary <paramref name="exePath"/> is —
+    /// "bundled-winget" for the copy that ships with the app, "system-winget" for anything else.
+    /// Used in log line prefixes so support transcripts make it obvious which CLI ran.
+    /// </summary>
+    public static string GetLogTag(string? exePath)
+    {
+        var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
+        return string.Equals(exePath, bundled, StringComparison.OrdinalIgnoreCase)
+            ? "bundled-winget"
+            : "system-winget";
+    }
+
+    /// <summary>
     /// Runs winget.exe with the given arguments, streaming stdout/stderr.
     /// </summary>
+    /// <param name="timeoutMs">
+    /// Wall-clock kill timeout. Pass 0 (or Timeout.Infinite = -1) to disable — useful when
+    /// the caller relies on <paramref name="idleTimeoutMs"/> instead. Default 5 minutes.
+    /// </param>
+    /// <param name="idleTimeoutMs">
+    /// Optional idle-output kill timeout. When &gt; 0, the process is killed if no output
+    /// (stdout, stderr, or progress line) arrives for this many milliseconds. The timer
+    /// resets on every line, so legitimately slow-but-progressing installs (large CDN
+    /// downloads, slow disks) keep renewing their deadline indefinitely. 0 = disabled.
+    /// </param>
     /// <param name="exePathOverride">
     /// If provided, uses this path instead of auto-resolving via <see cref="GetWinGetExePath"/>.
     /// Useful for forcing the bundled copy (e.g. when installing AppInstaller itself).
@@ -143,12 +164,15 @@ public static class WinGetCliRunner
         int timeoutMs = DefaultTimeoutMs,
         string? exePathOverride = null,
         IInteractiveUserService? interactiveUserService = null,
-        Action<string>? onProgressLine = null)
+        Action<string>? onProgressLine = null,
+        int idleTimeoutMs = 0)
     {
         var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
             ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
 
-        // OTS: run winget as the interactive user so packages install to their scope
+        // OTS: run winget as the interactive user so packages install to their scope.
+        // Idle-timeout is not plumbed through the OTS helper; callers that need it
+        // pass a generous wall-clock timeoutMs as the fallback.
         if (interactiveUserService != null
             && interactiveUserService.IsOtsElevation
             && interactiveUserService.HasInteractiveUserToken)
@@ -158,81 +182,131 @@ public static class WinGetCliRunner
             return new WinGetCliResult(result.ExitCode, result.StandardOutput, result.StandardError);
         }
 
-        // When real-time progress is requested, use ConPTY so that winget sees
-        // isatty(stdout)==true and outputs progress bars with std::flush.
-        // Without ConPTY, winget detects a pipe and suppresses progress output.
-        if (onProgressLine != null)
+        CancellationTokenSource? wallClockCts = null;
+        CancellationTokenSource? idleCts = null;
+        CancellationTokenSource? linkedCts = null;
+        try
         {
-            try
+            var tokens = new List<CancellationToken> { cancellationToken };
+            if (timeoutMs > 0)
             {
-                using var conPty = new ConPtyProcess();
-                return await conPty.RunAsync(
-                    exePath, arguments,
-                    onOutputLine, onErrorLine, onProgressLine,
-                    cancellationToken, timeoutMs).ConfigureAwait(false);
+                wallClockCts = new CancellationTokenSource(timeoutMs);
+                tokens.Add(wallClockCts.Token);
             }
-            catch (Exception ex) when (
-                ex is InvalidOperationException or
-                EntryPointNotFoundException or
-                DllNotFoundException)
+            if (idleTimeoutMs > 0)
             {
-                // ConPTY unavailable (old Windows build or API failure)
-                // — fall through silently to pipe mode
+                idleCts = new CancellationTokenSource(idleTimeoutMs);
+                tokens.Add(idleCts.Token);
             }
-        }
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(tokens.ToArray());
 
-        var stdoutBuilder = new StringBuilder();
-        var stderrBuilder = new StringBuilder();
-
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = exePath,
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-        };
-
-        process.Start();
-
-        using var timeoutCts = new CancellationTokenSource(timeoutMs);
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-        // Kill process tree on cancellation
-        using var registration = linkedCts.Token.Register(() =>
-        {
-            try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
-        });
-
-        // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
-        // ReadLineAsync peeks ahead after \r which blocks until the next char arrives,
-        // preventing real-time progress bar updates.
-        var readStdout = Task.Run(async () =>
-        {
-            await ReadStdoutCharByCharAsync(
-                process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine).ConfigureAwait(false);
-        }, CancellationToken.None);
-
-        var readStderr = Task.Run(async () =>
-        {
-            while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
+            // Wrap callbacks so any output line resets the idle deadline. Wall-clock CTS
+            // is NOT reset — it stays an absolute upper bound. When idleCts is null the
+            // wrappers are unnecessary, but keeping them uniform avoids branchy plumbing.
+            var capturedIdleCts = idleCts;
+            var capturedIdleMs = idleTimeoutMs;
+            Action<string>? wrapOutput = (onOutputLine == null && capturedIdleCts == null) ? null : line =>
             {
-                stderrBuilder.AppendLine(line);
+                ResetIdle(capturedIdleCts, capturedIdleMs);
+                onOutputLine?.Invoke(line);
+            };
+            Action<string>? wrapError = (onErrorLine == null && capturedIdleCts == null) ? null : line =>
+            {
+                ResetIdle(capturedIdleCts, capturedIdleMs);
                 onErrorLine?.Invoke(line);
+            };
+            Action<string>? wrapProgress = (onProgressLine == null && capturedIdleCts == null) ? null : line =>
+            {
+                ResetIdle(capturedIdleCts, capturedIdleMs);
+                onProgressLine?.Invoke(line);
+            };
+
+            // When real-time progress is requested, use ConPTY so that winget sees
+            // isatty(stdout)==true and outputs progress bars with std::flush.
+            // Without ConPTY, winget detects a pipe and suppresses progress output.
+            if (onProgressLine != null)
+            {
+                try
+                {
+                    using var conPty = new ConPtyProcess();
+                    return await conPty.RunAsync(
+                        exePath, arguments,
+                        wrapOutput, wrapError, wrapProgress,
+                        linkedCts.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (
+                    ex is InvalidOperationException or
+                    EntryPointNotFoundException or
+                    DllNotFoundException)
+                {
+                    // ConPTY unavailable (old Windows build or API failure)
+                    // — fall through silently to pipe mode
+                }
             }
-        }, CancellationToken.None);
 
-        await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
-        await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+            var stdoutBuilder = new StringBuilder();
+            var stderrBuilder = new StringBuilder();
 
-        return new WinGetCliResult(
-            process.ExitCode,
-            stdoutBuilder.ToString(),
-            stderrBuilder.ToString());
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+            };
+
+            process.Start();
+
+            // Kill process tree on cancellation
+            using var registration = linkedCts.Token.Register(() =>
+            {
+                try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
+            });
+
+            // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
+            // ReadLineAsync peeks ahead after \r which blocks until the next char arrives,
+            // preventing real-time progress bar updates.
+            var readStdout = Task.Run(async () =>
+            {
+                await ReadStdoutCharByCharAsync(
+                    process.StandardOutput, stdoutBuilder, wrapOutput, wrapProgress).ConfigureAwait(false);
+            }, CancellationToken.None);
+
+            var readStderr = Task.Run(async () =>
+            {
+                while (await process.StandardError.ReadLineAsync().ConfigureAwait(false) is { } line)
+                {
+                    stderrBuilder.AppendLine(line);
+                    wrapError?.Invoke(line);
+                }
+            }, CancellationToken.None);
+
+            await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
+            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+
+            return new WinGetCliResult(
+                process.ExitCode,
+                stdoutBuilder.ToString(),
+                stderrBuilder.ToString());
+        }
+        finally
+        {
+            linkedCts?.Dispose();
+            wallClockCts?.Dispose();
+            idleCts?.Dispose();
+        }
+    }
+
+    private static void ResetIdle(CancellationTokenSource? cts, int idleTimeoutMs)
+    {
+        if (cts == null) return;
+        try { cts.CancelAfter(idleTimeoutMs); }
+        catch (ObjectDisposedException) { /* race with cleanup; idle no longer relevant */ }
     }
 
     /// <summary>

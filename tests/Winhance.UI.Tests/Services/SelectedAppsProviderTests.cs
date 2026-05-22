@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using FluentAssertions;
+using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -16,13 +17,13 @@ public class SelectedAppsProviderTests : IDisposable
 {
     private readonly Mock<IWindowsAppsService> _mockWindowsAppsService = new();
     private readonly Mock<IAppInstallationService> _mockAppInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _mockAppUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _mockWindowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _mockProgressService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _mockConnectivityService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
+    private readonly Mock<IThemeService> _mockThemeService = new();
 
     private WindowsAppsViewModel? _windowsAppsVm;
 
@@ -35,10 +36,18 @@ public class SelectedAppsProviderTests : IDisposable
             .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _mockDispatcherService
+            .Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
 
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockThemeService
+            .Setup(t => t.GetEffectiveTheme())
+            .Returns(ElementTheme.Dark);
     }
 
     public void Dispose()
@@ -51,13 +60,13 @@ public class SelectedAppsProviderTests : IDisposable
         _windowsAppsVm = new WindowsAppsViewModel(
             _mockWindowsAppsService.Object,
             _mockAppInstallationService.Object,
-            _mockAppUninstallationService.Object,
+            _mockWindowsAppUninstallService.Object,
             _mockProgressService.Object,
             _mockLogService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
-            _mockConnectivityService.Object,
-            _mockDispatcherService.Object);
+            _mockDispatcherService.Object,
+            _mockThemeService.Object);
         return _windowsAppsVm;
     }
 
@@ -87,7 +96,8 @@ public class SelectedAppsProviderTests : IDisposable
         var vm = new AppItemViewModel(
             definition,
             _mockLocalizationService.Object,
-            _mockDispatcherService.Object);
+            _mockDispatcherService.Object,
+            _mockThemeService.Object);
 
         vm.IsSelected = isSelected;
         return vm;
@@ -398,7 +408,8 @@ public class SelectedAppsProviderTests : IDisposable
         var appVm = new AppItemViewModel(
             definition,
             _mockLocalizationService.Object,
-            _mockDispatcherService.Object);
+            _mockDispatcherService.Object,
+            _mockThemeService.Object);
         appVm.IsSelected = true;
         vm.Items.Add(appVm);
 

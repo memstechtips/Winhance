@@ -41,10 +41,69 @@ public record ItemDefinition : BaseDefinition
     public string[]? DetectionPaths { get; init; }
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
+    /// <summary>
+    /// Marks the item as carrying a meaningful uninstall risk (e.g. Microsoft Edge:
+    /// removing it may break Windows components that depend on it). When true, the
+    /// Card view renders an Amber "Warning" pill next to the name; the pill's
+    /// tooltip shows a generic instability message sourced from localization, so
+    /// the same flag is reusable across packages without per-item warning text.
+    /// </summary>
+    public bool HasInstabilityWarning { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
-    // Mutable runtime state — set by AppLoadingService/AppStatusDiscoveryService,
-    // proxied through AppItemViewModel for UI binding
+    /// <summary>
+    /// Ordered list of icon sources to try when local extraction (AppX / Binary)
+    /// and the Microsoft Store CDN both come up empty. Each entry is one of:
+    /// <list type="bullet">
+    /// <item><description>An <c>http(s)://</c> URL — fetched at runtime and cached locally.
+    /// Vendor-canonical URLs only (vendor's site / CDN, the project's GitHub repo,
+    /// Wikimedia Commons rasterized PNGs). No third-party image hosts —
+    /// Winhance fetches at runtime, so URL stability matters.</description></item>
+    /// <item><description>A <c>data:image/&lt;type&gt;;base64,&lt;payload&gt;</c> URI —
+    /// the base64 payload is decoded directly into the cache. Useful when a vendor
+    /// only ships their logo embedded in HTML/CSS and there's no stable raw URL.</description></item>
+    /// <item><description>A local file path — checked with <c>File.Exists</c> after
+    /// <c>Environment.ExpandEnvironmentVariables</c>. Icon files (<c>.ico</c>,
+    /// <c>.png</c>, ...) are read directly. Win32 executables (<c>.exe</c>,
+    /// <c>.dll</c>) are routed through the binary icon extractor — the same code
+    /// path Layer 1b uses — which lets entries reuse system binaries (e.g.
+    /// <c>%SystemRoot%\explorer.exe</c> for ExplorerPatcher) without per-app
+    /// special-casing. Useful when an app leaves a usable icon file on disk after
+    /// uninstall (e.g. OneDrive's <c>%SystemRoot%\System32\OneDrive.ico</c> stays
+    /// around even when the OneDrive client is removed).</description></item>
+    /// </list>
+    /// Sources are tried in array order; first one that yields a non-empty image
+    /// wins. List local paths first when you have them — they're zero-network and
+    /// can't rot.
+    ///
+    /// When this is set, it's treated as the canonical visual identity for the
+    /// entry: the resolver runs IconSources before AppX (Layer 1a), Binary
+    /// extraction (Layer 1b), and Store CDN (Layer 2a). Those layers only run
+    /// as fallback when IconSources is null/empty or every entry in the array
+    /// failed to fetch.
+    /// </summary>
+    public string[]? IconSources { get; init; }
+
+    // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
+    // via the relevant service (status discovery, icon resolver), proxied
+    // through AppItemViewModel for UI binding.
     public bool IsInstalled { get; set; }
     public DetectionSource DetectedVia { get; set; }
+
+    /// <summary>
+    /// Absolute path to the cached icon PNG, or null if no icon is available.
+    /// Populated by IAppIconResolver from WindowsAppsViewModel after install-status
+    /// discovery; null for capabilities, optional features, and not-installed AppX entries.
+    /// </summary>
+    public string? IconPath { get; set; }
+
+    /// <summary>
+    /// Absolute path to the installed binary (.exe, .ico, or install folder) used
+    /// by Layer 1b of the icon resolver to extract a Win32 icon. Stamped by
+    /// AppStatusDiscoveryService from registry DisplayIcon / InstallLocation
+    /// during the uninstall-key walk, or from a matched DetectionPaths entry.
+    /// Null for AppX entries (Layer 1a handles them) and for entries with no
+    /// install hint (Layer 2 takes over).
+    /// </summary>
+    public string? InstalledBinaryHint { get; set; }
 }

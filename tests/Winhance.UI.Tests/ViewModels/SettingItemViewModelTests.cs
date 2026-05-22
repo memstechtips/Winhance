@@ -1402,6 +1402,91 @@ public class SettingItemViewModelTests : IDisposable
         sut.BadgeRow.Should().NotContain(p => p.Kind == SettingBadgeKind.Recommended);
     }
 
+    // ── AC/DC PowerCfg-Separate badge tests (issue #602 fix + Pattern 2 per-mode) ──
+
+    [Fact]
+    public void BadgeRow_AcDcSeparate_NoBattery_DcDiffersFromRec_RecommendedStillLit()
+    {
+        // Regression for #602: on a desktop without a battery, PowerCfgApplier silently
+        // skips DC writes. The badge must not treat the unchanged-DC system value as a
+        // mismatch — otherwise the user sees Recommended lit after Apply, then a system-
+        // state refresh re-syncs the VM and the badge flips to Custom.
+        var def = BuildPowerCfgSeparateNumericDefinition(
+            "acdc-no-battery", recAc: 0, recDc: 600, defAc: 1200, defDc: 600);
+        var sut = CreateSut(BuildNumericConfig(def));
+        sut.HasBattery = false;
+        sut.AcNumericValue = 0;     // matches RecAC
+        sut.DcNumericValue = 20;    // differs from RecDC (=600) — but DC must be ignored
+        sut.ComputeBadgeState();
+
+        var recommended = sut.BadgeRow.SingleOrDefault(p => p.Kind == SettingBadgeKind.Recommended);
+        recommended.Should().NotBeNull();
+        recommended!.IsHighlighted.Should().BeTrue(
+            because: "on a battery-less system DC isn't writable, so the badge must reflect only AC");
+        sut.BadgeRow.Should().NotContain(p => p.Mode == SettingBadgeMode.AC || p.Mode == SettingBadgeMode.DC,
+            because: "per-mode pills are reserved for HasBattery==true");
+    }
+
+    [Fact]
+    public void BadgeRow_AcDcSeparate_WithBattery_AcMatchesRec_DcMatchesDef_BothModeBadgesLitCorrectly()
+    {
+        // Pattern 2: on a laptop, AC/DC sides each get their own Recommended/Default/Custom
+        // pills so partial matches are visible.
+        var def = BuildPowerCfgSeparateNumericDefinition(
+            "acdc-with-battery", recAc: 50, recDc: 25, defAc: 0, defDc: 25);
+        var sut = CreateSut(BuildNumericConfig(def));
+        sut.HasBattery = true;
+        sut.AcNumericValue = 50;    // matches RecAC
+        sut.DcNumericValue = 25;    // matches both RecDC AND DefDC (Rec==Def on this side)
+        sut.ComputeBadgeState();
+
+        var recAc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Recommended && p.Mode == SettingBadgeMode.AC);
+        var recDc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Recommended && p.Mode == SettingBadgeMode.DC);
+        var defAc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Default && p.Mode == SettingBadgeMode.AC);
+        var defDc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Default && p.Mode == SettingBadgeMode.DC);
+
+        recAc.IsHighlighted.Should().BeTrue();
+        recDc.IsHighlighted.Should().BeTrue();
+        defAc.IsHighlighted.Should().BeFalse(because: "AC=50 doesn't match DefAC=0");
+        defDc.IsHighlighted.Should().BeTrue(because: "DC=25 also matches DefDC=25");
+        recAc.Label.Should().EndWith("(AC)");
+        recDc.Label.Should().EndWith("(DC)");
+    }
+
+    [Fact]
+    public void BadgeRow_AcDcSeparate_WithBattery_DcOnlyRecommendation_NoAcPillEmitted()
+    {
+        // If a PowerCfgSetting only declares RecommendedValueDC (no AC counterpart), the
+        // per-mode emitter must produce only the DC Recommended pill — not a phantom AC pill.
+        var def = BuildPowerCfgSeparateNumericDefinition(
+            "acdc-dc-only-rec", recAc: null, recDc: 600, defAc: null, defDc: 1200);
+        var sut = CreateSut(BuildNumericConfig(def));
+        sut.HasBattery = true;
+        sut.ComputeBadgeState();
+
+        sut.BadgeRow.Should().NotContain(p => p.Kind == SettingBadgeKind.Recommended && p.Mode == SettingBadgeMode.AC);
+        sut.BadgeRow.Should().ContainSingle(p => p.Kind == SettingBadgeKind.Recommended && p.Mode == SettingBadgeMode.DC);
+    }
+
+    [Fact]
+    public void BadgeRow_AcDcSeparate_WithBattery_AcCustom_DcAtRec_OnlyCustomAcLit()
+    {
+        // Partial-custom case: AC matches neither Rec nor Def, DC matches Rec. We expect
+        // Custom (AC) lit, Custom (DC) dim — the lit-state must follow the side, not the row.
+        var def = BuildPowerCfgSeparateNumericDefinition(
+            "acdc-partial-custom", recAc: 50, recDc: 25, defAc: 0, defDc: 75);
+        var sut = CreateSut(BuildNumericConfig(def));
+        sut.HasBattery = true;
+        sut.AcNumericValue = 33;    // matches neither RecAC=50 nor DefAC=0 → AC Custom
+        sut.DcNumericValue = 25;    // matches RecDC → DC Recommended
+        sut.ComputeBadgeState();
+
+        var customAc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Custom && p.Mode == SettingBadgeMode.AC);
+        var customDc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Custom && p.Mode == SettingBadgeMode.DC);
+        customAc.IsHighlighted.Should().BeTrue();
+        customDc.IsHighlighted.Should().BeFalse();
+    }
+
     private static SettingDefinition BuildSelectionSettingDefinition(
         string id,
         IEnumerable<(string DisplayName, int Value, bool IsRecommended, bool IsDefault)> options)
@@ -1801,5 +1886,51 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.BadgeRow.Where(p => p.IsHighlighted).Select(p => p.Kind)
             .Should().BeEquivalentTo(new[] { SettingBadgeKind.Default });
+    }
+
+    // ── Review Mode auto-expand ──
+
+    [Fact]
+    public void EnteringReviewMode_ForcesExpanderExpanded()
+    {
+        // A parent collapsed before a config import would hide its children behind a
+        // disabled card. Entering Review Mode must force every expander open so all
+        // child diffs are reachable.
+        var sut = CreateSut();
+        sut.IsExpanderExpanded = false;
+
+        sut.IsInReviewMode = true;
+
+        sut.IsExpanderExpanded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExitingReviewMode_DoesNotCollapseExpander()
+    {
+        // Leaving Review Mode should not touch the expander state — whatever the user
+        // left it at (or whatever auto-expand set it to) stays.
+        var sut = CreateSut();
+        sut.IsInReviewMode = true;
+        sut.IsExpanderExpanded.Should().BeTrue();
+
+        sut.IsInReviewMode = false;
+
+        sut.IsExpanderExpanded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EnteringReviewMode_UserCanStillCollapseAfter()
+    {
+        // The auto-expand only fires on the transition into Review Mode. After that,
+        // the user retains full control via the chevron overlay — collapsing is allowed
+        // and must stick (the auto-expand doesn't keep re-firing).
+        var sut = CreateSut();
+
+        sut.IsInReviewMode = true;
+        sut.IsExpanderExpanded.Should().BeTrue();
+
+        sut.IsExpanderExpanded = false;
+
+        sut.IsExpanderExpanded.Should().BeFalse();
     }
 }

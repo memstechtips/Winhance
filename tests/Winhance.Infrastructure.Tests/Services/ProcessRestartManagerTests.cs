@@ -18,6 +18,9 @@ public class ProcessRestartManagerTests
     public ProcessRestartManagerTests()
     {
         _mockConfigImportState.Setup(c => c.IsActive).Returns(false);
+        _mockUiManagement
+            .Setup(u => u.RefreshWindowsGUI(It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult.Succeeded());
         _sut = new ProcessRestartManager(
             _mockUiManagement.Object,
             _mockConfigImportState.Object,
@@ -71,23 +74,23 @@ public class ProcessRestartManagerTests
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WithExplorer_UsesRetryLogic()
+    public async Task HandleProcessAndServiceRestartsAsync_ExplorerInInteractiveMode_CallsRefreshWindowsGUIWithKill()
     {
-        // Arrange — Explorer respawns immediately after being killed
-        _mockUiManagement
-            .Setup(u => u.IsProcessRunning("explorer"))
-            .Returns(true);
-        var setting = CreateSetting("explorer-restart", restartProcess: "explorer");
+        // Arrange — interactive mode (not config import); Explorer restart should
+        // delegate to RefreshWindowsGUI(killExplorer: true) so theme/settings
+        // broadcasts fire AND Explorer is recycled.
+        _mockConfigImportState.Setup(c => c.IsActive).Returns(false);
+        var setting = CreateSetting("explorer-restart", restartProcess: "Explorer");
 
         // Act
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
 
-        // Assert — KillProcess called once (succeeded on first attempt)
-        _mockUiManagement.Verify(u => u.KillProcess("explorer"), Times.Once);
-        _mockUiManagement.Verify(u => u.IsProcessRunning("explorer"), Times.AtLeastOnce);
+        // Assert
+        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(true), Times.Once);
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
         _mockLog.Verify(
             l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("Explorer restarted successfully")),
+                It.Is<string>(s => s.Contains("Refreshing Windows UI") && s.Contains("explorer-restart")),
                 It.IsAny<Exception?>()),
             Times.Once);
     }
@@ -116,24 +119,60 @@ public class ProcessRestartManagerTests
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_DuringConfigImport_DefersProcessRestart()
+    public async Task HandleProcessAndServiceRestartsAsync_ExplorerInConfigImportMode_CallsRefreshWindowsGUIWithoutKill()
     {
-        // Arrange
+        // Arrange — config-import mode: Explorer must STILL fire the broadcast
+        // immediately for visual feedback, but the kill is deferred to flush.
         _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
-        var setting = CreateSetting("import-defer", restartProcess: "explorer");
+        var setting = CreateSetting("import-defer", restartProcess: "Explorer");
 
         // Act
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
 
-        // Assert -- process kill should NOT be called
-        _mockUiManagement.Verify(
-            u => u.KillProcess(It.IsAny<string>()), Times.Never);
-        // A debug-level skip message should be logged
+        // Assert
+        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(false), Times.Once);
+        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(true), Times.Never);
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Debug,
+                It.Is<string>(s => s.Contains("Broadcast Explorer-refresh") && s.Contains("import-defer")),
+                It.IsAny<Exception?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NonExplorerInConfigImportMode_DefersAndDoesNotBroadcast()
+    {
+        // Arrange — non-Explorer process restarts are still purely deferred during config import.
+        _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
+        var setting = CreateSetting("import-other", restartProcess: "notepad");
+
+        // Act
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+
+        // Assert — no UI broadcast and no kill; just the debug skip log.
+        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(It.IsAny<bool>()), Times.Never);
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
         _mockLog.Verify(
             l => l.Log(LogLevel.Debug,
                 It.Is<string>(s => s.Contains("Skipping process restart") && s.Contains("config import")),
                 It.IsAny<Exception?>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NoRestartProcess_DoesNotInvokeRefreshWindowsGUI()
+    {
+        // Arrange
+        _mockConfigImportState.Setup(c => c.IsActive).Returns(false);
+        var setting = CreateSetting("no-restart-process");
+
+        // Act
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+
+        // Assert
+        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(It.IsAny<bool>()), Times.Never);
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

@@ -22,29 +22,35 @@ public record AppCategory(string GroupName, string DisplayName, string IconGlyph
 public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsProvider
 {
     private readonly IExternalAppsService _externalAppsService;
+    private readonly IAppInstallationService _appInstallationService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IThemeService _themeService;
+    private readonly IAppIconResolver? _iconResolver;
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
+        IAppInstallationService appInstallationService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IThemeService themeService,
+        IAppIconResolver? iconResolver = null)
     {
         _externalAppsService = externalAppsService;
+        _appInstallationService = appInstallationService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
+        _themeService = themeService;
+        _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _externalAppsService.WinGetReady += OnWinGetInstalled;
@@ -201,15 +207,32 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
-    [RelayCommand]
-    public async Task LoadAppsAndCheckInstallationStatusAsync()
-    {
-        if (IsInitialized)
-        {
-            _logService.LogInformation("[ExternalAppsViewModel] Already initialized, skipping");
-            return;
-        }
+    private readonly object _loadGate = new();
+    private Task? _loadTask;
 
+    /// <summary>
+    /// Loads app definitions, checks installation status and resolves icons — exactly once.
+    /// Idempotent: startup triggers this from two independent paths — the UI init
+    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
+    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
+    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
+    /// ran concurrently, clobbering the shared Items collection and racing over the
+    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
+    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
+    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
+    /// </summary>
+    [RelayCommand]
+    public Task LoadAppsAndCheckInstallationStatusAsync()
+    {
+        lock (_loadGate)
+        {
+            return _loadTask ??= _dispatcherService.RunOnUIThreadWithContextAsync(
+                LoadAppsAndCheckInstallationStatusCoreAsync);
+        }
+    }
+
+    private async Task LoadAppsAndCheckInstallationStatusCoreAsync()
+    {
         IsLoading = true;
         StatusText = _localizationService.GetString("Progress_LoadingExternalApps");
 
@@ -253,6 +276,14 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         {
             IsLoading = false;
         }
+
+        // Resolve icons in the background — never block the load flow. Callers such
+        // as config-import review-mode setup await LoadItemsAsync, and the icon
+        // pipeline is network-bound (rate-limit retries can run for over a minute).
+        // Awaiting it here kept the import command's task pending that whole time,
+        // leaving the Import Config button greyed out. ResolveIconsAsync logs and
+        // swallows its own failures and refreshes each item's icon as it completes.
+        ResolveIconsAsync().FireAndForget(_logService);
     }
 
     private void LoadAppsIntoItems(IEnumerable<ItemDefinition> definitions)
@@ -262,7 +293,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             var viewModel = new AppItemViewModel(
                 definition,
                 _localizationService,
-                _dispatcherService);
+                _dispatcherService,
+                _themeService);
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }
@@ -276,11 +308,47 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
     }
 
+    /// <summary>
+    /// Resolves icons for all current entries via the unified icon pipeline
+    /// (Layer 1a AppX local → Layer 1b Win32 binary → Layer 2a Store CDN →
+    /// Layer 2b WinGet manifest) and notifies their ViewModels so the bound
+    /// Image / FontIcon refresh.
+    /// No-op when no resolver was injected. Failures are logged and swallowed
+    /// — icon resolution must never block the load flow.
+    /// </summary>
+    private async Task ResolveIconsAsync()
+    {
+        if (_iconResolver is null) return;
+
+        try
+        {
+            var definitions = Items.Select(item => item.Definition).ToList();
+            // External Apps are vendor brand logos — cache them exactly as
+            // shipped (no backplate crop, no light/dark variant synthesis).
+            await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: false);
+
+            foreach (var item in Items)
+                item.NotifyIconChanged();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[ExternalAppsViewModel] Icon resolution failed: {ex.Message}");
+        }
+    }
+
+    // Serializes the install-status re-check. It runs from the Refresh button,
+    // the WinGetReady event (OnWinGetInstalled) and post-install/remove
+    // (RefreshAfterOperationAsync — including config-apply); none are mutually
+    // exclusive. Overlapping callers queue here instead of interleaving access
+    // to the shared Items collection and the detection cache.
+    private readonly SemaphoreSlim _statusCheckGate = new(1, 1);
+
     [RelayCommand]
     public async Task CheckInstallationStatusAsync()
     {
         if (_externalAppsService == null) return;
 
+        await _statusCheckGate.WaitAsync();
         try
         {
             var definitions = Items.Select(item => item.Definition).ToList();
@@ -301,6 +369,10 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         {
             _logService.LogError("Error checking installation status", ex);
             StatusText = $"Error checking status: {ex.Message}";
+        }
+        finally
+        {
+            _statusCheckGate.Release();
         }
     }
 
@@ -354,17 +426,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
         if (!selectedItems.Any()) return;
 
-        if (!await _connectivityService.IsInternetConnectedAsync(true))
-        {
-            if (!skipConfirmation)
-            {
-                await _dialogService.ShowWarningAsync(
-                    "An internet connection is required to install apps.",
-                    "No Internet Connection");
-            }
-            return;
-        }
-
         if (!skipConfirmation)
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
@@ -384,14 +445,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             await _dialogService.ShowWarningAsync(
                 "Please select at least one app for installation.",
                 "No Apps Selected");
-            return;
-        }
-
-        if (!await _connectivityService.IsInternetConnectedAsync(true))
-        {
-            await _dialogService.ShowWarningAsync(
-                "An internet connection is required to install apps.",
-                "No Internet Connection");
             return;
         }
 
@@ -429,7 +482,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
                     QueueNextItemName = nextName
                 });
 
-                var result = await _externalAppsService.InstallAppAsync(app.Definition, progress);
+                var result = await _appInstallationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: false);
                 if (result.Success && result.Result)
                 {
                     app.IsInstalled = true;
@@ -559,6 +612,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
                 item.PropertyChanged -= Item_PropertyChanged;
                 item.Dispose();
             }
+            _statusCheckGate.Dispose();
         }
         base.Dispose(disposing);
     }

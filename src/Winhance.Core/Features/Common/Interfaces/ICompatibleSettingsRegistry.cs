@@ -12,4 +12,17 @@ public interface ICompatibleSettingsRegistry
     IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> GetAllBypassedSettings();
     void SetFilterEnabled(bool enabled);
     bool IsInitialized { get; }
+
+    /// <summary>
+    /// Returns the SettingDefinition for the given id, or null if not registered.
+    /// Respects the current filter mode (filtered vs bypassed).
+    /// </summary>
+    SettingDefinition? GetById(string settingId);
+
+    /// <summary>
+    /// Returns the feature id (e.g. "update", "power") that owns the given setting,
+    /// or null if not registered. Used by SettingLocalizationService and
+    /// RecommendedSettingsService for cross-cutting lookups.
+    /// </summary>
+    string? GetFeatureIdForSetting(string settingId);
 }

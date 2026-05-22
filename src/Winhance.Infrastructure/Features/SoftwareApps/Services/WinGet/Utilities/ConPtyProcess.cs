@@ -28,7 +28,8 @@ internal sealed class ConPtyProcess : IDisposable
     /// <summary>
     /// Launches the given executable under a ConPTY and reads output,
     /// classifying lines by VT100 cursor-to-column-1 / \r (progress)
-    /// vs \n (permanent).
+    /// vs \n (permanent). Cancellation policy is owned by the caller —
+    /// pass a composed token (e.g. wall-clock + idle + caller cancel).
     /// </summary>
     public async Task<WinGetCliRunner.WinGetCliResult> RunAsync(
         string exePath,
@@ -36,8 +37,7 @@ internal sealed class ConPtyProcess : IDisposable
         Action<string>? onOutputLine,
         Action<string>? onErrorLine,
         Action<string>? onProgressLine,
-        CancellationToken cancellationToken,
-        int timeoutMs)
+        CancellationToken cancellationToken)
     {
         var sa = new SECURITY_ATTRIBUTES
         {
@@ -104,10 +104,8 @@ internal sealed class ConPtyProcess : IDisposable
         _hThread = pi.hThread;
 
         var stdoutBuilder = new StringBuilder();
-        using var timeoutCts = new CancellationTokenSource(timeoutMs);
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        using var killReg = linked.Token.Register(() =>
+        using var killReg = cancellationToken.Register(() =>
         {
             try
             {

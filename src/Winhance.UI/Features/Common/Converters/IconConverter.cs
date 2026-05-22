@@ -8,7 +8,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// <summary>
 /// Converts icon names and icon packs to IconElement controls.
 /// Supports Material, MaterialDesign, and Fluent icon packs.
-/// Returns IconElement types (PathIcon, FontIcon, SymbolIcon) that are compatible with SettingsCard.HeaderIcon.
+/// Returns IconElement types (PathIcon, FontIcon, FluentIcon) that are compatible with SettingsCard.HeaderIcon.
 /// </summary>
 public sealed partial class IconConverter : IValueConverter
 {
@@ -85,15 +85,15 @@ public sealed partial class IconConverter : IValueConverter
     }
 
     /// <summary>
-    /// Creates a SymbolIcon from FluentIcons.WinUI for Fluent icons.
+    /// Creates a FluentIcon from FluentIcons.WinUI for Fluent icons.
     /// </summary>
     private static IconElement? CreateFluentIcon(string iconName)
     {
-        if (Enum.TryParse<FluentIcons.Common.Symbol>(iconName, ignoreCase: true, out var symbol))
+        if (Enum.TryParse<FluentIcons.Common.Icon>(iconName, ignoreCase: true, out var symbol))
         {
-            return new FluentIcons.WinUI.SymbolIcon
+            return new FluentIcons.WinUI.FluentIcon
             {
-                Symbol = symbol,
+                Icon = symbol,
                 IconVariant = FluentIcons.Common.IconVariant.Regular
             };
         }

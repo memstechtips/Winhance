@@ -12,7 +12,9 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class SettingApplicationService(
-    IDomainServiceRouter domainServiceRouter,
+    ICompatibleSettingsRegistry settingsRegistry,
+    ISpecialSettingHandlerRegistry specialHandlerRegistry,
+    IActionCommandRegistry actionCommandRegistry,
     ILogService logService,
     IGlobalSettingsRegistry globalSettingsRegistry,
     IEventBus eventBus,
@@ -40,18 +42,27 @@ public class SettingApplicationService(
 
         logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
 
-        var domainService = domainServiceRouter.GetDomainService(settingId);
-        var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
-        var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
-
+        var setting = settingsRegistry.GetById(settingId);
         if (setting == null)
-            throw new ArgumentException($"Setting '{settingId}' not found in {domainService.DomainName} settings");
+            throw new ArgumentException($"Setting '{settingId}' not found in registry");
 
-        globalSettingsRegistry.RegisterSetting(domainService.DomainName, setting);
+        var featureId = settingsRegistry.GetFeatureIdForSetting(settingId)
+            ?? throw new InvalidOperationException($"Setting '{settingId}' has no feature mapping");
+
+        globalSettingsRegistry.RegisterSetting(featureId, setting);
+
+        // allSettings is needed by dependency resolver and preset sync — fetch once,
+        // pass through. Only needed when prerequisites aren't being skipped.
+        IEnumerable<SettingDefinition> allSettings = skipValuePrerequisites
+            ? Enumerable.Empty<SettingDefinition>()
+            : settingsRegistry.GetFilteredSettings(featureId);
 
         if (!string.IsNullOrEmpty(commandString))
         {
-            await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId).ConfigureAwait(false);
+            var commandProvider = actionCommandRegistry.TryGet(settingId)
+                ?? throw new NotSupportedException($"No action command provider registered for setting '{settingId}'");
+
+            await ExecuteActionCommand(commandProvider, setting, commandString, applyRecommended, settingId).ConfigureAwait(false);
             return OperationResult.Succeeded();
         }
 
@@ -61,13 +72,14 @@ public class SettingApplicationService(
             await dependencyResolver.HandleDependenciesAsync(settingId, allSettings, enable, value, this).ConfigureAwait(false);
         }
 
-        if (domainService is ISpecialSettingHandler specialHandler
+        var specialHandler = specialHandlerRegistry.TryGet(settingId);
+        if (specialHandler != null
             && await specialHandler.TryApplySpecialSettingAsync(setting, value!, checkboxResult, this).ConfigureAwait(false))
         {
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via domain service");
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler");
 
             if (!skipValuePrerequisites)
             {
@@ -146,33 +158,24 @@ public class SettingApplicationService(
         return OperationResult.Succeeded();
     }
 
-    public Task ApplyRecommendedSettingsForDomainAsync(string settingId) =>
-        recommendedSettingsApplier.ApplyRecommendedSettingsForDomainAsync(settingId, this);
+    public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
+        recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
 
-    private async Task ExecuteActionCommand(IDomainService domainService, string commandString, bool applyRecommended, string settingId)
+    private async Task ExecuteActionCommand(IActionCommandProvider commandProvider, SettingDefinition setting, string commandString, bool applyRecommended, string settingId)
     {
         logService.Log(LogLevel.Info, $"[SettingApplicationService] Executing ActionCommand '{commandString}' for setting '{settingId}'");
 
-        var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
-        var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
+        if (!commandProvider.SupportedCommands.Contains(commandString))
+            throw new NotSupportedException($"Command '{commandString}' not supported by '{commandProvider.GetType().Name}'");
 
-        if (domainService is IActionCommandProvider commandProvider)
-        {
-            if (!commandProvider.SupportedCommands.Contains(commandString))
-                throw new NotSupportedException($"Command '{commandString}' not supported by '{domainService.GetType().Name}'");
-            await commandProvider.ExecuteCommandAsync(commandString).ConfigureAwait(false);
-        }
-        else
-        {
-            throw new NotSupportedException($"Service '{domainService.GetType().Name}' does not support action commands");
-        }
+        await commandProvider.ExecuteCommandAsync(commandString).ConfigureAwait(false);
 
         if (applyRecommended)
         {
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for domain containing '{settingId}'");
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for feature containing '{settingId}'");
             try
             {
-                await ApplyRecommendedSettingsForDomainAsync(settingId).ConfigureAwait(false);
+                await ApplyRecommendedSettingsForFeatureAsync(settingId).ConfigureAwait(false);
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
             }
             catch (Exception ex)
@@ -181,11 +184,7 @@ public class SettingApplicationService(
             }
         }
 
-        if (setting != null)
-        {
-            await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
-        }
-
+        await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
         logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully executed ActionCommand '{commandString}' for setting '{settingId}'");
     }
 

@@ -188,7 +188,6 @@ public class AutounattendScriptBuilderRoutingTests
                     ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" },
                 },
             },
-            SupportsCustomState = true,
         },
         PowerShellScripts = new List<PowerShellScriptSetting>
         {
@@ -412,5 +411,40 @@ public class AutounattendScriptBuilderRoutingTests
         var (system, user) = SplitPasses(script);
         system.Should().Contain(@"HKLM:\SOFTWARE\Winhance\TestKey");
         user.Should().NotContain(@"HKLM:\SOFTWARE\Winhance\TestKey");
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // PS-only settings emit Enable/Disable into the SYSTEM block
+    // ------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task PowerShellOnly_Setting_EmitsEnabledScript_IntoSystemBlock()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "ps-only",
+            Name = "ps-only",
+            Description = "PS-only setting",
+            InputType = InputType.Toggle,
+            DetectionType = DetectionType.SystemRestore,
+            PowerShellScripts = new List<PowerShellScriptSetting>
+            {
+                new()
+                {
+                    EnabledScript = "Enable-ComputerRestore -Drive 'C:\\'",
+                    DisabledScript = "Disable-ComputerRestore -Drive 'C:\\'",
+                    RunContext = RunContext.System,
+                },
+            },
+        };
+        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        var builder = CreateBuilder(out _);
+
+        var script = await builder.BuildWinhancementsScriptAsync(
+            ConfigWithOptimize("GamingAndPerformance", item),
+            SingleSetting("GamingAndPerformance", def));
+
+        var (system, _) = SplitPasses(script);
+        system.Should().Contain("Enable-ComputerRestore");
     }
 }

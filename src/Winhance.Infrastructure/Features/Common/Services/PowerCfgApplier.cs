@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -197,7 +198,10 @@ public class PowerCfgApplier(
         {
             "minutes" => displayValue * 60,
             "hours" => displayValue * 3600,
-            "milliseconds" => displayValue / 1000,
+            // Mirror of UnitConversionHelper: "Milliseconds" is the only setting where the
+            // system unit and display unit match 1:1. Was `/ 1000`, which silently divided
+            // every USB suspend timeout write by 1000.
+            "milliseconds" => displayValue,
             _ => displayValue
         };
     }
@@ -217,7 +221,7 @@ public class PowerCfgApplier(
             long longVal => (int)longVal,
             double doubleVal => (int)doubleVal,
             float floatVal => (int)floatVal,
-            string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
+            string stringVal when int.TryParse(stringVal, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) => parsed,
             ValueTuple<int, int> tuple => tuple.Item1,
             System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
             _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to single numeric value")
@@ -263,7 +267,7 @@ public class PowerCfgApplier(
         if (value is System.Text.Json.JsonElement je)
             return je.TryGetInt32(out int jsonInt) ? jsonInt : 0;
 
-        if (int.TryParse(value.ToString(), out int parsed))
+        if (int.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed))
             return parsed;
 
         return 0;

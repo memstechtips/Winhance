@@ -62,7 +62,7 @@ internal class ConfigImportDialogBuilder
         };
 
         // Card 1: Import own config - FolderOpen icon
-        var ownIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.FolderOpen, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
+        var ownIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.FolderOpen, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var ownCard = CreateOptionCard(ownIcon,
             "Dialog_ImportConfig_Option_Own_Title",
             "Dialog_ImportConfig_Option_Own_Description",
@@ -85,14 +85,14 @@ internal class ConfigImportDialogBuilder
             ImportOption.ImportRecommended, isDark);
 
         // Card 3: Import backup config - History icon
-        var backupIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.History, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
+        var backupIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.History, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var backupCard = CreateOptionCard(backupIcon,
             "Dialog_ImportConfig_Option_Backup_Title",
             "Dialog_ImportConfig_Option_Backup_Description",
             ImportOption.ImportBackup, isDark);
 
         // Card 4: Import Windows defaults - Refresh icon
-        var defaultsIcon = new FluentIcons.WinUI.SymbolIcon { Symbol = FluentIcons.Common.Symbol.ArrowReset, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
+        var defaultsIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.ArrowReset, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var defaultsCard = CreateOptionCard(defaultsIcon,
             "Dialog_ImportConfig_Option_Defaults_Title",
             "Dialog_ImportConfig_Option_Defaults_Description",

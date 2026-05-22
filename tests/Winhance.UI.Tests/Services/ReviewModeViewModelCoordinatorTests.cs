@@ -18,20 +18,19 @@ public class ReviewModeViewModelCoordinatorTests
     // Mocks for child ViewModels' dependencies
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _appUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _winProgressService = new();
     private readonly Mock<ILogService> _winLogService = new();
     private readonly Mock<IDialogService> _winDialogService = new();
     private readonly Mock<ILocalizationService> _winLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _winConnectivityService = new();
     private readonly Mock<IDispatcherService> _winDispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
     private readonly Mock<ITaskProgressService> _extProgressService = new();
     private readonly Mock<ILogService> _extLogService = new();
     private readonly Mock<IDialogService> _extDialogService = new();
     private readonly Mock<ILocalizationService> _extLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _extConnectivityService = new();
     private readonly Mock<IDispatcherService> _extDispatcherService = new();
 
     private readonly Mock<ILocalizationService> _softLocalizationService = new();
@@ -54,10 +53,16 @@ public class ReviewModeViewModelCoordinatorTests
         _winDispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _winDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
 
         _extDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _extDispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
+        _extDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
 
@@ -75,22 +80,23 @@ public class ReviewModeViewModelCoordinatorTests
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
         _appInstallationService.Object,
-        _appUninstallationService.Object,
+        _windowsAppUninstallService.Object,
         _winProgressService.Object,
         _winLogService.Object,
         _winDialogService.Object,
         _winLocalizationService.Object,
-        _winConnectivityService.Object,
-        _winDispatcherService.Object);
+        _winDispatcherService.Object,
+        _themeService.Object);
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
         _externalAppsService.Object,
+        _appInstallationService.Object,
         _extProgressService.Object,
         _extLogService.Object,
         _extDialogService.Object,
         _extLocalizationService.Object,
-        _extConnectivityService.Object,
-        _extDispatcherService.Object);
+        _extDispatcherService.Object,
+        _themeService.Object);
 
     private SoftwareAppsViewModel CreateSoftwareAppsVm(
         WindowsAppsViewModel winVm, ExternalAppsViewModel extVm) => new(
@@ -303,7 +309,7 @@ public class ReviewModeViewModelCoordinatorTests
         await sut.RemoveWindowsAppsAsync(skipConfirmation: true, saveRemovalScripts: false);
 
         // Verify it was called (even if no items selected, it should not throw)
-        _appUninstallationService.Verify(s => s.UninstallAppsInParallelAsync(
+        _windowsAppUninstallService.Verify(s => s.UninstallAppsInParallelAsync(
             It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()), Times.Never);
     }
 

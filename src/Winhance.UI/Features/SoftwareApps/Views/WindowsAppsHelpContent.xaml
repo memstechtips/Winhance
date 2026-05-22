@@ -5,7 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:fluentIcons="using:FluentIcons.WinUI"
     mc:Ignorable="d">
 
     <StackPanel Spacing="16" MaxWidth="520">
@@ -19,46 +18,52 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Installed -->
             <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-                <Ellipse Width="10" Height="10" VerticalAlignment="Center">
-                    <Ellipse.Fill>
-                        <SolidColorBrush Color="#00FF3C"/>
-                    </Ellipse.Fill>
-                </Ellipse>
+                <Viewbox Width="18" Height="18" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                              Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                </Viewbox>
                 <TextBlock x:Name="InstalledText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
 
             <!-- Can be Reinstalled -->
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-                <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
-                    <fluentIcons:SymbolIcon.Foreground>
-                        <SolidColorBrush Color="#2196F3"/>
-                    </fluentIcons:SymbolIcon.Foreground>
-                </fluentIcons:SymbolIcon>
+                <Viewbox Width="16" Height="16" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource DownloadIconPath}"
+                              Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                </Viewbox>
                 <TextBlock x:Name="CanReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
 
             <!-- Not Installed -->
             <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                <Ellipse Width="10" Height="10" VerticalAlignment="Center">
-                    <Ellipse.Fill>
-                        <SolidColorBrush Color="#9E9E9E"/>
-                    </Ellipse.Fill>
-                </Ellipse>
+                <Viewbox Width="18" Height="18" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                              Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                </Viewbox>
                 <TextBlock x:Name="NotInstalledText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
 
             <!-- Cannot Reinstall -->
             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
-                    <fluentIcons:SymbolIcon.Foreground>
-                        <SolidColorBrush Color="#F44336"/>
-                    </fluentIcons:SymbolIcon.Foreground>
-                </fluentIcons:SymbolIcon>
+                <Viewbox Width="16" Height="16" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                              Foreground="{ThemeResource BadgeDangerForeground}"/>
+                </Viewbox>
                 <TextBlock x:Name="CannotReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
+            </StackPanel>
+
+            <!-- Warning -->
+            <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                <Viewbox Width="16" Height="16" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource AlertIconPath}"
+                              Foreground="{ThemeResource BadgeCustomForeground}"/>
+                </Viewbox>
+                <TextBlock x:Name="WarningText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
         </Grid>
 

@@ -264,7 +264,7 @@ public class SettingDependencyResolver(
             logService.Log(LogLevel.Info,
                 $"[PostChange] Child count mismatch - Expected: {compatiblePresetEntries.Count}, Found in allSettings: {childSettingDefinitions.Count}");
             logService.Log(LogLevel.Info,
-                $"[PostChange] This is likely because child settings span multiple domains. Fetching from global registry instead.");
+                $"[PostChange] This is likely because child settings span multiple features. Fetching from global registry instead.");
 
             childSettingDefinitions.Clear();
             foreach (var childId in compatiblePresetEntries.Keys)

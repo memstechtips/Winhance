@@ -10,7 +10,6 @@ public class GlobalSettingsPreloader : IGlobalSettingsPreloader
 {
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IGlobalSettingsRegistry _globalSettingsRegistry;
-    private readonly IDomainServiceRouter _domainServiceRouter;
     private readonly ILogService _logService;
     private bool _isPreloaded;
 
@@ -19,12 +18,10 @@ public class GlobalSettingsPreloader : IGlobalSettingsPreloader
     public GlobalSettingsPreloader(
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IGlobalSettingsRegistry globalSettingsRegistry,
-        IDomainServiceRouter domainServiceRouter,
         ILogService logService)
     {
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _globalSettingsRegistry = globalSettingsRegistry;
-        _domainServiceRouter = domainServiceRouter;
         _logService = logService;
     }
 
@@ -47,7 +44,6 @@ public class GlobalSettingsPreloader : IGlobalSettingsPreloader
                 var settingsList = settings.ToList();
 
                 _globalSettingsRegistry.RegisterSettings(featureId, settingsList);
-                _domainServiceRouter.AddSettingMappings(featureId, settingsList.Select(s => s.Id));
 
                 _logService.Log(LogLevel.Debug, $"[Preloader] Registered {settingsList.Count} bypassed settings from {featureId}");
             }

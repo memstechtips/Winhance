@@ -10,8 +10,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class OptionalFeatureService(
-    ILogService logService,
-    IWindowsAppsService windowsAppsService) : IOptionalFeatureService
+    ILogService logService) : IOptionalFeatureService
 {
     public Task<bool> EnableFeatureAsync(
         string featureName,
@@ -60,52 +59,6 @@ public class OptionalFeatureService(
                 LogLevel = Core.Features.Common.Enums.LogLevel.Error
             });
             return Task.FromResult(false);
-        }
-    }
-
-    public async Task<bool> DisableFeatureAsync(
-        string featureName,
-        string? displayName = null,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
-    {
-        displayName ??= featureName;
-
-        try
-        {
-            logService?.LogInformation($"Disabling Windows Optional Feature: {displayName} ({featureName})");
-
-            var item = new ItemDefinition
-            {
-                Id = featureName,
-                Name = displayName,
-                Description = string.Empty,
-                OptionalFeatureName = featureName
-            };
-
-            var result = await windowsAppsService.DisableOptionalFeatureNativeAsync(item, cancellationToken).ConfigureAwait(false);
-
-            if (result.Success)
-            {
-                logService?.LogInformation($"Feature '{featureName}' disabled successfully via DISM.");
-            }
-            else
-            {
-                logService?.LogError($"DISM failed to disable feature '{featureName}': {result.ErrorMessage}");
-            }
-
-            return result.Success;
-        }
-        catch (Exception ex)
-        {
-            logService?.LogError($"Error disabling feature {featureName}: {ex.Message}");
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = $"Failed to disable {displayName}: {ex.Message}",
-                IsIndeterminate = false,
-                LogLevel = Core.Features.Common.Enums.LogLevel.Error
-            });
-            return false;
         }
     }
 }

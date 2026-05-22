@@ -99,8 +99,6 @@ public static class PrivacyAndSecurityOptimizations
                                 IsRecommended = true,
                             },
                         },
-                        SupportsCustomState = true,
-                        CustomStateDisplayName = "Custom (User Defined)",
                     },
                 },
                 new SettingDefinition

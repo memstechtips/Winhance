@@ -9,7 +9,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// based on the <see cref="SettingBadgeKind"/> value passed as the content.
 /// </summary>
 /// <remarks>
-/// Icon controls are heterogeneous — Recommended/Custom use <c>FluentIcons:SymbolIcon</c>,
+/// Icon controls are heterogeneous — Recommended/Custom use <c>fluentIcons:FluentIcon</c>,
 /// Default uses <c>PathIcon</c>. This selector keeps that heterogeneity out of the
 /// consumer's XAML. Templates are set at resource-declaration time in BadgeStyles.xaml.
 /// </remarks>

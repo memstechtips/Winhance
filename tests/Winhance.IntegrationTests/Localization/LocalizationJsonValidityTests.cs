@@ -1,28 +1,15 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentAssertions;
+using Winhance.IntegrationTests.Helpers;
 using Xunit;
 
 namespace Winhance.IntegrationTests.Localization;
 
 public class LocalizationJsonValidityTests
 {
-    private static readonly string LocalizationFolder = FindLocalizationFolder();
-
-    private static string FindLocalizationFolder()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Winhance.sln")))
-        {
-            dir = dir.Parent;
-        }
-
-        if (dir == null)
-            throw new DirectoryNotFoundException(
-                "Could not find repository root (Winhance.sln) from " + AppContext.BaseDirectory);
-
-        return Path.Combine(dir.FullName, "src", "Winhance.UI", "Features", "Common", "Localization");
-    }
+    private static readonly string LocalizationFolder =
+        Path.Combine(TestContext.SolutionDir, "src", "Winhance.UI", "Features", "Common", "Localization");
 
     public static IEnumerable<object[]> AllJsonFiles()
     {

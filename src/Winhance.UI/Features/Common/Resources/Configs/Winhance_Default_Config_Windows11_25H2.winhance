@@ -794,6 +794,12 @@
             "Name": "List Separator",
             "InputType": 1,
             "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-autoplay",
+            "Name": "Autoplay",
+            "IsSelected": true,
+            "InputType": 0
           }
         ]
       },
@@ -1146,6 +1152,12 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-disable-all-overlays",
+            "Name": "Hardware Overlays",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "gaming-disable-mpo-min-fps",
             "Name": "MPO Minimum Frame Rate Requirement",
             "IsSelected": true,
@@ -1228,6 +1240,12 @@
             "Name": "Windows Search Indexing Service",
             "InputType": 1,
             "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-telephony-service",
+            "Name": "Telephony Service",
+            "InputType": 1,
+            "SelectedIndex": 1
           },
           {
             "Id": "gaming-print-spooler-service",
@@ -1655,6 +1673,12 @@
           {
             "Id": "accessibility-highcontrast-hotkey",
             "Name": "High Contrast Hotkey (Alt+Shift+PrtScn)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "system-restore-protection",
+            "Name": "System Protection (Restore Points)",
             "IsSelected": true,
             "InputType": 0
           }

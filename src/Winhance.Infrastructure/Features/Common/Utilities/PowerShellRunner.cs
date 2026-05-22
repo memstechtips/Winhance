@@ -15,6 +15,14 @@ namespace Winhance.Infrastructure.Features.Common.Utilities;
 public class PowerShellRunner : IPowerShellRunner
 {
     private const string PowerShellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+
+    // Windows command-line size limit is ~32,767 chars. base64-encoded UTF-16-LE
+    // is ~4 chars per 2 bytes of script, so the effective script-size limit before
+    // encoding is roughly 24 KB. We cap below that to give headroom for the
+    // surrounding `-ExecutionPolicy Bypass -NoProfile -EncodedCommand ` prefix
+    // (~50 chars) and any future arg additions.
+    private const int MaxEncodedScriptBytes = 24_000;
+
     private static readonly Regex PercentRegex = new(@"(\d+(?:\.\d+)?)%", RegexOptions.Compiled);
     private readonly IFileSystemService _fileSystemService;
 
@@ -47,6 +55,44 @@ public class PowerShellRunner : IPowerShellRunner
             try { _fileSystemService.DeleteFile(tempFile); }
             catch { /* best effort cleanup */ }
         }
+    }
+
+    /// <summary>
+    /// Executes a short PowerShell script string entirely in memory via
+    /// <c>powershell.exe -EncodedCommand &lt;base64&gt;</c>. No temp file is written.
+    /// The script is encoded as UTF-16-LE then base64 (the format -EncodedCommand expects).
+    /// Throws <see cref="ArgumentException"/> if the script exceeds
+    /// <see cref="MaxEncodedScriptBytes"/> bytes (UTF-16); use
+    /// <see cref="RunScriptAsync"/> for larger scripts.
+    /// </summary>
+    public async Task<string> RunScriptInMemoryAsync(
+        string script,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(script))
+            throw new ArgumentException("Script cannot be null or empty.", nameof(script));
+
+        var scriptBytes = Encoding.Unicode.GetBytes(script);
+        if (scriptBytes.Length > MaxEncodedScriptBytes)
+        {
+            throw new ArgumentException(
+                $"Script is {scriptBytes.Length} bytes (UTF-16); -EncodedCommand path supports up to {MaxEncodedScriptBytes}. Use RunScriptAsync for larger scripts.",
+                nameof(script));
+        }
+
+        var encoded = Convert.ToBase64String(scriptBytes);
+        var args = $"-ExecutionPolicy Bypass -NoProfile -EncodedCommand {encoded}";
+
+        var (output, errors, exitCode) = await LaunchPowerShellAsync(args, progress, ct).ConfigureAwait(false);
+
+        if (exitCode != 0 && errors.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"In-memory PowerShell script failed (exit code {exitCode}):\n{errors}");
+        }
+
+        return output.ToString();
     }
 
     /// <summary>

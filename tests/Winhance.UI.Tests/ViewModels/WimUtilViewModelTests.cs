@@ -106,12 +106,6 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_InitializesCurrentStepToOne()
-    {
-        _sut.CurrentStep.Should().Be(1);
-    }
-
-    [Fact]
     public void Constructor_InitializesAllStepStates()
     {
         _sut.Step1State.Should().NotBeNull();
@@ -162,7 +156,7 @@ public class WimUtilViewModelTests : IDisposable
     {
         _sut.NavigateToStepCommand.Execute(null);
 
-        _sut.CurrentStep.Should().Be(1);
+        _sut.Step1State.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
@@ -170,7 +164,7 @@ public class WimUtilViewModelTests : IDisposable
     {
         _sut.NavigateToStepCommand.Execute("");
 
-        _sut.CurrentStep.Should().Be(1);
+        _sut.Step1State.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
@@ -178,15 +172,19 @@ public class WimUtilViewModelTests : IDisposable
     {
         _sut.NavigateToStepCommand.Execute("abc");
 
-        _sut.CurrentStep.Should().Be(1);
+        _sut.Step1State.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
-    public void NavigateToStepCommand_SameStep_CollapsesToZero()
+    public void NavigateToStepCommand_Step1_TogglesExpansion()
     {
-        _sut.NavigateToStepCommand.Execute("1");
+        _sut.Step1State.IsExpanded.Should().BeTrue();
 
-        _sut.CurrentStep.Should().Be(0);
+        _sut.NavigateToStepCommand.Execute("1");
+        _sut.Step1State.IsExpanded.Should().BeFalse();
+
+        _sut.NavigateToStepCommand.Execute("1");
+        _sut.Step1State.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
@@ -195,7 +193,7 @@ public class WimUtilViewModelTests : IDisposable
         // Step2 is not available until extraction is complete
         _sut.NavigateToStepCommand.Execute("2");
 
-        _sut.CurrentStep.Should().Be(1);
+        _sut.Step2State.IsExpanded.Should().BeFalse();
     }
 
     // ── OnNavigatedToAsync ──

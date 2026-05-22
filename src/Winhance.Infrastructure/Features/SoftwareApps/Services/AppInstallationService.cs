@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -24,11 +25,6 @@ public class AppInstallationService(
     ITaskProgressService taskProgressService,
     IFileSystemService fileSystemService) : IAppInstallationService
 {
-    private CancellationToken GetCurrentCancellationToken()
-    {
-        return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
-    }
-
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
     {
         try
@@ -92,7 +88,7 @@ public class AppInstallationService(
 
     private async Task<OperationResult<bool>> InstallSingleAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
     {
-        var cancellationToken = GetCurrentCancellationToken();
+        var cancellationToken = taskProgressService.GetCurrentCancellationToken();
 
         try
         {

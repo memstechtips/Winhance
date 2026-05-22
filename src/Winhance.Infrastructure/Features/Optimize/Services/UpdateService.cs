@@ -1,27 +1,20 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
 public class UpdateService(
     ILogService logService,
     IWindowsRegistryService registryService,
-    ICompatibleSettingsRegistry compatibleSettingsRegistry,
     IProcessExecutor processExecutor,
     IPowerShellRunner powerShellRunner,
-    IFileSystemService fileSystemService) : IDomainService, ISpecialSettingHandler
+    IFileSystemService fileSystemService) : ISpecialSettingHandler
 {
-    public string DomainName => FeatureIds.Update;
-
     public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
     {
         if (setting.Id == SettingIds.UpdatesPolicyMode && value is int index)
@@ -44,19 +37,6 @@ public class UpdateService(
         }
 
         return results;
-    }
-
-    public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
-    {
-        try
-        {
-            return Task.FromResult(compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Update));
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error loading Update settings: {ex.Message}");
-            return Task.FromResult(Enumerable.Empty<SettingDefinition>());
-        }
     }
 
     public async Task ApplyUpdatesPolicyModeAsync(SettingDefinition setting, object value, ISettingApplicationService? settingApplicationService = null)
@@ -110,7 +90,7 @@ public class UpdateService(
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -130,7 +110,7 @@ public class UpdateService(
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

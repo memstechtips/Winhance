@@ -11,6 +11,7 @@ using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.ViewModels;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Winhance.UI.Helpers;
@@ -143,9 +144,24 @@ internal sealed class StartupUiCoordinator
             StartupLogger.Log("StartupUiCoordinator", $"RunStartupAndCompleteAsync EXCEPTION: {ex}");
         }
 
-        // Always complete startup on the UI thread so the app is usable
+        // Always complete startup on the UI thread so the app is usable.
+        // A bare DispatcherQueue.TryEnqueue callback runs on the UI thread but
+        // installs no SynchronizationContext — so every `await` of background
+        // work inside CompleteStartupAsync (SoftwareApps load, icon resolution)
+        // would resume on a thread-pool thread and mutate bound UI off-thread,
+        // leaving the Windows/External Apps lists stuck on "Loaded N items"
+        // with stale install status. Install the dispatcher SynchronizationContext
+        // so continuations marshal back to the UI thread for the whole chain.
         _dispatcherQueue.TryEnqueue(() =>
-            _ = CompleteStartupAsync(contentFrame, navSidebar, loadingOverlay, getViewModel, markStartupComplete));
+        {
+            if (SynchronizationContext.Current is null)
+            {
+                SynchronizationContext.SetSynchronizationContext(
+                    new DispatcherQueueSynchronizationContext(_dispatcherQueue));
+            }
+
+            _ = CompleteStartupAsync(contentFrame, navSidebar, loadingOverlay, getViewModel, markStartupComplete);
+        });
     }
 
     /// <summary>
@@ -166,13 +182,21 @@ internal sealed class StartupUiCoordinator
             navSidebar.SelectedTag = "SoftwareApps";
             contentFrame.Navigate(typeof(SoftwareAppsPage), "startup");
 
-            // Wait for the SoftwareApps page to finish loading apps + installation status
+            // Block startup on Windows Apps only — those icons resolve fast (mostly
+            // local AppX). External Apps icon resolution hits Wikimedia, which can
+            // take tens of seconds on a cold burst; we kick that off in the
+            // background so the main window appears promptly. The External Apps
+            // tab has its own loading overlay (bound to ExternalAppsViewModel.IsLoading)
+            // that covers the user-clicks-tab-before-ready case.
             var page = contentFrame.Content as SoftwareAppsPage;
             if (page != null)
             {
-                StartupLogger.Log("StartupUiCoordinator", "Awaiting SoftwareApps initialization...");
-                await page.ViewModel.InitializeAsync();
-                StartupLogger.Log("StartupUiCoordinator", "SoftwareApps initialization complete");
+                StartupLogger.Log("StartupUiCoordinator", "Awaiting Windows Apps initialization...");
+                await page.ViewModel.InitializeWindowsAppsAsync();
+                StartupLogger.Log("StartupUiCoordinator", "Windows Apps initialization complete");
+
+                StartupLogger.Log("StartupUiCoordinator", "Kicking off External Apps initialization in background");
+                page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService!);
             }
         }
         catch (Exception ex)

@@ -391,6 +391,11 @@ public static class GamingAndPerformanceOptimizations
                     GroupName = "Processor",
                     Icon = "Application",
                     InputType = InputType.Selection,
+                    // Win32PrioritySeparation is a bitfield: the fresh-install default is 2,
+                    // while the Windows GUI's "Programs" radio writes 0x26 (38). Both encode
+                    // "Programs". Only "Background Services" (24) is a single exact value, so
+                    // any unrecognised value resolves to the "Programs" default.
+                    ResolveUnmatchedToDefault = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -518,58 +523,56 @@ public static class GamingAndPerformanceOptimizations
                             new ComboBoxOption
                             {
                                 DisplayName = "Default",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 380000 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 3670016 }, // 0x380000 — Windows default
                                 IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "4 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 327680 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 4194304 }, // 0x400000 = 4 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "6 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 491520 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 6291456 }, // 0x600000 = 6 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "8 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 655360 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 8388608 }, // 0x800000 = 8 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "12 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 983040 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 12582912 }, // 0xC00000 = 12 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "16 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 1310720 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 16777216 }, // 0x1000000 = 16 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "24 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 1966080 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 25165824 }, // 0x1800000 = 24 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "32 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 2621440 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 33554432 }, // 0x2000000 = 32 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "64 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 5242880 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 67108864 }, // 0x4000000 = 64 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "128 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 10485760 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 134217728 }, // 0x8000000 = 128 GB in KB
                             },
                         },
-                        SupportsCustomState = true,
-                        CustomStateDisplayName = "Custom",
                     },
                 },
                 // Graphics Group
@@ -809,6 +812,22 @@ public static class GamingAndPerformanceOptimizations
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-disable-all-overlays",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    Name = "Hardware Overlays",
+                    Description = "Allow the graphics driver to use hardware overlay surfaces for compositing. Disabling forces software composition for all overlays and is known to break the Steam, Discord, and RTSS in-game overlays — leave enabled unless you specifically need this",
+                    GroupName = "Graphics",
+                    Icon = "MonitorDashboard",
+                    InputType = InputType.Toggle,
+                    RequiresRestart = true,
+                    AddedInVersion = "26.05.08",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers",
@@ -965,9 +984,25 @@ public static class GamingAndPerformanceOptimizations
                                 Script = ScriptOption.Enabled,
                                 ScriptVariables = new Dictionary<string, string> { ["primary"] = "208.67.222.222", ["secondary"] = "208.67.220.220" },
                             },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_7",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1", ["dohtemplate"] = "https://cloudflare-dns.com/dns-query" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_8",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "8.8.8.8", ["secondary"] = "8.8.4.4", ["dohtemplate"] = "https://dns.google/dns-query" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Setting_gaming-dns-server_Option_9",
+                                Script = ScriptOption.Enabled,
+                                ScriptVariables = new Dictionary<string, string> { ["primary"] = "9.9.9.9", ["secondary"] = "149.112.112.112", ["dohtemplate"] = "https://dns.quad9.net/dns-query" },
+                            },
                         },
-                        SupportsCustomState = true,
-                        CustomStateDisplayName = "Custom (User Defined)",
                     },
                     PowerShellScripts = new List<PowerShellScriptSetting>
                     {
@@ -975,6 +1010,18 @@ public static class GamingAndPerformanceOptimizations
                         {
                             EnabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }",
                             DisabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
+                            RequiresElevation = true,
+                            RunContext = RunContext.User,
+                        },
+                        new PowerShellScriptSetting
+                        {
+                            // Always sweep the encryption table for any DoH-capable server we might have
+                            // previously registered, then add the entry for the currently-selected option
+                            // (if it's a DoH option). This keeps the netsh table clean across option switches
+                            // and across switching DoH off entirely (the DisabledScript handles the latter
+                            // when the user picks "System Default", which fires ScriptOption.Disabled).
+                            EnabledScript = @"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
+                            DisabledScript = @"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }",
                             RequiresElevation = true,
                             RunContext = RunContext.User,
                         },
@@ -1876,9 +1923,6 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
-                    // MIGRATION-CHECK: worksheet listed (IsRecommended=1, IsDefault=2) but this service uses the
-                    // "DisabledRecommended" naming pattern; both shipped configs (Recommended/Default) select
-                    // SelectedIndex=0, so IsRecommended=0 and IsDefault=0.
                     Id = "gaming-fax-service",
                     Name = "Fax Service",
                     Description = "Enables sending and receiving faxes. Safe to disable for most users as fax functionality is rarely used on modern systems",
@@ -1923,9 +1967,6 @@ public static class GamingAndPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
-                    // MIGRATION-CHECK: worksheet listed (IsRecommended=1, IsDefault=2) but this service uses the
-                    // "DisabledRecommended" naming pattern; Recommended config has SelectedIndex=0 and
-                    // Default config has SelectedIndex=1, so IsRecommended=0 and IsDefault=1.
                     Id = "gaming-wmp-network-service",
                     Name = "Windows Media Player Network Sharing Service",
                     Description = "Shares Windows Media Player libraries to other networked players and media devices. Safe to disable if you don't share media over your network",
@@ -1979,9 +2020,6 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
-                        // service (OS ships it disabled on non-VR hardware), not Automatic. Unlike
-                        // the other gaming-*-service entries where Default == Recommended == index 1.
                         Options = new[]
                         {
                             new ComboBoxOption
@@ -2655,9 +2693,6 @@ public static class GamingAndPerformanceOptimizations
                     AddedInVersion = "26.04.03",
                     ComboBox = new ComboBoxMetadata
                     {
-                        // MIGRATION-CHECK: Default config has SelectedIndex = 0 (Disabled) for this
-                        // service, not Automatic. Unlike the other gaming-*-service entries where
-                        // Default == Recommended == index 1.
                         Options = new[]
                         {
                             new ComboBoxOption
@@ -2686,7 +2721,8 @@ public static class GamingAndPerformanceOptimizations
                     {
                         new PowerShellScriptSetting
                         {
-                            DisabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue",
+                            // Rename only on Win11 (registry leg suffices on Win10) and skip when zh/ja/ko IME is installed (TextInputHost hosts the Modern IME candidate window).
+                            DisabledScript = @"if([Environment]::OSVersion.Version.Build -ge 22000 -and -not(Get-WinUserLanguageList|?{$_.LanguageTag-match'^(zh|ja|ko)'})){$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue}",
                             EnabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                         },
                     },
@@ -2703,16 +2739,55 @@ public static class GamingAndPerformanceOptimizations
                         },
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv",
-                            ValueName = "Start",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
+                            ValueName = "IsInputAppPreloadEnabled",
                             RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-telephony-service",
+                    IsSubjectivePreference = true,
+                    Name = "Telephony Service",
+                    Description = "Manages telephony (TAPI) for Phone Link audio relay, modems, fax, and VoIP softphones. Leave at Manual (Windows default) unless you use no telephony software",
+                    GroupName = "System Services",
+                    Icon = "PhoneClassic",
+                    InputType = InputType.Selection,
+                    AddedInVersion = "26.05.18",
+                    RequiresRestart = true,
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Disabled",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                Warning = "Disabling Telephony breaks Phone Link audio relay, fax software, dial-up modems, and VoIP softphones (e.g. 3CX, Cisco Jabber).",
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_ManualRecommended",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "ServiceOption_Automatic",
+                                ValueMappings = new Dictionary<string, object?> { ["Start"] = 2 },
+                            },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\input",
-                            ValueName = "IsInputAppPreloadEnabled",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv",
+                            ValueName = "Start",
                             RecommendedValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
@@ -2820,9 +2895,6 @@ public static class GamingAndPerformanceOptimizations
                     RequiresRestart = true,
                     ComboBox = new ComboBoxMetadata
                     {
-                        // MIGRATION-CHECK: Recommended is Disabled (index 0) — the Recommended config
-                        // ships this AI service disabled (privacy-by-default). Default stays on
-                        // Automatic (index 2), matching Windows' shipped service state.
                         Options = new[]
                         {
                             new ComboBoxOption
@@ -4045,6 +4117,31 @@ public static class GamingAndPerformanceOptimizations
                             DisabledValue = ["4194"],
                             DefaultValue = "126",
                             ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                // Natively-detected (DetectionType.SystemRestore) — no GroupName so it
+                // lands in the "Other" bucket in the UI.
+                new SettingDefinition
+                {
+                    Id = "system-restore-protection",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = true,
+                    DefaultToggleState = true,
+                    Name = "System Protection (Restore Points)",
+                    Description = "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
+                    Icon = "History",
+                    InputType = InputType.Toggle,
+                    AddedInVersion = "26.05.13",
+                    DetectionType = DetectionType.SystemRestore,
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"Enable-ComputerRestore -Drive 'C:\'",
+                            DisabledScript = @"Disable-ComputerRestore -Drive 'C:\'",
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
                         },
                     },
                 },

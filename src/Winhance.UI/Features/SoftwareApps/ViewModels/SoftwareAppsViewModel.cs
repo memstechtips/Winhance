@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.Views;
 using Winhance.Core.Features.Common.Constants;
 
@@ -64,7 +65,11 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public partial string SearchText { get; set; }
 
     [ObservableProperty]
-    public partial bool IsCardViewMode { get; set; }
+    public partial SoftwareAppsViewMode ViewMode { get; set; } = SoftwareAppsViewMode.Card;
+
+    public bool IsCardView => ViewMode == SoftwareAppsViewMode.Card;
+    public bool IsTableView => ViewMode == SoftwareAppsViewMode.Table;
+    public bool IsCompactView => ViewMode == SoftwareAppsViewMode.Compact;
 
     [ObservableProperty]
     public partial bool IsInReviewMode { get; set; }
@@ -214,6 +219,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
+    public string ViewModeCompactTooltip => _localizationService.GetString("ViewMode_Compact");
 
     public string ReviewWindowsAppsBannerText
     {
@@ -245,9 +251,12 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ? WindowsAppsViewModel.IsLoading
         : ExternalAppsViewModel.IsLoading;
 
-    partial void OnIsCardViewModeChanged(bool value)
+    partial void OnViewModeChanged(SoftwareAppsViewMode value)
     {
-        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table").FireAndForget(_logService);
+        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value.ToString()).FireAndForget(_logService);
+        OnPropertyChanged(nameof(IsCardView));
+        OnPropertyChanged(nameof(IsTableView));
+        OnPropertyChanged(nameof(IsCompactView));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -305,6 +314,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(HelpButtonText));
         OnPropertyChanged(nameof(ViewModeTableTooltip));
         OnPropertyChanged(nameof(ViewModeCardTooltip));
+        OnPropertyChanged(nameof(ViewModeCompactTooltip));
         OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
         OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
     }
@@ -396,6 +406,65 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         RemoveSelectedItemsCommand.NotifyCanExecuteChanged();
     }
 
+    /// <summary>
+    /// One-time event subscription / preference load. Idempotent — guarded by
+    /// <see cref="_isSubscribed"/>. Called from each Initialize* entry point so
+    /// any of them can be the first call without ordering assumptions.
+    /// </summary>
+    private void EnsureSubscriptions()
+    {
+        if (_isSubscribed) return;
+        _isSubscribed = true;
+
+        var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
+        ViewMode = savedViewMode switch
+        {
+            "Compact" => SoftwareAppsViewMode.Compact,
+            "Table" => SoftwareAppsViewMode.Table,
+            _ => SoftwareAppsViewMode.Card,
+        };
+
+        WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+        ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+        WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
+        ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+
+        UpdateButtonStates();
+    }
+
+    /// <summary>
+    /// Loads only the Windows Apps tab. Called by the cold-start path so the
+    /// startup loading overlay can drop as soon as the fast tab is ready,
+    /// without waiting on the slower External Apps icon resolution.
+    /// </summary>
+    public async Task InitializeWindowsAppsAsync()
+    {
+        EnsureSubscriptions();
+        if (!WindowsAppsViewModel.IsInitialized)
+        {
+            _logService.LogInformation("[SoftwareAppsViewModel] Loading WindowsAppsViewModel");
+            await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
+        }
+    }
+
+    /// <summary>
+    /// Loads only the External Apps tab. Cold-start fires this in the background
+    /// (see <see cref="StartupUiCoordinator"/>); the tab's per-tab loading
+    /// overlay (bound to <see cref="ExternalAppsViewModel.IsLoading"/>) covers
+    /// the case where the user clicks External Apps before resolution completes.
+    /// </summary>
+    public async Task InitializeExternalAppsAsync()
+    {
+        EnsureSubscriptions();
+        if (!ExternalAppsViewModel.IsInitialized)
+        {
+            _logService.LogInformation("[SoftwareAppsViewModel] Loading ExternalAppsViewModel");
+            await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
+        }
+    }
+
     [RelayCommand]
     public async Task InitializeAsync()
     {
@@ -403,37 +472,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
         try
         {
-            // Subscribe to events and load preferences on first initialization
-            // (deferred from constructor to avoid side effects during construction)
-            if (!_isSubscribed)
-            {
-                _isSubscribed = true;
-
-                var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
-                IsCardViewMode = savedViewMode == "Card";
-
-                WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-                ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-                WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
-                ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
-                _localizationService.LanguageChanged += OnLanguageChanged;
-                _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
-
-                UpdateButtonStates();
-            }
-
-            if (!WindowsAppsViewModel.IsInitialized)
-            {
-                _logService.LogInformation("[SoftwareAppsViewModel] Loading WindowsAppsViewModel");
-                await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
-            }
-
-            if (!ExternalAppsViewModel.IsInitialized)
-            {
-                _logService.LogInformation("[SoftwareAppsViewModel] Loading ExternalAppsViewModel");
-                await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
-            }
-
+            await InitializeWindowsAppsAsync();
+            await InitializeExternalAppsAsync();
             _logService.LogInformation("[SoftwareAppsViewModel] InitializeAsync completed");
         }
         catch (Exception ex)

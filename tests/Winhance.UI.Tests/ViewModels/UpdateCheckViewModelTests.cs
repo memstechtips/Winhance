@@ -11,7 +11,6 @@ namespace Winhance.UI.Tests.ViewModels;
 public class UpdateCheckViewModelTests : IDisposable
 {
     private readonly Mock<IVersionService> _mockVersionService = new();
-    private readonly Mock<IInternetConnectivityService> _mockInternetConnectivityService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
 
@@ -26,7 +25,6 @@ public class UpdateCheckViewModelTests : IDisposable
 
         _sut = new UpdateCheckViewModel(
             _mockVersionService.Object,
-            _mockInternetConnectivityService.Object,
             _mockLocalizationService.Object,
             _mockLogService.Object);
     }
@@ -168,26 +166,8 @@ public class UpdateCheckViewModelTests : IDisposable
     // ── CheckForUpdatesOnStartupAsync ──
 
     [Fact]
-    public async Task CheckForUpdatesOnStartupAsync_NoInternet_DoesNotCheckForUpdates()
-    {
-        _mockInternetConnectivityService
-            .Setup(i => i.IsInternetConnectedAsync(true, It.IsAny<CancellationToken>(), false))
-            .ReturnsAsync(false);
-
-        await _sut.CheckForUpdatesOnStartupAsync();
-
-        _mockVersionService.Verify(
-            v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()),
-            Times.Never);
-        _sut.IsUpdateInfoBarOpen.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task CheckForUpdatesOnStartupAsync_UpdateAvailable_ShowsInfoBar()
     {
-        _mockInternetConnectivityService
-            .Setup(i => i.IsInternetConnectedAsync(true, It.IsAny<CancellationToken>(), false))
-            .ReturnsAsync(true);
         _mockVersionService
             .Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new VersionInfo { Version = "v25.06.01", IsUpdateAvailable = true });
@@ -204,9 +184,6 @@ public class UpdateCheckViewModelTests : IDisposable
     [Fact]
     public async Task CheckForUpdatesOnStartupAsync_NoUpdateAvailable_DoesNotShowInfoBar()
     {
-        _mockInternetConnectivityService
-            .Setup(i => i.IsInternetConnectedAsync(true, It.IsAny<CancellationToken>(), false))
-            .ReturnsAsync(true);
         _mockVersionService
             .Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new VersionInfo { Version = "v25.05.01", IsUpdateAvailable = false });
@@ -222,9 +199,6 @@ public class UpdateCheckViewModelTests : IDisposable
     [Fact]
     public async Task CheckForUpdatesOnStartupAsync_Exception_DoesNotShowInfoBar()
     {
-        _mockInternetConnectivityService
-            .Setup(i => i.IsInternetConnectedAsync(true, It.IsAny<CancellationToken>(), false))
-            .ReturnsAsync(true);
         _mockVersionService
             .Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Network timeout"));
@@ -377,7 +351,6 @@ public class UpdateCheckViewModelTests : IDisposable
     {
         var sut = new UpdateCheckViewModel(
             _mockVersionService.Object,
-            _mockInternetConnectivityService.Object,
             _mockLocalizationService.Object,
             _mockLogService.Object);
 
@@ -397,7 +370,6 @@ public class UpdateCheckViewModelTests : IDisposable
     {
         var sut = new UpdateCheckViewModel(
             _mockVersionService.Object,
-            _mockInternetConnectivityService.Object,
             _mockLocalizationService.Object,
             _mockLogService.Object);
 

@@ -68,7 +68,7 @@
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <fluentIcons:SymbolIcon Symbol="PersonWrench" IconVariant="Regular"
+                        <fluentIcons:FluentIcon Icon="PersonWrench" IconVariant="Regular"
                                                 FontSize="12" VerticalAlignment="Center"
                                                 Foreground="{ThemeResource BadgeCustomForeground}"/>
                         <TextBlock Text="{x:Bind Label}"
@@ -125,8 +125,11 @@
                     Margin="0,0,0,2">
             <!-- Main settings card with overlays -->
             <Grid>
+                <!-- IsEnabled is bound on the inner SettingsCardItem (the actual input
+                     control) rather than the SettingsCard root. This keeps the card
+                     interactive (click, hover, focus) in Review Mode while still
+                     disabling the toggle/dropdown so the user can't change values. -->
                 <controls:SettingsCard
-                    IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                     IsTabStop="False"
                     AutomationProperties.LocalizedControlType="setting"
                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
@@ -150,6 +153,7 @@
                         </StackPanel>
                     </controls:SettingsCard.Header>
                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
+                        IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                         AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
                 </controls:SettingsCard>
 
@@ -495,8 +499,11 @@
                     Margin="0,0,0,2">
             <!-- Parent setting card with expand/collapse chevron -->
             <Grid>
+                <!-- IsEnabled is bound on the inner SettingsCardItem (the actual input
+                     control) rather than the SettingsCard root. The card itself stays
+                     interactive so its click-to-expand handler keeps working in Review
+                     Mode; only the toggle/dropdown inside dims out. -->
                 <controls:SettingsCard
-                    IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                     IsClickEnabled="True"
                     Click="{x:Bind ToggleExpander}"
                     IsTabStop="False"
@@ -534,6 +541,7 @@
                     <!-- Parent's input control + expand/collapse chevron -->
                     <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                         <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
+                            IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                             AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
                         <Grid Width="20" Height="20">
                             <FontIcon Glyph="&#xE70E;" FontSize="16"
@@ -885,8 +893,11 @@
                     <DataTemplate x:DataType="viewModels:SettingItemViewModel">
                         <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid>
+                                <!-- IsEnabled is bound on the inner SettingsCardItem so
+                                     children inside a Review-Mode parent expander stay
+                                     visible and reachable (the toggle/dropdown still
+                                     dims; only the input is disabled, not the card). -->
                                 <controls:SettingsCard
-                                    IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                                     IsTabStop="False"
                                     AutomationProperties.LocalizedControlType="setting"
                                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
@@ -912,6 +923,7 @@
                                         </StackPanel>
                                     </controls:SettingsCard.Header>
                                     <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
+                                        IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                                         AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
                                 </controls:SettingsCard>
 

@@ -16,20 +16,19 @@ internal class OSInfo
 }
 
 public class RecommendedSettingsService(
-    IDomainServiceRouter domainServiceRouter,
+    ICompatibleSettingsRegistry compatibleSettingsRegistry,
     IWindowsVersionService versionService,
     ILogService logService) : IRecommendedSettingsService
 {
-    public string DomainName => "RecommendedSettings";
-
-    public async Task<IEnumerable<SettingDefinition>> GetRecommendedSettingsAsync(string settingId)
+    public Task<IEnumerable<SettingDefinition>> GetRecommendedSettingsAsync(string settingId)
     {
         try
         {
-            var domainService = domainServiceRouter.GetDomainService(settingId);
-            logService.Log(LogLevel.Debug, $"[RecommendedSettings] Getting recommended settings for domain '{domainService.DomainName}'");
+            var featureId = compatibleSettingsRegistry.GetFeatureIdForSetting(settingId)
+                ?? throw new InvalidOperationException($"Setting '{settingId}' has no feature mapping");
+            logService.Log(LogLevel.Debug, $"[RecommendedSettings] Getting recommended settings for feature '{featureId}'");
 
-            var allSettings = await domainService.GetSettingsAsync().ConfigureAwait(false);
+            var allSettings = compatibleSettingsRegistry.GetFilteredSettings(featureId);
 
             var osInfo = new OSInfo
             {
@@ -43,9 +42,9 @@ public class RecommendedSettingsService(
             );
 
             var settingsList = recommendedSettings.ToList();
-            logService.Log(LogLevel.Debug, $"[RecommendedSettings] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
+            logService.Log(LogLevel.Debug, $"[RecommendedSettings] Found {settingsList.Count} recommended settings for feature '{featureId}'");
 
-            return settingsList;
+            return Task.FromResult<IEnumerable<SettingDefinition>>(settingsList);
         }
         catch (Exception ex)
         {
@@ -97,10 +96,5 @@ public class RecommendedSettingsService(
         }
 
         return true;
-    }
-
-    public Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
-    {
-        return Task.FromResult(Enumerable.Empty<SettingDefinition>());
     }
 }

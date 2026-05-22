@@ -16,7 +16,7 @@ public class ExternalAppsServiceTests
     private readonly Mock<IWinGetDetectionService> _winGetDetectionService = new();
     private readonly Mock<IWinGetBootstrapper> _winGetBootstrapper = new();
     private readonly Mock<IAppStatusDiscoveryService> _appStatusDiscoveryService = new();
-    private readonly Mock<IAppUninstallService> _appUninstallService = new();
+    private readonly Mock<IExternalAppUninstallService> _externalAppUninstallService = new();
     private readonly Mock<IDirectDownloadService> _directDownloadService = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IChocolateyService> _chocolateyService = new();
@@ -30,7 +30,7 @@ public class ExternalAppsServiceTests
         _winGetDetectionService.Object,
         _winGetBootstrapper.Object,
         _appStatusDiscoveryService.Object,
-        _appUninstallService.Object,
+        _externalAppUninstallService.Object,
         _directDownloadService.Object,
         _taskProgressService.Object,
         _chocolateyService.Object,
@@ -735,7 +735,7 @@ public class ExternalAppsServiceTests
             Description = "An external app"
         };
 
-        _appUninstallService
+        _externalAppUninstallService
             .Setup(x => x.UninstallAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(OperationResult<bool>.Succeeded(true));
 
@@ -753,7 +753,7 @@ public class ExternalAppsServiceTests
         var result = await sut.UninstallAppAsync(item);
 
         result.Success.Should().BeTrue();
-        _appUninstallService.Verify(
+        _externalAppUninstallService.Verify(
             x => x.UninstallAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -769,7 +769,7 @@ public class ExternalAppsServiceTests
             Description = "An external app"
         };
 
-        _appUninstallService
+        _externalAppUninstallService
             .Setup(x => x.UninstallAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(OperationResult<bool>.Failed("Uninstall failed"));
 
@@ -789,7 +789,7 @@ public class ExternalAppsServiceTests
             Description = "An external app"
         };
 
-        _appUninstallService
+        _externalAppUninstallService
             .Setup(x => x.UninstallAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 

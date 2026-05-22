@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.ServiceProcess;
 using System.Threading;
@@ -16,15 +15,6 @@ public class ProcessRestartManager(
     IConfigImportState configImportState,
     ILogService logService) : IProcessRestartManager
 {
-    /// <summary>Maximum time to wait for Explorer to respawn after being killed.</summary>
-    private static readonly TimeSpan ExplorerRespawnTimeout = TimeSpan.FromSeconds(10);
-
-    /// <summary>Interval between Explorer process checks.</summary>
-    private static readonly TimeSpan ExplorerPollInterval = TimeSpan.FromMilliseconds(500);
-
-    /// <summary>Number of retry attempts if Explorer doesn't respawn.</summary>
-    private const int ExplorerMaxRetries = 2;
-
     private int _suppressCount;
 
     /// <inheritdoc />
@@ -60,8 +50,21 @@ public class ProcessRestartManager(
 
         if (configImportState.IsActive)
         {
-            if (!string.IsNullOrEmpty(setting.RestartProcess))
+            // For Explorer, fire the theme/settings broadcasts immediately so user sees
+            // visual feedback during import — but defer the Explorer kill until end-of-import.
+            if (!string.IsNullOrEmpty(setting.RestartProcess)
+                && setting.RestartProcess.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+            {
+                await uiManagementService.RefreshWindowsGUI(killExplorer: false).ConfigureAwait(false);
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Broadcast Explorer-refresh for '{setting.Id}' (kill deferred — config import mode)");
+            }
+            else if (!string.IsNullOrEmpty(setting.RestartProcess))
+            {
                 logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
+            }
+
+            if (!string.IsNullOrEmpty(setting.RestartService))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (config import mode - will restart at end)");
             return;
         }
 
@@ -101,7 +104,12 @@ public class ProcessRestartManager(
     {
         if (processName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
         {
-            await RestartExplorerWithRetryAsync(settingIdForLog).ConfigureAwait(false);
+            var label = settingIdForLog is null
+                ? "[ProcessRestartManager] Refreshing Windows UI (coalesced)"
+                : $"[ProcessRestartManager] Refreshing Windows UI for setting '{settingIdForLog}'";
+            logService.Log(LogLevel.Info, label);
+            await uiManagementService.RefreshWindowsGUI(killExplorer: true).ConfigureAwait(false);
+            return;
         }
         else if (processName.Equals("intl", StringComparison.OrdinalIgnoreCase))
         {
@@ -182,84 +190,6 @@ public class ProcessRestartManager(
         catch (Exception ex)
         {
             logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{serviceName}': {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Kills Explorer and waits for Windows to respawn it automatically.
-    /// If Explorer doesn't come back within the timeout, manually starts it
-    /// and retries up to <see cref="ExplorerMaxRetries"/> times.
-    /// </summary>
-    private async Task RestartExplorerWithRetryAsync(string? settingIdForLog)
-    {
-        logService.Log(LogLevel.Info,
-            settingIdForLog != null
-                ? $"[ProcessRestartManager] Restarting Explorer for setting '{settingIdForLog}'"
-                : "[ProcessRestartManager] Restarting Explorer (coalesced)");
-
-        for (int attempt = 0; attempt <= ExplorerMaxRetries; attempt++)
-        {
-            try
-            {
-                uiManagementService.KillProcess("explorer");
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to kill Explorer (attempt {attempt + 1}): {ex.Message}");
-                if (attempt == ExplorerMaxRetries)
-                {
-                    TryStartExplorer();
-                    return;
-                }
-                continue;
-            }
-
-            if (await WaitForExplorerAsync())
-            {
-                logService.Log(LogLevel.Info, "[ProcessRestartManager] Explorer restarted successfully");
-                return;
-            }
-
-            logService.Log(LogLevel.Warning,
-                $"[ProcessRestartManager] Explorer did not respawn within timeout (attempt {attempt + 1}/{ExplorerMaxRetries + 1})");
-
-            TryStartExplorer();
-
-            if (await WaitForExplorerAsync())
-            {
-                logService.Log(LogLevel.Info, "[ProcessRestartManager] Explorer started manually");
-                return;
-            }
-        }
-
-        logService.Log(LogLevel.Error, "[ProcessRestartManager] Explorer failed to restart after all retry attempts");
-    }
-
-    private async Task<bool> WaitForExplorerAsync()
-    {
-        var sw = Stopwatch.StartNew();
-        while (sw.Elapsed < ExplorerRespawnTimeout)
-        {
-            await Task.Delay(ExplorerPollInterval);
-            if (uiManagementService.IsProcessRunning("explorer"))
-                return true;
-        }
-        return false;
-    }
-
-    private void TryStartExplorer()
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                UseShellExecute = true,
-            });
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"[ProcessRestartManager] Failed to manually start Explorer: {ex.Message}");
         }
     }
 }

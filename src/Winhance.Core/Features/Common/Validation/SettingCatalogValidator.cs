@@ -46,14 +46,6 @@ public static class SettingCatalogValidator
         return violations;
     }
 
-    public static IReadOnlyList<CatalogViolation> ValidateAll(IEnumerable<SettingGroup> groups)
-    {
-        var all = new List<CatalogViolation>();
-        foreach (var group in groups)
-            all.AddRange(Validate(group));
-        return all;
-    }
-
     private static void ValidateSelection(SettingDefinition setting, string groupName, List<CatalogViolation> violations)
     {
         var category = Categorize(setting);

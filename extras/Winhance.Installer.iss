@@ -181,8 +181,15 @@ Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Sta
 
 [Files]
 ; All application files and subdirectories (recursive) - includes self-contained .NET runtime
-; Excludes "nul" - a zero-byte file with a Windows reserved device name created by MSBuild
-Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\*"; Excludes: "nul"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Excludes:
+;  - "nul": a zero-byte file with a Windows reserved device name created by MSBuild
+;  - onnxruntime.dll / DirectML.dll: ~38 MB (uncompressed) of Windows ML native
+;    libraries that the Microsoft.WindowsAppSDK metapackage bundles into every
+;    self-contained build. Winhance calls no ML/AI APIs, so they are dead weight -
+;    excluding them makes the installer ~13 MB smaller. The metapackage can't be
+;    slimmed at the NuGet level (icon/control packages depend on it); see
+;    microsoft/WindowsAppSDK#5969.
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\*"; Excludes: "nul,onnxruntime.dll,DirectML.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Create a marker file for portable installations
 Source: "C:\Winhance\extras\portable.marker"; DestDir: "{app}"; Flags: ignoreversion; Tasks: portableinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files

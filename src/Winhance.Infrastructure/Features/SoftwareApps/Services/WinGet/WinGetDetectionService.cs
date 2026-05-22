@@ -94,8 +94,9 @@ public class WinGetDetectionService : IWinGetDetectionService
 
                 if (connectResult.Status != ConnectResultStatus.Ok)
                 {
-                    _logService?.LogError($"Failed to connect to composite catalog: {connectResult.Status}");
-                    return installedPackageIds;
+                    // CLI fallback recovers when the COM source store is broken.
+                    _logService?.LogWarning($"Failed to connect to composite catalog: {connectResult.Status} — falling back to CLI");
+                    return null;
                 }
 
                 var findOptions = _comSession.Factory.CreateFindPackagesOptions();

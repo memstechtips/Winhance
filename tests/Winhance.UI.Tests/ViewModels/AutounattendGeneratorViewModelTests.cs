@@ -21,13 +21,13 @@ public class AutounattendGeneratorViewModelTests
     // Dependencies for WindowsAppsViewModel
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _appUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _progressService = new();
     private readonly Mock<ILogService> _winLogService = new();
     private readonly Mock<IDialogService> _winDialogService = new();
     private readonly Mock<ILocalizationService> _winLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _connectivityService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     public AutounattendGeneratorViewModelTests()
     {
@@ -40,18 +40,21 @@ public class AutounattendGeneratorViewModelTests
         _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
     }
 
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
         _appInstallationService.Object,
-        _appUninstallationService.Object,
+        _windowsAppUninstallService.Object,
         _progressService.Object,
         _winLogService.Object,
         _winDialogService.Object,
         _winLocalizationService.Object,
-        _connectivityService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private AutounattendGeneratorViewModel CreateSut(WindowsAppsViewModel? windowsAppsVm = null)
     {

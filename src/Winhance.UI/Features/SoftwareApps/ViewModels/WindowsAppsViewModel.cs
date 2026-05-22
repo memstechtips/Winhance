@@ -22,34 +22,37 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 {
     private readonly IWindowsAppsService _windowsAppsService;
     private readonly IAppInstallationService _appInstallationService;
-    private readonly IAppUninstallationService _appUninstallationService;
+    private readonly IWindowsAppUninstallService _windowsAppUninstallService;
     private readonly ITaskProgressService _progressService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IThemeService _themeService;
+    private readonly IAppIconResolver? _iconResolver;
 
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
         IAppInstallationService appInstallationService,
-        IAppUninstallationService appUninstallationService,
+        IWindowsAppUninstallService windowsAppUninstallService,
         ITaskProgressService progressService,
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IThemeService themeService,
+        IAppIconResolver? iconResolver = null)
     {
         _windowsAppsService = windowsAppsService;
         _appInstallationService = appInstallationService;
-        _appUninstallationService = appUninstallationService;
+        _windowsAppUninstallService = windowsAppUninstallService;
         _progressService = progressService;
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
+        _themeService = themeService;
+        _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _windowsAppsService.WinGetReady += OnWinGetInstalled;
@@ -192,15 +195,32 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
-    [RelayCommand]
-    public async Task LoadAppsAndCheckInstallationStatusAsync()
-    {
-        if (IsInitialized)
-        {
-            _logService.LogInformation("[WindowsAppsViewModel] Already initialized, skipping");
-            return;
-        }
+    private readonly object _loadGate = new();
+    private Task? _loadTask;
 
+    /// <summary>
+    /// Loads app definitions, checks installation status and resolves icons — exactly once.
+    /// Idempotent: startup triggers this from two independent paths — the UI init
+    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
+    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
+    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
+    /// ran concurrently, clobbering the shared Items collection and racing over the
+    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
+    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
+    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
+    /// </summary>
+    [RelayCommand]
+    public Task LoadAppsAndCheckInstallationStatusAsync()
+    {
+        lock (_loadGate)
+        {
+            return _loadTask ??= _dispatcherService.RunOnUIThreadWithContextAsync(
+                LoadAppsAndCheckInstallationStatusCoreAsync);
+        }
+    }
+
+    private async Task LoadAppsAndCheckInstallationStatusCoreAsync()
+    {
         IsLoading = true;
         StatusText = _localizationService.GetString("Progress_LoadingWindowsApps");
 
@@ -230,8 +250,11 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[WindowsAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
+            _logService.LogWarning(
+                $"[WindowsAppsViewModel] Install status check failed, items loaded without status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
+
+        await ResolveIconsAsync();
 
         try
         {
@@ -242,7 +265,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[WindowsAppsViewModel] Error finalizing: {ex.Message}");
+            _logService.LogWarning(
+                $"[WindowsAppsViewModel] Error finalizing ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
         finally
         {
@@ -257,7 +281,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             var viewModel = new AppItemViewModel(
                 definition,
                 _localizationService,
-                _dispatcherService);
+                _dispatcherService,
+                _themeService);
             viewModel.PropertyChanged += Item_PropertyChanged;
             Items.Add(viewModel);
         }
@@ -272,30 +297,78 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     }
 
     [RelayCommand]
+    /// <summary>
+    /// Resolves AppX icons for installed entries and notifies their ViewModels.
+    /// No-op when no resolver was injected (e.g. legacy test construction).
+    /// Failures are logged and swallowed — icon resolution must never block the load flow.
+    /// </summary>
+    private async Task ResolveIconsAsync()
+    {
+        if (_iconResolver is null) return;
+
+        try
+        {
+            var definitions = Items.Select(item => item.Definition).ToList();
+            // Windows Apps get theme adaptation — backplate crop + light/dark
+            // variant synthesis for monochrome system icons.
+            await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: true);
+
+            foreach (var item in Items)
+                item.NotifyIconChanged();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[WindowsAppsViewModel] Icon resolution failed: {ex.Message}");
+        }
+    }
+
+    // Serializes the install-status re-check. It runs from the Refresh button,
+    // the WinGetReady event (OnWinGetInstalled) and post-install/remove
+    // (RefreshAfterOperationAsync — including config-apply); none are mutually
+    // exclusive. Overlapping callers queue here instead of interleaving access
+    // to the shared Items collection and the detection cache.
+    private readonly SemaphoreSlim _statusCheckGate = new(1, 1);
+
     public async Task CheckInstallationStatusAsync()
     {
         if (_windowsAppsService == null) return;
 
+        await _statusCheckGate.WaitAsync();
         try
         {
             var definitions = Items.Select(item => item.Definition).ToList();
             var statusResults = await _windowsAppsService.CheckBatchInstalledAsync(definitions);
 
-            using (ItemsView.DeferRefresh())
+            // NotificationDeferrer.Dispose() fires VectorChanged events the bound
+            // DataGrid handles by reading its ItemsSource DependencyProperty —
+            // DPs throw WinRT HRESULT off the UI thread.
+            _logService.LogDebug(
+                $"[WindowsAppsViewModel] CheckInstallationStatusAsync pre-dispatch HasThreadAccess={_dispatcherService.HasThreadAccess}");
+            await _dispatcherService.RunOnUIThreadAsync(() =>
             {
-                foreach (var item in Items)
+                using (ItemsView.DeferRefresh())
                 {
-                    if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                    foreach (var item in Items)
                     {
-                        item.IsInstalled = isInstalled;
+                        if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                        {
+                            item.IsInstalled = isInstalled;
+                        }
                     }
                 }
-            }
+                return Task.CompletedTask;
+            });
         }
         catch (Exception ex)
         {
-            _logService.LogError("Error checking installation status", ex);
+            _logService.LogError(
+                $"Error checking installation status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}",
+                ex);
             StatusText = $"Error checking status: {ex.Message}";
+        }
+        finally
+        {
+            _statusCheckGate.Release();
         }
     }
 
@@ -352,14 +425,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             await _dialogService.ShowWarningAsync(
                 "Please select at least one item for installation.",
                 "No Items Selected");
-            return;
-        }
-
-        if (!await _connectivityService.IsInternetConnectedAsync(true))
-        {
-            await _dialogService.ShowWarningAsync(
-                "An internet connection is required to install apps.",
-                "No Internet Connection");
             return;
         }
 
@@ -481,7 +546,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         try
         {
             var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _appUninstallationService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
+            var result = await _windowsAppUninstallService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
 
             if (result.Success)
             {
@@ -556,6 +621,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
                 item.PropertyChanged -= Item_PropertyChanged;
                 item.Dispose();
             }
+            _statusCheckGate.Dispose();
         }
         base.Dispose(disposing);
     }

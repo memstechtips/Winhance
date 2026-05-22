@@ -27,7 +27,6 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IConfigReviewModeService> _mockConfigReviewModeService = new();
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
-    private readonly Mock<IInternetConnectivityService> _mockInternetConnectivityService = new();
 
     private readonly TaskProgressViewModel _taskProgressViewModel;
     private readonly UpdateCheckViewModel _updateCheckViewModel;
@@ -73,7 +72,6 @@ public class MainWindowViewModelTests : IDisposable
 
         _updateCheckViewModel = new UpdateCheckViewModel(
             _mockVersionService.Object,
-            _mockInternetConnectivityService.Object,
             _mockLocalizationService.Object,
             _mockLogService.Object);
 

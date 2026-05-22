@@ -54,7 +54,7 @@
                     ToolTipService.ToolTip="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
                     AutomationProperties.Name="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
                     Margin="4,0,0,0">
-                <fluentIcons:SymbolIcon Symbol="Navigation" IconVariant="Regular" FontSize="16"/>
+                <fluentIcons:FluentIcon Icon="Navigation" IconVariant="Regular" FontSize="16"/>
             </Button>
 
             <!-- App Icon -->
@@ -106,7 +106,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.SaveConfigTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.SaveConfigTooltip, Mode=OneWay}">
-                    <fluentIcons:SymbolIcon Symbol="DocumentSave" IconVariant="Regular" FontSize="20"/>
+                    <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Import Configuration Button -->
@@ -114,7 +114,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.ImportConfigTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.ImportConfigTooltip, Mode=OneWay}">
-                    <fluentIcons:SymbolIcon Symbol="DocumentSettings" IconVariant="Regular" FontSize="20"/>
+                    <fluentIcons:FluentIcon Icon="DocumentSettings" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Windows Version Filter Button -->
@@ -133,7 +133,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}">
-                    <fluentIcons:SymbolIcon Symbol="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
+                    <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
                 </Button>
 
                 <!-- Bug Report Button -->
@@ -141,7 +141,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.BugReportTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.BugReportTooltip, Mode=OneWay}">
-                    <fluentIcons:SymbolIcon Symbol="Bug" IconVariant="Regular" FontSize="20"/>
+                    <fluentIcons:FluentIcon Icon="Bug" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Documentation Button -->
@@ -149,7 +149,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.DocsTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.DocsTooltip, Mode=OneWay}">
-                    <fluentIcons:SymbolIcon Symbol="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
+                    <fluentIcons:FluentIcon Icon="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
                 </Button>
             </StackPanel>
         </Grid>
@@ -189,8 +189,8 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
             </Grid.ColumnDefinitions>
 
-            <fluentIcons:SymbolIcon Grid.Column="0"
-                      Symbol="ShieldCheckmark" IconVariant="Regular"
+            <fluentIcons:FluentIcon Grid.Column="0"
+                      Icon="ShieldCheckmark" IconVariant="Regular"
                       FontSize="16"
                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                       VerticalAlignment="Center"
@@ -233,7 +233,7 @@
                     VerticalAlignment="Center"
                     Margin="8,0,4,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14"/>
+                    <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="14"/>
                     <TextBlock x:Name="ReviewModeApplyButtonText"
                                Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"/>
                 </StackPanel>
@@ -250,7 +250,7 @@
                     VerticalAlignment="Center"
                     Margin="4,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14"/>
+                    <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14"/>
                     <TextBlock x:Name="ReviewModeCancelButtonText"
                                Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"/>
                 </StackPanel>

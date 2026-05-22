@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Globalization.NumberFormatting;
 
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -374,7 +375,7 @@ public partial class SettingItemViewModel : BaseViewModel
             {
                 var display = ConvertFromSystemUnits(v);
                 NumericValue = display;
-                HandleValueChangedAsync(display).FireAndForget(_logService);
+                HandleValueChangedAsync(display, resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setNumericToDefaultCommand;
@@ -396,7 +397,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (AcDefaultValue is int v)
             {
                 AcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+                HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setAcNumericToDefaultCommand;
@@ -418,7 +419,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (DcDefaultValue is int v)
             {
                 DcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync().FireAndForget(_logService);
+                HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setDcNumericToDefaultCommand;
@@ -437,55 +438,24 @@ public partial class SettingItemViewModel : BaseViewModel
     /// The strict step never derives state from the EnabledValue/DisabledValue null sentinel —
     /// recommendations against the key-absent state must be expressed via RecommendedToggleState.
     /// </summary>
-    public bool? ToggleRecommendedState
-    {
-        get
-        {
-            if (SettingDefinition?.RecommendedToggleState is bool explicitState) return explicitState;
-            return ResolveToggleState(PrimaryRegistrySetting?.RecommendedValue, deriveFromKeyAbsent: false);
-        }
-    }
+    public bool? ToggleRecommendedState =>
+        SettingDefinition is { } sd ? SettingDefinitionToggleState.GetRecommendedToggleState(sd) : null;
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
     /// When DefaultValue is null, the state is derived from which of EnabledValue /
     /// DisabledValue contains the null sentinel (key-absent convention).
     /// </summary>
-    public bool? ToggleDefaultState => ResolveToggleState(
-        PrimaryRegistrySetting?.DefaultValue, deriveFromKeyAbsent: true);
-
-    private bool? ResolveToggleState(object? targetValue, bool deriveFromKeyAbsent)
-    {
-        var reg = PrimaryRegistrySetting;
-        if (reg == null) return null;
-        if (targetValue == null && !deriveFromKeyAbsent) return null;
-        // Key-existence toggles: Windows default is key-present (enabled = true).
-        if (targetValue == null && deriveFromKeyAbsent && IsKeyExistenceToggle(reg))
-            return true;
-        return ToggleTargetState(targetValue, reg.EnabledValue, reg.DisabledValue);
-    }
+    public bool? ToggleDefaultState =>
+        SettingDefinition is { } sd ? SettingDefinitionToggleState.GetDefaultToggleState(sd) : null;
 
     /// <summary>
-    /// Resolves a target value into the toggle state it represents. When
-    /// <paramref name="targetValue"/> is null, the result is derived from which of
-    /// EnabledValue / DisabledValue contains the null sentinel — i.e. "key absent" implies
-    /// that state. Callers pick whether to use this derivation: Default does, Recommended
-    /// does not (see ResolveToggleState).
+    /// Resolves a target value into the toggle state it represents. Thin delegate to
+    /// <see cref="SettingDefinitionToggleState.ToggleTargetState"/> — kept here because
+    /// other call sites (badge state computation) reference it locally.
     /// </summary>
-    internal static bool? ToggleTargetState(object? targetValue, object?[]? enabledValue, object?[]? disabledValue)
-    {
-        if (targetValue == null)
-        {
-            if (ArrayContainsNull(enabledValue)) return true;
-            if (ArrayContainsNull(disabledValue)) return false;
-            return null;
-        }
-        if (IsValueInArray(targetValue, enabledValue)) return true;
-        if (IsValueInArray(targetValue, disabledValue)) return false;
-        return null;
-    }
-
-    private static bool ArrayContainsNull(object?[]? array) => array?.Any(v => v == null) == true;
+    internal static bool? ToggleTargetState(object? targetValue, object?[]? enabledValue, object?[]? disabledValue) =>
+        SettingDefinitionToggleState.ToggleTargetState(targetValue, enabledValue, disabledValue);
 
     private string ToggleStateText(bool state) => state ? OnText : OffText;
 
@@ -521,7 +491,7 @@ public partial class SettingItemViewModel : BaseViewModel
         new RelayCommand(() =>
         {
             if (ToggleDefaultState is bool v)
-                HandleToggleAsync(v).FireAndForget(_logService);
+                HandleToggleAsync(v, resetToDefault: true).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToDefaultCommand;
 
@@ -579,7 +549,7 @@ public partial class SettingItemViewModel : BaseViewModel
         new RelayCommand(() =>
         {
             if (SelectionDefaultIndex is int i)
-                HandleValueChangedAsync(i).FireAndForget(_logService);
+                HandleValueChangedAsync(i, resetToDefault: true).FireAndForget(_logService);
         });
     private RelayCommand? _setSelectionToDefaultCommand;
 
@@ -671,7 +641,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (AcSelectionDefaultIndex is int i)
             {
                 AcValue = i;
-                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+                HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setAcSelectionToDefaultCommand;
@@ -693,7 +663,7 @@ public partial class SettingItemViewModel : BaseViewModel
             if (DcSelectionDefaultIndex is int i)
             {
                 DcValue = i;
-                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+                HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
             }
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
@@ -769,6 +739,13 @@ public partial class SettingItemViewModel : BaseViewModel
     partial void OnIsInReviewModeChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveIsEnabled));
+
+        // When entering Review Mode, force every expander open so children carrying
+        // review diffs are visible. A parent collapsed before import would otherwise
+        // hide its children behind a disabled card and Apply Config would stay gated.
+        // The user can still toggle the chevron overlay to collapse a subtree after.
+        if (value)
+            IsExpanderExpanded = true;
     }
 
     partial void OnIsReviewApprovedChanged(bool value)
@@ -1005,7 +982,10 @@ public partial class SettingItemViewModel : BaseViewModel
                 {
                     if (selDict.TryGetValue("ACValue", out var ac) && TryReadInt(ac, out var acIdx))
                         AcValue = acIdx;
-                    if (selDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcIdx))
+                    // On non-battery systems PowerCfgApplier skips the DC write — don't pretend
+                    // we applied a DC value the system never received. Otherwise a subsequent
+                    // system-state refresh would visibly correct the VM and flip the badge.
+                    if (HasBattery && selDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcIdx))
                         DcValue = dcIdx;
                 }
                 else if (value != null)
@@ -1020,7 +1000,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 {
                     if (numDict.TryGetValue("ACValue", out var ac) && TryReadInt(ac, out var acNum))
                         AcNumericValue = acNum;
-                    if (numDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcNum))
+                    if (HasBattery && numDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcNum))
                         DcNumericValue = dcNum;
                 }
                 else if (value is int intValue)
@@ -1044,7 +1024,7 @@ public partial class SettingItemViewModel : BaseViewModel
             case long l: result = (int)l; return true;
             case double d: result = (int)d; return true;
             case float f: result = (int)f; return true;
-            case string s when int.TryParse(s, out var parsed): result = parsed; return true;
+            case string s when int.TryParse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed): result = parsed; return true;
             default:
                 if (value != null)
                 {
@@ -1214,11 +1194,33 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
+    /// <summary>
+    /// Sets an invariant-culture NumberFormatter on a NumberBox so that it formats
+    /// and parses values using en-US conventions regardless of the Windows system locale.
+    /// This prevents locale-sensitive formatting (e.g. Russian "50.000" for 50000)
+    /// from causing incorrect values when the user interacts with the control.
+    /// </summary>
+    public void OnNumberBoxLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is NumberBox nb)
+            nb.NumberFormatter = CreateInvariantNumberFormatter();
+    }
+
+    private static DecimalFormatter CreateInvariantNumberFormatter()
+    {
+        var formatter = new DecimalFormatter(new[] { "en-US" }, "US")
+        {
+            FractionDigits = 0,
+            IsGrouped = false
+        };
+        return formatter;
+    }
+
     #endregion
 
     #region Apply Logic
 
-    private async Task HandleToggleAsync(bool newValue)
+    private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
@@ -1236,7 +1238,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, CheckboxResult = checkboxChecked });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, ResetToDefault = resetToDefault, CheckboxResult = checkboxChecked });
 
             if (!result.Success)
             {
@@ -1262,7 +1264,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleValueChangedAsync(object? value)
+    private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
     {
         _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
 
@@ -1301,7 +1303,7 @@ public partial class SettingItemViewModel : BaseViewModel
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
             _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
 
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, CheckboxResult = checkboxChecked });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, ResetToDefault = resetToDefault, CheckboxResult = checkboxChecked });
 
             _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
 
@@ -1366,7 +1368,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleACDCSelectionChangedAsync()
+    private async Task HandleACDCSelectionChangedAsync(bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
@@ -1375,7 +1377,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict, ResetToDefault = resetToDefault });
 
             if (!result.Success)
             {
@@ -1399,7 +1401,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleACDCNumericChangedAsync()
+    private async Task HandleACDCNumericChangedAsync(bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
@@ -1408,7 +1410,7 @@ public partial class SettingItemViewModel : BaseViewModel
             IsApplying = true;
             var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
             _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict });
+            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict, ResetToDefault = resetToDefault });
 
             if (!result.Success)
             {
@@ -1603,6 +1605,23 @@ public partial class SettingItemViewModel : BaseViewModel
         bool matchesRecommended = true;
         bool matchesDefault = true;
 
+        // Toggle-level explicit override — parallel to HasAnyRecommendedData/HasAnyDefaultData,
+        // which check these fields first. Required for settings whose state lives outside
+        // RegistrySettings / ScheduledTaskSettings / PowerCfgSettings (e.g. natively-detected
+        // toggles like DetectionType.SystemRestore) — otherwise the loops below find no
+        // evidence and both flags stay at their initial true, lighting badges regardless of
+        // actual state.
+        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        if (isToggleLike)
+        {
+            if (SettingDefinition.RecommendedToggleState.HasValue
+                && IsSelected != SettingDefinition.RecommendedToggleState.Value)
+                matchesRecommended = false;
+            if (SettingDefinition.DefaultToggleState.HasValue
+                && IsSelected != SettingDefinition.DefaultToggleState.Value)
+                matchesDefault = false;
+        }
+
         // Check RegistrySettings
         foreach (var reg in SettingDefinition.RegistrySettings)
         {
@@ -1637,23 +1656,26 @@ public partial class SettingItemViewModel : BaseViewModel
             {
                 if (pcfg.PowerModeSupport == PowerModeSupport.Separate)
                 {
+                    // On systems without a battery (desktops), DC values aren't writable by
+                    // PowerCfgApplier and aren't user-visible in the UI. Treat the setting as
+                    // AC-only for badge purposes — comparing DC against recommended/default
+                    // would otherwise produce spurious mismatches after a system-state refresh.
+                    bool considerDc = HasBattery;
+
                     if (InputType == InputType.Selection)
                     {
-                        // AC/DC selection - compare indices against recommended/default PowerCfg values
-                        if (pcfg.RecommendedValueAC.HasValue || pcfg.RecommendedValueDC.HasValue)
-                        {
-                            if (pcfg.RecommendedValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value))
-                                matchesRecommended = false;
-                            if (pcfg.RecommendedValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value))
-                                matchesRecommended = false;
-                        }
-                        if (pcfg.DefaultValueAC.HasValue || pcfg.DefaultValueDC.HasValue)
-                        {
-                            if (pcfg.DefaultValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value))
-                                matchesDefault = false;
-                            if (pcfg.DefaultValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value))
-                                matchesDefault = false;
-                        }
+                        // AC/DC selection - compare indices against recommended/default PowerCfg values.
+                        // On battery-less systems DC isn't writable by PowerCfgApplier and the DC
+                        // control isn't shown — skip DC comparisons or a system-state refresh would
+                        // visibly correct the VM and flip the badge.
+                        if (pcfg.RecommendedValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value))
+                            matchesRecommended = false;
+                        if (considerDc && pcfg.RecommendedValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value))
+                            matchesRecommended = false;
+                        if (pcfg.DefaultValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value))
+                            matchesDefault = false;
+                        if (considerDc && pcfg.DefaultValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value))
+                            matchesDefault = false;
                     }
                     else if (InputType == InputType.NumericRange)
                     {
@@ -1661,11 +1683,11 @@ public partial class SettingItemViewModel : BaseViewModel
                         // pcfg values are in system units (e.g. Seconds). Convert before compare.
                         if (pcfg.RecommendedValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value))
                             matchesRecommended = false;
-                        if (pcfg.RecommendedValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value))
+                        if (considerDc && pcfg.RecommendedValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value))
                             matchesRecommended = false;
                         if (pcfg.DefaultValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueAC.Value))
                             matchesDefault = false;
-                        if (pcfg.DefaultValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueDC.Value))
+                        if (considerDc && pcfg.DefaultValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueDC.Value))
                             matchesDefault = false;
                     }
                 }
@@ -1690,7 +1712,7 @@ public partial class SettingItemViewModel : BaseViewModel
             }
         }
 
-        var row = new List<BadgePillState>(capacity: 4);
+        var row = new List<BadgePillState>(capacity: 8);
 
         if (SettingDefinition.IsSubjectivePreference)
         {
@@ -1698,19 +1720,36 @@ public partial class SettingItemViewModel : BaseViewModel
             row.Add(new BadgePillState(SettingBadgeKind.Preference, IsHighlighted: true, label, tooltip));
         }
 
-        if (HasAnyRecommendedData())
-        {
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended);
-            row.Add(new BadgePillState(SettingBadgeKind.Recommended, IsHighlighted: matchesRecommended, label, tooltip));
-        }
+        // For PowerCfg AC/DC Separate settings with a battery present, emit per-mode pills so
+        // the user can see at a glance which mode matches recommended/default and which is
+        // custom. On battery-less systems (desktops) DC is hidden and not writable, so we
+        // keep the single-pill behaviour that the rest of the catalog uses.
+        bool perModeBadges = SupportsSeparateACDC
+            && HasBattery
+            && SettingDefinition.PowerCfgSettings is { Count: > 0 } pcfgList
+            && pcfgList[0].PowerModeSupport == PowerModeSupport.Separate;
 
-        if (HasAnyDefaultData())
+        if (perModeBadges)
         {
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default);
-            row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
+            var pcfg = SettingDefinition.PowerCfgSettings![0];
+            AddAcDcRecommendedPills(row, pcfg);
+            AddAcDcDefaultPills(row, pcfg);
+            AddAcDcCustomPills(row, pcfg);
         }
-
+        else
         {
+            if (HasAnyRecommendedData())
+            {
+                var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended);
+                row.Add(new BadgePillState(SettingBadgeKind.Recommended, IsHighlighted: matchesRecommended, label, tooltip));
+            }
+
+            if (HasAnyDefaultData())
+            {
+                var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default);
+                row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
+            }
+
             // Selection: Custom when SelectedValue/AcValue/DcValue falls outside known options.
             // NumericRange: Custom when the current value matches neither Recommended nor Default.
             bool isCustom = InputType switch
@@ -1720,11 +1759,104 @@ public partial class SettingItemViewModel : BaseViewModel
                     && !matchesRecommended && !matchesDefault,
                 _ => false
             };
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: isCustom, label, tooltip));
+            var (cLabel, cTooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: isCustom, cLabel, cTooltip));
         }
 
         BadgeRow = row;
+    }
+
+    private void AddAcDcRecommendedPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    {
+        if (pcfg.RecommendedValueAC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? AcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value)
+                : PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended, SettingBadgeMode.AC);
+            row.Add(new BadgePillState(SettingBadgeKind.Recommended, match, label, tooltip, SettingBadgeMode.AC));
+        }
+        if (pcfg.RecommendedValueDC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? DcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value)
+                : PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended, SettingBadgeMode.DC);
+            row.Add(new BadgePillState(SettingBadgeKind.Recommended, match, label, tooltip, SettingBadgeMode.DC));
+        }
+    }
+
+    private void AddAcDcDefaultPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    {
+        if (pcfg.DefaultValueAC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? AcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueAC.Value)
+                : PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default, SettingBadgeMode.AC);
+            row.Add(new BadgePillState(SettingBadgeKind.Default, match, label, tooltip, SettingBadgeMode.AC));
+        }
+        if (pcfg.DefaultValueDC.HasValue)
+        {
+            bool match = InputType == InputType.NumericRange
+                ? DcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueDC.Value)
+                : PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value);
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default, SettingBadgeMode.DC);
+            row.Add(new BadgePillState(SettingBadgeKind.Default, match, label, tooltip, SettingBadgeMode.DC));
+        }
+    }
+
+    private void AddAcDcCustomPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    {
+        // Custom (per-mode) lights when the current value matches neither Recommended
+        // nor Default on that side, AND the setting actually has comparison data on that
+        // side. For Selection we also treat an out-of-range index as Custom.
+        bool acCustom = false, dcCustom = false;
+
+        if (InputType == InputType.Selection)
+        {
+            var options = SettingDefinition?.ComboBox?.Options;
+            if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+            {
+                bool acRec = pcfg.RecommendedValueAC.HasValue && PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value);
+                bool acDef = pcfg.DefaultValueAC.HasValue && PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value);
+                bool acOutOfRange = options != null && (AcValue < 0 || AcValue >= options.Count);
+                acCustom = acOutOfRange || (!acRec && !acDef);
+            }
+            if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+            {
+                bool dcRec = pcfg.RecommendedValueDC.HasValue && PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value);
+                bool dcDef = pcfg.DefaultValueDC.HasValue && PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value);
+                bool dcOutOfRange = options != null && (DcValue < 0 || DcValue >= options.Count);
+                dcCustom = dcOutOfRange || (!dcRec && !dcDef);
+            }
+        }
+        else if (InputType == InputType.NumericRange)
+        {
+            if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+            {
+                bool acRec = pcfg.RecommendedValueAC.HasValue && AcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value);
+                bool acDef = pcfg.DefaultValueAC.HasValue && AcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueAC.Value);
+                acCustom = !acRec && !acDef;
+            }
+            if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+            {
+                bool dcRec = pcfg.RecommendedValueDC.HasValue && DcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value);
+                bool dcDef = pcfg.DefaultValueDC.HasValue && DcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueDC.Value);
+                dcCustom = !dcRec && !dcDef;
+            }
+        }
+
+        if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.AC);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, acCustom, label, tooltip, SettingBadgeMode.AC));
+        }
+        if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+        {
+            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.DC);
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, dcCustom, label, tooltip, SettingBadgeMode.DC));
+        }
     }
 
     private (bool matchesRecommended, bool matchesDefault) EvaluateRegistrySetting(RegistrySetting reg)
@@ -1777,7 +1909,7 @@ public partial class SettingItemViewModel : BaseViewModel
             // because the factory default depends on locale). We light the pill whenever
             // the currently-selected option has the flag — no special-casing for subjective
             // settings; the Preference pill is added separately at row-build time.
-            var options = SettingDefinition.ComboBox?.Options;
+            var options = SettingDefinition?.ComboBox?.Options;
             if (options != null && SelectedValue is int currentIndex
                 && currentIndex >= 0 && currentIndex < options.Count)
             {
@@ -1848,6 +1980,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool HasAnyRecommendedData()
     {
+        if (SettingDefinition is null) return false;
         // Toggle-level explicit flag wins.
         if ((InputType == InputType.Toggle || InputType == InputType.CheckBox)
             && SettingDefinition.RecommendedToggleState.HasValue)
@@ -1879,7 +2012,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private bool HasAnyDefaultData()
     {
+        if (SettingDefinition is null) return false;
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        // Toggle-level explicit flag wins — parallel to HasAnyRecommendedData's first check.
+        if (isToggleLike && SettingDefinition.DefaultToggleState.HasValue)
+            return true;
         // Group-policy regs with null DefaultValue are usually write-only enforcers,
         // but for toggle settings the null-sentinel convention (e.g. EnabledValue = [null])
         // CAN express a meaningful default ("key absent = Windows default"). Include
@@ -1906,7 +2043,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private bool IsKnownSelectionValue()
     {
         if (InputType != InputType.Selection) return true;
-        var options = SettingDefinition.ComboBox?.Options;
+        var options = SettingDefinition?.ComboBox?.Options;
         if (options == null || options.Count == 0) return true;
         // Separate AC/DC Selection settings (PowerCfg-backed) drive the UI via AcValue/DcValue
         // rather than SelectedValue — validate those indices instead.
@@ -1916,22 +2053,35 @@ public partial class SettingItemViewModel : BaseViewModel
         return SelectedValue is int idx && idx >= 0 && idx < options.Count;
     }
 
-    private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind) => kind switch
+    private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind, SettingBadgeMode mode = SettingBadgeMode.None)
     {
-        SettingBadgeKind.Recommended => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-            _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
-        SettingBadgeKind.Default => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-            _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
-        SettingBadgeKind.Custom => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-            _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
-        SettingBadgeKind.Preference => (
-            _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
-            _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
-        _ => ("", ""),
-    };
+        var (baseLabel, tooltip) = kind switch
+        {
+            SettingBadgeKind.Recommended => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
+                _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
+            SettingBadgeKind.Default => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
+                _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
+            SettingBadgeKind.Custom => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
+                _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
+            SettingBadgeKind.Preference => (
+                _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
+                _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
+            _ => ("", ""),
+        };
+
+        // AC/DC are technical terms ("AC" = mains power, "DC" = battery) that are not
+        // translated in Windows' Power Options either — leave them as-is across all locales.
+        var label = mode switch
+        {
+            SettingBadgeMode.AC => $"{baseLabel} (AC)",
+            SettingBadgeMode.DC => $"{baseLabel} (DC)",
+            _ => baseLabel,
+        };
+        return (label, tooltip);
+    }
 
     /// <summary>
     /// Initializes HasBadgeData based on whether the definition has comparable

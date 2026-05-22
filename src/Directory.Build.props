@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    Auto-imported by every .csproj under src\ (MSBuild walks up looking
+    for Directory.Build.props). Used to redirect bin\ and obj\ to a local
+    path when extras\dev-build-and-run.ps1 sets WINHANCE_LOCAL_BUILD_ROOT.
+
+    Why: when the repo lives on an SMB-mapped drive (Z:\ for the primary
+    dev box), MSBuild's MakeDir-then-write task ordering races against
+    the SMB redirector's namespace cache and breaks the build with
+    DirectoryNotFoundException / MSB3191 / CS2012. Building straight to
+    a local C:\ path bypasses the race entirely. Visual Studio doesn't
+    set the env var, so VS builds in src\<proj>\bin and obj\ as normal.
+
+    Set BEFORE the SDK is imported (Directory.Build.props is auto-loaded
+    by Microsoft.Common.props which is the SDK's pre-import) so
+    BaseIntermediateOutputPath takes effect for restore + build.
+  -->
+  <PropertyGroup Condition="'$(WINHANCE_LOCAL_BUILD_ROOT)' != ''">
+    <BaseIntermediateOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\bin\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

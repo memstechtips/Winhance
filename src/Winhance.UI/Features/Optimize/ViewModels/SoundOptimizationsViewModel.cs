@@ -12,13 +12,12 @@ public partial class SoundOptimizationsViewModel : BaseSettingsFeatureViewModel,
     protected override string GetDisplayNameKey() => "Feature_Sound_Name";
 
     public SoundOptimizationsViewModel(
-        IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IEventBus eventBus)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
     }
 }

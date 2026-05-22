@@ -67,6 +67,15 @@
     <!-- PackageDown - Used for External Apps tab -->
     <x:String x:Key="ExternalAppsIconPath">M5.12,5L5.93,4H17.93L18.87,5M12,17.5L6.5,12H10V10H14V12H17.5L12,17.5M20.54,5.23L19.15,3.55C18.88,3.21 18.47,3 18,3H6C5.53,3 5.12,3.21 4.84,3.55L3.46,5.23C3.17,5.57 3,6 3,6.5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V6.5C21,6 20.83,5.57 20.54,5.23Z</x:String>
 
+    <!-- Status indicator icons for the Windows Apps card / compact / table views.
+         Rendered with PathIcon inside a Viewbox - see SoftwareAppsPage.xaml. -->
+    <!-- DesktopTowerMonitor - installed-state indicator -->
+    <x:String x:Key="DesktopTowerMonitorIconPath">M22,18H17A1,1 0 0,1 16,17V7A1,1 0 0,1 17,6H22A1,1 0 0,1 23,7V17A1,1 0 0,1 22,18M22,8H17V9H22V8M22,10H17V11H22V10M9,15V17H10V18H5V17H6V15H2A1,1 0 0,1 1,14V7A1,1 0 0,1 2,6H13A1,1 0 0,1 14,7V14A1,1 0 0,1 13,15H9M12,8H3V13H12V8Z</x:String>
+    <!-- Download - reinstallable ("Installable") indicator -->
+    <x:String x:Key="DownloadIconPath">M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z</x:String>
+    <!-- Alert - instability-warning indicator -->
+    <x:String x:Key="AlertIconPath">M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z</x:String>
+
     <!-- ==================== Badge Icons ==================== -->
     <!-- Icons used on SettingsCard InfoBadges AND on Quick Actions menu items.
          Keeping them centralized here ensures the badge icon and the matching

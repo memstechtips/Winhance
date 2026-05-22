@@ -10,6 +10,5 @@ namespace Winhance.Core.Features.Common.Models;
 public sealed record ComboBoxMetadata
 {
     public required IReadOnlyList<ComboBoxOption> Options { get; init; }
-    public bool SupportsCustomState { get; init; }
     public string? CustomStateDisplayName { get; init; }
 }

@@ -45,7 +45,6 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ReturnsViewModelsForAllSettings()
     {
-        var domainService = new Mock<IDomainService>().Object;
         var settings = new List<SettingDefinition>
         {
             new() { Id = "Setting1", Name = "Setting 1", Description = "Desc 1", InputType = InputType.Toggle },
@@ -80,7 +79,7 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(mockVm2);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
-            domainService, "TestFeature", "Loading...", null);
+            "TestFeature", "Loading...", null);
 
         result.Should().HaveCount(2);
     }
@@ -88,7 +87,6 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_SkipsSettingsWithFailedState()
     {
-        var domainService = new Mock<IDomainService>().Object;
         var settings = new List<SettingDefinition>
         {
             new() { Id = "GoodSetting", Name = "Good", Description = "Good desc", InputType = InputType.Toggle },
@@ -120,7 +118,7 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(mockVm);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
-            domainService, "TestFeature", "Loading...", null);
+            "TestFeature", "Loading...", null);
 
         result.Should().HaveCount(1);
     }
@@ -128,7 +126,6 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_StartsAndCompletesFeatureInitialization()
     {
-        var domainService = new Mock<IDomainService>().Object;
 
         _mockPreparationPipeline
             .Setup(p => p.PrepareSettings("TestFeature"))
@@ -143,7 +140,7 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(false);
 
         await _sut.LoadConfiguredSettingsAsync(
-            domainService, "TestFeature", "Loading...", null);
+            "TestFeature", "Loading...", null);
 
         _mockInitializationService.Verify(i => i.StartFeatureInitialization("TestFeature"), Times.Once);
         _mockInitializationService.Verify(i => i.CompleteFeatureInitialization("TestFeature"), Times.Once);
@@ -152,7 +149,6 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_PublishesTooltipUpdatedEvents()
     {
-        var domainService = new Mock<IDomainService>().Object;
         var tooltipData = new SettingTooltipData { SettingId = "Setting1", DisplayValue = "test" };
         var settings = new List<SettingDefinition>
         {
@@ -183,7 +179,7 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(mockVm);
 
         await _sut.LoadConfiguredSettingsAsync(
-            domainService, "TestFeature", "Loading...", null);
+            "TestFeature", "Loading...", null);
 
         _mockEventBus.Verify(
             e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "Setting1")),
@@ -193,14 +189,13 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_WhenExceptionThrown_CompletesInitializationAndRethrows()
     {
-        var domainService = new Mock<IDomainService>().Object;
 
         _mockPreparationPipeline
             .Setup(p => p.PrepareSettings("TestFeature"))
             .Throws(new Exception("Pipeline error"));
 
         var act = () => _sut.LoadConfiguredSettingsAsync(
-            domainService, "TestFeature", "Loading...", null);
+            "TestFeature", "Loading...", null);
 
         await act.Should().ThrowAsync<Exception>().WithMessage("Pipeline error");
         _mockInitializationService.Verify(i => i.CompleteFeatureInitialization("TestFeature"), Times.Once);
@@ -209,7 +204,6 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_WithEmptySettings_ReturnsEmptyCollection()
     {
-        var domainService = new Mock<IDomainService>().Object;
 
         _mockPreparationPipeline
             .Setup(p => p.PrepareSettings("EmptyFeature"))
@@ -224,7 +218,7 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(false);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
-            domainService, "EmptyFeature", "Loading...", null);
+            "EmptyFeature", "Loading...", null);
 
         result.Should().BeEmpty();
     }
@@ -257,7 +251,6 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ResolvesComboBoxForSelectionTypeSettings()
     {
-        var domainService = new Mock<IDomainService>().Object;
         var selectionSetting = new SettingDefinition
         {
             Id = "SelectSetting",
@@ -298,7 +291,7 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(mockVm);
 
         await _sut.LoadConfiguredSettingsAsync(
-            domainService, "TestFeature", "Loading...", null);
+            "TestFeature", "Loading...", null);
 
         _mockComboBoxResolver.Verify(r => r.ResolveCurrentValueAsync(
             selectionSetting, It.IsAny<Dictionary<string, object?>>()), Times.Once);

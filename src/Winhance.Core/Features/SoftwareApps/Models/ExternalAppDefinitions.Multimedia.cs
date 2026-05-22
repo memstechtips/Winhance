@@ -22,19 +22,29 @@ public static partial class ExternalAppDefinitions
                         Name = "VLC media player",
                         Description = "Open-source multimedia player and framework",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["VideoLAN.VLC"],
                         WinGetPackageId = ["VideoLAN.VLC"],
                         ChocoPackageId = "vlc",
-                        WebsiteUrl = "https://www.videolan.org/vlc/"
+                        MsStoreId = "9NBLGGH4VVNH",
+                        WebsiteUrl = "https://www.videolan.org/vlc/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/3/38/VLC_icon.png",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-itunes",
                         Name = "iTunes",
-                        Description = "Media player and library",
+                        Description = "Apple's music and media library; legacy iPhone and iPad sync tool",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["AppleInc.iTunes"],
                         WinGetPackageId = ["Apple.iTunes"],
                         ChocoPackageId = "itunes",
-                        WebsiteUrl = "https://www.apple.com/itunes/"
+                        MsStoreId = "9PB2MZ1ZMB1S",
+                        WebsiteUrl = "https://www.apple.com/itunes/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/ITunes_logo.svg/250px-ITunes_logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -46,7 +56,10 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["AIMP.AIMP"],
                         ChocoPackageId = "aimp",
                         MsStoreId = "9PCLLLH15SMT",
-                        WebsiteUrl = "https://www.aimp.ru/"
+                        WebsiteUrl = "https://www.aimp.ru/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/0/08/AIMP3_Logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -55,9 +68,14 @@ public static partial class ExternalAppDefinitions
                         Description = "Advanced audio player for Windows",
                         RegistryDisplayName = "foobar2000 {version} ({arch})",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["Resolute.foobar2000"],
                         WinGetPackageId = ["PeterPawlowski.foobar2000"],
                         ChocoPackageId = "foobar2000",
-                        WebsiteUrl = "https://www.foobar2000.org/"
+                        MsStoreId = "9PDJ8X9SPF2K",
+                        WebsiteUrl = "https://www.foobar2000.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/c/cf/Foobar2000_logo_black.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -68,7 +86,8 @@ public static partial class ExternalAppDefinitions
                         AppxPackageName = ["50072StevenMayall.MusicBee"],
                         MsStoreId = "9P4CLT2RJ1RS",
                         ChocoPackageId = "musicbee",
-                        WebsiteUrl = "https://www.getmusicbee.com/"
+                        WebsiteUrl = "https://www.getmusicbee.com/",
+                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                     new ItemDefinition
                     {
@@ -79,7 +98,12 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["Audacity.Audacity"],
                         ChocoPackageId = "audacity",
-                        WebsiteUrl = "https://www.audacityteam.org/"
+                        MsStoreId = "XP8K0J757HHRDW",
+                        WebsiteUrl = "https://www.audacityteam.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/audacity/audacity/master/images/AudacityLogo.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Audacity_Logo.svg/250px-Audacity_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -90,7 +114,8 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["GOMLab.GOMPlayer"],
                         ChocoPackageId = "gom-player",
                         MsStoreId = "XP8LKPZT4X0Z0P",
-                        WebsiteUrl = "https://www.gomlab.com/"
+                        WebsiteUrl = "https://www.gomlab.com/",
+                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                     new ItemDefinition
                     {
@@ -102,7 +127,10 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Spotify.Spotify"],
                         ChocoPackageId = "spotify",
                         MsStoreId = "9NCBCSZSJRSB",
-                        WebsiteUrl = "https://www.spotify.com/"
+                        WebsiteUrl = "https://www.spotify.com/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/250px-Spotify_logo_without_text.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -113,7 +141,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["VentisMedia.MediaMonkey.5"],
                         ChocoPackageId = "mediamonkey",
-                        WebsiteUrl = "https://www.mediamonkey.com/"
+                        WebsiteUrl = "https://www.mediamonkey.com/",
+                        IconSources = [
+                            "https://www.mediamonkey.com/assets/img/logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -123,7 +154,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["HandBrake.HandBrake"],
                         ChocoPackageId = "handbrake",
-                        WebsiteUrl = "https://handbrake.fr/"
+                        WebsiteUrl = "https://handbrake.fr/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/HandBrake/HandBrake/master/win/CS/HandBrakeWPF/handbrakepineapple.ico",
+                            "https://raw.githubusercontent.com/HandBrake/HandBrake/master/graphics/Logo/HandBrake-v1-128x128.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -133,7 +168,11 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["OBSProject.OBSStudio"],
                         ChocoPackageId = "obs-studio",
-                        WebsiteUrl = "https://obsproject.com/"
+                        WebsiteUrl = "https://obsproject.com/",
+                        IconSources = [
+                            "https://obsproject.com/assets/images/new_icon_small-r.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/OBS_Studio_Logo.svg/250px-OBS_Studio_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -143,35 +182,49 @@ public static partial class ExternalAppDefinitions
                         RegistryDisplayName = "Streamlabs Desktop {version}",
                         GroupName = "Multimedia (Audio & Video)",
                         ChocoPackageId = "streamlabs-obs",
-                        WebsiteUrl = "https://streamlabs.com/"
+                        WebsiteUrl = "https://streamlabs.com/",
+                        // Vendor only ships SVG/WebP and the Wikimedia render is a
+                        // narrow wordmark. Embed the on-page Streamlabs Desktop mark
+                        // (base64) so the resolver decodes it via the data: branch.
+                        IconSources = [
+                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAbCAMAAABY1h8eAAAAPFBMVEVHcEyA9dKA9dKA9dKA9tKA9dKA9dKF/tpjvaRIjHuA9dIBCBQAAAEgQDwrVE1Xp5F24sM1Z1wJFh1t0rQAnD66AAAAC3RSTlMAE5Da/29t////686eBCMAAACvSURBVHgBldJVAoNADEXRkbSZNA/f/14b3O1Cvg7OOMuHSJti8K7rQ4d9WvvSSV+7Jp3mXaAx3mJwcaQkaYPR/QZSINuc++uRBciLko6QCyDx3PpMNSPJs74q8QITcqYaqrXttkF4QhYUNvUcFmeWQlzpEpsZrR6Bfo4QBWU2J9hw3o6+RpWyhs3xAyn6Aa1RoFMoeImW5GPz54sj8qLxfwY6LVyvocvVd71uL1b8HzIqFClzDZl3AAAAAElFTkSuQmCC",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-mpc-be",
                         Name = "MPC-BE",
-                        Description = "Media Player Classic - Black Edition",
+                        Description = "Lightweight Media Player Classic fork for video and audio playback",
                         RegistryDisplayName = "MPC-BE {arch} {version}",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["HaukeGtze.77535DB761F2"],
                         WinGetPackageId = ["MPC-BE.MPC-BE"],
                         ChocoPackageId = "mpc-be",
-                        WebsiteUrl = "https://sourceforge.net/projects/mpcbe/"
+                        MsStoreId = "9PD88QB3BGKN",
+                        WebsiteUrl = "https://sourceforge.net/projects/mpcbe/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/0/03/MPC-BE.logo.1.png",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-k-lite-codec-pack",
                         Name = "K-Lite Codec Pack (Mega)",
-                        Description = "Collection of codecs and related tools",
+                        Description = "Codec bundle for playing video formats Windows can't open natively",
                         RegistryDisplayName = "K-Lite Mega Codec Pack {version}",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["CodecGuide.K-LiteCodecPack.Mega"],
                         ChocoPackageId = "k-litecodecpackmega",
-                        WebsiteUrl = "https://codecguide.com/"
+                        WebsiteUrl = "https://codecguide.com/",
+                        IconSources = [
+                            "https://www.codecguide.com/mpc_logo.png",
+                        ],
                     },
                     new ItemDefinition
                     {
                         Id = "external-app-capcut",
                         Name = "CapCut",
-                        Description = "Video editor",
+                        Description = "ByteDance's video editor with templates, effects, and AI tools",
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["ByteDance.CapCut"],
                         MsStoreId = "XP9KN75RRB9NHS",
@@ -179,7 +232,10 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://www.capcut.com/activity/download_pc",
-                        }
+                        },
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Capcut-icon.svg/250px-Capcut-icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -190,7 +246,10 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Daum.PotPlayer"],
                         ChocoPackageId = "potplayer",
                         MsStoreId = "XP8BSBGQW2DKS0",
-                        WebsiteUrl = "https://potplayer.tv/"
+                        WebsiteUrl = "https://potplayer.tv/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/e/e0/PotPlayer_logo_%282017%29.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -200,7 +259,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["KDE.Kdenlive"],
                         ChocoPackageId = "kdenlive",
-                        WebsiteUrl = "https://kdenlive.org/"
+                        WebsiteUrl = "https://kdenlive.org/",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/7/74/Kdenlive-logo-blank.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -208,9 +270,14 @@ public static partial class ExternalAppDefinitions
                         Name = "MediaInfo",
                         Description = "Technical information display tool for multimedia files",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["MediaArea.net.MediaInfo"],
                         WinGetPackageId = ["MediaArea.MediaInfo.GUI"],
                         ChocoPackageId = "mediainfo",
-                        WebsiteUrl = "https://mediaarea.net/en/MediaInfo"
+                        MsStoreId = "9NK81654HHV5",
+                        WebsiteUrl = "https://mediaarea.net/en/MediaInfo",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/MediaInfo_Logo.svg/250px-MediaInfo_Logo.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -221,7 +288,10 @@ public static partial class ExternalAppDefinitions
                         AppxPackageName = ["17479thefreacproject.freac-freeaudioconverter"],
                         MsStoreId = "9P1XD8ZQJ7JD",
                         ChocoPackageId = "freac",
-                        WebsiteUrl = "https://www.freac.org/"
+                        WebsiteUrl = "https://www.freac.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/enzo1982/freac/master/icons/freac-64x64.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -229,9 +299,15 @@ public static partial class ExternalAppDefinitions
                         Name = "SMPlayer",
                         Description = "Media Player with built-in codecs that can play virtually all video and audio formats",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["55144RicardoVillalba.SMPlayerMediaPlayer"],
                         WinGetPackageId = ["SMPlayer.SMPlayer"],
                         ChocoPackageId = "smplayer",
-                        WebsiteUrl = "https://www.smplayer.info/"
+                        MsStoreId = "9N80Q5M0QXW6",
+                        WebsiteUrl = "https://www.smplayer.info/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/smplayer-dev/smplayer/master/icons/smplayer_icon256.png",
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/SMPlayer_icon.svg/250px-SMPlayer_icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -243,7 +319,10 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Meltytech.Shotcut"],
                         ChocoPackageId = "Shotcut",
                         MsStoreId = "9PLNFFL3P6LR",
-                        WebsiteUrl = "https://www.shotcut.org/"
+                        WebsiteUrl = "https://www.shotcut.org/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/mltframework/shotcut/master/icons/shotcut-logo-64.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -252,9 +331,14 @@ public static partial class ExternalAppDefinitions
                         Description = "Cross-platform FFmpeg GUI for fast, lossless video/audio trimming",
                         RegistryDisplayName = "LosslessCut",
                         GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["57275mifi.no.LosslessCut"],
                         WinGetPackageId = ["ch.LosslessCut"],
                         ChocoPackageId = "lossless-cut",
-                        WebsiteUrl = "https://github.com/mifi/lossless-cut"
+                        MsStoreId = "9P30LSR4705L",
+                        WebsiteUrl = "https://github.com/mifi/lossless-cut",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/LosslessCut_icon.svg/250px-LosslessCut_icon.svg.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -270,7 +354,11 @@ public static partial class ExternalAppDefinitions
                         ExternalApp = new ExternalAppMetadata
                         {
                             DownloadUrl = "https://github.com/fxsound2/fxsound-app/releases/download/latest/fxsound_setup.exe",
-                        }
+                        },
+                        IconSources = [
+                            "https://raw.githubusercontent.com/fxsound2/fxsound-app/main/fxsound/Project/icon.ico",
+                            "https://raw.githubusercontent.com/fxsound2/fxsound-app/main/fxsound/Images/fxsound_large.png",
+                        ],
                     },
                     new ItemDefinition
                     {
@@ -281,7 +369,10 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         WinGetPackageId = ["irzyxa.Volume2Portable"],
                         ChocoPackageId = "volume2",
-                        WebsiteUrl = "https://github.com/irzyxa/Volume2"
+                        WebsiteUrl = "https://github.com/irzyxa/Volume2",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/irzyxa/Volume2/master/Assets/MainIcon-PNGs/256.png",
+                        ],
                     }
                 }
             };

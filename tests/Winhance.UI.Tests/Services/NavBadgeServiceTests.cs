@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -22,37 +23,39 @@ public class NavBadgeServiceTests : IDisposable
         // Create real WindowsAppsViewModel and ExternalAppsViewModel with mocked dependencies
         var mockWindowsAppsService = new Mock<IWindowsAppsService>();
         var mockAppInstallService = new Mock<IAppInstallationService>();
-        var mockAppUninstallService = new Mock<IAppUninstallationService>();
+        var mockExternalAppUninstallService = new Mock<IWindowsAppUninstallService>();
         var mockProgressService = new Mock<ITaskProgressService>();
         var mockLogService = new Mock<ILogService>();
         var mockDialogService = new Mock<IDialogService>();
         var mockLocalizationService = new Mock<ILocalizationService>();
         mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => key);
-        var mockConnectivityService = new Mock<IInternetConnectivityService>();
         var mockDispatcherService = new Mock<IDispatcherService>();
         mockDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>())).Callback<Action>(a => a());
+        var mockThemeService = new Mock<IThemeService>();
+        mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
 
         _windowsAppsVm = new WindowsAppsViewModel(
             mockWindowsAppsService.Object,
             mockAppInstallService.Object,
-            mockAppUninstallService.Object,
+            mockExternalAppUninstallService.Object,
             mockProgressService.Object,
             mockLogService.Object,
             mockDialogService.Object,
             mockLocalizationService.Object,
-            mockConnectivityService.Object,
-            mockDispatcherService.Object);
+            mockDispatcherService.Object,
+            mockThemeService.Object);
 
         var mockExternalAppsService = new Mock<IExternalAppsService>();
 
         _externalAppsVm = new ExternalAppsViewModel(
             mockExternalAppsService.Object,
+            mockAppInstallService.Object,
             mockProgressService.Object,
             mockLogService.Object,
             mockDialogService.Object,
             mockLocalizationService.Object,
-            mockConnectivityService.Object,
-            mockDispatcherService.Object);
+            mockDispatcherService.Object,
+            mockThemeService.Object);
 
         _sut = new NavBadgeService(
             _mockModeService.Object,

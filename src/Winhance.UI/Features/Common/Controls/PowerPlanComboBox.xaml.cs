@@ -2,13 +2,16 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using ComboBoxDisplayOption = Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption;
+using VirtualKey = Windows.System.VirtualKey;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -208,6 +211,30 @@ public sealed partial class PowerPlanComboBox : UserControl
             if (grid == null) continue;
 
             SetupItemVisualState(grid, powerPlanOption, option.Tag);
+
+            // Keyboard accessibility: Delete key on the focused item triggers DeleteRequested.
+            // The trash button itself can't be tab-reached inside an open ComboBox (Tab dismisses
+            // the dropdown), so this is the standard Windows list-deletion convention.
+            container.Tag = powerPlanOption;
+            container.KeyDown -= OnItemKeyDown;
+            container.KeyDown += OnItemKeyDown;
+        }
+    }
+
+    /// <summary>
+    /// Fires DeleteRequested when the user presses Delete on a focused deletable plan in the dropdown.
+    /// Matches the visibility gate of the trash icon: only fires on plans that exist on the system and aren't active.
+    /// </summary>
+    private void OnItemKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Delete
+            && sender is ComboBoxItem container
+            && container.Tag is PowerPlanComboBoxOption option
+            && option.ExistsOnSystem
+            && !option.IsActive)
+        {
+            DeleteRequested?.Invoke(this, option);
+            e.Handled = true;
         }
     }
 
@@ -244,6 +271,7 @@ public sealed partial class PowerPlanComboBox : UserControl
                 : Visibility.Collapsed;
 
             ToolTipService.SetToolTip(deleteButton, DeleteTooltipText);
+            AutomationProperties.SetName(deleteButton, DeleteTooltipText);
 
             // Wire up the click handler and set the tag for identifying the plan
             deleteButton.Tag = powerPlanOption;

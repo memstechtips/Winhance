@@ -28,7 +28,7 @@ public sealed partial class OptimizePage : Page
 {
     // Maps section keys to their icon resource keys:
     // - "Path" suffix = Material Design SVG path for PathIcon
-    // - "Symbol" suffix = FluentIcons.Common.Symbol enum name for SymbolIcon
+    // - "Symbol" suffix = FluentIcons.Common.Icon enum name for FluentIcon
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
         { "Privacy", "PrivacyIconPath" },
@@ -261,6 +261,13 @@ public sealed partial class OptimizePage : Page
         ViewModel.CurrentSectionKey = "Overview";
         InnerContentFrame.Content = null;
         UpdateContentVisibility();
+        // Re-aggregate per-card pills/new badges from the latest setting state.
+        // The overview is hosted inside OptimizePage, so toggling back from a sub-page
+        // doesn't fire OnNavigatedTo — without this, the cards keep showing whatever
+        // the SettingAppliedEvent subscriber last computed (which can lag behind any
+        // state mutation that happens while the user is on the sub-page).
+        UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
     }
 
     private void InnerContentFrame_Navigated(object sender, NavigationEventArgs e)
@@ -311,9 +318,9 @@ public sealed partial class OptimizePage : Page
 
                 if (isSymbol)
                 {
-                    if (Enum.TryParse<FluentIcons.Common.Symbol>(iconData, ignoreCase: true, out var symbol))
+                    if (Enum.TryParse<FluentIcons.Common.Icon>(iconData, ignoreCase: true, out var symbol))
                     {
-                        BreadcrumbSectionSymbol.Symbol = symbol;
+                        BreadcrumbSectionSymbol.Icon = symbol;
                     }
                 }
                 else

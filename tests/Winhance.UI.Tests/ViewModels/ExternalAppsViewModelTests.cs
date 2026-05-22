@@ -14,18 +14,22 @@ namespace Winhance.UI.Tests.ViewModels;
 public class ExternalAppsViewModelTests
 {
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
+    private readonly Mock<IAppInstallationService> _appInstallationService = new();
     private readonly Mock<ITaskProgressService> _progressService = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IInternetConnectivityService> _connectivityService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     public ExternalAppsViewModelTests()
     {
         _dispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
+        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
 
@@ -35,12 +39,13 @@ public class ExternalAppsViewModelTests
 
     private ExternalAppsViewModel CreateSut() => new(
         _externalAppsService.Object,
+        _appInstallationService.Object,
         _progressService.Object,
         _logService.Object,
         _dialogService.Object,
         _localizationService.Object,
-        _connectivityService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private ItemDefinition CreateTestItem(string id, string name = "Test App",
         string group = "Browsers", bool isInstalled = false) => new()
@@ -305,35 +310,12 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task InstallAppsAsync_WhenNoInternet_ShowsWarning()
-    {
-        _externalAppsService.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
-        _connectivityService.Setup(c => c.IsInternetConnectedAsync(true))
-            .ReturnsAsync(false);
-
-        var sut = CreateSut();
-        await sut.LoadAppsAndCheckInstallationStatusAsync();
-        sut.Items[0].IsSelected = true;
-
-        await sut.InstallAppsAsync();
-
-        _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("internet connection")),
-            It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
     public async Task InstallAppsAsync_WhenUserCancelsConfirmation_DoesNotInstall()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
         _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
             .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
-        _connectivityService.Setup(c => c.IsInternetConnectedAsync(true))
-            .ReturnsAsync(true);
         _dialogService.Setup(d => d.ShowAppOperationConfirmationAsync(
             It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<int>(), It.IsAny<string?>()))
             .ReturnsAsync((false, false));
@@ -508,27 +490,6 @@ public class ExternalAppsViewModelTests
 
         _externalAppsService.Verify(s => s.InstallAppAsync(
             It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task InstallApps_WhenNoInternetAndSkipConfirmation_ReturnsEarly()
-    {
-        _externalAppsService.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
-        _connectivityService.Setup(c => c.IsInternetConnectedAsync(true))
-            .ReturnsAsync(false);
-
-        var sut = CreateSut();
-        await sut.LoadAppsAndCheckInstallationStatusAsync();
-        sut.Items[0].IsSelected = true;
-
-        await sut.InstallApps(skipConfirmation: true);
-
-        // Should not show warning when skipConfirmation=true
-        _dialogService.Verify(d => d.ShowWarningAsync(
-            It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     // --- CheckInstallationStatusAsync ---

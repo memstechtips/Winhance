@@ -33,8 +33,6 @@ public class PowerService(
     private volatile IEnumerable<SettingDefinition>? _cachedSettings;
     private readonly object _cacheLock = new object();
 
-    public string DomainName => FeatureIds.Power;
-
     /// <summary>
     /// Attempts to apply a special (non-registry) setting. For power-plan-selection,
     /// delegates to plan import/activation logic.
@@ -153,37 +151,38 @@ public class PowerService(
     }
 
     /// <summary>
-    /// Returns the cached power settings, loading them on first call.
+    /// Returns the cached power settings, loading them on first call. Used internally
+    /// by ApplyRecommendedSettingsToPlanAsync when populating a freshly-imported plan.
     /// </summary>
     /// <returns>
-    /// The filtered settings for the power domain, or an empty enumerable
+    /// The filtered settings for the power feature, or an empty enumerable
     /// if loading fails (failure is logged, never thrown).
     /// </returns>
-    public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+    private Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
     {
         if (_cachedSettings != null)
-            return _cachedSettings;
+            return Task.FromResult(_cachedSettings);
 
         lock (_cacheLock)
         {
             if (_cachedSettings != null)
-                return _cachedSettings;
+                return Task.FromResult(_cachedSettings);
 
             try
             {
                 logService.Log(LogLevel.Info, "Loading Power settings");
                 _cachedSettings = compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Power);
-                return _cachedSettings;
+                return Task.FromResult(_cachedSettings);
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error loading Power settings: {ex.Message}");
-                return Enumerable.Empty<SettingDefinition>();
+                return Task.FromResult(Enumerable.Empty<SettingDefinition>());
             }
         }
     }
 
-    public void InvalidateCache()
+    private void InvalidateCache()
     {
         lock (_cacheLock)
         {
@@ -920,7 +919,7 @@ public class PowerService(
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
             logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-            await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(SettingIds.PowerPlanSelection).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection).ConfigureAwait(false);
             logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
         }
         catch (Exception ex)

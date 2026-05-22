@@ -122,7 +122,7 @@ public class ComboBoxResolverTests
     }
 
     [Fact]
-    public void ResolveRawValuesToIndex_NoMatchAndSupportsCustomState_ReturnsCustomStateIndex()
+    public void ResolveRawValuesToIndex_NoMatch_ReturnsCustomStateIndex()
     {
         var mappings = new Dictionary<int, Dictionary<string, object?>>
         {
@@ -139,7 +139,6 @@ public class ComboBoxResolverTests
             ComboBox = new ComboBoxMetadata
             {
                 Options = BuildOptionsFromMappings(mappings),
-                SupportsCustomState = true,
             },
             RegistrySettings = new[]
             {
@@ -212,6 +211,254 @@ public class ComboBoxResolverTests
 
         // DefaultValue of 42 should match index 1
         result.Should().Be(1);
+    }
+
+    [Fact]
+    public void ResolveRawValuesToIndex_AllRegistryValuesAbsent_ReturnsDefaultOptionIndex()
+    {
+        // A pristine system (backing registry value absent) is the Windows default, not "Custom".
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 0 } },
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1 (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 1 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 2",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 2 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        // Registry value absent - nothing discovered.
+        var result = _sut.ResolveRawValuesToIndex(setting, new Dictionary<string, object?>());
+
+        result.Should().Be(1);
+    }
+
+    [Fact]
+    public void ResolveRawValuesToIndex_AllRegistryValuesAbsent_NoDefaultOption_ReturnsCustomStateIndex()
+    {
+        // Absent values with no IsDefault option declared stay genuinely Custom.
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 0 } },
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 1 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        var result = _sut.ResolveRawValuesToIndex(setting, new Dictionary<string, object?>());
+
+        result.Should().Be(ComboBoxConstants.CustomStateIndex);
+    }
+
+    [Fact]
+    public void ResolveRawValuesToIndex_UnmatchedValue_ResolveUnmatchedToDefault_ReturnsDefaultOptionIndex()
+    {
+        // Settings whose Windows-default state isn't a single enumerable value (bitfields,
+        // varying binary blobs) opt into ResolveUnmatchedToDefault: a present-but-unrecognised
+        // value resolves to the IsDefault option, not "Custom".
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ResolveUnmatchedToDefault = true,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Programs (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 38 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Background Services",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 24 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        // Win32PrioritySeparation fresh-install value 2 — a "Programs" encoding, but not 38.
+        var result = _sut.ResolveRawValuesToIndex(
+            setting, new Dictionary<string, object?> { { "TestValue", 2 } });
+
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public void ResolveRawValuesToIndex_UnmatchedValue_ResolveUnmatchedToDefaultNotSet_ReturnsCustomStateIndex()
+    {
+        // Without the opt-in flag, an unrecognised present value stays genuinely "Custom".
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0 (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 38 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 24 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        var result = _sut.ResolveRawValuesToIndex(
+            setting, new Dictionary<string, object?> { { "TestValue", 2 } });
+
+        result.Should().Be(ComboBoxConstants.CustomStateIndex);
+    }
+
+    [Fact]
+    public void ResolveRawValuesToIndex_PartialAbsentValue_DefaultValueSubstitution_ResolvesToMatchingOption()
+    {
+        // explorer-customization-click-items shape: one backing value present, one absent.
+        // The absent value carries a RegistrySetting.DefaultValue, so it substitutes and the
+        // default option still matches — the all-absent fallback does not apply (not all absent).
+        var setting = new SettingDefinition
+        {
+            Id = "test",
+            Name = "Test Setting",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Double-click (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "ShellState", 1 }, { "IconUnderline", 3 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Single-click",
+                        ValueMappings = new Dictionary<string, object?> { { "ShellState", 0 }, { "IconUnderline", 2 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKCU\Test",
+                    ValueName = "ShellState",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+                new RegistrySetting
+                {
+                    KeyPath = @"HKCU\Test",
+                    ValueName = "IconUnderline",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = 3,
+                },
+            },
+        };
+
+        // ShellState present (1), IconUnderline absent -> substituted with DefaultValue 3.
+        var result = _sut.ResolveRawValuesToIndex(
+            setting, new Dictionary<string, object?> { { "ShellState", 1 } });
+
+        result.Should().Be(0);
     }
 
     #endregion

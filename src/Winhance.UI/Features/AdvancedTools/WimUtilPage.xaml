@@ -66,14 +66,14 @@
                                       Width="20" Height="20"
                                       Visibility="{x:Bind IsProcessing, Mode=OneWay}"/>
                         <!-- Complete checkmark -->
-                        <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular"
+                        <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular"
                                   FontSize="20"
                                   Foreground="#4CAF50"
                                   Visibility="{x:Bind IsComplete, Mode=OneWay}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
                         <!-- Failed X -->
-                        <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular"
+                        <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"
                                   FontSize="20"
                                   Foreground="#F44336"
                                   Visibility="{x:Bind HasFailed, Mode=OneWay}"
@@ -107,9 +107,14 @@
                     CornerRadius="4">
                 <StackPanel>
                     <!-- Step 1 Header -->
-                    <Border Padding="16,12"
-                            Tapped="Step1_Header_Tapped"
-                            Background="Transparent">
+                    <Button Padding="16,12"
+                            Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                            CommandParameter="1"
+                            AutomationProperties.Name="{x:Bind ViewModel.Step1State.Title, Mode=OneWay}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -117,8 +122,8 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <fluentIcons:SymbolIcon Grid.Column="0"
-                                      Symbol="HardDrive" IconVariant="Regular"
+                            <fluentIcons:FluentIcon Grid.Column="0"
+                                      Icon="HardDrive" IconVariant="Regular"
                                       FontSize="24"
                                       VerticalAlignment="Center"
                                       Margin="0,0,16,0"/>
@@ -149,18 +154,18 @@
                                       Stretch="Uniform"/>
                             </Viewbox>
                             <!-- Normal: chevron -->
-                            <fluentIcons:SymbolIcon Grid.Column="2"
-                                      Symbol="ChevronDown" IconVariant="Regular"
+                            <fluentIcons:FluentIcon Grid.Column="2"
+                                      Icon="ChevronDown" IconVariant="Regular"
                                       FontSize="12"
                                       VerticalAlignment="Center"
                                       Visibility="{x:Bind ViewModel.Step1State.ShowChevron, Mode=OneWay}"
                                       RenderTransformOrigin="0.5,0.5">
-                                <fluentIcons:SymbolIcon.RenderTransform>
+                                <fluentIcons:FluentIcon.RenderTransform>
                                     <RotateTransform Angle="{x:Bind ViewModel.Step1State.ChevronRotation, Mode=OneWay}"/>
-                                </fluentIcons:SymbolIcon.RenderTransform>
-                            </fluentIcons:SymbolIcon>
+                                </fluentIcons:FluentIcon.RenderTransform>
+                            </fluentIcons:FluentIcon>
                         </Grid>
-                    </Border>
+                    </Button>
 
                     <!-- Step 1 Content -->
                     <StackPanel Visibility="{x:Bind ViewModel.Step1State.IsExpanded, Mode=OneWay}"
@@ -311,13 +316,13 @@
                                        VerticalAlignment="Center"/>
                             <Button Click="Windows10Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="14"/>
+                                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
                                     <TextBlock Text="{x:Bind ViewModel.ButtonWindows10Text}"/>
                                 </StackPanel>
                             </Button>
                             <Button Click="Windows11Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="14"/>
+                                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
                                     <TextBlock Text="{x:Bind ViewModel.ButtonWindows11Text}"/>
                                 </StackPanel>
                             </Button>
@@ -337,9 +342,14 @@
                 <Grid>
                     <StackPanel>
                         <!-- Step 2 Header -->
-                        <Border Padding="16,12"
-                                Tapped="Step2_Header_Tapped"
-                                Background="Transparent">
+                        <Button Padding="16,12"
+                                Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                CommandParameter="2"
+                                AutomationProperties.Name="{x:Bind ViewModel.Step2State.Title, Mode=OneWay}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -382,18 +392,18 @@
                                           Stretch="Uniform"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
-                                <fluentIcons:SymbolIcon Grid.Column="2"
-                                          Symbol="ChevronDown" IconVariant="Regular"
+                                <fluentIcons:FluentIcon Grid.Column="2"
+                                          Icon="ChevronDown" IconVariant="Regular"
                                           FontSize="12"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step2State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
-                                    <fluentIcons:SymbolIcon.RenderTransform>
+                                    <fluentIcons:FluentIcon.RenderTransform>
                                         <RotateTransform Angle="{x:Bind ViewModel.Step2State.ChevronRotation, Mode=OneWay}"/>
-                                    </fluentIcons:SymbolIcon.RenderTransform>
-                                </fluentIcons:SymbolIcon>
+                                    </fluentIcons:FluentIcon.RenderTransform>
+                                </fluentIcons:FluentIcon>
                             </Grid>
-                        </Border>
+                        </Button>
 
                         <!-- Step 2 Content -->
                         <StackPanel Visibility="{x:Bind ViewModel.Step2State.IsExpanded, Mode=OneWay}"
@@ -437,13 +447,13 @@
                                     </StackPanel>
 
                                     <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
-                                        <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular"
+                                        <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular"
                                                   FontSize="20"
                                                   Foreground="#4CAF50"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
-                                        <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular"
+                                        <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"
                                                   FontSize="20"
                                                   Foreground="#F44336"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
@@ -476,7 +486,7 @@
                                            VerticalAlignment="Center"/>
                                 <Button Click="SchneegansLink_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular" FontSize="14"/>
+                                        <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular" FontSize="14"/>
                                         <TextBlock Text="{x:Bind ViewModel.ButtonSchneegansText}"/>
                                     </StackPanel>
                                 </Button>
@@ -502,9 +512,14 @@
                 <Grid>
                     <StackPanel>
                         <!-- Step 3 Header -->
-                        <Border Padding="16,12"
-                                Tapped="Step3_Header_Tapped"
-                                Background="Transparent">
+                        <Button Padding="16,12"
+                                Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                CommandParameter="3"
+                                AutomationProperties.Name="{x:Bind ViewModel.Step3State.Title, Mode=OneWay}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -512,8 +527,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <fluentIcons:SymbolIcon Grid.Column="0"
-                                          Symbol="PlugConnected" IconVariant="Regular"
+                                <fluentIcons:FluentIcon Grid.Column="0"
+                                          Icon="PlugConnected" IconVariant="Regular"
                                           FontSize="24"
                                           VerticalAlignment="Center"
                                           Margin="0,0,16,0"/>
@@ -544,18 +559,18 @@
                                           Stretch="Uniform"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
-                                <fluentIcons:SymbolIcon Grid.Column="2"
-                                          Symbol="ChevronDown" IconVariant="Regular"
+                                <fluentIcons:FluentIcon Grid.Column="2"
+                                          Icon="ChevronDown" IconVariant="Regular"
                                           FontSize="12"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step3State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
-                                    <fluentIcons:SymbolIcon.RenderTransform>
+                                    <fluentIcons:FluentIcon.RenderTransform>
                                         <RotateTransform Angle="{x:Bind ViewModel.Step3State.ChevronRotation, Mode=OneWay}"/>
-                                    </fluentIcons:SymbolIcon.RenderTransform>
-                                </fluentIcons:SymbolIcon>
+                                    </fluentIcons:FluentIcon.RenderTransform>
+                                </fluentIcons:FluentIcon>
                             </Grid>
-                        </Border>
+                        </Button>
 
                         <!-- Step 3 Content -->
                         <StackPanel Visibility="{x:Bind ViewModel.Step3State.IsExpanded, Mode=OneWay}"
@@ -588,9 +603,14 @@
                 <Grid>
                     <StackPanel>
                         <!-- Step 4 Header -->
-                        <Border Padding="16,12"
-                                Tapped="Step4_Header_Tapped"
-                                Background="Transparent">
+                        <Button Padding="16,12"
+                                Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                CommandParameter="4"
+                                AutomationProperties.Name="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -633,18 +653,18 @@
                                           Stretch="Uniform"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
-                                <fluentIcons:SymbolIcon Grid.Column="2"
-                                          Symbol="ChevronDown" IconVariant="Regular"
+                                <fluentIcons:FluentIcon Grid.Column="2"
+                                          Icon="ChevronDown" IconVariant="Regular"
                                           FontSize="12"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step4State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
-                                    <fluentIcons:SymbolIcon.RenderTransform>
+                                    <fluentIcons:FluentIcon.RenderTransform>
                                         <RotateTransform Angle="{x:Bind ViewModel.Step4State.ChevronRotation, Mode=OneWay}"/>
-                                    </fluentIcons:SymbolIcon.RenderTransform>
-                                </fluentIcons:SymbolIcon>
+                                    </fluentIcons:FluentIcon.RenderTransform>
+                                </fluentIcons:FluentIcon>
                             </Grid>
-                        </Border>
+                        </Button>
 
                         <!-- Step 4 Content -->
                         <StackPanel Visibility="{x:Bind ViewModel.Step4State.IsExpanded, Mode=OneWay}"

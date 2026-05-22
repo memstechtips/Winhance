@@ -73,7 +73,7 @@
                             VerticalAlignment="Center"
                             Padding="6,4"
                             Margin="0,0,6,0">
-                        <fluentIcons:SymbolIcon Symbol="Info" IconVariant="Regular" FontSize="14"/>
+                        <fluentIcons:FluentIcon Icon="Info" IconVariant="Regular" FontSize="14"/>
                     </Button>
 
                     <Button Grid.Column="3"
@@ -84,7 +84,7 @@
                             VerticalAlignment="Center"
                             Padding="8,4">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="12"/>
+                            <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="12"/>
                             <TextBlock Text="{x:Bind CancelText, Mode=OneWay}" FontSize="12"/>
                         </StackPanel>
                     </Button>

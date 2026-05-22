@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
@@ -12,7 +13,6 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class PowerOptimizationsViewModelTests
 {
-    private readonly Mock<IDomainServiceRouter> _mockDomainServiceRouter;
     private readonly Mock<ISettingsLoadingService> _mockSettingsLoadingService;
     private readonly Mock<ILogService> _mockLogService;
     private readonly Mock<ILocalizationService> _mockLocalizationService;
@@ -20,10 +20,10 @@ public class PowerOptimizationsViewModelTests
     private readonly Mock<IDialogService> _mockDialogService;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IPowerPlanComboBoxService> _mockPowerPlanComboBoxService;
+    private readonly Mock<IPowerService> _mockPowerService;
 
     public PowerOptimizationsViewModelTests()
     {
-        _mockDomainServiceRouter = new Mock<IDomainServiceRouter>();
         _mockSettingsLoadingService = new Mock<ISettingsLoadingService>();
         _mockLogService = new Mock<ILogService>();
         _mockLocalizationService = new Mock<ILocalizationService>();
@@ -31,6 +31,7 @@ public class PowerOptimizationsViewModelTests
         _mockDialogService = new Mock<IDialogService>();
         _mockEventBus = new Mock<IEventBus>();
         _mockPowerPlanComboBoxService = new Mock<IPowerPlanComboBoxService>();
+        _mockPowerService = new Mock<IPowerService>();
 
         // Set up localization to return the key itself by default
         _mockLocalizationService
@@ -50,14 +51,14 @@ public class PowerOptimizationsViewModelTests
     private PowerOptimizationsViewModel CreateViewModel()
     {
         return new PowerOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object);
+            _mockPowerPlanComboBoxService.Object,
+            _mockPowerService.Object);
     }
 
     [Fact]
@@ -300,37 +301,18 @@ public class PowerOptimizationsViewModelTests
     }
 
     [Fact]
-    public void Constructor_WithNullDomainServiceRouter_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new PowerOptimizationsViewModel(
-            null!,
-            _mockSettingsLoadingService.Object,
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            _mockDispatcherService.Object,
-            _mockDialogService.Object,
-            _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("domainServiceRouter");
-    }
-
-    [Fact]
     public void Constructor_WithNullSettingsLoadingService_ThrowsArgumentNullException()
     {
         // Act
         var action = () => new PowerOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             null!,
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object);
+            _mockPowerPlanComboBoxService.Object,
+            _mockPowerService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -342,14 +324,14 @@ public class PowerOptimizationsViewModelTests
     {
         // Act
         var action = () => new PowerOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             null!,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object);
+            _mockPowerPlanComboBoxService.Object,
+            _mockPowerService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -361,14 +343,14 @@ public class PowerOptimizationsViewModelTests
     {
         // Act
         var action = () => new PowerOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             null!,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object);
+            _mockPowerPlanComboBoxService.Object,
+            _mockPowerService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -380,14 +362,14 @@ public class PowerOptimizationsViewModelTests
     {
         // Act
         var action = () => new PowerOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
             null!,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object);
+            _mockPowerPlanComboBoxService.Object,
+            _mockPowerService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -399,14 +381,14 @@ public class PowerOptimizationsViewModelTests
     {
         // Act
         var action = () => new PowerOptimizationsViewModel(
-            _mockDomainServiceRouter.Object,
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             null!,
-            _mockPowerPlanComboBoxService.Object);
+            _mockPowerPlanComboBoxService.Object,
+            _mockPowerService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()

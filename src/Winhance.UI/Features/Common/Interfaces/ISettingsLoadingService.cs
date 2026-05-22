@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -13,12 +12,10 @@ public interface ISettingsLoadingService
     /// <summary>
     /// Loads settings for a feature and creates ViewModels for each.
     /// </summary>
-    Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync<TDomainService>(
-        TDomainService domainService,
+    Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
         string featureModuleId,
         string progressMessage,
-        ISettingsFeatureViewModel? parentViewModel = null)
-        where TDomainService : class, IDomainService;
+        ISettingsFeatureViewModel? parentViewModel = null);
 
     /// <summary>
     /// Performs a lightweight refresh of setting states by re-reading from the system.

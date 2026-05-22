@@ -18,7 +18,7 @@
 
         <!-- Row 0: Page Header with Icon -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
-            <fluentIcons:SymbolIcon Symbol="Settings" IconVariant="Regular" FontSize="64" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            <fluentIcons:FluentIcon Icon="Settings" IconVariant="Regular" FontSize="64" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock
                     Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}"
@@ -61,15 +61,21 @@
                             Header="{x:Bind ViewModel.LanguageHeader, Mode=OneWay}"
                             Description="{x:Bind ViewModel.LanguageDescription, Mode=OneWay}">
                             <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:SymbolIcon Symbol="LocalLanguage" IconVariant="Regular"/>
+                                <fluentIcons:FluentIcon Icon="LocalLanguage" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
                             <ComboBox
                                 x:Name="LanguageComboBox"
                                 MinWidth="200"
                                 ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}"
                                 SelectedValue="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
-                                DisplayMemberPath="DisplayText"
-                                SelectedValuePath="Value"/>
+                                SelectedValuePath="Value"
+                                FlowDirection="LeftToRight">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayText}" TextReadingOrder="UseFlowDirection"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </controls:SettingsCard>
 
                         <!-- Theme Setting -->
@@ -77,7 +83,7 @@
                             Header="{x:Bind ViewModel.ThemeHeader, Mode=OneWay}"
                             Description="{x:Bind ViewModel.ThemeDescription, Mode=OneWay}">
                             <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:SymbolIcon Symbol="PaintBrushSparkle" IconVariant="Regular"/>
+                                <fluentIcons:FluentIcon Icon="PaintBrushSparkle" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
                             <ComboBox
                                 x:Name="ThemeComboBox"
@@ -97,7 +103,7 @@
                             Header="{x:Bind ViewModel.BackupRestoreHeader, Mode=OneWay}"
                             Description="{x:Bind ViewModel.BackupRestoreDescription, Mode=OneWay}">
                             <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular"/>
+                                <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Button
@@ -127,7 +133,7 @@
                             Header="{x:Bind ViewModel.SystemProtectionHeader, Mode=OneWay}"
                             Description="{x:Bind ViewModel.SystemProtectionDescription, Mode=OneWay}">
                             <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:SymbolIcon Symbol="ShieldTask" IconVariant="Regular"/>
+                                <fluentIcons:FluentIcon Icon="ShieldTask" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
                             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                                 <ProgressRing

@@ -15,18 +15,24 @@ public class SystemSettingsDiscoveryServiceTests
     private readonly Mock<IWindowsRegistryService> _mockRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerQuery = new();
-    private readonly Mock<IDomainServiceRouter> _mockDomainRouter = new();
+    private readonly Mock<ISpecialDiscoveryRegistry> _mockDiscoveryRegistry = new();
     private readonly Mock<IScheduledTaskService> _mockScheduledTask = new();
+    private readonly Mock<ISystemRestoreService> _mockSystemRestore = new();
     private readonly SystemSettingsDiscoveryService _service;
 
     public SystemSettingsDiscoveryServiceTests()
     {
+        // Default: no discovery handlers registered. Tests that need handler
+        // behaviour can override _mockDiscoveryRegistry.Setup(r => r.All) locally.
+        _mockDiscoveryRegistry.Setup(r => r.All).Returns(Array.Empty<ISpecialSettingHandler>());
+
         _service = new SystemSettingsDiscoveryService(
             _mockRegistry.Object,
             _mockLog.Object,
             _mockPowerQuery.Object,
-            _mockDomainRouter.Object,
-            _mockScheduledTask.Object);
+            _mockDiscoveryRegistry.Object,
+            _mockScheduledTask.Object,
+            _mockSystemRestore.Object);
     }
 
     private static SettingDefinition CreateRegistrySetting(string id, string keyPath, string valueName, object?[]? enabledValue = null)
@@ -127,10 +133,6 @@ public class SystemSettingsDiscoveryServiceTests
             {
                 { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test\TestValue", 1 },
             });
-
-        // Need to set up the domain service router for Selection input type settings
-        var mockDomain = new Mock<IDomainService>();
-        mockDomain.Setup(d => d.DomainName).Returns("TestDomain");
 
         var result = await _service.GetRawSettingsValuesAsync(new[] { setting });
 
@@ -387,6 +389,112 @@ public class SystemSettingsDiscoveryServiceTests
 
         result["test-reg"].Success.Should().BeTrue();
         result["test-reg"].IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_SelectionSetting_AllRegistryValuesAbsent_ReturnsDefaultOptionIndex()
+    {
+        // A pristine system (backing registry value absent) is the Windows default, not "Custom".
+        var setting = new SettingDefinition
+        {
+            Id = "test-selection",
+            Name = "Test Selection",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 0",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 0 } },
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Option 1 (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 1 } },
+                        IsDefault = true,
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        // Registry key/value absent: GetBatchValues returns nothing.
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>());
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result.Should().ContainKey("test-selection");
+        result["test-selection"].Success.Should().BeTrue();
+        result["test-selection"].CurrentValue.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetSettingStatesAsync_SelectionSetting_UnmatchedValue_ResolveUnmatchedToDefault_ReturnsDefaultOptionIndex()
+    {
+        // ResolveUnmatchedToDefault: a present-but-unrecognised value resolves to the IsDefault
+        // option (e.g. Win32PrioritySeparation = 2, a "Programs" encoding that isn't 0x26).
+        var setting = new SettingDefinition
+        {
+            Id = "test-selection",
+            Name = "Test Selection",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ResolveUnmatchedToDefault = true,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Programs (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 38 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Background Services",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 24 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                [@"HKEY_CURRENT_USER\SOFTWARE\Test\TestValue"] = 2,
+            });
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result.Should().ContainKey("test-selection");
+        result["test-selection"].Success.Should().BeTrue();
+        result["test-selection"].CurrentValue.Should().Be(0);
     }
 
     [Fact]

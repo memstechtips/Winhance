@@ -10,19 +10,19 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class RecommendedSettingsServiceTests
 {
-    private readonly Mock<IDomainServiceRouter> _routerMock;
+    private readonly Mock<ICompatibleSettingsRegistry> _registryMock;
     private readonly Mock<IWindowsVersionService> _versionServiceMock;
     private readonly Mock<ILogService> _logMock;
     private readonly RecommendedSettingsService _sut;
 
     public RecommendedSettingsServiceTests()
     {
-        _routerMock = new Mock<IDomainServiceRouter>();
+        _registryMock = new Mock<ICompatibleSettingsRegistry>();
         _versionServiceMock = new Mock<IWindowsVersionService>();
         _logMock = new Mock<ILogService>();
 
         _sut = new RecommendedSettingsService(
-            _routerMock.Object,
+            _registryMock.Object,
             _versionServiceMock.Object,
             _logMock.Object);
     }
@@ -75,34 +75,16 @@ public class RecommendedSettingsServiceTests
         _versionServiceMock.Setup(v => v.GetWindowsBuildNumber()).Returns(buildNumber);
     }
 
-    private Mock<IDomainService> SetupDomainWithSettings(
-        string domainName,
+    private void SetupRegistryWithSettings(
+        string featureId,
         IEnumerable<SettingDefinition> settings)
     {
-        var domainMock = new Mock<IDomainService>();
-        domainMock.Setup(d => d.DomainName).Returns(domainName);
-        domainMock.Setup(d => d.GetSettingsAsync())
-            .ReturnsAsync(settings);
-
-        _routerMock
-            .Setup(r => r.GetDomainService(It.IsAny<string>()))
-            .Returns(domainMock.Object);
-
-        return domainMock;
-    }
-
-    [Fact]
-    public void DomainName_ReturnsRecommendedSettings()
-    {
-        _sut.DomainName.Should().Be("RecommendedSettings");
-    }
-
-    [Fact]
-    public async Task GetSettingsAsync_ReturnsEmpty()
-    {
-        var result = await _sut.GetSettingsAsync();
-
-        result.Should().BeEmpty();
+        _registryMock
+            .Setup(r => r.GetFeatureIdForSetting(It.IsAny<string>()))
+            .Returns(featureId);
+        _registryMock
+            .Setup(r => r.GetFilteredSettings(featureId))
+            .Returns(settings);
     }
 
     [Fact]
@@ -117,7 +99,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("another-with-rec", recommendedValue: 0),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("setting-with-rec");
 
@@ -139,7 +121,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("universal", recommendedValue: 1),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("universal");
 
@@ -159,7 +141,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("universal", recommendedValue: 1),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("universal");
 
@@ -179,7 +161,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("compatible", recommendedValue: 1),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("compatible");
 
@@ -199,7 +181,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("compatible", recommendedValue: 1),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("compatible");
 
@@ -209,17 +191,17 @@ public class RecommendedSettingsServiceTests
     }
 
     [Fact]
-    public async Task GetRecommendedSettingsAsync_UnknownDomain_ThrowsFromRouter()
+    public async Task GetRecommendedSettingsAsync_UnknownSetting_ThrowsInvalidOperation()
     {
         SetupWindows11();
 
-        _routerMock
-            .Setup(r => r.GetDomainService(It.IsAny<string>()))
-            .Throws(new ArgumentException("No domain service found for 'unknown-setting'"));
+        _registryMock
+            .Setup(r => r.GetFeatureIdForSetting(It.IsAny<string>()))
+            .Returns((string?)null);
 
         var action = () => _sut.GetRecommendedSettingsAsync("unknown-setting");
 
-        await action.Should().ThrowAsync<ArgumentException>()
+        await action.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*unknown-setting*");
     }
 
@@ -233,7 +215,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("win11-only", recommendedValue: 1, isWindows11Only: true),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("win11-only");
 
@@ -250,7 +232,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("win10-setting", recommendedValue: 1, isWindows10Only: true),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("win10-setting");
 
@@ -268,7 +250,7 @@ public class RecommendedSettingsServiceTests
             CreateSetting("in-range", recommendedValue: 1, minBuild: 22000, maxBuild: 23000),
         };
 
-        SetupDomainWithSettings("TestDomain", settings);
+        SetupRegistryWithSettings("TestFeature", settings);
 
         var result = await _sut.GetRecommendedSettingsAsync("in-range");
 

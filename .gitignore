@@ -10,9 +10,9 @@ GEMINI.md
 # Plans and design specs — always local, never committed.
 # Implementation plans, design specs, audits, and brainstorming outputs stay on
 # disk for the current work and are deleted or archived privately when done.
+# The whole docs/ tree is local-only.
 .plans/
-docs/plans/
-docs/superpowers/
+docs/
 .superpowers/
 # Custom Prompts
 .prompts/
@@ -250,3 +250,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Agent investigation working notes (regenerated; not source-of-truth)
+.agent-plans/

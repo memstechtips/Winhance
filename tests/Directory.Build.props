@@ -1,0 +1,21 @@
+<Project>
+  <!--
+    Auto-imported by every .csproj under tests\ (MSBuild walks up looking
+    for Directory.Build.props). Mirrors src\Directory.Build.props so that
+    test projects also redirect bin\ and obj\ when extras\dev-build-and-run.ps1
+    sets WINHANCE_LOCAL_BUILD_ROOT.
+
+    Why for tests specifically: `dotnet test` launches testhost.exe from the
+    test project's bin\ directory. Windows refuses to start executables
+    living on a network share (Win32Exception 5 / "Access is denied"),
+    so the test binaries MUST end up on a local path when the repo is
+    SMB-mapped. Same race-with-MSBuild concern as src too.
+
+    Set BEFORE the SDK is imported. Visual Studio doesn't set the env var,
+    so VS-driven test runs still go to tests\<proj>\bin\obj\ as normal.
+  -->
+  <PropertyGroup Condition="'$(WINHANCE_LOCAL_BUILD_ROOT)' != ''">
+    <BaseIntermediateOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\bin\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

@@ -12,7 +12,6 @@ public class GlobalSettingsPreloaderTests
 {
     private readonly Mock<ICompatibleSettingsRegistry> _compatibleRegistryMock;
     private readonly Mock<IGlobalSettingsRegistry> _globalRegistryMock;
-    private readonly Mock<IDomainServiceRouter> _routerMock;
     private readonly Mock<ILogService> _logMock;
     private readonly GlobalSettingsPreloader _sut;
 
@@ -20,13 +19,11 @@ public class GlobalSettingsPreloaderTests
     {
         _compatibleRegistryMock = new Mock<ICompatibleSettingsRegistry>();
         _globalRegistryMock = new Mock<IGlobalSettingsRegistry>();
-        _routerMock = new Mock<IDomainServiceRouter>();
         _logMock = new Mock<ILogService>();
 
         _sut = new GlobalSettingsPreloader(
             _compatibleRegistryMock.Object,
             _globalRegistryMock.Object,
-            _routerMock.Object,
             _logMock.Object);
     }
 
@@ -92,32 +89,6 @@ public class GlobalSettingsPreloaderTests
     }
 
     [Fact]
-    public async Task PreloadAllSettingsAsync_AddsSettingMappingsToRouter()
-    {
-        var settings = new List<SettingDefinition>
-        {
-            CreateSetting("dark-mode"),
-            CreateSetting("accent-color"),
-        };
-
-        var allBypassed = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            ["WindowsTheme"] = settings,
-        };
-
-        _compatibleRegistryMock
-            .Setup(r => r.GetAllBypassedSettings())
-            .Returns(allBypassed);
-
-        await _sut.PreloadAllSettingsAsync();
-
-        _routerMock.Verify(
-            r => r.AddSettingMappings("WindowsTheme", It.Is<IEnumerable<string>>(
-                ids => ids.Contains("dark-mode") && ids.Contains("accent-color"))),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task PreloadAllSettingsAsync_CalledTwice_SkipsSecondPreload()
     {
         _compatibleRegistryMock
@@ -173,9 +144,6 @@ public class GlobalSettingsPreloaderTests
         _sut.IsPreloaded.Should().BeTrue();
         _globalRegistryMock.Verify(
             r => r.RegisterSettings(It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>()),
-            Times.Never);
-        _routerMock.Verify(
-            r => r.AddSettingMappings(It.IsAny<string>(), It.IsAny<IEnumerable<string>>()),
             Times.Never);
     }
 }

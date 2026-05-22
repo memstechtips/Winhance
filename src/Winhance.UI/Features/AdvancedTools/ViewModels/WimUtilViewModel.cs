@@ -22,6 +22,10 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private bool _disposed;
 
+    // Steps 2-4 auto-expand once per completed extraction; the flag stops a
+    // later refresh from re-opening steps the user has manually collapsed.
+    private bool _autoExpandApplied;
+
     // ── Sub-ViewModels (public for XAML binding) ──────────────────────
 
     public WimStep1ViewModel Step1 { get; }
@@ -31,9 +35,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public WimStep4IsoViewModel Step4 { get; }
 
     // ── Wizard navigation state ──────────────────────────────────────
-
-    [ObservableProperty]
-    public partial int CurrentStep { get; set; }
 
     [ObservableProperty]
     public partial WizardStepState Step1State { get; set; }
@@ -185,7 +186,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             resourceService);
 
         // Initialize wizard state
-        CurrentStep = 1;
         Step1State = new WizardStepState();
         Step2State = new WizardStepState();
         Step3State = new WizardStepState();
@@ -227,6 +227,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4.IsOscdimgAvailable = await _oscdimgToolManager.IsOscdimgAvailableAsync();
         _dispatcherService.RunOnUIThread(Step4.UpdateDownloadOscdimgCardState);
         UpdateStepStates();
+        RefreshStepExpansion();
     }
 
     // ── Wizard navigation ────────────────────────────────────────────
@@ -236,18 +237,21 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     {
         if (string.IsNullOrEmpty(stepParameter) || !int.TryParse(stepParameter, out int targetStep)) return;
 
-        if (targetStep == CurrentStep)
-        {
-            CurrentStep = 0;
-            UpdateStepStates();
-            return;
-        }
+        var state = GetStepState(targetStep);
+        if (state is null || !IsStepAvailable(targetStep)) return;
 
-        if (!IsStepAvailable(targetStep)) return;
-
-        CurrentStep = targetStep;
-        UpdateStepStates();
+        // Steps toggle independently — collapsing one leaves the others as-is.
+        state.IsExpanded = !state.IsExpanded;
     }
+
+    private WizardStepState? GetStepState(int step) => step switch
+    {
+        1 => Step1State,
+        2 => Step2State,
+        3 => Step3State,
+        4 => Step4State,
+        _ => null
+    };
 
     private bool IsStepAvailable(int step) => step switch
     {
@@ -301,7 +305,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         var isConverting = ImageFormat.IsConverting;
         var isExtracting = Step1.IsExtracting;
 
-        Step1State.IsExpanded = CurrentStep == 1;
         Step1State.IsAvailable = true;
         Step1State.IsComplete = extractionComplete && !isConverting;
         Step1State.StatusText = isConverting
@@ -314,7 +317,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                         ? _localizationService.GetString("WIMUtil_Status_IsoSelected")
                         : _localizationService.GetString("WIMUtil_Status_NoIsoSelected");
 
-        Step2State.IsExpanded = CurrentStep == 2;
         Step2State.IsAvailable = extractionComplete && !isConverting;
         Step2State.IsComplete = Step2.IsXmlAdded;
         Step2State.StatusText = isConverting
@@ -325,7 +327,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                     ? _localizationService.GetString("WIMUtil_Status_XmlAdded")
                     : _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
 
-        Step3State.IsExpanded = CurrentStep == 3;
         Step3State.IsAvailable = extractionComplete && !isConverting;
         Step3State.IsComplete = Step3.AreDriversAdded;
         Step3State.StatusText = isConverting
@@ -336,7 +337,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                     ? _localizationService.GetString("WIMUtil_Status_DriversAdded")
                     : _localizationService.GetString("WIMUtil_Status_NoDriversAdded");
 
-        Step4State.IsExpanded = CurrentStep == 4;
         Step4State.IsAvailable = extractionComplete && !isConverting;
         Step4State.IsComplete = Step4.IsIsoCreated;
         Step4State.StatusText = isConverting
@@ -353,6 +353,36 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Step2State));
         OnPropertyChanged(nameof(Step3State));
         OnPropertyChanged(nameof(Step4State));
+    }
+
+    /// <summary>
+    /// Opens the right step panels for the current extraction state. Once the
+    /// ISO is extracted, steps 2-4 expand so the user sees every remaining task
+    /// — including step 4's oscdimg download card — without expanding panels by
+    /// hand. Step 1 is left alone (it stays expanded, showing its result).
+    /// Applied once per completed-extraction state; the user can freely
+    /// collapse/re-expand afterwards. Restarting extraction resets it.
+    /// </summary>
+    private void RefreshStepExpansion()
+    {
+        if (Step1.IsExtractionComplete)
+        {
+            if (_autoExpandApplied) return;
+            _autoExpandApplied = true;
+
+            Step2State.IsExpanded = true;
+            Step3State.IsExpanded = true;
+            Step4State.IsExpanded = true;
+        }
+        else
+        {
+            _autoExpandApplied = false;
+
+            Step1State.IsExpanded = true;
+            Step2State.IsExpanded = false;
+            Step3State.IsExpanded = false;
+            Step4State.IsExpanded = false;
+        }
     }
 
     // ── Sub-VM observation ───────────────────────────────────────────
@@ -377,6 +407,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                     {
                         _ = ImageFormat.SafeDetectImageFormatAsync();
                     }
+                    RefreshStepExpansion();
                     break;
             }
         }

@@ -13,6 +13,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 {
     private readonly IDialogService _dialogService;
     private readonly IPowerPlanComboBoxService _powerPlanComboBoxService;
+    private readonly IPowerService _powerService;
     private ISubscriptionToken? _powerPlanChangedSubscription;
 
     public override string ModuleId => FeatureIds.Power;
@@ -22,18 +23,19 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
     public IRelayCommand<PowerPlanComboBoxOption> DeletePowerPlanCommand { get; }
 
     public PowerOptimizationsViewModel(
-        IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         IEventBus eventBus,
-        IPowerPlanComboBoxService powerPlanComboBoxService)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        IPowerPlanComboBoxService powerPlanComboBoxService,
+        IPowerService powerService)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
     {
         _dialogService = dialogService;
         _powerPlanComboBoxService = powerPlanComboBoxService;
+        _powerService = powerService;
 
         DeletePowerPlanCommand = new RelayCommand<PowerPlanComboBoxOption>(async plan => await DeletePowerPlanAsync(plan));
     }
@@ -77,8 +79,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             _powerPlanComboBoxService.InvalidateCache();
 
             var options = await _powerPlanComboBoxService.GetPowerPlanOptionsAsync();
-            var powerService = _domainServiceRouter.GetDomainService(ModuleId) as IPowerService;
-            var activePlan = await powerService?.GetActivePowerPlanAsync()!;
+            var activePlan = await _powerService.GetActivePowerPlanAsync();
 
             int currentIndex = 0;
             if (activePlan != null)
@@ -169,10 +170,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             var confirmed = await _dialogService.ShowConfirmationAsync(message, title, confirmText, cancelText);
             if (!confirmed) return;
 
-            var powerService = _domainServiceRouter.GetDomainService(ModuleId) as IPowerService;
-            if (powerService == null) return;
-
-            var success = await powerService.DeletePowerPlanAsync(planToDelete.SystemPlan.Guid);
+            var success = await _powerService.DeletePowerPlanAsync(planToDelete.SystemPlan.Guid);
 
             if (success)
             {

@@ -23,6 +23,10 @@ public static class ExplorerCustomizations
                     Description = "Controls whether Windows appends '- Shortcut' text to newly created shortcut file names",
                     GroupName = "Desktop",
                     InputType = InputType.Selection,
+                    // The "link" REG_BINARY default content varies between installs (1E/15/21 00 00 00,
+                    // and it may be absent). Only "Remove" is a single exact value (00 00 00 00), so any
+                    // unrecognised/present-but-non-zero state resolves to the "Keep suffix" default.
+                    ResolveUnmatchedToDefault = true,
                     Icon = "LinkVariant",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -429,6 +433,16 @@ if (-not (Test-Path $icoPath)) {
                             ValueName = "",
                             EnabledValue = ["PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \"Start-Process cmd -ArgumentList '/s,/k, DISM /Online /Cleanup-Image /RestoreHealth' -Verb runAs\""],
                             DisabledValue = [null],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage",
+                            ValueName = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             RecommendedValue = null,
                             ValueType = RegistryValueKind.String,
@@ -912,7 +926,10 @@ if (-not (Test-Path $icoPath)) {
                             ValueName = "IconUnderline",
                             ValueType = RegistryValueKind.DWord,
                             RecommendedValue = null,
-                            DefaultValue = null,
+                            // Absent on a fresh install; an absent IconUnderline behaves as 3
+                            // (no underline — the double-click default). Substituting 3 lets the
+                            // default option match when ShellState is present but IconUnderline is not.
+                            DefaultValue = 3,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
@@ -1848,13 +1865,33 @@ if (Test-Path $appPathsKey) {
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
-                            ValueName = null,
-                            RecommendedValue = null,
-                            EnabledValue = [null],
-                            DisabledValue = null,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            ValueName = "System.IsPinnedToNameSpaceTree",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -1872,13 +1909,33 @@ if (Test-Path $appPathsKey) {
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
-                            ValueName = null,
-                            RecommendedValue = null,
-                            EnabledValue = [null],
-                            DisabledValue = null,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            ValueName = "System.IsPinnedToNameSpaceTree",
+                            RecommendedValue = 0,
+                            EnabledValue = [1, null],
+                            DisabledValue = [0],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\NonEnum",
+                            ValueName = "{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0, null],
+                            DisabledValue = [1, null],
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
@@ -2518,7 +2575,6 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
-                    // MIGRATION-CHECK: explorer-customization-measurement-system — pre-migration RegistrySetting had DefaultOption="U.S. (Imperial)" (idx 1) and DefaultValue="1", but both shipped Default configs (Windows10_22H2 and Windows11_25H2) use SelectedIndex=0 (Metric), and the Recommended config also uses idx 0. Configs win over DefaultOption/DefaultValue per sourcing authority; IsDefault placed on idx 0 (Metric), IsRecommended on idx 0.
                     Id = "explorer-customization-measurement-system",
                     IsSubjectivePreference = true,
                     Name = "Measurement System",
@@ -2606,7 +2662,50 @@ if (Test-Path $appPathsKey) {
                             },
                         },
                     },
-                },    
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-autoplay",
+                    RecommendedToggleState = true,
+                    Name = "Autoplay",
+                    Description = "Allow Windows to automatically open a dialog or run programs when you insert a USB drive, DVD, or SD card",
+                    GroupName = "Devices and Peripherals",
+                    InputType = InputType.Toggle,
+                    Icon = "PlayBox",
+                    AddedInVersion = "26.04.24",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            // Toggle ON (Autoplay enabled = Windows default) → key absent.
+                            // Toggle OFF (Autoplay suppressed) → DisableAutoplay = 1.
+                            // Recommended/Default toggle state derive from RecommendedToggleState=true
+                            // + EnabledValue=[null] (null sentinel → toggle on / Windows default).
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers",
+                            ValueName = "DisableAutoplay",
+                            EnabledValue = [null],
+                            DisabledValue = [1],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            // Windows ships NoDriveTypeAutoRun = 0x91 (145) — autorun blocked for
+                            // Unknown, CD-ROM, and Removable drive types. Toggle ON leaves the policy
+                            // absent so Windows applies its 145 default; toggle OFF writes 255 to block
+                            // autorun on every drive type. Never write 0 (allows autorun everywhere).
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+                            ValueName = "NoDriveTypeAutoRun",
+                            EnabledValue = [null],
+                            DisabledValue = [255],
+                            DefaultValue = null,
+                            RecommendedValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                },
             },
         };
     }

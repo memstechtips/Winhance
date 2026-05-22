@@ -7,4 +7,5 @@ public enum DetectionType
     ScheduledTask,
     PowerPlan,
     DnsServer,
+    SystemRestore,
 }

@@ -8,27 +8,28 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class RecommendedSettingsApplier(
-    IDomainServiceRouter domainServiceRouter,
+    ICompatibleSettingsRegistry compatibleSettingsRegistry,
     IRecommendedSettingsService recommendedSettingsService,
     ILogService logService) : IRecommendedSettingsApplier
 {
-    public async Task ApplyRecommendedSettingsForDomainAsync(string settingId, ISettingApplicationService settingApplicationService)
+    public async Task ApplyRecommendedSettingsForFeatureAsync(string settingId, ISettingApplicationService settingApplicationService)
     {
         try
         {
-            var domainService = domainServiceRouter.GetDomainService(settingId);
-            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Starting to apply recommended settings for domain '{domainService.DomainName}'");
+            var featureId = compatibleSettingsRegistry.GetFeatureIdForSetting(settingId)
+                ?? throw new InvalidOperationException($"Setting '{settingId}' has no feature mapping");
+            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Starting to apply recommended settings for feature '{featureId}'");
 
             var recommendedSettings = await recommendedSettingsService.GetRecommendedSettingsAsync(settingId).ConfigureAwait(false);
             // Exclude the calling setting to prevent infinite recursion
             // (e.g. updates-policy-mode calling ApplyRecommendedSettings which finds updates-policy-mode again)
             var settingsList = recommendedSettings.Where(s => s.Id != settingId).ToList();
 
-            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
+            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Found {settingsList.Count} recommended settings for feature '{featureId}'");
 
             if (settingsList.Count == 0)
             {
-                logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] No recommended settings found for domain '{domainService.DomainName}'");
+                logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] No recommended settings found for feature '{featureId}'");
                 return;
             }
 
@@ -101,7 +102,7 @@ public class RecommendedSettingsApplier(
                 }
             }
 
-            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Completed applying recommended settings for domain '{domainService.DomainName}'");
+            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Completed applying recommended settings for feature '{featureId}'");
         }
         catch (Exception ex)
         {

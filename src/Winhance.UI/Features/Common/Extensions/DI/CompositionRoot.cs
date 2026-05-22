@@ -20,7 +20,7 @@ public static class CompositionRoot
         // Register services in dependency order
         services
             .AddInfrastructureServices() // Infrastructure implementations
-            .AddDomainServices()         // Domain services (Customization, Optimization, SoftwareApps)
+            .AddSettingServices()        // Setting services (Customization, Optimization, SoftwareApps)
             .AddUIServices();            // UI-specific services (ThemeService, etc.)
 
         return services;

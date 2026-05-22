@@ -40,12 +40,10 @@ public class SettingsLoadingService : ISettingsLoadingService
         _viewModelFactory = viewModelFactory;
     }
 
-    public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync<TDomainService>(
-        TDomainService domainService,
+    public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
         string featureModuleId,
         string progressMessage,
         ISettingsFeatureViewModel? parentViewModel = null)
-        where TDomainService : class, IDomainService
     {
         try
         {

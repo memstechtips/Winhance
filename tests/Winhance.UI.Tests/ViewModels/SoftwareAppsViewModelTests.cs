@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 
@@ -13,20 +15,19 @@ public class SoftwareAppsViewModelTests
 {
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IAppUninstallationService> _appUninstallationService = new();
+    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
     private readonly Mock<ITaskProgressService> _progressService = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IInternetConnectivityService> _connectivityService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
     private readonly Mock<ITaskProgressService> _extProgressService = new();
     private readonly Mock<ILogService> _extLogService = new();
     private readonly Mock<IDialogService> _extDialogService = new();
     private readonly Mock<ILocalizationService> _extLocalizationService = new();
-    private readonly Mock<IInternetConnectivityService> _extConnectivityService = new();
     private readonly Mock<IDispatcherService> _extDispatcherService = new();
 
     private readonly Mock<ILocalizationService> _parentLocalizationService = new();
@@ -46,10 +47,16 @@ public class SoftwareAppsViewModelTests
         _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
+        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
 
         _extDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _extDispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
+        _extDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
             .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
 
@@ -62,27 +69,30 @@ public class SoftwareAppsViewModelTests
 
         _userPreferencesService.Setup(u => u.GetPreference(It.IsAny<string>(), It.IsAny<string>()))
             .Returns("Table");
+        _userPreferencesService.Setup(u => u.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
     }
 
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
         _appInstallationService.Object,
-        _appUninstallationService.Object,
+        _windowsAppUninstallService.Object,
         _progressService.Object,
         _logService.Object,
         _dialogService.Object,
         _localizationService.Object,
-        _connectivityService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
         _externalAppsService.Object,
+        _appInstallationService.Object,
         _extProgressService.Object,
         _extLogService.Object,
         _extDialogService.Object,
         _extLocalizationService.Object,
-        _extConnectivityService.Object,
-        _extDispatcherService.Object);
+        _extDispatcherService.Object,
+        _themeService.Object);
 
     private SoftwareAppsViewModel CreateSut()
     {
@@ -516,7 +526,8 @@ public class SoftwareAppsViewModelTests
 
         await sut.InitializeAsync();
 
-        sut.IsCardViewMode.Should().BeTrue();
+        sut.ViewMode.Should().Be(SoftwareAppsViewMode.Card);
+        sut.IsCardView.Should().BeTrue();
     }
 
     [Fact]
@@ -566,5 +577,124 @@ public class SoftwareAppsViewModelTests
 
         _configReviewBadgeService.VerifySet(s => s.IsSoftwareAppsReviewed = It.IsAny<bool>(), Times.AtLeastOnce);
         _configReviewBadgeService.Verify(s => s.NotifyBadgeStateChanged(), Times.AtLeastOnce);
+    }
+
+    // --- ViewMode enum ---
+
+    [Fact]
+    public async Task DefaultViewMode_IsCard_WhenNoPreferenceSaved()
+    {
+        _userPreferencesService.Setup(u => u.GetPreference("SoftwareAppsViewMode", "Card"))
+            .Returns("Card");
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+
+        var sut = CreateSut();
+        await sut.InitializeAsync();
+
+        sut.ViewMode.Should().Be(SoftwareAppsViewMode.Card);
+        sut.IsCardView.Should().BeTrue();
+        sut.IsTableView.Should().BeFalse();
+        sut.IsCompactView.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ViewMode_LoadsTable_WhenPreferenceIsTable()
+    {
+        _userPreferencesService.Setup(u => u.GetPreference("SoftwareAppsViewMode", "Card"))
+            .Returns("Table");
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+
+        var sut = CreateSut();
+        await sut.InitializeAsync();
+
+        sut.ViewMode.Should().Be(SoftwareAppsViewMode.Table);
+        sut.IsTableView.Should().BeTrue();
+        sut.IsCardView.Should().BeFalse();
+        sut.IsCompactView.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ViewMode_LoadsCompact_WhenPreferenceIsCompact()
+    {
+        _userPreferencesService.Setup(u => u.GetPreference("SoftwareAppsViewMode", "Card"))
+            .Returns("Compact");
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+
+        var sut = CreateSut();
+        await sut.InitializeAsync();
+
+        sut.ViewMode.Should().Be(SoftwareAppsViewMode.Compact);
+        sut.IsCompactView.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ViewMode_FallsBackToCard_WhenPreferenceIsUnknown()
+    {
+        _userPreferencesService.Setup(u => u.GetPreference("SoftwareAppsViewMode", "Card"))
+            .Returns("Garbage");
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool>());
+
+        var sut = CreateSut();
+        await sut.InitializeAsync();
+
+        sut.ViewMode.Should().Be(SoftwareAppsViewMode.Card);
+    }
+
+    [Fact]
+    public void SettingViewMode_PersistsPreference()
+    {
+        var sut = CreateSut();
+
+        sut.ViewMode = SoftwareAppsViewMode.Compact;
+
+        _userPreferencesService.Verify(
+            u => u.SetPreferenceAsync("SoftwareAppsViewMode", "Compact"),
+            Times.Once);
+    }
+
+    [Fact]
+    public void ChangingViewMode_RaisesPropertyChangedForAllConveniences()
+    {
+        var sut = CreateSut();
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        sut.ViewMode = SoftwareAppsViewMode.Table;
+
+        changed.Should().Contain(new[]
+        {
+            nameof(sut.ViewMode),
+            nameof(sut.IsCardView),
+            nameof(sut.IsTableView),
+            nameof(sut.IsCompactView),
+        });
     }
 }

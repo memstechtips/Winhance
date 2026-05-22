@@ -315,7 +315,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Command to import configuration.
     /// </summary>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanImportConfig))]
     private async Task ImportConfigAsync()
     {
         try
@@ -327,6 +327,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _logService.LogWarning($"Failed to import configuration: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Import is disabled while a config review is in progress — starting a second
+    /// import on top of an active review would stack review sessions. This gate is
+    /// re-evaluated via <see cref="ImportConfigCommand"/>.NotifyCanExecuteChanged()
+    /// whenever review mode is entered or exited.
+    /// </summary>
+    private bool CanImportConfig() => !ReviewModeBar.IsInReviewMode;
 
     /// <summary>
     /// Command to toggle Windows version filter.
@@ -406,6 +414,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
         {
             OnPropertyChanged(nameof(IsWindowsFilterButtonEnabled));
+            ImportConfigCommand.NotifyCanExecuteChanged();
             HandleReviewModeFilterChange(ReviewModeBar.IsInReviewMode);
         }
     }

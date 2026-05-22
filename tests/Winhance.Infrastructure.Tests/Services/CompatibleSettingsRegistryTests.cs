@@ -279,6 +279,68 @@ public class CompatibleSettingsRegistryTests
             .WithParameterName("logService");
     }
 
+    [Fact]
+    public void GetById_BeforeInitialize_ThrowsInvalidOperationException()
+    {
+        Action act = () => _sut.GetById("any-id");
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GetById_ExistingId_ReturnsSetting()
+    {
+        await _sut.InitializeAsync();
+
+        var result = _sut.GetById("security-uac-level");
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be("security-uac-level");
+    }
+
+    [Fact]
+    public async Task GetById_MissingId_ReturnsNull()
+    {
+        await _sut.InitializeAsync();
+
+        _sut.GetById("does-not-exist").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFeatureIdForSetting_ExistingId_ReturnsFeatureId()
+    {
+        await _sut.InitializeAsync();
+
+        _sut.GetFeatureIdForSetting("security-uac-level").Should().Be(FeatureIds.Privacy);
+    }
+
+    [Fact]
+    public async Task GetFeatureIdForSetting_MissingId_ReturnsNull()
+    {
+        await _sut.InitializeAsync();
+
+        _sut.GetFeatureIdForSetting("does-not-exist").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetById_NullSettingId_ThrowsArgumentNullException()
+    {
+        // Must be initialized first so we exercise the null-guard rather than the not-init throw.
+        await _sut.InitializeAsync();
+
+        Action act = () => _sut.GetById(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task GetFeatureIdForSetting_NullSettingId_ThrowsArgumentNullException()
+    {
+        // Must be initialized first so we exercise the null-guard rather than the not-init throw.
+        await _sut.InitializeAsync();
+
+        Action act = () => _sut.GetFeatureIdForSetting(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
     private static SettingDefinition CreateSetting(string id, string name)
     {
         return new SettingDefinition

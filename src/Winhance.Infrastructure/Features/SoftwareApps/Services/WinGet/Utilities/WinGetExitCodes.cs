@@ -48,13 +48,6 @@ public static class WinGetExitCodes
     public static bool IsUninstallVerifiable(int exitCode)
         => exitCode == ExecUninstallCommandFailed || exitCode == NoUninstallInfoFound;
 
-    /// <summary>
-    /// Returns true if the exit code indicates the WinGet source database is corrupt
-    /// or inaccessible, suggesting a retry with the bundled WinGet CLI may succeed.
-    /// </summary>
-    public static bool IsSourceDatabaseError(int exitCode)
-        => exitCode == SourceDatabaseCorrupt || exitCode == FailedToOpenAllSources;
-
     public static InstallFailureReason MapExitCode(int exitCode) => exitCode switch
     {
         Ok => InstallFailureReason.None,
