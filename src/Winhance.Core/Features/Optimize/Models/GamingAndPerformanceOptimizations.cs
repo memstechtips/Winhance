@@ -391,6 +391,11 @@ public static class GamingAndPerformanceOptimizations
                     GroupName = "Processor",
                     Icon = "Application",
                     InputType = InputType.Selection,
+                    // Win32PrioritySeparation is a bitfield: the fresh-install default is 2,
+                    // while the Windows GUI's "Programs" radio writes 0x26 (38). Both encode
+                    // "Programs". Only "Background Services" (24) is a single exact value, so
+                    // any unrecognised value resolves to the "Programs" default.
+                    ResolveUnmatchedToDefault = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -518,54 +523,54 @@ public static class GamingAndPerformanceOptimizations
                             new ComboBoxOption
                             {
                                 DisplayName = "Default",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 380000 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 3670016 }, // 0x380000 — Windows default
                                 IsRecommended = true,
                                 IsDefault = true,
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "4 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 327680 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 4194304 }, // 0x400000 = 4 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "6 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 491520 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 6291456 }, // 0x600000 = 6 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "8 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 655360 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 8388608 }, // 0x800000 = 8 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "12 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 983040 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 12582912 }, // 0xC00000 = 12 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "16 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 1310720 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 16777216 }, // 0x1000000 = 16 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "24 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 1966080 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 25165824 }, // 0x1800000 = 24 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "32 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 2621440 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 33554432 }, // 0x2000000 = 32 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "64 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 5242880 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 67108864 }, // 0x4000000 = 64 GB in KB
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "128 GB",
-                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 10485760 },
+                                ValueMappings = new Dictionary<string, object?> { ["SvcHostSplitThresholdInKB"] = 134217728 }, // 0x8000000 = 128 GB in KB
                             },
                         },
                     },

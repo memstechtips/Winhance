@@ -66,4 +66,20 @@ public sealed record SettingDefinition : BaseDefinition, ISettingItem
     /// DefaultValue, or no Default badge if those are also null".
     /// </summary>
     public bool? DefaultToggleState { get; init; }
+
+    /// <summary>
+    /// For Selection settings: when no <see cref="ComboBoxOption"/> matches the live registry
+    /// state, resolve to the <see cref="ComboBoxOption.IsDefault"/> option instead of "Custom".
+    ///
+    /// Set this only when the setting's Windows-default state cannot be expressed as a single
+    /// enumerable option value — e.g. a REG_BINARY blob whose default content varies between
+    /// installs (the shortcut-suffix "link" value), or a bitfield where several distinct raw
+    /// values all mean the default option (Win32PrioritySeparation: both 2 and 0x26 are
+    /// "Programs"). The non-default option(s) must still map exact values, so a recognised
+    /// non-default state resolves correctly; only genuinely unrecognised states fall back.
+    ///
+    /// Default false: an unmatched value stays "Custom" (strict detection). This is a superset
+    /// of the all-backing-values-absent fallback, which still applies regardless of this flag.
+    /// </summary>
+    public bool ResolveUnmatchedToDefault { get; init; } = false;
 }

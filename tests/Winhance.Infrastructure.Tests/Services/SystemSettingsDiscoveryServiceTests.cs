@@ -443,6 +443,61 @@ public class SystemSettingsDiscoveryServiceTests
     }
 
     [Fact]
+    public async Task GetSettingStatesAsync_SelectionSetting_UnmatchedValue_ResolveUnmatchedToDefault_ReturnsDefaultOptionIndex()
+    {
+        // ResolveUnmatchedToDefault: a present-but-unrecognised value resolves to the IsDefault
+        // option (e.g. Win32PrioritySeparation = 2, a "Programs" encoding that isn't 0x26).
+        var setting = new SettingDefinition
+        {
+            Id = "test-selection",
+            Name = "Test Selection",
+            Description = "Test",
+            InputType = InputType.Selection,
+            ResolveUnmatchedToDefault = true,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Programs (Default)",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 38 } },
+                        IsDefault = true,
+                    },
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Background Services",
+                        ValueMappings = new Dictionary<string, object?> { { "TestValue", 24 } },
+                    },
+                },
+            },
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Test",
+                    ValueName = "TestValue",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = null,
+                    DefaultValue = null,
+                },
+            },
+        };
+
+        _mockRegistry.Setup(r => r.GetBatchValues(It.IsAny<IEnumerable<(string, string?)>>()))
+            .Returns(new Dictionary<string, object?>
+            {
+                [@"HKEY_CURRENT_USER\SOFTWARE\Test\TestValue"] = 2,
+            });
+
+        var result = await _service.GetSettingStatesAsync(new[] { setting });
+
+        result.Should().ContainKey("test-selection");
+        result["test-selection"].Success.Should().BeTrue();
+        result["test-selection"].CurrentValue.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetSettingStatesAsync_PowerCfgSetting_ReturnsEnabledWhenValueNonZero()
     {
         var setting = CreatePowerCfgSetting("test-power", "guid-power");

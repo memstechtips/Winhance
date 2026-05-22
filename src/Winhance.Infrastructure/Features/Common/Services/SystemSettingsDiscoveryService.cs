@@ -584,8 +584,12 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
-        // No option matched, but every backing registry value is absent: Windows default, not "Custom".
-        if (currentValues.Count > 0 && currentValues.Values.All(v => v is null))
+        // No option matched. Fall back to the IsDefault option when either:
+        //  - every backing registry value is absent (a pristine system is the Windows default), or
+        //  - the setting opts in via ResolveUnmatchedToDefault (its default state isn't a single
+        //    enumerable value, so any unrecognised state is treated as the default).
+        bool allBackingValuesAbsent = currentValues.Count > 0 && currentValues.Values.All(v => v is null);
+        if (allBackingValuesAbsent || setting.ResolveUnmatchedToDefault)
         {
             for (int i = 0; i < options.Count; i++)
             {

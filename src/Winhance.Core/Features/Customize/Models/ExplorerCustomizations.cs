@@ -23,6 +23,10 @@ public static class ExplorerCustomizations
                     Description = "Controls whether Windows appends '- Shortcut' text to newly created shortcut file names",
                     GroupName = "Desktop",
                     InputType = InputType.Selection,
+                    // The "link" REG_BINARY default content varies between installs (1E/15/21 00 00 00,
+                    // and it may be absent). Only "Remove" is a single exact value (00 00 00 00), so any
+                    // unrecognised/present-but-non-zero state resolves to the "Keep suffix" default.
+                    ResolveUnmatchedToDefault = true,
                     Icon = "LinkVariant",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -922,7 +926,10 @@ if (-not (Test-Path $icoPath)) {
                             ValueName = "IconUnderline",
                             ValueType = RegistryValueKind.DWord,
                             RecommendedValue = null,
-                            DefaultValue = null,
+                            // Absent on a fresh install; an absent IconUnderline behaves as 3
+                            // (no underline — the double-click default). Substituting 3 lets the
+                            // default option match when ShellState is present but IconUnderline is not.
+                            DefaultValue = 3,
                         },
                     },
                     ComboBox = new ComboBoxMetadata
