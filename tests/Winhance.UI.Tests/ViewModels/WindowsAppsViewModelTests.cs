@@ -21,6 +21,7 @@ public class WindowsAppsViewModelTests
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     public WindowsAppsViewModelTests()
     {
@@ -45,7 +46,8 @@ public class WindowsAppsViewModelTests
         _logService.Object,
         _dialogService.Object,
         _localizationService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private ItemDefinition CreateTestItem(string id, string name = "Test App",
         string[]? appxPackageName = null, bool isInstalled = false) => new()

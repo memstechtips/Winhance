@@ -809,7 +809,7 @@
   "Setting_gaming-windows-search-service_Description": "تفهرس الملفات والمجلدات لنتائج بحث أسرع. تعطيلها يقلل نشاط CPU والقرص في الخلفية، لكنه يُعطل بحث Outlook ويجعل بحث قائمة ابدأ ومستكشف الملفات بطيئًا أو غير موثوق",
   "Setting_gaming-windows-search-service_OptionWarning_0": "تحذير: تعطيل WSearch يوقف فهرسة محتوى الملفات. بحث Outlook وبحث قائمة ابدأ وبحث مستكشف الملفات ستصبح بطيئة أو لن تعيد أي نتائج حتى يُعاد تفعيلها.",
   "Setting_gaming-telephony-service_Name": "خدمة الاتصالات الهاتفية",
-  "Setting_gaming-telephony-service_Description": "تدير الاتصالات الهاتفية (TAPI) لنقل الصوت في Phone Link وأجهزة المودم والفاكس وهواتف VoIP البرمجية. اتركها على \"يدوي\" (الإعداد الافتراضي لـ Windows) ما لم تكن لا تستخدم أي برامج اتصالات هاتفية",
+  "Setting_gaming-telephony-service_Description": "تدير الاتصالات الهاتفية (TAPI) لنقل الصوت في Phone Link وأجهزة المودم والفاكس وهواتف VoIP البرمجية. اتركها على “يدوي” (الإعداد الافتراضي لـ Windows) ما لم تكن لا تستخدم أي برامج اتصالات هاتفية",
   "Setting_gaming-telephony-service_OptionWarning_0": "تعطيل خدمة الهاتف يُعطّل ترحيل الصوت في Phone Link وبرامج الفاكس ومودِمات الاتصال الهاتفي والهواتف البرمجية عبر VoIP (مثل 3CX وCisco Jabber).",
   "Setting_gaming-print-spooler-service_Name": "خدمة Print Spooler",
   "Setting_gaming-print-spooler-service_Description": "تدير مهام الطباعة المرسلة للطابعات. إذا كنت لا تستخدم طابعة، اضبطها على يدوي أو معطل لتوفير موارد النظام",

@@ -1,5 +1,6 @@
 // File: tests/Winhance.Infrastructure.Tests/Services/ThemeWallpaperApplierTests.cs
 using System.Collections.Generic;
+using Microsoft.Win32;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
@@ -29,7 +30,7 @@ public class ThemeWallpaperApplierTests
     [Fact]
     public async Task TryApply_NonThemeSettingId_ReturnsFalse()
     {
-        var setting = new SettingDefinition { Id = "not-theme" };
+        var setting = new SettingDefinition { Id = "not-theme", Name = "not-theme", Description = "not-theme" };
 
         var result = await _sut.TryApplySpecialSettingAsync(setting, 0);
 
@@ -40,7 +41,7 @@ public class ThemeWallpaperApplierTests
     [Fact]
     public async Task TryApply_NonIntValue_ReturnsFalse()
     {
-        var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows };
+        var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
         var result = await _sut.TryApplySpecialSettingAsync(setting, "dark");
 
@@ -50,10 +51,19 @@ public class ThemeWallpaperApplierTests
     [Fact]
     public async Task TryApply_DarkMode_WritesZeroToRegistry()
     {
-        var regSetting = new RegistrySetting();
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "Test",
+            RecommendedValue = 0,
+            DefaultValue = 1,
+            ValueType = RegistryValueKind.DWord,
+        };
         var setting = new SettingDefinition
         {
             Id = SettingIds.ThemeModeWindows,
+            Name = "Theme",
+            Description = "Theme",
             RegistrySettings = new List<RegistrySetting> { regSetting }
         };
 
@@ -65,10 +75,19 @@ public class ThemeWallpaperApplierTests
     [Fact]
     public async Task TryApply_LightMode_WritesOneToRegistry()
     {
-        var regSetting = new RegistrySetting();
+        var regSetting = new RegistrySetting
+        {
+            KeyPath = @"HKCU\Software\Test",
+            ValueName = "Test",
+            RecommendedValue = 0,
+            DefaultValue = 1,
+            ValueType = RegistryValueKind.DWord,
+        };
         var setting = new SettingDefinition
         {
             Id = SettingIds.ThemeModeWindows,
+            Name = "Theme",
+            Description = "Theme",
             RegistrySettings = new List<RegistrySetting> { regSetting }
         };
 
@@ -85,6 +104,8 @@ public class ThemeWallpaperApplierTests
         var setting = new SettingDefinition
         {
             Id = SettingIds.ThemeModeWindows,
+            Name = "Theme",
+            Description = "Theme",
             RegistrySettings = new List<RegistrySetting>()
         };
 
@@ -99,6 +120,8 @@ public class ThemeWallpaperApplierTests
         var setting = new SettingDefinition
         {
             Id = SettingIds.ThemeModeWindows,
+            Name = "Theme",
+            Description = "Theme",
             RegistrySettings = new List<RegistrySetting>()
         };
 
@@ -115,6 +138,8 @@ public class ThemeWallpaperApplierTests
         var setting = new SettingDefinition
         {
             Id = SettingIds.ThemeModeWindows,
+            Name = "Theme",
+            Description = "Theme",
             RegistrySettings = new List<RegistrySetting>()
         };
 

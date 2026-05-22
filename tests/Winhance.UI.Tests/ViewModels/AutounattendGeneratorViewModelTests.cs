@@ -27,6 +27,7 @@ public class AutounattendGeneratorViewModelTests
     private readonly Mock<IDialogService> _winDialogService = new();
     private readonly Mock<ILocalizationService> _winLocalizationService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     public AutounattendGeneratorViewModelTests()
     {
@@ -52,7 +53,8 @@ public class AutounattendGeneratorViewModelTests
         _winLogService.Object,
         _winDialogService.Object,
         _winLocalizationService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private AutounattendGeneratorViewModel CreateSut(WindowsAppsViewModel? windowsAppsVm = null)
     {

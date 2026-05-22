@@ -14,11 +14,13 @@ namespace Winhance.UI.Tests.ViewModels;
 public class ExternalAppsViewModelTests
 {
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
+    private readonly Mock<IAppInstallationService> _appInstallationService = new();
     private readonly Mock<ITaskProgressService> _progressService = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     public ExternalAppsViewModelTests()
     {
@@ -37,11 +39,13 @@ public class ExternalAppsViewModelTests
 
     private ExternalAppsViewModel CreateSut() => new(
         _externalAppsService.Object,
+        _appInstallationService.Object,
         _progressService.Object,
         _logService.Object,
         _dialogService.Object,
         _localizationService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private ItemDefinition CreateTestItem(string id, string name = "Test App",
         string group = "Browsers", bool isInstalled = false) => new()

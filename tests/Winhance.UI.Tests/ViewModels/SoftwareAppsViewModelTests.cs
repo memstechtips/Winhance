@@ -21,6 +21,7 @@ public class SoftwareAppsViewModelTests
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IThemeService> _themeService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
     private readonly Mock<ITaskProgressService> _extProgressService = new();
@@ -80,15 +81,18 @@ public class SoftwareAppsViewModelTests
         _logService.Object,
         _dialogService.Object,
         _localizationService.Object,
-        _dispatcherService.Object);
+        _dispatcherService.Object,
+        _themeService.Object);
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
         _externalAppsService.Object,
+        _appInstallationService.Object,
         _extProgressService.Object,
         _extLogService.Object,
         _extDialogService.Object,
         _extLocalizationService.Object,
-        _extDispatcherService.Object);
+        _extDispatcherService.Object,
+        _themeService.Object);
 
     private SoftwareAppsViewModel CreateSut()
     {

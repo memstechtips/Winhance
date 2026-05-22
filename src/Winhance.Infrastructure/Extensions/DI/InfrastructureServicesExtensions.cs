@@ -75,6 +75,22 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
 
         // Settings Discovery and Application
+        // SystemSettingsDiscoveryService depends on ISpecialDiscoveryRegistry.
+        // The UI composition root re-registers that registry (in AddSettingServices)
+        // with the real handler set (PowerService, UpdateService); because that runs
+        // after AddInfrastructureServices, the richer registration wins in the app.
+        // TryAdd here provides an empty default so the infrastructure container is
+        // self-contained when composed on its own (e.g. integration smoke tests).
+        services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
+            new SpecialDiscoveryRegistry([]));
+        // SettingApplicationService also depends on the ISpecialSettingHandlerRegistry
+        // and IActionCommandRegistry dispatcher registries, both re-registered by the
+        // UI composition root with the real handler set. Same TryAdd-default rationale
+        // as ISpecialDiscoveryRegistry above.
+        services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
+            new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>()));
+        services.TryAddSingleton<IActionCommandRegistry>(_ =>
+            new ActionCommandRegistry(new Dictionary<string, IActionCommandProvider>()));
         services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();

@@ -826,7 +826,7 @@
   "Setting_gaming-windows-search-service_Description": "为文件和文件夹编制索引以加快搜索结果。禁用可减少后台 CPU 和磁盘活动，但会破坏 Outlook 搜索，并使开始菜单和文件资源管理器的搜索变慢或不可靠",
   "Setting_gaming-windows-search-service_OptionWarning_0": "警告：禁用 WSearch 将停止文件内容索引。在重新启用之前，Outlook 搜索、开始菜单搜索和文件资源管理器搜索都将变得缓慢或不返回任何结果。",
   "Setting_gaming-telephony-service_Name": "电话服务",
-  "Setting_gaming-telephony-service_Description": "管理用于 Phone Link 音频中继、调制解调器、传真和 VoIP 软电话的电话功能 (TAPI)。除非不使用任何电话软件，否则请保持为\"手动\"（Windows 默认值）",
+  "Setting_gaming-telephony-service_Description": "管理用于 Phone Link 音频中继、调制解调器、传真和 VoIP 软电话的电话功能 (TAPI)。除非不使用任何电话软件，否则请保持为“手动”（Windows 默认值）",
   "Setting_gaming-telephony-service_OptionWarning_0": "禁用电话服务会中断 Phone Link 的音频转发、传真软件、拨号调制解调器以及 VoIP 软电话（例如 3CX、Cisco Jabber）。",
   "Setting_gaming-print-spooler-service_Name": "打印后台处理程序服务",
   "Setting_gaming-print-spooler-service_Description": "管理发送到打印机的打印作业。如果您不使用打印机，请设置为手动或禁用以释放系统资源",

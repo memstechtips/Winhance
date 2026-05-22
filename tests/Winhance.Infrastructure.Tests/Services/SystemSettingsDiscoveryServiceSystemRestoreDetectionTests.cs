@@ -94,6 +94,8 @@ public class SystemSettingsDiscoveryServiceSystemRestoreDetectionTests
                     KeyPath = @"HKEY_LOCAL_MACHINE\Foo",
                     ValueName = "Bar",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = 1,
+                    DefaultValue = 0,
                     EnabledValue = new object?[] { 1 },
                 }
             }
@@ -122,6 +124,8 @@ public class SystemSettingsDiscoveryServiceSystemRestoreDetectionTests
                     KeyPath = @"HKEY_LOCAL_MACHINE\Foo",
                     ValueName = "Bar",
                     ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = 1,
+                    DefaultValue = 0,
                     EnabledValue = new object?[] { 1 },
                 }
             },
