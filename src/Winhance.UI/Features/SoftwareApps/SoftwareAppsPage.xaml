@@ -19,7 +19,7 @@
              Icon sizing knobs (Software & Apps tabs).
              Each view has its OWN icon-size pair — they are NOT shared:
                • CardIconSize / CardFallbackFontSize        → Compact view
-                 (Windows Apps + External Apps ItemsRepeaters)
+                 (Windows Apps + External Apps compact lists)
                • DataGridIconSize / DataGridFallbackFontSize → Table view
                • CardViewIconSize / CardViewFallbackFontSize → Card view
                  (defined further down)
@@ -50,10 +50,14 @@
                  cols = floor((panel_width + ColumnSpacing) / (CardItemWidth + ColumnSpacing))
              Bigger value → fewer columns. -->
         <x:Double x:Key="CardItemWidth">420</x:Double>
-        <!-- Compact view's UniformGridLayout still uses MinItemWidth semantics
-             (it stretches to fill). Kept narrower than the Card view so we
-             still get 7+ columns of single-line rows on a wide screen. -->
-        <x:Double x:Key="CompactItemMinWidth">320</x:Double>
+        <!-- Compact-view cell width (fixed). Like CardItemWidth, the compact
+             ItemsControl + UniformWrapPanel renders every row at exactly this
+             width and wraps when the next would overflow; the containing
+             StackPanel is centred via a code-behind MaxWidth clamp so leftover
+             space becomes symmetric outer margin (Microsoft Store pattern).
+             Kept narrower than the Card view so a wide window still fits
+             several columns of single-line rows. -->
+        <x:Double x:Key="CompactItemWidth">320</x:Double>
         <x:Double x:Key="CardViewIconSize">36</x:Double>
         <!-- FontIcon fallback glyph FontSize (puzzle for Capability, gear for
              Optional Feature). Real card icons fill the 36×36 container; FontIcons
@@ -1183,8 +1187,14 @@
                                       Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      Padding="0,0,0,12">
-                            <StackPanel Spacing="16" Padding="4,8,4,8">
+                                      Padding="0,0,0,12"
+                                      SizeChanged="WindowsAppsCompactScrollViewer_SizeChanged">
+                            <!-- Centred + MaxWidth-clamped in code-behind (UpdateCompactContentMaxWidth)
+                                 so headers, Select-all checkboxes and the row grid share one column —
+                                 same Microsoft Store pattern as the card view above. -->
+                            <StackPanel x:Name="WindowsAppsCompactContentStack"
+                                        Spacing="16" Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
@@ -1203,11 +1213,13 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="{StaticResource CompactItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
@@ -1270,8 +1282,8 @@
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <!-- Capabilities Section -->
@@ -1279,11 +1291,13 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="{StaticResource CompactItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
@@ -1346,8 +1360,8 @@
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <!-- Optional Features Section -->
@@ -1355,11 +1369,13 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="{StaticResource CompactItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
@@ -1422,8 +1438,8 @@
                                                     </StackPanel>
                                                 </CheckBox>
                                             </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
@@ -1638,8 +1654,14 @@
                                       Visibility="{x:Bind ViewModel.IsCompactView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      Padding="0,0,0,12">
-                            <StackPanel Spacing="12" Padding="4,8,4,8">
+                                      Padding="0,0,0,12"
+                                      SizeChanged="ExternalAppsCompactScrollViewer_SizeChanged">
+                            <!-- Centred + MaxWidth-clamped in code-behind (UpdateCompactContentMaxWidth)
+                                 so the Select-all checkboxes and the category Expanders share one
+                                 centred column — same Microsoft Store pattern as the card view. -->
+                            <StackPanel x:Name="ExternalAppsCompactContentStack"
+                                        Spacing="12" Padding="0,8,0,8"
+                                        HorizontalAlignment="Center">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
@@ -1671,11 +1693,13 @@
                                                     </StackPanel>
                                                 </Expander.Header>
                                                 <Expander.Content>
-                                                    <ItemsRepeater ItemsSource="{Binding Apps}" Margin="0,4,0,4">
-                                                        <ItemsRepeater.Layout>
-                                                            <UniformGridLayout MinItemWidth="{StaticResource CompactItemMinWidth}" MinColumnSpacing="8" MinRowSpacing="2"/>
-                                                        </ItemsRepeater.Layout>
-                                                        <ItemsRepeater.ItemTemplate>
+                                                    <ItemsControl ItemsSource="{Binding Apps}" Margin="0,4,0,4">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <winhanceControls:UniformWrapPanel ItemWidth="{StaticResource CompactItemWidth}" ColumnSpacing="8" RowSpacing="2"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                                          AutomationProperties.Name="{Binding Name}">
@@ -1718,8 +1742,8 @@
                                                                     </StackPanel>
                                                                 </CheckBox>
                                                             </DataTemplate>
-                                                        </ItemsRepeater.ItemTemplate>
-                                                    </ItemsRepeater>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                 </Expander.Content>
                                             </Expander>
                                         </DataTemplate>

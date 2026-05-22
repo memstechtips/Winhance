@@ -183,6 +183,46 @@ public sealed partial class SoftwareAppsPage : Page
         contentStack.MaxWidth = contentWidth;
     }
 
+    /// <summary>
+    /// Compact-view counterpart of <see cref="UpdateCardContentMaxWidth"/>.
+    /// Clamps the compact content StackPanel's MaxWidth to exactly
+    /// cols × CompactItemWidth + (cols-1) × ColumnSpacing so the section
+    /// headers, Select-all checkboxes and the row grid share one centred
+    /// column — leftover width becomes symmetric outer margin and columns
+    /// appear at width breakpoints, identical to the card view.
+    ///
+    /// External Apps nests each category's grid inside an Expander, so the
+    /// grid only gets the clamp width minus the Expander's horizontal content
+    /// chrome (border + content padding). <see cref="CompactExternalExpanderChrome"/>
+    /// accounts for that: if category grids show a right-hand gap, lower it;
+    /// if a column wraps away too early, raise it. Windows Apps has no
+    /// Expander, so it passes 0.
+    /// </summary>
+    private const double CompactExternalExpanderChrome = 34.0;
+
+    private void WindowsAppsCompactScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCompactContentMaxWidth(WindowsAppsCompactScrollViewer, WindowsAppsCompactContentStack, 0.0);
+
+    private void ExternalAppsCompactScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateCompactContentMaxWidth(ExternalAppsCompactScrollViewer, ExternalAppsCompactContentStack, CompactExternalExpanderChrome);
+
+    private void UpdateCompactContentMaxWidth(ScrollViewer scrollViewer, StackPanel contentStack, double expanderChrome)
+    {
+        // Resource key lives in SoftwareAppsPage.xaml's Page.Resources; fall back
+        // to the same default if it is renamed so the page still lays out.
+        double itemWidth = Resources["CompactItemWidth"] is double iw ? iw : 320.0;
+        double spacing = 8.0; // matches ColumnSpacing on the compact UniformWrapPanels
+
+        double available = scrollViewer.ViewportWidth - expanderChrome;
+        if (available <= 0)
+            return;
+
+        int cols = System.Math.Max(1,
+            (int)System.Math.Floor((available + spacing) / (itemWidth + spacing)));
+        double contentWidth = cols * itemWidth + System.Math.Max(0, cols - 1) * spacing + expanderChrome;
+        contentStack.MaxWidth = contentWidth;
+    }
+
     private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
