@@ -309,13 +309,15 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         if (!_configReviewModeService.IsInReviewMode) return;
 
-        // Clear app selections that were set during EnterReviewModeAsync
-        await _configAppSelectionService.ClearWindowsAppsSelectionAsync();
-
-        _vmCoordinator.ClearExternalAppSelections();
+        // Preserve app selections on cancel — only exit review mode.
+        // Clearing selections was destructive: users who imported a config and clicked
+        // Cancel would lose all their carefully chosen checkboxes in Software & Apps.
+        // Cancel means "cancel the review operation", not "discard my selections".
+        // Review diffs and badges are still cleaned up via ReviewModeExitedEvent
+        // fired by ExitReviewMode() through OnReviewModeChanged.
 
         _configReviewModeService.ExitReviewMode();
-        _logService.Log(LogLevel.Info, "Review mode cancelled - all selections cleared");
+        _logService.Log(LogLevel.Info, "Review mode cancelled - selections preserved");
     }
 
     private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(
