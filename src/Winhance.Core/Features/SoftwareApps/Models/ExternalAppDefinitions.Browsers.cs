@@ -320,6 +320,19 @@ public static partial class ExternalAppDefinitions
                         IconSources = [
                             "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/LibreWolf_icon.svg/500px-LibreWolf_icon.svg.png",
                         ],
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-helium",
+                        Name = "Helium",
+                        Description = "Open source Chromium-based browser built on ungoogled-chromium with uBlock Origin",
+                        GroupName = "Browsers",
+                        WinGetPackageId = ["ImputNet.Helium"],
+                        ChocoPackageId = "helium",
+                        WebsiteUrl = "https://helium.computer/",
+                        IconSources = [
+                            "https://raw.githubusercontent.com/imputnet/helium/main/resources/branding/app_icon/raw.png",
+                        ],
                     }
                 }
             };
