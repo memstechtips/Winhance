@@ -34,7 +34,7 @@
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetToggleToRecommendedCommand}"
                         ToolTipService.ToolTip="{x:Bind ToggleRecommendedTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind ToggleRecommendedTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(ToggleRecommendedTooltip), Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
@@ -42,7 +42,7 @@
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetToggleToDefaultCommand}"
                         ToolTipService.ToolTip="{x:Bind ToggleDefaultTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind ToggleDefaultTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(ToggleDefaultTooltip), Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -51,7 +51,8 @@
                     IsOn="{x:Bind IsSelected, Mode=OneWay}"
                     Toggled="{x:Bind OnToggleSwitchToggled}"
                     OnContent="{x:Bind OnText}"
-                    OffContent="{x:Bind OffText}"/>
+                    OffContent="{x:Bind OffText}"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
             </StackPanel>
         </DataTemplate>
 
@@ -64,7 +65,7 @@
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetSelectionToRecommendedCommand}"
                         ToolTipService.ToolTip="{x:Bind SelectionRecommendedTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind SelectionRecommendedTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(SelectionRecommendedTooltip), Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
@@ -72,7 +73,7 @@
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetSelectionToDefaultCommand}"
                         ToolTipService.ToolTip="{x:Bind SelectionDefaultTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind SelectionDefaultTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(SelectionDefaultTooltip), Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -83,7 +84,8 @@
                     SelectionChanged="{x:Bind OnComboBoxSelectionChanged}"
                     DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
                     SelectedValuePath="Value"
-                    DisplayMemberPath="DisplayText"/>
+                    DisplayMemberPath="DisplayText"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
             </StackPanel>
         </DataTemplate>
 
@@ -93,7 +95,8 @@
                 ItemsSource="{x:Bind ComboBoxOptions}"
                 SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
                 Loaded="OnPowerPlanComboBoxLoaded"
-                Tag="{x:Bind}"/>
+                Tag="{x:Bind}"
+                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
         </DataTemplate>
 
         <!-- Template for NumericRange settings. Both buttons together in front. -->
@@ -105,7 +108,7 @@
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetNumericToRecommendedCommand}"
                         ToolTipService.ToolTip="{x:Bind RecommendedValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind RecommendedValueTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(RecommendedValueTooltip), Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
@@ -113,7 +116,7 @@
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetNumericToDefaultCommand}"
                         ToolTipService.ToolTip="{x:Bind DefaultValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind DefaultValueTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(DefaultValueTooltip), Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -127,7 +130,8 @@
                     SpinButtonPlacementMode="Inline"
                     SmallChange="1"
                     LargeChange="10"
-                    MinWidth="120"/>
+                    MinWidth="120"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
             </StackPanel>
         </DataTemplate>
 
@@ -135,14 +139,16 @@
         <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <Button
                 Content="{x:Bind ActionButtonText}"
-                Command="{x:Bind ExecuteActionCommand}"/>
+                Command="{x:Bind ExecuteActionCommand}"
+                AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
         </DataTemplate>
 
         <!-- Template for CheckBox settings (no quick-set buttons) -->
         <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <CheckBox
                 IsChecked="{x:Bind IsSelected, Mode=OneWay}"
-                Click="{x:Bind OnCheckBoxClick}"/>
+                Click="{x:Bind OnCheckBoxClick}"
+                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
         </DataTemplate>
 
         <!-- Template for Dual AC/DC Selection settings (laptop with battery).
@@ -158,7 +164,7 @@
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetAcSelectionToRecommendedCommand}"
                                 ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yAcName(AcSelectionRecommendedTooltip), Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
@@ -166,7 +172,7 @@
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetAcSelectionToDefaultCommand}"
                                 ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yAcName(AcSelectionDefaultTooltip), Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -184,7 +190,8 @@
                             DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
                             DisplayMemberPath="DisplayText"
                             Width="120" MinWidth="120" MaxWidth="120"
-                            HorizontalAlignment="Left"/>
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name="{x:Bind AcInputAutomationName, Mode=OneWay}"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Spacing="4">
@@ -196,7 +203,7 @@
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetDcSelectionToRecommendedCommand}"
                                 ToolTipService.ToolTip="{x:Bind DcSelectionRecommendedTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind DcSelectionRecommendedTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yDcName(DcSelectionRecommendedTooltip), Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
@@ -204,7 +211,7 @@
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetDcSelectionToDefaultCommand}"
                                 ToolTipService.ToolTip="{x:Bind DcSelectionDefaultTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind DcSelectionDefaultTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yDcName(DcSelectionDefaultTooltip), Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -216,7 +223,8 @@
                             DropDownClosed="{x:Bind OnDCComboBoxDropDownClosed}"
                             DisplayMemberPath="DisplayText"
                             Width="120" MinWidth="120" MaxWidth="120"
-                            HorizontalAlignment="Left"/>
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name="{x:Bind DcInputAutomationName, Mode=OneWay}"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
@@ -231,7 +239,7 @@
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetAcSelectionToRecommendedCommand}"
                         ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(AcSelectionRecommendedTooltip), Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
@@ -239,7 +247,7 @@
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetAcSelectionToDefaultCommand}"
                         ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(AcSelectionDefaultTooltip), Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -248,7 +256,8 @@
                     ItemsSource="{x:Bind ComboBoxOptions}"
                     SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
                     DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
-                    DisplayMemberPath="DisplayText"/>
+                    DisplayMemberPath="DisplayText"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
             </StackPanel>
         </DataTemplate>
 
@@ -265,7 +274,7 @@
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetAcNumericToRecommendedCommand}"
                                 ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yAcName(RecommendedAcValueTooltip), Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
@@ -273,7 +282,7 @@
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetAcNumericToDefaultCommand}"
                                 ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yAcName(DefaultAcValueTooltip), Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -287,7 +296,8 @@
                             SpinButtonPlacementMode="Inline"
                             SmallChange="1"
                             LargeChange="10"
-                            MinWidth="120"/>
+                            MinWidth="120"
+                            AutomationProperties.Name="{x:Bind AcInputAutomationName, Mode=OneWay}"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Spacing="4">
@@ -299,7 +309,7 @@
                                 Style="{StaticResource QuickSetRecommendedButtonStyle}"
                                 Command="{x:Bind SetDcNumericToRecommendedCommand}"
                                 ToolTipService.ToolTip="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yDcName(RecommendedDcValueTooltip), Mode=OneWay}">
                                 <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                             </Button>
@@ -307,7 +317,7 @@
                                 Style="{StaticResource QuickSetDefaultButtonStyle}"
                                 Command="{x:Bind SetDcNumericToDefaultCommand}"
                                 ToolTipService.ToolTip="{x:Bind DefaultDcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind DefaultDcValueTooltip, Mode=OneWay}">
+                                AutomationProperties.Name="{x:Bind A11yDcName(DefaultDcValueTooltip), Mode=OneWay}">
                                 <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
                             </Button>
@@ -321,7 +331,8 @@
                             SpinButtonPlacementMode="Inline"
                             SmallChange="1"
                             LargeChange="10"
-                            MinWidth="120"/>
+                            MinWidth="120"
+                            AutomationProperties.Name="{x:Bind DcInputAutomationName, Mode=OneWay}"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
@@ -336,7 +347,7 @@
                         Style="{StaticResource QuickSetRecommendedButtonStyle}"
                         Command="{x:Bind SetAcNumericToRecommendedCommand}"
                         ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(RecommendedAcValueTooltip), Mode=OneWay}">
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                     </Button>
@@ -344,7 +355,7 @@
                         Style="{StaticResource QuickSetDefaultButtonStyle}"
                         Command="{x:Bind SetAcNumericToDefaultCommand}"
                         ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind DefaultAcValueTooltip, Mode=OneWay}">
+                        AutomationProperties.Name="{x:Bind A11yName(DefaultAcValueTooltip), Mode=OneWay}">
                         <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
@@ -358,7 +369,8 @@
                     SpinButtonPlacementMode="Inline"
                     SmallChange="1"
                     LargeChange="10"
-                    MinWidth="120"/>
+                    MinWidth="120"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
             </StackPanel>
         </DataTemplate>
 

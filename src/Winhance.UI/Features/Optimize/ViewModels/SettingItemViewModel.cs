@@ -333,6 +333,38 @@ public partial class SettingItemViewModel : BaseViewModel
             ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
             : string.Empty;
 
+    // -- Accessibility names (issue #647 follow-up) ------------------------------------
+    // The quick-set buttons inside SettingsCardItem inherit no context from their
+    // parent SettingsCard, so Narrator was announcing only the action ("Set to
+    // Recommended button") without saying which setting it applied to. These helpers
+    // compose "<Setting name>: <action>" (and "<Setting name> (Plugged In|On Battery):
+    // <action>" for Dual AC/DC variants) for AutomationProperties.Name. Visible
+    // ToolTipService.ToolTip strings stay short (action only).
+    //
+    // Used via x:Bind function-call syntax in SettingsCardItem.xaml — e.g.
+    //   AutomationProperties.Name="{x:Bind A11yName(ToggleRecommendedTooltip), Mode=OneWay}"
+    // x:Bind re-evaluates when the argument's PropertyChanged fires (language change).
+
+    public string A11yName(string? action) =>
+        string.IsNullOrEmpty(action) ? Name : $"{Name}: {action}";
+
+    public string A11yAcName(string? action) =>
+        string.IsNullOrEmpty(action)
+            ? $"{Name} ({PluggedInText})"
+            : $"{Name} ({PluggedInText}): {action}";
+
+    public string A11yDcName(string? action) =>
+        string.IsNullOrEmpty(action)
+            ? $"{Name} ({OnBatteryText})"
+            : $"{Name} ({OnBatteryText}): {action}";
+
+    // Direct AutomationProperties.Name source for the AC/DC input controls
+    // (ComboBox / NumberBox) inside Dual templates — disambiguates the two
+    // sibling controls within one setting. Single-AC/DC templates bind to Name
+    // directly.
+    public string AcInputAutomationName => $"{Name} ({PluggedInText})";
+    public string DcInputAutomationName => $"{Name} ({OnBatteryText})";
+
     /// <summary>
     /// True when the NumericRange quick-set buttons should be visible: requires the
     /// global ShowInfoBadges preference to be on AND at least one of Recommended/Default
@@ -2143,6 +2175,8 @@ public partial class SettingItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(ClickToUnlockText));
         OnPropertyChanged(nameof(PluggedInText));
         OnPropertyChanged(nameof(OnBatteryText));
+        OnPropertyChanged(nameof(AcInputAutomationName));
+        OnPropertyChanged(nameof(DcInputAutomationName));
         OnPropertyChanged(nameof(RecommendedValueTooltip));
         OnPropertyChanged(nameof(DefaultValueTooltip));
         OnPropertyChanged(nameof(RecommendedAcValueTooltip));
