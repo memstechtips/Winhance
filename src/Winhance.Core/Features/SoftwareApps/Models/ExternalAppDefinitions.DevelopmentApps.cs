@@ -33,6 +33,21 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-powershell",
+                        Name = "PowerShell",
+                        Description = "Cross-platform task automation and configuration management shell",
+                        GroupName = "Development Apps",
+                        AppxPackageName = ["Microsoft.PowerShell"],
+                        WinGetPackageId = ["Microsoft.PowerShell"],
+                        ChocoPackageId = "powershell-core",
+                        MsStoreId = "9MZ1SNWT0N5D",
+                        WebsiteUrl = "https://github.com/PowerShell/PowerShell",
+                        IconSources = [
+                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Ps_black_128.svg/250px-Ps_black_128.svg.png",
+                        ],
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-notepadplusplus",
                         Name = "Notepad++",
                         Description = "Free source code editor and Notepad replacement",
