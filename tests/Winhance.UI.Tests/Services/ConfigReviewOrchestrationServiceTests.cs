@@ -485,17 +485,18 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CancelReviewModeAsync_WhenInReviewMode_ClearsSelectionsAndExits()
+    public async Task CancelReviewModeAsync_WhenInReviewMode_PreservesSelectionsAndExits()
     {
         _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
 
         var service = CreateService();
         await service.CancelReviewModeAsync();
 
+        // Cancel should exit review mode without clearing selections
         _mockConfigAppSelectionService.Verify(
             s => s.ClearWindowsAppsSelectionAsync(),
-            Times.Once);
-        _mockVmCoordinator.Verify(v => v.ClearExternalAppSelections(), Times.Once);
+            Times.Never);
+        _mockVmCoordinator.Verify(v => v.ClearExternalAppSelections(), Times.Never);
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
     }
 
