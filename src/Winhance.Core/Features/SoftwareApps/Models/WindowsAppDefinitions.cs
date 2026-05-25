@@ -661,7 +661,8 @@ public static class WindowsAppDefinitions
                         "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Microsoft_OneNote_Icon_%282025_-_present%29.svg/256px-Microsoft_OneNote_Icon_%282025_-_present%29.svg.png",
                     ],
                     CanBeReinstalled = true,
-                    RegistryUninstallSearchPattern = "OneNote*",
+                    RegistrySubKeyName = "OneNoteFreeRetail - {locale}",
+                    RegistryDisplayName = "Microsoft OneNote - {locale}",
                     ProcessesToStop = ["OneNote", "ONENOTE", "ONENOTEM"]
                 }
             }

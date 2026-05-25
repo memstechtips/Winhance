@@ -33,7 +33,6 @@ public record ItemDefinition : BaseDefinition
     /// When set, compared against registry SubKeyNames (including SystemComponent=1 entries).
     /// </summary>
     public string? RegistrySubKeyName { get; init; }
-    public string? RegistryUninstallSearchPattern { get; init; }
     /// <summary>
     /// Paths to check for existence (file or directory) as a detection fallback.
     /// Supports environment variables (e.g. %USERPROFILE%).
