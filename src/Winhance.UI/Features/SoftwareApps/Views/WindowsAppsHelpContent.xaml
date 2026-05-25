@@ -83,6 +83,7 @@
                     <DataTemplate>
                         <Button Command="{Binding RemoveCommand}"
                                 IsEnabled="{Binding IsActive}"
+                                AutomationProperties.Name="{Binding ScheduledTaskName}"
                                 ToolTipService.ToolTip="{Binding ScheduledTaskName}"
                                 Loaded="RemovalButton_Loaded"
                                 Padding="8"

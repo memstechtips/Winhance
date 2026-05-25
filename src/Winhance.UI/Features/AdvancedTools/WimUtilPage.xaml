@@ -314,13 +314,17 @@
                                        Style="{StaticResource BodyTextBlockStyle}"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        VerticalAlignment="Center"/>
-                            <Button Click="Windows10Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
+                            <Button Click="Windows10Download_Click"
+                                    AutomationProperties.Name="{x:Bind ViewModel.TooltipDownloadWindows10}"
+                                    ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
                                     <TextBlock Text="{x:Bind ViewModel.ButtonWindows10Text}"/>
                                 </StackPanel>
                             </Button>
-                            <Button Click="Windows11Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
+                            <Button Click="Windows11Download_Click"
+                                    AutomationProperties.Name="{x:Bind ViewModel.TooltipDownloadWindows11}"
+                                    ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
                                     <TextBlock Text="{x:Bind ViewModel.ButtonWindows11Text}"/>
@@ -484,7 +488,9 @@
                                            Style="{StaticResource BodyTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center"/>
-                                <Button Click="SchneegansLink_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
+                                <Button Click="SchneegansLink_Click"
+                                        AutomationProperties.Name="{x:Bind ViewModel.TooltipSchneegans}"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular" FontSize="14"/>
                                         <TextBlock Text="{x:Bind ViewModel.ButtonSchneegansText}"/>

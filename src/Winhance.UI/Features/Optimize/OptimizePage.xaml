@@ -167,7 +167,7 @@
             </StackPanel>
 
             <!-- Quick Actions dropdown -->
-            <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
+            <DropDownButton x:Name="QuickActionsButton" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE945;" FontSize="14"/>
@@ -191,7 +191,7 @@
             </DropDownButton>
 
             <!-- View dropdown -->
-            <DropDownButton Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
+            <DropDownButton x:Name="ViewMenuButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
@@ -280,6 +280,7 @@
                             <!-- Privacy & Security Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.PrivacyViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.PrivacyViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="PrivacyCard_Click">
                                 <controls:SettingsCard.Header>
@@ -326,6 +327,7 @@
                             <!-- Power Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.PowerViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.PowerViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="PowerCard_Click">
                                 <controls:SettingsCard.Header>
@@ -372,6 +374,7 @@
                             <!-- Gaming and Performance Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.GamingViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.GamingViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="GamingCard_Click">
                                 <controls:SettingsCard.Header>
@@ -418,6 +421,7 @@
                             <!-- Update Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.UpdateViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.UpdateViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="UpdateCard_Click">
                                 <controls:SettingsCard.Header>
@@ -464,6 +468,7 @@
                             <!-- Notifications Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.NotificationViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.NotificationViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="NotificationCard_Click">
                                 <controls:SettingsCard.Header>
@@ -510,6 +515,7 @@
                             <!-- Sound Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.SoundViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.SoundViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="SoundCard_Click">
                                 <controls:SettingsCard.Header>

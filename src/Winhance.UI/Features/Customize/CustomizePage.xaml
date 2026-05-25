@@ -146,7 +146,7 @@
             </StackPanel>
 
             <!-- Quick Actions dropdown -->
-            <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
+            <DropDownButton x:Name="QuickActionsButton" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE945;" FontSize="14"/>
@@ -170,7 +170,7 @@
             </DropDownButton>
 
             <!-- View dropdown -->
-            <DropDownButton Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
+            <DropDownButton x:Name="ViewMenuButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
@@ -259,6 +259,7 @@
                             <!-- Windows Theme Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.WindowsThemeViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="WindowsThemeCard_Click">
                                 <controls:SettingsCard.Header>
@@ -305,6 +306,7 @@
                             <!-- Taskbar Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.TaskbarViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="TaskbarCard_Click">
                                 <controls:SettingsCard.Header>
@@ -351,6 +353,7 @@
                             <!-- Start Menu Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.StartMenuViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="StartMenuCard_Click">
                                 <controls:SettingsCard.Header>
@@ -397,6 +400,7 @@
                             <!-- Explorer Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.ExplorerViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="ExplorerCard_Click">
                                 <controls:SettingsCard.Header>

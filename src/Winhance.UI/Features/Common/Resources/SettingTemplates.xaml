@@ -502,11 +502,16 @@
                 <!-- IsEnabled is bound on the inner SettingsCardItem (the actual input
                      control) rather than the SettingsCard root. The card itself stays
                      interactive so its click-to-expand handler keeps working in Review
-                     Mode; only the toggle/dropdown inside dims out. -->
+                     Mode; only the toggle/dropdown inside dims out.
+                     IsTabStop is true so keyboard users can Tab onto the card and press
+                     Enter/Space to expand (SettingsCard's IsClickEnabled invokes the Click
+                     handler on those keys). AutomationProperties.Name is what Narrator
+                     announces when the card is focused. -->
                 <controls:SettingsCard
                     IsClickEnabled="True"
                     Click="{x:Bind ToggleExpander}"
-                    IsTabStop="False"
+                    IsTabStop="True"
+                    AutomationProperties.Name="{x:Bind Name}"
                     AutomationProperties.LocalizedControlType="setting"
                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
                     Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
