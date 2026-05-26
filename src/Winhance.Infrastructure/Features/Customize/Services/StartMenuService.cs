@@ -67,16 +67,18 @@ public class StartMenuService(
     {
         try
         {
-            // Step 1: Add registry entry to configure empty pinned list
-            var regArgs = "add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{\\\"pinnedList\\\":[]}\" /f";
-            var result = await processExecutor.ExecuteAsync("reg.exe", regArgs).ConfigureAwait(false);
-
-            if (result.ExitCode != 0)
-            {
-                throw new Exception(
-                    $"Failed to add registry entry. Exit code: {result.ExitCode}. Error: {result.StandardError}"
-                );
-            }
+            // Step 1: Write empty pinned list to BOTH the MDM/CSP path and the GPO path.
+            // The MDM path (PolicyManager\current\device\Start) is the original target.
+            // The GPO path (Policies\Microsoft\Windows\Explorer) was added by KB5062660
+            // (Jul 2025) and on Win11 build 26200.8521+ it's the only one that fully
+            // clears the default Edge / Settings / File Explorer pins. Writing both keeps
+            // older builds happy and adds the workaround for newer ones. See issue #660.
+            await SetConfigureStartPinsAsync(
+                @"HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start"
+            ).ConfigureAwait(false);
+            await SetConfigureStartPinsAsync(
+                @"HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer"
+            ).ConfigureAwait(false);
 
             // Step 2: Delete start.bin and start2.bin files from LocalState directory
             string localAppData = interactiveUserService.GetInteractiveUserFolderPath(
@@ -115,6 +117,19 @@ public class StartMenuService(
         catch (Exception ex)
         {
             throw new Exception($"Error cleaning Windows 11 Start Menu: {ex.Message}", ex);
+        }
+    }
+
+    private async Task SetConfigureStartPinsAsync(string keyPath)
+    {
+        var regArgs = $"add \"{keyPath}\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{{\\\"pinnedList\\\":[]}}\" /f";
+        var result = await processExecutor.ExecuteAsync("reg.exe", regArgs).ConfigureAwait(false);
+
+        if (result.ExitCode != 0)
+        {
+            throw new Exception(
+                $"Failed to add ConfigureStartPins to '{keyPath}'. Exit code: {result.ExitCode}. Error: {result.StandardError}"
+            );
         }
     }
 
