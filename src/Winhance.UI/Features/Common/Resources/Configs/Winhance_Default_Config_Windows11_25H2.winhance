@@ -818,6 +818,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "start-all-apps-view",
+            "Name": "All apps view",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "start-show-all-pins-by-default",
             "Name": "Show all pins by default",
             "IsSelected": false,

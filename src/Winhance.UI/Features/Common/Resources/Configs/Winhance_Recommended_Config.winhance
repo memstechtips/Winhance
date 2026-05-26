@@ -1031,6 +1031,12 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "start-all-apps-view",
+            "Name": "All apps view",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
             "Id": "start-recommended-section",
             "Name": "Recommended section",
             "InputType": 1,

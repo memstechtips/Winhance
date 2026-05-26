@@ -91,6 +91,56 @@ public static class StartMenuCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "start-all-apps-view",
+                    IsSubjectivePreference = true,
+                    Name = "All apps view",
+                    Description = "Choose how the All apps section in Start is displayed: by category, in a grid, or as a list",
+                    GroupName = "Layout",
+                    InputType = InputType.Selection,
+                    IsWindows11Only = true,
+                    IconPack = "Fluent",
+                    Icon = "WindowApps",
+                    MinimumBuildNumber = 26100, // Redesigned Start menu shipped in KB5068861 (Nov 11, 2025)
+                    MinimumBuildRevision = 7171, // 26100.7171 / 26200.7171
+                    AddedInVersion = "26.05.26",
+                    RestartProcess = "StartMenuExperienceHost",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
+                            ValueName = "AllAppsViewMode",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Category",
+                                ValueMappings = new Dictionary<string, object?> { ["AllAppsViewMode"] = 0 },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Grid",
+                                ValueMappings = new Dictionary<string, object?> { ["AllAppsViewMode"] = 1 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "List",
+                                ValueMappings = new Dictionary<string, object?> { ["AllAppsViewMode"] = 2 },
+                                IsRecommended = true,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "start-recommended-section",
                     IsSubjectivePreference = true,
                     Name = "Recommended section",
