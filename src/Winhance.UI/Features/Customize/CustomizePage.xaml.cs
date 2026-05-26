@@ -767,7 +767,13 @@ public sealed partial class CustomizePage : Page
             {
                 if (_showOnlyChanges)
                 {
-                    setting.IsVisible = setting.HasReviewDiff || setting.HasReviewAction;
+                    // Visibility is decided by the service's diff dictionary — the same
+                    // source that drives TotalChanges / ReviewedChanges and the Apply gate.
+                    // Reading per-VM flags here used to drift behind the service when a
+                    // sub-page's ViewModels hadn't been hydrated yet, hiding rows the user
+                    // still needed to review (issue #665). See ReviewModeFilter for context.
+                    setting.IsVisible = ReviewModeFilter.ShouldShowInReviewQueue(
+                        setting.SettingId, _configReviewService);
                 }
                 else
                 {
