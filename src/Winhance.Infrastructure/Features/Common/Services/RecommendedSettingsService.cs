@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -11,6 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 internal class OSInfo
 {
     public int BuildNumber { get; set; }
+    public int BuildRevision { get; set; }
     public bool IsWindows10 { get; set; }
     public bool IsWindows11 { get; set; }
 }
@@ -33,6 +35,7 @@ public class RecommendedSettingsService(
             var osInfo = new OSInfo
             {
                 BuildNumber = versionService.GetWindowsBuildNumber(),
+                BuildRevision = versionService.GetWindowsBuildRevision(),
                 IsWindows10 = !versionService.IsWindows11(),
                 IsWindows11 = versionService.IsWindows11()
             };
@@ -89,10 +92,15 @@ public class RecommendedSettingsService(
                 osInfo.BuildNumber >= range.MinBuild && osInfo.BuildNumber <= range.MaxBuild);
             if (!inSupportedRange) return false;
         }
-        else
+        else if (!BuildVersionGate.IsCompatible(
+            osInfo.BuildNumber,
+            osInfo.BuildRevision,
+            setting.MinimumBuildNumber,
+            setting.MinimumBuildRevision,
+            setting.MaximumBuildNumber,
+            setting.MaximumBuildRevision))
         {
-            if (setting.MinimumBuildNumber.HasValue && osInfo.BuildNumber < setting.MinimumBuildNumber.Value) return false;
-            if (setting.MaximumBuildNumber.HasValue && osInfo.BuildNumber > setting.MaximumBuildNumber.Value) return false;
+            return false;
         }
 
         return true;

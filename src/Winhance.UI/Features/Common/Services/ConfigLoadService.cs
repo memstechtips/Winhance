@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
@@ -259,6 +260,7 @@ public class ConfigLoadService : IConfigLoadService
         var incompatible = new List<string>();
         var isWindows11 = _windowsVersionService.IsWindows11();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
+        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
         var allSections = new Dictionary<string, FeatureGroupSection>
         {
@@ -289,14 +291,6 @@ public class ConfigLoadService : IConfigLoadService
                         {
                             isIncompatible = true;
                         }
-                        else if (settingDef.MinimumBuildNumber.HasValue && buildNumber < settingDef.MinimumBuildNumber.Value)
-                        {
-                            isIncompatible = true;
-                        }
-                        else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
-                        {
-                            isIncompatible = true;
-                        }
                         else if (settingDef.SupportedBuildRanges?.Count > 0)
                         {
                             bool inRange = settingDef.SupportedBuildRanges.Any(range =>
@@ -305,6 +299,16 @@ public class ConfigLoadService : IConfigLoadService
                             {
                                 isIncompatible = true;
                             }
+                        }
+                        else if (!BuildVersionGate.IsCompatible(
+                            buildNumber,
+                            buildRevision,
+                            settingDef.MinimumBuildNumber,
+                            settingDef.MinimumBuildRevision,
+                            settingDef.MaximumBuildNumber,
+                            settingDef.MaximumBuildRevision))
+                        {
+                            isIncompatible = true;
                         }
 
                         if (isIncompatible)
@@ -323,9 +327,10 @@ public class ConfigLoadService : IConfigLoadService
     {
         var isWindows11 = _windowsVersionService.IsWindows11();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
+        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
-        var filteredOptimize = FilterFeatureGroup(config.Optimize, isWindows11, buildNumber);
-        var filteredCustomize = FilterFeatureGroup(config.Customize, isWindows11, buildNumber);
+        var filteredOptimize = FilterFeatureGroup(config.Optimize, isWindows11, buildNumber, buildRevision);
+        var filteredCustomize = FilterFeatureGroup(config.Customize, isWindows11, buildNumber, buildRevision);
 
         return new UnifiedConfigurationFile
         {
@@ -340,7 +345,8 @@ public class ConfigLoadService : IConfigLoadService
     private FeatureGroupSection FilterFeatureGroup(
         FeatureGroupSection section,
         bool isWindows11,
-        int buildNumber)
+        int buildNumber,
+        int buildRevision)
     {
         if (section?.Features == null) return section!;
 
@@ -366,14 +372,6 @@ public class ConfigLoadService : IConfigLoadService
                     {
                         isCompatible = false;
                     }
-                    else if (settingDef.MinimumBuildNumber.HasValue && buildNumber < settingDef.MinimumBuildNumber.Value)
-                    {
-                        isCompatible = false;
-                    }
-                    else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
-                    {
-                        isCompatible = false;
-                    }
                     else if (settingDef.SupportedBuildRanges?.Count > 0)
                     {
                         bool inRange = settingDef.SupportedBuildRanges.Any(range =>
@@ -382,6 +380,16 @@ public class ConfigLoadService : IConfigLoadService
                         {
                             isCompatible = false;
                         }
+                    }
+                    else if (!BuildVersionGate.IsCompatible(
+                        buildNumber,
+                        buildRevision,
+                        settingDef.MinimumBuildNumber,
+                        settingDef.MinimumBuildRevision,
+                        settingDef.MaximumBuildNumber,
+                        settingDef.MaximumBuildRevision))
+                    {
+                        isCompatible = false;
                     }
 
                     if (isCompatible)
