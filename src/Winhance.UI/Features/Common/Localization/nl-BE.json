@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Bestandsextensies weergeven",
   "Setting_explorer-customization-show-file-ext_Description": "Geeft bestandstype-extensies weer (zoals .txt, .pdf) achter bestandsnamen",
   "Setting_explorer-customization-show-lnk-extension_Name": ".lnk-bestandsextensie weergeven",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Toont de .lnk-extensie op snelkoppelingsbestanden wanneer bestandsextensies zijn ingeschakeld. Helpt kwaadaardige snelkoppelingen te herkennen die zich voordoen als mappen of documenten.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Toont de .lnk-extensie op snelkoppelingsbestanden wanneer bestandsextensies zijn ingeschakeld. Helpt kwaadaardige snelkoppelingen te herkennen die zich voordoen als mappen of documenten. Eenmaal ingeschakeld kunnen sommige namen in het Startmenu .lnk blijven tonen, zelfs nadat deze optie weer is uitgeschakeld.",
   "Setting_explorer-enable-photo-viewer_Name": "Windows Photo Viewer inschakelen",
   "Setting_explorer-enable-photo-viewer_Description": "Herstel de oude Windows Photo Viewer en stel deze in als standaardprogramma voor veelvoorkomende afbeeldingsformaten",
   "Setting_explorer-customization-legacy-notepad_Name": "Legacy Kladblok gebruiken voor tekstbestanden",

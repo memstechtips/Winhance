@@ -471,7 +471,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "نمایش پسوند فایل‌ها",
   "Setting_explorer-customization-show-file-ext_Description": "نمایش پسوند نوع فایل (مثلا .txt و .pdf) بعد از نام فایل‌ها",
   "Setting_explorer-customization-show-lnk-extension_Name": "نمایش پسوند فایل .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "نمایش پسوند .lnk روی فایل‌های میانبر وقتی پسوند فایل‌ها فعال است. کمک می‌کند میانبرهای مخربی که خود را به شکل پوشه یا سند جا می‌زنند شناسایی کنید",
+  "Setting_explorer-customization-show-lnk-extension_Description": "نمایش پسوند .lnk روی فایل‌های میانبر وقتی پسوند فایل‌ها فعال است. کمک می‌کند میانبرهای مخربی که خود را به شکل پوشه یا سند جا می‌زنند شناسایی کنید. پس از فعال‌سازی، ممکن است برخی نام‌ها در منوی استارت همچنان .lnk را نشان دهند، حتی پس از خاموش کردن این گزینه",
   "Setting_explorer-enable-photo-viewer_Name": "فعال کردن نمایشگر عکس ویندوز",
   "Setting_explorer-enable-photo-viewer_Description": "بازیابی نمایشگر عکس قدیمی در ویندوز و تنظیم آن به عنوان برنامه پیش‌فرض برای فرمت‌های رایج تصاویر",
   "Setting_explorer-customization-legacy-notepad_Name": "استفاده از نوت‌پد قدیمی برای فایل‌های متنی",

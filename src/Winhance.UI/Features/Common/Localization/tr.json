@@ -471,7 +471,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Dosya uzantılarını göster",
   "Setting_explorer-customization-show-file-ext_Description": "Dosya adlarından sonra dosya türü uzantılarını (.txt, .pdf gibi) görüntüler",
   "Setting_explorer-customization-show-lnk-extension_Name": ".lnk dosya uzantısını göster",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Dosya uzantıları etkinleştirildiğinde kısayol dosyalarında .lnk uzantısını gösterir. Klasör veya belge kılığına girmiş kötü amaçlı kısayolların fark edilmesine yardımcı olur.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Dosya uzantıları etkinleştirildiğinde kısayol dosyalarında .lnk uzantısını gösterir. Klasör veya belge kılığına girmiş kötü amaçlı kısayolların fark edilmesine yardımcı olur. Etkinleştirildikten sonra, bu seçeneği kapatsanız bile Başlat Menüsündeki bazı adlarda .lnk görünmeye devam edebilir.",
   "Setting_explorer-enable-photo-viewer_Name": "Windows Fotoğraf Görüntüleyici'yi Etkinleştir",
   "Setting_explorer-enable-photo-viewer_Description": "Eski Windows Fotoğraf Görüntüleyiciyi geri yükleyin ve yaygın resim dosyası formatları için varsayılan program olarak ayarlayın",
   "Setting_explorer-customization-legacy-notepad_Name": "Metin dosyaları için eski Not Defteri'ni kullan",

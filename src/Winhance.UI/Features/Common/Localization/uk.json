@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Показувати розширення файлів",
   "Setting_explorer-customization-show-file-ext_Description": "Відображає розширення типів файлів (наприклад, .txt, .pdf) після імен файлів",
   "Setting_explorer-customization-show-lnk-extension_Name": "Показувати розширення файлу .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Відображає розширення .lnk на файлах ярликів, коли розширення файлів увімкнено. Допомагає розпізнати шкідливі ярлики, замасковані під папки або документи.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Відображає розширення .lnk на файлах ярликів, коли розширення файлів увімкнено. Допомагає розпізнати шкідливі ярлики, замасковані під папки або документи. Після ввімкнення деякі назви в меню 'Пуск' можуть продовжувати показувати .lnk навіть після повторного вимкнення цієї опції.",
   "Setting_explorer-enable-photo-viewer_Name": "Увімкнути переглядач фотографій Windows",
   "Setting_explorer-enable-photo-viewer_Description": "Відновити застарілий переглядач фотографій Windows і встановити його як програму за замовчуванням для поширених форматів файлів зображень",
   "Setting_explorer-customization-legacy-notepad_Name": "Використовувати старий Блокнот для текстових файлів",

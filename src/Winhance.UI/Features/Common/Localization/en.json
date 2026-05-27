@@ -471,7 +471,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Show file extensions",
   "Setting_explorer-customization-show-file-ext_Description": "Displays file type extensions (like .txt, .pdf) after file names",
   "Setting_explorer-customization-show-lnk-extension_Name": "Show .lnk file extension",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Shows the .lnk extension on shortcut files when file extensions are enabled. Helps spot malicious shortcuts disguised as folders or documents.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Shows the .lnk extension on shortcut files when file extensions are enabled. Helps spot malicious shortcuts disguised as folders or documents. Once enabled, some Start Menu names may keep showing .lnk even after turning this off.",
   "Setting_explorer-enable-photo-viewer_Name": "Enable Windows Photo Viewer",
   "Setting_explorer-enable-photo-viewer_Description": "Restore the legacy Windows Photo Viewer and set it as the default program for common image file formats",
   "Setting_explorer-customization-legacy-notepad_Name": "Use Legacy Notepad for text files",

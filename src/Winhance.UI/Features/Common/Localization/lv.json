@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Rādīt failu paplašinājumus",
   "Setting_explorer-customization-show-file-ext_Description": "Parāda failu tipa paplašinājumus (piemēram, .txt, .pdf) aiz failu nosaukumiem",
   "Setting_explorer-customization-show-lnk-extension_Name": "Rādīt .lnk faila paplašinājumu",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Rāda .lnk paplašinājumu saīšņu failos, kad ir iespējoti failu paplašinājumi. Palīdz pamanīt ļaunprātīgas saīsnes, kas maskētas kā mapes vai dokumenti.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Rāda .lnk paplašinājumu saīšņu failos, kad ir iespējoti failu paplašinājumi. Palīdz pamanīt ļaunprātīgas saīsnes, kas maskētas kā mapes vai dokumenti. Pēc iespējošanas dažos Starta izvēlnes nosaukumos var turpināt rādīt .lnk arī pēc tam, kad šī opcija tiek izslēgta.",
   "Setting_explorer-enable-photo-viewer_Name": "Iespējot Windows fotoattēlu skatītāju",
   "Setting_explorer-enable-photo-viewer_Description": "Atjaunot mantoto Windows fotoattēlu skatītāju un iestatīt to kā noklusējuma programmu parastajiem attēlu failu formātiem",
   "Setting_explorer-customization-legacy-notepad_Name": "Izmantot mantoto Notepad teksta failiem",

@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "显示文件扩展名",
   "Setting_explorer-customization-show-file-ext_Description": "在文件名后显示文件类型扩展名（如 .txt、.pdf）",
   "Setting_explorer-customization-show-lnk-extension_Name": "显示 .lnk 文件扩展名",
-  "Setting_explorer-customization-show-lnk-extension_Description": "启用文件扩展名时，在快捷方式文件上显示 .lnk 扩展名。有助于识别伪装成文件夹或文档的恶意快捷方式。",
+  "Setting_explorer-customization-show-lnk-extension_Description": "启用文件扩展名时，在快捷方式文件上显示 .lnk 扩展名。有助于识别伪装成文件夹或文档的恶意快捷方式。启用后，即使再次关闭此选项，开始菜单中的部分名称仍可能继续显示 .lnk。",
   "Setting_explorer-enable-photo-viewer_Name": "启用 Windows 照片查看器",
   "Setting_explorer-enable-photo-viewer_Description": "还原旧版 Windows 照片查看器，并将其设置为常见图像文件格式的默认程序",
   "Setting_explorer-customization-legacy-notepad_Name": "使用旧版记事本打开文本文件",

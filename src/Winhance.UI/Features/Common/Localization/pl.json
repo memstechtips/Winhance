@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Pokaż rozszerzenia plików",
   "Setting_explorer-customization-show-file-ext_Description": "Wyświetla rozszerzenia typów plików (np. .txt, .pdf) po nazwach plików",
   "Setting_explorer-customization-show-lnk-extension_Name": "Pokaż rozszerzenie pliku .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Wyświetla rozszerzenie .lnk w plikach skrótów, gdy rozszerzenia plików są włączone. Pomaga rozpoznać złośliwe skróty podszywające się pod foldery lub dokumenty.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Wyświetla rozszerzenie .lnk w plikach skrótów, gdy rozszerzenia plików są włączone. Pomaga rozpoznać złośliwe skróty podszywające się pod foldery lub dokumenty. Po włączeniu niektóre nazwy w menu Start mogą nadal wyświetlać .lnk nawet po wyłączeniu tej opcji.",
   "Setting_explorer-enable-photo-viewer_Name": "Włącz Przeglądarkę fotografii systemu Windows",
   "Setting_explorer-enable-photo-viewer_Description": "Przywróć starszą Przeglądarkę fotografii systemu Windows i ustaw ją jako domyślny program dla popularnych formatów plików graficznych",
   "Setting_explorer-customization-legacy-notepad_Name": "Użyj starszego Notatnika dla plików tekstowych",

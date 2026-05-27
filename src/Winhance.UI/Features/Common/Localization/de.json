@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Dateierweiterungen anzeigen",
   "Setting_explorer-customization-show-file-ext_Description": "Zeigt Dateityperweiterungen (wie .txt, .pdf) nach Dateinamen an",
   "Setting_explorer-customization-show-lnk-extension_Name": "Dateierweiterung .lnk anzeigen",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Zeigt die Erweiterung .lnk bei Verknüpfungsdateien an, wenn Dateierweiterungen aktiviert sind. Hilft dabei, bösartige Verknüpfungen zu erkennen, die als Ordner oder Dokumente getarnt sind.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Zeigt die Erweiterung .lnk bei Verknüpfungsdateien an, wenn Dateierweiterungen aktiviert sind. Hilft dabei, bösartige Verknüpfungen zu erkennen, die als Ordner oder Dokumente getarnt sind. Nach dem Aktivieren können in manchen Startmenü-Einträgen weiterhin .lnk angezeigt werden, auch wenn diese Einstellung wieder deaktiviert wird.",
   "Setting_explorer-enable-photo-viewer_Name": "Windows-Fotoanzeige aktivieren",
   "Setting_explorer-enable-photo-viewer_Description": "Stellt die alte Windows-Fotoanzeige wieder her und legt sie als Standardprogramm für gängige Bilddateiformate fest",
   "Setting_explorer-customization-legacy-notepad_Name": "Legacy-Editor für Textdateien verwenden",

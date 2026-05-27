@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Hiển thị phần mở rộng tệp",
   "Setting_explorer-customization-show-file-ext_Description": "Hiển thị các phần mở rộng loại tệp (như .txt, .pdf) sau tên tệp",
   "Setting_explorer-customization-show-lnk-extension_Name": "Hiển thị phần mở rộng tệp .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Hiển thị phần mở rộng .lnk trên các tệp lối tắt khi phần mở rộng tệp được bật. Giúp phát hiện các lối tắt độc hại được ngụy trang dưới dạng thư mục hoặc tài liệu.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Hiển thị phần mở rộng .lnk trên các tệp lối tắt khi phần mở rộng tệp được bật. Giúp phát hiện các lối tắt độc hại được ngụy trang dưới dạng thư mục hoặc tài liệu. Sau khi bật, một số tên trong Menu Bắt đầu vẫn có thể hiển thị .lnk ngay cả sau khi tùy chọn này được tắt.",
   "Setting_explorer-enable-photo-viewer_Name": "Bật Windows Photo Viewer",
   "Setting_explorer-enable-photo-viewer_Description": "Khôi phục Windows Photo Viewer cũ và đặt nó làm chương trình mặc định cho các định dạng tệp hình ảnh phổ biến",
   "Setting_explorer-customization-legacy-notepad_Name": "Sử dụng Notepad cũ cho tệp văn bản",

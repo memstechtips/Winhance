@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Fájlkiterjesztések megjelenítése",
   "Setting_explorer-customization-show-file-ext_Description": "Fájlkiterjesztéseket (például .txt, .pdf) jelenít meg a fájlnevek után",
   "Setting_explorer-customization-show-lnk-extension_Name": ".lnk fájlkiterjesztés megjelenítése",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Megjeleníti a .lnk kiterjesztést a parancsikon-fájlokon, ha a fájlkiterjesztések engedélyezve vannak. Segít felismerni a mappáknak vagy dokumentumoknak álcázott, rosszindulatú parancsikonokat.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Megjeleníti a .lnk kiterjesztést a parancsikon-fájlokon, ha a fájlkiterjesztések engedélyezve vannak. Segít felismerni a mappáknak vagy dokumentumoknak álcázott, rosszindulatú parancsikonokat. A bekapcsolás után a Start menü egyes neveiben akkor is megjelenhet a .lnk, ha ezt a beállítást később kikapcsolja.",
   "Setting_explorer-enable-photo-viewer_Name": "Engedélyezze a Windows Photo Viewer alkalmazást",
   "Setting_explorer-enable-photo-viewer_Description": "Állítsd vissza a régi Windows Photo Viewert, és állítsd be alapértelmezett programként a gyakori képfájlformátumokhoz",
   "Setting_explorer-customization-legacy-notepad_Name": "Legacy Jegyzettömb használata szövegfájlokhoz",

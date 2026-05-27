@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "顯示副檔名",
   "Setting_explorer-customization-show-file-ext_Description": "在檔名後方顯示檔案類型副檔名（例如 .txt, .pdf）",
   "Setting_explorer-customization-show-lnk-extension_Name": "顯示 .lnk 副檔名",
-  "Setting_explorer-customization-show-lnk-extension_Description": "啟用副檔名時，在捷徑檔案上顯示 .lnk 副檔名。有助於辨識偽裝成資料夾或文件的惡意捷徑。",
+  "Setting_explorer-customization-show-lnk-extension_Description": "啟用副檔名時，在捷徑檔案上顯示 .lnk 副檔名。有助於辨識偽裝成資料夾或文件的惡意捷徑。啟用後，即使再次關閉此選項，開始功能表中的部分名稱仍可能繼續顯示 .lnk。",
   "Setting_explorer-enable-photo-viewer_Name": "啟用 Windows 相片檢視器",
   "Setting_explorer-enable-photo-viewer_Description": "還原舊版 Windows 相片檢視器，並將其設為常見影像格式的預設程式",
   "Setting_explorer-customization-legacy-notepad_Name": "使用舊版記事本開啟文字檔案",

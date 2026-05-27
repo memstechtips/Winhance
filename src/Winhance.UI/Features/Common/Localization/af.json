@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Wys lêeruitbreidings",
   "Setting_explorer-customization-show-file-ext_Description": "Vertoon lêertipe-uitbreidings (soos .txt, .pdf) na lêername",
   "Setting_explorer-customization-show-lnk-extension_Name": "Wys .lnk-lêeruitbreiding",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Wys die .lnk-uitbreiding op kortpadlêers wanneer lêeruitbreidings geaktiveer is. Help om kwaadwillige kortpaaie wat as vouers of dokumente vermom is, op te spoor.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Wys die .lnk-uitbreiding op kortpadlêers wanneer lêeruitbreidings geaktiveer is. Help om kwaadwillige kortpaaie wat as vouers of dokumente vermom is, op te spoor. Sodra dit geaktiveer is, kan sommige Beginlys-name steeds .lnk wys, selfs nadat hierdie opsie weer afgeskakel is.",
   "Setting_explorer-enable-photo-viewer_Name": "Aktiveer Windows Foto-kyker",
   "Setting_explorer-enable-photo-viewer_Description": "Herstel die nalatenskap Windows Foto-kyker en stel dit as die verstekprogram vir algemene beeldlêerformate",
   "Setting_explorer-customization-legacy-notepad_Name": "Gebruik Legacy Notepad vir tekslêers",

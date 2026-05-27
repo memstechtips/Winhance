@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Εμφάνιση επεκτάσεων αρχείων",
   "Setting_explorer-customization-show-file-ext_Description": "Εμφανίζει τις επεκτάσεις τύπου αρχείου (όπως .txt, .pdf) μετά τα ονόματα αρχείων",
   "Setting_explorer-customization-show-lnk-extension_Name": "Εμφάνιση επέκτασης αρχείου .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Εμφανίζει την επέκταση .lnk στα αρχεία συντομεύσεων όταν είναι ενεργοποιημένες οι επεκτάσεις αρχείων. Βοηθά στον εντοπισμό κακόβουλων συντομεύσεων που μεταμφιέζονται ως φάκελοι ή έγγραφα.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Εμφανίζει την επέκταση .lnk στα αρχεία συντομεύσεων όταν είναι ενεργοποιημένες οι επεκτάσεις αρχείων. Βοηθά στον εντοπισμό κακόβουλων συντομεύσεων που μεταμφιέζονται ως φάκελοι ή έγγραφα. Μετά την ενεργοποίηση, ορισμένα ονόματα στο μενού Έναρξης ενδέχεται να συνεχίσουν να εμφανίζουν το .lnk ακόμη και αφού απενεργοποιήσετε αυτή την επιλογή.",
   "Setting_explorer-enable-photo-viewer_Name": "Ενεργοποίηση Προβολής Φωτογραφιών των Windows",
   "Setting_explorer-enable-photo-viewer_Description": "Επαναφορά της παλαιάς Προβολής Φωτογραφιών των Windows και ορισμός της ως προεπιλεγμένου προγράμματος για κοινές μορφές αρχείων εικόνας",
   "Setting_explorer-customization-legacy-notepad_Name": "Χρήση παλαιού Σημειωματάριου για αρχεία κειμένου",

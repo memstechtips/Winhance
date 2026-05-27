@@ -471,7 +471,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "파일 확장명 표시",
   "Setting_explorer-customization-show-file-ext_Description": "파일 이름 뒤에 파일 형식 확장명(.txt, .pdf 등)을 표시합니다",
   "Setting_explorer-customization-show-lnk-extension_Name": ".lnk 파일 확장명 표시",
-  "Setting_explorer-customization-show-lnk-extension_Description": "파일 확장명이 활성화된 경우 바로 가기 파일에 .lnk 확장명을 표시합니다. 폴더나 문서로 위장한 악성 바로 가기를 발견하는 데 도움이 됩니다.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "파일 확장명이 활성화된 경우 바로 가기 파일에 .lnk 확장명을 표시합니다. 폴더나 문서로 위장한 악성 바로 가기를 발견하는 데 도움이 됩니다. 한 번 활성화하면 이 설정을 다시 해제해도 시작 메뉴의 일부 이름에 .lnk가 계속 표시될 수 있습니다.",
   "Setting_explorer-enable-photo-viewer_Name": "Windows 사진 뷰어 활성화",
   "Setting_explorer-enable-photo-viewer_Description": "레거시 Windows 사진 뷰어를 복원하고 일반적인 이미지 파일 형식의 기본 프로그램으로 설정합니다",
   "Setting_explorer-customization-legacy-notepad_Name": "텍스트 파일에 레거시 메모장 사용",

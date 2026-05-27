@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Afficher les extensions de fichier",
   "Setting_explorer-customization-show-file-ext_Description": "Affiche les extensions de type de fichier (comme .txt, .pdf) après les noms de fichiers",
   "Setting_explorer-customization-show-lnk-extension_Name": "Afficher l'extension de fichier .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Affiche l'extension .lnk sur les fichiers de raccourci lorsque les extensions de fichier sont activées. Aide à repérer les raccourcis malveillants déguisés en dossiers ou en documents.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Affiche l'extension .lnk sur les fichiers de raccourci lorsque les extensions de fichier sont activées. Aide à repérer les raccourcis malveillants déguisés en dossiers ou en documents. Une fois activée, certains noms du menu Démarrer peuvent continuer à afficher .lnk même après avoir désactivé cette option.",
   "Setting_explorer-enable-photo-viewer_Name": "Activer la Visionneuse de photos Windows",
   "Setting_explorer-enable-photo-viewer_Description": "Restaurer l'ancienne Visionneuse de photos Windows et la définir comme programme par défaut pour les formats de fichiers image courants",
   "Setting_explorer-customization-legacy-notepad_Name": "Utiliser le Bloc-notes classique pour les fichiers texte",

@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Mostra le estensioni dei file",
   "Setting_explorer-customization-show-file-ext_Description": "Visualizza le estensioni del tipo di file (come .txt, .pdf) dopo i nomi dei file",
   "Setting_explorer-customization-show-lnk-extension_Name": "Mostra estensione file .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Mostra l'estensione .lnk sui file di collegamento quando le estensioni dei file sono abilitate. Aiuta a individuare collegamenti dannosi camuffati da cartelle o documenti.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Mostra l'estensione .lnk sui file di collegamento quando le estensioni dei file sono abilitate. Aiuta a individuare collegamenti dannosi camuffati da cartelle o documenti. Una volta abilitato, alcuni nomi nel menu Start potrebbero continuare a mostrare .lnk anche dopo aver disattivato questa opzione.",
   "Setting_explorer-enable-photo-viewer_Name": "Abilita Visualizzatore foto di Windows",
   "Setting_explorer-enable-photo-viewer_Description": "Ripristina il vecchio Visualizzatore foto di Windows e impostalo come programma predefinito per i formati di file di immagine comuni",
   "Setting_explorer-customization-legacy-notepad_Name": "Usa Blocco note legacy per i file di testo",

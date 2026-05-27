@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Rodyti failų plėtinius",
   "Setting_explorer-customization-show-file-ext_Description": "Rodo failų tipo plėtinius (pvz., .txt, .pdf) po failų pavadinimų",
   "Setting_explorer-customization-show-lnk-extension_Name": "Rodyti .lnk failo plėtinį",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Rodo .lnk plėtinį sparčiųjų nuorodų failuose, kai įjungti failų plėtiniai. Padeda aptikti kenkėjiškas nuorodas, užmaskuotas kaip aplankus arba dokumentus.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Rodo .lnk plėtinį sparčiųjų nuorodų failuose, kai įjungti failų plėtiniai. Padeda aptikti kenkėjiškas nuorodas, užmaskuotas kaip aplankus arba dokumentus. Įjungus, kai kurie pavadinimai Paleidimo meniu gali toliau rodyti .lnk net ir vėl išjungus šią parinktį.",
   "Setting_explorer-enable-photo-viewer_Name": "Įjungti Windows nuotraukų peržiūros programą",
   "Setting_explorer-enable-photo-viewer_Description": "Atkurti senąją Windows nuotraukų peržiūros programą ir nustatyti ją kaip numatytąją programą įprastiems vaizdo failų formatams",
   "Setting_explorer-customization-legacy-notepad_Name": "Naudoti senojo tipo Užrašinė teksto failams",

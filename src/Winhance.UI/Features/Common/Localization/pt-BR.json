@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Mostrar extensões de arquivo",
   "Setting_explorer-customization-show-file-ext_Description": "Exibe extensões de tipo de arquivo (como .txt, .pdf) após os nomes dos arquivos",
   "Setting_explorer-customization-show-lnk-extension_Name": "Mostrar extensão de arquivo .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Mostra a extensão .lnk nos arquivos de atalho quando as extensões de arquivo estão ativadas. Ajuda a identificar atalhos maliciosos disfarçados de pastas ou documentos.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Mostra a extensão .lnk nos arquivos de atalho quando as extensões de arquivo estão ativadas. Ajuda a identificar atalhos maliciosos disfarçados de pastas ou documentos. Depois de ativado, alguns nomes no Menu Iniciar podem continuar exibindo .lnk mesmo após desativar esta opção.",
   "Setting_explorer-enable-photo-viewer_Name": "Ativar o Visualizador de Fotos do Windows",
   "Setting_explorer-enable-photo-viewer_Description": "Restaura o antigo Visualizador de Fotos do Windows e o define como o programa padrão para formatos de arquivo de imagem comuns",
   "Setting_explorer-customization-legacy-notepad_Name": "Usar Bloco de Notas legado para arquivos de texto",

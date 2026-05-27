@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "ファイル拡張子を表示",
   "Setting_explorer-customization-show-file-ext_Description": "ファイル名の後に.txt、.pdfなどのファイルタイプ拡張子を表示",
   "Setting_explorer-customization-show-lnk-extension_Name": ".lnk ファイル拡張子を表示",
-  "Setting_explorer-customization-show-lnk-extension_Description": "ファイル拡張子が有効な場合に、ショートカットファイルの .lnk 拡張子を表示します。フォルダーやドキュメントを装った悪意のあるショートカットを見分けるのに役立ちます。",
+  "Setting_explorer-customization-show-lnk-extension_Description": "ファイル拡張子が有効な場合に、ショートカットファイルの .lnk 拡張子を表示します。フォルダーやドキュメントを装った悪意のあるショートカットを見分けるのに役立ちます。一度有効にすると、この設定を無効に戻しても、スタートメニューの一部の名前で .lnk が表示されたままになることがあります。",
   "Setting_explorer-enable-photo-viewer_Name": "Windowsフォトビューアーを有効にする",
   "Setting_explorer-enable-photo-viewer_Description": "レガシーのWindowsフォトビューアーを復元し、一般的な画像ファイル形式のデフォルトプログラムとして設定",
   "Setting_explorer-customization-legacy-notepad_Name": "テキストファイルにレガシーメモ帳を使用",

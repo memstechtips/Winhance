@@ -436,7 +436,7 @@
   "Setting_explorer-customization-show-file-ext_Name": "Visa filnamnstillägg",
   "Setting_explorer-customization-show-file-ext_Description": "Visar filtypstillägg (som .txt, .pdf) efter filnamn",
   "Setting_explorer-customization-show-lnk-extension_Name": "Visa filtillägget .lnk",
-  "Setting_explorer-customization-show-lnk-extension_Description": "Visar tillägget .lnk på genvägsfiler när filnamnstillägg är aktiverade. Hjälper till att upptäcka skadliga genvägar förklädda till mappar eller dokument.",
+  "Setting_explorer-customization-show-lnk-extension_Description": "Visar tillägget .lnk på genvägsfiler när filnamnstillägg är aktiverade. Hjälper till att upptäcka skadliga genvägar förklädda till mappar eller dokument. När det väl är aktiverat kan vissa namn i Start-menyn fortsätta visa .lnk även efter att du stänger av den här inställningen igen.",
   "Setting_explorer-enable-photo-viewer_Name": "Aktivera Windows fotovisare",
   "Setting_explorer-enable-photo-viewer_Description": "Återställ den äldre Windows fotovisaren och ställ in den som standardprogram för vanliga bildfilformat",
   "Setting_explorer-customization-legacy-notepad_Name": "Använd äldre Anteckningar för textfiler",
