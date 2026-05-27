@@ -784,7 +784,7 @@
           {
             "Id": "explorer-customization-show-lnk-extension",
             "Name": "Show .lnk file extension",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {

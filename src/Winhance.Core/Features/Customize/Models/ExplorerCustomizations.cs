@@ -1266,7 +1266,6 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Id = "explorer-customization-show-lnk-extension",
                     IsSubjectivePreference = true,
-                    RecommendedToggleState = true,
                     Name = "Show .lnk file extension",
                     Description = "Shows the .lnk extension on shortcut files when file extensions are enabled. Helps spot malicious shortcuts disguised as folders or documents.",
                     GroupName = "Files and Folders",
