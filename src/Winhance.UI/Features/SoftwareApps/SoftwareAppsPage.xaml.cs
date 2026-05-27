@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -21,6 +22,7 @@ public sealed partial class SoftwareAppsPage : Page
     public SoftwareAppsPage()
     {
         this.InitializeComponent();
+        ApplyTextScaling();
         ViewModel = App.Services.GetRequiredService<SoftwareAppsViewModel>();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateTabBadges();
@@ -44,6 +46,51 @@ public sealed partial class SoftwareAppsPage : Page
                 ExternalAppsReviewBanner.IsOpen = true;
             });
         };
+    }
+
+    /// <summary>
+    /// Scales the compact-row cell width to match the user's Windows text-scale
+    /// setting (Ease of Access → Make text bigger).
+    ///
+    /// WinUI 3 auto-scales <see cref="TextBlock"/> font sizes via
+    /// <c>IsTextScaleFactorEnabled</c>, but fixed cell widths baked into
+    /// Page.Resources are doubles and stay put. The compact-row layout uses a
+    /// 320dp cell that needs to grow at higher text scale so that fewer
+    /// columns fit horizontally and rows wrap to a longer list — Marco's
+    /// "make it show less columns and a longer list, like it does already
+    /// when the window is sized smaller" behaviour for issue #668.
+    ///
+    /// Page.Resources mutation right after <c>InitializeComponent()</c> works
+    /// because WinUI 3 resolves <c>{StaticResource}</c> inside an
+    /// <see cref="ItemsPanelTemplate"/> at template-instantiation time, and
+    /// the compact UniformWrapPanels haven't materialised yet at this point.
+    /// The existing reflow logic in <see cref="UpdateCompactContentMaxWidth"/>
+    /// also reads <c>CompactItemWidth</c> from Resources at SizeChanged time,
+    /// so it picks up the scaled value automatically.
+    ///
+    /// Card-view tile geometry (CardItemWidth / CardCellHeight /
+    /// CardContentHeight) is intentionally NOT scaled here. The card grid
+    /// keeps its default 420×108 cells at every text scale; instead, the
+    /// AppCardTemplate's inner Grid uses MinHeight (so content can push the
+    /// grid taller when needed) and the UniformWrapPanel treats ItemHeight
+    /// as a floor not a cap (so the row grows to fit the tallest card).
+    /// That way the default scale renders identically to before, and the
+    /// column count doesn't drop at higher scale.
+    /// </summary>
+    private void ApplyTextScaling()
+    {
+        if (!TextScaleHelper.IsScaled) return;
+        var f = TextScaleHelper.Factor;
+        ScaleResource("CompactItemWidth", f);
+        // CompactNameMaxWidth scales with the cell so larger text gets
+        // proportionally more horizontal room before CharacterEllipsis fires.
+        ScaleResource("CompactNameMaxWidth", f);
+    }
+
+    private void ScaleResource(string key, double factor)
+    {
+        if (Resources.TryGetValue(key, out var value) && value is double d)
+            Resources[key] = d * factor;
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

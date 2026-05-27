@@ -7,6 +7,7 @@
     xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
 
@@ -230,6 +231,7 @@
                 <AutoSuggestBox
                     x:Name="SearchBox"
                     PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                    helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
                     QueryIcon="Find"
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     ItemsSource="{x:Bind ViewModel.SearchSuggestions}"

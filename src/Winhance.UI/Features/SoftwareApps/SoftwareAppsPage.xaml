@@ -12,6 +12,7 @@
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:vm="using:Winhance.UI.Features.SoftwareApps.ViewModels"
     xmlns:winhanceControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -58,6 +59,18 @@
              Kept narrower than the Card view so a wide window still fits
              several columns of single-line rows. -->
         <x:Double x:Key="CompactItemWidth">320</x:Double>
+        <!-- Compact-view name TextBlock MaxWidth cap. The compact row uses an
+             auto-sized Grid [icons, name, warning] so the warning icon sits
+             immediately to the right of the name's rendered text (rather than
+             being pushed to the far right of the cell). The name TextBlock
+             gets MaxWidth=CompactNameMaxWidth — that's what triggers
+             CharacterEllipsis when a long name would otherwise expand the
+             auto column. Sized so icons (~76dp) + this (210dp) + warning
+             (16dp) + spacings + CheckBox padding fits inside CompactItemWidth
+             (320dp). Scaled in lockstep with CompactItemWidth at startup via
+             ApplyTextScaling so higher text scale gets proportionally more
+             room for the name. -->
+        <x:Double x:Key="CompactNameMaxWidth">210</x:Double>
         <x:Double x:Key="CardViewIconSize">36</x:Double>
         <!-- FontIcon fallback glyph FontSize (puzzle for Capability, gear for
              Optional Feature). Real card icons fill the 36×36 container; FontIcons
@@ -545,7 +558,12 @@
             <ToggleButton IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
                           Style="{StaticResource CardToggleButtonStyle}"
                           AutomationProperties.Name="{x:Bind Name}">
-                <Grid ColumnSpacing="12" Height="{StaticResource CardContentHeight}">
+                <!-- MinHeight (not Height) so the inner content can grow past
+                     the default 84dp when Windows' "Make text bigger" scale is
+                     applied; UniformWrapPanel treats its ItemHeight as a floor
+                     too, so the surrounding cell grows in lockstep. At 100%
+                     text scale every card stays at the original 84dp/108dp. -->
+                <Grid ColumnSpacing="12" MinHeight="{StaticResource CardContentHeight}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
@@ -809,6 +827,7 @@
             </Border>
             <AutoSuggestBox
                 PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
                 QueryIcon="Find"
                 Width="220"
                 Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
@@ -1223,63 +1242,87 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
-                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
-                                                         if alignment still feels off — 2 for less, 4 for more. -->
-                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
-                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                              VerticalAlignment="Center">
-                                                            <Image Source="{Binding IconSource}"
-                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                                   Stretch="Uniform"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                    FontSize="{StaticResource CardAppsIconSize}"
-                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
-                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
-                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                        </Grid>
-                                                        <!-- Installed status: green tower when installed, faded grey tower when not -->
-                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                                                        </Viewbox>
-                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
-                                                        </Viewbox>
-                                                        <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
-                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                            <PathIcon Data="{StaticResource DownloadIconPath}"
-                                                                      Foreground="{ThemeResource BadgePreferenceForeground}"/>
-                                                        </Viewbox>
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
-                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                            <PathIcon Data="{StaticResource DeleteForeverIconPath}"
-                                                                      Foreground="{ThemeResource BadgeDangerForeground}"/>
-                                                        </Viewbox>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                    <!-- Auto-sized Grid (NOT stretched to the cell) restores the
+                                                         pre-fix visual: each row's content sits at its natural width
+                                                         and the UniformWrapPanel slot's leftover space is empty on the
+                                                         right, just like the Microsoft Store / card-view pattern. The
+                                                         name TextBlock has MaxWidth=CompactNameMaxWidth — that finite
+                                                         cap is what makes CharacterEllipsis actually trigger (a plain
+                                                         horizontal StackPanel measures every child with infinite width,
+                                                         which is why long names were clipping mid-glyph before issue
+                                                         #668). With the cap in place, name auto-sizes up to ~210dp and
+                                                         then ellipsizes; the warning Viewbox sits immediately after,
+                                                         not pinned to the far right of the cell.
+                                                         Outer Margin nudges the row down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
+                                                    <Grid Margin="0,3,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                  VerticalAlignment="Center">
+                                                                <Image Source="{Binding IconSource}"
+                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                       Stretch="Uniform"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                       Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                          Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                          Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            </Grid>
+                                                            <!-- Installed status: green tower when installed, faded grey tower when not -->
+                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                            </Viewbox>
+                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                            </Viewbox>
+                                                            <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
+                                                            <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                     Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                                <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                                          Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                            </Viewbox>
+                                                            <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                     Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                                <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                                          Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                            </Viewbox>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   FontSize="16"
+                                                                   Margin="4,0,0,0"
+                                                                   MaxWidth="{StaticResource CompactNameMaxWidth}"/>
+                                                        <Viewbox Grid.Column="2" Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
                                                             <PathIcon Data="{StaticResource AlertIconPath}"
                                                                       Foreground="{ThemeResource BadgeCustomForeground}"/>
                                                         </Viewbox>
-                                                    </StackPanel>
+                                                    </Grid>
                                                 </CheckBox>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -1301,63 +1344,87 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
-                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
-                                                         if alignment still feels off — 2 for less, 4 for more. -->
-                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
-                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                              VerticalAlignment="Center">
-                                                            <Image Source="{Binding IconSource}"
-                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                                   Stretch="Uniform"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                    FontSize="{StaticResource CardAppsIconSize}"
-                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
-                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
-                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                        </Grid>
-                                                        <!-- Installed status: green tower when installed, faded grey tower when not -->
-                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                                                        </Viewbox>
-                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
-                                                        </Viewbox>
-                                                        <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
-                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                            <PathIcon Data="{StaticResource DownloadIconPath}"
-                                                                      Foreground="{ThemeResource BadgePreferenceForeground}"/>
-                                                        </Viewbox>
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
-                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                            <PathIcon Data="{StaticResource DeleteForeverIconPath}"
-                                                                      Foreground="{ThemeResource BadgeDangerForeground}"/>
-                                                        </Viewbox>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                    <!-- Auto-sized Grid (NOT stretched to the cell) restores the
+                                                         pre-fix visual: each row's content sits at its natural width
+                                                         and the UniformWrapPanel slot's leftover space is empty on the
+                                                         right, just like the Microsoft Store / card-view pattern. The
+                                                         name TextBlock has MaxWidth=CompactNameMaxWidth — that finite
+                                                         cap is what makes CharacterEllipsis actually trigger (a plain
+                                                         horizontal StackPanel measures every child with infinite width,
+                                                         which is why long names were clipping mid-glyph before issue
+                                                         #668). With the cap in place, name auto-sizes up to ~210dp and
+                                                         then ellipsizes; the warning Viewbox sits immediately after,
+                                                         not pinned to the far right of the cell.
+                                                         Outer Margin nudges the row down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
+                                                    <Grid Margin="0,3,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                  VerticalAlignment="Center">
+                                                                <Image Source="{Binding IconSource}"
+                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                       Stretch="Uniform"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                       Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                          Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                          Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            </Grid>
+                                                            <!-- Installed status: green tower when installed, faded grey tower when not -->
+                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                            </Viewbox>
+                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                            </Viewbox>
+                                                            <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
+                                                            <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                     Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                                <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                                          Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                            </Viewbox>
+                                                            <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                     Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                                <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                                          Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                            </Viewbox>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   FontSize="16"
+                                                                   Margin="4,0,0,0"
+                                                                   MaxWidth="{StaticResource CompactNameMaxWidth}"/>
+                                                        <Viewbox Grid.Column="2" Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
                                                             <PathIcon Data="{StaticResource AlertIconPath}"
                                                                       Foreground="{ThemeResource BadgeCustomForeground}"/>
                                                         </Viewbox>
-                                                    </StackPanel>
+                                                    </Grid>
                                                 </CheckBox>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -1379,63 +1446,87 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <!-- Margin nudges the row content down to match the WinUI 3 CheckBox
-                                                         glyph's built-in vertical offset. Tune the top value (currently 3)
-                                                         if alignment still feels off — 2 for less, 4 for more. -->
-                                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,3,0,0">
-                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                              VerticalAlignment="Center">
-                                                            <Image Source="{Binding IconSource}"
-                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                                   Stretch="Uniform"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                    FontSize="{StaticResource CardAppsIconSize}"
-                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
-                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                            <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
-                                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                      Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                        </Grid>
-                                                        <!-- Installed status: green tower when installed, faded grey tower when not -->
-                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                                                        </Viewbox>
-                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
-                                                        </Viewbox>
-                                                        <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
-                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                            <PathIcon Data="{StaticResource DownloadIconPath}"
-                                                                      Foreground="{ThemeResource BadgePreferenceForeground}"/>
-                                                        </Viewbox>
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
-                                                                 Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                 ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                            <PathIcon Data="{StaticResource DeleteForeverIconPath}"
-                                                                      Foreground="{ThemeResource BadgeDangerForeground}"/>
-                                                        </Viewbox>
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
-                                                        <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                    <!-- Auto-sized Grid (NOT stretched to the cell) restores the
+                                                         pre-fix visual: each row's content sits at its natural width
+                                                         and the UniformWrapPanel slot's leftover space is empty on the
+                                                         right, just like the Microsoft Store / card-view pattern. The
+                                                         name TextBlock has MaxWidth=CompactNameMaxWidth — that finite
+                                                         cap is what makes CharacterEllipsis actually trigger (a plain
+                                                         horizontal StackPanel measures every child with infinite width,
+                                                         which is why long names were clipping mid-glyph before issue
+                                                         #668). With the cap in place, name auto-sizes up to ~210dp and
+                                                         then ellipsizes; the warning Viewbox sits immediately after,
+                                                         not pinned to the far right of the cell.
+                                                         Outer Margin nudges the row down to match the WinUI 3 CheckBox
+                                                         glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
+                                                    <Grid Margin="0,3,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                  VerticalAlignment="Center">
+                                                                <Image Source="{Binding IconSource}"
+                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                       Stretch="Uniform"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                       Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                          Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                          Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            </Grid>
+                                                            <!-- Installed status: green tower when installed, faded grey tower when not -->
+                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                            </Viewbox>
+                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                            </Viewbox>
+                                                            <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
+                                                            <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                     Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                                <PathIcon Data="{StaticResource DownloadIconPath}"
+                                                                          Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                            </Viewbox>
+                                                            <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                                     Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                     ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
+                                                                <PathIcon Data="{StaticResource DeleteForeverIconPath}"
+                                                                          Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                            </Viewbox>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   FontSize="16"
+                                                                   Margin="4,0,0,0"
+                                                                   MaxWidth="{StaticResource CompactNameMaxWidth}"/>
+                                                        <Viewbox Grid.Column="2" Width="16" Height="16" VerticalAlignment="Center"
+                                                                 Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
                                                             <PathIcon Data="{StaticResource AlertIconPath}"
                                                                       Foreground="{ThemeResource BadgeCustomForeground}"/>
                                                         </Viewbox>
-                                                    </StackPanel>
+                                                    </Grid>
                                                 </CheckBox>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -1703,43 +1794,61 @@
                                                             <DataTemplate>
                                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
                                                                          AutomationProperties.Name="{Binding Name}">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
-                                                                        <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                                        <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                                              VerticalAlignment="Center">
-                                                                            <Image Source="{Binding IconSource}"
-                                                                                   Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
-                                                                                   Stretch="Uniform"
-                                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                                   Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                            <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                                    FontSize="{StaticResource CardAppsIconSize}"
-                                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                                                    Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                        </Grid>
-                                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                                                                        </Viewbox>
-                                                                        <Viewbox Width="18" Height="18" VerticalAlignment="Center"
-                                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                            <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
-                                                                                      Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
-                                                                        </Viewbox>
-                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16"/>
-                                                                        <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
+                                                                    <!-- Auto-sized Grid + MaxWidth-bound name TextBlock — see the
+                                                                         matching comment on the Windows Apps compact template
+                                                                         above (issue #668 iter3). -->
+                                                                    <Grid Margin="0,3,0,0">
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
+                                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                                  VerticalAlignment="Center">
+                                                                                <Image Source="{Binding IconSource}"
+                                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                                       Stretch="Uniform"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                       Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                                <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
+                                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                                        Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                            </Grid>
+                                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                            </Viewbox>
+                                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                                                     ToolTipService.ToolTip="{Binding InstalledStatusText}">
+                                                                                <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
+                                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                                            </Viewbox>
+                                                                        </StackPanel>
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding Name}"
+                                                                                   VerticalAlignment="Center"
+                                                                                   TextTrimming="CharacterEllipsis"
+                                                                                   FontSize="16"
+                                                                                   Margin="6,0,0,0"
+                                                                                   MaxWidth="{StaticResource CompactNameMaxWidth}"/>
+                                                                        <HyperlinkButton Grid.Column="2"
+                                                                                         NavigateUri="{Binding WebsiteUrl}"
                                                                                          Padding="0" MinHeight="0" MinWidth="0"
                                                                                          VerticalAlignment="Center"
+                                                                                         Margin="6,0,0,0"
                                                                                          Visibility="{Binding WebsiteUrl, Converter={StaticResource NotNullToVisibilityConverter}}"
                                                                                          AutomationProperties.Name="{Binding OpenWebsiteAutomationName}">
                                                                             <Viewbox Width="16" Height="16">
                                                                                 <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
                                                                             </Viewbox>
                                                                         </HyperlinkButton>
-                                                                    </StackPanel>
+                                                                    </Grid>
                                                                 </CheckBox>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>

@@ -88,18 +88,23 @@ public sealed partial class UniformWrapPanel : Panel
 
         int columns = ComputeColumnCount(availableWidth);
         double cellWidth = ItemWidth > 0 ? ItemWidth : availableWidth / Math.Max(1, columns);
-        double cellHeight = ItemHeight > 0 ? ItemHeight : 0;
 
-        var childAvailable = new Size(
-            cellWidth,
-            cellHeight > 0 ? cellHeight : double.PositiveInfinity);
-
+        // Always measure children with unbounded vertical room so we learn each
+        // child's true desired height; the cell height then becomes
+        // max(ItemHeight, biggest child desired). ItemHeight acts as a FLOOR,
+        // not a hard cap, which is what lets the card grid tolerate Windows'
+        // "Make text bigger" slider — at 100% scale every card fits inside the
+        // ItemHeight floor and behaviour is unchanged, at higher scale the
+        // descriptions push past the floor and rows grow to fit instead of
+        // clipping (issue #668).
+        var childAvailable = new Size(cellWidth, double.PositiveInfinity);
         foreach (var child in Children)
             child.Measure(childAvailable);
 
+        double cellHeight = ComputeCellHeight();
+
         int rows = (int)Math.Ceiling((double)count / columns);
-        double rowHeight = cellHeight > 0 ? cellHeight : MaxChildDesiredHeight();
-        double totalHeight = rows * rowHeight + Math.Max(0, rows - 1) * RowSpacing;
+        double totalHeight = rows * cellHeight + Math.Max(0, rows - 1) * RowSpacing;
         return new Size(availableWidth, totalHeight);
     }
 
@@ -111,7 +116,7 @@ public sealed partial class UniformWrapPanel : Panel
 
         int columns = ComputeColumnCount(finalSize.Width);
         double cellWidth = ItemWidth > 0 ? ItemWidth : finalSize.Width / Math.Max(1, columns);
-        double cellHeight = ItemHeight > 0 ? ItemHeight : MaxChildDesiredHeight();
+        double cellHeight = ComputeCellHeight();
 
         for (int i = 0; i < count; i++)
         {
@@ -125,6 +130,13 @@ public sealed partial class UniformWrapPanel : Panel
         int rows = (int)Math.Ceiling((double)count / columns);
         double totalHeight = rows * cellHeight + Math.Max(0, rows - 1) * RowSpacing;
         return new Size(finalSize.Width, totalHeight);
+    }
+
+    private double ComputeCellHeight()
+    {
+        double floor = ItemHeight > 0 ? ItemHeight : 0;
+        double tallest = MaxChildDesiredHeight();
+        return Math.Max(floor, tallest);
     }
 
     private double MaxChildDesiredHeight()
