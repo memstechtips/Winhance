@@ -17,6 +17,17 @@
     <!-- Self-contained: bundles .NET runtime and App SDK runtime with the app (no separate runtime install needed) -->
     <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Clear /CETCOMPAT on the apphost. .NET 9+ defaults to it, opting into Intel CET /
+         AMD shadow-stack enforcement. CoreCLR has an unpatched bug (dotnet/runtime#110920)
+         where the user-mode-APC path trips a shadow-stack assertion and
+         FailFast(0xc0000602)s the process before Main() runs. Affects users on CET-capable
+         CPUs (Intel Tiger Lake+, AMD Zen 3+) running Windows without the ntdll CET fix from
+         KB5044273 (Oct 2024) - i.e. unpatched LTSC and similar. Same symptom hit #356
+         (WPF .NET 9) and #648 (WinUI3 .NET 10), same fault offset 0x10be3e inside
+         KERNELBASE!RaiseFailFastException across both. Microsoft's documented workaround:
+         https://learn.microsoft.com/en-us/dotnet/core/compatibility/interop/9.0/cet-support
+         Trade-off: Winhance.exe specifically loses CET ROP-mitigation. -->
+    <CETCompat>false</CETCompat>
     <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
