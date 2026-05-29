@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Workplace Join-Nachrichtenanfragen",
   "Setting_security-workplace-join-messages_Description": "'Meiner Organisation erlauben, mein Gerät zu verwalten' Aufforderungen in Windows anzeigen",
   "Setting_start-menu-clean-10_Name": "Startmenü bereinigen",
-  "Setting_start-menu-clean-10_Description": "Entfernt alle angehefteten Elemente und wendet ein sauberes Layout an",
+  "Setting_start-menu-clean-10_Description": "Entfernt alle angehefteten Elemente und wendet ein bereinigtes Layout für den aktuellen Benutzer und alle neu erstellten Profile an. Um andere vorhandene Benutzer zu bereinigen, führen Sie dies erneut aus, während Sie als der jeweilige Benutzer angemeldet sind.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Startmenü-Bereinigung",
   "Setting_start-menu-clean-10_ConfirmMessage": "Sie sind dabei, das Startmenü für alle Benutzer auf diesem Computer zu bereinigen. Dadurch werden alle angehefteten Elemente entfernt und das empfohlene Layout angewendet.\n\nMöchten Sie fortfahren?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Auch empfohlene Startmenü-Einstellungen anwenden, um Vorschläge, Empfehlungen und Tracking-Funktionen zu deaktivieren.",

@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Werkplek Toevoegen Berichtverzoeken",
   "Setting_security-workplace-join-messages_Description": "Toon 'Sta mijn organisatie toe mijn apparaat te beheren' verzoeken in heel Windows",
   "Setting_start-menu-clean-10_Name": "Startmenu Opschonen",
-  "Setting_start-menu-clean-10_Description": "Verwijdert alle vastgemaakte items en past schone lay-out toe",
+  "Setting_start-menu-clean-10_Description": "Verwijdert alle vastgemaakte items en past een schone indeling toe voor de huidige gebruiker en eventuele nieuw aangemaakte profielen. Voer dit opnieuw uit terwijl je als elke andere bestaande gebruiker bent aangemeld om die op te schonen.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Startmenu Opschonen",
   "Setting_start-menu-clean-10_ConfirmMessage": "U staat op het punt het Startmenu voor alle gebruikers op deze computer schoon te maken. Dit verwijdert alle vastgemaakte items en past de aanbevolen lay-out toe.\n\nWilt u doorgaan?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Pas ook aanbevolen Startmenu-instellingen toe om\nsuggesties, aanbevelingen en volgfuncties uit te schakelen.",

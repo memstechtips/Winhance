@@ -295,8 +295,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
                 if (!string.IsNullOrEmpty(setting.ActionCommand))
                 {
-                    // Legacy ActionCommand dispatch — still used by Win10 clean / Taskbar clean
-                    // until they're migrated to declare RegistrySettings + PowerShellScripts.
+                    // Legacy ActionCommand dispatch — still used by Taskbar clean until it's
+                    // migrated to declare RegistrySettings + PowerShellScripts.
                     await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = item.Id,

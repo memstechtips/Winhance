@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Avisos de mensaje de unión al espacio de trabajo",
   "Setting_security-workplace-join-messages_Description": "Mostrar los avisos 'Permitir que mi organización administre mi dispositivo' en todo Windows",
   "Setting_start-menu-clean-10_Name": "Limpiar Menú Inicio",
-  "Setting_start-menu-clean-10_Description": "Elimina todos los elementos anclados y aplica un diseño limpio",
+  "Setting_start-menu-clean-10_Description": "Elimina todos los elementos anclados y aplica un diseño limpio para el usuario actual y los perfiles que se creen posteriormente. Para limpiar otros usuarios existentes, vuelve a ejecutarlo con la sesión iniciada como cada uno de ellos.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Limpieza del Menú Inicio",
   "Setting_start-menu-clean-10_ConfirmMessage": "Estás a punto de limpiar el Menú Inicio para todos los usuarios de este equipo. Esto eliminará todos los elementos anclados y aplicará el diseño recomendado.\n\n¿Deseas continuar?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "También aplica la configuración recomendada del Menú Inicio para deshabilitar\nsugerencias, recomendaciones y funciones de seguimiento.",

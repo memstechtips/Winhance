@@ -257,7 +257,7 @@
   "Setting_security-workplace-join-messages_Name": "Workplace Join Message Prompts",
   "Setting_security-workplace-join-messages_Description": "Show 'Allow my organization to manage my device' prompts throughout Windows",
   "Setting_start-menu-clean-10_Name": "Clean Start Menu",
-  "Setting_start-menu-clean-10_Description": "Removes all pinned items and applies clean layout",
+  "Setting_start-menu-clean-10_Description": "Removes all pinned items and applies a clean layout for the current user and any newly created profiles. To clean other existing users, run this again while signed in as each of them.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Start Menu Cleaning",
   "Setting_start-menu-clean-10_ConfirmMessage": "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\nDo you want to continue?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Also apply recommended Start Menu settings to disable\nsuggestions, recommendations, and tracking features.",

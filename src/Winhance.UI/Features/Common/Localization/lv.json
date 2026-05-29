@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Darba vietas pievienošanās ziņojumu uzvednes",
   "Setting_security-workplace-join-messages_Description": "Rādīt 'Atļaut manai organizācijai pārvaldīt manu ierīci' uzvednes visā Windows sistēmā",
   "Setting_start-menu-clean-10_Name": "Tīrīt Starta izvēlni",
-  "Setting_start-menu-clean-10_Description": "Noņem visus piesaistītos vienumus un lieto tīru izkārtojumu",
+  "Setting_start-menu-clean-10_Description": "Noņem visus piespraustos vienumus un lieto tīru izkārtojumu pašreizējam lietotājam un jebkuram vēlāk izveidotam profilam. Lai notīrītu citus esošos lietotājus, palaidiet to vēlreiz, pierakstoties kā katrs no viņiem.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Starta izvēlnes tīrīšana",
   "Setting_start-menu-clean-10_ConfirmMessage": "Jūs gatavojaties tīrīt Starta izvēlni visiem lietotājiem šajā datorā. Tas noņems visus piesaistītos vienumus un lietos ieteicamo izkārtojumu.\n\nVai vēlaties turpināt?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Arī lietot ieteicamos Starta izvēlnes iestatījumus, lai atspējotu\nieteikumus, rekomendācijas un izsekošanas funkcijas.",

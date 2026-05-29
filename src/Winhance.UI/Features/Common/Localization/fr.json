@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Invites de message d'adhésion au lieu de travail",
   "Setting_security-workplace-join-messages_Description": "Afficher les invites 'Autoriser mon organisation à gérer mon appareil' dans Windows",
   "Setting_start-menu-clean-10_Name": "Nettoyer le menu Démarrer",
-  "Setting_start-menu-clean-10_Description": "Supprime tous les éléments épinglés et applique une disposition propre",
+  "Setting_start-menu-clean-10_Description": "Supprime tous les éléments épinglés et applique une disposition épurée pour l'utilisateur actuel et tout nouveau profil créé par la suite. Pour nettoyer d'autres utilisateurs existants, relancez l'opération en étant connecté en tant que chacun d'eux.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Nettoyage du menu Démarrer",
   "Setting_start-menu-clean-10_ConfirmMessage": "Vous êtes sur le point de nettoyer le menu Démarrer pour tous les utilisateurs de cet ordinateur. Cela supprimera tous les éléments épinglés et appliquera la disposition recommandée.\n\nVoulez-vous continuer ?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Appliquer également les paramètres recommandés du menu Démarrer pour désactiver\nles suggestions, les recommandations et les fonctionnalités de suivi.",

@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Avisos de mensagem de adesão ao local de trabalho",
   "Setting_security-workplace-join-messages_Description": "Mostrar avisos 'Permitir que a minha organização faça a gestão do meu dispositivo' em todo o Windows",
   "Setting_start-menu-clean-10_Name": "Limpar Menu Iniciar",
-  "Setting_start-menu-clean-10_Description": "Remove todos os itens afixados e aplica um layout limpo",
+  "Setting_start-menu-clean-10_Description": "Remove todos os itens fixados e aplica um esquema limpo para o utilizador atual e quaisquer perfis criados posteriormente. Para limpar outros utilizadores existentes, execute novamente com sessão iniciada como cada um deles.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Limpeza do Menu Iniciar",
   "Setting_start-menu-clean-10_ConfirmMessage": "Está prestes a limpar o Menu Iniciar para todos os utilizadores neste computador. Isto irá remover todos os itens afixados e aplicar o layout recomendado.\n\nDeseja continuar?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Também aplicar as definições recomendadas do Menu Iniciar para desativar\nsugestões, recomendações e funcionalidades de rastreio.",

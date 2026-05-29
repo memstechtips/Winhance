@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Výzvy ke připojení k pracovišti",
   "Setting_security-workplace-join-messages_Description": "Zobrazovat výzvy 'Povolit mé organizaci spravovat mé zařízení' v celém systému Windows",
   "Setting_start-menu-clean-10_Name": "Vyčistit nabídku Start",
-  "Setting_start-menu-clean-10_Description": "Odstraní všechny připnuté položky a použije čisté rozložení",
+  "Setting_start-menu-clean-10_Description": "Odebere všechny připnuté položky a použije čisté rozložení pro aktuálního uživatele a všechny nově vytvořené profily. Chcete-li vyčistit ostatní stávající uživatele, spusťte to znovu přihlášeni jako každý z nich.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Čištění nabídky Start",
   "Setting_start-menu-clean-10_ConfirmMessage": "Chystáte se vyčistit nabídku Start pro všechny uživatele na tomto počítači. Tím se odstraní všechny připnuté položky a použije se doporučené rozložení.\n\nChcete pokračovat?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Také použít doporučená nastavení nabídky Start pro zakázání\nnávrhů, doporučení a sledovacích funkcí.",

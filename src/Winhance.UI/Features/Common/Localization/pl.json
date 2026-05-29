@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Monity o dołączaniu do miejsca pracy",
   "Setting_security-workplace-join-messages_Description": "Wyświetlaj monity 'Zezwól mojej organizacji na zarządzanie moim urządzeniem' w całym systemie Windows",
   "Setting_start-menu-clean-10_Name": "Wyczyść menu Start",
-  "Setting_start-menu-clean-10_Description": "Usuwa wszystkie przypięte elementy i stosuje czysty układ",
+  "Setting_start-menu-clean-10_Description": "Usuwa wszystkie przypięte elementy i stosuje czysty układ dla bieżącego użytkownika oraz wszelkich nowo utworzonych profili. Aby wyczyścić innych istniejących użytkowników, uruchom to ponownie, zalogowany jako każdy z nich.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Czyszczenie menu Start",
   "Setting_start-menu-clean-10_ConfirmMessage": "Zamierzasz wyczyścić menu Start dla wszystkich użytkowników na tym komputerze. Spowoduje to usunięcie wszystkich przypiętych elementów i zastosowanie zalecanego układu.\n\nCzy chcesz kontynuować?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Zastosuj również zalecane ustawienia menu Start, aby wyłączyć sugestie,\nrekomendacje i funkcje śledzenia.",

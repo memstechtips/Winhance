@@ -45,8 +45,6 @@ public static class SettingServicesExtensions
             new ActionCommandRegistry(new Dictionary<string, IActionCommandProvider>
             {
                 [SettingIds.TaskbarClean]         = sp.GetRequiredService<TaskbarService>(),
-                [SettingIds.StartMenuCleanWin10]  = sp.GetRequiredService<StartMenuService>(),
-                [SettingIds.StartMenuCleanWin11]  = sp.GetRequiredService<StartMenuService>(),
             }));
 
         // Only handlers that override DiscoverSpecialSettingsAsync (i.e. self-filter
@@ -72,9 +70,6 @@ public static class SettingServicesExtensions
         // Register ThemeWallpaperApplier (special handler for theme-mode-windows;
         // the explorer refresh is now declarative via SettingDefinition.RestartProcess).
         services.AddSingleton<ThemeWallpaperApplier>();
-
-        // Register StartMenuService
-        services.AddSingleton<StartMenuService>();
 
         // Register TaskbarService
         services.AddSingleton<TaskbarService>();

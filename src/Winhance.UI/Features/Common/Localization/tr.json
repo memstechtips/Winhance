@@ -257,7 +257,7 @@
   "Setting_security-workplace-join-messages_Name": "İş Yerine Katılım Mesaj İstemleri",
   "Setting_security-workplace-join-messages_Description": "Windows genelinde 'Kuruluşumun cihazımı yönetmesine izin ver' istemlerini göster",
   "Setting_start-menu-clean-10_Name": "Temiz Başlat Menüsü",
-  "Setting_start-menu-clean-10_Description": "Tüm sabitlenmiş öğeleri kaldırır ve temiz düzeni uygular",
+  "Setting_start-menu-clean-10_Description": "Sabitlenmiş tüm öğeleri kaldırır ve geçerli kullanıcı ile daha sonra oluşturulan profiller için temiz bir düzen uygular. Mevcut diğer kullanıcıları temizlemek için her biriyle oturum açarak bunu yeniden çalıştırın.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Başlat Menüsü Temizliği",
   "Setting_start-menu-clean-10_ConfirmMessage": "Bu bilgisayardaki tüm kullanıcılar için Başlat Menüsünü temizlemek üzeresiniz. Bu, tüm sabitlenmiş öğeleri kaldıracak ve önerilen düzeni uygulayacaktır.\n\nDevam etmek istiyor musunuz?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Ayrıca önerileri, tavsiyeleri ve izleme özelliklerini devre dışı bırakmak için\nönerilen Başlat Menüsü ayarlarını uygula.",

@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "工作區加入訊息提示",
   "Setting_security-workplace-join-messages_Description": "在 Windows 中顯示'允許我的組織管理我的裝置'提示",
   "Setting_start-menu-clean-10_Name": "乾淨開始功能表",
-  "Setting_start-menu-clean-10_Description": "移除所有釘選項目並套用乾淨版面配置",
+  "Setting_start-menu-clean-10_Description": "移除所有釘選項目，並為目前使用者及之後新建的設定檔套用簡潔版面配置。若要清理其他現有使用者，請以各自的帳戶登入後再次執行。",
   "Setting_start-menu-clean-10_ConfirmTitle": "開始功能表清理",
   "Setting_start-menu-clean-10_ConfirmMessage": "您即將清理這部電腦上所有使用者的開始功能表。這將會移除所有釘選項目並套用推薦的版面配置。\n\n您想要繼續嗎？",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "同時套用推薦的開始功能表設定以停用\n建議、推薦項目與追蹤功能。",

@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "工作区加入消息提示",
   "Setting_security-workplace-join-messages_Description": "在 Windows 中显示'允许我的组织管理我的设备'提示",
   "Setting_start-menu-clean-10_Name": "清理开始菜单",
-  "Setting_start-menu-clean-10_Description": "移除所有固定的项目并应用干净的布局",
+  "Setting_start-menu-clean-10_Description": "删除所有固定项目，并为当前用户和此后新建的配置文件应用简洁布局。若要清理其他现有用户，请以各自的账户登录后再次运行。",
   "Setting_start-menu-clean-10_ConfirmTitle": "开始菜单清理",
   "Setting_start-menu-clean-10_ConfirmMessage": "您即将为此计算机上的所有用户清理开始菜单。这将移除所有固定的项目并应用推荐的布局。\n\n是否要继续？",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "同时应用推荐的开始菜单设置以禁用\n建议、推荐和跟踪功能。",

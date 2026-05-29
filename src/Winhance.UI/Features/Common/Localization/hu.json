@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Munkahelyi csatlakozási üzenet-felhívások",
   "Setting_security-workplace-join-messages_Description": "„Szervezetem kezelheti az eszközt” felhívások megjelenítése a Windowsban",
   "Setting_start-menu-clean-10_Name": "Start menü tisztítása",
-  "Setting_start-menu-clean-10_Description": "Eltávolítja az összes rögzített elemet, és sima elrendezést alkalmaz",
+  "Setting_start-menu-clean-10_Description": "Eltávolítja az összes rögzített elemet, és tiszta elrendezést alkalmaz a jelenlegi felhasználóra és minden ezután létrehozott profilra. Más meglévő felhasználók megtisztításához futtassa újra, az adott felhasználóként bejelentkezve.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Start menü tisztításának indítása",
   "Setting_start-menu-clean-10_ConfirmMessage": "Arra készül, hogy megtisztítsa a Start menüt a számítógép összes felhasználója számára. Ezzel eltávolítja az összes rögzített elemet, és alkalmazza a javasolt elrendezést.\n\nSzeretné folytatni?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Alkalmazzuk az ajánlott Start menü beállításokat is, hogy letiltsuk\n a javaslatokat, ajánlásokat és nyomkövetési funkciókat.",

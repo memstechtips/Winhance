@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Lời nhắc tham gia nơi làm việc",
   "Setting_security-workplace-join-messages_Description": "Hiển thị lời nhắc 'Cho phép tổ chức của tôi quản lý thiết bị của tôi' trong toàn bộ Windows",
   "Setting_start-menu-clean-10_Name": "Làm sạch Menu Bắt đầu",
-  "Setting_start-menu-clean-10_Description": "Xóa tất cả các mục đã ghim và áp dụng bố cục sạch",
+  "Setting_start-menu-clean-10_Description": "Xóa tất cả mục đã ghim và áp dụng bố cục sạch cho người dùng hiện tại và mọi hồ sơ được tạo sau đó. Để dọn dẹp những người dùng hiện có khác, hãy chạy lại khi đã đăng nhập bằng từng tài khoản của họ.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Làm sạch Menu Bắt đầu",
   "Setting_start-menu-clean-10_ConfirmMessage": "Bạn sắp làm sạch Menu Bắt đầu cho tất cả người dùng trên máy tính này. Thao tác này sẽ xóa tất cả các mục đã ghim và áp dụng bố cục được đề xuất.\n\nBạn có muốn tiếp tục không?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Đồng thời áp dụng các cài đặt Menu Bắt đầu được đề xuất để tắt\ncác đề xuất, khuyến nghị và tính năng theo dõi.",

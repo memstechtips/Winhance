@@ -21,13 +21,53 @@ public static class StartMenuCustomizations
                 {
                     Id = SettingIds.StartMenuCleanWin10,
                     Name = "Clean Start Menu",
-                    Description = "Removes all pinned items and applies clean layout",
+                    Description = "Removes all pinned items and applies a clean layout for the current user and any newly created profiles. To clean other existing users, run this again while signed in as each of them.",
                     GroupName = "Layout",
                     InputType = InputType.Action,
                     Icon = "Broom",
                     IsWindows10Only = true,
                     RequiresConfirmation = true,
-                    ActionCommand = "CleanWindows10StartMenuAsync",
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+$layoutPath = 'C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml'
+$layoutXml = @'
+<?xml version=""1.0"" encoding=""utf-8""?>
+<LayoutModificationTemplate xmlns:defaultlayout=""http://schemas.microsoft.com/Start/2014/FullDefaultLayout"" xmlns:start=""http://schemas.microsoft.com/Start/2014/StartLayout"" Version=""1"" xmlns:taskbar=""http://schemas.microsoft.com/Start/2014/TaskbarLayout"" xmlns=""http://schemas.microsoft.com/Start/2014/LayoutModification"">
+    <LayoutOptions StartTileGroupCellWidth=""6"" />
+    <DefaultLayoutOverride>
+        <StartLayoutCollection>
+            <defaultlayout:StartLayout GroupCellWidth=""6"" />
+        </StartLayoutCollection>
+    </DefaultLayoutOverride>
+</LayoutModificationTemplate>
+'@
+
+# Future users: drop the clean template into the Default profile (force-create dir, overwrite if present).
+New-Item -ItemType Directory -Path (Split-Path $layoutPath) -Force | Out-Null
+[System.IO.File]::WriteAllText($layoutPath, $layoutXml)
+
+# Current user only: apply now via their SID (HKU, not HKCU - correct under OTS), then unlock so they can still customize.
+# Other existing users are intentionally not touched - Win10 has no supported way to apply a
+# customizable layout to a signed-out profile, so users re-run this per account (see description).
+$me = ((Get-CimInstance Win32_ComputerSystem).UserName -split '\\')[-1]
+if ($me) {
+    $sid = (New-Object System.Security.Principal.NTAccount($me)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+    $key = ""HKU\$sid\SOFTWARE\Policies\Microsoft\Windows\Explorer""
+    reg add $key /v StartLayoutFile /t REG_SZ /d $layoutPath /f | Out-Null
+    reg add $key /v LockedStartLayout /t REG_DWORD /d 1 /f | Out-Null
+    Stop-Process -Name StartMenuExperienceHost -Force -EA SilentlyContinue; Start-Sleep 3
+    reg add $key /v LockedStartLayout /t REG_DWORD /d 0 /f | Out-Null
+    Stop-Process -Name StartMenuExperienceHost -Force -EA SilentlyContinue
+}
+",
+                            DisabledScript = null,
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
+                        },
+                    },
                 },
                 new SettingDefinition
                 {

@@ -372,7 +372,14 @@ public class SystemSettingsDiscoveryService(
         bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
         bool hasPowerCfgSettings = setting.PowerCfgSettings?.Any() == true;
 
-        if (!hasRegistrySettings && !hasScheduledTaskSettings && !hasPowerCfgSettings)
+        // Build tooltip data for anything the Technical Details panel can render — not just
+        // registry/task/powercfg, but also PowerShellScripts, RegContents, and Dependencies.
+        // An Action setting whose only payload is a PowerShellScript (e.g. Clean Start Menu)
+        // must still surface its script for transparency.
+        if (!hasRegistrySettings && !hasScheduledTaskSettings && !hasPowerCfgSettings
+            && setting.PowerShellScripts?.Any() != true
+            && setting.RegContents?.Any() != true
+            && setting.Dependencies?.Any() != true)
             return null;
 
         try

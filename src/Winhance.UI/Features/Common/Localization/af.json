@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Werkplek Aansluit Boodskap Versoeke",
   "Setting_security-workplace-join-messages_Description": "Wys 'Laat my organisasie toe om my toestel te bestuur' versoeke regdeur Windows",
   "Setting_start-menu-clean-10_Name": "Skoon Beginlys",
-  "Setting_start-menu-clean-10_Description": "Verwyder alle vasgespelde items en pas skoon uitleg toe",
+  "Setting_start-menu-clean-10_Description": "Verwyder alle vasgespelde items en pas 'n skoon uitleg toe vir die huidige gebruiker en enige nuut geskepte profiele. Om ander bestaande gebruikers skoon te maak, voer dit weer uit terwyl jy as elkeen van hulle aangemeld is.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Beginlys Skoonmaak",
   "Setting_start-menu-clean-10_ConfirmMessage": "Jy staan op die punt om die Beginlys vir alle gebruikers op hierdie rekenaar skoon te maak. Dit sal alle vasgespelde items verwyder en die aanbevole uitleg toepas.\n\nWil jy voortgaan?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Pas ook aanbevole Beginlys instellings toe om\nvoorstelle, aanbevelings en opsporingsfunksies te deaktiveer.",

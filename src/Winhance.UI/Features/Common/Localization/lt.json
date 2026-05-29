@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Darbo vietos prisijungimo pranešimų raginimai",
   "Setting_security-workplace-join-messages_Description": "Rodyti „Leisti mano organizacijai valdyti mano įrenginį“ raginimus visoje Windows sistemoje",
   "Setting_start-menu-clean-10_Name": "Išvalyti paleidimo meniu",
-  "Setting_start-menu-clean-10_Description": "Pašalina visus prisegtus elementus ir taiko švarų išdėstymą",
+  "Setting_start-menu-clean-10_Description": "Pašalina visus prisegtus elementus ir pritaiko švarų išdėstymą dabartiniam naudotojui bei visiems vėliau sukurtiems profiliams. Norėdami išvalyti kitus esamus naudotojus, paleiskite tai dar kartą prisijungę kaip kiekvienas iš jų.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Paleidimo meniu valymas",
   "Setting_start-menu-clean-10_ConfirmMessage": "Ketinate išvalyti paleidimo meniu visiems šio kompiuterio vartotojams. Tai pašalins visus prisegtus elementus ir pritaikys rekomenduojamą išdėstymą.\n\nAr norite tęsti?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Taip pat taikyti rekomenduojamus paleidimo meniu nustatymus, kad būtų išjungti\npasiūlymai, rekomendacijos ir stebėjimo funkcijos.",

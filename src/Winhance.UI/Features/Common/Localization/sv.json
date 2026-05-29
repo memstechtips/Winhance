@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Workplace Join-meddelandeförfrågningar",
   "Setting_security-workplace-join-messages_Description": "Visa 'Tillåt min organisation att hantera min enhet'-förfrågningar i hela Windows",
   "Setting_start-menu-clean-10_Name": "Rensa Start-menyn",
-  "Setting_start-menu-clean-10_Description": "Tar bort alla fästa objekt och tillämpar en ren layout",
+  "Setting_start-menu-clean-10_Description": "Tar bort alla fästa objekt och tillämpar en ren layout för den aktuella användaren och alla nyskapade profiler. Kör det igen inloggad som varje annan befintlig användare för att rensa dem.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Rensning av Start-menyn",
   "Setting_start-menu-clean-10_ConfirmMessage": "Du är på väg att rensa Start-menyn för alla användare på den här datorn. Detta tar bort alla fästa objekt och tillämpar den rekommenderade layouten.\n\nVill du fortsätta?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Tillämpa även rekommenderade inställningar för Start-menyn för att inaktivera\nförslag, rekommendationer och spårningsfunktioner.",

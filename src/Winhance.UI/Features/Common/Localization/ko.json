@@ -257,7 +257,7 @@
   "Setting_security-workplace-join-messages_Name": "작업 공간 연결 메시지 프롬프트",
   "Setting_security-workplace-join-messages_Description": "Windows 전체에서 '내 조직이 내 장치를 관리하도록 허용' 프롬프트를 표시합니다",
   "Setting_start-menu-clean-10_Name": "시작 메뉴 정리",
-  "Setting_start-menu-clean-10_Description": "모든 고정 항목을 제거하고 깨끗한 레이아웃을 적용합니다",
+  "Setting_start-menu-clean-10_Description": "고정된 모든 항목을 제거하고 현재 사용자와 이후에 생성되는 프로필에 깔끔한 레이아웃을 적용합니다. 다른 기존 사용자를 정리하려면 해당 사용자로 로그인한 상태에서 다시 실행하세요.",
   "Setting_start-menu-clean-10_ConfirmTitle": "시작 메뉴 정리",
   "Setting_start-menu-clean-10_ConfirmMessage": "이 컴퓨터의 모든 사용자에 대해 시작 메뉴를 정리하려고 합니다. 모든 고정 항목이 제거되고 권장 레이아웃이 적용됩니다.\n\n계속하시겠습니까?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "제안, 추천 및 추적 기능을 비활성화하는\n권장 시작 메뉴 설정도 적용합니다.",

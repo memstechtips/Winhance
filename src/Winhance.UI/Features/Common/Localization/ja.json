@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Workplace Join メッセージプロンプト",
   "Setting_security-workplace-join-messages_Description": "Windows全体で'組織にデバイスの管理を許可する'プロンプトを表示します",
   "Setting_start-menu-clean-10_Name": "スタートメニューをクリーンにする",
-  "Setting_start-menu-clean-10_Description": "すべてのピン留めされた項目を削除し、クリーンなレイアウトを適用",
+  "Setting_start-menu-clean-10_Description": "すべてのピン留め項目を削除し、現在のユーザーと今後作成されるプロファイルにクリーンなレイアウトを適用します。他の既存ユーザーをクリーンにするには、それぞれのユーザーでサインインして再度実行してください。",
   "Setting_start-menu-clean-10_ConfirmTitle": "スタートメニューのクリーニング",
   "Setting_start-menu-clean-10_ConfirmMessage": "このコンピュータのすべてのユーザーのスタートメニューをクリーンにしようとしています。これにより、すべてのピン留めされた項目が削除され、推奨レイアウトが適用されます。\n\n続行しますか？",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "提案、推奨、追跡機能を無効にするために、推奨されるスタートメニュー設定も適用します。",

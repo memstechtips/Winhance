@@ -222,7 +222,7 @@
   "Setting_security-workplace-join-messages_Name": "Avvisi di adesione al luogo di lavoro",
   "Setting_security-workplace-join-messages_Description": "Mostra gli avvisi 'Consenti alla mia organizzazione di gestire il mio dispositivo' in Windows",
   "Setting_start-menu-clean-10_Name": "Pulisci menu Start",
-  "Setting_start-menu-clean-10_Description": "Rimuove tutti gli elementi aggiunti e applica un layout pulito",
+  "Setting_start-menu-clean-10_Description": "Rimuove tutti gli elementi aggiunti e applica un layout pulito per l'utente corrente e per eventuali nuovi profili creati in seguito. Per pulire altri utenti esistenti, eseguilo di nuovo accedendo come ciascuno di essi.",
   "Setting_start-menu-clean-10_ConfirmTitle": "Pulizia del menu Start",
   "Setting_start-menu-clean-10_ConfirmMessage": "Stai per pulire il menu Start per tutti gli utenti su questo computer. Questo rimuoverà tutti gli elementi aggiunti e applicherà il layout consigliato.\n\nVuoi continuare?",
   "Setting_start-menu-clean-10_ConfirmCheckbox": "Applica anche le impostazioni consigliate del menu Start per disabilitare\nsuggerimenti, raccomandazioni e funzionalità di tracciamento.",
