@@ -1252,9 +1252,8 @@ public class SettingOperationExecutorTests
 
     // ---------------------------------------------------------------
     // InputType.Action: one-shot apply emits EnabledValue writes via the
-    // same path as Toggle with enable=true. Backstop for the migration of
-    // Action settings (Clean Start Menu, Taskbar Clean) from
-    // IActionCommandProvider services to catalog-declared operations.
+    // same path as Toggle with enable=true. Catalog-declared operations
+    // for Action settings (Clean Start Menu, Taskbar Clean).
     // ---------------------------------------------------------------
 
     [Fact]

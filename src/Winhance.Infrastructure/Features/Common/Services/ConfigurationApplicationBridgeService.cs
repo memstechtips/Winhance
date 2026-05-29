@@ -284,39 +284,23 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             if (setting.InputType == InputType.Action)
             {
                 // Action settings only apply when explicitly selected. An unselected Action has
-                // no "reverse" semantic — falling through to the regular path with Enable=false
-                // would write DisabledValue (delete the keys the action would have set), which
-                // is destructive rather than no-op.
+                // no "reverse" semantic — falling through with Enable=false would write
+                // DisabledValue (delete the keys the action set), which is destructive.
                 if (!(item.IsSelected ?? false))
                 {
                     _logService.Log(LogLevel.Debug, $"Skipping unselected Action setting: {item.Name}");
                     return (ApplyStatus.Applied, item.Name);
                 }
 
-                if (!string.IsNullOrEmpty(setting.ActionCommand))
+                // Catalog path: operations declared directly on the SettingDefinition.
+                // Enable=true matches the runtime button-click flow (RunActionAsync).
+                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {
-                    // Legacy ActionCommand dispatch — still used by Taskbar clean until it's
-                    // migrated to declare RegistrySettings + PowerShellScripts.
-                    await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                    {
-                        SettingId = item.Id,
-                        Enable = false,
-                        CommandString = setting.ActionCommand,
-                        SkipValuePrerequisites = true
-                    }).ConfigureAwait(false);
-                }
-                else
-                {
-                    // Catalog-only path: operations declared directly on the SettingDefinition.
-                    // Enable=true matches the runtime button-click flow (HandleActionAsync).
-                    await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                    {
-                        SettingId = item.Id,
-                        Enable = true,
-                        CheckboxResult = checkboxResult,
-                        SkipValuePrerequisites = true
-                    }).ConfigureAwait(false);
-                }
+                    SettingId = item.Id,
+                    Enable = true,
+                    CheckboxResult = checkboxResult,
+                    SkipValuePrerequisites = true
+                }).ConfigureAwait(false);
             }
             else
             {

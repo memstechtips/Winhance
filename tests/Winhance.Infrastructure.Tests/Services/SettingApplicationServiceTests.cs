@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,7 +14,6 @@ public class SettingApplicationServiceTests
 {
     private readonly Mock<ICompatibleSettingsRegistry> _mockSettingsRegistry = new();
     private readonly Mock<ISpecialSettingHandlerRegistry> _mockSpecialHandlerRegistry = new();
-    private readonly Mock<IActionCommandRegistry> _mockActionCommandRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IGlobalSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
@@ -33,7 +33,7 @@ public class SettingApplicationServiceTests
 
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
-            _mockActionCommandRegistry.Object, _mockLog.Object, _mockRegistry.Object,
+            _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object);
     }
@@ -117,26 +117,6 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task ApplySettingAsync_WithCommandString_ExecutesCommand()
-    {
-        SetupSettingInRegistry("cmd-setting");
-        var mockCommand = new Mock<IActionCommandProvider>();
-        mockCommand.Setup(c => c.SupportedCommands).Returns(new HashSet<string> { "do-action" });
-        _mockActionCommandRegistry.Setup(r => r.TryGet("cmd-setting"))
-            .Returns(mockCommand.Object);
-
-        var result = await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "cmd-setting",
-            Enable = true,
-            CommandString = "do-action",
-        });
-
-        result.Success.Should().BeTrue();
-        mockCommand.Verify(c => c.ExecuteCommandAsync("do-action"), Times.Once);
-    }
-
-    [Fact]
     public async Task ApplySettingAsync_RegistersSettingInGlobalRegistry()
     {
         SetupSettingInRegistry("test-setting");
@@ -197,6 +177,55 @@ public class SettingApplicationServiceTests
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             "test-id", _service), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ActionWithApplyRecommended_OneCoalescedRestartForPrimaryPlusRecommended()
+    {
+        // Bug A "one restart per click": the primary Action apply and the recommended batch must
+        // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
+        // covering the primary action AND every recommended setting.
+        var actionSetting = new SettingDefinition
+        {
+            Id = "action-clean",
+            Name = "Action Clean",
+            Description = "desc",
+            InputType = InputType.Action,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("action-clean")).Returns(actionSetting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("action-clean")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { actionSetting });
+
+        var recommended = new SettingDefinition { Id = "rec1", Name = "Rec1", Description = "d" };
+        _mockRecommended
+            .Setup(r => r.ApplyRecommendedForFeatureAsync("action-clean", It.IsAny<ISettingApplicationService>()))
+            .ReturnsAsync(new List<SettingDefinition> { recommended });
+
+        // The using-scope needs a real IDisposable back from the mock.
+        _mockRestart.Setup(r => r.SuppressRestarts()).Returns(Mock.Of<IDisposable>());
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "action-clean",
+            Enable = true,
+            ApplyRecommended = true,
+        });
+
+        // One suppress scope wraps both the primary action and the recommended batch.
+        _mockRestart.Verify(r => r.SuppressRestarts(), Times.Once);
+
+        // The recommended batch runs through the NON-flushing feature core...
+        _mockRecommended.Verify(r => r.ApplyRecommendedForFeatureAsync(
+            "action-clean", _service), Times.Once);
+        // ...and the standalone flushing entry is NOT used on this path (would double-restart).
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+
+        // Exactly one coalesced flush, containing the primary action AND the recommended setting.
+        _mockRestart.Verify(r => r.FlushCoalescedRestartsAsync(
+            It.Is<IEnumerable<SettingDefinition>>(list =>
+                list.Any(s => s.Id == "action-clean") && list.Any(s => s.Id == "rec1"))),
+            Times.Once);
     }
 
     // ---------------------------------------------------------------

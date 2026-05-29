@@ -14,7 +14,6 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class SettingApplicationService(
     ICompatibleSettingsRegistry settingsRegistry,
     ISpecialSettingHandlerRegistry specialHandlerRegistry,
-    IActionCommandRegistry actionCommandRegistry,
     ILogService logService,
     IGlobalSettingsRegistry globalSettingsRegistry,
     IEventBus eventBus,
@@ -31,7 +30,6 @@ public class SettingApplicationService(
         var enable = request.Enable;
         var value = request.Value;
         var checkboxResult = request.CheckboxResult;
-        var commandString = request.CommandString;
         var applyRecommended = request.ApplyRecommended;
         var skipValuePrerequisites = request.SkipValuePrerequisites;
         var resetToDefault = request.ResetToDefault;
@@ -57,15 +55,6 @@ public class SettingApplicationService(
             ? Enumerable.Empty<SettingDefinition>()
             : settingsRegistry.GetFilteredSettings(featureId);
 
-        if (!string.IsNullOrEmpty(commandString))
-        {
-            var commandProvider = actionCommandRegistry.TryGet(settingId)
-                ?? throw new NotSupportedException($"No action command provider registered for setting '{settingId}'");
-
-            await ExecuteActionCommand(commandProvider, setting, commandString, applyRecommended, settingId).ConfigureAwait(false);
-            return OperationResult.Succeeded();
-        }
-
         if (!skipValuePrerequisites)
         {
             await dependencyResolver.HandleValuePrerequisitesAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
@@ -89,26 +78,28 @@ public class SettingApplicationService(
             return OperationResult.Succeeded();
         }
 
-        var operationResult = await operationExecutor.ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-
-        // ApplyRecommended for Action settings whose definition declares operations directly
-        // (RegistrySettings / PowerShellScripts) instead of going through ActionCommand. The
-        // ExecuteActionCommand branch above handles the command-dispatch case; this mirror handles
-        // the operations-only case so the confirmation-dialog "Also apply recommended" checkbox
-        // continues to work after a service-to-catalog migration. Failures are logged but
-        // non-fatal — the primary action already succeeded.
+        OperationResult operationResult;
         if (applyRecommended && setting.InputType == InputType.Action)
         {
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for feature containing '{settingId}'");
-            try
+            // One coalesced restart for the whole click: suppress the primary action's restart AND the
+            // recommended batch, then flush once for primary + recommended combined.
+            var toRestart = new List<SettingDefinition>();
+            using (processRestartManager.SuppressRestarts())
             {
-                await ApplyRecommendedSettingsForFeatureAsync(settingId).ConfigureAwait(false);
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
+                operationResult = await operationExecutor
+                    .ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
+                toRestart.Add(setting);
+
+                var recApplied = await recommendedSettingsApplier
+                    .ApplyRecommendedForFeatureAsync(settingId, this).ConfigureAwait(false);
+                toRestart.AddRange(recApplied);
             }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended settings for '{settingId}': {ex.Message}");
-            }
+            await processRestartManager.FlushCoalescedRestartsAsync(toRestart).ConfigureAwait(false);
+        }
+        else
+        {
+            operationResult = await operationExecutor
+                .ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
         }
 
         if (setting.SettingPresets != null &&
@@ -180,32 +171,5 @@ public class SettingApplicationService(
 
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
-
-    private async Task ExecuteActionCommand(IActionCommandProvider commandProvider, SettingDefinition setting, string commandString, bool applyRecommended, string settingId)
-    {
-        logService.Log(LogLevel.Info, $"[SettingApplicationService] Executing ActionCommand '{commandString}' for setting '{settingId}'");
-
-        if (!commandProvider.SupportedCommands.Contains(commandString))
-            throw new NotSupportedException($"Command '{commandString}' not supported by '{commandProvider.GetType().Name}'");
-
-        await commandProvider.ExecuteCommandAsync(commandString).ConfigureAwait(false);
-
-        if (applyRecommended)
-        {
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for feature containing '{settingId}'");
-            try
-            {
-                await ApplyRecommendedSettingsForFeatureAsync(settingId).ConfigureAwait(false);
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended settings for '{settingId}': {ex.Message}");
-            }
-        }
-
-        await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
-        logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully executed ActionCommand '{commandString}' for setting '{settingId}'");
-    }
 
 }

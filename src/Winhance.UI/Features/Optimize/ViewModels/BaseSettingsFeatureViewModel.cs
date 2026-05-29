@@ -411,6 +411,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             await LoadSettingsAsync();
 
             _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
+
+            // Rebuilding the list creates fresh SettingItemViewModels whose badge/technical-details
+            // visibility defaults are not the user's current View-menu state. Publish the same event
+            // the language- and filter-change rebuild paths do so the page re-applies that state
+            // (otherwise Info badges silently disappear until the user re-toggles them).
+            _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
         }
         catch (Exception ex)
         {

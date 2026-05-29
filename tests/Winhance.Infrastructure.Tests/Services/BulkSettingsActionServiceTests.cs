@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -15,26 +17,45 @@ public class BulkSettingsActionServiceTests
     private readonly Mock<IWindowsVersionService> _mockVersionService = new();
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
     private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
+    private readonly Mock<IRecommendedSettingsApplier> _mockRecommendedApplier = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly BulkSettingsActionService _service;
 
     public BulkSettingsActionServiceTests()
     {
-        _service = new BulkSettingsActionService(
-            _mockRegistry.Object,
-            _mockVersionService.Object,
-            _mockAppService.Object,
-            _mockProcessRestartManager.Object,
-            _mockLog.Object);
-
         // Default OS setup: Windows 11, build 22621
         _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
         _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(22621);
+        _mockVersionService.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
 
         // Default: ApplySettingAsync succeeds
         _mockAppService
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
+
+        // Default: SuppressRestarts and FlushCoalescedRestartsAsync succeed
+        _mockProcessRestartManager
+            .Setup(p => p.SuppressRestarts())
+            .Returns(Mock.Of<System.IDisposable>());
+        _mockProcessRestartManager
+            .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .Returns(Task.CompletedTask);
+
+        // Default: ApplyRecommendedToSettingsAsync returns empty list
+        _mockRecommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ReturnsAsync(new List<SettingDefinition>());
+
+        _service = new BulkSettingsActionService(
+            _mockRegistry.Object,
+            _mockVersionService.Object,
+            _mockAppService.Object,
+            _mockProcessRestartManager.Object,
+            _mockRecommendedApplier.Object,
+            _mockLog.Object);
     }
 
     // ---------------------------------------------------------------
@@ -147,14 +168,14 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Test 1: ApplyRecommendedAsync applies recommended values to all settings
+    // Test 1: ApplyRecommendedAsync delegates to IRecommendedSettingsApplier
+    //         and then flushes exactly once.
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplyRecommendedAsync_AppliesRecommendedValues_ToAllSettings()
+    public async Task ApplyRecommendedAsync_DelegatesToApplier_ThenFlushesOnce()
     {
-        // Arrange — both fixtures populate EnabledValue and DisabledValue so the unified
-        // toggle-state algorithm can map RecommendedValue → Enable.
+        // Arrange: two settings resolved from the registry
         var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1,
             enabledValue: [1], disabledValue: [0]);
         var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0,
@@ -163,34 +184,45 @@ public class BulkSettingsActionServiceTests
         SetupDomainWithSettings("setting-a", new[] { setting1 }, "DomainA");
         SetupDomainWithSettings("setting-b", new[] { setting2 }, "DomainB");
 
+        // Configure the applier mock to return both settings as "applied"
+        _mockRecommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ReturnsAsync(new List<SettingDefinition> { setting1, setting2 });
+
         // Act
         var applied = await _service.ApplyRecommendedAsync(new[] { "setting-a", "setting-b" });
 
-        // Assert: bulk Toggle apply mirrors per-card HandleToggleAsync — passes only
-        // SettingId + Enable, no Value (apply pipeline derives it from EnabledValue/DisabledValue).
+        // Assert: delegated to the applier with the resolved settings list
+        _mockRecommendedApplier.Verify(r => r.ApplyRecommendedToSettingsAsync(
+            It.Is<IReadOnlyList<SettingDefinition>>(list =>
+                list.Count == 2 &&
+                list.Any(s => s.Id == "setting-a") &&
+                list.Any(s => s.Id == "setting-b")),
+            _mockAppService.Object,
+            It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
+
+        // Assert: flushed exactly once with the applied list
+        _mockProcessRestartManager.Verify(p =>
+            p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+            Times.Once);
+
+        // Assert: count reflects applied settings returned by the applier
         applied.Should().Be(2);
-
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "setting-a" &&
-            r.Enable == true &&
-            r.SkipValuePrerequisites == true
-        )), Times.Once);
-
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "setting-b" &&
-            r.Enable == false &&
-            r.SkipValuePrerequisites == true
-        )), Times.Once);
     }
 
     // ---------------------------------------------------------------
-    // Test 2: ApplyRecommendedAsync skips settings incompatible with the current OS
+    // Test 2: ApplyRecommendedAsync — OS-incompatible settings excluded
+    //         before handing off to the applier (ResolveSettingsAsync).
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplyRecommendedAsync_SkipsIncompatibleOS_Settings()
+    public async Task ApplyRecommendedAsync_SkipsIncompatibleOS_BeforeDelegating()
     {
-        // Arrange: running Windows 11, so a Windows-10-only setting should be skipped
+        // Arrange: running Windows 11; win10-only setting is OS-filtered out in
+        // ResolveSettingsAsync before the applier is called.
         var win10OnlySetting = new SettingDefinition
         {
             Id = "win10-only",
@@ -211,56 +243,53 @@ public class BulkSettingsActionServiceTests
                 }
             }
         };
-
         var compatibleSetting = CreateToggleSetting("compatible", recommendedValue: 1, enabledValue: [1]);
 
-        SetupDomainWithSettings("win10-only", new[] { win10OnlySetting, compatibleSetting }, "SharedDomain");
-        SetupDomainWithSettings("compatible", new[] { win10OnlySetting, compatibleSetting }, "SharedDomain");
+        SetupDomainWithSettings("win10-only",  new[] { win10OnlySetting }, "D1");
+        SetupDomainWithSettings("compatible",  new[] { compatibleSetting }, "D2");
+
+        _mockRecommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ReturnsAsync((IReadOnlyList<SettingDefinition> passed, ISettingApplicationService _, IProgress<TaskProgressDetail> _) =>
+                (IReadOnlyList<SettingDefinition>)passed.ToList());
 
         // Act
-        var applied = await _service.ApplyRecommendedAsync(new[] { "win10-only", "compatible" });
+        await _service.ApplyRecommendedAsync(new[] { "win10-only", "compatible" });
 
-        // Assert: only the compatible setting was applied
-        applied.Should().Be(1);
-
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "compatible"
-        )), Times.Once);
-
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "win10-only"
-        )), Times.Never);
+        // Assert: the applier is called only with the compatible setting
+        _mockRecommendedApplier.Verify(r => r.ApplyRecommendedToSettingsAsync(
+            It.Is<IReadOnlyList<SettingDefinition>>(list =>
+                list.Count == 1 && list[0].Id == "compatible"),
+            _mockAppService.Object,
+            It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
     }
 
     // ---------------------------------------------------------------
-    // Test 3: ApplyRecommendedAsync — note on "already at recommended value"
-    //
-    // The service does NOT currently skip settings that are already at
-    // their recommended value; it applies unconditionally.  This test
-    // verifies that existing behaviour: both settings are applied even
-    // when they conceptually "match" their recommended value already.
+    // Test 3: ApplyRecommendedAsync flushes once even when all skipped
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplyRecommendedAsync_DoesNotSkipSettings_AlreadyAtRecommendedValue()
+    public async Task ApplyRecommendedAsync_NothingApplied_StillFlushesOnce()
     {
-        // Arrange: two settings that are "already" at their recommended value.
-        // Both fixtures supply Enabled and Disabled value arrays so the unified
-        // toggle-state algorithm resolves both Recommended targets.
-        var setting1 = CreateToggleSetting("already-rec-a", recommendedValue: 1,
-            enabledValue: [1], disabledValue: [0]);
-        var setting2 = CreateToggleSetting("already-rec-b", recommendedValue: 0,
-            enabledValue: [1], disabledValue: [0]);
+        // Applier returns empty (nothing recommended) — flush still called once.
+        var setting = CreateToggleSetting("no-rec", recommendedValue: null);
+        SetupDomainWithSettings("no-rec", new[] { setting }, "D1");
 
-        SetupDomainWithSettings("already-rec-a", new[] { setting1 }, "DomainA");
-        SetupDomainWithSettings("already-rec-b", new[] { setting2 }, "DomainB");
+        _mockRecommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ReturnsAsync(new List<SettingDefinition>());
 
-        // Act
-        var applied = await _service.ApplyRecommendedAsync(new[] { "already-rec-a", "already-rec-b" });
+        await _service.ApplyRecommendedAsync(new[] { "no-rec" });
 
-        // Assert: both are still applied (no early-exit optimisation exists)
-        applied.Should().Be(2);
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Exactly(2));
+        _mockProcessRestartManager.Verify(
+            p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+            Times.Once);
     }
 
     // ---------------------------------------------------------------
@@ -409,18 +438,15 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Test 7: ApplyRecommendedAsync handles Toggle, Selection, and
-    //         Numeric input types correctly
+    // Test 7: ApplyRecommendedAsync passes all resolved settings to the
+    //         applier (Toggle + Selection + Numeric)
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplyRecommendedAsync_HandlesToggle_Selection_Numeric_InputTypes()
+    public async Task ApplyRecommendedAsync_PassesAllResolvedTypes_ToApplier()
     {
-        // Toggle: recommendedValue=1, enabledValue=[1] → Enable=true
         var toggleSetting = CreateToggleSetting("toggle-input", recommendedValue: 1, enabledValue: [1]);
 
-        // Selection: recommended option "Medium" (alphabetical index 2)
-        // Sorted: "High"=0, "Low"=1, "Medium"=2
         var comboBoxOptions = new Dictionary<string, int>
         {
             ["High"]   = 3,
@@ -428,43 +454,30 @@ public class BulkSettingsActionServiceTests
             ["Medium"] = 2,
         };
         var selectionSetting = CreateSelectionSetting("selection-input", "Medium", null, comboBoxOptions);
-
-        // Numeric: recommendedValue=75
-        var numericSetting = CreateNumericSetting("numeric-input", recommendedValue: 75);
+        var numericSetting   = CreateNumericSetting("numeric-input", recommendedValue: 75);
 
         SetupDomainWithSettings("toggle-input",    new[] { toggleSetting },    "D1");
         SetupDomainWithSettings("selection-input", new[] { selectionSetting }, "D2");
         SetupDomainWithSettings("numeric-input",   new[] { numericSetting },   "D3");
 
-        // Act
+        IReadOnlyList<SettingDefinition>? captured = null;
+        _mockRecommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<IProgress<TaskProgressDetail>>()))
+            .Callback<IReadOnlyList<SettingDefinition>, ISettingApplicationService, IProgress<TaskProgressDetail>>(
+                (list, _, _) => captured = list)
+            .ReturnsAsync(new List<SettingDefinition> { toggleSetting, selectionSetting, numericSetting });
+
         var applied = await _service.ApplyRecommendedAsync(
             new[] { "toggle-input", "selection-input", "numeric-input" });
 
-        // Assert: all three applied
         applied.Should().Be(3);
-
-        // Toggle: Enable=true. Bulk Toggle apply mirrors per-card HandleToggleAsync —
-        // no Value param; the apply pipeline derives the registry write from EnabledValue.
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "toggle-input" &&
-            r.Enable == true &&
-            r.SkipValuePrerequisites == true
-        )), Times.Once);
-
-        // Selection: Enable=true, Value=2 (index of "Medium" in alphabetical order)
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "selection-input" &&
-            r.Enable == true &&
-            r.Value != null && r.Value.Equals(2) &&
-            r.SkipValuePrerequisites == true
-        )), Times.Once);
-
-        // Numeric: Enable=true, Value=75
-        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "numeric-input" &&
-            r.Enable == true &&
-            r.Value != null && r.Value.Equals(75) &&
-            r.SkipValuePrerequisites == true
-        )), Times.Once);
+        captured.Should().NotBeNull();
+        captured!.Should().HaveCount(3);
+        captured.Should().Contain(s => s.Id == "toggle-input");
+        captured.Should().Contain(s => s.Id == "selection-input");
+        captured.Should().Contain(s => s.Id == "numeric-input");
     }
 }

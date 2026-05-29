@@ -882,7 +882,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public string OnBatteryText =>
         _localizationService.GetString("PowerStatus_OnBattery") ?? "On Battery";
 
-    public IAsyncRelayCommand ExecuteActionCommand { get; }
+    public IAsyncRelayCommand RunActionCommand { get; }
 
     public SettingItemViewModel(
         SettingItemViewModelConfig config,
@@ -930,7 +930,7 @@ public partial class SettingItemViewModel : BaseViewModel
         IsEnabled = true;
         ParentIsEnabled = true;
 
-        ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
+        RunActionCommand = new AsyncRelayCommand(RunActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
 
         // Check if this setting is new in the current release
@@ -1467,7 +1467,7 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleActionAsync()
+    private async Task RunActionAsync()
     {
         if (IsApplying || SettingDefinition == null) return;
 
@@ -1485,7 +1485,6 @@ public partial class SettingItemViewModel : BaseViewModel
                 SettingId = SettingId,
                 Enable = true,
                 CheckboxResult = checkboxChecked,
-                CommandString = SettingDefinition.ActionCommand,
                 ApplyRecommended = checkboxChecked
             });
 
@@ -2123,6 +2122,16 @@ public partial class SettingItemViewModel : BaseViewModel
     private void InitializeHasBadgeData()
     {
         if (SettingDefinition == null)
+        {
+            HasBadgeData = false;
+            return;
+        }
+
+        // One-shot Action settings have no recommended/default/custom STATE — even when their
+        // RegistrySettings carry a RecommendedValue (e.g. Win11 Clean Start Menu's ConfigureStartPins),
+        // a lit-up state badge is meaningless for a button you just click. So: no state badges for
+        // actions, matching Win10 Clean Start Menu and Clean Taskbar.
+        if (SettingDefinition.InputType == InputType.Action)
         {
             HasBadgeData = false;
             return;

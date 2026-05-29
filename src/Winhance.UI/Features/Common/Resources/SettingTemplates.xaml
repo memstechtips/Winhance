@@ -298,16 +298,23 @@
                                                     <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind OnApplyLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind OnApplyValue}"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                 </Grid>
@@ -696,16 +703,23 @@
                                                     <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
                                                                 HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
                                                         </TextBlock>
                                                         <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                             <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11"
+                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Run FontWeight="SemiBold" Text="{x:Bind OnApplyLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind OnApplyValue}"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                 </Grid>

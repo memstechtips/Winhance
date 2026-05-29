@@ -26,7 +26,19 @@ public static class TaskbarCustomizations
                     Icon = "Broom",
                     RequiresConfirmation = true,
                     RestartProcess = "Explorer",
-                    ActionCommand = "CleanTaskbarAsync",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband",
+                            ValueName = "Favorites",
+                            EnabledValue = [new byte[0]],
+                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.Binary,
+                        },
+                    },
                 },
                 new SettingDefinition
                 {

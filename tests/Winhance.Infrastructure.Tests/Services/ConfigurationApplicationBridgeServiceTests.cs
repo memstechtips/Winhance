@@ -314,20 +314,17 @@ public class ConfigurationApplicationBridgeServiceTests
     }
 
     [Fact]
-    public async Task ApplyConfigurationSectionAsync_ActionSetting_AppliesWithCommandString()
+    public async Task ApplyConfigurationSectionAsync_SelectedActionSetting_AppliesViaCatalogPath()
     {
         // Arrange
-        var setting = CreateSetting("action-setting", inputType: InputType.Action) with
-        {
-            ActionCommand = "run-action"
-        };
+        var setting = CreateSetting("act-sel", inputType: InputType.Action);
         SetupRegistryWithSettings(setting);
 
         var section = new ConfigSection
         {
             Items = new List<ConfigurationItem>
             {
-                CreateItem("action-setting", isSelected: true),
+                CreateItem("act-sel", isSelected: true),
             }
         };
 
@@ -338,39 +335,33 @@ public class ConfigurationApplicationBridgeServiceTests
         // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
+        // Assert — selected Action setting routes through catalog path with Enable = true
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-                r.SettingId == "action-setting" &&
-                r.CommandString == "run-action" &&
-                r.Enable == false &&
-                r.SkipValuePrerequisites == true)),
+                r.SettingId == "act-sel" && r.Enable == true)),
             Times.Once);
     }
 
     [Fact]
-    public async Task ApplyConfigurationSectionAsync_ActionSettingNotSelected_SkipsExecution()
+    public async Task ApplyConfigurationSectionAsync_UnselectedActionSetting_IsSkipped()
     {
         // Arrange
-        var setting = CreateSetting("action-setting", inputType: InputType.Action) with
-        {
-            ActionCommand = "run-action"
-        };
+        var setting = CreateSetting("act-sel", inputType: InputType.Action);
         SetupRegistryWithSettings(setting);
 
         var section = new ConfigSection
         {
             Items = new List<ConfigurationItem>
             {
-                CreateItem("action-setting", isSelected: false),
+                CreateItem("act-sel", isSelected: false),
             }
         };
 
         // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert - Action settings with IsSelected=false skip the action branch entirely
+        // Assert — unselected Action setting is skipped entirely (no reverse semantic)
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);

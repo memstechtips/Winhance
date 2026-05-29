@@ -139,7 +139,7 @@
         <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <Button
                 Content="{x:Bind ActionButtonText}"
-                Command="{x:Bind ExecuteActionCommand}"
+                Command="{x:Bind RunActionCommand}"
                 AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
         </DataTemplate>
 

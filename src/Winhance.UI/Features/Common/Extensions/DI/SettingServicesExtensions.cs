@@ -41,12 +41,6 @@ public static class SettingServicesExtensions
                 [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<ThemeWallpaperApplier>(),
             }));
 
-        services.AddSingleton<IActionCommandRegistry>(sp =>
-            new ActionCommandRegistry(new Dictionary<string, IActionCommandProvider>
-            {
-                [SettingIds.TaskbarClean]         = sp.GetRequiredService<TaskbarService>(),
-            }));
-
         // Only handlers that override DiscoverSpecialSettingsAsync (i.e. self-filter
         // and return raw values) belong in the discovery registry.
         services.AddSingleton<ISpecialDiscoveryRegistry>(sp =>
@@ -70,9 +64,6 @@ public static class SettingServicesExtensions
         // Register ThemeWallpaperApplier (special handler for theme-mode-windows;
         // the explorer refresh is now declarative via SettingDefinition.RestartProcess).
         services.AddSingleton<ThemeWallpaperApplier>();
-
-        // Register TaskbarService
-        services.AddSingleton<TaskbarService>();
 
         return services;
     }

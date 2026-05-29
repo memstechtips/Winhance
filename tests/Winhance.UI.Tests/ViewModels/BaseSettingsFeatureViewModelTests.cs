@@ -707,6 +707,30 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         vm.Settings[0].Name.Should().Be("Second");
     }
 
+    [Fact]
+    public async Task RefreshSettingsAsync_PublishesSettingsRefreshedEvent()
+    {
+        // Regression: rebuilding the list creates fresh cards whose badge/technical-details
+        // visibility is at default, so the refresh must re-publish SettingsRefreshedEvent for
+        // the page to re-apply the View-menu state. Without it, Info badges silently disappear
+        // after an apply-recommended refresh (and only return on a manual View-menu re-toggle).
+        var vm = CreateViewModel();
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(() => CreateSettingsCollection(("s1", "First", "G1")));
+
+        await vm.LoadSettingsAsync();
+
+        // Act
+        await vm.RefreshSettingsAsync();
+
+        // Assert — RefreshSettingsAsync publishes exactly once (LoadSettingsAsync itself does not).
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<SettingsRefreshedEvent>()), Times.Once);
+    }
+
     // ── RefreshSettingStatesAsync ──
 
     [Fact]

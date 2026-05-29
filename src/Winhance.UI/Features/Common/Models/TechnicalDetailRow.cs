@@ -25,6 +25,12 @@ public class TechnicalDetailRow
     public string RecommendedValue { get; set; } = string.Empty;
     public string DefaultValue { get; set; } = string.Empty;
 
+    // Action ("On Apply") row: one-shot Action settings have no Recommended/Default state,
+    // so those columns are hidden and we instead show what clicking the button writes.
+    public bool IsActionRow { get; set; }
+    public string OnApplyValue { get; set; } = string.Empty;
+    public string OnApplyLabel { get; set; } = "On Apply";
+
     // ScheduledTask fields
     public string TaskPath { get; set; } = string.Empty;
     public string RecommendedState { get; set; } = string.Empty;
@@ -89,8 +95,9 @@ public class TechnicalDetailRow
     /// </summary>
     public string AccessibleSummary => RowType switch
     {
-        DetailRowType.Registry =>
-            $"Registry. Path: {RegistryPath}, Value: {ValueName} ({ValueType}), Current: {CurrentValue}, Recommended: {RecommendedValue}, Default: {DefaultValue}",
+        DetailRowType.Registry => IsActionRow
+            ? $"Registry. Path: {RegistryPath}, Value: {ValueName} ({ValueType}), Current: {CurrentValue}, {OnApplyLabel}: {OnApplyValue}"
+            : $"Registry. Path: {RegistryPath}, Value: {ValueName} ({ValueType}), Current: {CurrentValue}, Recommended: {RecommendedValue}, Default: {DefaultValue}",
         DetailRowType.ScheduledTask => string.IsNullOrEmpty(DefaultState)
             ? $"Scheduled Task. TaskPath: {TaskPath}, Recommended: {RecommendedState}"
             : $"Scheduled Task. TaskPath: {TaskPath}, Recommended: {RecommendedState}, Default: {DefaultState}",

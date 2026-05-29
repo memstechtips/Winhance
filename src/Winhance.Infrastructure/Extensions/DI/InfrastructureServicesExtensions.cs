@@ -84,13 +84,10 @@ public static class InfrastructureServicesExtensions
         services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
             new SpecialDiscoveryRegistry([]));
         // SettingApplicationService also depends on the ISpecialSettingHandlerRegistry
-        // and IActionCommandRegistry dispatcher registries, both re-registered by the
-        // UI composition root with the real handler set. Same TryAdd-default rationale
-        // as ISpecialDiscoveryRegistry above.
+        // dispatcher registry, re-registered by the UI composition root with the real
+        // handler set. Same TryAdd-default rationale as ISpecialDiscoveryRegistry above.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
             new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>()));
-        services.TryAddSingleton<IActionCommandRegistry>(_ =>
-            new ActionCommandRegistry(new Dictionary<string, IActionCommandProvider>()));
         services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
@@ -142,13 +139,6 @@ public static class InfrastructureServicesExtensions
 
         // Configuration Migration (for backward-compatible config imports)
         services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
-
-        // Recommended Settings Service
-        services.AddSingleton<IRecommendedSettingsService>(provider =>
-            new RecommendedSettingsService(
-                provider.GetRequiredService<ICompatibleSettingsRegistry>(),
-                provider.GetRequiredService<IWindowsVersionService>(),
-                provider.GetRequiredService<ILogService>()));
 
         // Advanced Tools Services — DISM Process Runner (shared utility)
         services.AddSingleton<IDismProcessRunner, DismProcessRunner>();
