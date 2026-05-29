@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "将使用数据和诊断发送到 Microsoft。设置为手动或禁用可减少后台网络和 CPU 使用量",
   "Setting_gaming-connected-devices-platform-service_Name": "连接设备平台服务",
   "Setting_gaming-connected-devices-platform-service_Description": "启用跨设备体验，如手机链接和就近共享。禁用可减少后台活动和设备交互日志记录",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "设置为手动或禁用可能会导致 Windows 夜间模式无法正常工作，并延迟跨设备功能（Phone Link、就近共享、剪贴板同步）。如果你使用夜间模式，请选择自动。",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "设置为手动或禁用可能会导致 Windows 夜间模式无法正常工作，并延迟跨设备功能（Phone Link、就近共享、剪贴板同步）。如果你使用夜间模式，请选择自动。",
   "Setting_gaming-compatibility-assistant-service_Name": "程序兼容性助手服务",
   "Setting_gaming-compatibility-assistant-service_Description": "监视程序的兼容性问题并建议修复。禁用可防止兼容性提示并节省少量系统资源",
   "Setting_gaming-error-reporting-service_Name": "Windows 错误报告服务",

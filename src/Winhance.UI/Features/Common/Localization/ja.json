@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "使用状況データと診断をMicrosoftに送信します。手動または無効に設定すると、バックグラウンドのネットワークとCPUの使用量が減少します。",
   "Setting_gaming-connected-devices-platform-service_Name": "接続デバイス プラットフォーム サービス",
   "Setting_gaming-connected-devices-platform-service_Description": "電話リンクや近くの共有などのクロスデバイス体験を有効にします。無効にするとバックグラウンドアクティビティとデバイス操作のログ記録が削減されます",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "手動または無効でのスタートアップは、Windows の夜間モードを動作しなくさせ、デバイス間機能 (Phone Link、近距離共有、クリップボードの同期) を遅延させる可能性があります。夜間モードを使用する場合は自動を選択してください。",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "手動または無効でのスタートアップは、Windows の夜間モードを動作しなくさせ、デバイス間機能 (Phone Link、近距離共有、クリップボードの同期) を遅延させる可能性があります。夜間モードを使用する場合は自動を選択してください。",
   "Setting_gaming-compatibility-assistant-service_Name": "プログラム互換性アシスタントサービス",
   "Setting_gaming-compatibility-assistant-service_Description": "互換性の問題についてプログラムを監視し、修正を提案します。無効にすると、互換性のプロンプトが防止され、わずかなシステムリソースが節約されます。",
   "Setting_gaming-error-reporting-service_Name": "Windowsエラー報告サービス",

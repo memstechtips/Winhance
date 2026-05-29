@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Envia dados de uso e diagnósticos para a Microsoft. Definir como Manual ou Desativado reduz o uso de rede e CPU em segundo plano",
   "Setting_gaming-connected-devices-platform-service_Name": "Serviço de plataforma de dispositivos ligados",
   "Setting_gaming-connected-devices-platform-service_Description": "Ativa experiências entre dispositivos como ligação de telefone e partilha próxima. Desativar reduz a atividade em segundo plano e o registo de interações de dispositivos",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "O arranque Manual ou Desativado pode prejudicar a Luz noturna do Windows e atrasar as funcionalidades entre dispositivos (Phone Link, Partilha por Proximidade, sincronização da área de transferência). Escolha Automático se utilizar a Luz noturna.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "O arranque Manual ou Desativado pode prejudicar a Luz noturna do Windows e atrasar as funcionalidades entre dispositivos (Phone Link, Partilha por Proximidade, sincronização da área de transferência). Escolha Automático se utilizar a Luz noturna.",
   "Setting_gaming-compatibility-assistant-service_Name": "Serviço do Assistente de Compatibilidade de Programas",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitoriza programas para problemas de compatibilidade e sugere correções. Desativar impede os avisos de compatibilidade e poupa recursos menores do sistema",
   "Setting_gaming-error-reporting-service_Name": "Serviço de Relatório de Erros do Windows",

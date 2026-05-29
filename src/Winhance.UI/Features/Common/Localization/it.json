@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Invia dati di utilizzo e diagnostica a Microsoft. L'impostazione su Manuale o Disabilitato riduce l'utilizzo di rete e CPU in background",
   "Setting_gaming-connected-devices-platform-service_Name": "Servizio piattaforma dispositivi connessi",
   "Setting_gaming-connected-devices-platform-service_Description": "Abilita esperienze tra dispositivi come collegamento telefono e condivisione nelle vicinanze. La disabilitazione riduce l'attività in background e la registrazione delle interazioni dei dispositivi",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "L'avvio Manuale o Disabilitato può compromettere la Luce notturna di Windows e ritardare le funzionalità multidispositivo (Phone Link, Condivisione nelle vicinanze, sincronizzazione degli Appunti). Scegli Automatico se usi la Luce notturna.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "L'avvio Manuale o Disabilitato può compromettere la Luce notturna di Windows e ritardare le funzionalità multidispositivo (Phone Link, Condivisione nelle vicinanze, sincronizzazione degli Appunti). Scegli Automatico se usi la Luce notturna.",
   "Setting_gaming-compatibility-assistant-service_Name": "Servizio Assistente compatibilità programmi",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitora i programmi per problemi di compatibilità e suggerisce correzioni. La disabilitazione impedisce i prompt di compatibilità e risparmia risorse di sistema minori",
   "Setting_gaming-error-reporting-service_Name": "Servizio Segnalazione errori di Windows",

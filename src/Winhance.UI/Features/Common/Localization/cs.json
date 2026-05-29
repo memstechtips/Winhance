@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Odesílá data o využití a diagnostiku společnosti Microsoft. Nastavení na Ručně nebo Zakázáno snižuje síťovou a CPU aktivitu na pozadí",
   "Setting_gaming-connected-devices-platform-service_Name": "Služba platformy připojených zařízení",
   "Setting_gaming-connected-devices-platform-service_Description": "Umožňuje sdílení mezi zařízeními, například propojení telefonu a sdílení v blízkosti. Zakázání sníží aktivitu na pozadí a protokolování interakcí zařízení",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Ruční nebo Zakázané spuštění může narušit funkci Noční osvětlení ve Windows a zpozdit funkce mezi zařízeními (Phone Link, Sdílení v okolí, synchronizace schránky). Pokud používáte Noční osvětlení, zvolte Automaticky.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Ruční nebo Zakázané spuštění může narušit funkci Noční osvětlení ve Windows a zpozdit funkce mezi zařízeními (Phone Link, Sdílení v okolí, synchronizace schránky). Pokud používáte Noční osvětlení, zvolte Automaticky.",
   "Setting_gaming-compatibility-assistant-service_Name": "Služba Pomocníka pro kompatibilitu programů",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitoruje programy na problémy s kompatibilitou a navrhuje opravy. Vypnutí zabraňuje výzvám k kompatibilitě a šetří menší systémové prostředky",
   "Setting_gaming-error-reporting-service_Name": "Služba hlášení chyb systému Windows",

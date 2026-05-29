@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Skickar användningsdata och diagnostik till Microsoft. Inställning på Manuell eller Inaktiverad minskar bakgrundsnätverk och CPU-användning",
   "Setting_gaming-connected-devices-platform-service_Name": "Plattformstjänst för anslutna enheter",
   "Setting_gaming-connected-devices-platform-service_Description": "Aktiverar upplevelser mellan enheter som telefonlänkning och delning i närheten. Inaktivering minskar bakgrundsaktivitet och loggning av enhetsinteraktioner",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Manuell eller Inaktiverad start kan störa Windows Nattbelysning och fördröja funktioner mellan enheter (Phone Link, Dela med enheter i närheten, synkronisering av Urklipp). Välj Automatisk om du använder Nattbelysning.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Manuell eller Inaktiverad start kan störa Windows Nattbelysning och fördröja funktioner mellan enheter (Phone Link, Dela med enheter i närheten, synkronisering av Urklipp). Välj Automatisk om du använder Nattbelysning.",
   "Setting_gaming-compatibility-assistant-service_Name": "Programkompatibilitetsassistenttjänst",
   "Setting_gaming-compatibility-assistant-service_Description": "Övervakar program för kompatibilitetsproblem och föreslår korrigeringar. Att inaktivera förhindrar kompatibilitetsmeddelanden och sparar mindre systemresurser",
   "Setting_gaming-error-reporting-service_Name": "Windows Felrapporteringstjänst",

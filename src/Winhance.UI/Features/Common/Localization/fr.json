@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Envoie des données d'utilisation et des diagnostics à Microsoft. Le réglage sur Manuel ou Désactivé réduit l'utilisation du réseau et du processeur en arrière-plan",
   "Setting_gaming-connected-devices-platform-service_Name": "Service de plateforme des appareils connectés",
   "Setting_gaming-connected-devices-platform-service_Description": "Active les expériences multi-appareils comme la liaison téléphonique et le partage à proximité. La désactivation réduit l'activité en arrière-plan et la journalisation des interactions",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Un démarrage Manuel ou Désactivé peut perturber l'Éclairage nocturne de Windows et retarder les fonctionnalités multi-appareils (Phone Link, Partage à proximité, synchronisation du Presse-papiers). Choisissez Automatique si vous utilisez l'Éclairage nocturne.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Un démarrage Manuel ou Désactivé peut perturber l'Éclairage nocturne de Windows et retarder les fonctionnalités multi-appareils (Phone Link, Partage à proximité, synchronisation du Presse-papiers). Choisissez Automatique si vous utilisez l'Éclairage nocturne.",
   "Setting_gaming-compatibility-assistant-service_Name": "Service Assistant de compatibilité des programmes",
   "Setting_gaming-compatibility-assistant-service_Description": "Surveille les programmes pour détecter les problèmes de compatibilité et suggère des correctifs. La désactivation empêche les invites de compatibilité et économise des ressources système mineures",
   "Setting_gaming-error-reporting-service_Name": "Service de rapport d'erreurs Windows",

@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Stuurt gebruiksgegevens en diagnostiek naar Microsoft. Instellen op Handmatig of Uitgeschakeld vermindert achtergrondnetwerk- en CPU-gebruik",
   "Setting_gaming-connected-devices-platform-service_Name": "Platform voor verbonden apparaten",
   "Setting_gaming-connected-devices-platform-service_Description": "Schakelt cross-device-ervaringen in zoals telefoonkoppeling en delen in de buurt. Uitschakelen vermindert achtergrondactiviteit en logboekregistratie van apparaatinteracties",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Een Handmatige of Uitgeschakelde start kan Windows Nachtlamp verstoren en functies voor meerdere apparaten (Phone Link, Delen met apparaten in de buurt, klembordsynchronisatie) vertragen. Kies Automatisch als je Nachtlamp gebruikt.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Een Handmatige of Uitgeschakelde start kan Windows Nachtlamp verstoren en functies voor meerdere apparaten (Phone Link, Delen met apparaten in de buurt, klembordsynchronisatie) vertragen. Kies Automatisch als je Nachtlamp gebruikt.",
   "Setting_gaming-compatibility-assistant-service_Name": "Programmacompatibiliteitsassistent Service",
   "Setting_gaming-compatibility-assistant-service_Description": "Bewaakt programma's op compatibiliteitsproblemen en stelt oplossingen voor. Uitschakelen voorkomt compatibiliteitsmeldingen en bespaart kleine systeembronnen",
   "Setting_gaming-error-reporting-service_Name": "Windows Foutrapportage Service",

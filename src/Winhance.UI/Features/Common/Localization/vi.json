@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Gửi dữ liệu sử dụng và chẩn đoán cho Microsoft. Đặt thành Thủ công hoặc Tắt giúp giảm mức sử dụng mạng và CPU nền",
   "Setting_gaming-connected-devices-platform-service_Name": "Dịch vụ nền tảng thiết bị kết nối",
   "Setting_gaming-connected-devices-platform-service_Description": "Cho phép trải nghiệm đa thiết bị như liên kết điện thoại và chia sẻ lân cận. Vô hiệu hóa giảm hoạt động nền và ghi nhật ký tương tác thiết bị",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Khởi động Thủ công hoặc Tắt có thể làm hỏng Ánh sáng ban đêm của Windows và làm chậm các tính năng đa thiết bị (Phone Link, Chia sẻ lân cận, đồng bộ bảng tạm). Hãy chọn Tự động nếu bạn dùng Ánh sáng ban đêm.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Khởi động Thủ công hoặc Tắt có thể làm hỏng Ánh sáng ban đêm của Windows và làm chậm các tính năng đa thiết bị (Phone Link, Chia sẻ lân cận, đồng bộ bảng tạm). Hãy chọn Tự động nếu bạn dùng Ánh sáng ban đêm.",
   "Setting_gaming-compatibility-assistant-service_Name": "Dịch vụ trợ lý tương thích chương trình",
   "Setting_gaming-compatibility-assistant-service_Description": "Giám sát các chương trình để tìm các vấn đề tương thích và đề xuất các bản sửa lỗi. Việc tắt sẽ ngăn các lời nhắc tương thích và tiết kiệm tài nguyên hệ thống nhỏ",
   "Setting_gaming-error-reporting-service_Name": "Dịch vụ báo cáo lỗi Windows",

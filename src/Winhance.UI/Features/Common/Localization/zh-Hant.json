@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "傳送使用資料與診斷資訊給 Microsoft。設為手動或停用可減少背景網路與 CPU 使用量",
   "Setting_gaming-connected-devices-platform-service_Name": "連線裝置平台服務",
   "Setting_gaming-connected-devices-platform-service_Description": "啟用跨裝置體驗，如手機連結和附近分享。停用可減少背景活動和裝置互動日誌記錄",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "設定為手動或停用可能會導致 Windows 夜間光線無法正常運作，並延遲跨裝置功能（Phone Link、近距離分享、剪貼簿同步）。如果您使用夜間光線，請選擇自動。",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "設定為手動或停用可能會導致 Windows 夜間光線無法正常運作，並延遲跨裝置功能（Phone Link、近距離分享、剪貼簿同步）。如果您使用夜間光線，請選擇自動。",
   "Setting_gaming-compatibility-assistant-service_Name": "程式相容性助理服務",
   "Setting_gaming-compatibility-assistant-service_Description": "監控程式相容性問題並建議修正。停用可防止相容性提示並節省少量系統資源",
   "Setting_gaming-error-reporting-service_Name": "Windows Error Reporting 服務",

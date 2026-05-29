@@ -874,6 +874,8 @@
   "Setting_gaming-telemetry-service_Description": "داده‌های استفاده و تشخیص را به مایکروسافت ارسال می‌کند. تنظیم روی دستی یا غیرفعال استفاده از شبکه و CPU پس‌زمینه را کاهش می‌دهد",
   "Setting_gaming-connected-devices-platform-service_Name": "سرویس پلتفرم دستگاه‌های متصل",
   "Setting_gaming-connected-devices-platform-service_Description": "تجارب چنددستگاهی مانند پیوند تلفن و اشتراک‌گذاری نزدیک را فعال می‌کند. غیرفعال کردن فعالیت پس‌زمینه و ثبت تعاملات دستگاه را کاهش می‌دهد",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "راه‌اندازی دستی یا غیرفعال می‌تواند نور شب ویندوز را مختل کند و قابلیت‌های بین‌دستگاهی (Phone Link، اشتراک‌گذاری در نزدیکی، همگام‌سازی کلیپ‌بورد) را به تأخیر بیندازد. اگر از نور شب استفاده می‌کنید، خودکار را انتخاب کنید.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "راه‌اندازی دستی یا غیرفعال می‌تواند نور شب ویندوز را مختل کند و قابلیت‌های بین‌دستگاهی (Phone Link، اشتراک‌گذاری در نزدیکی، همگام‌سازی کلیپ‌بورد) را به تأخیر بیندازد. اگر از نور شب استفاده می‌کنید، خودکار را انتخاب کنید.",
   "Setting_gaming-compatibility-assistant-service_Name": "سرویس دستیار سازگاری برنامه‌ها",
   "Setting_gaming-compatibility-assistant-service_Description": "برنامه‌ها را برای مشکلات سازگاری نظارت می‌کند و رفع‌ها را پیشنهاد می‌دهد. غیرفعال کردن آن از درخواست‌های سازگاری جلوگیری می‌کند و منابع کمی ذخیره می‌کند",
   "Setting_gaming-error-reporting-service_Name": "سرویس گزارش خطاهای ویندوز",

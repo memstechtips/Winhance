@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Wysyła dane użytkowania i diagnostyki do firmy Microsoft. Ustawienie na Ręczne lub Wyłączone zmniejsza ruch sieciowy i zużycie procesora w tle",
   "Setting_gaming-connected-devices-platform-service_Name": "Usługa platformy połączonych urządzeń",
   "Setting_gaming-connected-devices-platform-service_Description": "Umożliwia międzyurządzeniowe doświadczenia, takie jak łączenie telefonu i udostępnianie w pobliżu. Wyłączenie zmniejsza aktywność w tle i rejestrowanie interakcji urządzeń",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Ręczny lub Wyłączony tryb uruchamiania może zakłócić działanie Oświetlenia nocnego w systemie Windows i opóźnić funkcje między urządzeniami (Phone Link, Udostępnianie w pobliżu, synchronizacja schowka). Wybierz Automatyczny, jeśli korzystasz z Oświetlenia nocnego.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Ręczny lub Wyłączony tryb uruchamiania może zakłócić działanie Oświetlenia nocnego w systemie Windows i opóźnić funkcje między urządzeniami (Phone Link, Udostępnianie w pobliżu, synchronizacja schowka). Wybierz Automatyczny, jeśli korzystasz z Oświetlenia nocnego.",
   "Setting_gaming-compatibility-assistant-service_Name": "Usługa Asystenta zgodności programów",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitoruje programy pod kątem problemów ze zgodnością i sugeruje poprawki. Wyłączenie zapobiega monitom o zgodność i oszczędza niewielkie zasoby systemowe",
   "Setting_gaming-error-reporting-service_Name": "Usługa raportowania błędów systemu Windows",

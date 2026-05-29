@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Envía datos de uso y diagnósticos a Microsoft. Configurar en Manual o Deshabilitado reduce el uso de red y CPU en segundo plano",
   "Setting_gaming-connected-devices-platform-service_Name": "Servicio de plataforma de dispositivos conectados",
   "Setting_gaming-connected-devices-platform-service_Description": "Habilita experiencias entre dispositivos como vinculación de teléfono y uso compartido en proximidad. Deshabilitarlo reduce la actividad en segundo plano y el registro de interacciones de dispositivos",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "El inicio Manual o Deshabilitado puede afectar a la Luz nocturna de Windows y retrasar las funciones entre dispositivos (Phone Link, Compartir con dispositivos cercanos, sincronización del portapapeles). Elige Automático si usas la Luz nocturna.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "El inicio Manual o Deshabilitado puede afectar a la Luz nocturna de Windows y retrasar las funciones entre dispositivos (Phone Link, Compartir con dispositivos cercanos, sincronización del portapapeles). Elige Automático si usas la Luz nocturna.",
   "Setting_gaming-compatibility-assistant-service_Name": "Servicio Asistente de Compatibilidad de Programas",
   "Setting_gaming-compatibility-assistant-service_Description": "Monitorea los programas en busca de problemas de compatibilidad y sugiere soluciones. Deshabilitarlo evita las indicaciones de compatibilidad y ahorra recursos menores del sistema",
   "Setting_gaming-error-reporting-service_Name": "Servicio de Informes de Errores de Windows",

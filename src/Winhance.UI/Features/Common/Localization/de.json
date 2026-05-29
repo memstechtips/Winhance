@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Sendet Nutzungsdaten und Diagnosen an Microsoft. Das Setzen auf Manuell oder Deaktiviert reduziert die Hintergrund-Netzwerk- und CPU-Nutzung",
   "Setting_gaming-connected-devices-platform-service_Name": "Plattformdienst für verbundene Geräte",
   "Setting_gaming-connected-devices-platform-service_Description": "Ermöglicht geräteübergreifende Funktionen wie Telefonverknüpfung und Nearby Sharing. Deaktivierung reduziert Hintergrundaktivität und Geräteinteraktionsprotokollierung",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Manueller oder Deaktivierter Start kann den Windows-Nachtmodus beeinträchtigen und geräteübergreifende Funktionen (Phone Link, Nearby Sharing, Zwischenablagesynchronisierung) verzögern. Wählen Sie Automatisch, wenn Sie den Nachtmodus verwenden.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Manueller oder Deaktivierter Start kann den Windows-Nachtmodus beeinträchtigen und geräteübergreifende Funktionen (Phone Link, Nearby Sharing, Zwischenablagesynchronisierung) verzögern. Wählen Sie Automatisch, wenn Sie den Nachtmodus verwenden.",
   "Setting_gaming-compatibility-assistant-service_Name": "Dienst des Programmkompatibilitäts-Assistenten",
   "Setting_gaming-compatibility-assistant-service_Description": "Überwacht Programme auf Kompatibilitätsprobleme und schlägt Korrekturen vor. Das Deaktivieren verhindert Kompatibilitätsaufforderungen und spart geringfügige Systemressourcen",
   "Setting_gaming-error-reporting-service_Name": "Windows-Fehlerberichterstattungsdienst",

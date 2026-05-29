@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Használati adatokat és diagnosztikai adatokat küld a Microsoftnak. A Kézi vagy Letiltott beállítás csökkenti a háttérhálózat- és CPU-használatot",
   "Setting_gaming-connected-devices-platform-service_Name": "Csatlakoztatott eszközök platform szolgáltatás",
   "Setting_gaming-connected-devices-platform-service_Description": "Lehetővé teszi az eszközök közötti élményeket, mint a telefon összekapcsolás és a közeli megosztás. Letiltása csökkenti a háttértevékenységet és az eszközinterakciók naplózását",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "A Kézi vagy Letiltott indítás megzavarhatja a Windows Éjszakai fény funkcióját, és késleltetheti az eszközök közötti funkciókat (Phone Link, Megosztás a közelben, vágólap-szinkronizálás). Válassza az Automatikus lehetőséget, ha használja az Éjszakai fényt.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "A Kézi vagy Letiltott indítás megzavarhatja a Windows Éjszakai fény funkcióját, és késleltetheti az eszközök közötti funkciókat (Phone Link, Megosztás a közelben, vágólap-szinkronizálás). Válassza az Automatikus lehetőséget, ha használja az Éjszakai fényt.",
   "Setting_gaming-compatibility-assistant-service_Name": "Programkompatibilitási asszisztens szolgáltatás",
   "Setting_gaming-compatibility-assistant-service_Description": "Figyeli a programok kompatibilitási problémáit, és javításokat javasol. A letiltás megakadályozza a kompatibilitási kérdéseket, és kisebb rendszererőforrásokat takarít meg",
   "Setting_gaming-error-reporting-service_Name": "Windows hibajelentési szolgáltatás",

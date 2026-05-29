@@ -839,6 +839,8 @@
   "Setting_gaming-telemetry-service_Description": "Надсилає дані про використання та діагностику до Microsoft. Встановлення режиму Ручний або Вимкнений зменшує фонове використання мережі та ЦП",
   "Setting_gaming-connected-devices-platform-service_Name": "Служба платформи підключених пристроїв",
   "Setting_gaming-connected-devices-platform-service_Description": "Уможливлює міжпристроєві функції, такі як прив'язка телефону та обмін поблизу. Вимкнення зменшує фонову активність та журналювання взаємодій пристроїв",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_0": "Ручний або Вимкнений запуск може порушити роботу Нічного світла у Windows і сповільнити функції між пристроями (Phone Link, Спільний доступ до пристроїв поблизу, синхронізація буфера обміну). Виберіть Автоматично, якщо ви користуєтеся Нічним світлом.",
+  "Setting_gaming-connected-devices-platform-service_OptionWarning_1": "Ручний або Вимкнений запуск може порушити роботу Нічного світла у Windows і сповільнити функції між пристроями (Phone Link, Спільний доступ до пристроїв поблизу, синхронізація буфера обміну). Виберіть Автоматично, якщо ви користуєтеся Нічним світлом.",
   "Setting_gaming-compatibility-assistant-service_Name": "Служба помічника сумісності програм",
   "Setting_gaming-compatibility-assistant-service_Description": "Відстежує програми на наявність проблем сумісності та пропонує виправлення. Вимкнення запобігає появі підказок сумісності та економить незначні системні ресурси",
   "Setting_gaming-error-reporting-service_Name": "Служба звітування про помилки Windows",
