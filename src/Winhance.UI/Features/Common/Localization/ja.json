@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "依存関係",
   "TechnicalDetails_Script_OnEnable": "有効化時",
   "TechnicalDetails_Script_OnDisable": "無効化時",
+  "TechnicalDetails_Script_OnApply": "適用時",
   "TechnicalDetails_RegContent_OnEnable": "有効化時",
   "TechnicalDetails_RegContent_OnDisable": "無効化時",
   "TechnicalDetails_Copy": "コピー",

@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Phụ thuộc vào",
   "TechnicalDetails_Script_OnEnable": "Khi bật",
   "TechnicalDetails_Script_OnDisable": "Khi tắt",
+  "TechnicalDetails_Script_OnApply": "Khi áp dụng",
   "TechnicalDetails_RegContent_OnEnable": "Khi bật",
   "TechnicalDetails_RegContent_OnDisable": "Khi tắt",
   "TechnicalDetails_Copy": "Sao chép",

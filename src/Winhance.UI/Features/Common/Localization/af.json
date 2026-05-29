@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Afhanklik van",
   "TechnicalDetails_Script_OnEnable": "By aktivering",
   "TechnicalDetails_Script_OnDisable": "By deaktivering",
+  "TechnicalDetails_Script_OnApply": "By toepassing",
   "TechnicalDetails_RegContent_OnEnable": "By aktivering",
   "TechnicalDetails_RegContent_OnDisable": "By deaktivering",
   "TechnicalDetails_Copy": "Kopieer",

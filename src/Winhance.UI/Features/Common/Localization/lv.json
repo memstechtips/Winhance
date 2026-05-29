@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Atkarīgs no",
   "TechnicalDetails_Script_OnEnable": "Iespējojot",
   "TechnicalDetails_Script_OnDisable": "Atspējojot",
+  "TechnicalDetails_Script_OnApply": "Lietojot",
   "TechnicalDetails_RegContent_OnEnable": "Iespējojot",
   "TechnicalDetails_RegContent_OnDisable": "Atspējojot",
   "TechnicalDetails_Copy": "Kopēt",

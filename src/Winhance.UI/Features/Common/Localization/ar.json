@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "يعتمد على",
   "TechnicalDetails_Script_OnEnable": "عند التمكين",
   "TechnicalDetails_Script_OnDisable": "عند التعطيل",
+  "TechnicalDetails_Script_OnApply": "عند التطبيق",
   "TechnicalDetails_RegContent_OnEnable": "عند التمكين",
   "TechnicalDetails_RegContent_OnDisable": "عند التعطيل",
   "TechnicalDetails_Copy": "نسخ",

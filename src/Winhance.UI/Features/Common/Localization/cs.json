@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Závisí na",
   "TechnicalDetails_Script_OnEnable": "Při zapnutí",
   "TechnicalDetails_Script_OnDisable": "Při vypnutí",
+  "TechnicalDetails_Script_OnApply": "Při použití",
   "TechnicalDetails_RegContent_OnEnable": "Při zapnutí",
   "TechnicalDetails_RegContent_OnDisable": "Při vypnutí",
   "TechnicalDetails_Copy": "Kopírovat",

@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Bağımlı Olduğu",
   "TechnicalDetails_Script_OnEnable": "Etkinleştirmede",
   "TechnicalDetails_Script_OnDisable": "Devre Dışı Bırakmada",
+  "TechnicalDetails_Script_OnApply": "Uygulamada",
   "TechnicalDetails_RegContent_OnEnable": "Etkinleştirmede",
   "TechnicalDetails_RegContent_OnDisable": "Devre Dışı Bırakmada",
   "TechnicalDetails_Copy": "Kopyala",

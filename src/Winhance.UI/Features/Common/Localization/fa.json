@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "وابسته به",
   "TechnicalDetails_Script_OnEnable": "هنگام فعال‌سازی",
   "TechnicalDetails_Script_OnDisable": "هنگام غیرفعال‌سازی",
+  "TechnicalDetails_Script_OnApply": "هنگام اعمال",
   "TechnicalDetails_RegContent_OnEnable": "هنگام فعال‌سازی",
   "TechnicalDetails_RegContent_OnDisable": "هنگام غیرفعال‌سازی",
   "TechnicalDetails_Copy": "کپی",

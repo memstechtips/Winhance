@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Zależy od",
   "TechnicalDetails_Script_OnEnable": "Przy włączaniu",
   "TechnicalDetails_Script_OnDisable": "Przy wyłączaniu",
+  "TechnicalDetails_Script_OnApply": "Przy zastosowaniu",
   "TechnicalDetails_RegContent_OnEnable": "Przy włączaniu",
   "TechnicalDetails_RegContent_OnDisable": "Przy wyłączaniu",
   "TechnicalDetails_Copy": "Kopiuj",

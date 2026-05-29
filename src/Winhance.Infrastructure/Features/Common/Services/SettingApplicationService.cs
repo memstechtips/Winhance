@@ -91,6 +91,26 @@ public class SettingApplicationService(
 
         var operationResult = await operationExecutor.ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
 
+        // ApplyRecommended for Action settings whose definition declares operations directly
+        // (RegistrySettings / PowerShellScripts) instead of going through ActionCommand. The
+        // ExecuteActionCommand branch above handles the command-dispatch case; this mirror handles
+        // the operations-only case so the confirmation-dialog "Also apply recommended" checkbox
+        // continues to work after a service-to-catalog migration. Failures are logged but
+        // non-fatal — the primary action already succeeded.
+        if (applyRecommended && setting.InputType == InputType.Action)
+        {
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for feature containing '{settingId}'");
+            try
+            {
+                await ApplyRecommendedSettingsForFeatureAsync(settingId).ConfigureAwait(false);
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended settings for '{settingId}': {ex.Message}");
+            }
+        }
+
         if (setting.SettingPresets != null &&
             setting.InputType == InputType.Selection &&
             value is int selectedIndex)

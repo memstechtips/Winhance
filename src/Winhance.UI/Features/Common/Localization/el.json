@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Εξαρτάται Από",
   "TechnicalDetails_Script_OnEnable": "Κατά την Ενεργοποίηση",
   "TechnicalDetails_Script_OnDisable": "Κατά την Απενεργοποίηση",
+  "TechnicalDetails_Script_OnApply": "Κατά την Εφαρμογή",
   "TechnicalDetails_RegContent_OnEnable": "Κατά την Ενεργοποίηση",
   "TechnicalDetails_RegContent_OnDisable": "Κατά την Απενεργοποίηση",
   "TechnicalDetails_Copy": "Αντιγραφή",

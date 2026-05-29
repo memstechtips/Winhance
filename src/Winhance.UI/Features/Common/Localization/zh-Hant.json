@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "依賴項目",
   "TechnicalDetails_Script_OnEnable": "啟用時",
   "TechnicalDetails_Script_OnDisable": "停用時",
+  "TechnicalDetails_Script_OnApply": "套用時",
   "TechnicalDetails_RegContent_OnEnable": "啟用時",
   "TechnicalDetails_RegContent_OnDisable": "停用時",
   "TechnicalDetails_Copy": "複製",

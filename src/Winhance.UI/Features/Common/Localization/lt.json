@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Priklauso nuo",
   "TechnicalDetails_Script_OnEnable": "Įjungiant",
   "TechnicalDetails_Script_OnDisable": "Išjungiant",
+  "TechnicalDetails_Script_OnApply": "Pritaikant",
   "TechnicalDetails_RegContent_OnEnable": "Įjungiant",
   "TechnicalDetails_RegContent_OnDisable": "Išjungiant",
   "TechnicalDetails_Copy": "Kopijuoti",

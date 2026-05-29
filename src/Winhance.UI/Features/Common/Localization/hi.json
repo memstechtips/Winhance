@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "निर्भर करता है",
   "TechnicalDetails_Script_OnEnable": "सक्षम करने पर",
   "TechnicalDetails_Script_OnDisable": "अक्षम करने पर",
+  "TechnicalDetails_Script_OnApply": "लागू करने पर",
   "TechnicalDetails_RegContent_OnEnable": "सक्षम करने पर",
   "TechnicalDetails_RegContent_OnDisable": "अक्षम करने पर",
   "TechnicalDetails_Copy": "कॉपी करें",

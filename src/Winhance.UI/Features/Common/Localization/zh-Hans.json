@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "依赖项",
   "TechnicalDetails_Script_OnEnable": "启用时",
   "TechnicalDetails_Script_OnDisable": "禁用时",
+  "TechnicalDetails_Script_OnApply": "应用时",
   "TechnicalDetails_RegContent_OnEnable": "启用时",
   "TechnicalDetails_RegContent_OnDisable": "禁用时",
   "TechnicalDetails_Copy": "复制",

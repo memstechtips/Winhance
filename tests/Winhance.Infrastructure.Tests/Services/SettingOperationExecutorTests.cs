@@ -1251,29 +1251,34 @@ public class SettingOperationExecutorTests
     }
 
     // ---------------------------------------------------------------
-    // Unsupported InputType for registry operations
+    // InputType.Action: one-shot apply emits EnabledValue writes via the
+    // same path as Toggle with enable=true. Backstop for the migration of
+    // Action settings (Clean Start Menu, Taskbar Clean) from
+    // IActionCommandProvider services to catalog-declared operations.
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplySettingOperationsAsync_UnsupportedInputType_ThrowsNotSupportedException()
+    public async Task ApplySettingOperationsAsync_ActionInputType_AppliesRegistryWithEnabledValue()
     {
         var reg1 = new RegistrySetting
         {
-            KeyPath = @"HKCU\Software\Test",
+            KeyPath = @"HKLM\Software\Test",
             ValueName = "Val",
-            ValueType = RegistryValueKind.DWord,
-            RecommendedValue = null,
+            ValueType = RegistryValueKind.String,
+            EnabledValue = ["payload"],
+            DisabledValue = [null],
+            RecommendedValue = "payload",
             DefaultValue = null
         };
-        var setting = CreateSetting("unsupported", InputType.Action) with
+        var setting = CreateSetting("action-apply", InputType.Action) with
         {
             RegistrySettings = new[] { reg1 },
         };
 
-        var action = () => _executor.ApplySettingOperationsAsync(setting, true, null);
+        var result = await _executor.ApplySettingOperationsAsync(setting, true, null);
 
-        await action.Should().ThrowAsync<NotSupportedException>()
-            .WithMessage("*Action*not supported*");
+        result.Success.Should().BeTrue();
+        _mockRegistry.Verify(r => r.ApplySetting(reg1, true, null), Times.Once);
     }
 
     // ---------------------------------------------------------------

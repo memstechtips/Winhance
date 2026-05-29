@@ -969,6 +969,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 SectionDependencies = _localizationService.GetString("TechnicalDetails_Section_Dependencies") ?? "Depends On",
                 ScriptOnEnable = _localizationService.GetString("TechnicalDetails_Script_OnEnable") ?? "On Enable",
                 ScriptOnDisable = _localizationService.GetString("TechnicalDetails_Script_OnDisable") ?? "On Disable",
+                ScriptOnApply = _localizationService.GetString("TechnicalDetails_Script_OnApply") ?? "On Apply",
                 RegContentOnEnable = _localizationService.GetString("TechnicalDetails_RegContent_OnEnable") ?? "On Enable",
                 RegContentOnDisable = _localizationService.GetString("TechnicalDetails_RegContent_OnDisable") ?? "On Disable",
                 DependencyEquals = _localizationService.GetString("TechnicalDetails_Dependency_Equals") ?? "=",

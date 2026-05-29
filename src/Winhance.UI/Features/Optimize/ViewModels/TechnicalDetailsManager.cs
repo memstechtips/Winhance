@@ -224,16 +224,20 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private List<TechnicalDetailRow> BuildPowerShellScriptRows(SettingTooltipData tooltipData)
     {
         var rows = new List<TechnicalDetailRow>();
+        // Action settings are one-shot — label the script "On Apply" rather than "On Enable",
+        // and skip the disabled-direction row (Action settings have no reverse).
+        var isAction = tooltipData.SettingDefinition?.InputType == InputType.Action;
+        var enabledLabel = isAction ? _labels.ScriptOnApply : _labels.ScriptOnEnable;
         foreach (var s in tooltipData.PowerShellScripts)
         {
             if (!string.IsNullOrWhiteSpace(s.EnabledScript))
                 rows.Add(new TechnicalDetailRow
                 {
                     RowType     = DetailRowType.PowerShellScript,
-                    ScriptLabel = _labels.ScriptOnEnable,
+                    ScriptLabel = enabledLabel,
                     ScriptBody  = s.EnabledScript
                 });
-            if (!string.IsNullOrWhiteSpace(s.DisabledScript))
+            if (!isAction && !string.IsNullOrWhiteSpace(s.DisabledScript))
                 rows.Add(new TechnicalDetailRow
                 {
                     RowType     = DetailRowType.PowerShellScript,

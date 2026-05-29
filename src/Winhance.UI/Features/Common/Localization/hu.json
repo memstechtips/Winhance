@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Függ ettől",
   "TechnicalDetails_Script_OnEnable": "Engedélyezéskor",
   "TechnicalDetails_Script_OnDisable": "Letiltáskor",
+  "TechnicalDetails_Script_OnApply": "Alkalmazáskor",
   "TechnicalDetails_RegContent_OnEnable": "Engedélyezéskor",
   "TechnicalDetails_RegContent_OnDisable": "Letiltáskor",
   "TechnicalDetails_Copy": "Másolás",

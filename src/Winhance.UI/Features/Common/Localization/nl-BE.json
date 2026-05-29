@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Afhankelijk van",
   "TechnicalDetails_Script_OnEnable": "Bij inschakelen",
   "TechnicalDetails_Script_OnDisable": "Bij uitschakelen",
+  "TechnicalDetails_Script_OnApply": "Bij toepassen",
   "TechnicalDetails_RegContent_OnEnable": "Bij inschakelen",
   "TechnicalDetails_RegContent_OnDisable": "Bij uitschakelen",
   "TechnicalDetails_Copy": "Kopiëren",

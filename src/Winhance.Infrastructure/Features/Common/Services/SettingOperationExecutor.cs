@@ -99,6 +99,9 @@ public class SettingOperationExecutor(
                     InputType.Toggle => enable,
                     InputType.NumericRange when value != null => NumericConversionHelper.ConvertNumericValue(value) != 0,
                     InputType.Selection => enable,
+                    // Action settings are one-shot "apply"; the button click always means write EnabledValue.
+                    // HandleActionAsync hardcodes Enable=true, so this matches that semantic.
+                    InputType.Action => enable,
                     _ => throw new NotSupportedException($"Input type '{setting.InputType}' not supported for registry operations")
                 };
 

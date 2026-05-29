@@ -39,7 +39,62 @@ public static class StartMenuCustomizations
                     Icon = "Broom",
                     IsWindows11Only = true,
                     RequiresConfirmation = true,
-                    ActionCommand = "CleanWindows11StartMenuAsync",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            // MDM/CSP path — original target for ConfigureStartPins.
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
+                            ValueName = "ConfigureStartPins",
+                            EnabledValue = [@"{""pinnedList"":[]}"],
+                            DisabledValue = [null],
+                            RecommendedValue = @"{""pinnedList"":[]}",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            // GPO path — added by KB5062660 (Jul 2025). On Win11 build 26200.8521+
+                            // this is the only key that fully clears the default Edge / Settings /
+                            // File Explorer pins. Writing both keeps older builds happy and adds
+                            // the workaround for newer ones. See issue #660.
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "ConfigureStartPins",
+                            EnabledValue = [@"{""pinnedList"":[]}"],
+                            DisabledValue = [null],
+                            RecommendedValue = @"{""pinnedList"":[]}",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+# Clear cached pinned-list data (start.bin / start2.bin) for every real user profile.
+# Iterating HKLM\ProfileList is OTS-safe and admin can delete in any profile, so the
+# current user and every other user are handled in one loop. ProfileImagePath gives
+# the correct path even for non-default profile locations (e.g. D:\Users\...).
+$systemAccounts = @('Public','Default','All Users','Default User')
+Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' |
+    Where-Object { $_.PSChildName -like 'S-1-5-21-*' } |
+    ForEach-Object {
+        $profilePath = (Get-ItemProperty $_.PSPath -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
+        if ($profilePath -and ((Split-Path $profilePath -Leaf) -notin $systemAccounts)) {
+            Remove-Item ""$profilePath\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start*.bin"" -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+# Restart the Start Menu host so the cleared layout takes effect immediately.
+Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue
+",
+                            DisabledScript = null,
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
+                        },
+                    },
                 },
                 new SettingDefinition
                 {

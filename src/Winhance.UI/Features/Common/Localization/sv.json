@@ -1764,6 +1764,7 @@
   "TechnicalDetails_Section_Dependencies": "Beror på",
   "TechnicalDetails_Script_OnEnable": "Vid aktivering",
   "TechnicalDetails_Script_OnDisable": "Vid inaktivering",
+  "TechnicalDetails_Script_OnApply": "Vid tillämpning",
   "TechnicalDetails_RegContent_OnEnable": "Vid aktivering",
   "TechnicalDetails_RegContent_OnDisable": "Vid inaktivering",
   "TechnicalDetails_Copy": "Kopiera",
