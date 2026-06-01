@@ -418,6 +418,36 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-desktop-icon-this-pc",
+            "Name": "Show This PC on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-recycle-bin",
+            "Name": "Show Recycle Bin on desktop",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-users-files",
+            "Name": "Show User's Files on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-control-panel",
+            "Name": "Show Control Panel on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-network",
+            "Name": "Show Network on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-context-menu",
             "Name": "Use Classic Context Menu",
             "IsSelected": false,

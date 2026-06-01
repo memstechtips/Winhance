@@ -365,6 +365,36 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-desktop-icon-this-pc",
+            "Name": "Show This PC on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-recycle-bin",
+            "Name": "Show Recycle Bin on desktop",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-users-files",
+            "Name": "Show User's Files on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-control-panel",
+            "Name": "Show Control Panel on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-network",
+            "Name": "Show Network on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-take-ownership",
             "Name": "Add \u0027Take Ownership\u0027 to Context Menu",
             "IsSelected": false,

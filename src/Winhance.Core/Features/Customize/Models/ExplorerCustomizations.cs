@@ -121,6 +121,181 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-desktop-icon-this-pc",
+                    IsSubjectivePreference = true,
+                    Name = "Show This PC on desktop",
+                    Description = "Displays the This PC (Computer) icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "Monitor",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-recycle-bin",
+                    IsSubjectivePreference = true,
+                    Name = "Show Recycle Bin on desktop",
+                    Description = "Displays the Recycle Bin icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "TrashCanOutline",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{645FF040-5081-101B-9F08-00AA002F954E}",
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{645FF040-5081-101B-9F08-00AA002F954E}",
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-users-files",
+                    IsSubjectivePreference = true,
+                    Name = "Show User's Files on desktop",
+                    Description = "Displays the current user's profile folder icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "FolderAccount",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{59031A47-3F72-44A7-89C5-5595FE6B30EE}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{59031A47-3F72-44A7-89C5-5595FE6B30EE}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-control-panel",
+                    IsSubjectivePreference = true,
+                    Name = "Show Control Panel on desktop",
+                    Description = "Displays the Control Panel icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "ViewGrid",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-network",
+                    IsSubjectivePreference = true,
+                    Name = "Show Network on desktop",
+                    Description = "Displays the Network icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "NetworkOutline",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-context-menu",
                     IsSubjectivePreference = true,
                     Name = "Use Classic Context Menu",
