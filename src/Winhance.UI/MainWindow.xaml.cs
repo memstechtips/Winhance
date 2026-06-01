@@ -19,6 +19,7 @@ using Winhance.UI.ViewModels;
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
+using Windows.Foundation;
 
 namespace Winhance.UI;
 
@@ -30,6 +31,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 {
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
+    private UiZoomManager? _uiZoomManager;
     private IConfigReviewService? _configReviewService;
     private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
@@ -80,6 +82,9 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         // Initialize window size manager for position/size persistence
         InitializeWindowSizeManager();
+
+        // Initialize app-local UI zoom (Ctrl +/-/0, Ctrl+MouseWheel)
+        InitializeUiZoom();
 
         // Apply Mica backdrop (Windows 11) with fallback to DesktopAcrylic (Windows 10)
         TrySetMicaBackdrop();
@@ -166,6 +171,45 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             this.AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
             _logService?.LogDebug($"Failed to initialize WindowSizeManager: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Wires up app-local UI zoom: the UiZoomManager, the OemPlus/OemMinus accelerators
+    /// that XAML can't express, and Ctrl+MouseWheel.
+    /// </summary>
+    private void InitializeUiZoom()
+    {
+        try
+        {
+            var prefs = App.Services.GetRequiredService<IUserPreferencesService>();
+            _logService ??= App.Services.GetRequiredService<ILogService>();
+            _uiZoomManager = new UiZoomManager(ZoomViewport, ZoomHost, prefs, _logService);
+
+            // Main-row +/- keys (OemPlus=187, OemMinus=189) — not expressible in XAML.
+            RootGrid.KeyboardAccelerators.Add(MakeZoomAccelerator((VirtualKey)187, ZoomInAccelerator_Invoked));
+            RootGrid.KeyboardAccelerators.Add(MakeZoomAccelerator((VirtualKey)189, ZoomOutAccelerator_Invoked));
+
+            // Ctrl+MouseWheel, caught even if an inner ScrollViewer already handled the wheel.
+            ZoomViewport.AddHandler(
+                UIElement.PointerWheelChangedEvent,
+                new PointerEventHandler(ZoomViewport_PointerWheelChanged),
+                handledEventsToo: true);
+
+            _uiZoomManager.Initialize();
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogDebug($"Failed to initialize UI zoom: {ex.Message}");
+        }
+    }
+
+    private KeyboardAccelerator MakeZoomAccelerator(
+        VirtualKey key,
+        TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = VirtualKeyModifiers.Control };
+        accelerator.Invoked += handler;
+        return accelerator;
     }
 
     /// <summary>
@@ -711,6 +755,38 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             ViewModel.SaveConfigCommand.Execute(null);
         }
         args.Handled = true;
+    }
+
+    private void ZoomInAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        _uiZoomManager?.StepUp();
+        args.Handled = true;
+    }
+
+    private void ZoomOutAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        _uiZoomManager?.StepDown();
+        args.Handled = true;
+    }
+
+    private void ZoomResetAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        _uiZoomManager?.Reset();
+        args.Handled = true;
+    }
+
+    private void ZoomViewport_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control))
+            return;
+
+        var delta = e.GetCurrentPoint((UIElement)sender).Properties.MouseWheelDelta;
+        if (delta > 0)
+            _uiZoomManager?.StepUp();
+        else if (delta < 0)
+            _uiZoomManager?.StepDown();
+
+        e.Handled = true;
     }
 
     private void MoreMenuAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)

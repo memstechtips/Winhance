@@ -15,4 +15,5 @@ public static class UserPreferenceKeys
     public const string ShowInfoBadges = "ShowInfoBadges";
     public const string ShowNewBadges = "ShowNewBadges";
     public const string HighestSeenAddedInVersion = "HighestSeenAddedInVersion";
+    public const string UiZoomFactor = "UiZoomFactor";
 }

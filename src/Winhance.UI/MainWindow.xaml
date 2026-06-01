@@ -18,6 +18,10 @@
             <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number6" Modifiers="Control" Invoked="MoreMenuAccelerator_Invoked"/>
             <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SaveConfigAccelerator_Invoked"/>
+            <!-- Ctrl +/-/0: UI zoom (numpad keys; main-row +/- added in code-behind) -->
+            <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="ZoomResetAccelerator_Invoked"/>
             <!-- Ctrl+Shift+1-6: Title bar action buttons -->
             <KeyboardAccelerator Key="Number1" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number2" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
@@ -258,11 +262,13 @@
         </Grid>
 
         <!-- Main Content Area -->
-        <Grid Grid.Row="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
-                <ColumnDefinition Width="*"/>     <!-- Content -->
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="4" x:Name="ZoomViewport">
+            <!-- ZoomHost is inverse-sized + ScaleTransform'd by UiZoomManager for app-local zoom -->
+            <Grid x:Name="ZoomHost">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
+                    <ColumnDefinition Width="*"/>     <!-- Content -->
+                </Grid.ColumnDefinitions>
 
             <!-- Custom Navigation Sidebar -->
             <controls:NavSidebar x:Name="NavSidebar"
@@ -285,6 +291,7 @@
                     <controls:TaskProgressControl x:Name="TaskProgressControl2"/>
                     <controls:TaskProgressControl x:Name="TaskProgressControl3"/>
                 </StackPanel>
+            </Grid>
             </Grid>
         </Grid>
 
