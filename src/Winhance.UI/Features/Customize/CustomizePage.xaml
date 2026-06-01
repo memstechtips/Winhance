@@ -18,25 +18,57 @@
             <RowDefinition Height="*"/>     <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Page Header with Icon -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
-            <Viewbox Width="64" Height="64" Stretch="Uniform">
-                <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-            </Viewbox>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageTitle}"
-                    Style="{StaticResource TitleTextBlockStyle}"
-                    FontWeight="Bold"
-                    FontSize="30"
-                    AutomationProperties.HeadingLevel="Level1"/>
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageDescription}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    Margin="0,2,0,0"/>
+        <!-- Row 0: Page Header with Icon (title left, search right) -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
+                <Viewbox Width="64" Height="64" Stretch="Uniform">
+                    <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                </Viewbox>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Text="{x:Bind ViewModel.PageTitle}"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        FontWeight="Bold"
+                        FontSize="30"
+                        AutomationProperties.HeadingLevel="Level1"/>
+                    <TextBlock
+                        Text="{x:Bind ViewModel.PageDescription}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Margin="0,2,0,0"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+            <Grid Grid.Column="1" Width="220" VerticalAlignment="Bottom">
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                    helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
+                    QueryIcon="Find"
+                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
+                    SuggestionChosen="SearchBox_SuggestionChosen"
+                    QuerySubmitted="SearchBox_QuerySubmitted">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SearchSuggestionItem">
+                            <Grid Padding="4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+            </Grid>
+        </Grid>
 
         <!-- Row 1: Navigation Bar -->
         <Grid Grid.Row="1" Margin="0,12,0,16">
@@ -44,7 +76,6 @@
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
                 <ColumnDefinition Width="Auto"/>  <!-- Quick Actions -->
                 <ColumnDefinition Width="Auto"/>  <!-- View -->
-                <ColumnDefinition Width="Auto"/>  <!-- Search -->
             </Grid.ColumnDefinitions>
 
             <!-- Breadcrumb navigation -->
@@ -171,7 +202,7 @@
             </DropDownButton>
 
             <!-- View dropdown -->
-            <DropDownButton x:Name="ViewMenuButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
+            <DropDownButton x:Name="ViewMenuButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,0,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
@@ -205,33 +236,6 @@
                 </DropDownButton.Flyout>
             </DropDownButton>
 
-            <!-- Search box with suggestions -->
-            <Grid Grid.Column="3" Width="220">
-                <AutoSuggestBox
-                    x:Name="SearchBox"
-                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
-                    helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
-                    QueryIcon="Find"
-                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
-                    SuggestionChosen="SearchBox_SuggestionChosen"
-                    QuerySubmitted="SearchBox_QuerySubmitted">
-                    <AutoSuggestBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:SearchSuggestionItem">
-                            <Grid Padding="4,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
-                                    <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </AutoSuggestBox.ItemTemplate>
-                </AutoSuggestBox>
-            </Grid>
         </Grid>
 
         <!-- Row 2: Content Container with rounded corners and lighter background -->

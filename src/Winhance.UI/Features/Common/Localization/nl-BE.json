@@ -1,4 +1,8 @@
 ﻿{
+  "SoftwareApps_Sort_Button": "Sort",
+  "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
+  "SoftwareApps_Sort_NameAZ": "Name A-Z",
+  "SoftwareApps_Sort_NameZA": "Name Z-A",
   "App_Title": "Winhance",
   "App_By": "door Memory",
   "Common_CustomState": "Aangepast",

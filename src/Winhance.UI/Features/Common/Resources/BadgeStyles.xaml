@@ -9,9 +9,9 @@
 
         <ResourceDictionary x:Key="Dark">
             <!-- Recommended: green -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#224EC94E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#404EC94E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#223FB950"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#403FB950"/>
+            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF3FB950"/>
 
             <!-- Default: subtle light grey -->
             <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#12FFFFFF"/>
@@ -37,9 +37,9 @@
 
         <ResourceDictionary x:Key="Light">
             <!-- Recommended: darker green for legibility on white -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#222E7A2E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#402E7A2E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF2E7A2E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#221A7F37"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#401A7F37"/>
+            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF1A7F37"/>
 
             <!-- Default: dark on light — fixes pre-existing invisibility bug -->
             <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#10000000"/>

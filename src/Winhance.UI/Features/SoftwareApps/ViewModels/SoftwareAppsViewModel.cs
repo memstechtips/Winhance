@@ -72,6 +72,13 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public bool IsCompactView => ViewMode == SoftwareAppsViewMode.Compact;
 
     [ObservableProperty]
+    public partial AppSortMode SortMode { get; set; } = AppSortMode.NameAscInstalledFirst;
+
+    public bool IsSortInstalledFirst => SortMode == AppSortMode.NameAscInstalledFirst;
+    public bool IsSortNameAsc => SortMode == AppSortMode.NameAsc;
+    public bool IsSortNameDesc => SortMode == AppSortMode.NameDesc;
+
+    [ObservableProperty]
     public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
@@ -221,6 +228,11 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
     public string ViewModeCompactTooltip => _localizationService.GetString("ViewMode_Compact");
 
+    public string SortButtonText => _localizationService.GetString("SoftwareApps_Sort_Button") ?? "Sort";
+    public string SortInstalledFirstText => _localizationService.GetString("SoftwareApps_Sort_NameAZInstalledFirst") ?? "Name A-Z (Installed First)";
+    public string SortNameAscText => _localizationService.GetString("SoftwareApps_Sort_NameAZ") ?? "Name A-Z";
+    public string SortNameDescText => _localizationService.GetString("SoftwareApps_Sort_NameZA") ?? "Name Z-A";
+
     public string ReviewWindowsAppsBannerText
     {
         get
@@ -257,6 +269,16 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsCardView));
         OnPropertyChanged(nameof(IsTableView));
         OnPropertyChanged(nameof(IsCompactView));
+    }
+
+    partial void OnSortModeChanged(AppSortMode value)
+    {
+        _userPreferencesService.SetPreferenceAsync("SoftwareAppsSortMode", value.ToString()).FireAndForget(_logService);
+        WindowsAppsViewModel.SortMode = value;
+        ExternalAppsViewModel.SortMode = value;
+        OnPropertyChanged(nameof(IsSortInstalledFirst));
+        OnPropertyChanged(nameof(IsSortNameAsc));
+        OnPropertyChanged(nameof(IsSortNameDesc));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -315,6 +337,10 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(ViewModeTableTooltip));
         OnPropertyChanged(nameof(ViewModeCardTooltip));
         OnPropertyChanged(nameof(ViewModeCompactTooltip));
+        OnPropertyChanged(nameof(SortButtonText));
+        OnPropertyChanged(nameof(SortInstalledFirstText));
+        OnPropertyChanged(nameof(SortNameAscText));
+        OnPropertyChanged(nameof(SortNameDescText));
         OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
         OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
     }
@@ -422,6 +448,14 @@ public partial class SoftwareAppsViewModel : BaseViewModel
             "Compact" => SoftwareAppsViewMode.Compact,
             "Table" => SoftwareAppsViewMode.Table,
             _ => SoftwareAppsViewMode.Card,
+        };
+
+        var savedSortMode = _userPreferencesService.GetPreference("SoftwareAppsSortMode", "NameAscInstalledFirst");
+        SortMode = savedSortMode switch
+        {
+            "NameAsc" => AppSortMode.NameAsc,
+            "NameDesc" => AppSortMode.NameDesc,
+            _ => AppSortMode.NameAscInstalledFirst,
         };
 
         WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;

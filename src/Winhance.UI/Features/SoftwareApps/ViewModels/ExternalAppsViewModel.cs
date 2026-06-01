@@ -11,6 +11,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
@@ -58,8 +59,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
         ItemsView.Filter = FilterItem;
-        ItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", SortDirection.Descending));
-        ItemsView.SortDescriptions.Add(new SortDescription("Name", SortDirection.Ascending));
+        AppSortHelper.ApplySortDescriptions(ItemsView, SortMode);
 
         // Initialize partial property defaults (after Items/ItemsView,
         // since OnSearchTextChanged uses ItemsView)
@@ -113,7 +113,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             var displayName = _localizationService.GetString(locKey);
             if (string.IsNullOrEmpty(displayName))
                 displayName = group.Key;
-            result.Add(new AppCategory(group.Key, displayName, glyph, group.OrderBy(a => a.Name).ToList()));
+            result.Add(new AppCategory(group.Key, displayName, glyph, AppSortHelper.Order(group, SortMode).ToList()));
         }
         Categories = result;
     }
@@ -129,6 +129,15 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
+
+    [ObservableProperty]
+    public partial AppSortMode SortMode { get; set; } = AppSortMode.NameAscInstalledFirst;
+
+    partial void OnSortModeChanged(AppSortMode value)
+    {
+        AppSortHelper.ApplySortDescriptions(ItemsView, value);
+        RebuildCategories();
+    }
 
     public bool IsAllSelected =>
         Items.Count > 0 && Items.All(a => a.IsSelected);

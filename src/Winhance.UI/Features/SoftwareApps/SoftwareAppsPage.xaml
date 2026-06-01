@@ -703,25 +703,39 @@
             <RowDefinition Height="*"/>     <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Page Header with Icon -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
-            <Viewbox Width="64" Height="64" Stretch="Uniform">
-                <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-            </Viewbox>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageTitle}"
-                    Style="{StaticResource TitleTextBlockStyle}"
-                    FontWeight="Bold"
-                    FontSize="30"
-                    AutomationProperties.HeadingLevel="Level1"/>
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageDescription}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    Margin="0,2,0,0"/>
+        <!-- Row 0: Page Header with Icon (title left, search right) -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
+                <Viewbox Width="64" Height="64" Stretch="Uniform">
+                    <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                </Viewbox>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Text="{x:Bind ViewModel.PageTitle}"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        FontWeight="Bold"
+                        FontSize="30"
+                        AutomationProperties.HeadingLevel="Level1"/>
+                    <TextBlock
+                        Text="{x:Bind ViewModel.PageDescription}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Margin="0,2,0,0"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+            <AutoSuggestBox
+                Grid.Column="1"
+                VerticalAlignment="Bottom"
+                PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
+                QueryIcon="Find"
+                Width="220"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        </Grid>
 
         <!-- Row 1: Action Bar (right-aligned) -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,16">
@@ -825,12 +839,30 @@
                     </ToggleButton>
                 </StackPanel>
             </Border>
-            <AutoSuggestBox
-                PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
-                helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
-                QueryIcon="Find"
-                Width="220"
-                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <DropDownButton x:Name="SortButton"
+                            AutomationProperties.Name="{x:Bind ViewModel.SortButtonText}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.SortButtonText}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8CB;" FontSize="16"/>
+                    <TextBlock Text="{x:Bind ViewModel.SortButtonText}"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <RadioMenuFlyoutItem GroupName="SortMode"
+                                             Text="{x:Bind ViewModel.SortInstalledFirstText}"
+                                             IsChecked="{x:Bind ViewModel.IsSortInstalledFirst, Mode=OneWay}"
+                                             Click="SortInstalledFirst_Click"/>
+                        <RadioMenuFlyoutItem GroupName="SortMode"
+                                             Text="{x:Bind ViewModel.SortNameAscText}"
+                                             IsChecked="{x:Bind ViewModel.IsSortNameAsc, Mode=OneWay}"
+                                             Click="SortNameAsc_Click"/>
+                        <RadioMenuFlyoutItem GroupName="SortMode"
+                                             Text="{x:Bind ViewModel.SortNameDescText}"
+                                             IsChecked="{x:Bind ViewModel.IsSortNameDesc, Mode=OneWay}"
+                                             Click="SortNameDesc_Click"/>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
         </StackPanel>
 
         <!-- Row 2: Content Container with rounded corners and background -->
@@ -1282,13 +1314,13 @@
                                                                           Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                             <!-- Installed status: green tower when installed, faded grey tower when not -->
-                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
                                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                             </Viewbox>
-                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
@@ -1384,13 +1416,13 @@
                                                                           Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                             <!-- Installed status: green tower when installed, faded grey tower when not -->
-                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
                                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                             </Viewbox>
-                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
@@ -1486,13 +1518,13 @@
                                                                           Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                             <!-- Installed status: green tower when installed, faded grey tower when not -->
-                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
                                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                             </Viewbox>
-                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
@@ -1817,13 +1849,13 @@
                                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                             </Grid>
-                                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"
                                                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                                             </Viewbox>
-                                                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                                            <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
                                                                                 <PathIcon Data="{StaticResource DesktopTowerMonitorIconPath}"

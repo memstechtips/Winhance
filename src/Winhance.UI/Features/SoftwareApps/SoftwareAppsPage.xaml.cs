@@ -198,6 +198,15 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
     }
 
+    private void SortInstalledFirst_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SortMode = AppSortMode.NameAscInstalledFirst;
+
+    private void SortNameAsc_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SortMode = AppSortMode.NameAsc;
+
+    private void SortNameDesc_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SortMode = AppSortMode.NameDesc;
+
     /// <summary>
     /// Centres the card-view content column horizontally by clamping the inner
     /// StackPanel's MaxWidth to exactly cols × CardItemWidth + (cols-1) × ColumnSpacing.
