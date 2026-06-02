@@ -296,7 +296,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (!string.IsNullOrEmpty(template))
             return template.Replace("{0}", value?.ToString() ?? string.Empty);
         // Fallback if the key is missing
-        return key == StringKeys.InfoBadge.NumericSetToRecommendedTooltip
+        return key == "InfoBadge_Numeric_SetToRecommended_Tooltip"
             ? $"Set to Recommended ({value})"
             : $"Set to Default ({value})";
     }
@@ -305,32 +305,32 @@ public partial class SettingItemViewModel : BaseViewModel
     // NumericRange pcfg values are raw system units (e.g. Seconds); tooltips show display units.
     public string RecommendedValueTooltip =>
         NumericRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultValueTooltip =>
         NumericDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
 
     public string RecommendedAcValueTooltip =>
         AcRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultAcValueTooltip =>
         AcDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
 
     public string RecommendedDcValueTooltip =>
         DcRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultDcValueTooltip =>
         DcDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
 
     // -- Accessibility names (issue #647 follow-up) ------------------------------------
@@ -493,12 +493,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public string ToggleRecommendedTooltip =>
         ToggleRecommendedState is bool s
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ToggleStateText(s))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ToggleStateText(s))
             : string.Empty;
 
     public string ToggleDefaultTooltip =>
         ToggleDefaultState is bool s
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ToggleStateText(s))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ToggleStateText(s))
             : string.Empty;
 
     public bool ShowToggleQuickSetButtons
@@ -549,12 +549,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public string SelectionRecommendedTooltip =>
         OptionDisplayText(SelectionRecommendedIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", label)
             : string.Empty;
 
     public string SelectionDefaultTooltip =>
         OptionDisplayText(SelectionDefaultIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", label)
             : string.Empty;
 
     public bool ShowSelectionQuickSetButtons
@@ -616,22 +616,22 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public string AcSelectionRecommendedTooltip =>
         OptionDisplayText(AcSelectionRecommendedIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", label)
             : string.Empty;
 
     public string AcSelectionDefaultTooltip =>
         OptionDisplayText(AcSelectionDefaultIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", label)
             : string.Empty;
 
     public string DcSelectionRecommendedTooltip =>
         OptionDisplayText(DcSelectionRecommendedIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", label)
             : string.Empty;
 
     public string DcSelectionDefaultTooltip =>
         OptionDisplayText(DcSelectionDefaultIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", label)
             : string.Empty;
 
     public bool ShowAcSelectionQuickSetButtons
@@ -2090,17 +2090,17 @@ public partial class SettingItemViewModel : BaseViewModel
         var (baseLabel, tooltip) = kind switch
         {
             SettingBadgeKind.Recommended => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-                _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
+                _localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended",
+                _localizationService?.GetString("InfoBadge_Recommended_Tooltip") ?? "Winhance's recommended value"),
             SettingBadgeKind.Default => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-                _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
+                _localizationService?.GetString("InfoBadge_Default") ?? "Default",
+                _localizationService?.GetString("InfoBadge_Default_Tooltip") ?? "Windows factory value"),
             SettingBadgeKind.Custom => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-                _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
+                _localizationService?.GetString("InfoBadge_Custom") ?? "Custom",
+                _localizationService?.GetString("InfoBadge_Custom_Tooltip") ?? "Custom value (not a known option)"),
             SettingBadgeKind.Preference => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
-                _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
+                _localizationService?.GetString("InfoBadge_Preference") ?? "Preference",
+                _localizationService?.GetString("InfoBadge_Preference_Tooltip") ?? "Personal preference"),
             _ => ("", ""),
         };
 
