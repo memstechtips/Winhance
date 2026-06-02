@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "한국어 (Korean)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "외부 앱 로드 중...",
+  "Progress_LoadingWindowsApps": "Windows 앱 로드 중...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

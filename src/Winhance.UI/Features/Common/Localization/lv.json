@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Latviešu (Latvian)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Ielādē ārējās lietotnes...",
+  "Progress_LoadingWindowsApps": "Ielādē Windows lietotnes...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

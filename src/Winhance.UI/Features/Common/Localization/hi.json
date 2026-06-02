@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "हिन्दी (Hindi)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "बाहरी ऐप्स लोड हो रहा है...",
+  "Progress_LoadingWindowsApps": "विंडोज ऐप्स लोड हो रहा है...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

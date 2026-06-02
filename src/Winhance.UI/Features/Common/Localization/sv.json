@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Svenska (Swedish)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Läser in externa appar...",
+  "Progress_LoadingWindowsApps": "Läser in Windows-appar...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

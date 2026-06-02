@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Italiano (Italian)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Caricamento delle app esterne in corso...",
+  "Progress_LoadingWindowsApps": "Caricamento delle app di Windows in corso...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

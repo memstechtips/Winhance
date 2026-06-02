@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Nederlands (Dutch)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Externe apps laden...",
+  "Progress_LoadingWindowsApps": "Windows Apps laden...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

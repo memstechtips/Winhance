@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "日本語 (Japanese)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "外部アプリを読み込み中...",
+  "Progress_LoadingWindowsApps": "Windowsアプリを読み込み中...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

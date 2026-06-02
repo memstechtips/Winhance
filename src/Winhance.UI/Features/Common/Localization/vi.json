@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Tiếng Việt (Vietnamese)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Đang tải ứng dụng bên ngoài...",
+  "Progress_LoadingWindowsApps": "Đang tải ứng dụng Windows...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

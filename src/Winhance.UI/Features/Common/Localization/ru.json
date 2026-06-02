@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Русский (Russian)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Загрузка внешних приложений...",
+  "Progress_LoadingWindowsApps": "Загрузка приложений Windows...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Magyar (Hungarian)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Külső alkalmazások betöltése...",
+  "Progress_LoadingWindowsApps": "Windows alkalmazások betöltése...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

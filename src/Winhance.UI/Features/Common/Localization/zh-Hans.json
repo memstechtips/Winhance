@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "简体中文 (Chinese Simplified)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "正在加载外部应用...",
+  "Progress_LoadingWindowsApps": "正在加载 Windows 应用...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",

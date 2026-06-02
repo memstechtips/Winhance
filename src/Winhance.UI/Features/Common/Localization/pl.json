@@ -1,7 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Polski (Polish)",
-  "Progress_LoadingExternalApps": "Loading external apps...",
-  "Progress_LoadingWindowsApps": "Loading Windows apps...",
+  "Progress_LoadingExternalApps": "Ładowanie aplikacji zewnętrznych...",
+  "Progress_LoadingWindowsApps": "Ładowanie aplikacji Windows...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",
