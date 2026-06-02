@@ -30,6 +30,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
     private readonly INewBadgeService? _newBadgeService;
+    private readonly IApplicationModeService? _applicationModeService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
     private volatile bool _isUpdatingFromEvent;
@@ -844,6 +845,16 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode;
+
+    // Builder mode records desired state into the UI without applying to the system.
+    private bool IsBuilderMode => _applicationModeService?.CurrentMode == WinhanceMode.Builder;
+
+    /// <summary>
+    /// When this Selection setting was seeded at the Custom index (live state matched no
+    /// predefined option), the raw state values captured at seed time. Used by Builder-mode
+    /// serialization to emit the custom value without re-reading the system. Null otherwise.
+    /// </summary>
+    public Dictionary<string, object>? CapturedCustomStateValues { get; set; }
     public bool IsToggleType => InputType == InputType.Toggle;
     public bool IsSelectionType => InputType == InputType.Selection;
     public bool IsNumericType => InputType == InputType.NumericRange;
@@ -893,7 +904,8 @@ public partial class SettingItemViewModel : BaseViewModel
         IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
         IRegeditLauncher? regeditLauncher = null,
-        INewBadgeService? newBadgeService = null)
+        INewBadgeService? newBadgeService = null,
+        IApplicationModeService? applicationModeService = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
@@ -902,6 +914,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
+        _applicationModeService = applicationModeService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
 
@@ -1258,6 +1271,16 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (newValue == IsSelected) return;
 
+        if (IsBuilderMode)
+        {
+            // Builder mode: record the desired state only — never apply to the system,
+            // never confirm, never show a restart banner.
+            IsSelected = newValue;
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            return;
+        }
+
         try
         {
             var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(newValue);
@@ -1317,6 +1340,27 @@ public partial class SettingItemViewModel : BaseViewModel
         if (Equals(value, SelectedValue))
         {
             _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: value equals SelectedValue, skipping");
+            return;
+        }
+
+        if (IsBuilderMode)
+        {
+            // Builder mode: record the desired selection only — never apply.
+            SelectedValue = value;
+            if (value is int builderIntValue)
+            {
+                NumericValue = builderIntValue;
+                if (builderIntValue != ComboBoxConstants.CustomStateIndex)
+                {
+                    var customOption = ComboBoxOptions.FirstOrDefault(
+                        o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
+                    if (customOption != null)
+                        ComboBoxOptions.Remove(customOption);
+                }
+            }
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            UpdateStatusBanner(value);
             return;
         }
 
@@ -1404,6 +1448,14 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
+        if (IsBuilderMode)
+        {
+            // Builder mode: AcValue/DcValue are already set by the caller; just record.
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            return;
+        }
+
         try
         {
             IsApplying = true;
@@ -1437,6 +1489,14 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
+        if (IsBuilderMode)
+        {
+            // Builder mode: AcNumericValue/DcNumericValue are already set by the caller; just record.
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            return;
+        }
+
         try
         {
             IsApplying = true;
@@ -1469,6 +1529,15 @@ public partial class SettingItemViewModel : BaseViewModel
     private async Task RunActionAsync()
     {
         if (IsApplying || SettingDefinition == null) return;
+
+        if (IsBuilderMode)
+        {
+            // Builder mode: mark the action for inclusion in the saved config; do not execute.
+            IsSelected = true;
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            return;
+        }
 
         try
         {
