@@ -133,6 +133,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         TotalConfigItems = 0;
         CurrentMode = WinhanceMode.Normal;
         IsWindowsDefaults = false;
+        _builderEdits.Clear();
         _logService.Log(LogLevel.Info, "[ConfigReviewService] Exited review mode");
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
