@@ -72,6 +72,120 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     // -------------------------------------------------------
+    // Mode state (IApplicationModeService)
+    // -------------------------------------------------------
+
+    [Fact]
+    public void CurrentMode_DefaultsToNormal()
+    {
+        var service = CreateService();
+
+        service.CurrentMode.Should().Be(WinhanceMode.Normal);
+        service.CurrentBuilderTarget.Should().Be(BuilderTarget.Config);
+        service.IsInReviewMode.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_SetsCurrentModeToConfigReview()
+    {
+        var service = CreateService();
+
+        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+
+        service.CurrentMode.Should().Be(WinhanceMode.ConfigReview);
+        service.IsInReviewMode.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExitReviewMode_ResetsCurrentModeToNormal()
+    {
+        var service = CreateService();
+        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+
+        service.ExitReviewMode();
+
+        service.CurrentMode.Should().Be(WinhanceMode.Normal);
+        service.IsInReviewMode.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_RaisesModeChanged()
+    {
+        var service = CreateService();
+        var raised = false;
+        service.ModeChanged += (_, _) => raised = true;
+
+        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+
+        raised.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExitReviewMode_RaisesModeChanged()
+    {
+        var service = CreateService();
+        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        var raised = false;
+        service.ModeChanged += (_, _) => raised = true;
+
+        service.ExitReviewMode();
+
+        raised.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EnterBuilderMode_SetsBuilderModeAndTarget()
+    {
+        var service = CreateService();
+
+        service.EnterBuilderMode(BuilderTarget.Autounattend);
+
+        service.CurrentMode.Should().Be(WinhanceMode.Builder);
+        service.CurrentBuilderTarget.Should().Be(BuilderTarget.Autounattend);
+        service.IsInReviewMode.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SetBuilderTarget_WhenInBuilderMode_SwitchesTargetAndRaisesModeChanged()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        var raised = false;
+        service.ModeChanged += (_, _) => raised = true;
+
+        service.SetBuilderTarget(BuilderTarget.Autounattend);
+
+        service.CurrentBuilderTarget.Should().Be(BuilderTarget.Autounattend);
+        service.CurrentMode.Should().Be(WinhanceMode.Builder);
+        raised.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetBuilderTarget_WhenNotInBuilderMode_IsIgnored()
+    {
+        var service = CreateService();
+
+        service.SetBuilderTarget(BuilderTarget.Autounattend);
+
+        service.CurrentMode.Should().Be(WinhanceMode.Normal);
+        service.CurrentBuilderTarget.Should().Be(BuilderTarget.Config);
+    }
+
+    [Fact]
+    public void EnterNormalMode_FromBuilder_ResetsToNormal()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        var raised = false;
+        service.ModeChanged += (_, _) => raised = true;
+
+        service.EnterNormalMode();
+
+        service.CurrentMode.Should().Be(WinhanceMode.Normal);
+        raised.Should().BeTrue();
+    }
+
+    // -------------------------------------------------------
     // Dispose
     // -------------------------------------------------------
 

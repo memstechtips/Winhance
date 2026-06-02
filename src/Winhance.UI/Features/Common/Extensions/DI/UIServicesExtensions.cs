@@ -82,6 +82,7 @@ public static class UIServicesExtensions
         services.AddSingleton<IConfigReviewModeService>(sp => (IConfigReviewModeService)sp.GetRequiredService<IConfigReviewService>());
         services.AddSingleton<IConfigReviewDiffService>(sp => (IConfigReviewDiffService)sp.GetRequiredService<IConfigReviewService>());
         services.AddSingleton<IConfigReviewBadgeService>(sp => (IConfigReviewBadgeService)sp.GetRequiredService<IConfigReviewService>());
+        services.AddSingleton<IApplicationModeService>(sp => (IApplicationModeService)sp.GetRequiredService<IConfigReviewService>());
 
         // Nav Badge Service (Singleton - Computes nav badge state during review mode)
         services.AddSingleton<INavBadgeService, NavBadgeService>();

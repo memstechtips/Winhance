@@ -17,7 +17,7 @@ namespace Winhance.UI.Features.Common.Services;
 /// Eagerly computes diffs when entering review mode so badge counts
 /// reflect actual changes from current system state.
 /// </summary>
-public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IDisposable
+public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IApplicationModeService, IDisposable
 {
     private bool _disposed;
     private readonly ILogService _logService;
@@ -68,7 +68,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
-    public bool IsInReviewMode { get; private set; }
+    public WinhanceMode CurrentMode { get; private set; } = WinhanceMode.Normal;
+    public BuilderTarget CurrentBuilderTarget { get; private set; } = BuilderTarget.Config;
+
+    // Legacy view retained for existing callers; now derived from CurrentMode.
+    public bool IsInReviewMode => CurrentMode == WinhanceMode.ConfigReview;
     public bool IsWindowsDefaults { get; private set; }
     public UnifiedConfigurationFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
@@ -80,6 +84,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public event EventHandler? ReviewModeChanged;
     public event EventHandler? ApprovalCountChanged;
     public event EventHandler? BadgeStateChanged;
+    public event EventHandler? ModeChanged;
 
     public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
     {
@@ -89,7 +94,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _configItemCounts.Clear();
         _featuresInConfig.Clear();
         _visitedFeatures.Clear();
-        IsInReviewMode = true;
+        CurrentMode = WinhanceMode.ConfigReview;
 
         // First compute total config item counts and populate _featuresInConfig
         ComputeConfigItemCounts(config);
@@ -114,6 +119,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             $"[ConfigReviewService] Entered review mode with {TotalConfigItems} total config items, {TotalChanges} actual diffs");
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+        ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ExitReviewMode()
@@ -124,11 +130,44 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _featuresInConfig.Clear();
         _visitedFeatures.Clear();
         TotalConfigItems = 0;
-        IsInReviewMode = false;
+        CurrentMode = WinhanceMode.Normal;
         IsWindowsDefaults = false;
         _logService.Log(LogLevel.Info, "[ConfigReviewService] Exited review mode");
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+        ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void EnterBuilderMode(BuilderTarget target)
+    {
+        CurrentBuilderTarget = target;
+        CurrentMode = WinhanceMode.Builder;
+        _logService.Log(LogLevel.Info, $"[ConfigReviewService] Entered Builder mode (target: {target})");
+        ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetBuilderTarget(BuilderTarget target)
+    {
+        if (CurrentMode != WinhanceMode.Builder || CurrentBuilderTarget == target)
+        {
+            return;
+        }
+
+        CurrentBuilderTarget = target;
+        _logService.Log(LogLevel.Info, $"[ConfigReviewService] Builder target switched to {target}");
+        ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void EnterNormalMode()
+    {
+        if (CurrentMode == WinhanceMode.Normal)
+        {
+            return;
+        }
+
+        CurrentMode = WinhanceMode.Normal;
+        _logService.Log(LogLevel.Info, "[ConfigReviewService] Entered Normal mode");
+        ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public ConfigReviewDiff? GetDiffForSetting(string settingId)
