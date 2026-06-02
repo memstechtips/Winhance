@@ -28,6 +28,14 @@ public class SettingsViewModelTests
         _mockLocalization
             .Setup(l => l.CurrentLanguage)
             .Returns("en");
+        _mockLocalization
+            .Setup(l => l.GetAvailableLanguages())
+            .Returns(new List<LanguageOption>
+            {
+                new("en", "English"),
+                new("af", "Afrikaans"),
+                new("fr", "Français (French)"),
+            });
         _mockThemeService
             .Setup(t => t.CurrentTheme)
             .Returns(WinhanceTheme.System);
@@ -80,7 +88,9 @@ public class SettingsViewModelTests
         var vm = CreateViewModel();
 
         vm.Languages.Should().NotBeEmpty();
-        vm.Languages.Count.Should().Be(StringKeys.Languages.SupportedLanguages.Count);
+        vm.Languages.Count.Should().Be(3);
+        vm.Languages[0].DisplayText.Should().Be("English");
+        vm.Languages[0].Value.Should().Be("en");
     }
 
     [Fact]
