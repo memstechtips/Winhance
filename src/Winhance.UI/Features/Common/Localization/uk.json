@@ -1,5 +1,7 @@
 ﻿{
   "_Meta_LanguageDisplayName": "Українська (Ukrainian)",
+  "Progress_LoadingExternalApps": "Loading external apps...",
+  "Progress_LoadingWindowsApps": "Loading Windows apps...",
   "SoftwareApps_Sort_Button": "Sort",
   "SoftwareApps_Sort_NameAZInstalledFirst": "Name A-Z (Installed First)",
   "SoftwareApps_Sort_NameAZ": "Name A-Z",
