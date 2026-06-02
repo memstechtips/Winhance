@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 using Xunit;
@@ -362,8 +363,8 @@ public class ReviewModeBarViewModelTests : IDisposable
     public async Task CancelReviewModeCommand_UserConfirms_CallsCancelReviewMode()
     {
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
         _mockConfigurationService
             .Setup(c => c.CancelReviewModeAsync())
             .Returns(Task.CompletedTask);
@@ -377,8 +378,8 @@ public class ReviewModeBarViewModelTests : IDisposable
     public async Task CancelReviewModeCommand_UserDeclines_DoesNotCallCancelReviewMode()
     {
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.CancelReviewModeCommand.ExecuteAsync(null);
 

@@ -316,9 +316,8 @@ public class ExternalAppsViewModelTests
             .ReturnsAsync(new[] { CreateTestItem("app1") });
         _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
             .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
-        _dialogService.Setup(d => d.ShowAppOperationConfirmationAsync(
-            It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<int>(), It.IsAny<string?>()))
-            .ReturnsAsync((false, false));
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();

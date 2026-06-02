@@ -223,7 +223,7 @@ public class PowerOptimizationsViewModelTests
 
         // Assert - no dialog or service calls expected
         _mockDialogService.Verify(
-            d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Never);
     }
 

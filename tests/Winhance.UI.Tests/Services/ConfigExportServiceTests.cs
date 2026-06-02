@@ -218,8 +218,8 @@ public class ConfigExportServiceTests
         // Empty items triggers a "no apps selected" confirmation dialog before
         // the window check — allow it to proceed so we reach the null window path.
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockMainWindowProvider
             .Setup(p => p.MainWindow)

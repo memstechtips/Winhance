@@ -219,12 +219,8 @@ public class ApplicationCloseServiceTests
         _mockTaskProgressService.Setup(t => t.CurrentStatusText).Returns("Installing apps");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false); // User clicks Cancel
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false }); // User clicks Cancel
 
         var result = await service.CheckOperationsAndCloseAsync();
 
@@ -241,12 +237,8 @@ public class ApplicationCloseServiceTests
         _mockTaskProgressService.Setup(t => t.CurrentStatusText).Returns("Installing apps");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await service.CheckOperationsAndCloseAsync();
 
@@ -264,12 +256,8 @@ public class ApplicationCloseServiceTests
         _mockTaskProgressService.Setup(t => t.CurrentStatusText).Returns("Applying settings");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(true); // User clicks Yes
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true }); // User clicks Yes
 
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
@@ -297,20 +285,14 @@ public class ApplicationCloseServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(
-                It.Is<string>(s => s.Contains("an operation")),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+                It.Is<ConfirmationRequest>(r => r.Message.Contains("an operation"))))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await service.CheckOperationsAndCloseAsync();
 
         _mockDialogService.Verify(
             d => d.ShowConfirmationAsync(
-                It.Is<string>(s => s.Contains("an operation")),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+                It.Is<ConfirmationRequest>(r => r.Message.Contains("an operation"))),
             Times.Once);
     }
 
@@ -339,10 +321,7 @@ public class ApplicationCloseServiceTests
 
         _mockDialogService.Verify(
             d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.Is<string>(s => s.Contains("Operation in Progress")),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+                It.Is<ConfirmationRequest>(r => r.Title.Contains("Operation in Progress"))),
             Times.Never);
     }
 

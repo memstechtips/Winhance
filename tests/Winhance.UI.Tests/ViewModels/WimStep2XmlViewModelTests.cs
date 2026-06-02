@@ -150,8 +150,8 @@ public class WimStep2XmlViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
@@ -165,8 +165,8 @@ public class WimStep2XmlViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockXmlGeneratorService
             .Setup(s => s.GenerateFromCurrentSelectionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()))
@@ -187,8 +187,8 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.IsComplete = true;
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockXmlGeneratorService
             .Setup(s => s.GenerateFromCurrentSelectionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()))
@@ -205,8 +205,8 @@ public class WimStep2XmlViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockXmlGeneratorService
             .Setup(s => s.GenerateFromCurrentSelectionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()))
