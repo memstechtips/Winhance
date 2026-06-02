@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
@@ -86,12 +87,14 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
                 var continueText = _localizationService.GetString("Filter_Dialog_Button_Toggle") ?? "Toggle Filter";
                 var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
 
-                var result = await _dialogService.ShowConfirmationWithCheckboxAsync(
-                    message,
-                    checkboxText: checkboxText,
-                    title: title,
-                    continueButtonText: continueText,
-                    cancelButtonText: cancelText);
+                var result = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = message,
+                    CheckboxText = checkboxText,
+                    Title = title,
+                    ConfirmButtonText = continueText,
+                    CancelButtonText = cancelText,
+                });
 
                 if (result.CheckboxChecked)
                 {

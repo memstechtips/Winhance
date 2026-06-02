@@ -1526,12 +1526,15 @@ public partial class SettingItemViewModel : BaseViewModel
         var continueText = _localizationService.GetString("Button_Continue");
         var cancelText = _localizationService.GetString("Button_Cancel");
 
-        return await _dialogService.ShowConfirmationWithCheckboxAsync(
-            message,
-            checkboxText,
-            title,
-            continueText,
-            cancelText);
+        var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Message = message,
+            CheckboxText = checkboxText,
+            Title = title,
+            ConfirmButtonText = continueText,
+            CancelButtonText = cancelText,
+        });
+        return (r.Confirmed, r.CheckboxChecked);
     }
 
     #endregion
@@ -1548,12 +1551,16 @@ public partial class SettingItemViewModel : BaseViewModel
         var unlockText = _localizationService.GetString("Button_Unlock") ?? "Unlock";
         var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
 
-        var (confirmed, dontShowAgain) = await _dialogService.ShowConfirmationWithCheckboxAsync(
-            message,
-            checkboxText,
-            title,
-            unlockText,
-            cancelText);
+        var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Message = message,
+            CheckboxText = checkboxText,
+            Title = title,
+            ConfirmButtonText = unlockText,
+            CancelButtonText = cancelText,
+        });
+        bool confirmed = r.Confirmed;
+        bool dontShowAgain = r.CheckboxChecked;
 
         if (!confirmed) return;
 

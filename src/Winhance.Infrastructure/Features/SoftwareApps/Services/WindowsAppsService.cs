@@ -178,13 +178,16 @@ public class WindowsAppsService(
                         var downloadButton = localizationService.GetString("Button_Download") ?? "Download";
                         var cancelButton = localizationService.GetString("Button_Cancel") ?? "Cancel";
 
-                        var (confirmed, dontShowAgain) = await dialogService.ShowConfirmationWithCheckboxAsync(
-                            message: message,
-                            checkboxText: checkboxText,
-                            title: title,
-                            continueButtonText: downloadButton,
-                            cancelButtonText: cancelButton
-                        ).ConfigureAwait(false);
+                        var r = await dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                        {
+                            Message = message,
+                            CheckboxText = checkboxText,
+                            Title = title,
+                            ConfirmButtonText = downloadButton,
+                            CancelButtonText = cancelButton,
+                        }).ConfigureAwait(false);
+                        bool confirmed = r.Confirmed;
+                        bool dontShowAgain = r.CheckboxChecked;
 
                         userConsent = confirmed;
 
