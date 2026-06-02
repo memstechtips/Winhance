@@ -34,10 +34,7 @@ public interface IDialogService
         int count,
         string? checkboxText = null);
 
-    Task<ConfirmationResponse> ShowConfirmationAsync(
-        ConfirmationRequest confirmationRequest,
-        string continueButtonText = "Continue",
-        string cancelButtonText = "Cancel");
+    Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest);
 
     Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 

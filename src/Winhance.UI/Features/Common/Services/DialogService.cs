@@ -402,14 +402,11 @@ public class DialogService : IDialogService
         }, (false, false));
     }
 
-    public async Task<ConfirmationResponse> ShowConfirmationAsync(
-        ConfirmationRequest confirmationRequest,
-        string continueButtonText = "Continue",
-        string cancelButtonText = "Cancel")
+    public async Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest)
     {
         return await ExecuteDialogAsync(async () =>
         {
-            var contentPanel = new StackPanel { Spacing = 8 };
+            var contentPanel = new StackPanel { Spacing = 12 };
 
             if (!string.IsNullOrEmpty(confirmationRequest.Message))
             {
@@ -420,19 +417,66 @@ public class DialogService : IDialogService
                 });
             }
 
+            if (confirmationRequest.Items is { Count: > 0 } items)
+            {
+                var itemContainerStyle = new Style(typeof(ListViewItem));
+                itemContainerStyle.Setters.Add(new Setter(ListViewItem.PaddingProperty, new Thickness(0)));
+                itemContainerStyle.Setters.Add(new Setter(ListViewItem.MinHeightProperty, 0d));
+
+                var listView = new ListView
+                {
+                    ItemsSource = items.ToList(),
+                    MaxHeight = 300,
+                    SelectionMode = ListViewSelectionMode.None,
+                    ItemContainerStyle = itemContainerStyle
+                };
+
+                var listContainer = new Border
+                {
+                    Child = listView,
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(8),
+                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                    BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        (XamlRoot?.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark
+                            ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black),
+                    BorderThickness = new Thickness(1)
+                };
+
+                contentPanel.Children.Add(listContainer);
+            }
+
             CheckBox? checkBox = null;
             if (!string.IsNullOrEmpty(confirmationRequest.CheckboxText))
             {
-                checkBox = new CheckBox { Content = confirmationRequest.CheckboxText };
+                var checkboxText = confirmationRequest.CheckboxText;
+                checkBox = new CheckBox
+                {
+                    Content = checkboxText,
+                    IsChecked = confirmationRequest.CheckboxInitiallyChecked
+                };
+
+                // Announce checkbox state changes to Narrator
+                checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
+                    checkBox,
+                    $"{checkboxText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}",
+                    "CheckboxStateChange");
+                checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
+                    checkBox,
+                    $"{checkboxText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}",
+                    "CheckboxStateChange");
+
                 contentPanel.Children.Add(checkBox);
             }
 
             var dialog = new ContentDialog
             {
-                Title = confirmationRequest.Title,
+                Title = string.IsNullOrEmpty(confirmationRequest.Title)
+                    ? _localization.GetString("Dialog_Confirmation")
+                    : confirmationRequest.Title,
                 Content = contentPanel,
-                PrimaryButtonText = continueButtonText,
-                CloseButtonText = cancelButtonText,
+                PrimaryButtonText = confirmationRequest.ConfirmButtonText,
+                CloseButtonText = confirmationRequest.CancelButtonText,
                 DefaultButton = ContentDialogButton.Primary
             };
             ConfigureDialog(dialog);
@@ -443,7 +487,7 @@ public class DialogService : IDialogService
                 Confirmed = result == ContentDialogResult.Primary,
                 CheckboxChecked = checkBox?.IsChecked == true
             };
-        }, new ConfirmationResponse { Confirmed = false });
+        }, new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
     }
 
     public async Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages)
