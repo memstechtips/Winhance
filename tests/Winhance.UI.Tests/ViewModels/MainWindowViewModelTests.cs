@@ -27,10 +27,13 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IConfigReviewModeService> _mockConfigReviewModeService = new();
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
+    private readonly Mock<IConfigExportService> _mockConfigExportService = new();
 
     private readonly TaskProgressViewModel _taskProgressViewModel;
     private readonly UpdateCheckViewModel _updateCheckViewModel;
     private readonly ReviewModeBarViewModel _reviewModeBarViewModel;
+    private readonly BuilderModeBarViewModel _builderModeBarViewModel;
 
     public MainWindowViewModelTests()
     {
@@ -84,6 +87,14 @@ public class MainWindowViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockDialogService.Object,
             _mockLogService.Object);
+
+        _builderModeBarViewModel = new BuilderModeBarViewModel(
+            _mockApplicationModeService.Object,
+            _mockConfigExportService.Object,
+            _mockDispatcherService.Object,
+            _mockLocalizationService.Object,
+            _mockDialogService.Object,
+            _mockLogService.Object);
     }
 
     private MainWindowViewModel CreateSut()
@@ -98,7 +109,10 @@ public class MainWindowViewModelTests : IDisposable
             _mockWindowsVersionFilterService.Object,
             _taskProgressViewModel,
             _updateCheckViewModel,
-            _reviewModeBarViewModel);
+            _reviewModeBarViewModel,
+            _builderModeBarViewModel,
+            _mockApplicationModeService.Object,
+            _mockDialogService.Object);
     }
 
     public void Dispose()
@@ -106,6 +120,7 @@ public class MainWindowViewModelTests : IDisposable
         _taskProgressViewModel.Dispose();
         _updateCheckViewModel.Dispose();
         _reviewModeBarViewModel.Dispose();
+        _builderModeBarViewModel.Dispose();
     }
 
     // ── Constructor ──

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -29,6 +30,7 @@ public class ConfigExportServiceTests
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
     private readonly Mock<IThemeService> _mockThemeService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
+    private readonly Mock<IAutounattendXmlGeneratorService> _mockAutounattendGenerator = new();
 
     public ConfigExportServiceTests()
     {
@@ -63,7 +65,8 @@ public class ConfigExportServiceTests
             _mockExternalAppsVM.Object,
             _mockFileSystemService.Object,
             _mockMainWindowProvider.Object,
-            _mockApplicationModeService.Object);
+            _mockApplicationModeService.Object,
+            _mockAutounattendGenerator.Object);
     }
 
     // -------------------------------------------------------

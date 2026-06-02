@@ -86,16 +86,67 @@
             </StackPanel>
 
             <!-- Beta Banner (hidden in stable builds, shown dynamically for beta) -->
+            <!-- Moved to the left of the centered Mode switcher per design. -->
             <TextBlock x:Name="BetaBannerText"
                        Grid.Column="4"
                        Text="Release-Preview: Version is for Testing Only"
                        Foreground="#FFE74C3C"
                        FontSize="12"
                        FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
+                       HorizontalAlignment="Left"
                        VerticalAlignment="Center"
+                       Margin="12,0,0,0"
                        IsHitTestVisible="False"
                        Visibility="Collapsed"/>
+
+            <!-- Winhance Mode switcher (centered in the title bar). Interactive, so it is
+                 registered as a title-bar passthrough region in code-behind.
+                 NOTE: icon names are valid-but-placeholder; refine in the designer. -->
+            <StackPanel x:Name="ModeSwitcher"
+                        Grid.Column="4"
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <TextBlock Text="Winhance Mode"
+                           FontSize="11"
+                           Opacity="0.6"
+                           VerticalAlignment="Center"
+                           Margin="0,0,4,0"/>
+                <ToggleButton x:Name="NormalModeButton"
+                              Tag="Normal"
+                              Click="ModeButton_Click"
+                              IsChecked="{x:Bind ViewModel.IsNormalMode, Mode=OneWay}"
+                              Padding="8,2"
+                              ToolTipService.ToolTip="Normal — changes apply to this PC immediately">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <fluentIcons:FluentIcon Icon="Navigation" IconVariant="Regular" FontSize="14"/>
+                        <TextBlock Text="Normal" FontSize="12"/>
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton x:Name="BuilderModeButton"
+                              Tag="Builder"
+                              Click="ModeButton_Click"
+                              IsChecked="{x:Bind ViewModel.IsBuilderModeActive, Mode=OneWay}"
+                              Padding="8,2"
+                              ToolTipService.ToolTip="Builder — author a config or autounattend without changing this PC">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>
+                        <TextBlock Text="Builder" FontSize="12"/>
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton x:Name="ConfigReviewModeButton"
+                              Tag="ConfigReview"
+                              Click="ModeButton_Click"
+                              IsChecked="{x:Bind ViewModel.IsConfigReviewModeActive, Mode=OneWay}"
+                              Padding="8,2"
+                              ToolTipService.ToolTip="Config Review — review a config file before applying">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <fluentIcons:FluentIcon Icon="ShieldCheckmark" IconVariant="Regular" FontSize="14"/>
+                        <TextBlock Text="Config Review" FontSize="12"/>
+                    </StackPanel>
+                </ToggleButton>
+            </StackPanel>
 
             <!-- Title Bar Action Buttons -->
             <StackPanel x:Name="TitleBarButtons"
@@ -257,6 +308,94 @@
                     <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14"/>
                     <TextBlock x:Name="ReviewModeCancelButtonText"
                                Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Builder Mode Bar (visible while authoring a config/autounattend; shares Row 3 with the Review bar — mutually exclusive) -->
+        <Grid x:Name="BuilderModeBarGrid"
+              Grid.Row="3"
+              Background="{ThemeResource AccentFillColorDefaultBrush}"
+              Visibility="Collapsed"
+              Padding="16,10,16,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+                <ColumnDefinition Width="Auto"/>  <!-- Title -->
+                <ColumnDefinition Width="Auto"/>  <!-- Description -->
+                <ColumnDefinition Width="*"/>     <!-- spacer -->
+                <ColumnDefinition Width="Auto"/>  <!-- Target radios -->
+                <ColumnDefinition Width="Auto"/>  <!-- Save -->
+                <ColumnDefinition Width="Auto"/>  <!-- Cancel -->
+            </Grid.ColumnDefinitions>
+
+            <fluentIcons:FluentIcon Grid.Column="0"
+                      Icon="DocumentSave" IconVariant="Regular"
+                      FontSize="16"
+                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,10,0"/>
+
+            <TextBlock Grid.Column="1"
+                       Text="{x:Bind ViewModel.BuilderModeBar.BuilderModeTitleText, Mode=OneWay}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,12,0"/>
+
+            <TextBlock Grid.Column="2"
+                       Text="{x:Bind ViewModel.BuilderModeBar.BuilderModeDescriptionText, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Opacity="0.85"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="0,0,16,0"/>
+
+            <StackPanel Grid.Column="4"
+                        Orientation="Horizontal"
+                        Spacing="12"
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0">
+                <RadioButton x:Name="BuilderConfigRadio"
+                             GroupName="BuilderTarget"
+                             Content="{x:Bind ViewModel.BuilderModeBar.BuilderConfigTargetText, Mode=OneWay}"
+                             IsChecked="{x:Bind ViewModel.BuilderModeBar.IsConfigTarget, Mode=OneWay}"
+                             Checked="BuilderConfigRadio_Checked"
+                             Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                <RadioButton x:Name="BuilderAutounattendRadio"
+                             GroupName="BuilderTarget"
+                             Content="{x:Bind ViewModel.BuilderModeBar.BuilderAutounattendTargetText, Mode=OneWay}"
+                             IsChecked="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
+                             Checked="BuilderAutounattendRadio_Checked"
+                             Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+            </StackPanel>
+
+            <Button Grid.Column="5"
+                    x:Name="BuilderSaveButton"
+                    Click="BuilderSaveButton_Click"
+                    Background="#40FFFFFF"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="4,0,4,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="6"
+                    x:Name="BuilderCancelButton"
+                    Click="BuilderCancelButton_Click"
+                    Background="#40FFFFFF"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="4,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.BuilderCancelButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
         </Grid>

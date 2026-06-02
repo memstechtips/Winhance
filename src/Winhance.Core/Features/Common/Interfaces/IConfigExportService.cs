@@ -21,4 +21,10 @@ public interface IConfigExportService
     /// from Builder edits rather than the live system.
     /// </summary>
     Task ExportBuilderConfigAsync();
+
+    /// <summary>
+    /// Builder Save (Autounattend target): builds the UI-state configuration and renders it
+    /// to an autounattend.xml via the save picker. Uses the authored choices, not the system.
+    /// </summary>
+    Task ExportBuilderAutounattendAsync();
 }

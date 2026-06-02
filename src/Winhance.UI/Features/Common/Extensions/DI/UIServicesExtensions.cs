@@ -118,6 +118,7 @@ public static class UIServicesExtensions
         services.AddSingleton<TaskProgressViewModel>();
         services.AddSingleton<UpdateCheckViewModel>();
         services.AddSingleton<ReviewModeBarViewModel>();
+        services.AddSingleton<BuilderModeBarViewModel>();
 
         // MainWindow ViewModel (Singleton - one main window)
         services.AddSingleton<MainWindowViewModel>();

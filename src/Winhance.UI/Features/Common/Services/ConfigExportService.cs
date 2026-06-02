@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -23,6 +24,7 @@ public class ConfigExportService : IConfigExportService
     private readonly IFileSystemService _fileSystemService;
     private readonly IMainWindowProvider _mainWindowProvider;
     private readonly IApplicationModeService _applicationModeService;
+    private readonly IAutounattendXmlGeneratorService _autounattendGenerator;
 
     public ConfigExportService(
         ILogService logService,
@@ -36,7 +38,8 @@ public class ConfigExportService : IConfigExportService
         IExternalAppsItemsProvider externalAppsVM,
         IFileSystemService fileSystemService,
         IMainWindowProvider mainWindowProvider,
-        IApplicationModeService applicationModeService)
+        IApplicationModeService applicationModeService,
+        IAutounattendXmlGeneratorService autounattendGenerator)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -50,6 +53,7 @@ public class ConfigExportService : IConfigExportService
         _fileSystemService = fileSystemService;
         _mainWindowProvider = mainWindowProvider;
         _applicationModeService = applicationModeService;
+        _autounattendGenerator = autounattendGenerator;
     }
 
     private Task EnsureRegistryInitializedAsync()
@@ -276,6 +280,58 @@ public class ConfigExportService : IConfigExportService
             await _dialogService.ShowErrorAsync(
                 _localizationService.GetString("Config_Export_Error_Message", ex.Message)
                     ?? $"Error saving configuration: {ex.Message}",
+                _localizationService.GetString("Config_Export_Error_Title") ?? "Save Error");
+        }
+    }
+
+    public async Task ExportBuilderAutounattendAsync()
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Starting Builder autounattend.xml export");
+
+            await EnsureRegistryInitializedAsync();
+
+            var config = await CreateConfigurationFromUiStateAsync();
+
+            var window = GetMainWindow();
+            if (window == null)
+            {
+                _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
+                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                return;
+            }
+
+            var defaultFileName = "autounattend.xml";
+            var filePath = Win32FileDialogHelper.ShowSaveFilePicker(
+                window,
+                "Save autounattend.xml",
+                "Autounattend XML File",
+                "*.xml",
+                defaultFileName,
+                "xml");
+
+            if (string.IsNullOrEmpty(filePath))
+            {
+                _logService.Log(LogLevel.Info, "Builder autounattend export canceled by user");
+                return;
+            }
+
+            await _autounattendGenerator.GenerateFromConfigAsync(config, filePath);
+
+            _logService.Log(LogLevel.Info, $"Builder autounattend.xml exported to {filePath}");
+
+            await _dialogService.ShowInformationAsync(
+                _localizationService.GetString("Config_Export_Success_Message", filePath)
+                    ?? $"autounattend.xml saved to {filePath}",
+                _localizationService.GetString("Config_Export_Success_Title") ?? "Save Successful");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error exporting Builder autounattend.xml: {ex.Message}");
+            await _dialogService.ShowErrorAsync(
+                _localizationService.GetString("Config_Export_Error_Message", ex.Message)
+                    ?? $"Error saving autounattend.xml: {ex.Message}",
                 _localizationService.GetString("Config_Export_Error_Title") ?? "Save Error");
         }
     }

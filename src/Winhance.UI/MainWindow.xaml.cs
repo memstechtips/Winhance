@@ -2,11 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
@@ -333,12 +335,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         // Defer passthrough region setup to ensure all elements are laid out
         DispatcherQueue.TryEnqueue(() =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons));
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher));
 
         AppTitleBar.SizeChanged += (_, _) =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons);
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
         TitleBarButtons.SizeChanged += (_, _) =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons);
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
 
         // Initialize ViewModel and wire up bindings
         InitializeViewModel();
@@ -371,6 +373,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 ViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 ViewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
                 ViewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
+                ViewModel.BuilderModeBar.PropertyChanged += BuilderModeBar_PropertyChanged;
 
                 // Deferred initialization: subscribes to events and sets initial state
                 ViewModel.Initialize();
@@ -717,6 +720,64 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (ViewModel?.ReviewModeBar.CancelReviewModeCommand.CanExecute(null) == true)
             ViewModel.ReviewModeBar.CancelReviewModeCommand.Execute(null);
+    }
+
+    // ---- Mode switcher + Builder bar ----
+
+    private void ModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel == null || sender is not ToggleButton tb || tb.Tag is not string tag)
+            return;
+
+        WinhanceMode? target = tag switch
+        {
+            "Normal" => WinhanceMode.Normal,
+            "Builder" => WinhanceMode.Builder,
+            "ConfigReview" => WinhanceMode.ConfigReview,
+            _ => null
+        };
+
+        if (target == null)
+            return;
+
+        ViewModel.RequestSwitchModeAsync(target.Value).FireAndForget(_logService!);
+    }
+
+    private void BuilderModeBar_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        if (e.PropertyName == nameof(BuilderModeBarViewModel.IsBuilderActive))
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                BuilderModeBarGrid.Visibility = ViewModel.BuilderModeBar.IsBuilderActive
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            });
+        }
+    }
+
+    private void BuilderSaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.BuilderModeBar.SaveCommand.CanExecute(null) == true)
+            ViewModel.BuilderModeBar.SaveCommand.Execute(null);
+    }
+
+    private void BuilderCancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.BuilderModeBar.CancelCommand.CanExecute(null) == true)
+            ViewModel.BuilderModeBar.CancelCommand.Execute(null);
+    }
+
+    private void BuilderConfigRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.BuilderModeBar.SelectConfigTarget();
+    }
+
+    private void BuilderAutounattendRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.BuilderModeBar.SelectAutounattendTarget();
     }
 
     #endregion

@@ -2,7 +2,9 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
@@ -22,6 +24,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly ILogService _logService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IWindowsVersionFilterService _windowsVersionFilterService;
+    private readonly IApplicationModeService _applicationModeService;
+    private readonly IDialogService _dialogService;
 
     /// <summary>Child ViewModel for task progress display.</summary>
     public TaskProgressViewModel TaskProgress { get; }
@@ -31,6 +35,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Child ViewModel for review mode bar.</summary>
     public ReviewModeBarViewModel ReviewModeBar { get; }
+
+    /// <summary>Child ViewModel for the Builder mode bar.</summary>
+    public BuilderModeBarViewModel BuilderModeBar { get; }
+
+    /// <summary>The current app-wide interaction mode (for the mode switcher).</summary>
+    public WinhanceMode CurrentMode => _applicationModeService.CurrentMode;
+    public bool IsNormalMode => CurrentMode == WinhanceMode.Normal;
+    public bool IsBuilderModeActive => CurrentMode == WinhanceMode.Builder;
+    public bool IsConfigReviewModeActive => CurrentMode == WinhanceMode.ConfigReview;
 
     [ObservableProperty]
     public partial string AppIconSource { get; set; }
@@ -63,7 +76,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         IWindowsVersionFilterService windowsVersionFilterService,
         TaskProgressViewModel taskProgress,
         UpdateCheckViewModel updateCheck,
-        ReviewModeBarViewModel reviewModeBar)
+        ReviewModeBarViewModel reviewModeBar,
+        BuilderModeBarViewModel builderModeBar,
+        IApplicationModeService applicationModeService,
+        IDialogService dialogService)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -72,10 +88,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _logService = logService;
         _interactiveUserService = interactiveUserService;
         _windowsVersionFilterService = windowsVersionFilterService;
+        _applicationModeService = applicationModeService;
+        _dialogService = dialogService;
 
         TaskProgress = taskProgress;
         UpdateCheck = updateCheck;
         ReviewModeBar = reviewModeBar;
+        BuilderModeBar = builderModeBar;
 
         // Initialize partial property defaults
         AppIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -101,6 +120,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         // Subscribe to review mode filter cross-cutting
         ReviewModeBar.PropertyChanged += OnReviewModeBarPropertyChanged;
 
+        // Keep the mode switcher in sync with the app-wide mode
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
+
         // Subscribe to filter state changes from the service
         _windowsVersionFilterService.FilterStateChanged += OnFilterStateChanged;
 
@@ -121,6 +143,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _themeService.ThemeChanged -= OnThemeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
         ReviewModeBar.PropertyChanged -= OnReviewModeBarPropertyChanged;
+        _applicationModeService.ModeChanged -= OnApplicationModeChanged;
         _windowsVersionFilterService.FilterStateChanged -= OnFilterStateChanged;
     }
 
@@ -295,6 +318,80 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     #endregion
 
     #region Commands
+
+    /// <summary>
+    /// Switch the app-wide mode from the title-bar mode switcher. Confirms first if the
+    /// current mode has unsaved progress (Builder edits, or a pending Config Review).
+    /// Normal → live system; Builder → author without applying; Config Review → import dialog.
+    /// </summary>
+    public async Task RequestSwitchModeAsync(WinhanceMode target)
+    {
+        if (target == _applicationModeService.CurrentMode)
+        {
+            return;
+        }
+
+        bool leavingBuilderWithEdits = _applicationModeService.CurrentMode == WinhanceMode.Builder
+            && _applicationModeService.GetBuilderEdits().Count > 0;
+        bool leavingReview = _applicationModeService.CurrentMode == WinhanceMode.ConfigReview;
+
+        if (leavingBuilderWithEdits || leavingReview)
+        {
+            var message = _localizationService.GetString("Mode_Switch_Confirmation")
+                ?? "Switch mode? Your current unsaved progress will be discarded. Nothing was applied to this PC.";
+            var title = _localizationService.GetString("Mode_Switch_Confirmation_Title") ?? "Switch Mode";
+            var confirmed = (await _dialogService.ShowConfirmationAsync(
+                new ConfirmationRequest { Message = message, Title = title })).Confirmed;
+            if (!confirmed)
+            {
+                RaiseModeProperties();
+                return;
+            }
+        }
+
+        try
+        {
+            switch (target)
+            {
+                case WinhanceMode.Normal:
+                    if (_applicationModeService.CurrentMode == WinhanceMode.ConfigReview)
+                        await _configurationService.CancelReviewModeAsync();
+                    else
+                        _applicationModeService.EnterNormalMode();
+                    break;
+
+                case WinhanceMode.Builder:
+                    if (_applicationModeService.CurrentMode == WinhanceMode.ConfigReview)
+                        await _configurationService.CancelReviewModeAsync();
+                    _applicationModeService.EnterBuilderMode(BuilderTarget.Config);
+                    break;
+
+                case WinhanceMode.ConfigReview:
+                    // Entering review = the existing import-and-review flow (file picker).
+                    await _configurationService.ImportConfigurationAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Failed to switch mode to {target}: {ex.Message}");
+        }
+
+        RaiseModeProperties();
+    }
+
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        RaiseModeProperties();
+    }
+
+    private void RaiseModeProperties()
+    {
+        OnPropertyChanged(nameof(CurrentMode));
+        OnPropertyChanged(nameof(IsNormalMode));
+        OnPropertyChanged(nameof(IsBuilderModeActive));
+        OnPropertyChanged(nameof(IsConfigReviewModeActive));
+    }
 
     /// <summary>
     /// Command to export/save configuration.
