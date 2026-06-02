@@ -91,7 +91,7 @@ public class LocalizationKeyReferenceTests
     // ---------------------------------------------------------------------------------------------
 
     [Fact]
-    public void StaticLiteralGetStringKeys_MustExistInEnglish()
+    public void StaticLiteralLocalizationKeys_MustExistInEnglish()
     {
         var enKeys = EnglishKeys();
 
