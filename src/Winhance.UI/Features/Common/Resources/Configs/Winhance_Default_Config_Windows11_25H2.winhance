@@ -418,6 +418,42 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-thispc-folder-desktop",
+            "Name": "Show Desktop in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-documents",
+            "Name": "Show Documents in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-downloads",
+            "Name": "Show Downloads in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-music",
+            "Name": "Show Music in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-pictures",
+            "Name": "Show Pictures in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-videos",
+            "Name": "Show Videos in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-desktop-icon-this-pc",
             "Name": "Show This PC on desktop",
             "IsSelected": false,

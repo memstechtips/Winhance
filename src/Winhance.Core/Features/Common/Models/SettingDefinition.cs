@@ -67,6 +67,15 @@ public sealed record SettingDefinition : BaseDefinition, ISettingItem
     public bool? DefaultToggleState { get; init; }
 
     /// <summary>
+    /// Optional override for the localization key base. When set, localized Name / Description /
+    /// ComboBox option strings resolve from <c>Setting_{LocalizationId}_*</c> instead of
+    /// <c>Setting_{Id}_*</c>. Lets two settings that differ only by OS gating (e.g. a Win10 and a
+    /// Win11 variant of the same feature, which must use different registry mechanisms but show
+    /// identical text) share a single set of localization entries. Null = use <c>Id</c>.
+    /// </summary>
+    public string? LocalizationId { get; init; }
+
+    /// <summary>
     /// For Selection settings: when no <see cref="ComboBoxOption"/> matches the live registry
     /// state, resolve to the <see cref="ComboBoxOption.IsDefault"/> option instead of "Custom".
     ///

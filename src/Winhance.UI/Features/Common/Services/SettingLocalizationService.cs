@@ -83,13 +83,13 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     private string GetLocalizedName(SettingDefinition setting)
     {
-        var key = $"Setting_{setting.Id}_Name";
+        var key = $"Setting_{setting.LocalizationId ?? setting.Id}_Name";
         return GetStringOrFallback(key, setting.Name);
     }
 
     private string GetLocalizedDescription(SettingDefinition setting)
     {
-        var key = $"Setting_{setting.Id}_Description";
+        var key = $"Setting_{setting.LocalizationId ?? setting.Id}_Description";
         return GetStringOrFallback(key, setting.Description);
     }
 
@@ -123,7 +123,7 @@ public class SettingLocalizationService : ISettingLocalizationService
     private string GetLocalizedCustomState(SettingDefinition setting)
     {
         // Per-setting override key takes precedence (e.g. "Custom (User Defined)" on UAC slider).
-        var perSettingKey = $"Setting_{setting.Id}_Option_Custom";
+        var perSettingKey = $"Setting_{setting.LocalizationId ?? setting.Id}_Option_Custom";
         var perSetting = _localization.GetString(perSettingKey);
         if (!perSetting.StartsWith("[") || !perSetting.EndsWith("]"))
         {
@@ -146,20 +146,20 @@ public class SettingLocalizationService : ISettingLocalizationService
 
             var displayKey = IsLocalizationKey(original.DisplayName)
                 ? original.DisplayName
-                : $"Setting_{setting.Id}_Option_{i}";
+                : $"Setting_{setting.LocalizationId ?? setting.Id}_Option_{i}";
             var localizedDisplay = GetStringOrFallback(displayKey, original.DisplayName);
 
             string? localizedTooltip = original.Tooltip;
             if (!string.IsNullOrEmpty(original.Tooltip))
             {
-                var tooltipKey = $"Setting_{setting.Id}_OptionTooltip_{i}";
+                var tooltipKey = $"Setting_{setting.LocalizationId ?? setting.Id}_OptionTooltip_{i}";
                 localizedTooltip = GetStringOrFallback(tooltipKey, original.Tooltip);
             }
 
             string? localizedWarning = original.Warning;
             if (!string.IsNullOrEmpty(original.Warning))
             {
-                var warningKey = $"Setting_{setting.Id}_OptionWarning_{i}";
+                var warningKey = $"Setting_{setting.LocalizationId ?? setting.Id}_OptionWarning_{i}";
                 localizedWarning = GetStringOrFallback(warningKey, original.Warning);
             }
 

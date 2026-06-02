@@ -1993,11 +1993,461 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-thispc-folder-desktop",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Desktop in This PC",
+                    Description = "Displays the Desktop folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Monitor",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-documents",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Documents in This PC",
+                    Description = "Displays the Documents folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FileDocument",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-downloads",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Downloads in This PC",
+                    Description = "Displays the Downloads folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Download",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-music",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Music in This PC",
+                    Description = "Displays the Music folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Music",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-pictures",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Pictures in This PC",
+                    Description = "Displays the Pictures folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Image",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-videos",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Videos in This PC",
+                    Description = "Displays the Videos folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Video",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-desktop-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-desktop",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Desktop in This PC",
+                    Description = "Displays the Desktop folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Monitor",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-documents-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-documents",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Documents in This PC",
+                    Description = "Displays the Documents folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FileDocument",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-downloads-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-downloads",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Downloads in This PC",
+                    Description = "Displays the Downloads folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Download",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-music-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-music",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Music in This PC",
+                    Description = "Displays the Music folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Music",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-pictures-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-pictures",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Pictures in This PC",
+                    Description = "Displays the Pictures folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Image",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-videos-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-videos",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Videos in This PC",
+                    Description = "Displays the Videos folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Video",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-3d-objects",
                     RecommendedToggleState = false,
                     Name = "Show 3D Objects",
                     Description = "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
-                    GroupName = "Navigation Pane",
+                    GroupName = "This PC Folders",
                     InputType = InputType.Toggle,
                     Icon = "Printer3d",
                     IsWindows10Only = true,
