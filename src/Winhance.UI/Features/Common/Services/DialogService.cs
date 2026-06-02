@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -150,7 +149,7 @@ public class DialogService : IDialogService
         {
             var dialog = new ContentDialog
             {
-                Title = string.IsNullOrEmpty(title) ? StringKeys.Localized.Dialog_Confirmation : title,
+                Title = string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Confirmation") : title,
                 Content = message,
                 PrimaryButtonText = okButtonText,
                 CloseButtonText = cancelButtonText,
@@ -266,8 +265,8 @@ public class DialogService : IDialogService
             {
                 Title = title ?? _localization.GetString("Dialog_Donation_Title"),
                 Content = contentPanel,
-                PrimaryButtonText = StringKeys.Localized.Button_Yes,
-                SecondaryButtonText = StringKeys.Localized.Button_No,
+                PrimaryButtonText = _localization.GetString("Button_Yes"),
+                SecondaryButtonText = _localization.GetString("Button_No"),
                 DefaultButton = ContentDialogButton.Primary
             };
             ConfigureDialog(dialog);

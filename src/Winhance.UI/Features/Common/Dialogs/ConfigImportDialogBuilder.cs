@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Dialogs;
@@ -54,9 +53,9 @@ internal class ConfigImportDialogBuilder
         _dialog = new ContentDialog
         {
             Title = _localization.GetString("Dialog_ImportConfig_Title"),
-            PrimaryButtonText = StringKeys.Localized.Button_Continue,
+            PrimaryButtonText = _localization.GetString("Button_Continue"),
             IsPrimaryButtonEnabled = false,
-            CloseButtonText = StringKeys.Localized.Button_Cancel,
+            CloseButtonText = _localization.GetString("Button_Cancel"),
             DefaultButton = ContentDialogButton.None,
             MinWidth = 500
         };
