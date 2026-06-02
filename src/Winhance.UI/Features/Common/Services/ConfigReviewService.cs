@@ -31,6 +31,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
     private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
     private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
+    private readonly Dictionary<string, BuilderEdit> _builderEdits = new();
 
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
@@ -140,10 +141,26 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public void EnterBuilderMode(BuilderTarget target)
     {
+        _builderEdits.Clear();
         CurrentBuilderTarget = target;
         CurrentMode = WinhanceMode.Builder;
         _logService.Log(LogLevel.Info, $"[ConfigReviewService] Entered Builder mode (target: {target})");
         ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RecordBuilderEdit(BuilderEdit edit)
+    {
+        if (edit == null || string.IsNullOrEmpty(edit.SettingId))
+        {
+            return;
+        }
+
+        _builderEdits[edit.SettingId] = edit;
+    }
+
+    public IReadOnlyCollection<BuilderEdit> GetBuilderEdits()
+    {
+        return _builderEdits.Values.ToList();
     }
 
     public void SetBuilderTarget(BuilderTarget target)
@@ -166,6 +183,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
 
         CurrentMode = WinhanceMode.Normal;
+        _builderEdits.Clear();
         _logService.Log(LogLevel.Info, "[ConfigReviewService] Entered Normal mode");
         ModeChanged?.Invoke(this, EventArgs.Empty);
     }

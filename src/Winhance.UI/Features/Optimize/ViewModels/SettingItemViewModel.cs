@@ -1278,6 +1278,12 @@ public partial class SettingItemViewModel : BaseViewModel
             IsSelected = newValue;
             _hasChangedThisSession = true;
             ComputeBadgeState();
+            _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+            {
+                SettingId = SettingId,
+                InputType = InputType,
+                IsSelected = newValue
+            });
             return;
         }
 
@@ -1361,6 +1367,19 @@ public partial class SettingItemViewModel : BaseViewModel
             _hasChangedThisSession = true;
             ComputeBadgeState();
             UpdateStatusBanner(value);
+
+            // Only Selection settings are serialized from Builder edits today; numeric and
+            // AC/DC power edits fall back to the seeded value (see BuilderEdit scope note).
+            if (InputType == InputType.Selection && value is int builderSelIndex)
+            {
+                _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+                {
+                    SettingId = SettingId,
+                    InputType = InputType,
+                    SelectedIndex = builderSelIndex == ComboBoxConstants.CustomStateIndex ? null : builderSelIndex,
+                    CustomStateValues = builderSelIndex == ComboBoxConstants.CustomStateIndex ? CapturedCustomStateValues : null
+                });
+            }
             return;
         }
 
@@ -1536,6 +1555,12 @@ public partial class SettingItemViewModel : BaseViewModel
             IsSelected = true;
             _hasChangedThisSession = true;
             ComputeBadgeState();
+            _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+            {
+                SettingId = SettingId,
+                InputType = InputType,
+                IsSelected = true
+            });
             return;
         }
 

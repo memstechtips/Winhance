@@ -28,6 +28,7 @@ public class ConfigExportServiceTests
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
     private readonly Mock<IThemeService> _mockThemeService = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
     public ConfigExportServiceTests()
     {
@@ -61,7 +62,8 @@ public class ConfigExportServiceTests
             _mockWindowsAppsVM.Object,
             _mockExternalAppsVM.Object,
             _mockFileSystemService.Object,
-            _mockMainWindowProvider.Object);
+            _mockMainWindowProvider.Object,
+            _mockApplicationModeService.Object);
     }
 
     // -------------------------------------------------------

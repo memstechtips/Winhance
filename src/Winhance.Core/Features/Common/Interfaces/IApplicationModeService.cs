@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
@@ -41,4 +43,16 @@ public interface IApplicationModeService
     /// has its own exit path (<see cref="IConfigReviewModeService.ExitReviewMode"/>).
     /// </summary>
     void EnterNormalMode();
+
+    /// <summary>
+    /// Record (upsert by SettingId) a setting change made during the current Builder
+    /// session. No-op semantics outside Builder are the caller's responsibility.
+    /// </summary>
+    void RecordBuilderEdit(BuilderEdit edit);
+
+    /// <summary>
+    /// The edits recorded during the current Builder session. Cleared when entering
+    /// Builder, returning to Normal, or exiting Review.
+    /// </summary>
+    IReadOnlyCollection<BuilderEdit> GetBuilderEdits();
 }
