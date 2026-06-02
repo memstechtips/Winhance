@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
@@ -196,7 +197,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         var title = _localizationService.GetString("Review_Mode_Cancel_Confirmation_Title") ?? "Cancel Config Review";
         var message = _localizationService.GetString("Review_Mode_Cancel_Confirmation") ?? "Are you sure you want to cancel? No changes will be applied.";
 
-        var confirmed = await _dialogService.ShowConfirmationAsync(message, title);
+        var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest { Message = message, Title = title })).Confirmed;
         if (confirmed)
         {
             await _configurationService.CancelReviewModeAsync();

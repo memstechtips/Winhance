@@ -111,12 +111,13 @@ public class WindowsAppsService(
                     var yesButton = localizationService.GetString("Button_Yes") ?? "Yes";
                     var noButton = localizationService.GetString("Button_No") ?? "No";
 
-                    var userAccepted = await dialogService.ShowConfirmationAsync(
-                        message: updateMessage,
-                        title: updateTitle,
-                        okButtonText: yesButton,
-                        cancelButtonText: noButton
-                    ).ConfigureAwait(false);
+                    var userAccepted = (await dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                    {
+                        Message = updateMessage,
+                        Title = updateTitle,
+                        ConfirmButtonText = yesButton,
+                        CancelButtonText = noButton,
+                    }).ConfigureAwait(false)).Confirmed;
 
                     if (userAccepted)
                     {

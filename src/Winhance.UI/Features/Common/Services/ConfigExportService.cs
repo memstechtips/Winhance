@@ -66,9 +66,11 @@ public class ConfigExportService : IConfigExportService
 
             if (config.WindowsApps.Items.Count == 0)
             {
-                var continueAnyway = await _dialogService.ShowConfirmationAsync(
-                    _localizationService.GetString("Dialog_NoAppsSelected_Config_Message"),
-                    _localizationService.GetString("Dialog_NoAppsSelected_Title"));
+                var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = _localizationService.GetString("Dialog_NoAppsSelected_Config_Message"),
+                    Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
+                })).Confirmed;
                 if (!continueAnyway)
                     return;
             }

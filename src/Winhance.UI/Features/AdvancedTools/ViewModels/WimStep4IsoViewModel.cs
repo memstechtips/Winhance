@@ -212,11 +212,13 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 IsIsoCreated = true;
                 SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
 
-                var openFolder = await _dialogService.ShowConfirmationAsync(
-                    string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
-                    _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
-                    _localizationService.GetString("WIMUtil_Button_OpenFolder"),
-                    _localizationService.GetString("Button_Close"));
+                var openFolder = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
+                    Title = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
+                    ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_OpenFolder"),
+                    CancelButtonText = _localizationService.GetString("Button_Close"),
+                })).Confirmed;
                 if (openFolder)
                 {
                     _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"").FireAndForget(_logService);

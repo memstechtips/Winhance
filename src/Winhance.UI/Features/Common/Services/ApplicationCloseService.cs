@@ -67,13 +67,15 @@ public class ApplicationCloseService : IApplicationCloseService
 
                 _logService.LogInformation($"Close requested while operation in progress: {currentOperation}");
 
-                var confirmed = await _dialogService.ShowConfirmationAsync(
-                    $"The following operation is still running:\n\n{currentOperation}\n\n" +
-                    $"Closing now may leave incomplete files or mounted drives.\n\n" +
-                    $"Cancel this operation and close Winhance?",
-                    "Warning: Operation in Progress",
-                    "Yes, Close",
-                    "Cancel");
+                var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = $"The following operation is still running:\n\n{currentOperation}\n\n" +
+                              $"Closing now may leave incomplete files or mounted drives.\n\n" +
+                              $"Cancel this operation and close Winhance?",
+                    Title = "Warning: Operation in Progress",
+                    ConfirmButtonText = "Yes, Close",
+                    CancelButtonText = "Cancel",
+                })).Confirmed;
 
                 if (!confirmed)
                 {

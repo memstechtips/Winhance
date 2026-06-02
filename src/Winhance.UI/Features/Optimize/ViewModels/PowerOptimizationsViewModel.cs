@@ -167,7 +167,13 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             var confirmText = _localizationService.GetString("Button_Delete");
             var cancelText = _localizationService.GetString("Button_Cancel");
 
-            var confirmed = await _dialogService.ShowConfirmationAsync(message, title, confirmText, cancelText);
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = message,
+                Title = title,
+                ConfirmButtonText = confirmText,
+                CancelButtonText = cancelText,
+            })).Confirmed;
             if (!confirmed) return;
 
             var success = await _powerService.DeletePowerPlanAsync(planToDelete.SystemPlan.Guid);
