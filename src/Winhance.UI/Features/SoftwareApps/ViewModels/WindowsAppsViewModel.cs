@@ -12,6 +12,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -435,7 +436,9 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("install", itemNames, null, _localizationService));
+        bool confirmed = r.Confirmed;
         if (!confirmed) return;
 
         IsTaskRunning = true;
@@ -500,7 +503,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
-        var (confirmed, checkboxChecked) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+        bool confirmed = r.Confirmed;
+        bool checkboxChecked = r.CheckboxChecked;
         return (confirmed, checkboxChecked);
     }
 
@@ -516,7 +522,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
             var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
-            var (confirmed, checkboxChecked) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+            var r = await _dialogService.ShowConfirmationAsync(
+                AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+            bool confirmed = r.Confirmed;
+            bool checkboxChecked = r.CheckboxChecked;
             if (!confirmed) return;
             saveRemovalScripts = checkboxChecked;
         }
@@ -538,7 +547,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
-        var (confirmed, saveScripts) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+        bool confirmed = r.Confirmed;
+        bool saveScripts = r.CheckboxChecked;
         if (!confirmed) return;
 
         await RemoveAppsInternalAsync(selectedItems, saveScripts);

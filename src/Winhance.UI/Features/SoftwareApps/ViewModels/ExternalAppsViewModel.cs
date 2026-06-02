@@ -11,6 +11,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -438,7 +439,9 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         if (!skipConfirmation)
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
-            var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+            var r = await _dialogService.ShowConfirmationAsync(
+                AppOperationConfirmation.Build("install", itemNames, null, _localizationService));
+            bool confirmed = r.Confirmed;
             if (!confirmed) return;
         }
 
@@ -458,7 +461,9 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("install", itemNames, null, _localizationService));
+        bool confirmed = r.Confirmed;
         if (!confirmed) return;
 
         await InstallAppsInternalAsync(selectedItems);
@@ -531,7 +536,9 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("uninstall", itemNames, selectedItems.Count);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("uninstall", itemNames, null, _localizationService));
+        bool confirmed = r.Confirmed;
         if (!confirmed) return;
 
         IsTaskRunning = true;
