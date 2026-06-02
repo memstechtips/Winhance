@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 
@@ -103,7 +102,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _backupService = backupService;
         _taskProgressService = taskProgressService;
 
-        // Initialize languages from StringKeys
+        // Initialize languages from the localization service
         InitializeLanguages();
 
         // Initialize themes
@@ -126,14 +125,14 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Initializes the language options from StringKeys.
+    /// Initializes the language options from the available locale files via the localization service.
     /// </summary>
     private void InitializeLanguages()
     {
         Languages.Clear();
-        foreach (var lang in StringKeys.Languages.SupportedLanguages)
+        foreach (var opt in _localizationService.GetAvailableLanguages())
         {
-            Languages.Add(new ComboBoxDisplayOption(lang.Value, lang.Key));
+            Languages.Add(new ComboBoxDisplayOption(opt.DisplayName, opt.Code));
         }
     }
 
