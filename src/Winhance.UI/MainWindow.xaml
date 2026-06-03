@@ -29,9 +29,9 @@
         </Grid.KeyboardAccelerators>
         <Grid.RowDefinitions>
             <RowDefinition Height="48"/>    <!-- TitleBar -->
+            <RowDefinition Height="Auto"/>  <!-- Mode Bar (Builder / Config Review) — directly under the title -->
             <RowDefinition Height="Auto"/>  <!-- OTS Elevation InfoBar -->
             <RowDefinition Height="Auto"/>  <!-- Update InfoBar -->
-            <RowDefinition Height="Auto"/>  <!-- Review Mode Bar -->
             <RowDefinition Height="*"/>     <!-- Main Content -->
         </Grid.RowDefinitions>
 
@@ -214,7 +214,7 @@
 
         <!-- OTS Elevation InfoBar -->
         <InfoBar x:Name="OtsElevationInfoBar"
-                 Grid.Row="1"
+                 Grid.Row="2"
                  Severity="Warning"
                  IsOpen="{x:Bind ViewModel.IsOtsInfoBarOpen, Mode=OneWay}"
                  Title="{x:Bind ViewModel.OtsInfoBarTitle, Mode=OneWay}"
@@ -224,7 +224,7 @@
 
         <!-- Update InfoBar -->
         <InfoBar x:Name="UpdateInfoBar"
-                 Grid.Row="2"
+                 Grid.Row="3"
                  IsOpen="{x:Bind ViewModel.UpdateCheck.IsUpdateInfoBarOpen, Mode=OneWay}"
                  Title="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarTitle, Mode=OneWay}"
                  Message="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarMessage, Mode=OneWay}"
@@ -234,7 +234,7 @@
 
         <!-- Review Mode Bar (visible during config review) -->
         <Grid x:Name="ReviewModeBar"
-              Grid.Row="3"
+              Grid.Row="1"
               Background="{ThemeResource AccentFillColorDefaultBrush}"
               Visibility="Collapsed"
               Padding="16,10,16,10">
@@ -319,7 +319,7 @@
 
         <!-- Builder Mode Bar (visible while authoring a config/autounattend; shares Row 3 with the Review bar — mutually exclusive) -->
         <Grid x:Name="BuilderModeBarGrid"
-              Grid.Row="3"
+              Grid.Row="1"
               Background="{ThemeResource AccentFillColorDefaultBrush}"
               Visibility="Collapsed"
               Padding="16,10,16,10">
