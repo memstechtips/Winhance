@@ -130,6 +130,10 @@
                                 <TextBlock Text="{x:Bind ViewModel.ModeNormalLabel, Mode=OneWay}" FontSize="12"/>
                             </StackPanel>
                         </ToggleButton>
+                        <Border Width="1"
+                                Background="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                VerticalAlignment="Stretch"
+                                Margin="0,6,0,6"/>
                         <ToggleButton x:Name="BuilderModeButton"
                                       Tag="Builder"
                                       Click="ModeButton_Click"
@@ -145,6 +149,10 @@
                                 <TextBlock Text="{x:Bind ViewModel.ModeBuilderLabel, Mode=OneWay}" FontSize="12"/>
                             </StackPanel>
                         </ToggleButton>
+                        <Border Width="1"
+                                Background="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                VerticalAlignment="Stretch"
+                                Margin="0,6,0,6"/>
                         <ToggleButton x:Name="ConfigReviewModeButton"
                                       Tag="ConfigReview"
                                       Click="ModeButton_Click"
@@ -241,8 +249,8 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>  <!-- Icon -->
                 <ColumnDefinition Width="Auto"/>  <!-- Title -->
-                <ColumnDefinition Width="Auto"/>  <!-- Description -->
-                <ColumnDefinition Width="*"/>     <!-- Status text -->
+                <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
+                <ColumnDefinition Width="Auto"/>  <!-- Status text -->
                 <ColumnDefinition Width="Auto"/>  <!-- Apply button -->
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
             </Grid.ColumnDefinitions>
@@ -271,7 +279,6 @@
                        VerticalAlignment="Center"
                        Opacity="0.85"
                        TextWrapping="Wrap"
-                       MaxWidth="620"
                        Margin="0,0,16,0"/>
 
             <TextBlock Grid.Column="3"
@@ -326,8 +333,8 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>  <!-- Icon -->
                 <ColumnDefinition Width="Auto"/>  <!-- Title -->
-                <ColumnDefinition Width="Auto"/>  <!-- Description -->
-                <ColumnDefinition Width="*"/>     <!-- spacer -->
+                <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
+                <ColumnDefinition Width="Auto"/>  <!-- spacer (collapses; description now takes the flex space) -->
                 <ColumnDefinition Width="Auto"/>  <!-- Target radios -->
                 <ColumnDefinition Width="Auto"/>  <!-- Save -->
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel -->
@@ -355,7 +362,6 @@
                        VerticalAlignment="Center"
                        Opacity="0.85"
                        TextWrapping="Wrap"
-                       MaxWidth="620"
                        Margin="0,0,16,0"/>
 
             <StackPanel Grid.Column="4"
