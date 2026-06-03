@@ -358,8 +358,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             if (ViewModel != null)
             {
                 // Wire up button commands
-                SaveConfigButton.Command = ViewModel.SaveConfigCommand;
-                ImportConfigButton.Command = ViewModel.ImportConfigCommand;
                 WindowsFilterButton.Command = ViewModel.ToggleWindowsFilterCommand;
                 DonateButton.Command = ViewModel.DonateCommand;
                 BugReportButton.Command = ViewModel.BugReportCommand;
@@ -809,15 +807,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void SaveConfigAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        if (ViewModel?.SaveConfigCommand.CanExecute(null) == true)
-        {
-            ViewModel.SaveConfigCommand.Execute(null);
-        }
-        args.Handled = true;
-    }
-
     private void ZoomInAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.StepUp();
@@ -860,12 +849,10 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         var button = sender.Key switch
         {
-            VirtualKey.Number1 => SaveConfigButton,
-            VirtualKey.Number2 => ImportConfigButton,
-            VirtualKey.Number3 => WindowsFilterButton,
-            VirtualKey.Number4 => DonateButton,
-            VirtualKey.Number5 => BugReportButton,
-            VirtualKey.Number6 => DocsButton,
+            VirtualKey.Number1 => WindowsFilterButton,
+            VirtualKey.Number2 => DonateButton,
+            VirtualKey.Number3 => BugReportButton,
+            VirtualKey.Number4 => DocsButton,
             _ => (Button?)null
         };
 

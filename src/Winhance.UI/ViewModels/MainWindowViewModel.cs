@@ -155,8 +155,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         // Notify all localized string properties
         OnPropertyChanged(nameof(AppTitle));
         OnPropertyChanged(nameof(AppSubtitle));
-        OnPropertyChanged(nameof(SaveConfigTooltip));
-        OnPropertyChanged(nameof(ImportConfigTooltip));
+        OnPropertyChanged(nameof(WinhanceModeLabel));
+        OnPropertyChanged(nameof(ModeNormalLabel));
+        OnPropertyChanged(nameof(ModeBuilderLabel));
+        OnPropertyChanged(nameof(ModeConfigReviewLabel));
+        OnPropertyChanged(nameof(ModeNormalTooltip));
+        OnPropertyChanged(nameof(ModeBuilderTooltip));
+        OnPropertyChanged(nameof(ModeConfigReviewTooltip));
         OnPropertyChanged(nameof(WindowsFilterTooltip));
         OnPropertyChanged(nameof(ToggleNavigationTooltip));
         OnPropertyChanged(nameof(DonateTooltip));
@@ -240,13 +245,16 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string AppSubtitle =>
         _localizationService.GetString("App_By") ?? "by Memory";
 
+    // Mode switcher label + per-mode labels and tooltips
+    public string WinhanceModeLabel => _localizationService.GetString("Mode_Switcher_Label") ?? "Winhance Mode";
+    public string ModeNormalLabel => _localizationService.GetString("Mode_Normal") ?? "Normal";
+    public string ModeBuilderLabel => _localizationService.GetString("Mode_Builder") ?? "Builder";
+    public string ModeConfigReviewLabel => _localizationService.GetString("Mode_ConfigReview") ?? "Config Review";
+    public string ModeNormalTooltip => _localizationService.GetString("Mode_Normal_Tooltip") ?? "Normal mode";
+    public string ModeBuilderTooltip => _localizationService.GetString("Mode_Builder_Tooltip") ?? "Builder mode";
+    public string ModeConfigReviewTooltip => _localizationService.GetString("Mode_ConfigReview_Tooltip") ?? "Config Review";
+
     // Tooltips
-    public string SaveConfigTooltip =>
-        _localizationService.GetString("Tooltip_SaveConfiguration") ?? "Save Configuration";
-
-    public string ImportConfigTooltip =>
-        _localizationService.GetString("Tooltip_ImportConfig") ?? "Import Configuration";
-
     public string WindowsFilterTooltip
     {
         get
@@ -394,46 +402,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Command to export/save configuration.
-    /// </summary>
-    [RelayCommand]
-    private async Task SaveConfigAsync()
-    {
-        try
-        {
-            await _configurationService.ExportConfigurationAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"Failed to save configuration: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Command to import configuration.
-    /// </summary>
-    [RelayCommand(CanExecute = nameof(CanImportConfig))]
-    private async Task ImportConfigAsync()
-    {
-        try
-        {
-            await _configurationService.ImportConfigurationAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"Failed to import configuration: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Import is disabled while a config review is in progress — starting a second
-    /// import on top of an active review would stack review sessions. This gate is
-    /// re-evaluated via <see cref="ImportConfigCommand"/>.NotifyCanExecuteChanged()
-    /// whenever review mode is entered or exited.
-    /// </summary>
-    private bool CanImportConfig() => !ReviewModeBar.IsInReviewMode;
-
-    /// <summary>
     /// Command to toggle Windows version filter.
     /// </summary>
     [RelayCommand]
@@ -511,7 +479,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
         {
             OnPropertyChanged(nameof(IsWindowsFilterButtonEnabled));
-            ImportConfigCommand.NotifyCanExecuteChanged();
             HandleReviewModeFilterChange(ReviewModeBar.IsInReviewMode);
         }
     }

@@ -41,7 +41,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         _localizationService.GetString("Review_Mode_Apply_Button") ?? "Apply Config";
 
     public string ReviewModeCancelButtonText =>
-        _localizationService.GetString("Review_Mode_Cancel_Button") ?? "Cancel";
+        _localizationService.GetString("Button_Cancel") ?? "Cancel";
 
     public string ReviewModeDescriptionText =>
         _localizationService.GetString("Review_Mode_Description") ?? "Review the changes below across all sections, then click Apply Config when ready.";

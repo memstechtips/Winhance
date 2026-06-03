@@ -50,7 +50,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
             : (_localizationService.GetString("Builder_Mode_Save_Config") ?? "Save Config");
 
     public string BuilderCancelButtonText =>
-        _localizationService.GetString("Builder_Mode_Cancel_Button") ?? "Cancel";
+        _localizationService.GetString("Button_Cancel") ?? "Cancel";
 
     public BuilderModeBarViewModel(
         IApplicationModeService applicationModeService,
