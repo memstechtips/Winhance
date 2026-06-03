@@ -19,30 +19,31 @@
         <!-- ============================================================
              Icon sizing knobs (Software & Apps tabs).
              Each view has its OWN icon-size pair — they are NOT shared:
-               • CardIconSize / CardFallbackFontSize        → Compact view
+               • CompactIconSize / CompactFallbackFontSize        → Compact view
                  (Windows Apps + External Apps compact lists)
                • DataGridIconSize / DataGridFallbackFontSize → Table view
                • CardViewIconSize / CardViewFallbackFontSize → Card view
                  (defined further down)
              FontIcon size is the fallback glyph that shows when no real
-             icon is resolved; ~half the icon size is a good default.
+             icon is resolved; sized to fill the icon cell (~ icon size)
+             so fallbacks read at the same size as resolved icons.
              Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
              largest icon size) for HiDPI sharpness.
              ============================================================ -->
-        <x:Double x:Key="CardIconSize">20</x:Double>
-        <x:Double x:Key="CardFallbackFontSize">16</x:Double>
+        <x:Double x:Key="CompactIconSize">20</x:Double>
+        <x:Double x:Key="CompactFallbackFontSize">20</x:Double>
         <x:Double x:Key="DataGridIconSize">20</x:Double>
-        <x:Double x:Key="DataGridFallbackFontSize">12</x:Double>
+        <x:Double x:Key="DataGridFallbackFontSize">20</x:Double>
 
-        <!-- FluentIcon "Apps Color" carries intrinsic padding inside its draw
-             box, so it renders a little smaller than its nominal FontSize.
-             These size the Apps fallback specifically. Keep each value ≤ its
-             matching icon size (CardAppsIconSize ≤ CardIconSize, and
-             DataGridAppsIconSize ≤ DataGridIconSize) so the fallback never
-             overflows its square icon cell — the intrinsic padding still lands
-             the visible glyph close to the puzzle/gear FontIcon fallbacks. -->
-        <x:Double x:Key="CardAppsIconSize">20</x:Double>
-        <x:Double x:Key="DataGridAppsIconSize">20</x:Double>
+        <!-- FluentIcon "Apps Color" carries intrinsic padding inside its draw box,
+             so it renders a little smaller than its nominal FontSize. To make the
+             fallbacks read close to the real 20px app images, the Apps fallback is
+             sized slightly OVER its 20px cell (22 -> ~1px overflow each side, absorbed
+             by the inter-icon spacing) in BOTH the compact and table views; the Segoe
+             puzzle/gear fallbacks (Compact/DataGrid FallbackFontSize) fill the cell at
+             20. -->
+        <x:Double x:Key="CompactAppsIconSize">22</x:Double>
+        <x:Double x:Key="DataGridAppsIconSize">22</x:Double>
 
         <!-- Card-view cell width (fixed). UniformWrapPanel renders every cell
              at exactly this width and wraps when the next cell would overflow,
@@ -80,7 +81,7 @@
         <!-- FluentIcon "Apps" (color variant) needs more FontSize than the
              FontIcons above because the colored variant has extra intrinsic
              padding around its draw box (same gap that exists in Compact view
-             between CardFallbackFontSize and CardAppsIconSize). +10 keeps
+             between CompactFallbackFontSize and CompactAppsIconSize). +10 keeps
              visible Apps glyph weight in line with the puzzle/gear glyphs. -->
         <x:Double x:Key="CardViewAppsIconSize">38</x:Double>
         <CornerRadius x:Key="CardViewCornerRadius">8</CornerRadius>
@@ -655,7 +656,7 @@
                             <Border Style="{StaticResource BadgeInstalledStyle}"
                                     Visibility="{x:Bind IsInstalled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Viewbox Width="14" Height="14" Margin="0,0,4,2" VerticalAlignment="Center">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,4,2" VerticalAlignment="Center">
                                         <PathIcon Data="{StaticResource CheckCircleIconPath}"
                                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                     </Viewbox>
@@ -667,7 +668,7 @@
                             <Border Style="{StaticResource BadgeNonReinstallableStyle}"
                                     Visibility="{x:Bind ShowNonReinstallableChip, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Viewbox Width="12" Height="12" Margin="0,0,4,2" VerticalAlignment="Center">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,4,2" VerticalAlignment="Center">
                                         <PathIcon Data="{StaticResource DeleteCircleIconPath}"
                                                   Foreground="{ThemeResource BadgeDangerForeground}"/>
                                     </Viewbox>
@@ -680,7 +681,7 @@
                                     Visibility="{x:Bind HasInstabilityWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     ToolTipService.ToolTip="{x:Bind InstabilityWarningTooltip, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Viewbox Width="12" Height="12" Margin="0,0,4,2" VerticalAlignment="Center">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,4,2" VerticalAlignment="Center">
                                         <PathIcon Data="{StaticResource AlertCircleIconPath}"
                                                   Foreground="{ThemeResource BadgeCustomForeground}"/>
                                     </Viewbox>
@@ -1074,7 +1075,7 @@
                                                 </Grid>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                                                <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                          ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
                                                     <PathIcon Data="{StaticResource AlertCircleIconPath}"
@@ -1100,12 +1101,12 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <PathIcon Data="{StaticResource CheckCircleIconPath}"
                                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 </Viewbox>
-                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                     <PathIcon Data="{StaticResource CloseCircleIconPath}"
                                                               Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
@@ -1122,12 +1123,12 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <PathIcon Data="{StaticResource DownloadCircleIconPath}"
                                                               Foreground="{ThemeResource BadgePreferenceForeground}"/>
                                                 </Viewbox>
-                                                <Viewbox Width="16" Height="16" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                     <PathIcon Data="{StaticResource DeleteCircleIconPath}"
                                                               Foreground="{ThemeResource BadgeDangerForeground}"/>
@@ -1272,7 +1273,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <!-- Auto-sized Grid (NOT stretched to the cell) restores the
                                                          pre-fix visual: each row's content sits at its natural width
@@ -1287,13 +1288,13 @@
                                                          not pinned to the far right of the cell.
                                                          Outer Margin nudges the row down to match the WinUI 3 CheckBox
                                                          glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
-                                                    <Grid Margin="0,3,0,0">
+                                                    <Grid Margin="0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" Margin="0,1,0,0">
                                                             <!-- Installed status: green CheckCircle when installed, faded grey CloseCircle when not -->
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -1320,22 +1321,22 @@
                                                                 <PathIcon Data="{StaticResource DeleteCircleIconPath}"
                                                                           Foreground="{ThemeResource BadgeDangerForeground}"/>
                                                             </Viewbox>
-                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                            <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
+                                                            <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
                                                                   VerticalAlignment="Center">
                                                                 <Image Source="{Binding IconSource}"
-                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                       Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}"
                                                                        Stretch="Uniform"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                        Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                 <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CompactFallbackFontSize}"
                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                           Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CompactFallbackFontSize}"
                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                           Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
@@ -1347,7 +1348,7 @@
                                                                    FontSize="16"
                                                                    Margin="4,0,0,0"
                                                                    MaxWidth="{StaticResource CompactNameMaxWidth}"/>
-                                                        <Viewbox Grid.Column="2" Width="16" Height="16" VerticalAlignment="Center"
+                                                        <Viewbox Grid.Column="2" Width="20" Height="20" VerticalAlignment="Center"
                                                                  Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
@@ -1374,7 +1375,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <!-- Auto-sized Grid (NOT stretched to the cell) restores the
                                                          pre-fix visual: each row's content sits at its natural width
@@ -1389,13 +1390,13 @@
                                                          not pinned to the far right of the cell.
                                                          Outer Margin nudges the row down to match the WinUI 3 CheckBox
                                                          glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
-                                                    <Grid Margin="0,3,0,0">
+                                                    <Grid Margin="0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" Margin="0,1,0,0">
                                                             <!-- Installed status: green CheckCircle when installed, faded grey CloseCircle when not -->
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -1422,22 +1423,22 @@
                                                                 <PathIcon Data="{StaticResource DeleteCircleIconPath}"
                                                                           Foreground="{ThemeResource BadgeDangerForeground}"/>
                                                             </Viewbox>
-                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                            <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
+                                                            <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
                                                                   VerticalAlignment="Center">
                                                                 <Image Source="{Binding IconSource}"
-                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                       Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}"
                                                                        Stretch="Uniform"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                        Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                 <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CompactFallbackFontSize}"
                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                           Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CompactFallbackFontSize}"
                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                           Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
@@ -1449,7 +1450,7 @@
                                                                    FontSize="16"
                                                                    Margin="4,0,0,0"
                                                                    MaxWidth="{StaticResource CompactNameMaxWidth}"/>
-                                                        <Viewbox Grid.Column="2" Width="16" Height="16" VerticalAlignment="Center"
+                                                        <Viewbox Grid.Column="2" Width="20" Height="20" VerticalAlignment="Center"
                                                                  Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
@@ -1476,7 +1477,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
                                                     <!-- Auto-sized Grid (NOT stretched to the cell) restores the
                                                          pre-fix visual: each row's content sits at its natural width
@@ -1491,13 +1492,13 @@
                                                          not pinned to the far right of the cell.
                                                          Outer Margin nudges the row down to match the WinUI 3 CheckBox
                                                          glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
-                                                    <Grid Margin="0,3,0,0">
+                                                    <Grid Margin="0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" Margin="0,1,0,0">
                                                             <!-- Installed status: green CheckCircle when installed, faded grey CloseCircle when not -->
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -1524,22 +1525,22 @@
                                                                 <PathIcon Data="{StaticResource DeleteCircleIconPath}"
                                                                           Foreground="{ThemeResource BadgeDangerForeground}"/>
                                                             </Viewbox>
-                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                            <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
+                                                            <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
                                                                   VerticalAlignment="Center">
                                                                 <Image Source="{Binding IconSource}"
-                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                       Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}"
                                                                        Stretch="Uniform"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                        Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                 <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CompactFallbackFontSize}"
                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                           Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CardFallbackFontSize}"
+                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CompactFallbackFontSize}"
                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                           Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
@@ -1551,7 +1552,7 @@
                                                                    FontSize="16"
                                                                    Margin="4,0,0,0"
                                                                    MaxWidth="{StaticResource CompactNameMaxWidth}"/>
-                                                        <Viewbox Grid.Column="2" Width="16" Height="16" VerticalAlignment="Center"
+                                                        <Viewbox Grid.Column="2" Width="20" Height="20" VerticalAlignment="Center"
                                                                  Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
@@ -1690,12 +1691,12 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <PathIcon Data="{StaticResource CheckCircleIconPath}"
                                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 </Viewbox>
-                                                <Viewbox Width="18" Height="18" VerticalAlignment="Center"
+                                                <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                     <PathIcon Data="{StaticResource CloseCircleIconPath}"
                                                               Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
@@ -1824,18 +1825,18 @@
                                                         </ItemsControl.ItemsPanel>
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="10,3" FontSize="16"
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                                          AutomationProperties.Name="{Binding Name}">
                                                                     <!-- Auto-sized Grid + MaxWidth-bound name TextBlock — see the
                                                                          matching comment on the Windows Apps compact template
                                                                          above (issue #668 iter3). -->
-                                                                    <Grid Margin="0,3,0,0">
+                                                                    <Grid Margin="0">
                                                                         <Grid.ColumnDefinitions>
                                                                             <ColumnDefinition Width="Auto"/>
                                                                             <ColumnDefinition Width="Auto"/>
                                                                             <ColumnDefinition Width="Auto"/>
                                                                         </Grid.ColumnDefinitions>
-                                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" Margin="0,1,0,0">
                                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
@@ -1848,16 +1849,16 @@
                                                                                 <PathIcon Data="{StaticResource CloseCircleIconPath}"
                                                                                           Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
                                                                             </Viewbox>
-                                                                            <!-- Icon size driven by CardIconSize / CardFallbackFontSize resources at the top of the page. -->
-                                                                            <Grid Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                            <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
+                                                                            <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
                                                                                   VerticalAlignment="Center">
                                                                                 <Image Source="{Binding IconSource}"
-                                                                                       Width="{StaticResource CardIconSize}" Height="{StaticResource CardIconSize}"
+                                                                                       Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}"
                                                                                        Stretch="Uniform"
                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                        Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                                 <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
-                                                                                                        FontSize="{StaticResource CardAppsIconSize}"
+                                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
                                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                             </Grid>
