@@ -67,14 +67,22 @@
     <!-- PackageDown - Used for External Apps tab -->
     <x:String x:Key="ExternalAppsIconPath">M5.12,5L5.93,4H17.93L18.87,5M12,17.5L6.5,12H10V10H14V12H17.5L12,17.5M20.54,5.23L19.15,3.55C18.88,3.21 18.47,3 18,3H6C5.53,3 5.12,3.21 4.84,3.55L3.46,5.23C3.17,5.57 3,6 3,6.5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V6.5C21,6 20.83,5.57 20.54,5.23Z</x:String>
 
-    <!-- Status indicator icons for the Windows Apps card / compact / table views.
-         Rendered with PathIcon inside a Viewbox - see SoftwareAppsPage.xaml. -->
-    <!-- DesktopTowerMonitor - installed-state indicator -->
-    <x:String x:Key="DesktopTowerMonitorIconPath">M22,18H17A1,1 0 0,1 16,17V7A1,1 0 0,1 17,6H22A1,1 0 0,1 23,7V17A1,1 0 0,1 22,18M22,8H17V9H22V8M22,10H17V11H22V10M9,15V17H10V18H5V17H6V15H2A1,1 0 0,1 1,14V7A1,1 0 0,1 2,6H13A1,1 0 0,1 14,7V14A1,1 0 0,1 13,15H9M12,8H3V13H12V8Z</x:String>
-    <!-- Download - reinstallable ("Installable") indicator -->
-    <x:String x:Key="DownloadIconPath">M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z</x:String>
-    <!-- Alert - instability-warning indicator -->
-    <x:String x:Key="AlertIconPath">M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z</x:String>
+    <!-- Status indicator icons for the Windows Apps card / compact / table views,
+         plus the help-dialog status legend. Rendered with PathIcon inside a Viewbox -
+         see SoftwareAppsPage.xaml. All are circle-style glyphs, differentiated only by
+         Foreground brush:
+           Installed     -> CheckCircleIconPath    (green)  [defined below; shared with WIMUtil]
+           Not Installed -> CloseCircleIconPath     (grey)   [defined below]
+           Installable   -> DownloadCircleIconPath  (blue)
+           Permanent     -> DeleteCircleIconPath    (red)
+           Warning       -> AlertCircleIconPath -->
+    <!-- DownloadCircle (MDI download-circle) - Installable ("can reinstall") indicator -->
+    <x:String x:Key="DownloadCircleIconPath">M12 2C17.5 2 22 6.5 22 12C22 17.5 17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M8 17H16V15H8V17M16 10H13.5V6H10.5V10H8L12 14L16 10Z</x:String>
+    <!-- DeleteCircle (MDI delete-circle) - Permanent ("cannot reinstall") indicator.
+         NOTE: distinct from DeleteForeverIconPath below, which the power-plan combo box uses. -->
+    <x:String x:Key="DeleteCircleIconPath">M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M17,7H14.5L13.5,6H10.5L9.5,7H7V9H17V7M9,18H15A1,1 0 0,0 16,17V10H8V17A1,1 0 0,0 9,18Z</x:String>
+    <!-- AlertCircle (MDI alert-circle) - instability-warning indicator -->
+    <x:String x:Key="AlertCircleIconPath">M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z</x:String>
 
     <!-- ==================== Badge Icons ==================== -->
     <!-- Icons used on SettingsCard InfoBadges AND on Quick Actions menu items.
@@ -114,8 +122,10 @@
     <x:String x:Key="WimUtilIconPath">M12,14C10.89,14 10,13.1 10,12C10,10.89 10.89,10 12,10C13.1,10 14,10.89 14,12A2,2 0 0,1 12,14M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z</x:String>
     <!-- FileXmlBox - Used for Autounattend XML Generator -->
     <x:String x:Key="AutounattendXmlIconPath">M13 9H18.5L13 3.5V9M6 2H14L20 8V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V4A2 2 0 0 1 6 2M6.12 15.5L9.86 19.24L11.28 17.83L8.95 15.5L11.28 13.17L9.86 11.76L6.12 15.5M17.28 15.5L13.54 11.76L12.12 13.17L14.45 15.5L12.12 17.83L13.54 19.24L17.28 15.5Z</x:String>
-    <!-- CheckCircle - Used for Checkmarks in WIMUtil Steps -->
+    <!-- CheckCircle - Used for Checkmarks in WIMUtil Steps AND the Installed status indicator -->
     <x:String x:Key="CheckCircleIconPath">M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z</x:String>
+    <!-- CloseCircle (MDI close-circle) - Used for the Not Installed status indicator -->
+    <x:String x:Key="CloseCircleIconPath">M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z</x:String>
     <!-- FileDownload - Used for XML in WIMUtil Steps -->
     <x:String x:Key="FileDownloadIconPath">M14,2H6C4.89,2 4,2.89 4,4V20C4,21.11 4.89,22 6,22H18C19.11,22 20,21.11 20,20V8L14,2M12,19L8,15H10.5V12H13.5V15H16L12,19M13,9V3.5L18.5,9H13Z</x:String>
     <!-- MemoryArrowDown - Used for Drivers in WIMUtil Steps -->
