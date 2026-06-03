@@ -261,12 +261,13 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
             </Grid.ColumnDefinitions>
 
-            <fluentIcons:FluentIcon Grid.Column="0"
-                      Icon="ShieldCheckmark" IconVariant="Regular"
-                      FontSize="16"
-                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                      VerticalAlignment="Center"
-                      Margin="0,0,10,0"/>
+            <Viewbox Grid.Column="0"
+                     Width="16" Height="16"
+                     VerticalAlignment="Center"
+                     Margin="0,0,10,0">
+                <PathIcon Data="{StaticResource ModeConfigReviewIconPath}"
+                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+            </Viewbox>
 
             <TextBlock Grid.Column="1"
                        x:Name="ReviewModeTitleText"
@@ -346,12 +347,13 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel -->
             </Grid.ColumnDefinitions>
 
-            <fluentIcons:FluentIcon Grid.Column="0"
-                      Icon="DocumentSave" IconVariant="Regular"
-                      FontSize="16"
-                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                      VerticalAlignment="Center"
-                      Margin="0,0,10,0"/>
+            <Viewbox Grid.Column="0"
+                     Width="16" Height="16"
+                     VerticalAlignment="Center"
+                     Margin="0,0,10,0">
+                <PathIcon Data="{StaticResource ModeBuilderIconPath}"
+                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+            </Viewbox>
 
             <TextBlock Grid.Column="1"
                        Text="{x:Bind ViewModel.BuilderModeBar.BuilderModeTitleText, Mode=OneWay}"
