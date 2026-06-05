@@ -20,6 +20,11 @@ public static class OptionalFeatureDefinitions
                     Description = "Allows running Linux binary executables natively on Windows",
                     GroupName = "Development",
                     OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux",
+                    // No system binary carries the (Linux-branded) logo, so this is URL-only.
+                    IconSources =
+                    [
+                        "https://upload.wikimedia.org/wikipedia/commons/4/49/Windows_Subsystem_for_Linux_logo.png",
+                    ],
                     RequiresReboot = true,
                     CanBeReinstalled = true
                 },
@@ -40,6 +45,12 @@ public static class OptionalFeatureDefinitions
                     Description = "Virtualization platform for running multiple operating systems",
                     GroupName = "Virtualization",
                     OptionalFeatureName = "Microsoft-Hyper-V-All",
+                    // Installed -> vmms.exe (carries the Hyper-V product icon).
+                    IconSources =
+                    [
+                        @"%SystemRoot%\System32\vmms.exe",
+                        // TODO(base64): not-installed fallback — encode PNG from images/ (held per Marco's request)
+                    ],
                     RequiresReboot = true,
                     CanBeReinstalled = true
                 },
@@ -70,6 +81,12 @@ public static class OptionalFeatureDefinitions
                     Description = "Throwaway isolated desktop for running suspicious or untrusted apps",
                     GroupName = "Security",
                     OptionalFeatureName = "Containers-DisposableClientVM",
+                    // Installed -> WindowsSandbox.exe.
+                    IconSources =
+                    [
+                        @"%SystemRoot%\System32\WindowsSandbox.exe",
+                        // TODO(base64): not-installed fallback — encode PNG from images/ (held per Marco's request)
+                    ],
                     RequiresReboot = true,
                     CanBeReinstalled = true
                 },
@@ -80,6 +97,11 @@ public static class OptionalFeatureDefinitions
                     Description = "Windows 11 AI feature that takes periodic screenshots of activity to make them searchable",
                     GroupName = "System",
                     OptionalFeatureName = "Recall",
+                    // Microsoft's own host serving Microsoft's own asset (tested OK).
+                    IconSources =
+                    [
+                        "https://support.microsoft.com/images/en-us/fad485f2-5269-4063-afb7-4bbe2c6b3861",
+                    ],
                     RequiresReboot = false,
                     CanBeReinstalled = true
                 }

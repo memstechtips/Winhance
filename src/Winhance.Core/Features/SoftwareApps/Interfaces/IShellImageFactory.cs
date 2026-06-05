@@ -18,4 +18,14 @@ public interface IShellImageFactory
     /// translate to null.
     /// </summary>
     Task<byte[]> GetIconBytesAsync(string filePath, Size size, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns PNG-encoded bytes for a specific icon inside <paramref name="filePath"/>,
+    /// selected by <paramref name="iconSelector"/> following the PrivateExtractIcons
+    /// convention: a non-negative value is a zero-based position index; a negative value is
+    /// the negated resource ID (e.g. selector -512 = resource ID 512). Used for system DLLs
+    /// (shell32.dll, imageres.dll, …) where the file's default icon isn't the one we want.
+    /// Throws on failure — callers catch and translate to null.
+    /// </summary>
+    Task<byte[]> GetIconBytesByIndexAsync(string filePath, int iconSelector, Size size, CancellationToken ct = default);
 }

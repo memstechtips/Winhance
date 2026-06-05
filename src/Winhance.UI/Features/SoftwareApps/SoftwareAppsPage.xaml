@@ -588,14 +588,12 @@
                         <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
                                                 FontSize="{StaticResource CardViewAppsIconSize}"
                                                 Visibility="{x:Bind IsAppXFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <FontIcon Glyph="&#xE9F9;"
-                                  FontSize="{StaticResource CardViewFallbackFontSize}"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind IsCapabilityFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <FontIcon Glyph="&#xE713;"
-                                  FontSize="{StaticResource CardViewFallbackFontSize}"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind IsOptionalFeatureFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <fluentIcons:FluentIcon Icon="PuzzlePiece" IconVariant="Color"
+                                                FontSize="{StaticResource CardViewAppsIconSize}"
+                                                Visibility="{x:Bind IsCapabilityFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <fluentIcons:FluentIcon Icon="StarSettings" IconVariant="Color"
+                                                FontSize="{StaticResource CardViewAppsIconSize}"
+                                                Visibility="{x:Bind IsOptionalFeatureFallback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </Grid>
 
                     <!-- Content: name row, description, then status badges below
@@ -1066,12 +1064,12 @@
                                                     <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"
                                                                             FontSize="{StaticResource DataGridAppsIconSize}"
                                                                             Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource DataGridFallbackFontSize}"
-                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                              Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <FontIcon Glyph="&#xE713;" FontSize="{StaticResource DataGridFallbackFontSize}"
-                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                              Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <fluentIcons:FluentIcon Icon="PuzzlePiece" IconVariant="Color"
+                                                                            FontSize="{StaticResource DataGridAppsIconSize}"
+                                                                            Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <fluentIcons:FluentIcon Icon="StarSettings" IconVariant="Color"
+                                                                            FontSize="{StaticResource DataGridAppsIconSize}"
+                                                                            Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                 </Grid>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
@@ -1333,12 +1331,14 @@
                                                                                         FontSize="{StaticResource CompactAppsIconSize}"
                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CompactFallbackFontSize}"
-                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                          Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CompactFallbackFontSize}"
-                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                          Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="PuzzlePiece" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="StarSettings" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="1"
@@ -1435,12 +1435,14 @@
                                                                                         FontSize="{StaticResource CompactAppsIconSize}"
                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CompactFallbackFontSize}"
-                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                          Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CompactFallbackFontSize}"
-                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                          Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="PuzzlePiece" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="StarSettings" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="1"
@@ -1537,12 +1539,14 @@
                                                                                         FontSize="{StaticResource CompactAppsIconSize}"
                                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                                         Visibility="{Binding IsAppXFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE9F9;" FontSize="{StaticResource CompactFallbackFontSize}"
-                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                          Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <FontIcon Glyph="&#xE713;" FontSize="{StaticResource CompactFallbackFontSize}"
-                                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                          Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="PuzzlePiece" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsCapabilityFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <fluentIcons:FluentIcon Icon="StarSettings" IconVariant="Color"
+                                                                                        FontSize="{StaticResource CompactAppsIconSize}"
+                                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                        Visibility="{Binding IsOptionalFeatureFallback, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="1"

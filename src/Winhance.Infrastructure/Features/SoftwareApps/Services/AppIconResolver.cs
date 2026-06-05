@@ -31,6 +31,12 @@ public class AppIconResolver : IAppIconResolver
     // slow vendor CDN can't stall the resolver for everyone else.
     private static readonly TimeSpan IconSourceFetchTimeout = TimeSpan.FromSeconds(8);
 
+    // Hard cap on a single icon fetch. Icons are KB-scale (even a 1024px PNG is < 1 MB); 10 MB
+    // is generous headroom while bounding a hostile/broken host that streams a huge body within
+    // the fetch timeout (a memory/disk DoS). Enforced from Content-Length when present and
+    // incrementally during the read.
+    private const long MaxIconBytes = 10L * 1024 * 1024;
+
     // User-Agent for icon fetches. Wikimedia's UA policy rejects empty / generic
     // UAs with HTTP 403 — see https://meta.wikimedia.org/wiki/User-Agent_policy —
     // and several vendor sites behind Cloudflare do the same. Identifying the
@@ -411,7 +417,11 @@ public class AppIconResolver : IAppIconResolver
                 if (bytes is null || bytes.Length == 0) continue;
 
                 using var ms = new MemoryStream(bytes);
-                await WriteStreamToCacheAsync(ms, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
+                // Remote (URL) and inline (data:) sources are not pre-validated as images and
+                // must decode before caching; local files are author-controlled and may use the
+                // existing raw fallback. See WriteStreamToCacheAsync.
+                await WriteStreamToCacheAsync(ms, cachePath, applyThemeAdaptation, ct,
+                    allowRawFallback: kind == IconSourceKind.LocalPath).ConfigureAwait(false);
                 def.IconPath = cachePath;
                 return true;
             }
@@ -517,9 +527,30 @@ public class AppIconResolver : IAppIconResolver
                 return (null, false);
             }
 
+            // Reject early if the server declares an oversized body.
+            if (resp.Content.Headers.ContentLength is long declared && declared > MaxIconBytes)
+            {
+                _logService.LogInformation(
+                    $"IconSources URL exceeds size cap ({declared} > {MaxIconBytes} bytes) for {def.Id} ({def.Name}) <{url}>");
+                return (null, false);
+            }
+
             await using var srcStream = await resp.Content.ReadAsStreamAsync(linked.Token).ConfigureAwait(false);
             using var collector = new MemoryStream();
-            await srcStream.CopyToAsync(collector, linked.Token).ConfigureAwait(false);
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await srcStream.ReadAsync(buffer, linked.Token).ConfigureAwait(false)) > 0)
+            {
+                // Enforce the cap incrementally — a chunked/Content-Length-less hostile response
+                // can't be trusted to honor its declared size.
+                if (collector.Length + read > MaxIconBytes)
+                {
+                    _logService.LogInformation(
+                        $"IconSources URL exceeded size cap mid-stream ({MaxIconBytes} bytes) for {def.Id} ({def.Name}) <{url}>");
+                    return (null, false);
+                }
+                await collector.WriteAsync(buffer.AsMemory(0, read), linked.Token).ConfigureAwait(false);
+            }
             return (collector.Length > 0 ? collector.ToArray() : null, false);
         }
         finally
@@ -548,7 +579,12 @@ public class AppIconResolver : IAppIconResolver
     /// </summary>
     private async Task<byte[]?> ReadLocalSourceBytesAsync(string path, CancellationToken ct)
     {
-        var expanded = Environment.ExpandEnvironmentVariables(path);
+        // A trailing ",<index>" or ",#<resourceId>" selects a specific icon inside an exe/dll
+        // (e.g. "%SystemRoot%\System32\shell32.dll,#512"). Strip it before resolving the file
+        // path; plain paths (no selector) keep the default-icon behavior.
+        var (rawPath, iconSelector) = SplitIconSelector(path);
+
+        var expanded = Environment.ExpandEnvironmentVariables(rawPath);
         if (!File.Exists(expanded)) return null;
 
         if (IsExecutableExtension(expanded))
@@ -558,9 +594,9 @@ public class AppIconResolver : IAppIconResolver
             // without one), treat as a miss so the resolver tries the next entry.
             if (_binarySource is null) return null;
 
-            await using var stream = await _binarySource
-                .GetIconStreamAsync(expanded, LogoSize, ct)
-                .ConfigureAwait(false);
+            await using var stream = iconSelector is int selector
+                ? await _binarySource.GetIconStreamByIndexAsync(expanded, selector, LogoSize, ct).ConfigureAwait(false)
+                : await _binarySource.GetIconStreamAsync(expanded, LogoSize, ct).ConfigureAwait(false);
             if (stream is null) return null;
             using var collector = new MemoryStream();
             await stream.CopyToAsync(collector, ct).ConfigureAwait(false);
@@ -573,6 +609,30 @@ public class AppIconResolver : IAppIconResolver
     private static bool IsExecutableExtension(string path) =>
         path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
         || path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Splits a trailing icon selector off a local path. <c>"&lt;path&gt;,&lt;n&gt;"</c> returns
+    /// <c>(path, n)</c> with <c>n</c> a zero-based icon index; <c>"&lt;path&gt;,#&lt;id&gt;"</c>
+    /// returns <c>(path, -id)</c> so the caller passes the PrivateExtractIcons resource-ID
+    /// convention (negative selector = resource ID). Returns <c>(source, null)</c> when there
+    /// is no valid selector — no comma, an empty/negative/non-integer suffix, or a real path
+    /// that merely contains a comma (e.g. <c>C:\a,b\icon.png</c>).
+    /// </summary>
+    internal static (string Path, int? Selector) SplitIconSelector(string source)
+    {
+        int comma = source.LastIndexOf(',');
+        if (comma <= 0 || comma == source.Length - 1)
+            return (source, null);
+
+        var suffix = source.AsSpan(comma + 1).Trim();
+        bool isResourceId = suffix.Length > 0 && suffix[0] == '#';
+        var numberSpan = isResourceId ? suffix.Slice(1) : suffix;
+
+        if (numberSpan.Length == 0 || !int.TryParse(numberSpan, out int value) || value < 0)
+            return (source, null);
+
+        return (source.Substring(0, comma), isResourceId ? -value : value);
+    }
 
     private async Task<bool> TryResolveFromAppxAsync(
         ItemDefinition def,
@@ -682,15 +742,25 @@ public class AppIconResolver : IAppIconResolver
     }
 
     private async Task WriteStreamToCacheAsync(
-        Stream source, string cachePath, bool applyThemeAdaptation, CancellationToken ct)
+        Stream source, string cachePath, bool applyThemeAdaptation, CancellationToken ct,
+        bool allowRawFallback = true)
     {
         var sourceBytes = await ReadAllBytesAsync(source, ct).ConfigureAwait(false);
 
         // Backplate detection is theme adaptation — Windows Apps only. External
         // App vendor logos keep whatever framing the vendor shipped; only the
         // basic transparent-border trim runs for them.
-        var primaryBytes = await TryTrimTransparentBordersAsync(sourceBytes, applyThemeAdaptation, ct).ConfigureAwait(false)
-                          ?? sourceBytes;
+        var trimmed = await TryTrimTransparentBordersAsync(sourceBytes, applyThemeAdaptation, ct).ConfigureAwait(false);
+
+        // Untrusted/remote sources (allowRawFallback == false) must decode as an image before
+        // we cache them. TryTrimTransparentBordersAsync returns null on any decode failure, so
+        // a null here means the bytes aren't a usable image — a broken/wrong response, or a
+        // compromised host serving non-image bytes. Reject rather than write arbitrary bytes to
+        // %ProgramData%; the caller logs and falls through to the next source / placeholder.
+        if (trimmed is null && !allowRawFallback)
+            throw new InvalidOperationException("Source bytes did not decode as an image; refusing to cache.");
+
+        var primaryBytes = trimmed ?? sourceBytes;
 
         await WriteBytesAtomicAsync(cachePath, primaryBytes, ct).ConfigureAwait(false);
 

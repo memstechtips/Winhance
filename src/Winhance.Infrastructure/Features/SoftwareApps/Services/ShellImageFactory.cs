@@ -65,6 +65,82 @@ public class ShellImageFactory : IShellImageFactory
         return tcs.Task;
     }
 
+    public Task<byte[]> GetIconBytesByIndexAsync(string filePath, int iconSelector, Size size, CancellationToken ct = default)
+    {
+        // PrivateExtractIcons + GDI don't strictly require STA, but we reuse the same
+        // dedicated-thread + STA pattern as GetIconBytesAsync for consistency and because
+        // EncodeHBitmapAsPng bridges the WinRT encoder the same way on this thread.
+        var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                var bytes = ExtractByIndexAndEncodeOnSta(filePath, iconSelector, size, ct);
+                tcs.TrySetResult(bytes);
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled(ct);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true;
+        thread.Name = "ShellImageFactory-STA-Index";
+        thread.Start();
+
+        return tcs.Task;
+    }
+
+    private static byte[] ExtractByIndexAndEncodeOnSta(string filePath, int iconSelector, Size size, CancellationToken ct)
+    {
+        int cx = (int)Math.Round(size.Width);
+        int cy = (int)Math.Round(size.Height);
+
+        // PrivateExtractIcons: nIconIndex >= 0 selects a zero-based position; < 0 selects the
+        // resource whose ID is the absolute value. NirSoft IconsExtract's "IconID" is a
+        // resource ID, so the caller passes the negated value for those (resource 512 -> -512).
+        var phicon = new IntPtr[1];
+        var piconid = new uint[1];
+        int count = PrivateExtractIconsW(filePath, iconSelector, cx, cy, phicon, piconid, 1, 0);
+        IntPtr hIcon = phicon[0];
+        if (count <= 0 || hIcon == IntPtr.Zero)
+            throw new InvalidOperationException(
+                $"PrivateExtractIcons found no icon (selector={iconSelector}) in '{filePath}'");
+
+        try
+        {
+            // GetIconInfo exposes the icon's color bitmap; for modern 32-bpp icons (shell32,
+            // imageres, the target app exes) it carries the alpha channel, so we can push it
+            // through the same GetDIBits -> SoftwareBitmap -> PNG path used for HBITMAPs and
+            // don't need to apply the AND-mask separately.
+            if (!GetIconInfo(hIcon, out ICONINFO iconInfo))
+                throw new InvalidOperationException($"GetIconInfo failed for icon in '{filePath}'");
+
+            try
+            {
+                if (iconInfo.hbmColor == IntPtr.Zero)
+                    throw new InvalidOperationException(
+                        $"Icon (selector={iconSelector}) in '{filePath}' has no color bitmap");
+                return EncodeHBitmapAsPng(iconInfo.hbmColor, ct);
+            }
+            finally
+            {
+                if (iconInfo.hbmColor != IntPtr.Zero) DeleteObject(iconInfo.hbmColor);
+                if (iconInfo.hbmMask != IntPtr.Zero) DeleteObject(iconInfo.hbmMask);
+            }
+        }
+        finally
+        {
+            DestroyIcon(hIcon);
+        }
+    }
+
     private static byte[] ExtractAndEncodeOnSta(string filePath, Size size, CancellationToken ct)
     {
         // SHCreateItemFromParsingName(filePath, null, IShellItemImageFactory_GUID, out item)
@@ -254,4 +330,30 @@ public class ShellImageFactory : IShellImageFactory
 
     [DllImport("user32.dll")]
     private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    // PrivateExtractIcons extracts a specific icon by index/resource from a PE file at a
+    // requested size. nIconIndex: >= 0 is a zero-based position; < 0 is the negated resource
+    // ID. Returns the number of icons written into phicon (0 / -1 on failure).
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int PrivateExtractIconsW(
+        [MarshalAs(UnmanagedType.LPWStr)] string szFileName, int nIconIndex, int cxIcon, int cyIcon,
+        [Out] IntPtr[] phicon, [Out] uint[] piconid, uint nIcons, uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO piconinfo);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ICONINFO
+    {
+        public bool fIcon;
+        public int xHotspot;
+        public int yHotspot;
+        public IntPtr hbmMask;
+        public IntPtr hbmColor;
+    }
 }

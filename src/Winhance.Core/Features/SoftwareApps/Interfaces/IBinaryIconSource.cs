@@ -14,4 +14,11 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 public interface IBinaryIconSource
 {
     Task<Stream?> GetIconStreamAsync(string filePath, Size size, CancellationToken ct = default);
+
+    /// <summary>
+    /// Extract a specific icon from <paramref name="filePath"/> by selector (non-negative =
+    /// zero-based index; negative = negated resource ID), returning a PNG stream or null on
+    /// failure. Used for system-DLL icon sources like <c>shell32.dll,#512</c>.
+    /// </summary>
+    Task<Stream?> GetIconStreamByIndexAsync(string filePath, int iconSelector, Size size, CancellationToken ct = default);
 }

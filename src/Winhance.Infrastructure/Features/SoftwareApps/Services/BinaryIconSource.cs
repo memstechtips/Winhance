@@ -53,4 +53,31 @@ public class BinaryIconSource : IBinaryIconSource
             return null;
         }
     }
+
+    public async Task<Stream?> GetIconStreamByIndexAsync(string filePath, int iconSelector, Size size, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return null;
+
+        try
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            linked.CancelAfter(PerCallTimeout);
+
+            var bytes = await _factory.GetIconBytesByIndexAsync(filePath, iconSelector, size, linked.Token).ConfigureAwait(false);
+            if (bytes is null || bytes.Length == 0)
+                return null;
+
+            return new MemoryStream(bytes, writable: false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"BinaryIconSource: index extraction failed for '{filePath}' (selector={iconSelector}): {ex.Message}");
+            return null;
+        }
+    }
 }
