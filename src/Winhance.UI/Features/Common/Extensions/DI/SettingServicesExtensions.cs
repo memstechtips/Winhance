@@ -110,13 +110,14 @@ public static class SettingServicesExtensions
         // covers current-user / all-users / provisioned scopes)
         services.AddSingleton<IAppxIconSource, AppxIconSource>();
 
-        // Microsoft Store CDN icon source (Layer-2 fallback for AppX entries
-        // not present on this machine in any registered/provisioned form)
-        services.AddSingleton<IStoreIconSource, StoreIconSource>();
+        // Package-icons repo (jsDelivr @main): hosted, sha256-verified icons for
+        // external-app-* and windows-app-* entries. Replaces the retired live
+        // Microsoft Store CDN icon source.
+        services.AddSingleton<IRepoIconSource, RepoIconSource>();
+        services.AddSingleton<IIconManifestService, IconManifestService>();
 
-        // Layer 1b icon sources (shell images, binary icons via Windows ARP).
-        // Layer 2b is now handled by the per-entry IconSources field on
-        // ItemDefinition (URLs + local paths) rather than a separate service.
+        // Local icon sources (shell images, binary icons via Windows ARP, and
+        // explicit local-path / .exe / .dll entries on ItemDefinition.IconSources).
         services.AddSingleton<IShellImageFactory, ShellImageFactory>();
         services.AddSingleton<IBinaryIconSource, BinaryIconSource>();
 

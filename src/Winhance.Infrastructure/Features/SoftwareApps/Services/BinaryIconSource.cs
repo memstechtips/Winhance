@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 /// Layer 1b orchestration: wraps <see cref="IShellImageFactory"/> with the
 /// 8-second per-call timeout, exception-to-null translation, and empty-byte
 /// guard. Mirrors the failure-as-null contract used by IAppxIconSource and
-/// IStoreIconSource so AppIconResolver treats every layer uniformly.
+/// IRepoIconSource so AppIconResolver treats every layer uniformly.
 /// </summary>
 public class BinaryIconSource : IBinaryIconSource
 {
