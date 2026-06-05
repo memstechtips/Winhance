@@ -20,7 +20,6 @@ public class AppIconResolverTests : IDisposable
     private readonly Mock<IAppxIconSource> _mockIconSource = new();
     private readonly Mock<IRepoIconSource> _mockRepoSource = new();
     private readonly Mock<IIconManifestService> _mockManifest = new();
-    private readonly Mock<IBinaryIconSource> _mockBinarySource = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly string _tempCacheDir;
     private readonly AppIconResolver _resolver;
@@ -43,8 +42,7 @@ public class AppIconResolverTests : IDisposable
             _mockLog.Object,
             _tempCacheDir,
             _mockRepoSource.Object,
-            _mockManifest.Object,
-            _mockBinarySource.Object);
+            _mockManifest.Object);
     }
 
     public void Dispose()
@@ -59,7 +57,8 @@ public class AppIconResolverTests : IDisposable
         bool installed = true,
         string? msStoreId = null,
         string? winGetId = null,
-        string? binaryHint = null) => new()
+        string? capabilityName = null,
+        string? optionalFeatureName = null) => new()
     {
         Id = id,
         Name = $"App {id}",
@@ -68,7 +67,8 @@ public class AppIconResolverTests : IDisposable
         IsInstalled = installed,
         MsStoreId = msStoreId,
         WinGetPackageId = winGetId != null ? new[] { winGetId } : null,
-        InstalledBinaryHint = binaryHint,
+        CapabilityName = capabilityName,
+        OptionalFeatureName = optionalFeatureName,
     };
 
     private static MemoryStream PngBytes(string label) => new(Encoding.UTF8.GetBytes("PNG-" + label));
@@ -88,9 +88,10 @@ public class AppIconResolverTests : IDisposable
     [Fact]
     public async Task ResolveBatchAsync_SkipsDefinitionWithNoRoutableIdentity()
     {
-        // A capability-style entry (no AppX names, no IconSources, and an id that
-        // isn't external-app-*/windows-app-*) has no icon identity at all.
-        var def = Def("capability1", appxName: null);
+        // An entry with no AppX names and an id that isn't
+        // external-app-*/windows-app-*/capability-*/feature-* (and so no RepoIconKey)
+        // has no icon identity at all.
+        var def = Def("misc1", appxName: null);
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
 
@@ -281,9 +282,6 @@ public class AppIconResolverTests : IDisposable
         _mockIconSource.Verify(
             s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _mockBinarySource.Verify(
-            b => b.GetIconStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
-            Times.Never);
         _mockRepoSource.Verify(
             r => r.GetIconBytesAsync(expectedRepoPath, "deadbeef", It.IsAny<CancellationToken>()),
             Times.Once);
@@ -384,86 +382,58 @@ public class AppIconResolverTests : IDisposable
             Times.Never);
     }
 
-    // ===== Layer 2: explicit local-path IconSources =====
+    // ===== Layer 2: capabilities & optional features via repo =====
 
     [Fact]
-    public async Task ResolveBatchAsync_IconSourcesLocalPath_ReadsFromDisk()
+    public async Task ResolveBatchAsync_Capability_FetchesFromRepo_StampsIconPath()
     {
-        Directory.CreateDirectory(_tempCacheDir);
-        var localIconPath = Path.Combine(_tempCacheDir, "fake-onedrive.ico");
-        File.WriteAllText(localIconPath, "ICO-bytes");
-
-        var def = Def("external-app-onedrive") with
-        {
-            IconSources = new[] { localIconPath },
-        };
-
-        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string>());
-
-        await _resolver.ResolveBatchAsync(new[] { def });
-
-        def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
-        File.ReadAllText(def.IconPath!).Should().Be("ICO-bytes");
-
-        // A local IconSources hit means the repo is never consulted for this def.
-        _mockRepoSource.Verify(
-            r => r.GetIconBytesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task ResolveBatchAsync_IconSourcesExePath_RoutesThroughBinarySource()
-    {
-        // A .exe file on disk shouldn't be read as raw bytes — it should be handed
-        // to IBinaryIconSource, and the extracted PNG cached under <def.Id>.<hash>.png.
-        Directory.CreateDirectory(_tempCacheDir);
-        var fakeExe = Path.Combine(_tempCacheDir, "fake-explorer.exe");
-        File.WriteAllText(fakeExe, "this is not a real exe, but File.Exists returns true");
-
-        var def = Def("external-app-msiexec-runtime") with { IconSources = new[] { fakeExe } };
-
-        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string>());
-        _mockBinarySource.Setup(b => b.GetIconStreamAsync(fakeExe, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PngBytes("from-exe"));
-
-        await _resolver.ResolveBatchAsync(new[] { def });
-
-        def.IconPath.Should().NotBeNull();
-        Path.GetFileName(def.IconPath!).Should().StartWith($"{def.Id}.");
-        File.ReadAllText(def.IconPath!).Should().Be("PNG-from-exe");
-        _mockBinarySource.Verify(
-            b => b.GetIconStreamAsync(fakeExe, It.IsAny<Size>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ResolveBatchAsync_IconSourcesUrlEntry_IsIgnored_FallsThroughToRepo()
-    {
-        // URL IconSources entries are no longer fetched (live fetch machinery
-        // removed). A def whose only IconSources entry is a URL falls through to
-        // the repo layer based on its external-app-* id.
-        var def = Def("external-app-7zip", winGetId: "7zip.7zip") with
-        {
-            IconSources = new[] { "https://example.invalid/icon.png" },
-        };
-        var expectedRepoPath = "icons/external/7zip.7zip.png";
+        // capability-* with a CapabilityName → repo path icons/windows/<name>.png.
+        var def = Def("capability-wordpad", capabilityName: "Microsoft.Windows.WordPad");
+        var expectedRepoPath = "icons/windows/microsoft.windows.wordpad.png";
 
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
         _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns((string?)null);
         _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Encoding.UTF8.GetBytes("PNG-repo-fallback"));
+            .ReturnsAsync(Encoding.UTF8.GetBytes("PNG-repo-wordpad"));
 
         await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: false);
 
-        def.IconPath.Should().NotBeNull();
-        File.ReadAllText(def.IconPath!).Should().Be("PNG-repo-fallback");
+        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:" + expectedRepoPath));
+        def.IconPath.Should().Be(expectedCache);
+        File.ReadAllText(expectedCache).Should().Be("PNG-repo-wordpad");
+
+        _mockIconSource.Verify(
+            s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         _mockRepoSource.Verify(
             r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_OptionalFeature_FetchesFromRepo_StampsIconPath()
+    {
+        // feature-* with an OptionalFeatureName → repo path icons/windows/<name>.png.
+        var def = Def("feature-wsl", optionalFeatureName: "Microsoft-Windows-Subsystem-Linux");
+        var expectedRepoPath = "icons/windows/microsoft-windows-subsystem-linux.png";
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns("feedface");
+        _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, "feedface", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes("PNG-repo-wsl"));
+
+        await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: false);
+
+        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:feedface"));
+        def.IconPath.Should().Be(expectedCache);
+        File.ReadAllText(expectedCache).Should().Be("PNG-repo-wsl");
+
+        _mockRepoSource.Verify(
+            r => r.GetIconBytesAsync(expectedRepoPath, "feedface", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

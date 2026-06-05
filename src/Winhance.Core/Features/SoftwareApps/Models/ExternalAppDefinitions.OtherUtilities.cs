@@ -25,9 +25,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "ccleaner",
                         MsStoreId = "XPFCWP0SQWXM3V",
                         WebsiteUrl = "https://www.ccleaner.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/en/4/4a/CCleaner_logo_2013.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -38,9 +35,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["GlennDelahoy.SnappyDriverInstallerOrigin"],
                         ChocoPackageId = "sdio",
                         WebsiteUrl = "https://www.snappy-driver-installer.org/",
-                        IconSources = [
-                            "https://www.glenn.delahoy.com/wp-content/uploads/2018/08/logo-150x150.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -53,10 +47,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["WiseCleaner.WiseDiskCleaner"],
                         MsStoreId = "XP9CW3GPQQS852", // MS Store package
                         WebsiteUrl = "https://www.wisecleaner.com/wise-disk-cleaner.html",
-                        IconSources = [
-                            "https://www.wisecleaner.com/static/img/product/wise-disk-cleaner/wisefolderhider_icon.png",
-                            "https://www.wisecleaner.com/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -67,10 +57,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["WiseCleaner.WiseRegistryCleaner"],
                         MsStoreId = "XPDLS1XBTXVPP4", // MS Store package
                         WebsiteUrl = "https://www.wisecleaner.com/wise-registry-cleaner.html",
-                        IconSources = [
-                            "https://www.wisecleaner.com/static/img/product/wise-registry-cleaner/wiseregistrycleaner_icon.png",
-                            "https://www.wisecleaner.com/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -82,9 +68,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "wingetui",
                         MsStoreId = "XPFFTQ032PTPHF",
                         WebsiteUrl = "https://www.marticliment.com/unigetui/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/marticliment/UniGetUI/main/media/icon.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -95,9 +78,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["OpenRGB.OpenRGB"],
                         ChocoPackageId = "openrgb",
                         WebsiteUrl = "https://openrgb.org/",
-                        IconSources = [
-                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAACz0lEQVR4Ae3WA4xcURiG4a+2bXu9Ue2ug9q2bTeobdu2bdu27Xb26/lzc2bHM4u4Sd7VxZN7cGcR1DXcozJnzlynRnesabkAj2quwR+pwHjcSds052o55ul93J8ANJ22CDz7FTxMcIlqvKqzqokqWOVrApPNw185N1Zgw1I48O4J+NcEPqM9qLE8BOMxEfE2MxGRZm+MwCZBuMibIF9EgZdVmxyAaTXI7CovjXoO+qZMMyNyNchDKkHfCeoYzGOLmYIkJkiRaYJHIACvc11BzgcF5UFBrYdVwCa2T6exyJZGh+szmy/yuAVl3tgf5GjJHpWnXGIGHWDsb8RxlBXsEgwPD0+8pzzIBqo2Kg3PVx0G31wH2/TDuYRAT0m2hSwUjWkIXGK0otsfl6Dsp8+lQAZJ1vDnCXA4L/I3wawg7jd6uZn58uULcgrKYmEJ0DKNTwnEG2crT55EI8agS7dVDygj4RSsFS/5QqYAzaWFURZQjjkFu7VdB36nwypVGOcaREY6yDXYovc2PCXNfbCoVLkxTkF5fMKP1oWo6nAlypqcgm1WEZtodNwIV4xcDqlM8BuUFkRDqnaqQaq5rIyA3XZYmhon0MY4BeNUCxiFL71PAF5OQUmexEA0NIqCmXCCxAvWQtNH+txUiRv+RE4ZNlUN0haWJ3ez8fU8miHVGjNmQqQeIvOWSJ6AdIbKcbcggNQ70cYhtgmHKMf1ufLqyoAzdIiGrqW8SNyCevG8xiLBrMAeGHrR9tzUGHFVg2a06mPqz0aPQP0SsMTu4TMdfbLLjQU0o0VfOxxKt6Ceo4s4LiBnYT1lCGUlCyzJz/K3zNhpgElP6DmO1b8YXjKUZVJXYbZs2Rwmq1WGVm+BWIG6goUK/nEGlihR/I8+L05AWW1yU2egl5fXlzgF/4NxPoeSn59f9+LFi++3xeRvcizOQZ23t/dyWbGS/Bzd6/8BBv6LPrD9Px8AAAAASUVORK5CYII=",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -109,9 +89,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["OpenAudible.OpenAudible"],
                         ChocoPackageId = "openaudible",
                         WebsiteUrl = "https://openaudible.org/",
-                        IconSources = [
-                            "https://openaudible.org/icons/512x512.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -124,9 +101,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "naps2",
                         MsStoreId = "9N3QQ9W0B23Q",
                         WebsiteUrl = "https://www.naps2.com/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/cyanfish/naps2/master/NAPS2.Lib/Icons/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -140,9 +114,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "iobit-uninstaller",
                         MsStoreId = "XP8K2SCQWD27VT",
                         WebsiteUrl = "https://www.iobit.com/en/advanceduninstaller.php",
-                        IconSources = [
-                            "https://www.iobit.com/tpl/images/product-icons/iu_96.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -156,9 +127,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "revo-uninstaller",
                         MsStoreId = "XPFFVD4CMXN8VN",
                         WebsiteUrl = "https://www.revouninstaller.com/products/revo-uninstaller-free/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/8/83/Revouninstallerpro_icon.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -170,9 +138,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Oracle.VirtualBox"],
                         ChocoPackageId = "virtualbox",
                         WebsiteUrl = "https://www.virtualbox.org/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/d/d5/Virtualbox_logo.png",
-                        ],
                     }
                 }
             };

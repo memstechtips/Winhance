@@ -102,7 +102,7 @@ public class RepoIconKeyTests
     // ------------------------------------------------------------------
 
     [Fact]
-    public void For_CapabilityId_ReturnsNull()
+    public void For_CapabilityId_NoCapabilityName_ReturnsNull()
     {
         var def = new ItemDefinition
         {
@@ -112,6 +112,47 @@ public class RepoIconKeyTests
         };
 
         RepoIconKey.For(def).Should().BeNull();
+    }
+
+    [Fact]
+    public void For_CapabilityId_WithCapabilityName_ReturnsLowercasedWindowsPath()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "capability-wordpad",
+            Name = "WordPad",
+            Description = "WordPad capability",
+            CapabilityName = "Microsoft.Windows.WordPad",
+        };
+
+        RepoIconKey.For(def).Should().Be("icons/windows/microsoft.windows.wordpad.png");
+    }
+
+    [Fact]
+    public void For_FeatureId_NoOptionalFeatureName_ReturnsNull()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "feature-no-name",
+            Name = "Feature Without Name",
+            Description = "Optional feature without a name",
+        };
+
+        RepoIconKey.For(def).Should().BeNull();
+    }
+
+    [Fact]
+    public void For_FeatureId_WithOptionalFeatureName_ReturnsLowercasedWindowsPath()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "feature-wsl",
+            Name = "Windows Subsystem for Linux",
+            Description = "WSL optional feature",
+            OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux",
+        };
+
+        RepoIconKey.For(def).Should().Be("icons/windows/microsoft-windows-subsystem-linux.png");
     }
 
     // ------------------------------------------------------------------

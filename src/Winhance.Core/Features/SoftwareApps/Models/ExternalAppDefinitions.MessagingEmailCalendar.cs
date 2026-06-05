@@ -26,10 +26,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "telegram",
                         MsStoreId = "9NZTWSQNTD0S",
                         WebsiteUrl = "https://telegram.org/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/telegramdesktop/tdesktop/v6.7.5/Telegram/Resources/art/icon256.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/500px-Telegram_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -41,9 +37,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "whatsapp",
                         MsStoreId = "9NKSQGP7F2NH",
                         WebsiteUrl = "https://www.whatsapp.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -56,10 +49,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "zoom",
                         MsStoreId = "XP99J3KP4XZ4VV",
                         WebsiteUrl = "https://zoom.us/",
-                        IconSources = [
-                            "https://st1.zoom.us/zoom.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Zoom_Communications_Logo.svg/500px-Zoom_Communications_Logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -76,9 +65,6 @@ public static partial class ExternalAppDefinitions
                         // rehashed/removed twice already). Embed the on-page
                         // Symbol mark so the resolver decodes it via the data:
                         // branch — locked-in and immune to URL rot.
-                        IconSources = [
-                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -89,9 +75,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Pidgin.Pidgin"],
                         ChocoPackageId = "pidgin",
                         WebsiteUrl = "https://pidgin.im/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Pidgin.svg/250px-Pidgin.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -106,10 +89,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "thunderbird",
                         MsStoreId = "9MX7TGVGQFCL",
                         WebsiteUrl = "https://www.thunderbird.net/",
-                        IconSources = [
-                            "https://www.thunderbird.net/media/img/thunderbird/favicon-196.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Thunderbird_2023_icon.svg/250px-Thunderbird_2023_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -122,10 +101,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "em-client",
                         MsStoreId = "9NM8S4PVF0N2",
                         WebsiteUrl = "https://www.emclient.com/",
-                        IconSources = [
-                            "https://www.emclient.com/favicon.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/EM_Client_logo.svg/250px-EM_Client_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -136,9 +111,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Proton.ProtonMail"],
                         ChocoPackageId = "protonmail",
                         WebsiteUrl = "https://proton.me/mail",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/ProtonMail_icon.svg/250px-ProtonMail_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -150,10 +122,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["CeruleanStudios.Trillian"],
                         ChocoPackageId = "trillian",
                         WebsiteUrl = "https://www.trillian.im/",
-                        IconSources = [
-                            "https://www.trillian.im/favicon.ico",
-                            "https://www.trillian.im/shared/images/index/cs_logo.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -164,9 +132,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Element.Element"],
                         ChocoPackageId = "element-desktop",
                         WebsiteUrl = "https://element.io/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Element_%28software%29_logo_%282024%29.svg/250px-Element_%28software%29_logo_%282024%29.svg.png",
-                        ],
                     }
                 }
             };

@@ -25,9 +25,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Google.GoogleDrive"],
                         ChocoPackageId = "googledrive",
                         WebsiteUrl = "https://www.google.com/drive/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Google_Drive_icon_%282020%29.svg/500px-Google_Drive_icon_%282020%29.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -40,9 +37,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "dropbox",
                         MsStoreId = "9NK4T08DHQ80",
                         WebsiteUrl = "https://www.dropbox.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Dropbox_Icon.svg/500px-Dropbox_Icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -53,9 +47,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["IPVanish.SugarSync"],
                         ChocoPackageId = "sugarsync",
                         WebsiteUrl = "https://www.sugarsync.com/",
-                        IconSources = [
-                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAbFBMVEVHcEwMeDQLfzgMeDQNfTcPfzsLdjIWqFURbDELdjIWqlYWqFUMejUWq1cLdTILeDMMdzMOhj4MfjgMeDQWqFUVpFIkZzwTnU0sJCQqKiUnNycRkkYWqFUnNCcWWy0kPSgXslwmOSgOgDoTmUstRt+KAAAAJHRSTlMAkSn/nA14xkrCiv+3//9g//7/0NT///9BzP//sbAYcT9g8d7ZxZnpAAAA00lEQVR4AX3RRQLDIBBAURokitdd7n/HzrTxTPjbh8PINmy9jCdUcC5hCI2cc8XynLQCsKzqmsSGQ3oF0Uw9x8LiISyFyjkfSsZii9uRCRd2e70TkrdYjS9uDoC1Fo7/DyQ7Op7OnBsTLloHROf1tadbcb8rDu53hiNe9H/i/fboVkblmNk9GfZqqb2E49j7b3c5u/4/RX4HN8bgbEG+3GV3uOChLPHNZgd3PaCyRbLhB1DviKnQXTWf+gIYCRy+dA05lqWwSKFdwZjCLIXsvilj9gWLvAr+hK5X3AAAAABJRU5ErkJggg==",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -66,10 +57,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Nextcloud.NextcloudDesktop"],
                         ChocoPackageId = "nextcloud-client",
                         WebsiteUrl = "https://nextcloud.com/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/nextcloud/desktop/master/theme/colored/Nextcloud-w10starttile.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Nextcloud_Logo.svg/500px-Nextcloud_Logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -80,10 +67,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Proton.ProtonDrive"],
                         ChocoPackageId = "protondrive",
                         WebsiteUrl = "https://proton.me/drive",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/ProtonDriveApps/windows-drive/main/assets/ProtonDrive.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Proton_Drive_Logo.svg/500px-Proton_Drive_Logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -93,9 +76,6 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Online Storage & Backup",
                         ChocoPackageId = "freefilesync",
                         WebsiteUrl = "https://freefilesync.org/",
-                        IconSources = [
-                            "https://freefilesync.org/images/FreeFileSync.png",
-                        ],
                     },
                     new ItemDefinition
                     {

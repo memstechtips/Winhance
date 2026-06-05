@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -76,10 +75,8 @@ public class AppIconResolver : IAppIconResolver
     private const int BackplateMatchColorTolerance = 8;
 
     private readonly IAppxIconSource _appxSource;
-    private readonly IBinaryIconSource? _binarySource;
     private readonly IRepoIconSource? _repoSource;
     private readonly IIconManifestService? _manifest;
-    private readonly HttpClient? _httpClient;
     private readonly ILogService _logService;
     private readonly IconCacheMigration _migration;
     private readonly string _cacheRoot;
@@ -96,10 +93,8 @@ public class AppIconResolver : IAppIconResolver
         IAppxIconSource appxSource,
         ILogService logService,
         IRepoIconSource repoSource,
-        IIconManifestService manifest,
-        IBinaryIconSource binarySource,
-        HttpClient httpClient)
-        : this(appxSource, logService, DefaultCacheRoot(), repoSource, manifest, binarySource, httpClient) { }
+        IIconManifestService manifest)
+        : this(appxSource, logService, DefaultCacheRoot(), repoSource, manifest) { }
 
     /// <summary>Test constructor — accepts a custom cache root and optional sources.</summary>
     internal AppIconResolver(
@@ -107,17 +102,13 @@ public class AppIconResolver : IAppIconResolver
         ILogService logService,
         string cacheRoot,
         IRepoIconSource? repoSource = null,
-        IIconManifestService? manifest = null,
-        IBinaryIconSource? binarySource = null,
-        HttpClient? httpClient = null)
+        IIconManifestService? manifest = null)
     {
         _appxSource = appxSource;
         _logService = logService;
         _cacheRoot = cacheRoot;
         _repoSource = repoSource;
         _manifest = manifest;
-        _binarySource = binarySource;
-        _httpClient = httpClient;
         _migration = new IconCacheMigration(logService);
     }
 
@@ -137,14 +128,13 @@ public class AppIconResolver : IAppIconResolver
         try
         {
             // Any entry with a routable identity gets a try:
-            //   - AppX names      → installed-package extraction (Layer 1).
-            //   - IconSources     → explicit local path / .exe / .dll (Layer 2).
-            //   - external-app-* / windows-app-* ids → package-icons repo (Layer 3).
+            //   - AppX names → installed-package extraction (Layer 1).
+            //   - external-app-* / windows-app-* / capability-* / feature-* ids whose
+            //     RepoIconKey resolves → package-icons repo (Layer 2).
             // MsStoreId is no longer an icon identity (the live Store API was
             // removed); it remains on the definition for the installer.
             var candidates = definitions
                 .Where(d => (d.AppxPackageName?.Length > 0)
-                         || (d.IconSources?.Length > 0)
                          || RepoIconKey.For(d) is not null
                          || RepoIconKey.WindowsCandidates(d).Any())
                 .ToList();
@@ -186,29 +176,11 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            // Layer 2: explicit local-path IconSources (non-URL, non-data:).
-            // Serves the runtime defs that point IconSources at a system binary
-            // (e.g. %SystemRoot%\System32\msiexec.exe) and local .ico/.png files.
-            int localResolved = 0;
-            foreach (var def in candidates)
-            {
-                if (ct.IsCancellationRequested) return;
-                if (def.IconPath is not null) continue;
-                if (!(def.IconSources?.Length > 0)) continue;
-                try
-                {
-                    if (await TryResolveFromLocalIconSourcesAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
-                        localResolved++;
-                }
-                catch (Exception ex)
-                {
-                    _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                }
-            }
-
-            // Layer 3: package-icons repo (jsDelivr @main). external-app-* and
-            // windows-app-* entries that weren't resolved above pull their icon
-            // from the hosted repo, sha256-verified against the manifest.
+            // Layer 2: package-icons repo (jsDelivr @main). external-app-*,
+            // windows-app-*, capability-*, and feature-* entries that weren't
+            // resolved by AppX extraction pull their icon from the hosted repo,
+            // sha256-verified against the manifest. Capabilities and optional
+            // features resolve purely here (RepoIconKey returns their path).
             int repoResolved = 0;
             if (_repoSource is not null)
             {
@@ -236,11 +208,10 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            int unresolved = candidates.Count - appxResolved - localResolved - repoResolved;
+            int unresolved = candidates.Count - appxResolved - repoResolved;
             _logService.LogInformation(
                 $"AppIconResolver: {candidates.Count} candidates → " +
-                $"{appxResolved} via AppX, {localResolved} via IconSources, " +
-                $"{repoResolved} via repo, {unresolved} unresolved");
+                $"{appxResolved} via AppX, {repoResolved} via repo, {unresolved} unresolved");
         }
         catch (Exception ex)
         {
@@ -302,64 +273,8 @@ public class AppIconResolver : IAppIconResolver
     }
 
     /// <summary>
-    /// Layer 2: walk <see cref="ItemDefinition.IconSources"/> in order and resolve the
-    /// first NON-URL, non-<c>data:</c> entry — a local path or a Win32 binary
-    /// (<c>.exe</c>/<c>.dll</c>, optionally with a trailing <c>,#N</c> resource selector).
-    /// URL and <c>data:</c> entries are deliberately ignored: the live remote/inline
-    /// fetch machinery was removed in favor of the package-icons repo (Layer 3).
-    /// </summary>
-    private async Task<bool> TryResolveFromLocalIconSourcesAsync(
-        ItemDefinition def,
-        bool applyThemeAdaptation,
-        CancellationToken ct)
-    {
-        var sources = def.IconSources;
-        if (sources is null || sources.Length == 0) return false;
-
-        foreach (var source in sources)
-        {
-            if (ct.IsCancellationRequested) return false;
-            if (string.IsNullOrWhiteSpace(source)) continue;
-            if (!IsLocalPathSource(source)) continue; // skip http(s):// and data: entries
-
-            // Cache key is the env-expanded path (sans selector) so two definitions
-            // pointing at the same expanded file share one cache entry.
-            var (rawPath, _) = SplitIconSelector(source);
-            var expandedKey = Environment.ExpandEnvironmentVariables(rawPath);
-            var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, expandedKey));
-            if (File.Exists(cachePath))
-            {
-                def.IconPath = cachePath;
-                return true;
-            }
-
-            try
-            {
-                var bytes = await ReadLocalSourceBytesAsync(source, ct).ConfigureAwait(false);
-                if (bytes is null || bytes.Length == 0) continue;
-
-                using var ms = new MemoryStream(bytes);
-                // Local files are author-controlled and may use the raw fallback
-                // when image decoding/trim fails. See WriteStreamToCacheAsync.
-                await WriteStreamToCacheAsync(ms, cachePath, applyThemeAdaptation, ct,
-                    allowRawFallback: true).ConfigureAwait(false);
-                def.IconPath = cachePath;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning(
-                    $"IconSources entry failed for {def.Id} ({def.Name}) <{Truncate(source, 80)}>: {ex.Message}");
-                // Continue to the next source in the array.
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Layer 3: package-icons repo. For external-app-* the repo path is
-    /// <see cref="RepoIconKey.For"/>; for windows-app-* each
+    /// Layer 2: package-icons repo. For external-app-* / capability-* / feature-*
+    /// the repo path is <see cref="RepoIconKey.For"/>; for windows-app-* each
     /// <see cref="RepoIconKey.WindowsCandidates"/> is tried in order (first that
     /// fetches wins). Bytes are sha256-verified against the manifest when known,
     /// then cached under <c>"repo:" + sha</c> (or the path when no sha is known).
@@ -407,79 +322,6 @@ public class AppIconResolver : IAppIconResolver
         }
 
         return false;
-    }
-
-    private static bool IsLocalPathSource(string source) =>
-        !source.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-        && !source.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-        && !source.StartsWith("data:", StringComparison.OrdinalIgnoreCase);
-
-    private static string Truncate(string s, int max) =>
-        s.Length <= max ? s : s.Substring(0, max) + "...";
-
-    /// <summary>
-    /// Reads bytes for a local <see cref="ItemDefinition.IconSources"/> entry. For
-    /// Win32 executables (<c>.exe</c>/<c>.dll</c>) delegates to the binary icon
-    /// extractor. This lets entries reuse system binaries (e.g.
-    /// <c>%SystemRoot%\System32\msiexec.exe</c>) without per-app code in the
-    /// resolver. For everything else (icon files like <c>.ico</c>/<c>.png</c>)
-    /// reads the bytes directly.
-    /// </summary>
-    private async Task<byte[]?> ReadLocalSourceBytesAsync(string path, CancellationToken ct)
-    {
-        // A trailing ",<index>" or ",#<resourceId>" selects a specific icon inside an exe/dll
-        // (e.g. "%SystemRoot%\System32\shell32.dll,#512"). Strip it before resolving the file
-        // path; plain paths (no selector) keep the default-icon behavior.
-        var (rawPath, iconSelector) = SplitIconSelector(path);
-
-        var expanded = Environment.ExpandEnvironmentVariables(rawPath);
-        if (!File.Exists(expanded)) return null;
-
-        if (IsExecutableExtension(expanded))
-        {
-            // .exe/.dll: raw bytes aren't a valid image — must go through the
-            // binary extractor. If no source is registered (test constructor
-            // without one), treat as a miss so the resolver tries the next entry.
-            if (_binarySource is null) return null;
-
-            await using var stream = iconSelector is int selector
-                ? await _binarySource.GetIconStreamByIndexAsync(expanded, selector, LogoSize, ct).ConfigureAwait(false)
-                : await _binarySource.GetIconStreamAsync(expanded, LogoSize, ct).ConfigureAwait(false);
-            if (stream is null) return null;
-            using var collector = new MemoryStream();
-            await stream.CopyToAsync(collector, ct).ConfigureAwait(false);
-            return collector.Length > 0 ? collector.ToArray() : null;
-        }
-
-        return await File.ReadAllBytesAsync(expanded, ct).ConfigureAwait(false);
-    }
-
-    private static bool IsExecutableExtension(string path) =>
-        path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-        || path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Splits a trailing icon selector off a local path. <c>"&lt;path&gt;,&lt;n&gt;"</c> returns
-    /// <c>(path, n)</c> with <c>n</c> a zero-based icon index; <c>"&lt;path&gt;,#&lt;id&gt;"</c>
-    /// returns <c>(path, -id)</c> so the caller passes the PrivateExtractIcons resource-ID
-    /// convention (negative selector = resource ID). Returns <c>(source, null)</c> when there
-    /// is no valid selector — no comma, an empty/negative/non-integer suffix, or a real path
-    /// that merely contains a comma (e.g. <c>C:\a,b\icon.png</c>).
-    /// </summary>
-    internal static (string Path, int? Selector) SplitIconSelector(string source)
-    {
-        int comma = source.LastIndexOf(',');
-        if (comma <= 0 || comma == source.Length - 1)
-            return (source, null);
-
-        var suffix = source.AsSpan(comma + 1).Trim();
-        bool isResourceId = suffix.Length > 0 && suffix[0] == '#';
-        var numberSpan = isResourceId ? suffix.Slice(1) : suffix;
-
-        if (numberSpan.Length == 0 || !int.TryParse(numberSpan, out int value) || value < 0)
-            return (source, null);
-
-        return (source.Substring(0, comma), isResourceId ? -value : value);
     }
 
     /// <summary>

@@ -26,9 +26,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Valve.Steam"],
                         ChocoPackageId = "steam",
                         WebsiteUrl = "https://store.steampowered.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/250px-Steam_icon_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -40,9 +37,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "epicgameslauncher",
                         MsStoreId = "XP99VR1BPSBQJ2",
                         WebsiteUrl = "https://www.epicgames.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/500px-Epic_Games_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -83,9 +77,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["ElectronicArts.EADesktop"],
                         ChocoPackageId = "ea-app",
                         WebsiteUrl = "https://www.ea.com/ea-app",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Electronic-Arts-Logo.svg/250px-Electronic-Arts-Logo.svg.png",
-                        ],
                         // Detect by DisplayName, not the MSI product code. EA app auto-updates
                         // and can change its product-code GUID, which would silently break
                         // GUID-pinned detection (the frequent path). The detection scanner
@@ -104,9 +95,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["RockstarGames.Launcher"],
                         ChocoPackageId = "rockstar-launcher",
                         WebsiteUrl = "https://socialclub.rockstargames.com/rockstar-games-launcher",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Rockstar_Games_Logo.svg/250px-Rockstar_Games_Logo.svg.png",
-                        ],
                         RegistryDisplayName = "Rockstar Games Launcher",
                         RegistrySubKeyName = "Rockstar Games Launcher",
                     },
@@ -135,9 +123,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Playnite.Playnite"],
                         ChocoPackageId = "playnite",
                         WebsiteUrl = "https://playnite.link/",
-                        IconSources = [
-                            "https://playnite.link/applogo.png",
-                        ],
                     }
                 }
             };

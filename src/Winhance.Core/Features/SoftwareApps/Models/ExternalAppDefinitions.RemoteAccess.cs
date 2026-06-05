@@ -24,10 +24,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["RustDesk.RustDesk"],
                         ChocoPackageId = "rustdesk",
                         WebsiteUrl = "https://rustdesk.com/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/rustdesk/rustdesk/master/res/icon.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/b/b2/RustDesk-128x128.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -41,9 +37,6 @@ public static partial class ExternalAppDefinitions
                         // Vendor site is Cloudflare-protected and Wikimedia only has
                         // a wide wordmark. Embed the on-page AnyDesk mark (base64) so
                         // the resolver decodes it via the data: branch.
-                        IconSources = [
-                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAAAsUlEQVR4AWJwL/ChKx4YC0ctfO9inQ+grQ4wAIZhKAwDQ4HtvgH0RLvGztIrbC0LPPSf7Q2B5vGhTdOrTPrLyDjAxM5ebZJpd6a+AhXLSlQyu2SCQMYYPZ6iiLlRwPwoYH4UMD8KmA/NORXsG9qrEDoOwwiuNKPZCAO20D3qo4m/sQQVdWOVBj/8GH9t1Y4JCCg/f8AAFBSwnTECBRVM+8W2gAXdJv1Ci/fa8Gm1jVoIAMjxngpAp7znAAAAAElFTkSuQmCC",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -55,10 +48,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "teamviewer",
                         MsStoreId = "XPDM17HK323C4X",
                         WebsiteUrl = "https://www.teamviewer.com/",
-                        IconSources = [
-                            "https://www.teamviewer.com/favicon.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/TeamViewer_logo.svg/250px-TeamViewer_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -70,10 +59,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["DucFabulous.UltraViewer"],
                         ChocoPackageId = "ultraviewer",
                         WebsiteUrl = "https://www.ultraviewer.net/",
-                        IconSources = [
-                            "https://www.ultraviewer.net/images/logo.png",
-                            "https://www.ultraviewer.net/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -115,9 +100,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Google.ChromeRemoteDesktopHost"],
                         ChocoPackageId = "chrome-remote-desktop-host",
                         WebsiteUrl = "https://remotedesktop.google.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/8/83/Chrome_Remote_Desktop_logo.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -128,9 +110,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Parsec.Parsec"],
                         ChocoPackageId = "parsec",
                         WebsiteUrl = "https://parsec.app/",
-                        IconSources = [
-                            "https://parsec.app/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -142,9 +121,6 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Remote Access",
                         WinGetPackageId = ["Parsec.ParsecVDD"],
                         WebsiteUrl = "https://parsec.app/",
-                        IconSources = [
-                            "https://parsec.app/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -156,9 +132,6 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Remote Access",
                         WinGetPackageId = ["Parsec.ParsecVUD"],
                         WebsiteUrl = "https://parsec.app/",
-                        IconSources = [
-                            "https://parsec.app/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -170,10 +143,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["input-leap.input-leap"],
                         ChocoPackageId = "input-leap",
                         WebsiteUrl = "https://github.com/input-leap/input-leap",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/input-leap/input-leap/master/res/input-leap.ico",
-                            "https://raw.githubusercontent.com/input-leap/input-leap/master/res/input-leap.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -184,9 +153,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Deskflow.Deskflow"],
                         ChocoPackageId = "deskflow",
                         WebsiteUrl = "https://github.com/deskflow/deskflow",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/deskflow/deskflow-artwork/main/icon/deskflow-icon-fit-512.png",
-                        ],
                     }
                 }
             };

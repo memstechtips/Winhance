@@ -116,11 +116,6 @@ public static class SettingServicesExtensions
         services.AddSingleton<IRepoIconSource, RepoIconSource>();
         services.AddSingleton<IIconManifestService, IconManifestService>();
 
-        // Local icon sources (shell images, binary icons via Windows ARP, and
-        // explicit local-path / .exe / .dll entries on ItemDefinition.IconSources).
-        services.AddSingleton<IShellImageFactory, ShellImageFactory>();
-        services.AddSingleton<IBinaryIconSource, BinaryIconSource>();
-
         // App icon resolver (cache-first, called from WindowsAppsViewModel after install-status discovery)
         services.AddSingleton<IAppIconResolver, AppIconResolver>();
 

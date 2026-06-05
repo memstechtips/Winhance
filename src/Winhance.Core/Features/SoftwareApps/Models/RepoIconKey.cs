@@ -3,8 +3,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 /// <summary>
 /// Maps an ItemDefinition to its icon path inside the package-icons repo, or null
 /// when the app has no hosted icon. external-app-* → external/&lt;winget|choco|stripped-id&gt;;
-/// windows-app-* → windows/&lt;appx-identity&gt;. All lowercased. Capabilities / optional
-/// features have no hosted icon (system-DLL extraction).
+/// windows-app-* → windows/&lt;appx-identity&gt;; capability-* → windows/&lt;capability-name&gt;;
+/// feature-* → windows/&lt;optional-feature-name&gt;. All lowercased.
 /// </summary>
 public static class RepoIconKey
 {
@@ -25,6 +25,20 @@ public static class RepoIconKey
             if (def.AppxPackageName is not { Length: > 0 } a || string.IsNullOrEmpty(a[0]))
                 return null;
             return $"icons/windows/{a[0].ToLowerInvariant()}.png";
+        }
+
+        if (def.Id.StartsWith("capability-", System.StringComparison.Ordinal))
+        {
+            return string.IsNullOrEmpty(def.CapabilityName)
+                ? null
+                : $"icons/windows/{def.CapabilityName.ToLowerInvariant()}.png";
+        }
+
+        if (def.Id.StartsWith("feature-", System.StringComparison.Ordinal))
+        {
+            return string.IsNullOrEmpty(def.OptionalFeatureName)
+                ? null
+                : $"icons/windows/{def.OptionalFeatureName.ToLowerInvariant()}.png";
         }
 
         return null;

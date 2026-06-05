@@ -185,9 +185,6 @@ public static class WindowsAppDefinitions
                     GroupName = "Communication",
                     AppxPackageName = ["MSTeams"],
                     MsStoreId = "XP8BT8DW290MPQ",
-                    IconSources = [
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Microsoft_Office_Teams_%282025%E2%80%93present%29.svg/256px-Microsoft_Office_Teams_%282025%E2%80%93present%29.svg.png",
-                    ],
                     CanBeReinstalled = true
                 },
 
@@ -253,9 +250,6 @@ public static class WindowsAppDefinitions
                     Description = "3D modeling app for creating and editing scenes; deprecated by Microsoft",
                     GroupName = "Graphics",
                     AppxPackageName = ["Microsoft.MSPaint"],
-                    IconSources = [
-                        "https://upload.wikimedia.org/wikipedia/pt/6/61/Microsoft_Paint-3D_Logo.png",
-                    ],
                     CanBeReinstalled = false
                 },
                 new ItemDefinition
@@ -459,9 +453,6 @@ public static class WindowsAppDefinitions
                     GroupName = "Productivity",
                     AppxPackageName = ["Microsoft.Todos"],
                     MsStoreId = "9NBLGGH5R558",
-                    IconSources = [
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Microsoft_To-Do_icon.svg/256px-Microsoft_To-Do_icon.svg.png",
-                    ],
                     CanBeReinstalled = true
                 },
                 new ItemDefinition
@@ -642,10 +633,6 @@ public static class WindowsAppDefinitions
                     //  2. Wikimedia Commons rasterization of the current (2025+)
                     //     Microsoft OneDrive brand mark, for users whose
                     //     debloater removed the .ico file too.
-                    IconSources = [
-                        @"%SystemRoot%\System32\OneDrive.ico",
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Microsoft_OneDrive_Icon_%282025_-_present%29.svg/330px-Microsoft_OneDrive_Icon_%282025_-_present%29.svg.png",
-                    ],
                     CanBeReinstalled = true,
                     RemovalScript = () => OneDriveRemovalScript.GetScript()
                 },
@@ -657,9 +644,6 @@ public static class WindowsAppDefinitions
                     GroupName = "Office",
                     AppxPackageName = ["Microsoft.Office.OneNote"],
                     MsStoreId = "XPFFZHVGQWWLHB",
-                    IconSources = [
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Microsoft_OneNote_Icon_%282025_-_present%29.svg/256px-Microsoft_OneNote_Icon_%282025_-_present%29.svg.png",
-                    ],
                     CanBeReinstalled = true,
                     RegistrySubKeyName = "OneNoteFreeRetail - {locale}",
                     RegistryDisplayName = "Microsoft OneNote - {locale}",
