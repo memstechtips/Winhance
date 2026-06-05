@@ -26,6 +26,11 @@ public class AppIconResolver : IAppIconResolver
     // and PruneOldVersions can clean them up.
     private const string CacheFileExtension = ".png";
 
+    // Bounded concurrency for repo (jsDelivr) icon fetches. These are network
+    // round-trips on the (blocking) Windows Apps startup path, so they MUST run
+    // in parallel — a serial loop over ~50 icons freezes the load window.
+    private const int RepoFetchConcurrency = 8;
+
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
     // available asset/scale to this hint; 96 reliably returns the high-DPI
     // (200%) variant of Square44x44Logo (~88px native), which renders crisply
@@ -207,19 +212,27 @@ public class AppIconResolver : IAppIconResolver
             int repoResolved = 0;
             if (_repoSource is not null)
             {
-                foreach (var def in candidates)
+                // Parallel (bounded): repo fetches are network round-trips on the
+                // blocking startup path; a serial loop over ~50 icons freezes the UI.
+                var repoCandidates = candidates.Where(d => d.IconPath is null).ToList();
+                if (repoCandidates.Count > 0)
                 {
-                    if (ct.IsCancellationRequested) return;
-                    if (def.IconPath is not null) continue;
-                    try
+                    using var sem = new SemaphoreSlim(RepoFetchConcurrency);
+                    var tasks = repoCandidates.Select(async def =>
                     {
-                        if (await TryResolveFromRepoAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
-                            repoResolved++;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.LogWarning($"Repo icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                    }
+                        await sem.WaitAsync(ct).ConfigureAwait(false);
+                        try
+                        {
+                            if (await TryResolveFromRepoAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
+                                Interlocked.Increment(ref repoResolved);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService.LogWarning($"Repo icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                        }
+                        finally { sem.Release(); }
+                    });
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
                 }
             }
 
