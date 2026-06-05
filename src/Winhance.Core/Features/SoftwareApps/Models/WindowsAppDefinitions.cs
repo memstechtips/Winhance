@@ -495,7 +495,7 @@ public static class WindowsAppDefinitions
                     Description = "AI assistant for Windows, includes Copilot provider and Store components",
                     GroupName = "AI",
                     AppxPackageName = ["Microsoft.Copilot", "Microsoft.Windows.Ai.Copilot.Provider", "Microsoft.Copilot_8wekyb3d8bbwe"],
-                    MsStoreId = "9NHT9RB2F4HD",
+                    MsStoreId = "XP9CXNGPPJ97XX",
                     CanBeReinstalled = true,
                 },
                 new ItemDefinition
