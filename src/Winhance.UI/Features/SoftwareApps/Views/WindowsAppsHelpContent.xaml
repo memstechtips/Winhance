@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     mc:Ignorable="d">
 
     <StackPanel Spacing="16" MaxWidth="520">
@@ -24,8 +25,7 @@
             <!-- Installed -->
             <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
                 <Viewbox Width="18" Height="18" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                              Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                 </Viewbox>
                 <TextBlock x:Name="InstalledText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
@@ -33,8 +33,7 @@
             <!-- Can be Reinstalled -->
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
                 <Viewbox Width="16" Height="16" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource DownloadCircleIconPath}"
-                              Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                    <fluentIcons:FluentIcon Icon="ApprovalsApp" IconVariant="Color" />
                 </Viewbox>
                 <TextBlock x:Name="CanReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
@@ -42,8 +41,7 @@
             <!-- Not Installed -->
             <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
                 <Viewbox Width="18" Height="18" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                              Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                 </Viewbox>
                 <TextBlock x:Name="NotInstalledText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
@@ -51,8 +49,7 @@
             <!-- Cannot Reinstall -->
             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Viewbox Width="16" Height="16" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource DeleteCircleIconPath}"
-                              Foreground="{ThemeResource BadgeDangerForeground}"/>
+                    <fluentIcons:FluentIcon Icon="Flag" IconVariant="Color" />
                 </Viewbox>
                 <TextBlock x:Name="CannotReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
@@ -60,8 +57,7 @@
             <!-- Warning -->
             <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
                 <Viewbox Width="16" Height="16" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource AlertCircleIconPath}"
-                              Foreground="{ThemeResource BadgeCustomForeground}"/>
+                    <fluentIcons:FluentIcon Icon="ErrorCircle" IconVariant="Color" />
                 </Viewbox>
                 <TextBlock x:Name="WarningText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>

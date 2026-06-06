@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     IsTabStop="True"
     UseSystemFocusVisuals="True"
     AutomationProperties.Name="{x:Bind Text, Mode=OneWay}">
@@ -30,27 +31,14 @@
                     VerticalAlignment="Center"
                     Spacing="2"
                     Opacity="{x:Bind ContentOpacity, Mode=OneWay}">
-            <!-- FontIcon - for Segoe MDL2/Fluent glyph icons -->
-            <FontIcon x:Name="ButtonFontIcon"
-                      Glyph="{x:Bind IconGlyph, Mode=OneWay}"
-                      FontSize="{x:Bind IconSize, Mode=OneWay}"
-                      HorizontalAlignment="Center"
-                      Margin="{x:Bind IconMargin, Mode=OneWay}"
-                      Visibility="{x:Bind FontIconVisibility, Mode=OneWay}"/>
-
-            <!-- PathIcon - for Material Design / vector path icons (wrapped in Viewbox for scaling) -->
-            <!-- Note: Data is set in code-behind via OnIconPropertyChanged because x:Bind doesn't support string-to-Geometry conversion -->
-            <Viewbox Width="{x:Bind IconSize, Mode=OneWay}"
-                     Height="{x:Bind IconSize, Mode=OneWay}"
-                     Stretch="Uniform"
-                     HorizontalAlignment="Center"
-                     Margin="{x:Bind IconMargin, Mode=OneWay}"
-                     Visibility="{x:Bind PathIconVisibility, Mode=OneWay}">
-                <PathIcon x:Name="ButtonPathIcon"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-            </Viewbox>
+            <!-- Colored Fluent System Icon (IconVariant=Color). The Icon name is set
+                 in code-behind from IconSymbol because Icon is an enum, not a string. -->
+            <fluentIcons:FluentIcon x:Name="ButtonFluentIcon"
+                                    IconVariant="Color"
+                                    FontSize="{x:Bind IconSize, Mode=OneWay}"
+                                    HorizontalAlignment="Center"
+                                    Margin="{x:Bind IconMargin, Mode=OneWay}"
+                                    Visibility="{x:Bind FluentIconVisibility, Mode=OneWay}"/>
 
             <!-- Text (Hidden when compact).
                  Wrap to 2 lines so the default-scale rendering keeps the

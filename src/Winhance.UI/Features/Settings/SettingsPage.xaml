@@ -18,7 +18,7 @@
 
         <!-- Row 0: Page Header with Icon -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
-            <fluentIcons:FluentIcon Icon="Settings" IconVariant="Regular" FontSize="64" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            <fluentIcons:FluentIcon Icon="Settings" IconVariant="Color" FontSize="64"/>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock
                     Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}"

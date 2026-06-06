@@ -655,8 +655,7 @@
                                     Visibility="{x:Bind IsInstalled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Viewbox Width="18" Height="18" Margin="0,0,4,2" VerticalAlignment="Center">
-                                        <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                        <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                     </Viewbox>
                                     <TextBlock Text="{x:Bind InstalledStatusText, Mode=OneWay}"
                                                Style="{StaticResource BadgeTextStyle}"
@@ -667,8 +666,7 @@
                                     Visibility="{x:Bind ShowNonReinstallableChip, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Viewbox Width="18" Height="18" Margin="0,0,4,2" VerticalAlignment="Center">
-                                        <PathIcon Data="{StaticResource DeleteCircleIconPath}"
-                                                  Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                        <fluentIcons:FluentIcon Icon="Flag" IconVariant="Color" />
                                     </Viewbox>
                                     <TextBlock Text="{x:Bind ReinstallableStatusText, Mode=OneWay}"
                                                Style="{StaticResource BadgeTextStyle}"
@@ -680,8 +678,7 @@
                                     ToolTipService.ToolTip="{x:Bind InstabilityWarningTooltip, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Viewbox Width="18" Height="18" Margin="0,0,4,2" VerticalAlignment="Center">
-                                        <PathIcon Data="{StaticResource AlertCircleIconPath}"
-                                                  Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                        <fluentIcons:FluentIcon Icon="ErrorCircle" IconVariant="Color" />
                                     </Viewbox>
                                     <TextBlock Text="{x:Bind InstabilityWarningLabel, Mode=OneWay}"
                                                Style="{StaticResource BadgeTextStyle}"
@@ -710,7 +707,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
                 <Viewbox Width="64" Height="64" Stretch="Uniform">
-                    <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color" />
                 </Viewbox>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock
@@ -1076,8 +1073,7 @@
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                          ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
-                                                    <PathIcon Data="{StaticResource AlertCircleIconPath}"
-                                                              Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                    <fluentIcons:FluentIcon Icon="ErrorCircle" IconVariant="Color" />
                                                 </Viewbox>
                                             </StackPanel>
                                         </DataTemplate>
@@ -1101,13 +1097,11 @@
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                              Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                                 </Viewbox>
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                    <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                                                              Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                                                 </Viewbox>
                                                 <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
                                             </StackPanel>
@@ -1123,13 +1117,11 @@
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <PathIcon Data="{StaticResource DownloadCircleIconPath}"
-                                                              Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                    <fluentIcons:FluentIcon Icon="ApprovalsApp" IconVariant="Color" />
                                                 </Viewbox>
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                    <PathIcon Data="{StaticResource DeleteCircleIconPath}"
-                                                              Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                    <fluentIcons:FluentIcon Icon="Flag" IconVariant="Color" />
                                                 </Viewbox>
                                                 <TextBlock Text="{Binding ReinstallableStatusText}" VerticalAlignment="Center"/>
                                             </StackPanel>
@@ -1297,27 +1289,23 @@
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                                             </Viewbox>
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                                <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                                                             </Viewbox>
                                                             <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                                <PathIcon Data="{StaticResource DownloadCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="ApprovalsApp" IconVariant="Color" />
                                                             </Viewbox>
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                                <PathIcon Data="{StaticResource DeleteCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="Flag" IconVariant="Color" />
                                                             </Viewbox>
                                                             <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
                                                             <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
@@ -1352,8 +1340,7 @@
                                                                  Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
-                                                            <PathIcon Data="{StaticResource AlertCircleIconPath}"
-                                                                      Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                            <fluentIcons:FluentIcon Icon="ErrorCircle" IconVariant="Color" />
                                                         </Viewbox>
                                                     </Grid>
                                                 </CheckBox>
@@ -1401,27 +1388,23 @@
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                                             </Viewbox>
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                                <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                                                             </Viewbox>
                                                             <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                                <PathIcon Data="{StaticResource DownloadCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="ApprovalsApp" IconVariant="Color" />
                                                             </Viewbox>
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                                <PathIcon Data="{StaticResource DeleteCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="Flag" IconVariant="Color" />
                                                             </Viewbox>
                                                             <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
                                                             <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
@@ -1456,8 +1439,7 @@
                                                                  Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
-                                                            <PathIcon Data="{StaticResource AlertCircleIconPath}"
-                                                                      Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                            <fluentIcons:FluentIcon Icon="ErrorCircle" IconVariant="Color" />
                                                         </Viewbox>
                                                     </Grid>
                                                 </CheckBox>
@@ -1505,27 +1487,23 @@
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                                             </Viewbox>
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                                <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                                                             </Viewbox>
                                                             <!-- Reinstallable status: blue Download when reinstallable, red DownloadLock when not -->
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding CanBeReinstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                                <PathIcon Data="{StaticResource DownloadCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="ApprovalsApp" IconVariant="Color" />
                                                             </Viewbox>
                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                      Visibility="{Binding CanBeReinstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                      ToolTipService.ToolTip="{Binding ReinstallableStatusText}">
-                                                                <PathIcon Data="{StaticResource DeleteCircleIconPath}"
-                                                                          Foreground="{ThemeResource BadgeDangerForeground}"/>
+                                                                <fluentIcons:FluentIcon Icon="Flag" IconVariant="Color" />
                                                             </Viewbox>
                                                             <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
                                                             <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"
@@ -1560,8 +1538,7 @@
                                                                  Margin="4,0,0,0"
                                                                  Visibility="{Binding HasInstabilityWarning, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                  ToolTipService.ToolTip="{Binding InstabilityWarningTooltip}">
-                                                            <PathIcon Data="{StaticResource AlertCircleIconPath}"
-                                                                      Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                            <fluentIcons:FluentIcon Icon="ErrorCircle" IconVariant="Color" />
                                                         </Viewbox>
                                                     </Grid>
                                                 </CheckBox>
@@ -1697,13 +1674,11 @@
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                              Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                                 </Viewbox>
                                                 <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                          Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                    <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                                                              Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                                                 </Viewbox>
                                                 <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
                                             </StackPanel>
@@ -1844,14 +1819,12 @@
                                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                                <PathIcon Data="{StaticResource CheckCircleIconPath}"
-                                                                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" />
                                                                             </Viewbox>
                                                                             <Viewbox Width="20" Height="20" VerticalAlignment="Center"
                                                                                      Visibility="{Binding IsInstalled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                                                                      ToolTipService.ToolTip="{Binding InstalledStatusText}">
-                                                                                <PathIcon Data="{StaticResource CloseCircleIconPath}"
-                                                                                          Foreground="{ThemeResource TextFillColorDisabledBrush}"/>
+                                                                                <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" />
                                                                             </Viewbox>
                                                                             <!-- Icon size driven by CompactIconSize / CompactFallbackFontSize resources at the top of the page. -->
                                                                             <Grid Width="{StaticResource CompactIconSize}" Height="{StaticResource CompactIconSize}" Margin="0,2,0,0"

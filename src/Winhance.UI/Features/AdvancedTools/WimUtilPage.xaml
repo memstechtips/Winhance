@@ -66,16 +66,14 @@
                                       Width="20" Height="20"
                                       Visibility="{x:Bind IsProcessing, Mode=OneWay}"/>
                         <!-- Complete checkmark -->
-                        <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular"
+                        <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
                                   FontSize="20"
-                                  Foreground="#4CAF50"
                                   Visibility="{x:Bind IsComplete, Mode=OneWay}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
                         <!-- Failed X -->
-                        <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"
+                        <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
                                   FontSize="20"
-                                  Foreground="#F44336"
                                   Visibility="{x:Bind HasFailed, Mode=OneWay}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
@@ -141,17 +139,13 @@
                             <Viewbox Grid.Column="2" Width="16" Height="16"
                                      VerticalAlignment="Center"
                                      Visibility="{x:Bind ViewModel.Step1State.IsLocked, Mode=OneWay}">
-                                <Path Data="{StaticResource PrivacyIconPath}"
-                                      Fill="{ThemeResource AccentFillColorDefaultBrush}"
-                                      Stretch="Uniform"/>
+                                <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
                             </Viewbox>
                             <!-- Complete: check circle -->
                             <Viewbox Grid.Column="2" Width="20" Height="20"
                                      VerticalAlignment="Center"
                                      Visibility="{x:Bind ViewModel.Step1State.IsComplete, Mode=OneWay}">
-                                <Path Data="{StaticResource CheckCircleIconPath}"
-                                      Fill="#00CC6A"
-                                      Stretch="Uniform"/>
+                                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
                             </Viewbox>
                             <!-- Normal: chevron -->
                             <fluentIcons:FluentIcon Grid.Column="2"
@@ -383,17 +377,13 @@
                                 <Viewbox Grid.Column="2" Width="16" Height="16"
                                          VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.Step2State.IsLocked, Mode=OneWay}">
-                                    <Path Data="{StaticResource PrivacyIconPath}"
-                                          Fill="{ThemeResource AccentFillColorDefaultBrush}"
-                                          Stretch="Uniform"/>
+                                    <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
                                 </Viewbox>
                                 <!-- Complete: check circle -->
                                 <Viewbox Grid.Column="2" Width="20" Height="20"
                                          VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.Step2State.IsComplete, Mode=OneWay}">
-                                    <Path Data="{StaticResource CheckCircleIconPath}"
-                                          Fill="#00CC6A"
-                                          Stretch="Uniform"/>
+                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
                                 <fluentIcons:FluentIcon Grid.Column="2"
@@ -451,15 +441,13 @@
                                     </StackPanel>
 
                                     <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
-                                        <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular"
+                                        <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
                                                   FontSize="20"
-                                                  Foreground="#4CAF50"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
-                                        <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"
+                                        <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
                                                   FontSize="20"
-                                                  Foreground="#F44336"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
@@ -552,17 +540,13 @@
                                 <Viewbox Grid.Column="2" Width="16" Height="16"
                                          VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.Step3State.IsLocked, Mode=OneWay}">
-                                    <Path Data="{StaticResource PrivacyIconPath}"
-                                          Fill="{ThemeResource AccentFillColorDefaultBrush}"
-                                          Stretch="Uniform"/>
+                                    <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
                                 </Viewbox>
                                 <!-- Complete: check circle -->
                                 <Viewbox Grid.Column="2" Width="20" Height="20"
                                          VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.Step3State.IsComplete, Mode=OneWay}">
-                                    <Path Data="{StaticResource CheckCircleIconPath}"
-                                          Fill="#00CC6A"
-                                          Stretch="Uniform"/>
+                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
                                 <fluentIcons:FluentIcon Grid.Column="2"
@@ -646,17 +630,13 @@
                                 <Viewbox Grid.Column="2" Width="16" Height="16"
                                          VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}">
-                                    <Path Data="{StaticResource PrivacyIconPath}"
-                                          Fill="{ThemeResource AccentFillColorDefaultBrush}"
-                                          Stretch="Uniform"/>
+                                    <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
                                 </Viewbox>
                                 <!-- Complete: check circle -->
                                 <Viewbox Grid.Column="2" Width="20" Height="20"
                                          VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.Step4State.IsComplete, Mode=OneWay}">
-                                    <Path Data="{StaticResource CheckCircleIconPath}"
-                                          Fill="#00CC6A"
-                                          Stretch="Uniform"/>
+                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
                                 <fluentIcons:FluentIcon Grid.Column="2"

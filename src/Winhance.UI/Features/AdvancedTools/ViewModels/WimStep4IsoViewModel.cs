@@ -123,7 +123,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.IsEnabled = false;
                 DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
                 DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
-                DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("CheckCircleIconPath");
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
                     _localizationService.GetString("Dialog_Success") ?? "Success");
@@ -271,7 +270,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.IsComplete = true;
             DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
             DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgFound");
-            DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("CheckCircleIconPath");
         }
         else
         {

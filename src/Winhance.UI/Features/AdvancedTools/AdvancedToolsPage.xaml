@@ -19,7 +19,7 @@
         <!-- Row 0: Page Header with Icon -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
             <Viewbox Width="64" Height="64" Stretch="Uniform">
-                <PathIcon Data="{StaticResource AdvancedToolsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                <fluentIcons:FluentIcon Icon="WrenchScrewdriver" IconVariant="Color" />
             </Viewbox>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock
@@ -48,7 +48,7 @@
                     Padding="8,4">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
-                            <PathIcon Data="{StaticResource AdvancedToolsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            <fluentIcons:FluentIcon Icon="WrenchScrewdriver" IconVariant="Color" />
                         </Viewbox>
                         <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
                     </StackPanel>
