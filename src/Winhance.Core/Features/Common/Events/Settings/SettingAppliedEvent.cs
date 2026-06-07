@@ -1,9 +1,10 @@
 using System;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Events.Settings;
 
 /// <summary>
-/// Domain event that is published when a setting has been successfully applied.
+/// Domain event that is published when a setting application attempt completes.
 /// This event allows other parts of the system to react to setting changes without coupling.
 /// </summary>
 public class SettingAppliedEvent : IDomainEvent
@@ -26,12 +27,18 @@ public class SettingAppliedEvent : IDomainEvent
     /// </summary>
     public object? Value { get; }
 
-    public SettingAppliedEvent(string settingId, bool isEnabled, object? value = null)
+    /// <summary>
+    /// The detailed result of the application attempt.
+    /// </summary>
+    public OperationResult? Result { get; }
+
+    public SettingAppliedEvent(string settingId, bool isEnabled, object? value = null, OperationResult? result = null)
     {
         Timestamp = DateTime.UtcNow;
         EventId = Guid.NewGuid();
         SettingId = settingId ?? throw new ArgumentNullException(nameof(settingId));
         IsEnabled = isEnabled;
         Value = value;
+        Result = result;
     }
 }

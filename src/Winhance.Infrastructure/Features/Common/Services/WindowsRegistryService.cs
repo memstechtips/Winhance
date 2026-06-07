@@ -620,8 +620,8 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 return result;
             }
 
-            // Unlock the key first if LockKeyAccess is set, so we can write to it
-            if (setting.LockKeyAccess)
+            // Unlock the key first if it might be locked, so we can write to it
+            if (setting.LockKeyAccess || setting.LockCondition != LockCondition.None)
             {
                 UnlockRegistryKey(setting.KeyPath);
             }
@@ -649,18 +649,15 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             logService.Log(LogLevel.Info, $"[WindowsRegistryService] Set value '{setting.ValueName}' = '{valueToSet}' in '{setting.KeyPath}' - Success: {setResult}");
 
-            if (setResult && setting.LockKeyAccess)
+            if (setResult && (setting.LockKeyAccess || setting.LockCondition != LockCondition.None))
             {
-                // Determine if the value being written means "disabled" (service Start = 4)
-                // Lock the key only when disabling; unlock was already done above for enabling
                 var writtenValue = useDefaultValue
                     ? GetParentDisableValue(setting.DisabledValue)
                     : specificValue ?? (isEnabled
                         ? GetWriteValue(setting.EnabledValue)
                         : GetWriteValue(setting.DisabledValue));
 
-                // Lock the key if the written value equals the disabled/locked state (e.g., Start = 4)
-                if (!isEnabled || (writtenValue is int intVal && intVal == 4))
+                if (ShouldLock(setting, isEnabled, writtenValue))
                 {
                     LockRegistryKey(setting.KeyPath);
                 }
@@ -680,6 +677,19 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
     /// preventing Windows from resetting the value.
     /// Administrators retain full control to allow Winhance to unlock later.
     /// </summary>
+
+    private bool ShouldLock(RegistrySetting setting, bool isEnabled, object? writtenValue)
+    {
+        return setting.LockCondition switch
+        {
+            LockCondition.Always => true,
+            LockCondition.OnDisabled => !isEnabled,
+            LockCondition.WhenValueIs4 => writtenValue is int intVal && intVal == 4,
+            LockCondition.None => false,
+            _ => false
+        };
+    }
+
     private bool LockRegistryKey(string keyPath)
     {
         try

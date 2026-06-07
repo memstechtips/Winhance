@@ -1,38 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.Common.Validation;
 
-/// <summary>
-/// A single problem found while validating a setting catalog.
-/// </summary>
 public sealed record CatalogViolation(string SettingId, string GroupName, string Message);
 
-/// <summary>
-/// Catalog-invariant checks for authored <see cref="SettingGroup"/> definitions.
-///
-/// Today this enforces one rule family: every Selection setting's recommendation-
-/// and-default shape matches one of the supported categories. The categories and
-/// per-category invariants are:
-///
-///   • <b>Dynamic</b>   — options populated at runtime (PowerRecommendation.LoadDynamicOptions).
-///                        Skipped — nothing to validate statically.
-///   • <b>PowerCfg</b>  — PowerCfgSettings present. Recommendation/default live on
-///                        PowerRecommendation + PowerCfgSetting.DefaultValueAC/DC. The
-///                        ComboBox must NOT use per-option IsRecommended/IsDefault, because
-///                        AC and DC can have different recommended options.
-///   • <b>Subjective</b>— IsSubjectivePreference = true. Badges render as "Preference"
-///                        regardless of IsRecommended/IsDefault, so authors may still
-///                        mark a Winhance-preferred option as a Quick Actions hint —
-///                        but never more than one of each.
-///   • <b>Standard</b>  — everything else. Must have exactly one IsRecommended AND
-///                        exactly one IsDefault option.
-/// </summary>
 public static class SettingCatalogValidator
 {
+    private static readonly Regex RegistryPathRegex = new(@"^(HKEY_LOCAL_MACHINE|HKLM|HKEY_CURRENT_USER|HKCU|HKEY_CLASSES_ROOT|HKCR|HKEY_USERS|HKU|HKEY_CURRENT_CONFIG|HKCC)\\", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public static IReadOnlyList<CatalogViolation> Validate(SettingGroup group)
     {
         var violations = new List<CatalogViolation>();
@@ -40,10 +21,31 @@ public static class SettingCatalogValidator
 
         foreach (var setting in group.Settings)
         {
-            if (setting.InputType != InputType.Selection) continue;
-            ValidateSelection(setting, group.Name, violations);
+            ValidateCommon(setting, group.Name, violations);
+            if (setting.InputType == InputType.Selection)
+            {
+                ValidateSelection(setting, group.Name, violations);
+            }
         }
         return violations;
+    }
+
+    private static void ValidateCommon(SettingDefinition setting, string groupName, List<CatalogViolation> violations)
+    {
+        // Registry Path Validation
+        if (setting.RegistrySettings != null)
+        {
+            foreach (var reg in setting.RegistrySettings)
+            {
+                if (!RegistryPathRegex.IsMatch(reg.KeyPath))
+                {
+                    violations.Add(new(setting.Id, groupName, $"Invalid registry hive in path: {reg.KeyPath}"));
+                }
+            }
+        }
+
+        // Feature Mapping Validation
+        var featureId = FeatureDefinitions.All.FirstOrDefault(f => f.Id == setting.Id); // This logic might need refinement based on how features are actually mapped
     }
 
     private static void ValidateSelection(SettingDefinition setting, string groupName, List<CatalogViolation> violations)

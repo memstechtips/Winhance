@@ -19,4 +19,8 @@
     <BaseIntermediateOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
     <BaseOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\bin\</BaseOutputPath>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
 </Project>

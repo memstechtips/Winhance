@@ -296,6 +296,19 @@ public class SettingOperationExecutor(
         {
             var message = $"One or more operations failed for '{setting.Id}': {string.Join(", ", failedOperations)}";
             logService.Log(LogLevel.Warning, $"[SettingOperationExecutor] {message}");
+
+            // If at least one operation succeeded, return Partial, else Failed
+            int totalOps = (setting.RegistrySettings?.Count ?? 0) +
+                           (setting.ScheduledTaskSettings?.Count ?? 0) +
+                           (setting.PowerShellScripts?.Count ?? 0) +
+                           (setting.RegContents?.Count ?? 0) +
+                           (setting.NativePowerApiSettings?.Count ?? 0);
+
+            if (failedOperations.Count < totalOps && totalOps > 0)
+            {
+                return OperationResult.Partial(message, failedOperations);
+            }
+
             return OperationResult.Failed(message);
         }
 

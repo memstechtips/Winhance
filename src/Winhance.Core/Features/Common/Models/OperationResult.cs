@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Common.Models;
 
@@ -7,8 +8,10 @@ public class OperationResult
     public bool Success { get; }
     public string? ErrorMessage { get; }
     public Exception? Exception { get; }
+    public bool IsPartialSuccess { get; init; }
+    public List<string> SubOperationErrors { get; } = new();
 
-    private OperationResult(bool success, string? errorMessage = null, Exception? exception = null)
+    protected OperationResult(bool success, string? errorMessage = null, Exception? exception = null)
     {
         Success = success;
         ErrorMessage = errorMessage;
@@ -29,6 +32,13 @@ public class OperationResult
     {
         return new OperationResult(success: false, errorMessage: message, exception: exception);
     }
+
+    public static OperationResult Partial(string message, IEnumerable<string> errors)
+    {
+        var res = new OperationResult(success: true, errorMessage: message) { IsPartialSuccess = true };
+        res.SubOperationErrors.AddRange(errors);
+        return res;
+    }
 }
 
 public class OperationResult<T>
@@ -39,8 +49,10 @@ public class OperationResult<T>
     public Exception? Exception { get; }
     public bool RequiresConfirmation { get; }
     public string? InfoMessage { get; }
+    public bool IsPartialSuccess { get; init; }
+    public List<string> SubOperationErrors { get; } = new();
 
-    private OperationResult(
+    protected OperationResult(
         bool success,
         T? result = default,
         string? errorMessage = null,
@@ -84,5 +96,12 @@ public class OperationResult<T>
     public static OperationResult<T> DeferredSuccess(T result, string infoMessage)
     {
         return new OperationResult<T>(success: true, result: result, infoMessage: infoMessage);
+    }
+
+    public static OperationResult<T> Partial(T result, string message, IEnumerable<string> errors)
+    {
+        var res = new OperationResult<T>(success: true, result: result, errorMessage: message) { IsPartialSuccess = true };
+        res.SubOperationErrors.AddRange(errors);
+        return res;
     }
 }
