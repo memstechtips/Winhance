@@ -11,6 +11,9 @@ public record TechnicalDetailLabels
     public string Recommended { get; init; } = "Recommended";
     public string Default { get; init; } = "Default";
     public string ValueNotExist { get; init; } = "doesn't exist";
+    public string KeyNotFound { get; init; } = "Key not found";
+    public string ValueNotFound { get; init; } = "Value not found";
+    public string AccessDenied { get; init; } = "Access denied";
     public string On { get; init; } = "On";
     public string Off { get; init; } = "Off";
 

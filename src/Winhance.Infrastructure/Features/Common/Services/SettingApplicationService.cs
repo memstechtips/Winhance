@@ -78,7 +78,7 @@ public class SettingApplicationService(
         {
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
-            eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
+            eventBus.Publish(new SettingAppliedEvent(settingId, enable, value, OperationResult.Succeeded()));
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler");
 
             if (!skipValuePrerequisites)
@@ -146,7 +146,7 @@ public class SettingApplicationService(
 
         // Always publish the event — even on partial failure, some operations may
         // have succeeded and listeners need to re-read actual system state.
-        eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
+        eventBus.Publish(new SettingAppliedEvent(settingId, enable, value, OperationResult.Succeeded()));
 
         if (!operationResult.Success)
         {

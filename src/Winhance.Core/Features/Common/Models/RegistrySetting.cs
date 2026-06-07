@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Models;
 
@@ -20,4 +21,5 @@ public sealed record RegistrySetting
     public bool ApplyPerMonitor { get; init; } = false;
     public bool IsGroupPolicy { get; init; } = false;
     public bool LockKeyAccess { get; init; } = false;
+    public LockCondition LockCondition { get; init; } = LockCondition.None;
 }

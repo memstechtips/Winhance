@@ -16,9 +16,18 @@ public class LogService : ILogService, IDisposable
 
     public LogService()
     {
+        string root;
+        if (Environment.OSVersion.Platform == PlatformID.Unix)
+        {
+            root = Path.Combine(Path.GetTempPath(), "Winhance");
+        }
+        else
+        {
+            root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Winhance");
+        }
+
         _logPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Winhance",
+            root,
             "Logs",
             $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
         );

@@ -7,6 +7,7 @@ using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Xunit;
 using Xunit.Abstractions;
+using Microsoft.Win32;
 
 namespace Winhance.Core.Tests.Validation;
 
@@ -32,7 +33,7 @@ public class SettingCatalogValidatorTests
 
     [Theory]
     [MemberData(nameof(AllGroups))]
-    public void Selection_settings_satisfy_catalog_invariants(string featureName, SettingGroup group)
+    public void Catalog_satisfies_invariants(string featureName, SettingGroup group)
     {
         var violations = SettingCatalogValidator.Validate(group);
 
@@ -40,5 +41,37 @@ public class SettingCatalogValidatorTests
             _output.WriteLine($"[{featureName}] {v.SettingId}: {v.Message}");
 
         violations.Should().BeEmpty($"feature '{featureName}' has {violations.Count} catalog violation(s)");
+    }
+
+    [Fact]
+    public void Validate_InvalidRegistryPath_ReturnsViolation()
+    {
+        var group = new SettingGroup
+        {
+            Name = "Test",
+            FeatureId = "test-feature",
+            Settings = new List<SettingDefinition>
+            {
+                new SettingDefinition
+                {
+                    Id = "test-setting",
+                    Name = "Test",
+                    Description = "Test Description",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"INVALID\Path",
+                            RecommendedValue = 1,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord
+                        }
+                    }
+                }
+            }
+        };
+
+        var violations = SettingCatalogValidator.Validate(group);
+        violations.Should().ContainSingle(v => v.Message.Contains("Invalid registry hive"));
     }
 }

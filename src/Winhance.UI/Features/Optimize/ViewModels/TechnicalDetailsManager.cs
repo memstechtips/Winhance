@@ -299,9 +299,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
     /// lives in that option's ValueMappings keyed by the registry value name.
     /// </summary>
     /// <remarks>
-    /// Returns <c>labels.ValueNotExist</c> in three distinct "absent" cases (the current
-    /// TechnicalDetailLabels set doesn't have separate strings for each — this is intentional
-    /// per Task A9's note about TODO label additions):
+    /// Returns specific labels based on the type of absence:
     /// <list type="bullet">
     ///   <item>ComboBox.Options is null or empty (malformed Selection setting).</item>
     ///   <item>No option has the requested flag set (e.g. no IsRecommended option).</item>
@@ -401,11 +399,17 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     private string FormatNotExist(RegistrySetting reg)
     {
+        // Try to determine if it's the key or just the value that's missing
+        bool keyExists = false;
+        try { keyExists = _regeditLauncher?.KeyExists(reg.KeyPath) ?? true; } catch { }
+
+        string message = keyExists ? _labels.ValueNotFound : _labels.KeyNotFound;
+
         if (reg.EnabledValue?.Contains(null) == true)
-            return $"{_labels.ValueNotExist} ({_labels.On})";
+            return $"{message} ({_labels.On})";
         if (reg.DisabledValue?.Contains(null) == true)
-            return $"{_labels.ValueNotExist} ({_labels.Off})";
-        return _labels.ValueNotExist;
+            return $"{message} ({_labels.Off})";
+        return message;
     }
 
     private void OpenRegeditAtPath(string? path)
