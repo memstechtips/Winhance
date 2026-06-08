@@ -298,14 +298,14 @@ public class AppIconResolverTests : IDisposable
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>()); // not installed
         _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns((string?)null);
-        _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()))
+        _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns("ca1c0a5e");
+        _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, "ca1c0a5e", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes("PNG-repo-calc"));
 
         await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: true);
 
-        // No sha known → cache key is "repo:" + path.
-        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:" + expectedRepoPath));
+        // Sha known → cache key is "repo:" + sha.
+        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:ca1c0a5e"));
         def.IconPath.Should().Be(expectedCache);
         File.ReadAllText(expectedCache).Should().Be("PNG-repo-calc");
 
@@ -313,7 +313,7 @@ public class AppIconResolverTests : IDisposable
             s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _mockRepoSource.Verify(
-            r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()),
+            r => r.GetIconBytesAsync(expectedRepoPath, "ca1c0a5e", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -341,19 +341,69 @@ public class AppIconResolverTests : IDisposable
     [Fact]
     public async Task ResolveBatchAsync_WindowsApp_NotInstalled_RepoReturnsNull_LeavesIconPathNull()
     {
+        // The path IS hosted (manifest has a sha) but the fetch returns null
+        // (e.g. transient CDN failure) → fall through to the colored fallback.
         var def = Def("windows-app-calc", appxName: "Microsoft.WindowsCalculator", installed: false);
         var expectedRepoPath = "icons/windows/microsoft.windowscalculator.png";
 
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
         _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        _mockManifest.Setup(m => m.Sha256For(It.IsAny<string>())).Returns((string?)null);
+        _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns("deadc0de");
         _mockRepoSource.Setup(r => r.GetIconBytesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
 
         await _resolver.ResolveBatchAsync(new[] { def });
 
         def.IconPath.Should().BeNull();
+        _mockRepoSource.Verify(
+            r => r.GetIconBytesAsync(expectedRepoPath, "deadc0de", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_WindowsApp_NotHostedInManifest_SkipsRepoFetch()
+    {
+        // Regression guard for the startup slowdown: a windows-app-* whose icon
+        // is NOT in the loaded manifest (AI workloads, deferred capabilities,
+        // etc.) must NOT fire a guaranteed-404 network request — it goes straight
+        // to the colored fallback. This is what previously cost ~30s on launch.
+        var def = Def("windows-app-aix", appxName: "MicrosoftWindows.Client.AIX", installed: false);
+        var expectedRepoPath = "icons/windows/microsoftwindows.client.aix.png";
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _mockManifest.Setup(m => m.Sha256For(It.IsAny<string>())).Returns((string?)null);
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        def.IconPath.Should().BeNull();
+        _mockRepoSource.Verify(
+            r => r.GetIconBytesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveBatchAsync_ManifestUnavailable_FetchesEvenWithoutSha()
+    {
+        // When the manifest fails to load (offline / parse error) we can't know
+        // which icons are hosted, so the repo fetch still runs as a best-effort
+        // and caches under "repo:" + path (no sha known). Preserves resilience.
+        var def = Def("windows-app-calc", appxName: "Microsoft.WindowsCalculator", installed: false);
+        var expectedRepoPath = "icons/windows/microsoft.windowscalculator.png";
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _mockManifest.Setup(m => m.Sha256For(It.IsAny<string>())).Returns((string?)null);
+        _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes("PNG-repo-calc"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:" + expectedRepoPath));
+        def.IconPath.Should().Be(expectedCache);
         _mockRepoSource.Verify(
             r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -394,13 +444,13 @@ public class AppIconResolverTests : IDisposable
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
         _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns((string?)null);
-        _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()))
+        _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns("c0ffee01");
+        _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, "c0ffee01", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes("PNG-repo-wordpad"));
 
         await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: false);
 
-        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:" + expectedRepoPath));
+        var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:c0ffee01"));
         def.IconPath.Should().Be(expectedCache);
         File.ReadAllText(expectedCache).Should().Be("PNG-repo-wordpad");
 
@@ -408,7 +458,7 @@ public class AppIconResolverTests : IDisposable
             s => s.GetLogoStreamAsync(It.IsAny<string>(), It.IsAny<Size>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _mockRepoSource.Verify(
-            r => r.GetIconBytesAsync(expectedRepoPath, null, It.IsAny<CancellationToken>()),
+            r => r.GetIconBytesAsync(expectedRepoPath, "c0ffee01", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

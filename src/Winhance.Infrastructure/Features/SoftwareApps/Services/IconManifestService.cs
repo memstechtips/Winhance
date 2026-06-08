@@ -17,7 +17,31 @@ public class IconManifestService(HttpClient httpClient, ILogService logService) 
 
     private Dictionary<string, string>? _shas; // path-relative-to-icons/ -> sha256
 
-    public async Task<bool> LoadAsync(CancellationToken ct = default)
+    private readonly object _loadGate = new();
+    private Task<bool>? _loadTask;
+
+    /// <summary>
+    /// Loads the manifest at most once per session. At startup both the eager
+    /// Windows-apps batch and the background External-apps batch call this;
+    /// concurrent callers share the single in-flight fetch and later callers get
+    /// the cached result, so manifest.json is fetched once, not once per batch.
+    /// A failed load is NOT cached — the next call retries (e.g. connectivity
+    /// restored between batches). LoadCoreAsync swallows all exceptions and
+    /// returns a bool, so the shared task never faults or cancels.
+    /// </summary>
+    public Task<bool> LoadAsync(CancellationToken ct = default)
+    {
+        lock (_loadGate)
+        {
+            var existing = _loadTask;
+            // Reuse a still-running load, or a completed one that succeeded.
+            if (existing is not null && (!existing.IsCompleted || existing.Result))
+                return existing;
+            return _loadTask = LoadCoreAsync(ct);
+        }
+    }
+
+    private async Task<bool> LoadCoreAsync(CancellationToken ct)
     {
         try
         {

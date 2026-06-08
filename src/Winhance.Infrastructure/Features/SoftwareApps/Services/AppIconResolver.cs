@@ -146,12 +146,16 @@ public class AppIconResolver : IAppIconResolver
             if (!EnsureCacheDir())
                 return;
 
-            // Best-effort manifest load (sha256 lookups). A failed load just
-            // means repo fetches run without sha verification — still safe,
-            // because RepoIconSource validates the image decodes.
+            // Best-effort manifest load (sha256 lookups). When it succeeds the
+            // manifest is the authoritative list of hosted icons, so the repo
+            // layer can skip guaranteed-404 fetches for paths it doesn't list.
+            // A failed load (offline) leaves manifestLoaded false → repo fetches
+            // still run unconditionally as a best-effort, exactly as before, and
+            // RepoIconSource still validates whatever bytes come back.
+            bool manifestLoaded = false;
             if (_manifest is not null)
             {
-                try { await _manifest.LoadAsync(ct).ConfigureAwait(false); }
+                try { manifestLoaded = await _manifest.LoadAsync(ct).ConfigureAwait(false); }
                 catch (Exception ex) { _logService.LogWarning($"Icon manifest load failed: {ex.Message}"); }
             }
 
@@ -195,7 +199,7 @@ public class AppIconResolver : IAppIconResolver
                         await sem.WaitAsync(ct).ConfigureAwait(false);
                         try
                         {
-                            if (await TryResolveFromRepoAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
+                            if (await TryResolveFromRepoAsync(def, applyThemeAdaptation, manifestLoaded, ct).ConfigureAwait(false))
                                 Interlocked.Increment(ref repoResolved);
                         }
                         catch (Exception ex)
@@ -278,10 +282,13 @@ public class AppIconResolver : IAppIconResolver
     /// <see cref="RepoIconKey.WindowsCandidates"/> is tried in order (first that
     /// fetches wins). Bytes are sha256-verified against the manifest when known,
     /// then cached under <c>"repo:" + sha</c> (or the path when no sha is known).
+    /// When <paramref name="manifestLoaded"/> is true, a path the manifest does
+    /// not list is treated as not-hosted and skipped without a network call.
     /// </summary>
     private async Task<bool> TryResolveFromRepoAsync(
         ItemDefinition def,
         bool applyThemeAdaptation,
+        bool manifestLoaded,
         CancellationToken ct)
     {
         if (_repoSource is null) return false;
@@ -296,6 +303,14 @@ public class AppIconResolver : IAppIconResolver
             if (string.IsNullOrEmpty(path)) continue;
 
             var sha = _manifest?.Sha256For(path);
+
+            // The manifest is the authoritative list of hosted icons. When it
+            // loaded successfully and doesn't list this path, the icon isn't
+            // hosted — skip the guaranteed-404 network round-trip and fall
+            // through to the colored fallback. (Without a loaded manifest, sha is
+            // null for everything; we still attempt the fetch as best-effort.)
+            if (sha is null && manifestLoaded)
+                continue;
 
             // Cache key is "repo:" + sha when known (content-addressed: changes
             // when the icon's bytes change), else "repo:" + path so the entry
