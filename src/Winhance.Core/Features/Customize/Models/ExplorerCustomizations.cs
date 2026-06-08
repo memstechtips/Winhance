@@ -1319,6 +1319,55 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-icon-cache-size",
+                    IsSubjectivePreference = true,
+                    Name = "Icon cache size",
+                    Description = "Sets the maximum number of icons Explorer keeps cached, so it reloads them from disk less often when browsing folders with many files",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Selection,
+                    // MaxCachedIcons is absent by default and can hold any value; only the two
+                    // explicit sizes map to options, so any other/absent state shows "Windows default".
+                    ResolveUnmatchedToDefault = true,
+                    Icon = "Cached",
+                    AddedInVersion = "26.06.08",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "MaxCachedIcons",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Windows default",
+                                ValueMappings = new Dictionary<string, object?> { ["MaxCachedIcons"] = null },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Large (4,096 icons)",
+                                ValueMappings = new Dictionary<string, object?> { ["MaxCachedIcons"] = "4096" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Very large (8,192 icons)",
+                                ValueMappings = new Dictionary<string, object?> { ["MaxCachedIcons"] = "8192" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-folder-tips",
                     IsSubjectivePreference = true,
                     RecommendedToggleState = true,

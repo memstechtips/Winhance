@@ -854,6 +854,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-icon-cache-size",
+            "Name": "Icon cache size",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "explorer-customization-folder-tips",
             "Name": "Display file size information in folder tips",
             "IsSelected": true,
