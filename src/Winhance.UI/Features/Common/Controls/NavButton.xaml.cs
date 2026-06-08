@@ -456,7 +456,7 @@ public class NavButtonClickedEventArgs : EventArgs
 /// Automation peer that exposes NavButton as a Button to UI Automation clients
 /// (Narrator etc.) and routes the Invoke pattern through NavButton.InvokeFromAutomation.
 /// </summary>
-public sealed class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
+public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
 {
     public NavButtonAutomationPeer(NavButton owner) : base(owner) { }
 
