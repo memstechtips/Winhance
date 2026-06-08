@@ -2214,9 +2214,15 @@
     "InputType": "Toggle"
   },
   "taskbar-system-tray-icons-11": {
-    "Recommended": 0,
-    "Default": 1,
-    "InputType": "Toggle"
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
+    "Default": {
+      "kind": "index",
+      "value": 2
+    },
+    "InputType": "Selection"
   },
   "taskbar-task-view": {
     "Recommended": 0,

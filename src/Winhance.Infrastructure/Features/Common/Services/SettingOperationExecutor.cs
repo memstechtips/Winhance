@@ -168,6 +168,13 @@ public class SettingOperationExecutor(
                     && scriptIndex >= 0 && scriptIndex < scriptOptions.Count
                     && scriptOptions[scriptIndex].Script is { } scriptOption)
                 {
+                    // A "None" option applies no script at all (e.g. a Custom /
+                    // leave-Windows-settings-alone dropdown choice).
+                    if (scriptOption == ScriptOption.None)
+                    {
+                        continue;
+                    }
+
                     useEnabled = scriptOption == ScriptOption.Enabled;
                 }
 

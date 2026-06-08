@@ -271,6 +271,50 @@ public class AutounattendScriptBuilderRoutingTests
         user.Should().NotContain("1.1.1.1");
     }
 
+    [Fact]
+    public async Task SelectionOption_WithScriptNone_EmitsNoScriptForEitherMarker()
+    {
+        // When the selected ComboBox option carries Script = ScriptOption.None (e.g. a
+        // "Custom / leave-alone" choice), the autounattend generator must emit no PowerShell
+        // script at all — neither the EnabledScript nor the DisabledScript body.
+        var def = new SettingDefinition
+        {
+            Id = "test-selection-none",
+            Name = "Selection None script",
+            Description = "Selection with a None script option",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption { DisplayName = "Show all",  Script = ScriptOption.Enabled },
+                    new ComboBoxOption { DisplayName = "Hide all",  Script = ScriptOption.Disabled },
+                    new ComboBoxOption { DisplayName = "Custom",    Script = ScriptOption.None },
+                },
+            },
+            PowerShellScripts = new List<PowerShellScriptSetting>
+            {
+                new()
+                {
+                    EnabledScript  = "PROMOTE_MARKER",
+                    DisabledScript = "DEMOTE_MARKER",
+                    RunContext     = RunContext.User,
+                },
+            },
+        };
+        // SelectedIndex = 2 → "Custom" → ScriptOption.None → no script emitted.
+        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Selection, SelectedIndex = 2 };
+        var builder = CreateBuilder(out _);
+
+        var script = await builder.BuildWinhancementsScriptAsync(
+            ConfigWithOptimize("gaming", item),
+            SingleSetting("gaming", def));
+
+        var (_, user) = SplitPasses(script);
+        user.Should().NotContain("PROMOTE_MARKER");
+        user.Should().NotContain("DEMOTE_MARKER");
+    }
+
     // ------------------------------------------------------------------------------------------
     // Registry routing unchanged — sanity check that HKLM regs still land in system pass
     // ------------------------------------------------------------------------------------------

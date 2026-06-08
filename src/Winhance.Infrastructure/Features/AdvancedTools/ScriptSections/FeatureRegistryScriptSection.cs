@@ -162,6 +162,13 @@ internal class FeatureRegistryScriptSection
                             && configItem.SelectedIndex.Value < selScriptOptions.Count
                             && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
                         {
+                            // A "None" option applies no script — emit nothing into the
+                            // autounattend for this selection (e.g. Custom / leave-alone).
+                            if (scriptOption == ScriptOption.None)
+                            {
+                                continue;
+                            }
+
                             useEnabled = scriptOption == ScriptOption.Enabled;
                         }
 

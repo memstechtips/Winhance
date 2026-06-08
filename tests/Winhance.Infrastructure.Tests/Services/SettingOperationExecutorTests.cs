@@ -511,6 +511,39 @@ public class SettingOperationExecutorTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task ApplySettingOperationsAsync_ScriptMappings_NoneIndex_SkipsPowerShellRunner()
+    {
+        var setting = CreateSetting("ps-scriptmap-none", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Show all", Script = ScriptOption.Enabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Hide all", Script = ScriptOption.Disabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom", Script = ScriptOption.None },
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    EnabledScript = "echo enabled",
+                    DisabledScript = "echo disabled",
+                    RunContext = RunContext.User,
+                },
+            },
+        };
+
+        // enable=false, value=2 (Custom index → ScriptOption.None → no script should run)
+        await _executor.ApplySettingOperationsAsync(setting, false, 2);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptInMemoryAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // ---------------------------------------------------------------
     // 5. Power config operations delegated to PowerCfgApplier
     // ---------------------------------------------------------------

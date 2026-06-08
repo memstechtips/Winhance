@@ -246,6 +246,26 @@ public class SystemSettingsDiscoveryService(
             }
         }
 
+        var trayIconSettings = settingsList
+            .Where(s => s.DetectionType == DetectionType.SystemTrayIcons)
+            .ToList();
+
+        foreach (var setting in trayIconSettings)
+        {
+            try
+            {
+                results[setting.Id] = new Dictionary<string, object?>
+                {
+                    ["DetectedIndex"] = DetectSystemTrayIndex(setting)
+                };
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning,
+                    $"Exception detecting system tray icon state for '{setting.Id}': {ex.Message}");
+            }
+        }
+
         var selectionSettings = settingsList.Where(s => s.InputType == InputType.Selection).ToList();
 
         int handlersInvoked = 0;
@@ -519,6 +539,16 @@ public class SystemSettingsDiscoveryService(
                 return idx != 0; // 0 = Automatic/DHCP = default state
             return false;
         }
+        else if (setting.DetectionType == DetectionType.SystemTrayIcons)
+        {
+            if (rawValues.TryGetValue("DetectedIndex", out var detectedIdx) && detectedIdx is int idx)
+            {
+                // "Enabled/managed" when a definite Winhance state is active (Show all
+                // or Hide all); the Custom option is the hands-off baseline.
+                return idx != IndexOfScriptOption(setting, ScriptOption.None);
+            }
+            return false;
+        }
 
         return false;
     }
@@ -651,5 +681,50 @@ public class SystemSettingsDiscoveryService(
         }
 
         return ComboBoxConstants.CustomStateIndex;
+    }
+
+    private int DetectSystemTrayIndex(SettingDefinition setting)
+    {
+        const string keyPath = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";
+
+        var subKeys = registryService.GetSubKeyNames(keyPath);
+        if (subKeys.Length == 0)
+            return IndexOfScriptOption(setting, ScriptOption.None); // Custom
+
+        int total = 0;
+        int promoted = 0;
+        foreach (var subKey in subKeys)
+        {
+            var raw = registryService.GetValue($@"{keyPath}\{subKey}", "IsPromoted");
+            if (raw == null)
+                continue;
+
+            total++;
+            if (Convert.ToInt32(raw) == 1)
+                promoted++;
+        }
+
+        if (total == 0)
+            return IndexOfScriptOption(setting, ScriptOption.None);   // Custom (no IsPromoted values)
+        if (promoted == total)
+            return IndexOfScriptOption(setting, ScriptOption.Enabled); // Show all
+        if (promoted == 0)
+            return IndexOfScriptOption(setting, ScriptOption.Disabled); // Hide all
+
+        return IndexOfScriptOption(setting, ScriptOption.None);        // Custom (mixed)
+    }
+
+    private static int IndexOfScriptOption(SettingDefinition setting, ScriptOption option)
+    {
+        var options = setting.ComboBox?.Options;
+        if (options == null)
+            return 0;
+
+        for (int i = 0; i < options.Count; i++)
+        {
+            if (options[i].Script == option)
+                return i;
+        }
+        return 0;
     }
 }

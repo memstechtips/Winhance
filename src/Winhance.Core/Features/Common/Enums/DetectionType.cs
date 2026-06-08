@@ -8,4 +8,5 @@ public enum DetectionType
     PowerPlan,
     DnsServer,
     SystemRestore,
+    SystemTrayIcons,
 }
