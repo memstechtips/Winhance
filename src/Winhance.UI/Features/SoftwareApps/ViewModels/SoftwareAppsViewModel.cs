@@ -233,6 +233,29 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string SortNameAscText => _localizationService.GetString("SoftwareApps_Sort_NameAZ") ?? "Name A-Z";
     public string SortNameDescText => _localizationService.GetString("SoftwareApps_Sort_NameZA") ?? "Name Z-A";
 
+    /// <summary>
+    /// Hint shown when hovering the Sort button while it is disabled in Table view —
+    /// sorting in Table view is driven by clicking the column headers instead.
+    /// </summary>
+    public string SortTableHintText => _localizationService.GetString("SoftwareApps_Sort_TableHint") ?? "Click a column header to sort by it in ascending or descending order.";
+
+    /// <summary>
+    /// The Sort dropdown is only usable in Card and Compact views; in Table view sorting is
+    /// done by clicking a column header (see <see cref="SortTableHintText"/>), so the button
+    /// is disabled there.
+    /// </summary>
+    public bool IsSortButtonEnabled => !IsTableView;
+
+    // Table-view column header texts. Applied to the DataGrid columns in code-behind
+    // (SoftwareAppsPage.LocalizeColumnHeaders) because CommunityToolkit DataGrid columns
+    // live outside the page's compiled-binding tree, and re-applied on language change.
+    public string ColumnHeaderName => _localizationService.GetString("SoftwareApps_Column_Name") ?? "Name";
+    public string ColumnHeaderDescription => _localizationService.GetString("SoftwareApps_Column_Description") ?? "Description";
+    public string ColumnHeaderType => _localizationService.GetString("SoftwareApps_Column_Type") ?? "Type";
+    public string ColumnHeaderStatus => _localizationService.GetString("SoftwareApps_Column_Status") ?? "Status";
+    public string ColumnHeaderInstallable => _localizationService.GetString("SoftwareApps_Column_Installable") ?? "Installable";
+    public string ColumnHeaderGroup => _localizationService.GetString("SoftwareApps_Column_Group") ?? "Group";
+
     public string ReviewWindowsAppsBannerText
     {
         get
@@ -269,6 +292,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsCardView));
         OnPropertyChanged(nameof(IsTableView));
         OnPropertyChanged(nameof(IsCompactView));
+        OnPropertyChanged(nameof(IsSortButtonEnabled));
     }
 
     partial void OnSortModeChanged(AppSortMode value)
@@ -341,6 +365,13 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(SortInstalledFirstText));
         OnPropertyChanged(nameof(SortNameAscText));
         OnPropertyChanged(nameof(SortNameDescText));
+        OnPropertyChanged(nameof(SortTableHintText));
+        OnPropertyChanged(nameof(ColumnHeaderName));
+        OnPropertyChanged(nameof(ColumnHeaderDescription));
+        OnPropertyChanged(nameof(ColumnHeaderType));
+        OnPropertyChanged(nameof(ColumnHeaderStatus));
+        OnPropertyChanged(nameof(ColumnHeaderInstallable));
+        OnPropertyChanged(nameof(ColumnHeaderGroup));
         OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
         OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
     }

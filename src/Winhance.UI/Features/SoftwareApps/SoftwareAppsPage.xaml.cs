@@ -27,6 +27,11 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateTabBadges();
 
+        // DataGrid column headers can't use {x:Bind}/{Binding} (CommunityToolkit
+        // columns live outside the page's binding tree), so set them from the
+        // localized ViewModel strings here and re-apply on language change below.
+        LocalizeColumnHeaders();
+
         // WinUI 3 InfoBar on a cached page does not re-evaluate its internal
         // ThemeResource bindings when the app theme changes.  Work around this
         // by closing and re-opening the visible banner on the next dispatcher
@@ -100,6 +105,46 @@ public sealed partial class SoftwareAppsPage : Page
             e.PropertyName == nameof(SoftwareAppsViewModel.IsInReviewMode))
         {
             DispatcherQueue.TryEnqueue(UpdateTabBadges);
+        }
+        else if (e.PropertyName == nameof(SoftwareAppsViewModel.ColumnHeaderName))
+        {
+            // OnLanguageChanged raises all ColumnHeader* together; one is enough to re-apply.
+            DispatcherQueue.TryEnqueue(LocalizeColumnHeaders);
+        }
+    }
+
+    /// <summary>
+    /// Pushes the localized column-header strings from the ViewModel onto both DataGrids,
+    /// matching each column by its <c>Tag</c> (the same value the sort handler uses). The
+    /// untagged selection/spacer columns are left untouched. Called once at construction and
+    /// again whenever the app language changes.
+    /// </summary>
+    private void LocalizeColumnHeaders()
+    {
+        ApplyColumnHeaders(WindowsAppsDataGrid);
+        ApplyColumnHeaders(ExternalAppsDataGrid);
+    }
+
+    private void ApplyColumnHeaders(DataGrid? grid)
+    {
+        if (grid is null)
+            return;
+
+        foreach (var column in grid.Columns)
+        {
+            string? header = (column.Tag as string) switch
+            {
+                "Name" => ViewModel.ColumnHeaderName,
+                "Description" => ViewModel.ColumnHeaderDescription,
+                "ItemTypeDescription" => ViewModel.ColumnHeaderType,
+                "IsInstalled" => ViewModel.ColumnHeaderStatus,
+                "CanBeReinstalled" => ViewModel.ColumnHeaderInstallable,
+                "CategoryDisplayName" => ViewModel.ColumnHeaderGroup,
+                _ => null
+            };
+
+            if (header is not null)
+                column.Header = header;
         }
     }
 
@@ -277,21 +322,6 @@ public sealed partial class SoftwareAppsPage : Page
             (int)System.Math.Floor((available + spacing) / (itemWidth + spacing)));
         double contentWidth = cols * itemWidth + System.Math.Max(0, cols - 1) * spacing + expanderChrome;
         contentStack.MaxWidth = contentWidth;
-    }
-
-    private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
-        {
-            try
-            {
-                await Windows.System.Launcher.LaunchUriAsync(new Uri(url));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to launch {url}: {ex.Message}");
-            }
-        }
     }
 
     private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.WebsiteLinkButton"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    mc:Ignorable="d"
+    Visibility="Collapsed">
+
+    <!-- Reusable "visit website" link shared by the Software & Apps card, table and
+         compact views. Native HyperlinkButton (accent affordance). The icon, the
+         URL-as-tooltip, the string->Uri conversion and auto show/hide all live in the
+         code-behind, so call sites only set Url. -->
+    <HyperlinkButton x:Name="LinkButton"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Padding="4"
+                     MinWidth="0"
+                     MinHeight="0"
+                     VerticalAlignment="Center">
+        <Viewbox Width="16" Height="16">
+            <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular"/>
+        </Viewbox>
+    </HyperlinkButton>
+</UserControl>
