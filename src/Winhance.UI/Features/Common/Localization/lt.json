@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows numatytasis",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Didelis (4 096 piktogramos)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Labai didelis (8 192 piktogramos)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Automatinis miniatiūrų talpyklos valymas",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Leidžia Windows išvalyti miniatiūrų talpyklą atliekant automatinę disko priežiūrą. Išjunkite tai, kad miniatiūros liktų talpykloje ir Failų naršyklei nereikėtų jų iš naujo generuoti, kai vėl atidarote aplankus",
   "Setting_explorer-customization-folder-tips_Name": "Rodyti failo dydžio informaciją aplankų patarimuose",
   "Setting_explorer-customization-folder-tips_Description": "Rodo bendrą dydį ir failų skaičių užvedus pelę ant aplankų",
   "Setting_explorer-customization-full-path_Name": "Rodyti visą kelią pavadinimo juostoje",

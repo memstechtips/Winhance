@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Výchozí nastavení Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Velká (4 096 ikon)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Velmi velká (8 192 ikon)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Automatické čištění mezipaměti miniatur",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Umožňuje systému Windows vymazat mezipaměť miniatur během automatické údržby disku. Vypnutím této možnosti zachováte miniatury uložené v mezipaměti, takže je Průzkumník nemusí znovu vytvářet při opětovném otevření složek",
   "Setting_explorer-customization-folder-tips_Name": "Zobrazovat informace o velikosti souboru v tipech složek",
   "Setting_explorer-customization-folder-tips_Description": "Zobrazuje celkovou velikost a počet souborů při najetí myší na složky",
   "Setting_explorer-customization-full-path_Name": "Zobrazit celou cestu v záhlaví",

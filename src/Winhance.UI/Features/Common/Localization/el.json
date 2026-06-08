@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Προεπιλογή Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Μεγάλο (4.096 εικονίδια)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Πολύ μεγάλο (8.192 εικονίδια)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Αυτόματη εκκαθάριση προσωρινής μνήμης μικρογραφιών",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Επιτρέπει στα Windows να εκκαθαρίζουν την προσωρινή μνήμη μικρογραφιών κατά την αυτόματη συντήρηση δίσκου. Απενεργοποιήστε το για να διατηρούνται οι αποθηκευμένες μικρογραφίες, ώστε η Εξερεύνηση να μην χρειάζεται να τις δημιουργεί ξανά όταν ανοίγετε ξανά φακέλους",
   "Setting_explorer-customization-folder-tips_Name": "Εμφάνιση πληροφοριών μεγέθους αρχείου στις συμβουλές φακέλων",
   "Setting_explorer-customization-folder-tips_Description": "Εμφανίζει το συνολικό μέγεθος και τον αριθμό αρχείων κατά την κατάδειξη σε φακέλους",
   "Setting_explorer-customization-full-path_Name": "Εμφάνιση της πλήρους διαδρομής στη γραμμή τίτλου",

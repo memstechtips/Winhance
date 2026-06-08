@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows standard",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Stor (4 096 ikoner)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Mycket stor (8 192 ikoner)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Automatisk rensning av miniatyrcache",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Låter Windows rensa miniatyrcachen under automatiskt diskunderhåll. Stäng av detta för att behålla cachelagrade miniatyrer så att Utforskaren inte behöver återskapa dem när du öppnar mappar igen",
   "Setting_explorer-customization-folder-tips_Name": "Visa filstorleksinformation i mapptips",
   "Setting_explorer-customization-folder-tips_Description": "Visar total storlek och antal filer när du håller muspekaren över mappar",
   "Setting_explorer-customization-full-path_Name": "Visa hela sökvägen i namnlisten",

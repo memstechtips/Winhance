@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows 默认",
   "Setting_explorer-customization-icon-cache-size_Option_1": "大（4096 个图标）",
   "Setting_explorer-customization-icon-cache-size_Option_2": "非常大（8192 个图标）",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "自动清理缩略图缓存",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "允许 Windows 在自动磁盘维护期间清除缩略图缓存。关闭此选项可保留已缓存的缩略图，这样在您重新打开文件夹时资源管理器无需重新生成它们",
   "Setting_explorer-customization-folder-tips_Name": "在文件夹提示中显示文件大小信息",
   "Setting_explorer-customization-folder-tips_Description": "将鼠标悬停在文件夹上时显示总大小和文件计数",
   "Setting_explorer-customization-full-path_Name": "在标题栏中显示完整路径",

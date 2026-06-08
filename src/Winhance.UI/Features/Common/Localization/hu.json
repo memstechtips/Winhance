@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows alapértelmezett",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Nagy (4 096 ikon)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Nagyon nagy (8 192 ikon)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Bélyegkép-gyorsítótár automatikus törlése",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Engedélyezi, hogy a Windows törölje a bélyegkép-gyorsítótárat az automatikus lemez-karbantartás során. Kapcsolja ki, hogy a gyorsítótárazott bélyegképek megmaradjanak, így az Intézőnek nem kell újragenerálnia őket, amikor ismét megnyitja a mappákat",
   "Setting_explorer-customization-folder-tips_Name": "A fájlméretre vonatkozó információk megjelenítése a mappatippekben",
   "Setting_explorer-customization-folder-tips_Description": "Megjeleníti a teljes méretet és a fájlok számát, amikor az egérmutatót a mappák fölé viszi",
   "Setting_explorer-customization-full-path_Name": "Jelenítse meg a teljes elérési utat a címsorban",

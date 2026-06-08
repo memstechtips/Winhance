@@ -457,6 +457,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "افتراضي Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "كبير (4,096 أيقونة)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "كبير جدًا (8,192 أيقونة)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "تنظيف ذاكرة التخزين المؤقت للصور المصغرة تلقائيًا",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "يسمح لـ Windows بمسح ذاكرة التخزين المؤقت للصور المصغرة أثناء صيانة القرص التلقائية. أوقف تشغيل هذا الخيار للاحتفاظ بالصور المصغرة المخزنة مؤقتًا حتى لا يضطر المستكشف إلى إعادة إنشائها عند إعادة فتح المجلدات",
   "Setting_explorer-customization-folder-tips_Name": "عرض معلومات حجم الملفات في تلميحات المجلد",
   "Setting_explorer-customization-folder-tips_Description": "يعرض الحجم الكلي وعدد الملفات عند تمرير المؤشر فوق المجلدات",
   "Setting_explorer-customization-full-path_Name": "عرض المسار الكامل في شريط العنوان",

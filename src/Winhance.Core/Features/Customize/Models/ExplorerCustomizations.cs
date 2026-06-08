@@ -1368,6 +1368,46 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-thumbnail-cache-cleanup",
+                    IsSubjectivePreference = true,
+                    Name = "Automatic thumbnail cache cleanup",
+                    Description = "Lets Windows clear the thumbnail cache during automatic disk maintenance. Turn this off to keep cached thumbnails so Explorer does not have to regenerate them when you reopen folders",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "ImageMultiple",
+                    AddedInVersion = "26.06.08",
+                    // Disk Cleanup's "Thumbnail Cache" VolumeCaches handler; Autorun=0 excludes it from
+                    // automatic SilentCleanup. Mirrored to WOW6432Node per the reporter's tested setup.
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Thumbnail Cache",
+                            ValueName = "Autorun",
+                            // Autorun is effectively 0 = off, nonzero = on. Modern Win10/11 ships 3
+                            // (older builds 1); both read as "on". Enable writes 3 (first element);
+                            // disable writes 0 — the reporter's tested value to keep thumbnails.
+                            RecommendedValue = 3,
+                            EnabledValue = [3, 1],
+                            DisabledValue = [0],
+                            DefaultValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Thumbnail Cache",
+                            ValueName = "Autorun",
+                            RecommendedValue = 3,
+                            EnabledValue = [3, 1],
+                            DisabledValue = [0],
+                            DefaultValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-folder-tips",
                     IsSubjectivePreference = true,
                     RecommendedToggleState = true,

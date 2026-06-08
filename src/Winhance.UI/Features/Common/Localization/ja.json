@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows の既定値",
   "Setting_explorer-customization-icon-cache-size_Option_1": "大 (4,096 個)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "特大 (8,192 個)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "サムネイルキャッシュの自動クリーンアップ",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "ディスクの自動メンテナンス中に Windows がサムネイルキャッシュをクリアできるようにします。これをオフにするとキャッシュされたサムネイルが保持され、フォルダーを再度開いたときにエクスプローラーがサムネイルを再生成する必要がなくなります",
   "Setting_explorer-customization-folder-tips_Name": "フォルダーのヒントにファイルサイズ情報を表示",
   "Setting_explorer-customization-folder-tips_Description": "フォルダーにカーソルを合わせると、合計サイズとファイル数を表示",
   "Setting_explorer-customization-full-path_Name": "タイトルバーに完全なパスを表示",

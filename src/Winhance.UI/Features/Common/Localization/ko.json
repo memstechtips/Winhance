@@ -508,6 +508,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows 기본값",
   "Setting_explorer-customization-icon-cache-size_Option_1": "크게 (4,096개)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "매우 크게 (8,192개)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "축소판 캐시 자동 정리",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "자동 디스크 유지 관리 중에 Windows가 축소판 캐시를 지울 수 있도록 합니다. 이 옵션을 끄면 캐시된 축소판이 유지되어, 폴더를 다시 열 때 탐색기가 축소판을 다시 생성하지 않아도 됩니다",
   "Setting_explorer-customization-folder-tips_Name": "폴더 팁에 파일 크기 정보 표시",
   "Setting_explorer-customization-folder-tips_Description": "폴더 위에 마우스를 올리면 전체 크기 및 파일 수를 표시합니다",
   "Setting_explorer-customization-full-path_Name": "제목 표시줄에 전체 경로 표시",

@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows-verstek",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Groot (4.096 ikone)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Baie groot (8.192 ikone)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Outomatiese duimnaelkas-skoonmaak",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Laat Windows toe om die duimnaelkas tydens outomatiese skyf-onderhoud skoon te maak. Skakel dit af om gekaste duimnaels te behou sodat Verkenner hulle nie hoef te herskep wanneer jy gidse weer oopmaak nie",
   "Setting_explorer-customization-folder-tips_Name": "Vertoon lêergrootte-inligting in gidswenke",
   "Setting_explorer-customization-folder-tips_Description": "Wys totale grootte en lêertelling wanneer oor gidse gehou word",
   "Setting_explorer-customization-full-path_Name": "Vertoon die volle pad in die titelbalk",

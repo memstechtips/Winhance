@@ -508,6 +508,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "پیش‌فرض ویندوز",
   "Setting_explorer-customization-icon-cache-size_Option_1": "بزرگ (۴٬۰۹۶ آیکون)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "بسیار بزرگ (۸٬۱۹۲ آیکون)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "پاک‌سازی خودکار حافظه پنهان تصاویر بندانگشتی",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "به ویندوز اجازه می‌دهد حافظه پنهان تصاویر بندانگشتی را هنگام نگهداری خودکار دیسک پاک کند. این گزینه را خاموش کنید تا تصاویر بندانگشتی ذخیره‌شده حفظ شوند و File Explorer مجبور نباشد هنگام بازکردن دوباره پوشه‌ها آن‌ها را از نو بسازد",
   "Setting_explorer-customization-folder-tips_Name": "نمایش اطلاعات حجم فایل‌ها در راهنمای پوشه",
   "Setting_explorer-customization-folder-tips_Description": "نمایش حجم کل و تعداد فایل‌ها هنگام حرکت ماوس روی پوشه‌ها",
   "Setting_explorer-customization-full-path_Name": "نمایش مسیر کامل در نوار عنوان",

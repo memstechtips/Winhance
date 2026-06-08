@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Predeterminado de Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Grande (4.096 iconos)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Muy grande (8.192 iconos)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Limpieza automática de la caché de miniaturas",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Permite que Windows borre la caché de miniaturas durante el mantenimiento automático de disco. Desactívalo para conservar las miniaturas en caché, de modo que el Explorador no tenga que regenerarlas al volver a abrir las carpetas",
   "Setting_explorer-customization-folder-tips_Name": "Mostrar información de tamaño de archivo en los consejos de carpeta",
   "Setting_explorer-customization-folder-tips_Description": "Muestra el tamaño total y el recuento de archivos al pasar el ratón sobre las carpetas",
   "Setting_explorer-customization-full-path_Name": "Mostrar la ruta completa en la barra de título",

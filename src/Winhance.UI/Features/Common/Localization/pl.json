@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Domyślne Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Duża (4 096 ikon)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Bardzo duża (8 192 ikony)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Automatyczne czyszczenie pamięci podręcznej miniatur",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Pozwala systemowi Windows czyścić pamięć podręczną miniatur podczas automatycznej konserwacji dysku. Wyłącz tę opcję, aby zachować miniatury w pamięci podręcznej, dzięki czemu Eksplorator plików nie musi generować ich ponownie po ponownym otwarciu folderów",
   "Setting_explorer-customization-folder-tips_Name": "Wyświetlaj informacje o rozmiarze pliku w etykietach folderów",
   "Setting_explorer-customization-folder-tips_Description": "Pokazuje całkowity rozmiar i liczbę plików po najechaniu kursorem na foldery",
   "Setting_explorer-customization-full-path_Name": "Wyświetl pełną ścieżkę w pasku tytułu",

@@ -622,6 +622,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-thumbnail-cache-cleanup",
+            "Name": "Automatic thumbnail cache cleanup",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-folder-tips",
             "Name": "Display file size information in folder tips",
             "IsSelected": true,

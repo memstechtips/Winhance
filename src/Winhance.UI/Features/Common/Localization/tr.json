@@ -508,6 +508,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows varsayılanı",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Büyük (4.096 simge)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Çok büyük (8.192 simge)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Otomatik küçük resim önbelleği temizleme",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Windows'un otomatik disk bakımı sırasında küçük resim önbelleğini temizlemesine izin verir. Önbellekteki küçük resimleri korumak için bunu kapatın; böylece Dosya Gezgini, klasörleri yeniden açtığınızda onları yeniden oluşturmak zorunda kalmaz",
   "Setting_explorer-customization-folder-tips_Name": "Klasör ipuçlarında dosya boyutu bilgilerini görüntüle",
   "Setting_explorer-customization-folder-tips_Description": "Klasörlerin üzerine gelindiğinde toplam boyutu ve dosya sayısını gösterir",
   "Setting_explorer-customization-full-path_Name": "Başlık çubuğunda tam yolu görüntüle",

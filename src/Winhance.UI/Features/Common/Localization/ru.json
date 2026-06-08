@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "По умолчанию Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Большой (4 096 значков)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Очень большой (8 192 значка)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Автоматическая очистка кэша эскизов",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Позволяет Windows очищать кэш эскизов во время автоматического обслуживания диска. Отключите эту настройку, чтобы сохранять кэшированные эскизы, и Проводнику не приходилось создавать их заново при повторном открытии папок",
   "Setting_explorer-customization-folder-tips_Name": "Отображать информацию о размере файла во всплывающих подсказках для папок",
   "Setting_explorer-customization-folder-tips_Description": "Показывает общий размер и количество файлов при наведении на папки",
   "Setting_explorer-customization-full-path_Name": "Отображать полный путь в строке заголовка",

@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows-Standard",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Groß (4.096 Symbole)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Sehr groß (8.192 Symbole)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Automatische Bereinigung des Miniaturansichten-Cache",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Lässt Windows den Miniaturansichten-Cache während der automatischen Datenträgerwartung leeren. Schalten Sie dies aus, um zwischengespeicherte Miniaturansichten zu behalten, damit der Explorer sie beim erneuten Öffnen von Ordnern nicht neu erstellen muss",
   "Setting_explorer-customization-folder-tips_Name": "Dateigrößeninformationen in Ordner-Tooltips anzeigen",
   "Setting_explorer-customization-folder-tips_Description": "Zeigt die Gesamtgröße und die Anzahl der Dateien an, wenn Sie mit der Maus über Ordner fahren",
   "Setting_explorer-customization-full-path_Name": "Vollständigen Pfad in der Titelleiste anzeigen",

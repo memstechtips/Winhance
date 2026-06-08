@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "За замовчуванням Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Великий (4 096 іконок)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Дуже великий (8 192 іконки)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Автоматичне очищення кешу мініатюр",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Дозволяє Windows очищати кеш мініатюр під час автоматичного обслуговування диска. Вимкніть цей параметр, щоб зберігати кешовані мініатюри, і Провіднику файлів не доведеться створювати їх заново під час повторного відкриття папок",
   "Setting_explorer-customization-folder-tips_Name": "Відображати інформацію про розмір файлу у підказках папок",
   "Setting_explorer-customization-folder-tips_Description": "Показує загальний розмір та кількість файлів при наведенні на папки",
   "Setting_explorer-customization-full-path_Name": "Відображати повний шлях у рядку заголовка",

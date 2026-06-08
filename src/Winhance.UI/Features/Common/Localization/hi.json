@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows डिफ़ॉल्ट",
   "Setting_explorer-customization-icon-cache-size_Option_1": "बड़ा (4,096 आइकन)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "बहुत बड़ा (8,192 आइकन)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "स्वचालित थंबनेल कैश सफाई",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "विंडोज को स्वचालित डिस्क रखरखाव के दौरान थंबनेल कैश साफ़ करने देता है। इसे बंद करें ताकि कैश किए गए थंबनेल बने रहें और फ़ोल्डर दोबारा खोलने पर एक्सप्लोरर को उन्हें फिर से बनाना न पड़े",
   "Setting_explorer-customization-folder-tips_Name": "फ़ोल्डर युक्तियों में फ़ाइल आकार की जानकारी प्रदर्शित करें",
   "Setting_explorer-customization-folder-tips_Description": "फ़ोल्डरों पर होवर करने पर कुल आकार और फ़ाइल गणना दिखाता है",
   "Setting_explorer-customization-full-path_Name": "शीर्षक बार में पूरा पथ प्रदर्शित करें",

@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows 預設",
   "Setting_explorer-customization-icon-cache-size_Option_1": "大（4096 個圖示）",
   "Setting_explorer-customization-icon-cache-size_Option_2": "非常大（8192 個圖示）",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "自動清理縮圖快取",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "允許 Windows 在自動磁碟維護期間清除縮圖快取。關閉此選項可保留已快取的縮圖，這樣在您重新開啟資料夾時檔案總管無需重新產生它們",
   "Setting_explorer-customization-folder-tips_Name": "在資料夾提示中顯示檔案大小資訊",
   "Setting_explorer-customization-folder-tips_Description": "滑鼠游標停留在資料夾上時，顯示總大小與檔案計數",
   "Setting_explorer-customization-full-path_Name": "在標題列顯示完整路徑",

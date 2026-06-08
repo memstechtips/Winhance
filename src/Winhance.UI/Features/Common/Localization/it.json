@@ -474,6 +474,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Predefinito di Windows",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Grande (4.096 icone)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Molto grande (8.192 icone)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Pulizia automatica della cache delle anteprime",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Consente a Windows di svuotare la cache delle anteprime durante la manutenzione automatica del disco. Disattiva questa opzione per mantenere le anteprime nella cache, così Esplora file non deve rigenerarle quando riapri le cartelle",
   "Setting_explorer-customization-folder-tips_Name": "Visualizza le informazioni sulla dimensione del file nei suggerimenti delle cartelle",
   "Setting_explorer-customization-folder-tips_Description": "Mostra le dimensioni totali e il conteggio dei file quando si passa il mouse sulle cartelle",
   "Setting_explorer-customization-full-path_Name": "Visualizza il percorso completo nella barra del titolo",

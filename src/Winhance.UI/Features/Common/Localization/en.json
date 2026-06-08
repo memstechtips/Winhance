@@ -508,6 +508,8 @@
   "Setting_explorer-customization-icon-cache-size_Option_0": "Windows default",
   "Setting_explorer-customization-icon-cache-size_Option_1": "Large (4,096 icons)",
   "Setting_explorer-customization-icon-cache-size_Option_2": "Very large (8,192 icons)",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Name": "Automatic thumbnail cache cleanup",
+  "Setting_explorer-customization-thumbnail-cache-cleanup_Description": "Lets Windows clear the thumbnail cache during automatic disk maintenance. Turn this off to keep cached thumbnails so Explorer does not have to regenerate them when you reopen folders",
   "Setting_explorer-customization-folder-tips_Name": "Display file size information in folder tips",
   "Setting_explorer-customization-folder-tips_Description": "Shows total size and file count when hovering over folders",
   "Setting_explorer-customization-full-path_Name": "Display the full path in the title bar",
