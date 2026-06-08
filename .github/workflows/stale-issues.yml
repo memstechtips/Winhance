@@ -3,7 +3,7 @@ name: Close Stale Issues
 on:
   schedule:
     # Runs every day at 00:00 UTC (adjust as needed)
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch: # Allows you to run this manually from Actions tab
 
 permissions:
@@ -19,8 +19,8 @@ jobs:
           # === ISSUE CONFIGURATION ===
 
           # Days of inactivity before closing (7 days as requested)
-          days-before-issue-stale: -1  # -1 means skip the "stale" label phase
-          days-before-issue-close: 7   # Close after 7 days of inactivity
+          days-before-issue-stale: -1 # -1 means skip the "stale" label phase
+          days-before-issue-close: 7 # Close after 7 days of inactivity
 
           # Message posted when closing the issue
           close-issue-message: |
@@ -34,18 +34,18 @@ jobs:
           # stale-issue-message: 'This issue will be closed in 2 days due to inactivity.'
 
           # Label to add when closing (optional)
-          close-issue-label: 'closed-due-to-inactivity'
+          close-issue-label: "closed-due-to-inactivity"
 
           # === EXEMPTIONS ===
 
           # Issues with these labels will NEVER be closed
-          exempt-issue-labels: 'pinned,security,keep-open,bug,enhancement,feature request'
+          exempt-issue-labels: "pinned,security,keep-open,bug,enhancement,feature request"
 
           # Exempt issues with assignees
-          exempt-assignees: false  # Set to true if you want assigned issues to never close
+          exempt-assignees: false # Set to true if you want assigned issues to never close
 
           # Exempt issues with milestones
-          exempt-milestones: true  # Issues in milestones won't be closed
+          exempt-milestones: true # Issues in milestones won't be closed
 
           # === PULL REQUEST CONFIGURATION ===
 

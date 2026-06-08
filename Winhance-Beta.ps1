@@ -94,7 +94,8 @@ try {
             Write-Host "Launching Winhance..." -ForegroundColor Cyan
             Start-Process -FilePath $appPath
         }
-    } else {
+    }
+    else {
         # Portable installation - extract to Desktop
         Write-Host ""
         Write-Host "Extracting Winhance Beta Portable to Desktop..." -ForegroundColor Cyan
@@ -109,7 +110,8 @@ try {
             Start-Process -FilePath $appPath
         }
     }
-} catch {
+}
+catch {
     Write-Host ""
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host ""

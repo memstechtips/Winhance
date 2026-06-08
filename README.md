@@ -10,13 +10,16 @@
 <img width="1920" height="1080" alt="Winhance-UI" src="https://github.com/user-attachments/assets/6adedef9-6587-4f29-9bb2-d907965b7a03" />
 
 ## Requirements 💻
+
 - Windows 10/11
-  - *Tested on Windows 10 x64 22H2 and Windows 11 23H2, 24H2 and 25H2*
+  - _Tested on Windows 10 x64 22H2 and Windows 11 23H2, 24H2 and 25H2_
 
 ## Installation 📥
 
 ### Quick Install via PowerShell
+
 Paste this command into PowerShell to download and run the installer:
+
 ```powershell
 irm "https://get.winhance.net" | iex
 ```
@@ -42,6 +45,7 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 ## Current Features 🛠️
 
 ### Software & Apps 💿
+
 - **Windows Apps & Features Section**
   - Searchable interface with explanatory legend
   - Organized sections for Windows Apps, Legacy Capabilities, and Optional Features
@@ -53,6 +57,7 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
   - Categories include Browsers, Multimedia utilities, Document viewers, and more
 
 ### Optimize 🚀
+
 - Searchable interface with quick nav control
 - Toggle switches and selection controls for each setting
 - Set UAC Notification Level
@@ -64,6 +69,7 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 - Notification Preferences
 
 ### Customize 🎨
+
 - Searchable interface with quick nav control
 - Toggle switches and selection controls for each setting
 - Windows Theme selector (Dark/Light Mode)
@@ -72,12 +78,14 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 - Explorer Customizations
 
 ### Advanced Tools 🛠️
+
 - Create Custom Windows ISO's with WIMUtil (Windows Installation Media Utility) including adding drivers from current OS
 - Create autounattend.xml files based on your Winhance selections
 
-### Other Settings 
+### Other Settings
+
 - Manage Your Winhance (and Windows) Settings with Wihance Configuration Files:
-   - Save settings currently applied in Winhance to a config file for easy importing on a new system or after a fresh Windows install.
+  - Save settings currently applied in Winhance to a config file for easy importing on a new system or after a fresh Windows install.
 - Toggle Winhance's theme (Light/Dark Mode)
 
 ## License

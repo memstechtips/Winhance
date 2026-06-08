@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to suggest an improvement!
-        
+
   - type: checkboxes
     id: prerequisites
     attributes:
@@ -18,7 +18,7 @@ body:
           required: true
         - label: "This is an improvement to an existing feature (not a new feature request)."
           required: true
-          
+
   - type: textarea
     id: description
     attributes:
@@ -27,7 +27,7 @@ body:
       placeholder: "I would like to see..."
     validations:
       required: true
-      
+
   - type: textarea
     id: current
     attributes:
@@ -36,7 +36,7 @@ body:
       placeholder: "Currently, the feature..."
     validations:
       required: true
-      
+
   - type: textarea
     id: proposed
     attributes:
@@ -45,7 +45,7 @@ body:
       placeholder: "I would like the feature to..."
     validations:
       required: true
-      
+
   - type: textarea
     id: benefit
     attributes:
@@ -54,7 +54,7 @@ body:
       placeholder: "This would be useful because..."
     validations:
       required: true
-      
+
   - type: textarea
     id: additional
     attributes:
