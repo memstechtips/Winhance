@@ -265,10 +265,10 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         get
         {
             if (IsWindowsAppsInstallAction)
-                return _localizationService.GetString("Review_Mode_Action_Install") ?? "Checked apps will be installed when you apply the config";
+                return _localizationService.GetString("Review_Mode_Action_Install");
             if (IsWindowsAppsRemoveAction)
-                return _localizationService.GetString("Review_Mode_Action_Remove") ?? "Checked apps will be removed when you apply the config";
-            return _localizationService.GetString("Review_Mode_Select_Action") ?? "Select an action for checked apps using the checkboxes above";
+                return _localizationService.GetString("Review_Mode_Action_Remove");
+            return _localizationService.GetString("Review_Mode_Select_Action");
         }
     }
 
@@ -277,10 +277,10 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         get
         {
             if (IsExternalAppsInstallAction)
-                return _localizationService.GetString("Review_Mode_Action_Install") ?? "Checked apps will be installed when you apply the config";
+                return _localizationService.GetString("Review_Mode_Action_Install");
             if (IsExternalAppsRemoveAction)
-                return _localizationService.GetString("Review_Mode_Action_Remove") ?? "Checked apps will be removed when you apply the config";
-            return _localizationService.GetString("Review_Mode_Select_Action") ?? "Select an action for checked apps using the checkboxes above";
+                return _localizationService.GetString("Review_Mode_Action_Remove");
+            return _localizationService.GetString("Review_Mode_Select_Action");
         }
     }
 
