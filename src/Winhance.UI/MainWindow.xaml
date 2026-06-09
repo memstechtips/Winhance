@@ -125,11 +125,13 @@
                                       BorderThickness="0"
                                       CornerRadius="4,0,0,4"
                                       Padding="10,6">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Viewbox Width="16" Height="16">
-                                    <PathIcon Data="{StaticResource ModeNormalIconPath}"/>
-                                </Viewbox>
-                                <TextBlock Text="{x:Bind ViewModel.ModeNormalLabel, Mode=OneWay}" FontSize="12"/>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/ModeIcons/winhance-monitor.png"
+                                       Width="24" Height="24"
+                                       VerticalAlignment="Center"/>
+                                <TextBlock Text="{x:Bind ViewModel.ModeNormalLabel, Mode=OneWay}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"/>
                             </StackPanel>
                         </ToggleButton>
                         <Border Width="1"
@@ -146,11 +148,13 @@
                                       BorderThickness="0"
                                       CornerRadius="0"
                                       Padding="10,6">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Viewbox Width="16" Height="16">
-                                    <PathIcon Data="{StaticResource ModeBuilderIconPath}"/>
-                                </Viewbox>
-                                <TextBlock Text="{x:Bind ViewModel.ModeBuilderLabel, Mode=OneWay}" FontSize="12"/>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/ModeIcons/winhance-document-build.png"
+                                       Width="24" Height="24"
+                                       VerticalAlignment="Center"/>
+                                <TextBlock Text="{x:Bind ViewModel.ModeBuilderLabel, Mode=OneWay}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"/>
                             </StackPanel>
                         </ToggleButton>
                         <Border Width="1"
@@ -167,11 +171,13 @@
                                       BorderThickness="0"
                                       CornerRadius="0,4,4,0"
                                       Padding="10,6">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Viewbox Width="16" Height="16">
-                                    <PathIcon Data="{StaticResource ModeConfigReviewIconPath}"/>
-                                </Viewbox>
-                                <TextBlock Text="{x:Bind ViewModel.ModeConfigReviewLabel, Mode=OneWay}" FontSize="12"/>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/ModeIcons/winhance-document-search.png"
+                                       Width="24" Height="24"
+                                       VerticalAlignment="Center"/>
+                                <TextBlock Text="{x:Bind ViewModel.ModeConfigReviewLabel, Mode=OneWay}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"/>
                             </StackPanel>
                         </ToggleButton>
                     </StackPanel>
@@ -261,13 +267,11 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
             </Grid.ColumnDefinitions>
 
-            <Viewbox Grid.Column="0"
-                     Width="16" Height="16"
-                     VerticalAlignment="Center"
-                     Margin="0,0,10,0">
-                <PathIcon Data="{StaticResource ModeConfigReviewIconPath}"
-                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-            </Viewbox>
+            <Image Grid.Column="0"
+                   Source="ms-appx:///Assets/ModeIcons/winhance-document-search.png"
+                   Width="24" Height="24"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,0"/>
 
             <TextBlock Grid.Column="1"
                        x:Name="ReviewModeTitleText"
@@ -347,13 +351,11 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel -->
             </Grid.ColumnDefinitions>
 
-            <Viewbox Grid.Column="0"
-                     Width="16" Height="16"
-                     VerticalAlignment="Center"
-                     Margin="0,0,10,0">
-                <PathIcon Data="{StaticResource ModeBuilderIconPath}"
-                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-            </Viewbox>
+            <Image Grid.Column="0"
+                   Source="ms-appx:///Assets/ModeIcons/winhance-document-build.png"
+                   Width="24" Height="24"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,0"/>
 
             <TextBlock Grid.Column="1"
                        Text="{x:Bind ViewModel.BuilderModeBar.BuilderModeTitleText, Mode=OneWay}"
