@@ -10,9 +10,11 @@ namespace Winhance.UI.Features.Common.Services;
 public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationService, IDisposable
 {
     private bool _disposed;
+    private WinhanceMode _previousMode = WinhanceMode.Normal;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
+    private readonly IApplicationModeService _applicationModeService;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly IConfigImportOverlayService _overlayService;
@@ -29,6 +31,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
+        IApplicationModeService applicationModeService,
         IConfigReviewModeService configReviewModeService,
         IConfigReviewDiffService configReviewDiffService,
         IConfigImportOverlayService overlayService,
@@ -44,6 +47,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
+        _applicationModeService = applicationModeService;
         _configReviewModeService = configReviewModeService;
         _configReviewDiffService = configReviewDiffService;
         _overlayService = overlayService;
@@ -58,6 +62,10 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+
+        // Listen for Builder exit to reload settings that were authored without applying
+        _previousMode = _applicationModeService.CurrentMode;
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
 
     public void Dispose()
@@ -65,6 +73,24 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         if (_disposed) return;
         _disposed = true;
         _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
+        _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+    }
+
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        var previous = _previousMode;
+        var current = _applicationModeService.CurrentMode;
+        _previousMode = current;
+
+        // Builder authors toggle/selection state into the shared settings VMs without
+        // applying it. Returning to Normal leaves those positions stale, so reload from
+        // live system state. Builder -> ConfigReview is intentionally excluded: the review
+        // diff machinery re-seeds those VMs itself, and reloading would clobber it.
+        if (previous == WinhanceMode.Builder && current == WinhanceMode.Normal)
+        {
+            _eventBus.Publish(new BuilderModeExitedEvent());
+            _logService.Log(LogLevel.Info, "Published BuilderModeExitedEvent to reload settings from system state");
+        }
     }
 
     private void OnReviewModeChanged(object? sender, EventArgs e)

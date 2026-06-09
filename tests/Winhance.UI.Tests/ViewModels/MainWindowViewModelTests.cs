@@ -29,6 +29,7 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IConfigExportService> _mockConfigExportService = new();
+    private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
 
     private readonly TaskProgressViewModel _taskProgressViewModel;
     private readonly UpdateCheckViewModel _updateCheckViewModel;
@@ -112,7 +113,8 @@ public class MainWindowViewModelTests : IDisposable
             _reviewModeBarViewModel,
             _builderModeBarViewModel,
             _mockApplicationModeService.Object,
-            _mockDialogService.Object);
+            _mockDialogService.Object,
+            _mockUserPreferencesService.Object);
     }
 
     public void Dispose()

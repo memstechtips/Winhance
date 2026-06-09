@@ -31,6 +31,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
+    private ISubscriptionToken? _builderModeExitedSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
@@ -125,6 +126,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
         _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
+        _builderModeExitedSubscription = _eventBus.SubscribeAsync<BuilderModeExitedEvent>(OnBuilderModeExitedAsync);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -194,6 +196,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 setting.ClearReviewState();
             }
         });
+    }
+
+    private async Task OnBuilderModeExitedAsync(BuilderModeExitedEvent e)
+    {
+        // Builder moved the toggles to authored (un-applied) positions on the shared VMs.
+        // Reload from live system state so Normal mode shows the truth. Only touch features
+        // that are actually loaded — unopened ones read fresh system state on first open.
+        if (Settings?.Any() != true) return;
+        await RefreshSettingsForFilterChangeAsync();
     }
 
     private async Task RefreshSettingsForFilterChangeAsync()
@@ -531,6 +542,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             _reviewModeExitedSubscription?.Dispose();
             _reviewModeExitedSubscription = null;
+
+            _builderModeExitedSubscription?.Dispose();
+            _builderModeExitedSubscription = null;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
 

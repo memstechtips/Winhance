@@ -14,6 +14,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IConfigReviewModeService> _mockConfigReviewModeService = new();
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigImportOverlayService> _mockOverlayService = new();
@@ -45,6 +46,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockLogService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
+            _mockApplicationModeService.Object,
             _mockConfigReviewModeService.Object,
             _mockConfigReviewDiffService.Object,
             _mockOverlayService.Object,

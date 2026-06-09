@@ -953,6 +953,7 @@
                             <!-- Tab button (transparent) -->
                             <Button x:Name="ExternalAppsTab"
                                     Command="{x:Bind ViewModel.SelectExternalAppsTabCommand}"
+                                    IsEnabled="{x:Bind ViewModel.IsExternalAppsTabEnabled, Mode=OneWay}"
                                     AutomationProperties.Name="{x:Bind ViewModel.ExternalAppsTabText}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
@@ -973,6 +974,13 @@
                                        VerticalAlignment="Top"
                                        Margin="0,2,8,0"
                                        Visibility="Collapsed"/>
+                            <!-- Lock overlay (Builder + Autounattend): transparent but hit-test
+                                 visible, so the tooltip fires and clicks are blocked even though
+                                 the disabled tab button beneath can swallow hover events. -->
+                            <Border x:Name="ExternalAppsTabLockOverlay"
+                                    Background="Transparent"
+                                    Visibility="{x:Bind ViewModel.IsExternalAppsTabLocked, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTipService.ToolTip="{x:Bind ViewModel.ExternalAppsTabLockedTooltip, Mode=OneWay}"/>
                         </Grid>
                     </Grid>
                 </Border>
@@ -995,6 +1003,16 @@
                                  Message="{x:Bind ViewModel.ReviewWindowsAppsBannerText, Mode=OneWay}"
                                  Margin="0,0,0,8"
                                  Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <!-- Builder Mode Banner for Windows Apps (mutually exclusive with review banner) -->
+                        <InfoBar Grid.Row="0"
+                                 x:Name="WindowsAppsBuilderBanner"
+                                 IsOpen="{x:Bind ViewModel.IsBuilderModeActive, Mode=OneWay}"
+                                 Severity="Warning"
+                                 IsClosable="False"
+                                 Message="{x:Bind ViewModel.BuilderWindowsAppsBannerText, Mode=OneWay}"
+                                 Margin="0,0,0,8"
+                                 Visibility="{x:Bind ViewModel.IsBuilderModeActive, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="WindowsAppsDataGrid"
@@ -1587,6 +1605,16 @@
                                  Message="{x:Bind ViewModel.ReviewExternalAppsBannerText, Mode=OneWay}"
                                  Margin="0,0,0,8"
                                  Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <!-- Builder Mode Banner for External Apps (Config target only; Autounattend locks this tab) -->
+                        <InfoBar Grid.Row="0"
+                                 x:Name="ExternalAppsBuilderBanner"
+                                 IsOpen="{x:Bind ViewModel.IsBuilderModeActive, Mode=OneWay}"
+                                 Severity="Warning"
+                                 IsClosable="False"
+                                 Message="{x:Bind ViewModel.BuilderExternalAppsBannerText, Mode=OneWay}"
+                                 Margin="0,0,0,8"
+                                 Visibility="{x:Bind ViewModel.IsBuilderModeActive, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="ExternalAppsDataGrid"

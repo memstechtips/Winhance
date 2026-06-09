@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
@@ -21,6 +22,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly IConfigReviewBadgeService _configReviewBadgeService;
     private readonly IScheduledTaskService _scheduledTaskService;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IApplicationModeService _applicationModeService;
     private bool _isSubscribed;
 
     public SoftwareAppsViewModel(
@@ -33,7 +35,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         IConfigReviewModeService configReviewModeService,
         IConfigReviewBadgeService configReviewBadgeService,
         IScheduledTaskService scheduledTaskService,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        IApplicationModeService applicationModeService)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
@@ -45,6 +48,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _configReviewBadgeService = configReviewBadgeService;
         _scheduledTaskService = scheduledTaskService;
         _fileSystemService = fileSystemService;
+        _applicationModeService = applicationModeService;
 
         // Initialize partial property defaults (SearchText first since
         // tab-change handlers forward it to child ViewModels)
@@ -354,6 +358,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(SearchPlaceholder));
         OnPropertyChanged(nameof(WindowsAppsTabText));
         OnPropertyChanged(nameof(ExternalAppsTabText));
+        OnPropertyChanged(nameof(ExternalAppsTabLockedTooltip));
+        OnPropertyChanged(nameof(BuilderWindowsAppsBannerText));
+        OnPropertyChanged(nameof(BuilderExternalAppsBannerText));
         OnPropertyChanged(nameof(InstallButtonText));
         OnPropertyChanged(nameof(RemoveButtonText));
         OnPropertyChanged(nameof(RefreshButtonText));
@@ -432,11 +439,61 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         SyncSoftwareAppsReviewedState();
     }
 
+    // Builder mode authors a config without touching this PC, so live install/remove
+    // must stay disabled — app checkboxes are serialized into the saved config instead.
+    private bool IsBuilderMode => _applicationModeService.CurrentMode == WinhanceMode.Builder;
+
+    /// <summary>True while the app is in Builder mode (drives the Builder info ribbons).</summary>
+    public bool IsBuilderModeActive => IsBuilderMode;
+
+    // Autounattend removes Windows apps from the image and can't install external apps
+    // (those install post-setup, and that path isn't built yet) — lock the External Apps
+    // tab while the Autounattend target is active.
+    public bool IsExternalAppsTabLocked =>
+        IsBuilderMode && _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend;
+
+    public bool IsExternalAppsTabEnabled => !IsExternalAppsTabLocked;
+
+    public string? ExternalAppsTabLockedTooltip =>
+        IsExternalAppsTabLocked
+            ? (_localizationService.GetString("SoftwareApps_ExternalTab_AutounattendLocked")
+                ?? "External Apps in autounattend is an upcoming feature.")
+            : null;
+
+    public string BuilderWindowsAppsBannerText =>
+        _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend
+            ? (_localizationService.GetString("SoftwareApps_Builder_Banner_Autounattend_WindowsApps")
+                ?? "Checked apps will be removed from the Windows image during installation.")
+            : (_localizationService.GetString("SoftwareApps_Builder_Banner_Config")
+                ?? "These selections are saved to the config. You choose whether to install or uninstall them when you import.");
+
+    public string BuilderExternalAppsBannerText =>
+        _localizationService.GetString("SoftwareApps_Builder_Banner_Config")
+            ?? "These selections are saved to the config. You choose whether to install or uninstall them when you import.";
+
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        // If the External Apps tab just got locked (Builder + Autounattend) while open,
+        // move the user to Windows Apps so they aren't stranded on a disabled tab.
+        if (IsExternalAppsTabLocked && IsExternalAppsTabSelected)
+        {
+            IsWindowsAppsTabSelected = true;
+        }
+
+        UpdateButtonStates();
+        OnPropertyChanged(nameof(IsBuilderModeActive));
+        OnPropertyChanged(nameof(IsExternalAppsTabLocked));
+        OnPropertyChanged(nameof(IsExternalAppsTabEnabled));
+        OnPropertyChanged(nameof(ExternalAppsTabLockedTooltip));
+        OnPropertyChanged(nameof(BuilderWindowsAppsBannerText));
+        OnPropertyChanged(nameof(BuilderExternalAppsBannerText));
+    }
+
     private void UpdateButtonStates()
     {
         bool isAnyTaskRunning = WindowsAppsViewModel.IsTaskRunning || ExternalAppsViewModel.IsTaskRunning;
 
-        if (IsInReviewMode)
+        if (IsInReviewMode || IsBuilderMode)
         {
             CanInstallItems = false;
             CanRemoveItems = false;
@@ -495,6 +552,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
 
         UpdateButtonStates();
     }
@@ -631,6 +689,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
             _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
+            _applicationModeService.ModeChanged -= OnApplicationModeChanged;
             WindowsAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             WindowsAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;

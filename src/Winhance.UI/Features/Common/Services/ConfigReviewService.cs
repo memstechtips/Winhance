@@ -89,6 +89,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
     {
+        // Fully tear down whatever mode we're leaving (clears Builder edits / prior review
+        // state) before seeding review. Review entry is the one async transition, so it
+        // drives the teardown itself rather than routing through SetMode.
+        LeaveCurrentMode();
+
         ActiveConfig = config;
         IsWindowsDefaults = isWindowsDefaults;
         _diffs.Clear();
@@ -123,7 +128,64 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void ExitReviewMode()
+    public void ExitReviewMode() => SetMode(WinhanceMode.Normal);
+
+    public void EnterBuilderMode(BuilderTarget target) => SetMode(WinhanceMode.Builder, target);
+
+    /// <summary>
+    /// The single entry point for synchronous mode transitions (Normal, Builder). Fully
+    /// exits whatever mode is active — clearing its state and raising its "exited" events so
+    /// subscribers clean up — before entering <paramref name="target"/>. This is the state
+    /// machine's chokepoint: no public method sets <see cref="CurrentMode"/> directly, so the
+    /// modes can never bleed into each other regardless of which transition a caller requests.
+    /// Review entry is async and routes its teardown through <see cref="LeaveCurrentMode"/>.
+    /// </summary>
+    private void SetMode(WinhanceMode target, BuilderTarget builderTarget = BuilderTarget.Config)
+    {
+        LeaveCurrentMode();
+
+        if (target == WinhanceMode.Builder)
+        {
+            CurrentBuilderTarget = builderTarget;
+        }
+
+        CurrentMode = target;
+        _logService.Log(LogLevel.Info, target == WinhanceMode.Builder
+            ? $"[ConfigReviewService] Entered Builder mode (target: {builderTarget})"
+            : $"[ConfigReviewService] Entered {target} mode");
+        ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Completely exits the active mode: clears its in-memory state and raises the
+    /// mode-specific "exited" events (so e.g. the orchestration service clears per-setting
+    /// review state). Leaves <see cref="CurrentMode"/> at Normal and does NOT raise
+    /// <see cref="ModeChanged"/> — the caller owns entering the next mode and raising that.
+    /// No-op when already Normal.
+    /// </summary>
+    private void LeaveCurrentMode()
+    {
+        switch (CurrentMode)
+        {
+            case WinhanceMode.ConfigReview:
+                ClearReviewArtifacts();
+                // Flip out of review BEFORE notifying so subscribers see IsInReviewMode == false.
+                CurrentMode = WinhanceMode.Normal;
+                ReviewModeChanged?.Invoke(this, EventArgs.Empty);
+                BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case WinhanceMode.Builder:
+                _builderEdits.Clear();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Resets the in-memory review artifacts (diffs, counts, active config). Does not
+    /// touch <see cref="CurrentMode"/> or raise events — callers own the transition.
+    /// </summary>
+    private void ClearReviewArtifacts()
     {
         ActiveConfig = null;
         _diffs.Clear();
@@ -131,22 +193,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _featuresInConfig.Clear();
         _visitedFeatures.Clear();
         TotalConfigItems = 0;
-        CurrentMode = WinhanceMode.Normal;
         IsWindowsDefaults = false;
-        _builderEdits.Clear();
-        _logService.Log(LogLevel.Info, "[ConfigReviewService] Exited review mode");
-        ReviewModeChanged?.Invoke(this, EventArgs.Empty);
-        BadgeStateChanged?.Invoke(this, EventArgs.Empty);
-        ModeChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    public void EnterBuilderMode(BuilderTarget target)
-    {
-        _builderEdits.Clear();
-        CurrentBuilderTarget = target;
-        CurrentMode = WinhanceMode.Builder;
-        _logService.Log(LogLevel.Info, $"[ConfigReviewService] Entered Builder mode (target: {target})");
-        ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void RecordBuilderEdit(BuilderEdit edit)
@@ -183,10 +230,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             return;
         }
 
-        CurrentMode = WinhanceMode.Normal;
-        _builderEdits.Clear();
-        _logService.Log(LogLevel.Info, "[ConfigReviewService] Entered Normal mode");
-        ModeChanged?.Invoke(this, EventArgs.Empty);
+        SetMode(WinhanceMode.Normal);
     }
 
     public ConfigReviewDiff? GetDiffForSetting(string settingId)

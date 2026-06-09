@@ -26,6 +26,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IWindowsVersionFilterService _windowsVersionFilterService;
     private readonly IApplicationModeService _applicationModeService;
     private readonly IDialogService _dialogService;
+    private readonly IUserPreferencesService _userPreferencesService;
 
     /// <summary>Child ViewModel for task progress display.</summary>
     public TaskProgressViewModel TaskProgress { get; }
@@ -79,7 +80,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         ReviewModeBarViewModel reviewModeBar,
         BuilderModeBarViewModel builderModeBar,
         IApplicationModeService applicationModeService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IUserPreferencesService userPreferencesService)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -90,6 +92,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _windowsVersionFilterService = windowsVersionFilterService;
         _applicationModeService = applicationModeService;
         _dialogService = dialogService;
+        _userPreferencesService = userPreferencesService;
 
         TaskProgress = taskProgress;
         UpdateCheck = updateCheck;
@@ -357,6 +360,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             }
         }
 
+        // Show the first-run explainer for the mode being entered (unless dismissed).
+        if (target == WinhanceMode.Builder && !await ShowBuilderIntroIfNeededAsync())
+        {
+            RaiseModeProperties();
+            return;
+        }
+        if (target == WinhanceMode.ConfigReview && !await ShowConfigReviewIntroIfNeededAsync())
+        {
+            RaiseModeProperties();
+            return;
+        }
+
         try
         {
             switch (target)
@@ -391,6 +406,64 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
         RaiseModeProperties();
+    }
+
+    private const string BuilderIntroDontShowKey = "BuilderModeIntroDontShow";
+    private const string ConfigReviewIntroDontShowKey = "ConfigReviewModeIntroDontShow";
+
+    /// <summary>
+    /// Shows the Builder Mode explainer (with a "don't show again" option) unless the user
+    /// has dismissed it. Returns true to proceed into Builder mode, false if the user cancels.
+    /// </summary>
+    private Task<bool> ShowBuilderIntroIfNeededAsync()
+    {
+        return ShowModeIntroIfNeededAsync(
+            BuilderIntroDontShowKey,
+            "Dialog_BuilderIntro_Title",
+            "Dialog_BuilderIntro_Message",
+            "Dialog_BuilderIntro_Confirm");
+    }
+
+    /// <summary>
+    /// Shows the Config Review explainer (with a "don't show again" option) unless the user
+    /// has dismissed it. Returns true to proceed to the import window, false if the user cancels.
+    /// </summary>
+    private Task<bool> ShowConfigReviewIntroIfNeededAsync()
+    {
+        return ShowModeIntroIfNeededAsync(
+            ConfigReviewIntroDontShowKey,
+            "Dialog_ConfigReviewIntro_Title",
+            "Dialog_ConfigReviewIntro_Message",
+            "Dialog_ConfigReviewIntro_Confirm");
+    }
+
+    private async Task<bool> ShowModeIntroIfNeededAsync(
+        string dontShowKey,
+        string titleKey,
+        string messageKey,
+        string confirmKey)
+    {
+        if (_userPreferencesService.GetPreference(dontShowKey, false))
+        {
+            return true;
+        }
+
+        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = _localizationService.GetString(titleKey),
+            Message = _localizationService.GetString(messageKey),
+            CheckboxText = _localizationService.GetString("Dialog_Mode_DontShowAgain"),
+            CheckboxInitiallyChecked = false,
+            ConfirmButtonText = _localizationService.GetString(confirmKey),
+            CancelButtonText = _localizationService.GetString("Button_Cancel"),
+        });
+
+        if (response.Confirmed && response.CheckboxChecked)
+        {
+            await _userPreferencesService.SetPreferenceAsync(dontShowKey, true);
+        }
+
+        return response.Confirmed;
     }
 
     private void RaiseModeProperties()
