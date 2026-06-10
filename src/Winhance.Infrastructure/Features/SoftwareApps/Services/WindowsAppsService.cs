@@ -263,8 +263,14 @@ public class WindowsAppsService(
             var states = await systemSettingsDiscoveryService.GetSettingStatesAsync(new[] { policySetting }).ConfigureAwait(false);
             if (states.TryGetValue(SettingIds.UpdatesPolicyMode, out var state) && state.Success)
             {
+                // Always record what was discovered, so support transcripts show why
+                // the "updates disabled" dialog did or didn't appear after a failed install.
+                logService?.LogInformation(
+                    $"Update policy state at install-failure check: index={state.CurrentValue ?? "(null)"} (dialog fires only on index 3 = Disabled)");
                 return state.CurrentValue is int index && index == 3;
             }
+
+            logService?.LogWarning("Update policy state could not be determined at install-failure check");
         }
         catch (Exception ex)
         {
