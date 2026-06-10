@@ -26,8 +26,32 @@ public class SettingApplicationService(
     ISettingOperationExecutor operationExecutor,
     IChangeHistoryService changeHistory,
     ISystemSettingsDiscoveryService discoveryService,
-    ILocalizationService localizationService) : ISettingApplicationService
+    ILocalizationService localizationService,
+    IHardwareDetectionService hardwareDetectionService) : ISettingApplicationService
 {
+    // Battery presence doesn't change mid-session, so resolve it once and cache. The async
+    // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
+    // and stored here so the synchronous formatters can consult it. Fail OPEN: a detection failure
+    // defaults to true (render BOTH AC and DC — more information, never a phantom suppression).
+    private bool? _hasBatteryCache;
+
+    private async Task<bool> GetHasBatteryAsync()
+    {
+        if (_hasBatteryCache.HasValue)
+            return _hasBatteryCache.Value;
+
+        try
+        {
+            _hasBatteryCache = await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Debug, $"[SettingApplicationService] Battery detection failed, defaulting to true (render both AC/DC): {ex.Message}");
+            _hasBatteryCache = true;
+        }
+
+        return _hasBatteryCache.Value;
+    }
 
     public async Task<OperationResult> ApplySettingAsync(ApplySettingRequest request)
     {
@@ -56,14 +80,17 @@ public class SettingApplicationService(
 
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
         // Captured BEFORE the dependency resolver runs so nested applies don't mutate the read.
+        // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
+        // can render AC-only on battery-less machines and before/after CANNOT disagree.
         string? beforeDisplay = null;
         if (setting.InputType != InputType.Action)
         {
+            var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
             try
             {
                 var states = await discoveryService.GetSettingStatesAsync(new[] { setting }).ConfigureAwait(false);
                 if (states.TryGetValue(settingId, out var state) && state.Success)
-                    beforeDisplay = FormatBeforeDisplay(setting, state);
+                    beforeDisplay = FormatBeforeDisplay(setting, state, hasBattery);
             }
             catch (Exception ex)
             {
@@ -209,7 +236,11 @@ public class SettingApplicationService(
                 return;
             }
 
-            var after = FormatStateDisplay(setting, enable, value);
+            // Battery flag was resolved in ApplySettingAsync's before-capture block for every
+            // non-Action setting (and Action never hits the AC/DC formatting below). A null cache
+            // means detection never ran for this path — fail open to rendering both components.
+            var hasBattery = _hasBatteryCache ?? true;
+            var after = FormatStateDisplay(setting, enable, value, hasBattery);
             var before = beforeDisplay ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
             if (before == after)
                 return; // not a change — no receipt entry
@@ -264,7 +295,7 @@ public class SettingApplicationService(
         catch { return null; }
     }
 
-    private string FormatStateDisplay(SettingDefinition setting, bool enable, object? value)
+    private string FormatStateDisplay(SettingDefinition setting, bool enable, object? value, bool hasBattery)
     {
         switch (setting.InputType)
         {
@@ -275,7 +306,7 @@ public class SettingApplicationService(
 
                 // Config-import path: AC/DC option indices arrive as a (acIndex, dcIndex) tuple.
                 if (value is ValueTuple<int, int> acdcTuple)
-                    return $"AC: {GetOptionLabel(setting, acdcTuple.Item1)}, DC: {GetOptionLabel(setting, acdcTuple.Item2)}";
+                    return ComposeAcDc(GetOptionLabel(setting, acdcTuple.Item1), GetOptionLabel(setting, acdcTuple.Item2), hasBattery);
 
                 if (value is Dictionary<string, object?> dict)
                 {
@@ -290,7 +321,7 @@ public class SettingApplicationService(
                         var acInt = TryToInt(dict["ACValue"]);
                         var dcInt = TryToInt(dict["DCValue"]);
                         if (acInt.HasValue && dcInt.HasValue)
-                            return $"AC: {GetOptionLabel(setting, acInt.Value)}, DC: {GetOptionLabel(setting, dcInt.Value)}";
+                            return ComposeAcDc(GetOptionLabel(setting, acInt.Value), GetOptionLabel(setting, dcInt.Value), hasBattery);
                     }
 
                     return string.Join(", ", dict.Select(kv => $"{kv.Key}={kv.Value}"));
@@ -306,12 +337,12 @@ public class SettingApplicationService(
                     && setting.PowerCfgSettings?.Any() == true)
                 {
                     var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
-                    return FormatPowerNumeric(units, acNum, dcNum);
+                    return FormatPowerNumeric(units, acNum, dcNum, hasBattery);
                 }
                 if (value is Dictionary<string, object?> acdcNumPlain
                     && acdcNumPlain.TryGetValue("ACValue", out var acNumPlain)
                     && acdcNumPlain.TryGetValue("DCValue", out var dcNumPlain))
-                    return $"AC: {acNumPlain}, DC: {dcNumPlain}";
+                    return ComposeAcDc(acNumPlain?.ToString() ?? "", dcNumPlain?.ToString() ?? "", hasBattery);
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
             default: // Toggle, CheckBox
@@ -328,10 +359,11 @@ public class SettingApplicationService(
     /// "after" rendering exactly (same <c>AC: x, DC: y</c> shape), keeping no-op detection working.
     /// PowerCfg Separate Selection settings get the same treatment: <c>CurrentValue</c> is a single
     /// AC-only option index, so the raw AC/DC system values are each mapped to an option index and
-    /// rendered as <c>AC: label, DC: label</c> to match the config-import after-format byte-for-byte.
+    /// rendered to match the config-import after-format byte-for-byte. On battery-less machines the
+    /// DC component is omitted entirely (see <see cref="ComposeAcDc"/>) so before and after agree.
     /// All other settings defer to <see cref="FormatStateDisplay"/>.
     /// </summary>
-    private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state)
+    private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state, bool hasBattery)
     {
         if (setting.InputType == InputType.NumericRange
             && setting.PowerCfgSettings?.Any() == true
@@ -346,7 +378,7 @@ public class SettingApplicationService(
                 var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
                 var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
                 var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
-                return FormatPowerNumeric(units, ac, dc);
+                return FormatPowerNumeric(units, ac, dc, hasBattery);
             }
         }
 
@@ -365,26 +397,38 @@ public class SettingApplicationService(
             var dcVal = TryToInt(dcSel);
             if (acVal.HasValue && dcVal.HasValue)
             {
-                var acIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, acVal.Value) ?? acVal.Value;
-                var dcIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, dcVal.Value) ?? dcVal.Value;
-                return $"AC: {GetOptionLabel(setting, acIdx)}, DC: {GetOptionLabel(setting, dcIdx)}";
+                // No match for a raw PowerCfg value must render as the localized "Custom" label
+                // (-1 → GetOptionLabel out-of-range → Custom). NEVER use the raw value as an option
+                // index — raw 1 must not silently become Options[1].
+                var acIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, acVal.Value) ?? -1;
+                var dcIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, dcVal.Value) ?? -1;
+                return ComposeAcDc(GetOptionLabel(setting, acIdx), GetOptionLabel(setting, dcIdx), hasBattery);
             }
         }
 
-        return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue);
+        return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue, hasBattery);
     }
+
+    /// <summary>
+    /// Composes an AC/DC receipt fragment. On battery-less machines (<paramref name="hasBattery"/> is
+    /// false) only the AC component is shown — the DC half is never written by PowerCfgApplier there,
+    /// so rendering it would be a phantom. With a battery present, both halves render as before.
+    /// </summary>
+    private static string ComposeAcDc(string ac, string dc, bool hasBattery) =>
+        hasBattery ? $"AC: {ac}, DC: {dc}" : $"AC: {ac}";
 
     /// <summary>
     /// Formats a PowerCfg NumericRange AC/DC value pair with a localized unit suffix per value.
     /// Mirrors <c>SettingLocalizationService.LocalizeUnits</c> so the receipt matches what the UI
     /// displays on the slider.  When the unit string is null/empty the pair renders without a suffix.
+    /// On battery-less machines only the AC value renders (no phantom DC component).
     /// </summary>
-    private string FormatPowerNumeric(string? units, object? ac, object? dc)
+    private string FormatPowerNumeric(string? units, object? ac, object? dc, bool hasBattery)
     {
         var localizedUnit = LocalizeUnit(units);
         if (string.IsNullOrEmpty(localizedUnit))
-            return $"AC: {ac}, DC: {dc}";
-        return $"AC: {ac} {localizedUnit}, DC: {dc} {localizedUnit}";
+            return ComposeAcDc(ac?.ToString() ?? "", dc?.ToString() ?? "", hasBattery);
+        return ComposeAcDc($"{ac} {localizedUnit}", $"{dc} {localizedUnit}", hasBattery);
     }
 
     /// <summary>

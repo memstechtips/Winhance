@@ -25,10 +25,15 @@ public class SettingApplicationServiceTests
     private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
     private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscovery = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
+    private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
     {
+        // Default: machine HAS a battery, so every existing AC/DC test keeps its current
+        // "AC: x, DC: y" expectations. No-battery tests override this per-test.
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(true);
+
         _mockExecutor
             .Setup(e => e.ApplySettingOperationsAsync(
                 It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
@@ -49,7 +54,8 @@ public class SettingApplicationServiceTests
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
-            _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object);
+            _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
+            _mockHardware.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -789,6 +795,185 @@ public class SettingApplicationServiceTests
             Value = (0, 1),
         });
 
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    // ---------------------------------------------------------------
+    // #367: battery-less machines render AC-only (no phantom DC) +
+    //       a no-match raw PowerCfg value renders Custom, never index-by-raw
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_NoBatterySelection_RendersAcOnly()
+    {
+        // Battery-less desktop: only the AC dropdown exists and PowerCfgApplier skips all DC writes.
+        // The receipt must show "AC: <label>" only — no ", DC: ..." phantom.
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+
+        var options = new[] { PowerOpt("Setting_sel-nobat_Option_0", 100), PowerOpt("Setting_sel-nobat_Option_1", 200), PowerOpt("Setting_sel-nobat_Option_2", 300) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+        };
+        RegisterSelectionSetting("sel-nobat", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_2")).Returns("9 minutes");
+
+        // Before-state raw AC = 100 → option 0 "Never". DC raw is garbage on a battery-less machine.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-nobat"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 999999 },
+                },
+            });
+
+        // After: apply tuple (2, 0). AC changes Never → 9 minutes; entry renders AC-only on both sides.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-nobat",
+            Enable = true,
+            Value = (2, 0),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never", "AC: 9 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NoBatteryAcUnchanged_DoesNotLog()
+    {
+        // KEY regression: on a battery-less desktop, the AC value is unchanged but the (irrelevant)
+        // DC garbage differs. The receipt must suppress the entry — DC garbage must NEVER create a
+        // phantom change. Before "AC: Never" == after "AC: Never".
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+
+        var options = new[] { PowerOpt("Setting_sel-nobat-noop_Option_0", 100), PowerOpt("Setting_sel-nobat-noop_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+        };
+        RegisterSelectionSetting("sel-nobat-noop", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_1")).Returns("4 minutes");
+
+        // AC raw 100 → option 0 "Never". DC raw is garbage and DIFFERENT from the applied DC index.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-nobat-noop"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 12345 },
+                },
+            });
+
+        // Apply (0, 1): AC stays option 0 (Never); DC index differs but is suppressed on no-battery.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-nobat-noop",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_FallbackRawValueWithNoMatchingOption_RendersCustomNotIndexedLabel()
+    {
+        // Regression for the fallback-as-index bug (commit f9528147): a raw PowerCfg DC value that
+        // matches NO option (raw 1, options map 0/60/300) must render "Custom" — NOT Options[1].
+        // Battery present so DC still renders.
+        var options = new[]
+        {
+            PowerOpt("Setting_sel-fallback_Option_0", 0),
+            PowerOpt("Setting_sel-fallback_Option_1", 60),
+            PowerOpt("Setting_sel-fallback_Option_2", 300),
+        };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+        };
+        RegisterSelectionSetting("sel-fallback", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_1")).Returns("1 minute");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_2")).Returns("5 minutes");
+        _mockLocalization.Setup(l => l.GetString("Common_CustomState")).Returns("Custom");
+
+        // AC raw 0 → option 0 "Never". DC raw 1 matches NO option's PowerCfgValue.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-fallback"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 },
+                },
+            });
+
+        // After applies (0, 2) so an entry is logged and we can assert the BEFORE rendering.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-fallback",
+            Enable = true,
+            Value = (0, 2),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Custom", "AC: Never, DC: 5 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_BatteryDetectionThrows_AppliesAndRendersBothComponents()
+    {
+        // Fail-open: a hardware detection failure defaults to battery=true, so the apply still
+        // succeeds and the entry renders BOTH AC and DC (more information, never a phantom suppression).
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ThrowsAsync(new InvalidOperationException("WMI exploded"));
+
+        var options = new[] { PowerOpt("Setting_sel-throw_Option_0", 100), PowerOpt("Setting_sel-throw_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+        };
+        RegisterSelectionSetting("sel-throw", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_1")).Returns("4 minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-throw"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                },
+            });
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-throw",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        result.Success.Should().BeTrue();
         _mockChangeHistory.Verify(h => h.LogSettingChange(
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
