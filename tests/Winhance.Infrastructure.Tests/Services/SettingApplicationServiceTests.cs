@@ -22,6 +22,9 @@ public class SettingApplicationServiceTests
     private readonly Mock<ISettingDependencyResolver> _mockDepResolver = new();
     private readonly Mock<IWindowsCompatibilityFilter> _mockCompatFilter = new();
     private readonly Mock<ISettingOperationExecutor> _mockExecutor = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
+    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscovery = new();
+    private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
@@ -31,11 +34,22 @@ public class SettingApplicationServiceTests
                 It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
+        // Default: discovery finds nothing (no before-state), and GetString echoes the key back.
+        // A key-echo is NOT the "[{key}]" miss-marker, so by default ResolveLocalized treats every
+        // key as a HIT returning the key text; tests that assert on display strings set explicit returns.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+        _mockLocalization
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string key) => key);
+
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
-            _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object);
+            _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
+            _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -289,5 +303,119 @@ public class SettingApplicationServiceTests
         });
 
         result.Success.Should().BeTrue();
+    }
+
+    // ---------------------------------------------------------------
+    // Change history (#367): record setting changes before → after
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_ToggleSuccess_LogsChangeHistoryEntry()
+    {
+        SetupSettingInRegistry("toggle-setting");
+
+        // Before-state: discovery reports the toggle currently disabled.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["toggle-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "toggle-setting",
+            Enable = true,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "Disabled", "Enabled"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_BeforeEqualsAfter_DoesNotLog()
+    {
+        SetupSettingInRegistry("noop-setting");
+
+        // Before-state already matches the requested state (enabled → enable=true).
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["noop-setting"] = new SettingStateResult { Success = true, IsEnabled = true },
+            });
+
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "noop-setting",
+            Enable = true,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ChangeHistoryThrows_ApplyStillSucceeds()
+    {
+        SetupSettingInRegistry("throwing-setting");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["throwing-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+
+        _mockChangeHistory
+            .Setup(h => h.LogSettingChange(
+                It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new InvalidOperationException("history write blew up"));
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "throwing-setting",
+            Enable = true,
+        });
+
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_OperationFails_DoesNotLogChangeHistory()
+    {
+        SetupSettingInRegistry("fail-no-history");
+        _mockExecutor
+            .Setup(e => e.ApplySettingOperationsAsync(
+                It.Is<SettingDefinition>(s => s.Id == "fail-no-history"),
+                It.IsAny<bool>(), It.IsAny<object?>()))
+            .ReturnsAsync(OperationResult.Failed("denied"));
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["fail-no-history"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "fail-no-history",
+            Enable = true,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockChangeHistory.Verify(h => h.LogSettingAction(
+            It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 }
