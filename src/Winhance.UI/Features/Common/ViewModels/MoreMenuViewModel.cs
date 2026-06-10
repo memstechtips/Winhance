@@ -172,7 +172,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Failed to open change history page: {ex.Message}", ex);
+            _logService.LogError($"Failed to open change history file: {ex.Message}", ex);
         }
     }
 

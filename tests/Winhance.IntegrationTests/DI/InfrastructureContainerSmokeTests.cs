@@ -48,6 +48,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IConfigurationApplicationBridgeService))]
     [InlineData(typeof(IConfigMigrationService))]
     [InlineData(typeof(IPolicyCleanupService))]
+    [InlineData(typeof(IChangeHistoryService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         // Arrange
