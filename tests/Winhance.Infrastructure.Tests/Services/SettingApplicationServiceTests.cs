@@ -444,6 +444,14 @@ public class SettingApplicationServiceTests
 
     private static ComboBoxOption Opt(string displayName) => new() { DisplayName = displayName };
 
+    // Selection option carrying a PowerCfgValue mapping, so FindOptionIndexForPowerCfgValue can map a
+    // raw system value back to this option's index.
+    private static ComboBoxOption PowerOpt(string displayName, int powerCfgValue) => new()
+    {
+        DisplayName = displayName,
+        ValueMappings = new Dictionary<string, object?> { ["PowerCfgValue"] = powerCfgValue },
+    };
+
     [Fact]
     public async Task ApplySettingAsync_SelectionWithLocalizationKeyDisplayName_RendersLocalizedLabel()
     {
@@ -582,5 +590,83 @@ public class SettingApplicationServiceTests
 
         _mockChangeHistory.Verify(h => h.LogSettingChange(
             It.IsAny<string>(), It.IsAny<string?>(), "AC: 0, DC: 10", "AC: 5, DC: 15"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionPowerCfgNoChange_DoesNotLog()
+    {
+        // PowerCfg Separate Selection setting. Before-state RawValues hold raw system PowerCfg values
+        // (100 → option 0, 200 → option 1). A config import re-applying the SAME state arrives as a
+        // (0, 0) ValueTuple. Before "AC: Never, DC: Never" must equal after "AC: Never, DC: Never"
+        // byte-for-byte so no phantom receipt entry is logged.
+        var options = new[] { PowerOpt("Setting_sel-pcfg-noop_Option_0", 100), PowerOpt("Setting_sel-pcfg-noop_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+        };
+        RegisterSelectionSetting("sel-pcfg-noop", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_1")).Returns("4 minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-pcfg-noop"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-pcfg-noop",
+            Enable = true,
+            Value = (0, 0),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionPowerCfgRealChange_LogsBeforeAndAfter()
+    {
+        // Same setting; DC actually changes (option 0 → option 1). The before renders from the raw
+        // system values, the after from the (0, 1) ValueTuple, both in AC/DC label shape.
+        var options = new[] { PowerOpt("Setting_sel-pcfg-change_Option_0", 100), PowerOpt("Setting_sel-pcfg-change_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+        };
+        RegisterSelectionSetting("sel-pcfg-change", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_1")).Returns("4 minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-pcfg-change"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-pcfg-change",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 }

@@ -318,6 +318,9 @@ public class SettingApplicationService(
     /// pair and the raw <c>ACValue</c>/<c>DCValue</c> in <see cref="SettingStateResult.RawValues"/>
     /// are SYSTEM units (e.g. seconds) — convert them to display units so the "before" matches the
     /// "after" rendering exactly (same <c>AC: x, DC: y</c> shape), keeping no-op detection working.
+    /// PowerCfg Separate Selection settings get the same treatment: <c>CurrentValue</c> is a single
+    /// AC-only option index, so the raw AC/DC system values are each mapped to an option index and
+    /// rendered as <c>AC: label, DC: label</c> to match the config-import after-format byte-for-byte.
     /// All other settings defer to <see cref="FormatStateDisplay"/>.
     /// </summary>
     private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state)
@@ -336,6 +339,27 @@ public class SettingApplicationService(
                 var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
                 var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
                 return $"AC: {ac}, DC: {dc}";
+            }
+        }
+
+        // PowerCfg Separate SELECTION settings: state.CurrentValue is a single (AC-only) option index,
+        // so FormatStateDisplay would render one label while the config-import after-value renders
+        // "AC: x, DC: y". Render the before in the same AC/DC shape so no-op detection works. The raw
+        // ACValue/DCValue here are SYSTEM PowerCfg values (e.g. an enum/code), not option indices —
+        // map each to its option index via the ValueMappings["PowerCfgValue"] lookup.
+        if (setting.InputType == InputType.Selection
+            && setting.PowerCfgSettings?.Any() == true
+            && state.RawValues is { } selRaw
+            && selRaw.TryGetValue("ACValue", out var acSel)
+            && selRaw.TryGetValue("DCValue", out var dcSel))
+        {
+            var acVal = TryToInt(acSel);
+            var dcVal = TryToInt(dcSel);
+            if (acVal.HasValue && dcVal.HasValue)
+            {
+                var acIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, acVal.Value) ?? acVal.Value;
+                var dcIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, dcVal.Value) ?? dcVal.Value;
+                return $"AC: {GetOptionLabel(setting, acIdx)}, DC: {GetOptionLabel(setting, dcIdx)}";
             }
         }
 
