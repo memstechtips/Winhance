@@ -124,7 +124,7 @@
                         <!-- Change History -->
                         <MenuFlyoutItem x:Name="OpenChangeHistoryMenuItem" Click="MoreMenuItem_Click" Tag="OpenChangeHistory">
                             <MenuFlyoutItem.Icon>
-                                <fluentIcons:FluentIcon Icon="DocumentText" IconVariant="Regular" FontSize="20"/>
+                                <fluentIcons:FluentIcon Icon="History" IconVariant="Regular" FontSize="20"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
