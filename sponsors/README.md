@@ -56,6 +56,22 @@ Platinum entries live in the `topSponsors` array; the "Top Sponsors" box is **se
 from and in addition to** the regular sponsor surfaces. Individual **supporters**
 appear on the web supporters wall only — never in the app.
 
+## Lifecycle: one-time, lapsed, and past sponsors
+
+- **Individual supporters are permanent.** A thank-you doesn't expire — one-time or
+  recurring makes no difference. `since` = the date of their (first) donation. There
+  is no "past supporters" section.
+- **Business sponsor cards are active inventory.** The paid surfaces (carousel,
+  in-app page, Top Sponsors box) belong to *active* sponsorships: a monthly that
+  cancels, or a 1-year purchase that isn't renewed, lapses. Set the optional
+  `"until": "YYYY-MM"` field on the entry — renderers must then drop the card from
+  all paid surfaces and show the sponsor as a **name-only line in a "Past sponsors"
+  list on the web sponsors page only** (no logo, no link, not in-app). Gratitude is
+  permanent; ad placement is for current sponsors.
+- A 1-year sponsorship is active until 12 months after `since`; give a grace period
+  before setting `until` (renewal conversations happen by email, not by cron).
+- Removal on request still overrides everything, including the past-sponsors list.
+
 ## Hard rules
 
 1. **Never** record or publish amounts, totals, or counts — names/logos and dates only.
