@@ -418,4 +418,169 @@ public class SettingApplicationServiceTests
         _mockChangeHistory.Verify(h => h.LogSettingAction(
             It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
+
+    // ---------------------------------------------------------------
+    // Change history (#367): power AC/DC values + option labels render human-readable
+    // ---------------------------------------------------------------
+
+    private SettingDefinition RegisterSelectionSetting(
+        string settingId, IReadOnlyList<ComboBoxOption> options,
+        IReadOnlyList<PowerCfgSetting>? powerCfg = null, string featureId = "TestDomain")
+    {
+        var setting = new SettingDefinition
+        {
+            Id = settingId,
+            Name = $"Setting {settingId}",
+            Description = $"Description for {settingId}",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata { Options = options },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById(settingId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(settingId)).Returns(featureId);
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings(featureId)).Returns(new[] { setting });
+        return setting;
+    }
+
+    private static ComboBoxOption Opt(string displayName) => new() { DisplayName = displayName };
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionWithLocalizationKeyDisplayName_RendersLocalizedLabel()
+    {
+        // Power-setting options carry localization KEYS as their DisplayName. The receipt must
+        // localize the key, not print the raw "Template_..." string.
+        var options = new[] { Opt("Template_X_Option_0"), Opt("Template_X_Option_1") };
+        RegisterSelectionSetting("sel-localized", options);
+
+        _mockLocalization.Setup(l => l.GetString("Template_X_Option_1")).Returns("Enabled-ish label");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-localized",
+            Enable = true,
+            Value = 1,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "Enabled-ish label"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionAcDcTuple_RendersAcDcLabels()
+    {
+        // Config-import Selection AC/DC values arrive as a (acIndex, dcIndex) ValueTuple.
+        var options = new[] { Opt("Setting_sel-tuple_Option_0"), Opt("Setting_sel-tuple_Option_1") };
+        RegisterSelectionSetting("sel-tuple", options);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_1")).Returns("4 minutes");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-tuple",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionAcDcDictionary_RendersAcDcLabels()
+    {
+        // UI / recommended Selection AC/DC values arrive as a dict of option indices.
+        var options = new[] { Opt("Setting_sel-dict_Option_0"), Opt("Setting_sel-dict_Option_1") };
+        RegisterSelectionSetting("sel-dict", options);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_1")).Returns("4 minutes");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-dict",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_PowerPlanShape_RendersJustTheName()
+    {
+        // The power-plan after-value is a dict with Guid + Name keys; the receipt shows the Name.
+        var options = new[] { Opt("PowerPlan_Custom") };
+        RegisterSelectionSetting("power-plan", options);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "power-plan",
+            Enable = true,
+            Value = new Dictionary<string, object?>
+            {
+                ["Guid"] = "11111111-2222-3333-4444-555555555555",
+                ["Name"] = "Winhance Power Plan",
+            },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "Winhance Power Plan"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NumericRangePowerCfg_ConvertsBeforeStateToDisplayUnits()
+    {
+        // Before-state RawValues are SYSTEM units (seconds). For a Minutes-unit PowerCfg setting,
+        // 600s → 10 min. The before must render in display units so it matches the after format.
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting
+            {
+                SettingGUIDAlias = "VIDEOIDLE",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = "Minutes",
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "num-power",
+            Name = "Setting num-power",
+            Description = "desc",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60, Units = "Minutes" },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("num-power")).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["num-power"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 600 },
+                },
+            });
+
+        // After-value: display-unit AC/DC dict that differs from the before so an entry is logged.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "num-power",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 5, ["DCValue"] = 15 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: 0, DC: 10", "AC: 5, DC: 15"), Times.Once);
+    }
 }

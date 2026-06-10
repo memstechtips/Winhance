@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Helpers;
 
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -62,7 +63,7 @@ public class SettingApplicationService(
             {
                 var states = await discoveryService.GetSettingStatesAsync(new[] { setting }).ConfigureAwait(false);
                 if (states.TryGetValue(settingId, out var state) && state.Success)
-                    beforeDisplay = FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue);
+                    beforeDisplay = FormatBeforeDisplay(setting, state);
             }
             catch (Exception ex)
             {
@@ -232,30 +233,113 @@ public class SettingApplicationService(
         return result.StartsWith("[") && result.EndsWith("]") ? null : result;
     }
 
+    /// <summary>
+    /// Resolves a Selection option index to a human-readable label, mirroring the UI exactly
+    /// (<c>SettingLocalizationService</c>): a per-option <c>DisplayName</c> that is itself a
+    /// localization key (e.g. power settings' <c>Template_*</c> / <c>PowerPlan_*</c> keys) is
+    /// localized verbatim; otherwise the per-setting <c>Setting_{id}_Option_{index}</c> key is
+    /// used, with the raw <c>DisplayName</c> as the final fallback. Out-of-range indices resolve
+    /// to the localized "Custom" state.
+    /// </summary>
+    private string GetOptionLabel(SettingDefinition setting, int index)
+    {
+        if (setting.ComboBox == null || index < 0 || index >= setting.ComboBox.Options.Count)
+            return ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "Custom";
+
+        var dn = setting.ComboBox.Options[index].DisplayName;
+        var key = SettingLocalizationKeys.IsLocalizationKey(dn)
+            ? dn
+            : SettingLocalizationKeys.OptionDisplay(setting, index);
+        return ResolveLocalized(key) ?? dn;
+    }
+
+    /// <summary>
+    /// Best-effort conversion of a JSON-sourced numeric (may be <see cref="long"/>/<see cref="double"/>)
+    /// to an int. Returns null when the value isn't numeric.
+    /// </summary>
+    private static int? TryToInt(object? value)
+    {
+        if (value == null) return null;
+        try { return Convert.ToInt32(value); }
+        catch { return null; }
+    }
+
     private string FormatStateDisplay(SettingDefinition setting, bool enable, object? value)
     {
         switch (setting.InputType)
         {
             case InputType.Selection:
-                if (value is int index && setting.ComboBox != null
-                    && index >= 0 && index < setting.ComboBox.Options.Count)
+                // UI / recommended path: a single selected option index.
+                if (value is int index)
+                    return GetOptionLabel(setting, index);
+
+                // Config-import path: AC/DC option indices arrive as a (acIndex, dcIndex) tuple.
+                if (value is ValueTuple<int, int> acdcTuple)
+                    return $"AC: {GetOptionLabel(setting, acdcTuple.Item1)}, DC: {GetOptionLabel(setting, acdcTuple.Item2)}";
+
+                if (value is Dictionary<string, object?> dict)
                 {
-                    return ResolveLocalized(SettingLocalizationKeys.OptionDisplay(setting, index))
-                        ?? setting.ComboBox.Options[index].DisplayName;
+                    // Power-plan shape: { "Guid": ..., "Name": "..." } — render just the friendly name.
+                    if (dict.TryGetValue("Name", out var nameVal))
+                        return nameVal?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "Custom";
+
+                    // Separate AC/DC option indices (UI quick-set path). JSON sources may box these
+                    // as long/double, so coerce defensively.
+                    if (dict.ContainsKey("ACValue") && dict.ContainsKey("DCValue"))
+                    {
+                        var acInt = TryToInt(dict["ACValue"]);
+                        var dcInt = TryToInt(dict["DCValue"]);
+                        if (acInt.HasValue && dcInt.HasValue)
+                            return $"AC: {GetOptionLabel(setting, acInt.Value)}, DC: {GetOptionLabel(setting, dcInt.Value)}";
+                    }
+
+                    return string.Join(", ", dict.Select(kv => $"{kv.Key}={kv.Value}"));
                 }
-                if (value is Dictionary<string, object?> acdc)
-                    return string.Join(", ", acdc.Select(kv => $"{kv.Key}={kv.Value}"));
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
             case InputType.NumericRange:
-                if (value is Dictionary<string, object?> acdcNum)
-                    return string.Join(", ", acdcNum.Select(kv => $"{kv.Key}={kv.Value}"));
+                // After-values are display units (the bridge fix converts on import; UI/recommended
+                // paths already supply display units) — render as-is.
+                if (value is Dictionary<string, object?> acdcNum
+                    && acdcNum.TryGetValue("ACValue", out var acNum)
+                    && acdcNum.TryGetValue("DCValue", out var dcNum))
+                    return $"AC: {acNum}, DC: {dcNum}";
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
             default: // Toggle, CheckBox
                 return localizationService.GetString(
                     enable ? "Template_EnabledDisabled_Option_1" : "Template_EnabledDisabled_Option_0");
         }
+    }
+
+    /// <summary>
+    /// Formats the pre-apply state for the change-history receipt. For PowerCfg Separate
+    /// NumericRange settings, <see cref="SettingStateResult.CurrentValue"/> isn't a usable AC/DC
+    /// pair and the raw <c>ACValue</c>/<c>DCValue</c> in <see cref="SettingStateResult.RawValues"/>
+    /// are SYSTEM units (e.g. seconds) — convert them to display units so the "before" matches the
+    /// "after" rendering exactly (same <c>AC: x, DC: y</c> shape), keeping no-op detection working.
+    /// All other settings defer to <see cref="FormatStateDisplay"/>.
+    /// </summary>
+    private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state)
+    {
+        if (setting.InputType == InputType.NumericRange
+            && setting.PowerCfgSettings?.Any() == true
+            && state.RawValues is { } raw
+            && raw.TryGetValue("ACValue", out var acRaw)
+            && raw.TryGetValue("DCValue", out var dcRaw))
+        {
+            var acInt = TryToInt(acRaw);
+            var dcInt = TryToInt(dcRaw);
+            if (acInt.HasValue && dcInt.HasValue)
+            {
+                var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
+                var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
+                var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
+                return $"AC: {ac}, DC: {dc}";
+            }
+        }
+
+        return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue);
     }
 
     private string? ResolveLocalizedGroup(string? groupName)
