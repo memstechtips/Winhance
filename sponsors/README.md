@@ -4,7 +4,7 @@ This folder is the **single source of truth** for sponsor and supporter recognit
 across every surface that shows it:
 
 - the **in-app sponsors page** in Winhance (business sponsors only — never individual names),
-- the sponsors carousel and Top Sponsors box on **winhance.net**,
+- the sponsors carousel and the **"Top Sponsors" box** on **winhance.net**,
 - the sponsors & supporters wall on **store.memstechtips.com/winhance/**,
 - the sponsors line in **release notes**.
 
@@ -20,18 +20,21 @@ bundled with every release and used as the **offline fallback** when the fetch f
 ```jsonc
 {
   "updated": "YYYY-MM-DD",
-  "topSponsors": [ /* max 5 — same shape as sponsors, featured everywhere, first position */ ],
+  "topSponsors": [ /* Platinum sponsors — same shape as sponsors; featured in the
+                      winhance.net "Top Sponsors" box and first position everywhere */ ],
   "sponsors": [
     {
       "id": "your-it",               // slug, unique; logo filename derives from it
       "name": "Your IT",
-      "tier": "gold",                // bronze | silver | gold | top
+      "tier": "gold",                // bronze | silver | gold | platinum
       "city": "Austin, TX",          // shown on the card
       "country": "US",
-      "contact": "contact@yourit.com", // optional; shown on gold/top cards
+      "contact": "contact@yourit.com", // optional; shown on gold/platinum cards
       "url": "https://www.yourit.com", // clickable on silver and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
-      "since": "2026-06"
+      "since": "2026-06",
+      "example": true                // OPTIONAL: renders with an "Example — this could
+                                     // be you" badge; omit for real sponsors
     }
   ],
   "supporters": [
@@ -42,14 +45,16 @@ bundled with every release and used as the **offline fallback** when the fetch f
 
 ### Tier → surface mapping
 
-| Tier | Sponsors pages (store + winhance.net) | winhance.net download-page carousel | In-app sponsors page | Release notes | Top Sponsors box (winhance.net home) |
+| Tier | Sponsors pages (store + winhance.net) | winhance.net download-page carousel | In-app sponsors page | Release notes | "Top Sponsors" box (winhance.net home) |
 |---|---|---|---|---|---|
 | bronze | logo + name | — | — | — | — |
 | silver | ✓ | full card (logo, city, link) | — | — | — |
-| gold (max 12) | ✓ | ✓ | full card (logo, city, contact, link) | mention | — |
-| top (max 5) | ✓ | first position | first position | mention | ✓ |
+| gold | ✓ | ✓ | full card (logo, city, contact, link) | mention | — |
+| platinum | ✓ | first position | first position | mention | ✓ |
 
-Individual **supporters** appear on the web supporters wall only — never in the app.
+Platinum entries live in the `topSponsors` array; the "Top Sponsors" box is **separate
+from and in addition to** the regular sponsor surfaces. Individual **supporters**
+appear on the web supporters wall only — never in the app.
 
 ## Hard rules
 
