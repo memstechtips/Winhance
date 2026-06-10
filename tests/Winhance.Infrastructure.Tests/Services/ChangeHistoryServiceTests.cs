@@ -167,4 +167,19 @@ public class ChangeHistoryServiceTests
         path.Should().EndWith("ChangeHistory.txt");
         path.Should().Contain("Winhance");
     }
+
+    [Fact]
+    public void LogAppChange_LocalizationThrows_DoesNotThrow()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("boom"));
+
+        var act = () => _service.LogAppChange("Microsoft Edge", AppChangeKind.Installed);
+
+        act.Should().NotThrow();
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("ChangeHistoryService")), It.IsAny<Exception?>()),
+            Times.AtLeastOnce);
+    }
 }

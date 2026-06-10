@@ -34,11 +34,18 @@ public class ChangeHistoryService(
 
     public void LogAppChange(string appDisplayName, AppChangeKind kind)
     {
-        var key = kind == AppChangeKind.Installed ? "ChangeHistory_AppInstalled" : "ChangeHistory_AppRemoved";
-        var template = localizationService.GetString(key);
-        if (string.IsNullOrEmpty(template))
-            template = kind == AppChangeKind.Installed ? "App installed" : "App removed";
-        WriteEntry($"{template}: {appDisplayName}");
+        try
+        {
+            var key = kind == AppChangeKind.Installed ? "ChangeHistory_AppInstalled" : "ChangeHistory_AppRemoved";
+            var template = localizationService.GetString(key);
+            if (string.IsNullOrEmpty(template))
+                template = kind == AppChangeKind.Installed ? "App installed" : "App removed";
+            WriteEntry($"{template}: {appDisplayName}");
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to write entry: {ex.Message}");
+        }
     }
 
     public IDisposable BeginBatch(string localizedHeader)
