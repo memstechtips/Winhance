@@ -299,11 +299,19 @@ public class SettingApplicationService(
 
             case InputType.NumericRange:
                 // After-values are display units (the bridge fix converts on import; UI/recommended
-                // paths already supply display units) — render as-is.
+                // paths already supply display units) — render as-is, with unit suffix when available.
                 if (value is Dictionary<string, object?> acdcNum
                     && acdcNum.TryGetValue("ACValue", out var acNum)
-                    && acdcNum.TryGetValue("DCValue", out var dcNum))
-                    return $"AC: {acNum}, DC: {dcNum}";
+                    && acdcNum.TryGetValue("DCValue", out var dcNum)
+                    && setting.PowerCfgSettings?.Any() == true)
+                {
+                    var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
+                    return FormatPowerNumeric(units, acNum, dcNum);
+                }
+                if (value is Dictionary<string, object?> acdcNumPlain
+                    && acdcNumPlain.TryGetValue("ACValue", out var acNumPlain)
+                    && acdcNumPlain.TryGetValue("DCValue", out var dcNumPlain))
+                    return $"AC: {acNumPlain}, DC: {dcNumPlain}";
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
             default: // Toggle, CheckBox
@@ -338,7 +346,7 @@ public class SettingApplicationService(
                 var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
                 var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
                 var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
-                return $"AC: {ac}, DC: {dc}";
+                return FormatPowerNumeric(units, ac, dc);
             }
         }
 
@@ -364,6 +372,36 @@ public class SettingApplicationService(
         }
 
         return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue);
+    }
+
+    /// <summary>
+    /// Formats a PowerCfg NumericRange AC/DC value pair with a localized unit suffix per value.
+    /// Mirrors <c>SettingLocalizationService.LocalizeUnits</c> so the receipt matches what the UI
+    /// displays on the slider.  When the unit string is null/empty the pair renders without a suffix.
+    /// </summary>
+    private string FormatPowerNumeric(string? units, object? ac, object? dc)
+    {
+        var localizedUnit = LocalizeUnit(units);
+        if (string.IsNullOrEmpty(localizedUnit))
+            return $"AC: {ac}, DC: {dc}";
+        return $"AC: {ac} {localizedUnit}, DC: {dc} {localizedUnit}";
+    }
+
+    /// <summary>
+    /// Localizes a raw unit string via the same key mapping used by
+    /// <c>SettingLocalizationService.LocalizeUnits</c>.  Returns the raw string
+    /// (or empty) when no localization key exists so the caller can suppress the suffix.
+    /// </summary>
+    private string? LocalizeUnit(string? units)
+    {
+        if (string.IsNullOrEmpty(units)) return null;
+        var key = units switch
+        {
+            "Minutes"      => "Common_Unit_Minutes",
+            "Milliseconds" => "Common_Unit_Milliseconds",
+            _              => null,
+        };
+        return key != null ? (ResolveLocalized(key) ?? units) : units;
     }
 
     private string? ResolveLocalizedGroup(string? groupName)

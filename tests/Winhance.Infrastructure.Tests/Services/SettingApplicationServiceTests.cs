@@ -538,10 +538,11 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task ApplySettingAsync_NumericRangePowerCfg_ConvertsBeforeStateToDisplayUnits()
+    public async Task ApplySettingAsync_NumericRangePowerCfg_ConvertsBeforeStateToDisplayUnitsWithSuffix()
     {
         // Before-state RawValues are SYSTEM units (seconds). For a Minutes-unit PowerCfg setting,
         // 600s → 10 min. The before must render in display units so it matches the after format.
+        // Both before and after must carry the unit suffix (per-value) so no-op detection works.
         var powerCfg = new[]
         {
             new PowerCfgSetting
@@ -568,6 +569,8 @@ public class SettingApplicationServiceTests
         _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power")).Returns("TestDomain");
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
 
+        _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
+
         _mockDiscovery
             .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -589,7 +592,127 @@ public class SettingApplicationServiceTests
         });
 
         _mockChangeHistory.Verify(h => h.LogSettingChange(
-            It.IsAny<string>(), It.IsAny<string?>(), "AC: 0, DC: 10", "AC: 5, DC: 15"), Times.Once);
+            It.IsAny<string>(), It.IsAny<string?>(),
+            "AC: 0 Minutes, DC: 10 Minutes",
+            "AC: 5 Minutes, DC: 15 Minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NumericRangePowerCfgNoChange_DoesNotLog()
+    {
+        // Unchanged NumericRange PowerCfg setting: before and after must produce byte-identical
+        // strings (both include the unit suffix) so the no-op suppression fires and no receipt
+        // entry is logged.
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting
+            {
+                SettingGUIDAlias = "VIDEOIDLE",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = "Minutes",
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "num-power-noop",
+            Name = "Setting num-power-noop",
+            Description = "desc",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60, Units = "Minutes" },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("num-power-noop")).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power-noop")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
+
+        _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
+
+        // Before-state: 0s AC (= 0 min), 600s DC (= 10 min) — same values as the after.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["num-power-noop"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 600 },
+                },
+            });
+
+        // Re-applying the same display values: AC=0, DC=10 (minutes) — no change.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "num-power-noop",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 10 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NumericRangePowerCfgPercentUnit_RendersPercentSuffix()
+    {
+        // Percent-unit NumericRange PowerCfg setting — the "%" unit has no localization key
+        // and is passed through raw. Before (80%, 100%) changes to (60%, 80%).
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting
+            {
+                SettingGUIDAlias = "PROCMIN",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = "%",
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "num-power-pct",
+            Name = "Setting num-power-pct",
+            Description = "desc",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = "%" },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("num-power-pct")).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power-pct")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
+
+        // "%" has no Common_Unit_* key — ResolveLocalized returns null for a miss-marker; leave
+        // mock at default (key echo). The switch default returns the raw "%" directly.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["num-power-pct"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    // % unit is 1:1 — system value == display value.
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 80, ["DCValue"] = 100 },
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "num-power-pct",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 60, ["DCValue"] = 80 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            "AC: 80 %, DC: 100 %",
+            "AC: 60 %, DC: 80 %"), Times.Once);
     }
 
     [Fact]
