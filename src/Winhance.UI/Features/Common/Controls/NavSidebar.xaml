@@ -121,6 +121,13 @@
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
+                        <!-- Change History -->
+                        <MenuFlyoutItem x:Name="OpenChangeHistoryMenuItem" Click="MoreMenuItem_Click" Tag="OpenChangeHistory">
+                            <MenuFlyoutItem.Icon>
+                                <fluentIcons:FluentIcon Icon="DocumentText" IconVariant="Regular" FontSize="20"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
                         <!-- Winhance Scripts -->
                         <MenuFlyoutItem x:Name="OpenScriptsMenuItem" Click="MoreMenuItem_Click" Tag="OpenScripts">
                             <MenuFlyoutItem.Icon>

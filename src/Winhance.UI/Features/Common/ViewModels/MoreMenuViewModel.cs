@@ -17,6 +17,8 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     private readonly IApplicationCloseService _applicationCloseService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IExplorerWindowManager _explorerWindowManager;
+    private readonly IChangeHistoryService _changeHistoryService;
+    private readonly IProcessExecutor _processExecutor;
 
     [ObservableProperty]
     public partial string VersionInfo { get; set; }
@@ -27,7 +29,9 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         ILogService logService,
         IApplicationCloseService applicationCloseService,
         IFileSystemService fileSystemService,
-        IExplorerWindowManager explorerWindowManager)
+        IExplorerWindowManager explorerWindowManager,
+        IChangeHistoryService changeHistoryService,
+        IProcessExecutor processExecutor)
     {
         _localizationService = localizationService;
         _versionService = versionService;
@@ -35,6 +39,8 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _applicationCloseService = applicationCloseService;
         _fileSystemService = fileSystemService;
         _explorerWindowManager = explorerWindowManager;
+        _changeHistoryService = changeHistoryService;
+        _processExecutor = processExecutor;
         VersionInfo = "Winhance";
 
         // Subscribe to language changes
@@ -59,6 +65,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MenuReportBug));
         OnPropertyChanged(nameof(MenuCheckForUpdates));
         OnPropertyChanged(nameof(MenuWinhanceLogs));
+        OnPropertyChanged(nameof(MenuChangeHistory));
         OnPropertyChanged(nameof(MenuWinhanceScripts));
         OnPropertyChanged(nameof(MenuCloseWinhance));
     }
@@ -90,6 +97,9 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
 
     public string MenuWinhanceLogs =>
         _localizationService.GetString("Menu_WinhanceLogs") ?? "Winhance Logs";
+
+    public string MenuChangeHistory =>
+        _localizationService.GetString("Menu_ChangeHistory") ?? "Change History";
 
     public string MenuWinhanceScripts =>
         _localizationService.GetString("Menu_WinhanceScripts") ?? "Winhance Scripts";
@@ -149,6 +159,20 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             _logService.LogError($"Error opening logs folder: {ex.Message}", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenChangeHistoryAsync()
+    {
+        try
+        {
+            var path = _changeHistoryService.GetFilePath();
+            await _processExecutor.ShellExecuteAsync(path);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to open change history page: {ex.Message}", ex);
         }
     }
 

@@ -15,6 +15,8 @@ public class MoreMenuViewModelTests
     private readonly Mock<IApplicationCloseService> _mockCloseService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IExplorerWindowManager> _mockExplorerWindowManager = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
+    private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
 
     public MoreMenuViewModelTests()
     {
@@ -31,7 +33,9 @@ public class MoreMenuViewModelTests
             _mockLogService.Object,
             _mockCloseService.Object,
             _mockFileSystemService.Object,
-            _mockExplorerWindowManager.Object);
+            _mockExplorerWindowManager.Object,
+            _mockChangeHistory.Object,
+            _mockProcessExecutor.Object);
     }
 
     // -------------------------------------------------------
@@ -75,6 +79,7 @@ public class MoreMenuViewModelTests
         changedProperties.Should().Contain(nameof(vm.MenuReportBug));
         changedProperties.Should().Contain(nameof(vm.MenuCheckForUpdates));
         changedProperties.Should().Contain(nameof(vm.MenuWinhanceLogs));
+        changedProperties.Should().Contain(nameof(vm.MenuChangeHistory));
         changedProperties.Should().Contain(nameof(vm.MenuWinhanceScripts));
         changedProperties.Should().Contain(nameof(vm.MenuCloseWinhance));
     }
@@ -179,6 +184,30 @@ public class MoreMenuViewModelTests
         vm.MenuCloseWinhance.Should().Be("Exit");
     }
 
+    [Fact]
+    public void MenuChangeHistory_ReturnsLocalizedString()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("Menu_ChangeHistory"))
+            .Returns("Change History");
+
+        var vm = CreateViewModel();
+
+        vm.MenuChangeHistory.Should().Be("Change History");
+    }
+
+    [Fact]
+    public void MenuChangeHistory_WhenLocalizationReturnsNull_ReturnsFallback()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("Menu_ChangeHistory"))
+            .Returns((string?)null!);
+
+        var vm = CreateViewModel();
+
+        vm.MenuChangeHistory.Should().Be("Change History");
+    }
+
     // -------------------------------------------------------
     // OpenLogsCommand
     // -------------------------------------------------------
@@ -241,6 +270,38 @@ public class MoreMenuViewModelTests
 
         _mockLogService.Verify(
             l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>()),
+            Times.Once);
+    }
+
+    // -------------------------------------------------------
+    // OpenChangeHistoryCommand
+    // -------------------------------------------------------
+
+    [Fact]
+    public async Task OpenChangeHistoryAsync_OpensFileViaShellExecute()
+    {
+        _mockChangeHistory.Setup(h => h.GetFilePath()).Returns(@"C:\ProgramData\Winhance\ChangeHistory.txt");
+
+        var vm = CreateViewModel();
+
+        await vm.OpenChangeHistoryCommand.ExecuteAsync(null);
+
+        _mockProcessExecutor.Verify(
+            p => p.ShellExecuteAsync(@"C:\ProgramData\Winhance\ChangeHistory.txt", null, false, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task OpenChangeHistoryAsync_WhenExceptionThrown_LogsError()
+    {
+        _mockChangeHistory.Setup(h => h.GetFilePath()).Throws(new IOException("file error"));
+
+        var vm = CreateViewModel();
+
+        await vm.OpenChangeHistoryCommand.ExecuteAsync(null);
+
+        _mockLogService.Verify(
+            l => l.LogError(It.Is<string>(s => s.Contains("file error")), It.IsAny<Exception>()),
             Times.Once);
     }
 
