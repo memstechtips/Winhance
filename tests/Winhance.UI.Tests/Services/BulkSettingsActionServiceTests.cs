@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,12 +33,22 @@ public class BulkSettingsActionServiceTests
     private readonly Mock<IProcessRestartManager> _processRestartManager = new();
     private readonly Mock<IRecommendedSettingsApplier> _recommendedApplier = new();
     private readonly Mock<ILogService> _logService = new();
+    private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private readonly Mock<ILocalizationService> _localizationService = new();
 
     public BulkSettingsActionServiceTests()
     {
         _versionService.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
         _versionService.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
         _versionService.Setup(v => v.IsWindows11()).Returns(true);
+
+        _changeHistoryService
+            .Setup(h => h.BeginBatch(It.IsAny<string>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        _localizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string k) => k);
     }
 
     private BulkSettingsActionService CreateSut(params SettingDefinition[] settings)
@@ -99,7 +110,9 @@ public class BulkSettingsActionServiceTests
             _applicationService.Object,
             _processRestartManager.Object,
             _recommendedApplier.Object,
-            _logService.Object);
+            _logService.Object,
+            _changeHistoryService.Object,
+            _localizationService.Object);
     }
 
     private static SettingDefinition MakeSelectionSetting(
