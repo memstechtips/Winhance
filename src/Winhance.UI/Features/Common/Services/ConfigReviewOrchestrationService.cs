@@ -26,6 +26,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IEventBus _eventBus;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
+    private readonly IChangeHistoryService _changeHistoryService;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -42,7 +43,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IReviewModeViewModelCoordinator vmCoordinator,
-        IPolicyCleanupService policyCleanupService)
+        IPolicyCleanupService policyCleanupService,
+        IChangeHistoryService changeHistoryService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -59,6 +61,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _eventBus = eventBus;
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
+        _changeHistoryService = changeHistoryService;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
@@ -284,6 +287,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _overlayService.ShowOverlay(overlayStatus);
 
             _configImportState.IsActive = true;
+            var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
 
             try
             {
@@ -304,6 +308,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             finally
             {
                 _configImportState.IsActive = false;
+                changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
 
@@ -344,6 +349,13 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         _configReviewModeService.ExitReviewMode();
         _logService.Log(LogLevel.Info, "Review mode cancelled - selections preserved");
+    }
+
+    private string BuildImportBatchHeader()
+    {
+        var label = _localizationService.GetString("ChangeHistory_ConfigImport");
+        var source = _configImportState.SourceName;
+        return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
     private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(

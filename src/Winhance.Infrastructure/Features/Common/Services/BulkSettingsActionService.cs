@@ -16,12 +16,15 @@ public class BulkSettingsActionService(
     ISettingApplicationService settingApplicationService,
     IProcessRestartManager processRestartManager,
     IRecommendedSettingsApplier recommendedSettingsApplier,
-    ILogService logService) : IBulkSettingsActionService
+    ILogService logService,
+    IChangeHistoryService changeHistory,
+    ILocalizationService localizationService) : IBulkSettingsActionService
 {
     public async Task<int> ApplyRecommendedAsync(
         IEnumerable<string> settingIds,
         IProgress<TaskProgressDetail>? progress = null)
     {
+        using var changeBatch = changeHistory.BeginBatch(localizationService.GetString("QuickActions_ApplyRecommended"));
         var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
         var applied = await recommendedSettingsApplier
             .ApplyRecommendedToSettingsAsync(settings, settingApplicationService, progress).ConfigureAwait(false);
@@ -34,6 +37,7 @@ public class BulkSettingsActionService(
         IEnumerable<string> settingIds,
         IProgress<TaskProgressDetail>? progress = null)
     {
+        using var changeBatch = changeHistory.BeginBatch(localizationService.GetString("QuickActions_ResetDefaults"));
         var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
         int applied = 0;
         int total = settings.Count;

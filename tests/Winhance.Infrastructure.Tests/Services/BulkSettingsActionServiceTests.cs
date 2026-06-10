@@ -19,6 +19,8 @@ public class BulkSettingsActionServiceTests
     private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
     private readonly Mock<IRecommendedSettingsApplier> _mockRecommendedApplier = new();
     private readonly Mock<ILogService> _mockLog = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
+    private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly BulkSettingsActionService _service;
 
     public BulkSettingsActionServiceTests()
@@ -49,13 +51,23 @@ public class BulkSettingsActionServiceTests
                 It.IsAny<IProgress<TaskProgressDetail>>()))
             .ReturnsAsync(new List<SettingDefinition>());
 
+        // Default: GetString returns the key; BeginBatch returns a no-op disposable
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string key) => key);
+        _mockChangeHistory
+            .Setup(h => h.BeginBatch(It.IsAny<string>()))
+            .Returns(Mock.Of<IDisposable>());
+
         _service = new BulkSettingsActionService(
             _mockRegistry.Object,
             _mockVersionService.Object,
             _mockAppService.Object,
             _mockProcessRestartManager.Object,
             _mockRecommendedApplier.Object,
-            _mockLog.Object);
+            _mockLog.Object,
+            _mockChangeHistory.Object,
+            _mockLocalizationService.Object);
     }
 
     // ---------------------------------------------------------------
@@ -438,7 +450,26 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Test 7: ApplyRecommendedAsync passes all resolved settings to the
+    // Test 7: ResetToDefaultsAsync wraps applies in a change-history batch
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_WrapsAppliesInChangeHistoryBatch()
+    {
+        // Arrange: one resettable toggle setting
+        var setting = CreateToggleSetting("reset-batch", recommendedValue: 0, defaultValue: 1,
+            enabledValue: [1], disabledValue: [0]);
+        SetupDomainWithSettings("reset-batch", new[] { setting }, "Domain");
+
+        // Act
+        await _service.ResetToDefaultsAsync(new[] { "reset-batch" });
+
+        // Assert: a batch was opened with the expected header key
+        _mockChangeHistory.Verify(h => h.BeginBatch("QuickActions_ResetDefaults"), Times.Once);
+    }
+
+    // ---------------------------------------------------------------
+    // Test 8: ApplyRecommendedAsync passes all resolved settings to the
     //         applier (Toggle + Selection + Numeric)
     // ---------------------------------------------------------------
 

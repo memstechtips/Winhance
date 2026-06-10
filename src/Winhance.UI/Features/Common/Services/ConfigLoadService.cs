@@ -20,6 +20,7 @@ public class ConfigLoadService : IConfigLoadService
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IMainWindowProvider _mainWindowProvider;
+    private readonly IConfigImportState _configImportState;
 
     public ConfigLoadService(
         ILogService logService,
@@ -30,7 +31,8 @@ public class ConfigLoadService : IConfigLoadService
         IConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
         IFileSystemService fileSystemService,
-        IMainWindowProvider mainWindowProvider)
+        IMainWindowProvider mainWindowProvider,
+        IConfigImportState configImportState)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -41,6 +43,7 @@ public class ConfigLoadService : IConfigLoadService
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
         _mainWindowProvider = mainWindowProvider;
+        _configImportState = configImportState;
     }
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
@@ -65,6 +68,8 @@ public class ConfigLoadService : IConfigLoadService
 
             if (string.IsNullOrEmpty(filePath))
                 return null;
+
+            _configImportState.SourceName = Path.GetFileName(filePath);
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
             var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
@@ -120,6 +125,8 @@ public class ConfigLoadService : IConfigLoadService
                 return null;
             }
 
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Recommended_Title");
+
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
             var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
@@ -157,6 +164,8 @@ public class ConfigLoadService : IConfigLoadService
                     "Resource Error");
                 return null;
             }
+
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Defaults_Title");
 
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
@@ -231,6 +240,7 @@ public class ConfigLoadService : IConfigLoadService
                 filePath = selectedPath;
             }
             _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
             var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);

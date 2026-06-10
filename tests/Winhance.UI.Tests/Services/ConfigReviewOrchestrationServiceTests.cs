@@ -26,6 +26,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -38,6 +39,10 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] args) => string.Format(key, args));
+
+        _mockChangeHistoryService
+            .Setup(h => h.BeginBatch(It.IsAny<string>()))
+            .Returns(Mock.Of<IDisposable>());
     }
 
     private ConfigReviewOrchestrationService CreateService()
@@ -57,7 +62,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockCompatibleSettingsRegistry.Object,
             _mockEventBus.Object,
             _mockVmCoordinator.Object,
-            _mockPolicyCleanupService.Object);
+            _mockPolicyCleanupService.Object,
+            _mockChangeHistoryService.Object);
         return _service;
     }
 
