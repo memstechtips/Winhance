@@ -14,6 +14,7 @@ public interface IFileSystemService
     string ReadAllText(string path);
     Task<string> ReadAllTextAsync(string path, CancellationToken ct = default);
     void WriteAllText(string path, string contents);
+    void AppendAllText(string path, string contents, System.Text.Encoding encoding);
     Task WriteAllTextAsync(string path, string contents, CancellationToken ct = default);
     Task<byte[]> ReadAllBytesAsync(string path, CancellationToken ct = default);
     Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken ct = default);

@@ -64,6 +64,9 @@ public static class InfrastructureServicesExtensions
         // Explorer Window Manager (open/focus folders in Explorer)
         services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();
 
+        // User-facing change receipt (ChangeHistory.txt)
+        services.AddSingleton<IChangeHistoryService, ChangeHistoryService>();
+
         // System Parameters (wraps User32 SystemParametersInfo P/Invoke)
         services.AddSingleton<ISystemParametersService, SystemParametersService>();
 

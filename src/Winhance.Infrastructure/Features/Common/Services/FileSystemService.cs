@@ -15,6 +15,8 @@ public class FileSystemService : IFileSystemService
     public string ReadAllText(string path) => File.ReadAllText(path);
     public Task<string> ReadAllTextAsync(string path, CancellationToken ct = default) => File.ReadAllTextAsync(path, ct);
     public void WriteAllText(string path, string contents) => File.WriteAllText(path, contents);
+    public void AppendAllText(string path, string contents, System.Text.Encoding encoding) =>
+        File.AppendAllText(path, contents, encoding);
     public Task WriteAllTextAsync(string path, string contents, CancellationToken ct = default) => File.WriteAllTextAsync(path, contents, ct);
     public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken ct = default) => File.ReadAllBytesAsync(path, ct);
     public Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken ct = default) => File.WriteAllBytesAsync(path, bytes, ct);
