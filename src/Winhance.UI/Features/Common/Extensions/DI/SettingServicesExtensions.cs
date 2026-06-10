@@ -82,7 +82,8 @@ public static class SettingServicesExtensions
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
             sp.GetRequiredService<IProcessExecutor>(),
             sp.GetRequiredService<IFileSystemService>(),
-            sp.GetRequiredService<IPowerSchemeOperations>()
+            sp.GetRequiredService<IPowerSchemeOperations>(),
+            sp.GetRequiredService<IConfigImportState>()
         ));
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 

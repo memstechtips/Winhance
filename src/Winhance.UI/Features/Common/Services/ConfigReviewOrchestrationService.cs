@@ -287,6 +287,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _overlayService.ShowOverlay(overlayStatus);
 
             _configImportState.IsActive = true;
+            _configImportState.ImportSuppliesPowerValues = false;
             var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
 
             try
@@ -308,6 +309,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             finally
             {
                 _configImportState.IsActive = false;
+                _configImportState.ImportSuppliesPowerValues = false;
                 changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
