@@ -22,12 +22,19 @@ internal class SponsorsDialogBuilder
 {
     private const string SupportUrl = "https://store.memstechtips.com/winhance/";
 
-    // Sponsor cards layout. Tightened in the design revision: narrower cells,
-    // less padding, smaller logo, shorter cell floor.
-    private const double CardWidth = 196d;
-    private const double CardHeight = 225d;
-    private const double CardColumnSpacing = 14d;
+    // Sponsor cards layout. The grid is locked to exactly CardColumns columns
+    // that fill the usable content width, so cards never leave dead space on the
+    // right (Marco's round-2 note). UsableContentWidth mirrors the chip packer's
+    // ~760px assumption: ContentDialogMaxWidth (860) minus dialog chrome/padding.
+    // ItemWidth is derived: (usable − (cols−1)×spacing) / cols
+    //   = (760 − 3×12) / 4 = 181.
+    private const int CardColumns = 4;
+    private const double UsableContentWidth = 760d;
+    private const double CardColumnSpacing = 12d;
     private const double CardRowSpacing = 14d;
+    private const double CardWidth =
+        (UsableContentWidth - (CardColumns - 1) * CardColumnSpacing) / CardColumns;
+    private const double CardHeight = 225d;
 
     // Supporter chips are content-sized (measure-and-pack), not uniform cells.
     // ChipRowAvailableWidth is the usable inner width for packing chips into
@@ -128,7 +135,7 @@ internal class SponsorsDialogBuilder
         Grid.SetRow(sponsorScroll, 1);
         root.Children.Add(sponsorScroll);
 
-        FrameworkElement supportersHeader = (FrameworkElement)BuildSupportersHeader();
+        FrameworkElement supportersHeader = (FrameworkElement)BuildSupportersHeader(data);
         Grid.SetRow(supportersHeader, 2);
         root.Children.Add(supportersHeader);
 
@@ -239,12 +246,21 @@ internal class SponsorsDialogBuilder
             HorizontalAlignment = HorizontalAlignment.Left
         };
 
+        int cardCount = 0;
         foreach (var sponsor in QualifyingSponsors(data))
+        {
             wrap.Children.Add(BuildSponsorCard(sponsor));
+            cardCount++;
+        }
 
-        // Always render the ghost slot inviting a new sponsor; with no data it
-        // is the only card so the section still looks intentional.
-        wrap.Children.Add(BuildGhostCard());
+        // Ghost "Your company here" slots keep the grid a clean rectangle and
+        // always show at least one full row of invitations (Marco's round-2 note:
+        // real badges, then a row of empty slots below). Fill the current partial
+        // row; if the real cards already fill complete rows, add a whole ghost row.
+        int remainder = cardCount % CardColumns;
+        int ghostCount = remainder == 0 ? CardColumns : CardColumns - remainder;
+        for (int i = 0; i < ghostCount; i++)
+            wrap.Children.Add(BuildGhostCard());
 
         return wrap;
     }
@@ -330,7 +346,7 @@ internal class SponsorsDialogBuilder
         {
             Child = cardContent,
             CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(12),
+            Padding = new Thickness(10),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(borderColor),
             Background = GetBrush("CardBackgroundFillColorDefaultBrush")
@@ -342,11 +358,18 @@ internal class SponsorsDialogBuilder
         // Content-sized pill: explicit Center so the Border hugs its text rather
         // than inheriting the parent StackPanel's default horizontal stretch
         // (which rendered the pill stretched edge-to-edge across the card).
+        // Pill geometry matches the Software Apps card badges (CornerRadius 10,
+        // Padding 8,2). CornerRadius 999 was dropped: at the rendered pill height
+        // it produced the subpixel/clipping artefacts Marco saw (the same reason
+        // SoftwareAppsPage.xaml's CardPillCornerRadius is 10, not 999). Those
+        // StaticResource definitions live in SoftwareAppsPage.xaml's page-scoped
+        // resources and are not reachable from code here, so the literal values
+        // are used directly.
         return new Border
         {
             Background = new SolidColorBrush(tierColor),
-            CornerRadius = new CornerRadius(999),
-            Padding = new Thickness(10, 3, 10, 3),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(8, 2, 8, 2),
             HorizontalAlignment = HorizontalAlignment.Center,
             Child = new TextBlock
             {
@@ -494,7 +517,7 @@ internal class SponsorsDialogBuilder
     /// Row 2 of the modal: the "Recent Supporters" section title plus a small
     /// secondary how-to-join line directly beneath it.
     /// </summary>
-    private UIElement BuildSupportersHeader()
+    private UIElement BuildSupportersHeader(SponsorsDocument? data)
     {
         var section = new StackPanel { Spacing = 2 };
 
@@ -514,14 +537,30 @@ internal class SponsorsDialogBuilder
             TextWrapping = TextWrapping.Wrap
         });
 
+        // Count line: how many supporters are shown (capped at MaxSupporters).
+        // Replaces the old count-free "…and many more" overflow line. Shown only
+        // when there is at least one supporter to display.
+        int supporterCount = data?.Supporters?.Count ?? 0;
+        if (supporterCount > 0)
+        {
+            int shownCount = Math.Min(MaxSupporters, supporterCount);
+            section.Children.Add(new TextBlock
+            {
+                Text = _localization.GetString("Sponsors_RecentCount", shownCount),
+                FontSize = 12,
+                Foreground = GetBrush("TextFillColorTertiaryBrush"),
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
+
         return section;
     }
 
     /// <summary>
     /// Row 3 of the modal: content-sized supporter chips packed into wrapping
-    /// rows, plus the count-free overflow line. Chips are measured individually
-    /// and packed greedily so each chip hugs its name (no dead space after
-    /// short names), unlike the previous fixed 160px uniform cells.
+    /// rows. Chips are measured individually and packed greedily so each chip
+    /// hugs its name (no dead space after short names), unlike the previous fixed
+    /// 160px uniform cells. The supporter count line lives in the section header.
     /// </summary>
     private UIElement BuildSupportersChips(SponsorsDocument? data)
     {
@@ -541,19 +580,8 @@ internal class SponsorsDialogBuilder
 
         section.Children.Add(PackChips(chipBorders));
 
-        // Count-free overflow line (no computed remainder), shown only when more
-        // supporters exist than the MaxSupporters we render.
-        if (supporters.Count > MaxSupporters)
-        {
-            section.Children.Add(new TextBlock
-            {
-                Text = _localization.GetString("Sponsors_ManyMore"),
-                FontSize = 12,
-                Foreground = GetBrush("TextFillColorTertiaryBrush"),
-                TextWrapping = TextWrapping.Wrap
-            });
-        }
-
+        // The overflow/count line moved up to the supporters header
+        // (Sponsors_RecentCount), so the chip region renders just the chips.
         return section;
     }
 
