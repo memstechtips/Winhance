@@ -3,7 +3,7 @@
 This folder is the **single source of truth** for sponsor and supporter recognition
 across every surface that shows it:
 
-- the **in-app sponsors page** in Winhance (business sponsors only — never individual names),
+- the **in-app sponsors page** in Winhance (business sponsor cards + the most recent individual supporters, capped),
 - the sponsor showcase on the **winhance.net** download page,
 - the sponsors & supporters wall on **store.memstechtips.com/winhance/**,
 - the sponsors line in **release notes**.
@@ -91,7 +91,7 @@ tier is identifiable by the same color everywhere.
   with a "most recent" note when truncated. Business sponsors are never capped.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
-- **In-app sponsors page:** business sponsors only, same order, same tier colors.
+- **In-app sponsors page:** mirrors the store wall — business cards (same order, same tier colors) plus the **48** most recent individual supporters as name chips with a "+ more" note (Marco decision 2026-06-11; previously business-only).
 - **Card contents by tier:** bronze cards show logo + name only; city and the
   contact line render on silver and up; the clickable website link on gold and up.
 
@@ -107,7 +107,7 @@ tier is identifiable by the same color everywhere.
 Bronze cards appear on the **store sponsors wall only**; silver and up also get the
 winhance.net download-page showcase.
 
-Individual **supporters** appear on the web supporters wall only — never in the app.
+Individual **supporters** appear on the web supporters wall (capped 150) and the in-app page (capped 48) — names only, never amounts.
 
 ## Lifecycle: one-time, lapsed, and past sponsors
 
