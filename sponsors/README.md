@@ -11,12 +11,32 @@ across every surface that shows it:
 There is **one unified sponsor space per surface** — no separate "Top Sponsors"
 box or carousel. Emerald sponsors simply sort first and carry emerald styling.
 
-## How the app consumes it
+## Where the live data lives — the `sponsors` branch
 
-Winhance fetches the live file from the `main` branch
-(`https://raw.githubusercontent.com/memstechtips/Winhance/main/sponsors/sponsors.json`)
-so new sponsors appear in the app without a release. A snapshot of this folder is
-bundled with every release and used as the **offline fallback** when the fetch fails.
+**This data's home is the dedicated `sponsors` branch** (an orphan branch holding
+only this folder), not `main`. Every consumer fetches from it:
+
+```
+https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/sponsors.json
+```
+
+New sponsors and supporters appear on every surface without a release. A snapshot
+of this folder (from the `sponsors` branch) is bundled with every release and used
+as the **offline fallback** when the fetch fails. `main` keeps a copy of the README
+for discoverability; the branch is authoritative for data.
+
+### How updates happen
+
+- **Individual supporters: automated.** A scheduled job (`sponsors-sync`, every
+  6 hours on the agent box) reads new paid store orders, finds the supporters-wall
+  opt-in, normalises the name to "First L.", dedupes, prepends (newest first) and
+  pushes here. Names are treated as untrusted data: sanitised, length-capped,
+  rendered as text only.
+- **Business sponsors: never automated.** The job detects a sponsor-tier purchase
+  and notifies Marco; the card (logo arrives by email) is added here only after
+  Marco approves it.
+- Marco edits via PR or direct push; the agent pushes data-only commits as
+  Memory's Agent.
 
 ## Schema (`sponsors.json`)
 
@@ -72,8 +92,8 @@ tier is identifiable by the same color everywhere.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
 - **In-app sponsors page:** business sponsors only, same order, same tier colors.
-- **Card contents by tier:** bronze cards show logo + name only; city and the
-  contact line render on silver and up; the clickable website link on gold and up.
+- **Card contents by tier:** every card shows logo, name, city; the contact line
+  renders on silver and up; the clickable website link on gold and up.
 
 ### Tier → surface mapping
 
