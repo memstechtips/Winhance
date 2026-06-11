@@ -115,5 +115,9 @@ Individual **supporters** appear on the web supporters wall only — never in th
 ## Adding a sponsor
 
 1. Drop the square logo into `logos/` named `<id>.png`.
-2. Add the entry to the right array in `sponsors.json`, bump `updated`.
+2. Add the entry to `sponsors.json`, bump `updated`. **Only include the fields the
+   tier promises** — bronze: `logo` + `name` only; silver: + `city` + `url`;
+   gold/emerald: + `contact`. (`id`, `tier`, `country`, `since` are always present;
+   renderers also gate by tier as defense in depth, but the data itself must not
+   carry more than the sponsor paid for.)
 3. Open a data-only PR into `main`.

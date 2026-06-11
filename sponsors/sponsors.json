@@ -20,7 +20,6 @@
       "tier": "silver",
       "city": "WC, ZA",
       "country": "ZA",
-      "contact": "contact@memstechtips.com",
       "url": "https://github.com/memstechtips/UnattendedWinstall",
       "logo": "logos/unattendedwinstall.png",
       "since": "2026-06",
@@ -30,10 +29,7 @@
       "id": "memstechtips",
       "name": "Memstechtips",
       "tier": "bronze",
-      "city": "WC, ZA",
       "country": "ZA",
-      "contact": "contact@memstechtips.com",
-      "url": "https://www.memstechtips.com",
       "logo": "logos/memstechtips.png",
       "since": "2026-06",
       "example": true
