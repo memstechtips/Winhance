@@ -4,9 +4,12 @@ This folder is the **single source of truth** for sponsor and supporter recognit
 across every surface that shows it:
 
 - the **in-app sponsors page** in Winhance (business sponsors only — never individual names),
-- the sponsors carousel and the **"Top Sponsors" box** on **winhance.net**,
+- the sponsor showcase on the **winhance.net** download page,
 - the sponsors & supporters wall on **store.memstechtips.com/winhance/**,
 - the sponsors line in **release notes**.
+
+There is **one unified sponsor space per surface** — no separate "Top Sponsors"
+box or carousel. Emerald sponsors simply sort first and carry emerald styling.
 
 ## How the app consumes it
 
@@ -20,16 +23,14 @@ bundled with every release and used as the **offline fallback** when the fetch f
 ```jsonc
 {
   "updated": "YYYY-MM-DD",
-  "topSponsors": [ /* Platinum sponsors — same shape as sponsors; featured in the
-                      winhance.net "Top Sponsors" box and first position everywhere */ ],
   "sponsors": [
     {
       "id": "your-it",               // slug, unique; logo filename derives from it
       "name": "Your IT",
-      "tier": "gold",                // bronze | silver | gold | platinum
+      "tier": "gold",                // bronze | silver | gold | emerald
       "city": "Austin, TX",          // shown on the card
       "country": "US",
-      "contact": "contact@yourit.com", // optional; shown on gold/platinum cards
+      "contact": "contact@yourit.com", // optional; shown on gold/emerald cards
       "url": "https://www.yourit.com", // clickable on silver and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
       "since": "2026-06",
@@ -43,26 +44,55 @@ bundled with every release and used as the **offline fallback** when the fetch f
 }
 ```
 
+The `supporters` array is maintained **newest donation first** — a returning
+donor's entry moves back to the top (`since` stays their first donation).
+Renderers display it in array order. The legacy `topSponsors` array is retired:
+Emerald sponsors live in `sponsors` with `"tier": "emerald"`.
+
+### Tier colors (canonical — every surface uses these exact values)
+
+| Tier | Hex | Use |
+|---|---|---|
+| bronze | `#CD7F32` | card border + tier label |
+| silver | `#AEB6C2` | card border + tier label |
+| gold | `#FFD700` | card border + tier label (matches the brand gold) |
+| emerald | `#50C878` | card border + tier label, with a subtle glow |
+
+The store theme defines these as CSS variables (`--tier-bronze` …); winhance.net
+and the WinUI 3 in-app sponsors page must use the same hex values so a sponsor's
+tier is identifiable by the same color everywhere.
+
+### Display rules (all surfaces)
+
+- **Order:** emerald → gold → silver → bronze; array order is kept within a tier.
+- **Store wall** (`store.memstechtips.com/winhance/`): shows the top **6** cards,
+  then a **"See all sponsors"** button expands the full wall in place. Individual
+  supporters render below in their own strip, newest first, capped at **150**
+  with a "most recent" note when truncated. Business sponsors are never capped.
+- **winhance.net download page:** the same top-**6** box (or as many as the space
+  fits), with a **"View all sponsors"** link to the store wall. No carousel.
+- **In-app sponsors page:** business sponsors only, same order, same tier colors.
+- **Card contents by tier:** every card shows logo, name, city; the website link
+  renders on silver and up; the contact line on gold and up.
+
 ### Tier → surface mapping
 
-| Tier | Sponsors pages (store + winhance.net) | winhance.net download-page carousel | In-app sponsors page | Release notes | "Top Sponsors" box (winhance.net home) |
-|---|---|---|---|---|---|
-| bronze | logo + name | — | — | — | — |
-| silver | ✓ | full card (logo, city, link) | — | — | — |
-| gold | ✓ | ✓ | full card (logo, city, contact, link) | mention | — |
-| platinum | ✓ | first position | first position | mention | ✓ |
+| Tier | Sponsors pages (store + winhance.net) | winhance.net download-page showcase | In-app sponsors page | Release notes |
+|---|---|---|---|---|
+| bronze | logo + name | — | — | — |
+| silver | ✓ | full card (logo, city, link) | — | — |
+| gold | ✓ | ✓ | full card (logo, city, contact, link) | mention |
+| emerald | first position | first position | first position | mention |
 
-Platinum entries live in the `topSponsors` array; the "Top Sponsors" box is **separate
-from and in addition to** the regular sponsor surfaces. Individual **supporters**
-appear on the web supporters wall only — never in the app.
+Individual **supporters** appear on the web supporters wall only — never in the app.
 
 ## Lifecycle: one-time, lapsed, and past sponsors
 
 - **Individual supporters are permanent.** A thank-you doesn't expire — one-time or
   recurring makes no difference. `since` = the date of their (first) donation. There
   is no "past supporters" section.
-- **Business sponsor cards are active inventory.** The paid surfaces (carousel,
-  in-app page, Top Sponsors box) belong to *active* sponsorships: a monthly that
+- **Business sponsor cards are active inventory.** The paid surfaces (download-page
+  showcase, in-app page, first-position placement) belong to *active* sponsorships: a monthly that
   cancels, or a 1-year purchase that isn't renewed, lapses. Set the optional
   `"until": "YYYY-MM"` field on the entry — renderers must then drop the card from
   all paid surfaces and show the sponsor as a **name-only line in a "Past sponsors"
