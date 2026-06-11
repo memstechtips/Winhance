@@ -165,7 +165,7 @@ public class ApplicationCloseService : IApplicationCloseService
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error checking donation dialog preference: {ex.Message}", ex);
+            _logService.LogError($"Error checking sponsors dialog preference: {ex.Message}", ex);
             return true;
         }
     }

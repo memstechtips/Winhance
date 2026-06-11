@@ -144,7 +144,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// Initializes the WindowSizeManager for window position/size persistence
-    /// and wires up ApplicationCloseService for proper shutdown with donation dialog.
+    /// and wires up ApplicationCloseService for proper shutdown with the sponsors dialog.
     /// </summary>
     private void InitializeWindowSizeManager()
     {

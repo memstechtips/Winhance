@@ -54,7 +54,7 @@ public static class UIServicesExtensions
         // Selected Apps Provider (Singleton - Bridges WIM feature to SoftwareApps feature)
         services.AddSingleton<ISelectedAppsProvider, SelectedAppsProvider>();
 
-        // Application Close Service (Singleton - Handles shutdown with donation dialog)
+        // Application Close Service (Singleton - Handles shutdown with the sponsors dialog)
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
 
         // Startup Notification Service (Singleton - Shows backup notification after startup)
