@@ -72,8 +72,8 @@ tier is identifiable by the same color everywhere.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
 - **In-app sponsors page:** business sponsors only, same order, same tier colors.
-- **Card contents by tier:** every card shows logo, name, city; the contact line
-  renders on silver and up; the clickable website link on gold and up.
+- **Card contents by tier:** bronze cards show logo + name only; city and the
+  contact line render on silver and up; the clickable website link on gold and up.
 
 ### Tier → surface mapping
 
