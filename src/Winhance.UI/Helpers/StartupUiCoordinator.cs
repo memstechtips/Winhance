@@ -224,6 +224,9 @@ internal sealed class StartupUiCoordinator
             StartupLogger.Log("StartupUiCoordinator", $"Startup notification failed: {ex.Message}");
         }
 
+        // Pre-warm the sponsors cache so the exit dialog opens instantly even offline.
+        App.Services.GetService<ISponsorsService>()?.GetSponsorsAsync().FireAndForget(_logService!);
+
         // Check for updates silently (only shows InfoBar if update available)
         var viewModel = getViewModel();
         if (viewModel != null)

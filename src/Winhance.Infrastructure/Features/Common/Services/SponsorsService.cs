@@ -18,7 +18,7 @@ public class SponsorsService : ISponsorsService
 {
     private const string LiveUrl = "https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/sponsors.json";
     private const string UserAgent = "Winhance-Sponsors-Loader";
-    private const int TimeoutSeconds = 10;
+    private const int TimeoutSeconds = 4;
 
     private readonly HttpClient _httpClient;
     private readonly ILogService _logService;
