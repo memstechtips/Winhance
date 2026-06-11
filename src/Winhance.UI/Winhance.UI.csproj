@@ -125,6 +125,16 @@
     </Content>
   </ItemGroup>
 
+  <!-- Content files (sponsors snapshot + logos) - offline fallback for SponsorsService -->
+  <ItemGroup>
+    <Content Include="Assets\Sponsors\sponsors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Sponsors\logos\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <!-- Embedded resources - uses local UI project files -->
   <ItemGroup>
     <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Recommended_Config.winhance">
