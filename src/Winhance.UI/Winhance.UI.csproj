@@ -43,8 +43,8 @@
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
     <Version>26.05.27-beta</Version>
-    <FileVersion>26.06.10</FileVersion>
-    <AssemblyVersion>26.06.10</AssemblyVersion>
+    <FileVersion>26.06.11</FileVersion>
+    <AssemblyVersion>26.06.11</AssemblyVersion>
     <InformationalVersion>v26.05.27-beta</InformationalVersion>
     <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>

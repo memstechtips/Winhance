@@ -21,21 +21,29 @@ namespace Winhance.UI.Features.Common.Dialogs;
 internal class SponsorsDialogBuilder
 {
     private const string SupportUrl = "https://store.memstechtips.com/winhance/";
-    private const string BusinessUrl = "https://store.memstechtips.com/winhance/#business";
 
-    // Sponsor cards layout
-    private const double CardWidth = 220d;
-    private const double CardHeight = 240d;
+    // Sponsor cards layout. Tightened in the design revision: narrower cells,
+    // less padding, smaller logo, shorter cell floor.
+    private const double CardWidth = 196d;
+    private const double CardHeight = 225d;
     private const double CardColumnSpacing = 14d;
     private const double CardRowSpacing = 14d;
 
-    // Supporter chips layout. UniformWrapPanel needs a positive ItemWidth to
-    // wrap (ItemWidth <= 0 collapses to a single non-wrapping row); a uniform
-    // cell width is the house-consistent way to get a wrapping flow here.
-    private const double ChipWidth = 160d;
-    private const double ChipHeight = 32d;
+    // Supporter chips are content-sized (measure-and-pack), not uniform cells.
+    // ChipRowAvailableWidth is the usable inner width for packing chips into
+    // rows: ContentDialogMaxWidth (860) minus dialog chrome/padding (~90) gives
+    // ~770px of content width to flow chips across before wrapping to a new row.
+    // We measure chips off the visual tree (before theme/text-scaling applies),
+    // so this is deliberately a touch conservative — the supporters ScrollViewer
+    // disables horizontal scrolling, so a slightly-early wrap is preferable to a
+    // chip clipping off the right edge under "Make text bigger".
+    private const double ChipRowAvailableWidth = 760d;
     private const double ChipColumnSpacing = 8d;
     private const double ChipRowSpacing = 8d;
+
+    // Scrollable-region height caps for the fixed-structure modal.
+    private const double SponsorScrollMaxHeight = 300d;
+    private const double SupportersScrollMaxHeight = 120d;
 
     private const int MaxSupporters = 48;
     private const int CountdownSeconds = 3;
@@ -84,26 +92,68 @@ internal class SponsorsDialogBuilder
         _dialog.Resources["ContentDialogMaxWidth"] = 860d;
         _dialog.Resources["ContentDialogMaxHeight"] = 720d;
 
-        var rootPanel = new StackPanel
+        // Fixed-structure modal: the dialog itself does not scroll. Instead the
+        // two unbounded regions (sponsor cards, supporter chips) each live in
+        // their own height-capped ScrollViewer, so the header, section labels,
+        // CTA, and disclaimer stay pinned while only those regions scroll.
+        var root = new Grid
         {
-            Spacing = 20,
-            Padding = new Thickness(8)
+            Padding = new Thickness(8),
+            RowSpacing = 16
         };
+        // 0: header, 1: sponsor cards (scroll), 2: supporters header + how-to,
+        // 3: supporter chips (scroll), 4: CTA, 5: disclaimer, 6: checkbox (exit).
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        rootPanel.Children.Add(BuildHeader(isDark));
-        rootPanel.Children.Add(BuildSponsorCards(data));
-        rootPanel.Children.Add(BuildSupportersSection(data));
-        rootPanel.Children.Add(BuildCtaRow());
-        rootPanel.Children.Add(BuildDisclaimer());
+        // Build methods return UIElement; Grid.SetRow needs a FrameworkElement,
+        // so type these locals as FrameworkElement (every concrete element
+        // returned -- Grid, StackPanel, ScrollViewer, TextBlock -- is one).
+        FrameworkElement header = (FrameworkElement)BuildHeader(isDark);
+        Grid.SetRow(header, 0);
+        root.Children.Add(header);
 
-        ConfigureButtonsAndMode(rootPanel);
-
-        _dialog.Content = new ScrollViewer
+        var sponsorScroll = new ScrollViewer
         {
-            Content = rootPanel,
+            Content = BuildSponsorCards(data),
+            MaxHeight = SponsorScrollMaxHeight,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
+        Grid.SetRow(sponsorScroll, 1);
+        root.Children.Add(sponsorScroll);
+
+        FrameworkElement supportersHeader = (FrameworkElement)BuildSupportersHeader();
+        Grid.SetRow(supportersHeader, 2);
+        root.Children.Add(supportersHeader);
+
+        var supportersScroll = new ScrollViewer
+        {
+            Content = BuildSupportersChips(data),
+            MaxHeight = SupportersScrollMaxHeight,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
+        Grid.SetRow(supportersScroll, 3);
+        root.Children.Add(supportersScroll);
+
+        FrameworkElement cta = (FrameworkElement)BuildCtaRow();
+        Grid.SetRow(cta, 4);
+        root.Children.Add(cta);
+
+        FrameworkElement disclaimer = (FrameworkElement)BuildDisclaimer();
+        Grid.SetRow(disclaimer, 5);
+        root.Children.Add(disclaimer);
+
+        // Exit mode appends a don't-show-again checkbox into row 6.
+        ConfigureButtonsAndMode(root);
+
+        _dialog.Content = root;
 
         return _dialog;
     }
@@ -230,7 +280,7 @@ internal class SponsorsDialogBuilder
 
         var cardContent = new StackPanel
         {
-            Spacing = 6,
+            Spacing = 4,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
@@ -280,7 +330,7 @@ internal class SponsorsDialogBuilder
         {
             Child = cardContent,
             CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(16),
+            Padding = new Thickness(12),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(borderColor),
             Background = GetBrush("CardBackgroundFillColorDefaultBrush")
@@ -289,17 +339,21 @@ internal class SponsorsDialogBuilder
 
     private Border BuildExampleBadge(Windows.UI.Color tierColor)
     {
+        // Content-sized pill: explicit Center so the Border hugs its text rather
+        // than inheriting the parent StackPanel's default horizontal stretch
+        // (which rendered the pill stretched edge-to-edge across the card).
         return new Border
         {
             Background = new SolidColorBrush(tierColor),
             CornerRadius = new CornerRadius(999),
-            Padding = new Thickness(8, 2, 8, 2),
+            Padding = new Thickness(10, 3, 10, 3),
             HorizontalAlignment = HorizontalAlignment.Center,
             Child = new TextBlock
             {
                 Text = _localization.GetString("Sponsors_ExampleBadge").ToUpperInvariant(),
-                FontSize = 9,
+                FontSize = 10,
                 FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = new SolidColorBrush(BadgeForeground)
             }
         };
@@ -309,8 +363,8 @@ internal class SponsorsDialogBuilder
     {
         var image = new Image
         {
-            Width = 56,
-            Height = 56,
+            Width = 48,
+            Height = 48,
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
@@ -351,15 +405,15 @@ internal class SponsorsDialogBuilder
 
         return new Border
         {
-            Width = 56,
-            Height = 56,
+            Width = 48,
+            Height = 48,
             CornerRadius = new CornerRadius(10),
             Background = GetBrush("SubtleFillColorSecondaryBrush"),
             HorizontalAlignment = HorizontalAlignment.Center,
             Child = new TextBlock
             {
                 Text = initial,
-                FontSize = 22,
+                FontSize = 20,
                 FontWeight = Microsoft.UI.Text.FontWeights.Bold,
                 Foreground = new SolidColorBrush(tierColor),
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -436,9 +490,13 @@ internal class SponsorsDialogBuilder
     // Supporters
     // -----------------------------------------------------------------------
 
-    private UIElement BuildSupportersSection(SponsorsDocument? data)
+    /// <summary>
+    /// Row 2 of the modal: the "Recent Supporters" section title plus a small
+    /// secondary how-to-join line directly beneath it.
+    /// </summary>
+    private UIElement BuildSupportersHeader()
     {
-        var section = new StackPanel { Spacing = 10 };
+        var section = new StackPanel { Spacing = 2 };
 
         section.Children.Add(new TextBlock
         {
@@ -448,32 +506,48 @@ internal class SponsorsDialogBuilder
             Foreground = GetBrush("TextFillColorPrimaryBrush")
         });
 
-        var supporters = data?.Supporters ?? new List<SupporterEntry>();
-
-        var chips = new Controls.UniformWrapPanel
+        section.Children.Add(new TextBlock
         {
-            ItemWidth = ChipWidth,
-            ItemHeight = ChipHeight,
-            ColumnSpacing = ChipColumnSpacing,
-            RowSpacing = ChipRowSpacing,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
+            Text = _localization.GetString("Sponsors_HowToJoin"),
+            FontSize = 12,
+            Foreground = GetBrush("TextFillColorSecondaryBrush"),
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        return section;
+    }
+
+    /// <summary>
+    /// Row 3 of the modal: content-sized supporter chips packed into wrapping
+    /// rows, plus the count-free overflow line. Chips are measured individually
+    /// and packed greedily so each chip hugs its name (no dead space after
+    /// short names), unlike the previous fixed 160px uniform cells.
+    /// </summary>
+    private UIElement BuildSupportersChips(SponsorsDocument? data)
+    {
+        var section = new StackPanel { Spacing = 8 };
+
+        var supporters = data?.Supporters ?? new List<SupporterEntry>();
 
         // Supporters array is newest-first; take the first MaxSupporters.
         var shown = supporters.Take(MaxSupporters).ToList();
-        foreach (var supporter in shown)
-            chips.Children.Add(BuildSupporterChip(supporter.Name));
 
+        var chipBorders = new List<Border>();
         if (shown.Count == 0)
-            chips.Children.Add(BuildSupporterChip(_localization.GetString("Sponsors_GhostName"), faint: true));
+            chipBorders.Add(BuildSupporterChip(_localization.GetString("Sponsors_GhostName"), faint: true));
+        else
+            foreach (var supporter in shown)
+                chipBorders.Add(BuildSupporterChip(supporter.Name));
 
-        section.Children.Add(chips);
+        section.Children.Add(PackChips(chipBorders));
 
+        // Count-free overflow line (no computed remainder), shown only when more
+        // supporters exist than the MaxSupporters we render.
         if (supporters.Count > MaxSupporters)
         {
             section.Children.Add(new TextBlock
             {
-                Text = _localization.GetString("Sponsors_MoreSupporters", supporters.Count - MaxSupporters),
+                Text = _localization.GetString("Sponsors_ManyMore"),
                 FontSize = 12,
                 Foreground = GetBrush("TextFillColorTertiaryBrush"),
                 TextWrapping = TextWrapping.Wrap
@@ -483,6 +557,53 @@ internal class SponsorsDialogBuilder
         return section;
     }
 
+    /// <summary>
+    /// Measure-and-pack: measure each chip's desired width, then greedily place
+    /// chips left-to-right into horizontal rows, breaking to a new row when the
+    /// next chip would exceed <see cref="ChipRowAvailableWidth"/>. Returns a
+    /// vertical StackPanel of horizontal row StackPanels.
+    /// </summary>
+    private StackPanel PackChips(List<Border> chips)
+    {
+        var rows = new StackPanel
+        {
+            Spacing = ChipRowSpacing,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+
+        StackPanel? currentRow = null;
+        double currentRowWidth = 0;
+
+        foreach (var chip in chips)
+        {
+            chip.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            double chipWidth = chip.DesiredSize.Width;
+
+            // Width this chip would add to the row, including the inter-chip gap
+            // when the row already has at least one chip.
+            double added = currentRow == null ? chipWidth : ChipColumnSpacing + chipWidth;
+
+            if (currentRow == null || currentRowWidth + added > ChipRowAvailableWidth)
+            {
+                currentRow = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = ChipColumnSpacing
+                };
+                rows.Children.Add(currentRow);
+                currentRowWidth = chipWidth;
+            }
+            else
+            {
+                currentRowWidth += added;
+            }
+
+            currentRow.Children.Add(chip);
+        }
+
+        return rows;
+    }
+
     private Border BuildSupporterChip(string name, bool faint = false)
     {
         return new Border
@@ -490,15 +611,14 @@ internal class SponsorsDialogBuilder
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(10, 5, 10, 5),
             Background = GetBrush("CardBackgroundFillColorDefaultBrush"),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
             Child = new TextBlock
             {
                 Text = name,
                 FontSize = 12,
                 Foreground = GetBrush(faint ? "TextFillColorTertiaryBrush" : "TextFillColorSecondaryBrush"),
-                TextWrapping = TextWrapping.Wrap,
-                TextTrimming = TextTrimming.CharacterEllipsis
+                TextWrapping = TextWrapping.NoWrap
             }
         };
     }
@@ -509,6 +629,9 @@ internal class SponsorsDialogBuilder
 
     private UIElement BuildCtaRow()
     {
+        // Single CTA: the "For business" button was removed in the design
+        // revision (it sent users to a separate page that confused the primary
+        // ask). Only "Support Winhance" remains.
         var supportButton = new Button
         {
             Content = _localization.GetString("Sponsors_SupportButton"),
@@ -516,19 +639,12 @@ internal class SponsorsDialogBuilder
         };
         supportButton.Click += (_, _) => OnSupportClicked(SupportUrl);
 
-        var businessButton = new Button
-        {
-            Content = _localization.GetString("Sponsors_BusinessButton")
-        };
-        businessButton.Click += (_, _) => OnSupportClicked(BusinessUrl);
-
         var row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10
         };
         row.Children.Add(supportButton);
-        row.Children.Add(businessButton);
         return row;
     }
 
@@ -558,7 +674,7 @@ internal class SponsorsDialogBuilder
     // Buttons + mode wiring
     // -----------------------------------------------------------------------
 
-    private void ConfigureButtonsAndMode(StackPanel rootPanel)
+    private void ConfigureButtonsAndMode(Grid root)
     {
         if (_mode == SponsorsDialogMode.Normal)
         {
@@ -566,13 +682,14 @@ internal class SponsorsDialogBuilder
             return;
         }
 
-        // Exit mode: don't-show-again checkbox at the bottom of the content,
+        // Exit mode: don't-show-again checkbox in the dedicated bottom row (6),
         // and a countdown-gated close button.
         _dontShowAgainCheckbox = new CheckBox
         {
             Content = _localization.GetString("Sponsors_DontShowAgain")
         };
-        rootPanel.Children.Add(_dontShowAgainCheckbox);
+        Grid.SetRow(_dontShowAgainCheckbox, 6);
+        root.Children.Add(_dontShowAgainCheckbox);
 
         _dialog.CloseButtonText = _localization.GetString("Sponsors_ExitCountdown", CountdownSeconds);
 
