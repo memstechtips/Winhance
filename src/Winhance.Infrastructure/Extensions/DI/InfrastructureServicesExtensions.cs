@@ -120,6 +120,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ISystemBackupService, SystemBackupService>();
         services.AddSingleton<ISystemRestoreService, SystemRestoreService>();
         services.AddSingleton<IVersionService, VersionService>();
+        services.AddSingleton<ISponsorsService, SponsorsService>();
 
         // Script Services
         services.AddSingleton<IScriptMigrationService, ScriptMigrationService>();

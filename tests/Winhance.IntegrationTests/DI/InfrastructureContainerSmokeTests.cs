@@ -44,6 +44,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IGlobalSettingsPreloader))]
     [InlineData(typeof(IScheduledTaskService))]
     [InlineData(typeof(IVersionService))]
+    [InlineData(typeof(ISponsorsService))]
     [InlineData(typeof(ITooltipDataService))]
     [InlineData(typeof(IConfigurationApplicationBridgeService))]
     [InlineData(typeof(IConfigMigrationService))]
