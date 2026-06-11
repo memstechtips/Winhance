@@ -24,12 +24,16 @@ internal class SponsorsDialogBuilder
 
     // Sponsor cards layout. The grid is locked to exactly CardColumns columns
     // that fill the usable content width, so cards never leave dead space on the
-    // right (Marco's round-2 note). UsableContentWidth mirrors the chip packer's
-    // ~760px assumption: ContentDialogMaxWidth (860) minus dialog chrome/padding.
-    // ItemWidth is derived: (usable − (cols−1)×spacing) / cols
-    //   = (760 − 3×12) / 4 = 181.
+    // right (Marco's round-2 note). The chip packer assumes ~760px of usable
+    // width (ContentDialogMaxWidth 860 minus dialog chrome/padding); the card
+    // width budget is set 12px BELOW that on purpose — UniformWrapPanel derives
+    // its column count from the real measured width, and sizing cards to exactly
+    // 760 would make 4 columns a knife-edge (759px real width → 3 columns + a
+    // ragged ghost row). The slack guarantees 4 columns with a few px of gutter.
+    // ItemWidth is derived: (budget − (cols−1)×spacing) / cols
+    //   = (748 − 3×12) / 4 = 178.
     private const int CardColumns = 4;
-    private const double UsableContentWidth = 760d;
+    private const double UsableContentWidth = 748d;
     private const double CardColumnSpacing = 12d;
     private const double CardRowSpacing = 14d;
     private const double CardWidth =
