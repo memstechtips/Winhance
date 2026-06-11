@@ -29,7 +29,7 @@ for discoverability; the branch is authoritative for data.
 
 - **Individual supporters: automated.** A scheduled job (`sponsors-sync`, every
   6 hours on the agent box) reads new paid store orders, finds the supporters-wall
-  opt-in, normalises the name to "First L.", dedupes, prepends (newest first) and
+  opt-in, sanitises the FULL name ("First Last" — Marco 2026-06-11, the opt-in label says so), dedupes, prepends (newest first) and
   pushes here. Names are treated as untrusted data: sanitised, length-capped,
   rendered as text only.
 - **Business sponsors: never automated.** The job detects a sponsor-tier purchase
