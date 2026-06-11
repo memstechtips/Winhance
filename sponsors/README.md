@@ -30,8 +30,8 @@ bundled with every release and used as the **offline fallback** when the fetch f
       "tier": "gold",                // bronze | silver | gold | emerald
       "city": "Austin, TX",          // shown on the card
       "country": "US",
-      "contact": "contact@yourit.com", // optional; shown on gold/emerald cards
-      "url": "https://www.yourit.com", // clickable on silver and up
+      "contact": "contact@yourit.com", // optional; shown on silver and up
+      "url": "https://www.yourit.com", // clickable on gold and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
       "since": "2026-06",
       "example": true                // OPTIONAL: renders with an "Example — this could
@@ -72,16 +72,16 @@ tier is identifiable by the same color everywhere.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
 - **In-app sponsors page:** business sponsors only, same order, same tier colors.
-- **Card contents by tier:** every card shows logo, name, city; the website link
-  renders on silver and up; the contact line on gold and up.
+- **Card contents by tier:** every card shows logo, name, city; the contact line
+  renders on silver and up; the clickable website link on gold and up.
 
 ### Tier → surface mapping
 
 | Tier | Sponsors pages (store + winhance.net) | winhance.net download-page showcase | In-app sponsors page | Release notes |
 |---|---|---|---|---|
 | bronze | logo + name | — | — | — |
-| silver | ✓ | full card (logo, city, link) | — | — |
-| gold | ✓ | ✓ | full card (logo, city, contact, link) | mention |
+| silver | ✓ | full card (logo, city, contact) | — | — |
+| gold | ✓ | ✓ + website link | full card (logo, city, contact, link) | mention |
 | emerald | first position | first position | first position | mention |
 
 Individual **supporters** appear on the web supporters wall only — never in the app.
@@ -115,5 +115,9 @@ Individual **supporters** appear on the web supporters wall only — never in th
 ## Adding a sponsor
 
 1. Drop the square logo into `logos/` named `<id>.png`.
-2. Add the entry to the right array in `sponsors.json`, bump `updated`.
+2. Add the entry to `sponsors.json`, bump `updated`. **Only include the fields the
+   tier promises** — bronze: `logo` + `name` only; silver: + `city` + `contact`;
+   gold/emerald: + `url`. (`id`, `tier`, `country`, `since` are always present;
+   renderers also gate by tier as defense in depth, but the data itself must not
+   carry more than the sponsor paid for.)
 3. Open a data-only PR into `main`.
