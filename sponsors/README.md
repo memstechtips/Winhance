@@ -32,6 +32,13 @@ for discoverability; the branch is authoritative for data.
   opt-in, sanitises the FULL name ("First Last" — Marco 2026-06-11, the opt-in label says so), dedupes, prepends (newest first) and
   pushes here. Names are treated as untrusted data: sanitised, length-capped,
   rendered as text only.
+- **Public GitHub sponsors: automated** (same sync job, 2026-06-12). A PUBLIC
+  sponsorship at github.com/sponsors/memstechtips is treated as the listing
+  opt-in (private sponsorships are invisible to the job and never listed).
+  Display name (sanitised) or login; the entry carries a `gh` field (the login)
+  for cross-run dedupe — renderers ignore it. `since` is the discovery month.
+  Only User sponsors sync (Organization sponsors need a token scope the agent
+  deliberately doesn't have — they're handled manually if one appears).
 - **Business sponsors: never automated.** The job detects a sponsor-tier purchase
   and notifies Marco; the card (logo arrives by email) is added here only after
   Marco approves it.
@@ -59,7 +66,8 @@ for discoverability; the branch is authoritative for data.
     }
   ],
   "supporters": [
-    { "name": "Marco d.", "since": "2026-06" }  // individuals, OPT-IN, names only
+    { "name": "Marco d.", "since": "2026-06" },          // individuals, OPT-IN, names only
+    { "name": "Jane Doe", "since": "2026-06", "gh": "janedoe" }  // via public GitHub sponsorship; `gh` = login, dedupe only
   ]
 }
 ```
