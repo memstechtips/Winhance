@@ -170,6 +170,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
                     "OpenLogs" => _moreMenuViewModel.MenuWinhanceLogs,
                     "OpenChangeHistory" => _moreMenuViewModel.MenuChangeHistory,
                     "OpenScripts" => _moreMenuViewModel.MenuWinhanceScripts,
+                    "SupportWinhance" => _moreMenuViewModel.MenuSupportWinhance,
                     "CloseApp" => _moreMenuViewModel.MenuCloseWinhance,
                     _ => menuItem.Text
                 };
@@ -234,6 +235,9 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
                     break;
                 case "OpenScripts":
                     _moreMenuViewModel.OpenScriptsCommand.Execute(null);
+                    break;
+                case "SupportWinhance":
+                    _moreMenuViewModel.SupportWinhanceCommand.Execute(null);
                     break;
                 case "CloseApp":
                     _moreMenuViewModel.CloseApplicationCommand.Execute(null);

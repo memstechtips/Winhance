@@ -5,22 +5,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Dialogs;
-
-/// <summary>
-/// Display mode for the sponsors dialog.
-/// <see cref="Normal"/> shows a simple Close button. <see cref="Exit"/> adds a
-/// "don't show again" checkbox and a countdown-gated close button (used when the
-/// dialog is shown on app exit so the supporter list is actually read).
-/// </summary>
-public enum SponsorsDialogMode
-{
-    Normal,
-    Exit
-}
 
 /// <summary>
 /// Encapsulates the UI-building logic for the in-app sponsors page dialog.

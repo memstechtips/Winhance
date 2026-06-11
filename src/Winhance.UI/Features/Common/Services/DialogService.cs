@@ -20,6 +20,7 @@ public class DialogService : IDialogService
     private readonly ILocalizationService _localization;
     private readonly ILogService _logService;
     private readonly ITaskProgressService _taskProgressService;
+    private readonly ISponsorsService _sponsorsService;
     private readonly SemaphoreSlim _dialogSemaphore = new(1, 1);
 
     /// <summary>
@@ -28,11 +29,12 @@ public class DialogService : IDialogService
     /// </summary>
     public XamlRoot? XamlRoot { get; set; }
 
-    public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService)
+    public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService, ISponsorsService sponsorsService)
     {
         _localization = localization;
         _logService = logService;
         _taskProgressService = taskProgressService;
+        _sponsorsService = sponsorsService;
     }
 
     /// <summary>
@@ -139,118 +141,20 @@ public class DialogService : IDialogService
 
     #endregion
 
-    public async Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string? title = null, string? supportMessage = null)
+    public async Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode)
     {
         return await ExecuteDialogAsync(async () =>
         {
-            // Red heart icon matching the WPF DonationDialog
-            // Use Path inside Viewbox for proper scaling (PathIcon doesn't scale with Width/Height)
-            var heartPath = new Microsoft.UI.Xaml.Shapes.Path
-            {
-                Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Geometry),
-                    "M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"),
-                Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE8, 0x11, 0x23)),
-                Stretch = Stretch.Uniform
-            };
-            var heartIcon = new Viewbox
-            {
-                Width = 30,
-                Height = 30,
-                Child = heartPath,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 20, 0, 0)
-            };
+            // GetSponsorsAsync never throws and may return null; the builder
+            // handles a null document gracefully.
+            var data = await _sponsorsService.GetSponsorsAsync();
 
-            // Header: icon + title/message
-            var headerTitle = new TextBlock
-            {
-                Text = _localization.GetString("Dialog_Donation_Header_Title"),
-                FontSize = 16,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                TextWrapping = TextWrapping.Wrap
-            };
-
-            var headerMessage = new TextBlock
-            {
-                Text = _localization.GetString("Dialog_Donation_Header_Message"),
-                FontSize = 14,
-                TextWrapping = TextWrapping.Wrap,
-                Opacity = 0.8
-            };
-
-            var headerTextPanel = new StackPanel
-            {
-                Spacing = 8,
-                VerticalAlignment = VerticalAlignment.Center,
-                Children = { headerTitle, headerMessage }
-            };
-
-            // Use Grid instead of horizontal StackPanel so text wraps properly
-            var headerPanel = new Grid
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition { Width = GridLength.Auto },
-                    new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
-                },
-                ColumnSpacing = 10
-            };
-            Grid.SetColumn(heartIcon, 0);
-            Grid.SetColumn(headerTextPanel, 1);
-            headerPanel.Children.Add(heartIcon);
-            headerPanel.Children.Add(headerTextPanel);
-
-            // Support message
-            var supportText = new TextBlock
-            {
-                Text = supportMessage ?? _localization.GetString("Dialog_Donation_SupportMessage"),
-                FontSize = 14,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 4, 0, 0)
-            };
-
-            // Footer
-            var footerText = new TextBlock
-            {
-                Text = _localization.GetString("Dialog_Donation_Footer"),
-                FontSize = 13,
-                TextWrapping = TextWrapping.Wrap,
-                Opacity = 0.7
-            };
-
-            // Don't show again checkbox
-            var dontShowCheckBox = new CheckBox
-            {
-                Content = _localization.GetString("Dialog_Donation_Checkbox")
-            };
-
-            var contentPanel = new StackPanel
-            {
-                Spacing = 12,
-                Children =
-                {
-                    headerPanel,
-                    supportText,
-                    footerText,
-                    dontShowCheckBox
-                }
-            };
-
-            var dialog = new ContentDialog
-            {
-                Title = title ?? _localization.GetString("Dialog_Donation_Title"),
-                Content = contentPanel,
-                PrimaryButtonText = _localization.GetString("Button_Yes"),
-                SecondaryButtonText = _localization.GetString("Button_No"),
-                DefaultButton = ContentDialogButton.Primary
-            };
+            var builder = new Dialogs.SponsorsDialogBuilder(_localization, _sponsorsService);
+            var dialog = builder.Build(data, mode, XamlRoot!);
             ConfigureDialog(dialog);
-
-            var result = await dialog.ShowAsync();
-            return ((bool?)(result == ContentDialogResult.Primary), dontShowCheckBox.IsChecked == true);
-        }, ((bool?)null, false));
+            await dialog.ShowAsync();
+            return builder.ExtractResult();
+        }, (false, false));
     }
 
     public async Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync()

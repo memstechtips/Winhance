@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -326,11 +327,11 @@ public class ApplicationCloseServiceTests
     }
 
     // -------------------------------------------------------
-    // CheckOperationsAndCloseAsync - Donation dialog
+    // CheckOperationsAndCloseAsync - Sponsors dialog
     // -------------------------------------------------------
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DontShowSupportTrue_SkipsDonationDialog()
+    public async Task CheckOperationsAndCloseAsync_DontShowSupportTrue_SkipsSponsorsDialog()
     {
         var service = CreateService();
 
@@ -349,12 +350,12 @@ public class ApplicationCloseServiceTests
         }
 
         _mockDialogService.Verify(
-            d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()),
+            d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DontShowSupportFalse_ShowsDonationDialog()
+    public async Task CheckOperationsAndCloseAsync_DontShowSupportFalse_ShowsSponsorsDialogInExitMode()
     {
         var service = CreateService();
 
@@ -364,7 +365,7 @@ public class ApplicationCloseServiceTests
             .ReturnsAsync(false);
 
         _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
             .ReturnsAsync((false, false));
 
         try
@@ -377,12 +378,12 @@ public class ApplicationCloseServiceTests
         }
 
         _mockDialogService.Verify(
-            d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()),
+            d => d.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit),
             Times.Once);
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DonationDialog_DontShowAgainChecked_SavesPreference()
+    public async Task CheckOperationsAndCloseAsync_SponsorsDialog_DontShowAgainChecked_SavesPreference()
     {
         var service = CreateService();
 
@@ -395,7 +396,7 @@ public class ApplicationCloseServiceTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
             .ReturnsAsync((false, true)); // DontShowAgain = true
 
         try
@@ -413,7 +414,7 @@ public class ApplicationCloseServiceTests
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DonationDialog_UserClicksYes_OpensDonationPage()
+    public async Task CheckOperationsAndCloseAsync_SponsorsDialog_DontShowAgainUnchecked_DoesNotSavePreference()
     {
         var service = CreateService();
 
@@ -423,16 +424,8 @@ public class ApplicationCloseServiceTests
             .ReturnsAsync(false);
 
         _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((true, false)); // Result = true (Yes)
-
-        _mockProcessExecutor
-            .Setup(p => p.ShellExecuteAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(0);
+            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
+            .ReturnsAsync((false, false)); // DontShowAgain = false
 
         try
         {
@@ -443,18 +436,16 @@ public class ApplicationCloseServiceTests
             // Expected: Application.Current is null in unit tests
         }
 
-        _mockProcessExecutor.Verify(
-            p => p.ShellExecuteAsync(
-                "https://ko-fi.com/memstechtips",
-                It.IsAny<string?>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+        _mockUserPreferencesService.Verify(
+            u => u.SetPreferenceAsync("DontShowSupport", It.IsAny<bool>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DonationDialog_UserClicksNo_DoesNotOpenDonationPage()
+    public async Task CheckOperationsAndCloseAsync_SponsorsDialog_NeverOpensUrl()
     {
+        // The sponsors builder launches the store URL itself on a support click;
+        // the close service must not open any URL regardless of the result.
         var service = CreateService();
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
@@ -463,8 +454,8 @@ public class ApplicationCloseServiceTests
             .ReturnsAsync(false);
 
         _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((false, false)); // Result = false (No)
+            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
+            .ReturnsAsync((true, false)); // SupportClicked = true
 
         try
         {
@@ -498,9 +489,9 @@ public class ApplicationCloseServiceTests
             .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
             .ThrowsAsync(new Exception("Prefs unavailable"));
 
-        // ShouldShowSupportDialogAsync catches and returns true, so donation dialog should show
+        // ShouldShowSupportDialogAsync catches and returns true, so sponsors dialog should show
         _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
             .ReturnsAsync((false, false));
 
         try
@@ -513,43 +504,7 @@ public class ApplicationCloseServiceTests
         }
 
         _mockDialogService.Verify(
-            d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task CheckOperationsAndCloseAsync_WhenDonationPageOpenFails_LogsErrorAndContinues()
-    {
-        var service = CreateService();
-
-        _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(false);
-
-        _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((true, false)); // User clicks Yes
-
-        _mockProcessExecutor
-            .Setup(p => p.ShellExecuteAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Browser not found"));
-
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Error opening donation page")), It.IsAny<Exception>()),
+            d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()),
             Times.Once);
     }
 
@@ -567,7 +522,7 @@ public class ApplicationCloseServiceTests
             .ReturnsAsync(OperationResult.Failed("Save error"));
 
         _mockDialogService
-            .Setup(d => d.ShowDonationDialogAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
             .ReturnsAsync((false, true)); // DontShowAgain = true
 
         try

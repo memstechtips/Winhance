@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -19,6 +20,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     private readonly IExplorerWindowManager _explorerWindowManager;
     private readonly IChangeHistoryService _changeHistoryService;
     private readonly IProcessExecutor _processExecutor;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     public partial string VersionInfo { get; set; }
@@ -31,7 +33,8 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         IFileSystemService fileSystemService,
         IExplorerWindowManager explorerWindowManager,
         IChangeHistoryService changeHistoryService,
-        IProcessExecutor processExecutor)
+        IProcessExecutor processExecutor,
+        IDialogService dialogService)
     {
         _localizationService = localizationService;
         _versionService = versionService;
@@ -41,6 +44,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _explorerWindowManager = explorerWindowManager;
         _changeHistoryService = changeHistoryService;
         _processExecutor = processExecutor;
+        _dialogService = dialogService;
         VersionInfo = "Winhance";
 
         // Subscribe to language changes
@@ -67,6 +71,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MenuWinhanceLogs));
         OnPropertyChanged(nameof(MenuChangeHistory));
         OnPropertyChanged(nameof(MenuWinhanceScripts));
+        OnPropertyChanged(nameof(MenuSupportWinhance));
         OnPropertyChanged(nameof(MenuCloseWinhance));
     }
 
@@ -103,6 +108,9 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
 
     public string MenuWinhanceScripts =>
         _localizationService.GetString("Menu_WinhanceScripts") ?? "Winhance Scripts";
+
+    public string MenuSupportWinhance =>
+        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
 
     public string MenuCloseWinhance =>
         _localizationService.GetString("Menu_CloseWinhance") ?? "Close Winhance";
@@ -193,6 +201,19 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SupportWinhanceAsync()
+    {
+        try
+        {
+            await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to open sponsors dialog: {ex.Message}", ex);
         }
     }
 

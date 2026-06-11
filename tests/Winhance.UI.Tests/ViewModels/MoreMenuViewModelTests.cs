@@ -17,6 +17,7 @@ public class MoreMenuViewModelTests
     private readonly Mock<IExplorerWindowManager> _mockExplorerWindowManager = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
+    private readonly Mock<IDialogService> _mockDialogService = new();
 
     public MoreMenuViewModelTests()
     {
@@ -35,7 +36,8 @@ public class MoreMenuViewModelTests
             _mockFileSystemService.Object,
             _mockExplorerWindowManager.Object,
             _mockChangeHistory.Object,
-            _mockProcessExecutor.Object);
+            _mockProcessExecutor.Object,
+            _mockDialogService.Object);
     }
 
     // -------------------------------------------------------

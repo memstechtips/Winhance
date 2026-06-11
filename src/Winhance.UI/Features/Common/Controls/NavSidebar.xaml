@@ -137,6 +137,13 @@
 
                         <MenuFlyoutSeparator/>
 
+                        <!-- Support Winhance -->
+                        <MenuFlyoutItem x:Name="SupportWinhanceMenuItem" Click="MoreMenuItem_Click" Tag="SupportWinhance">
+                            <MenuFlyoutItem.Icon>
+                                <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
                         <!-- Close Winhance -->
                         <MenuFlyoutItem x:Name="CloseAppMenuItem" Click="MoreMenuItem_Click" Tag="CloseApp">
                             <MenuFlyoutItem.Icon>

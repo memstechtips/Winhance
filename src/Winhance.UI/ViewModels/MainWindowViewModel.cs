@@ -296,7 +296,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _localizationService.GetString("Tooltip_ToggleNavigation") ?? "Toggle Navigation";
 
     public string DonateTooltip =>
-        _localizationService.GetString("Tooltip_Donate") ?? "Donate";
+        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
 
     public string BugReportTooltip =>
         _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
@@ -493,19 +493,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Command to open the donation page.
+    /// Command to open the in-app sponsors dialog.
     /// </summary>
     [RelayCommand]
     private async Task DonateAsync()
     {
         try
         {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://ko-fi.com/memstechtips"));
+            await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
         }
         catch (Exception ex)
         {
-            _logService.LogDebug($"Failed to open donation page: {ex.Message}");
+            _logService.LogDebug($"Failed to open sponsors dialog: {ex.Message}");
         }
     }
 

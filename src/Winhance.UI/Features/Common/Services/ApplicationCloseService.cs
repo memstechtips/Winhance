@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -116,35 +117,24 @@ public class ApplicationCloseService : IApplicationCloseService
 
             if (showDialog)
             {
-                _logService.LogInformation("Showing donation dialog");
+                _logService.LogInformation("Showing sponsors dialog");
 
-                var (result, dontShowAgain) = await _dialogService.ShowDonationDialogAsync();
+                // The sponsors builder launches the store URL itself on a support
+                // click, so the close service only awaits the dialog — it does not
+                // open any URL. SupportClicked is intentionally ignored here.
+                var (supportClicked, dontShowAgain) = await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit);
 
-                _logService.LogInformation($"Donation dialog completed with result: {result}, DontShowAgain: {dontShowAgain}");
+                _logService.LogInformation($"Sponsors dialog completed with SupportClicked: {supportClicked}, DontShowAgain: {dontShowAgain}");
 
                 if (dontShowAgain)
                 {
                     _logService.LogInformation("Saving DontShowSupport preference");
                     await SaveDontShowSupportPreferenceAsync(true);
                 }
-
-                if (result == true)
-                {
-                    _logService.LogInformation("User clicked Yes, opening donation page");
-                    try
-                    {
-                        await _processExecutor.ShellExecuteAsync("https://ko-fi.com/memstechtips");
-                        _logService.LogInformation("Donation page opened successfully");
-                    }
-                    catch (Exception openEx)
-                    {
-                        _logService.LogError($"Error opening donation page: {openEx.Message}", openEx);
-                    }
-                }
             }
             else
             {
-                _logService.LogInformation("Skipping donation dialog due to user preference");
+                _logService.LogInformation("Skipping sponsors dialog due to user preference");
             }
 
             _logService.LogInformation("Shutting down application");
