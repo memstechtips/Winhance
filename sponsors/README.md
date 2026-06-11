@@ -92,8 +92,8 @@ tier is identifiable by the same color everywhere.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
 - **In-app sponsors page:** business sponsors only, same order, same tier colors.
-- **Card contents by tier:** every card shows logo, name, city; the contact line
-  renders on silver and up; the clickable website link on gold and up.
+- **Card contents by tier:** bronze cards show logo + name only; city and the
+  contact line render on silver and up; the clickable website link on gold and up.
 
 ### Tier → surface mapping
 
@@ -133,7 +133,9 @@ Individual **supporters** appear on the web supporters wall only — never in th
    *"Sponsors support Winhance's development. A listing recognises that support —
    it is not an endorsement by Winhance of any sponsor's products or services."*
 4. Updates are **data-only commits**: this folder only, nothing else in the same
-   commit. They go to `main` via PR (Marco merges).
+   commit. They land on the `sponsors` branch — supporter opt-ins via the
+   sponsors-sync job, business cards pushed by the agent only after Marco
+   approves them.
 
 ## Adding a sponsor
 
@@ -143,4 +145,4 @@ Individual **supporters** appear on the web supporters wall only — never in th
    gold/emerald: + `url`. (`id`, `tier`, `country`, `since` are always present;
    renderers also gate by tier as defense in depth, but the data itself must not
    carry more than the sponsor paid for.)
-3. Open a data-only PR into `main`.
+3. Commit and push to the `sponsors` branch (business cards: Marco approves first).
