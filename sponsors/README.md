@@ -9,7 +9,7 @@ across every surface that shows it:
 - the sponsors line in **release notes**.
 
 There is **one unified sponsor space per surface** — no separate "Top Sponsors"
-box or carousel. Platinum sponsors simply sort first and carry platinum styling.
+box or carousel. Emerald sponsors simply sort first and carry emerald styling.
 
 ## How the app consumes it
 
@@ -27,10 +27,10 @@ bundled with every release and used as the **offline fallback** when the fetch f
     {
       "id": "your-it",               // slug, unique; logo filename derives from it
       "name": "Your IT",
-      "tier": "gold",                // bronze | silver | gold | platinum
+      "tier": "gold",                // bronze | silver | gold | emerald
       "city": "Austin, TX",          // shown on the card
       "country": "US",
-      "contact": "contact@yourit.com", // optional; shown on gold/platinum cards
+      "contact": "contact@yourit.com", // optional; shown on gold/emerald cards
       "url": "https://www.yourit.com", // clickable on silver and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
       "since": "2026-06",
@@ -47,7 +47,7 @@ bundled with every release and used as the **offline fallback** when the fetch f
 The `supporters` array is maintained **newest donation first** — a returning
 donor's entry moves back to the top (`since` stays their first donation).
 Renderers display it in array order. The legacy `topSponsors` array is retired:
-Platinum sponsors live in `sponsors` with `"tier": "platinum"`.
+Emerald sponsors live in `sponsors` with `"tier": "emerald"`.
 
 ### Tier colors (canonical — every surface uses these exact values)
 
@@ -56,7 +56,7 @@ Platinum sponsors live in `sponsors` with `"tier": "platinum"`.
 | bronze | `#CD7F32` | card border + tier label |
 | silver | `#AEB6C2` | card border + tier label |
 | gold | `#FFD700` | card border + tier label (matches the brand gold) |
-| platinum | `#E5E4E2` | card border + tier label, with a subtle glow |
+| emerald | `#50C878` | card border + tier label, with a subtle glow |
 
 The store theme defines these as CSS variables (`--tier-bronze` …); winhance.net
 and the WinUI 3 in-app sponsors page must use the same hex values so a sponsor's
@@ -64,7 +64,7 @@ tier is identifiable by the same color everywhere.
 
 ### Display rules (all surfaces)
 
-- **Order:** platinum → gold → silver → bronze; array order is kept within a tier.
+- **Order:** emerald → gold → silver → bronze; array order is kept within a tier.
 - **Store wall** (`store.memstechtips.com/winhance/`): shows the top **6** cards,
   then a **"See all sponsors"** button expands the full wall in place. Individual
   supporters render below in their own strip, newest first, capped at **150**
@@ -82,7 +82,7 @@ tier is identifiable by the same color everywhere.
 | bronze | logo + name | — | — | — |
 | silver | ✓ | full card (logo, city, link) | — | — |
 | gold | ✓ | ✓ | full card (logo, city, contact, link) | mention |
-| platinum | first position | first position | first position | mention |
+| emerald | first position | first position | first position | mention |
 
 Individual **supporters** appear on the web supporters wall only — never in the app.
 
