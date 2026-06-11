@@ -13,7 +13,6 @@ public class ApplicationCloseService : IApplicationCloseService
     private readonly ITaskProgressService _taskProgressService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IDialogService _dialogService;
-    private readonly IProcessExecutor _processExecutor;
 
     public Func<Task>? BeforeShutdown { get; set; }
 
@@ -36,14 +35,12 @@ public class ApplicationCloseService : IApplicationCloseService
         ILogService logService,
         ITaskProgressService taskProgressService,
         IUserPreferencesService userPreferencesService,
-        IDialogService dialogService,
-        IProcessExecutor processExecutor)
+        IDialogService dialogService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
         _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     }
 
     public async Task<OperationResult> CheckOperationsAndCloseAsync()

@@ -14,7 +14,6 @@ public class ApplicationCloseServiceTests
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
-    private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
 
     private bool _shutdownCalled;
 
@@ -24,8 +23,7 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
-            _mockDialogService.Object,
-            _mockProcessExecutor.Object);
+            _mockDialogService.Object);
         // Tests must not actually terminate the test host — swap in a no-op shutdown.
         svc.ShutdownAction = () => _shutdownCalled = true;
         return svc;
@@ -42,8 +40,7 @@ public class ApplicationCloseServiceTests
             null!,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
-            _mockDialogService.Object,
-            _mockProcessExecutor.Object);
+            _mockDialogService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("logService");
     }
@@ -55,8 +52,7 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             null!,
             _mockUserPreferencesService.Object,
-            _mockDialogService.Object,
-            _mockProcessExecutor.Object);
+            _mockDialogService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("taskProgressService");
     }
@@ -68,8 +64,7 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             null!,
-            _mockDialogService.Object,
-            _mockProcessExecutor.Object);
+            _mockDialogService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("userPreferencesService");
     }
@@ -81,23 +76,9 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
-            null!,
-            _mockProcessExecutor.Object);
-
-        act.Should().Throw<ArgumentNullException>().WithParameterName("dialogService");
-    }
-
-    [Fact]
-    public void Constructor_WithNullProcessExecutor_ThrowsArgumentNullException()
-    {
-        var act = () => new ApplicationCloseService(
-            _mockLogService.Object,
-            _mockTaskProgressService.Object,
-            _mockUserPreferencesService.Object,
-            _mockDialogService.Object,
             null!);
 
-        act.Should().Throw<ArgumentNullException>().WithParameterName("processExecutor");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("dialogService");
     }
 
     // -------------------------------------------------------
@@ -140,7 +121,7 @@ public class ApplicationCloseServiceTests
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true); // Skip donation dialog to avoid Application.Current.Exit()
+            .ReturnsAsync(true); // Skip sponsors dialog to avoid Application.Current.Exit()
 
         // Application.Current.Exit() will throw in test context; catch and verify hook ran
         try
@@ -438,40 +419,6 @@ public class ApplicationCloseServiceTests
 
         _mockUserPreferencesService.Verify(
             u => u.SetPreferenceAsync("DontShowSupport", It.IsAny<bool>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task CheckOperationsAndCloseAsync_SponsorsDialog_NeverOpensUrl()
-    {
-        // The sponsors builder launches the store URL itself on a support click;
-        // the close service must not open any URL regardless of the result.
-        var service = CreateService();
-
-        _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(false);
-
-        _mockDialogService
-            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
-            .ReturnsAsync((true, false)); // SupportClicked = true
-
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockProcessExecutor.Verify(
-            p => p.ShellExecuteAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
