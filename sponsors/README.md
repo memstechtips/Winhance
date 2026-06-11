@@ -66,7 +66,10 @@ for discoverability; the branch is authoritative for data.
 
 The `supporters` array is maintained **newest donation first** — a returning
 donor's entry moves back to the top (`since` stays their first donation).
-Renderers display it in array order. The legacy `topSponsors` array is retired:
+Renderers display it in array order. The file holds at most **200** supporters
+(the sync job trims on every write); surfaces show fewer and end with a vague
+"and many more" line — never a computed total (counts × the $5 minimum would
+leak a revenue floor). The legacy `topSponsors` array is retired:
 Emerald sponsors live in `sponsors` with `"tier": "emerald"`.
 
 ### Tier colors (canonical — every surface uses these exact values)
@@ -91,7 +94,7 @@ tier is identifiable by the same color everywhere.
   with a "most recent" note when truncated. Business sponsors are never capped.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
-- **In-app sponsors page:** **gold + emerald business cards only** (the in-app card is a Gold-and-up perk — bronze/silver stay web-only), same order and tier colors as the wall, plus the **48** most recent individual supporters as name chips with a "+ more" note (Marco decisions 2026-06-11; previously business-only).
+- **In-app sponsors page:** **gold + emerald business cards only** (the in-app card is a Gold-and-up perk — bronze/silver stay web-only), same order and tier colors as the wall, in its own scrollable region. Below it, a **"Recent Supporters"** section: the **48** most recent individual supporters as name chips (own scrollable region) with an "and many more — thank you" line, plus the how-to line ("Support with $5 or more and tick the supporters box at checkout to be listed"). Every surface must document HOW to get listed (Marco, 2026-06-11).
 - **Card contents by tier:** bronze cards show logo + name only; city and the
   contact line render on silver and up; the clickable website link on gold and up.
 
