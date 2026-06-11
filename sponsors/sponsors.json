@@ -27,14 +27,14 @@
       "example": true
     },
     {
-      "id": "northwind",
-      "name": "Northwind PC Repair",
+      "id": "example-it",
+      "name": "Example IT Services",
       "tier": "gold",
-      "city": "Leeds, UK",
-      "country": "GB",
-      "contact": "shop@example.com",
+      "city": "Springfield, US",
+      "country": "US",
+      "contact": "it@example.com",
       "url": "https://example.com",
-      "logo": "logos/northwind.png",
+      "logo": "logos/example-it.png",
       "since": "2026-06",
       "example": true
     },
@@ -73,7 +73,7 @@
   ],
   "supporters": [
     {
-      "name": "Marco d.",
+      "name": "Marco du Plessis",
       "since": "2026-06"
     },
     {
