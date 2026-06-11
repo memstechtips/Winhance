@@ -97,12 +97,15 @@ tier is identifiable by the same color everywhere.
 
 ### Tier → surface mapping
 
-| Tier | Sponsors pages (store + winhance.net) | winhance.net download-page showcase | In-app sponsors page | Release notes |
+| Tier | Store sponsors wall (store.memstechtips.com/winhance/) | winhance.net download-page showcase | In-app sponsors page | Release notes |
 |---|---|---|---|---|
 | bronze | logo + name | — | — | — |
-| silver | ✓ | full card (logo, city, contact) | — | — |
-| gold | ✓ | ✓ + website link | full card (logo, city, contact, link) | mention |
+| silver | full card (logo, name, city, contact) | ✓ | — | — |
+| gold | ✓ + clickable website link | ✓ | full card (logo, city, contact, link) | mention |
 | emerald | first position | first position | first position | mention |
+
+Bronze cards appear on the **store sponsors wall only**; silver and up also get the
+winhance.net download-page showcase.
 
 Individual **supporters** appear on the web supporters wall only — never in the app.
 
