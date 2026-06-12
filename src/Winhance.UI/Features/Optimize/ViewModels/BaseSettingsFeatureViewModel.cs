@@ -23,6 +23,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ILocalizationService _localizationService;
     protected readonly IDispatcherService _dispatcherService;
     protected readonly IEventBus _eventBus;
+    protected readonly IApplicationModeService _applicationModeService;
 
     private bool _settingsLoaded = false;
     private bool _isSubscribed = false;
@@ -95,13 +96,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        IApplicationModeService applicationModeService)
     {
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        _applicationModeService = applicationModeService ?? throw new ArgumentNullException(nameof(applicationModeService));
 
         // Initialize partial property defaults
         Settings = new ObservableCollection<SettingItemViewModel>();
@@ -438,6 +441,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     public virtual async Task RefreshSettingStatesAsync()
     {
         if (!_settingsLoaded || Settings == null || Settings.Count == 0)
+            return;
+
+        // Builder mode authors un-applied state into these ViewModels. The section pages
+        // call this on every navigation to keep Normal mode truthful, but re-reading the
+        // system here would clobber the authored Builder values — skip until Builder exit,
+        // which reloads from live state anyway (BuilderModeExitedEvent).
+        if (_applicationModeService.CurrentMode == WinhanceMode.Builder)
             return;
 
         try

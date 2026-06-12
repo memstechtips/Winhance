@@ -19,6 +19,7 @@ public class PowerOptimizationsViewModelTests
     private readonly Mock<IDispatcherService> _mockDispatcherService;
     private readonly Mock<IDialogService> _mockDialogService;
     private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService;
     private readonly Mock<IPowerPlanComboBoxService> _mockPowerPlanComboBoxService;
     private readonly Mock<IPowerService> _mockPowerService;
 
@@ -30,6 +31,7 @@ public class PowerOptimizationsViewModelTests
         _mockDispatcherService = new Mock<IDispatcherService>();
         _mockDialogService = new Mock<IDialogService>();
         _mockEventBus = new Mock<IEventBus>();
+        _mockApplicationModeService = new Mock<IApplicationModeService>();
         _mockPowerPlanComboBoxService = new Mock<IPowerPlanComboBoxService>();
         _mockPowerService = new Mock<IPowerService>();
 
@@ -58,7 +60,8 @@ public class PowerOptimizationsViewModelTests
             _mockDialogService.Object,
             _mockEventBus.Object,
             _mockPowerPlanComboBoxService.Object,
-            _mockPowerService.Object);
+            _mockPowerService.Object,
+            _mockApplicationModeService.Object);
     }
 
     [Fact]
@@ -312,7 +315,8 @@ public class PowerOptimizationsViewModelTests
             _mockDialogService.Object,
             _mockEventBus.Object,
             _mockPowerPlanComboBoxService.Object,
-            _mockPowerService.Object);
+            _mockPowerService.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -331,7 +335,8 @@ public class PowerOptimizationsViewModelTests
             _mockDialogService.Object,
             _mockEventBus.Object,
             _mockPowerPlanComboBoxService.Object,
-            _mockPowerService.Object);
+            _mockPowerService.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -350,7 +355,8 @@ public class PowerOptimizationsViewModelTests
             _mockDialogService.Object,
             _mockEventBus.Object,
             _mockPowerPlanComboBoxService.Object,
-            _mockPowerService.Object);
+            _mockPowerService.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -369,7 +375,8 @@ public class PowerOptimizationsViewModelTests
             _mockDialogService.Object,
             _mockEventBus.Object,
             _mockPowerPlanComboBoxService.Object,
-            _mockPowerService.Object);
+            _mockPowerService.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -388,7 +395,8 @@ public class PowerOptimizationsViewModelTests
             _mockDialogService.Object,
             null!,
             _mockPowerPlanComboBoxService.Object,
-            _mockPowerService.Object);
+            _mockPowerService.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()

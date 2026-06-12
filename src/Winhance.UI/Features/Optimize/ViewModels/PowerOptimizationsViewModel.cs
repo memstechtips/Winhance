@@ -30,8 +30,9 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         IDialogService dialogService,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        IPowerService powerService)
-        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        IPowerService powerService,
+        IApplicationModeService applicationModeService)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
         _dialogService = dialogService;
         _powerPlanComboBoxService = powerPlanComboBoxService;

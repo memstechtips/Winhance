@@ -700,6 +700,86 @@ public partial class SettingItemViewModel : BaseViewModel
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
 
+    // ───────── Page-level Quick Actions support (bulk recommended/defaults) ─────────
+
+    /// <summary>
+    /// True when this setting has a recommended value reachable through the quick-set
+    /// pipeline. Mirrors the per-card quick-set button availability across all input
+    /// types (PowerPlan is excluded — it has its own recommendation logic).
+    /// </summary>
+    public bool HasRecommendedQuickSetTarget => HasQuickSetTarget(recommended: true);
+
+    /// <summary>
+    /// True when this setting has a default value reachable through the quick-set pipeline.
+    /// </summary>
+    public bool HasDefaultQuickSetTarget => HasQuickSetTarget(recommended: false);
+
+    private bool HasQuickSetTarget(bool recommended) => InputType switch
+    {
+        InputType.Toggle or InputType.CheckBox =>
+            (recommended ? ToggleRecommendedState : ToggleDefaultState).HasValue,
+        InputType.Selection when SettingDefinition?.PowerCfgSettings?.Any() == true =>
+            (recommended ? AcSelectionRecommendedIndex : AcSelectionDefaultIndex).HasValue
+            || (SupportsSeparateACDC && (recommended ? DcSelectionRecommendedIndex : DcSelectionDefaultIndex).HasValue),
+        InputType.Selection when !IsPowerPlanSetting =>
+            (recommended ? SelectionRecommendedIndex : SelectionDefaultIndex).HasValue,
+        InputType.NumericRange when SupportsSeparateACDC =>
+            (recommended ? AcRecommendedValue : AcDefaultValue).HasValue
+            || (recommended ? DcRecommendedValue : DcDefaultValue).HasValue,
+        InputType.NumericRange =>
+            (recommended ? NumericRecommendedValue : NumericDefaultValue).HasValue,
+        _ => false
+    };
+
+    /// <summary>
+    /// Sets this setting's UI to its recommended value by executing the same commands as
+    /// the per-card quick-set buttons. Every path runs through the guarded apply pipeline,
+    /// so in Builder mode this records a builder edit and never touches the system.
+    /// Returns true when a recommended target existed.
+    /// </summary>
+    public bool TrySetToRecommended() => TryExecuteQuickSet(recommended: true);
+
+    /// <summary>
+    /// Sets this setting's UI to its default value via the quick-set pipeline.
+    /// See <see cref="TrySetToRecommended"/> for Builder-mode semantics.
+    /// </summary>
+    public bool TrySetToDefault() => TryExecuteQuickSet(recommended: false);
+
+    private bool TryExecuteQuickSet(bool recommended)
+    {
+        if (!HasQuickSetTarget(recommended)) return false;
+
+        switch (InputType)
+        {
+            case InputType.Toggle:
+            case InputType.CheckBox:
+                (recommended ? SetToggleToRecommendedCommand : SetToggleToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.Selection when SettingDefinition?.PowerCfgSettings?.Any() == true:
+                (recommended ? SetAcSelectionToRecommendedCommand : SetAcSelectionToDefaultCommand).Execute(null);
+                if (SupportsSeparateACDC)
+                    (recommended ? SetDcSelectionToRecommendedCommand : SetDcSelectionToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.Selection:
+                (recommended ? SetSelectionToRecommendedCommand : SetSelectionToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.NumericRange when SupportsSeparateACDC:
+                (recommended ? SetAcNumericToRecommendedCommand : SetAcNumericToDefaultCommand).Execute(null);
+                (recommended ? SetDcNumericToRecommendedCommand : SetDcNumericToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.NumericRange:
+                (recommended ? SetNumericToRecommendedCommand : SetNumericToDefaultCommand).Execute(null);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
 
     // Advanced unlock support
     [ObservableProperty]

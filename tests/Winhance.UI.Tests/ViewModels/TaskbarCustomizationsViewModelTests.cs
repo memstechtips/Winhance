@@ -16,6 +16,7 @@ public class TaskbarCustomizationsViewModelTests
     private readonly Mock<ILocalizationService> _mockLocalizationService;
     private readonly Mock<IDispatcherService> _mockDispatcherService;
     private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService;
 
     public TaskbarCustomizationsViewModelTests()
     {
@@ -24,6 +25,7 @@ public class TaskbarCustomizationsViewModelTests
         _mockLocalizationService = new Mock<ILocalizationService>();
         _mockDispatcherService = new Mock<IDispatcherService>();
         _mockEventBus = new Mock<IEventBus>();
+        _mockApplicationModeService = new Mock<IApplicationModeService>();
 
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
@@ -45,7 +47,8 @@ public class TaskbarCustomizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
     }
 
     [Fact]
@@ -249,7 +252,8 @@ public class TaskbarCustomizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -265,7 +269,8 @@ public class TaskbarCustomizationsViewModelTests
             null!,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -281,7 +286,8 @@ public class TaskbarCustomizationsViewModelTests
             _mockLogService.Object,
             null!,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -297,7 +303,8 @@ public class TaskbarCustomizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             null!,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -313,7 +320,8 @@ public class TaskbarCustomizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            null!);
+            null!,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()

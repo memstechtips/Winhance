@@ -32,8 +32,9 @@ public class TestableSettingsFeatureViewModel : BaseSettingsFeatureViewModel
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IEventBus eventBus)
-        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        IEventBus eventBus,
+        IApplicationModeService applicationModeService)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
     }
 }
@@ -45,6 +46,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     private readonly Mock<ILocalizationService> _mockLocalizationService;
     private readonly Mock<IDispatcherService> _mockDispatcherService;
     private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService;
 
     public BaseSettingsFeatureViewModelTests()
     {
@@ -53,6 +55,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         _mockLocalizationService = new Mock<ILocalizationService>();
         _mockDispatcherService = new Mock<IDispatcherService>();
         _mockEventBus = new Mock<IEventBus>();
+        _mockApplicationModeService = new Mock<IApplicationModeService>();
 
         // Default localization: return the key itself
         _mockLocalizationService
@@ -92,7 +95,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
     }
 
     /// <summary>
@@ -196,7 +200,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -212,7 +217,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             null!,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -228,7 +234,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             _mockLogService.Object,
             null!,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -244,7 +251,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             _mockLogService.Object,
             _mockLocalizationService.Object,
             null!,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -260,7 +268,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            null!);
+            null!,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -776,6 +785,36 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         _mockSettingsLoadingService.Verify(
             s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_InBuilderMode_DoesNotReadSystemState()
+    {
+        // Arrange - Builder mode authors un-applied state into the VMs; a navigation
+        // refresh must not clobber it with live system values.
+        var vm = CreateViewModel();
+        var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        await vm.LoadSettingsAsync();
+
+        _mockApplicationModeService
+            .Setup(m => m.CurrentMode)
+            .Returns(WinhanceMode.Builder);
+
+        // Act
+        await vm.RefreshSettingStatesAsync();
+
+        // Assert
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()),
+            Times.Never);
     }
 
     [Fact]
