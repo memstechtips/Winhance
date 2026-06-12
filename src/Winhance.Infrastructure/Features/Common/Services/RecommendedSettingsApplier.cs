@@ -1,113 +1,116 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Helpers; // RecommendedSettingsResolver
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class RecommendedSettingsApplier(
     ICompatibleSettingsRegistry compatibleSettingsRegistry,
-    IRecommendedSettingsService recommendedSettingsService,
+    IWindowsVersionService versionService,
+    IProcessRestartManager processRestartManager,
     ILogService logService) : IRecommendedSettingsApplier
 {
-    public async Task ApplyRecommendedSettingsForFeatureAsync(string settingId, ISettingApplicationService settingApplicationService)
+    public async Task<IReadOnlyList<SettingDefinition>> ApplyRecommendedToSettingsAsync(
+        IReadOnlyList<SettingDefinition> settings,
+        ISettingApplicationService apply,
+        IProgress<TaskProgressDetail>? progress = null)
     {
-        try
+        var appliedForRestart = new List<SettingDefinition>(settings.Count);
+        int total = settings.Count;
+
+        // Suppress per-setting restarts; the CALLER flushes the coalesced restart.
+        using (processRestartManager.SuppressRestarts())
         {
-            var featureId = compatibleSettingsRegistry.GetFeatureIdForSetting(settingId)
-                ?? throw new InvalidOperationException($"Setting '{settingId}' has no feature mapping");
-            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Starting to apply recommended settings for feature '{featureId}'");
-
-            var recommendedSettings = await recommendedSettingsService.GetRecommendedSettingsAsync(settingId).ConfigureAwait(false);
-            // Exclude the calling setting to prevent infinite recursion
-            // (e.g. updates-policy-mode calling ApplyRecommendedSettings which finds updates-policy-mode again)
-            var settingsList = recommendedSettings.Where(s => s.Id != settingId).ToList();
-
-            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Found {settingsList.Count} recommended settings for feature '{featureId}'");
-
-            if (settingsList.Count == 0)
+            for (int i = 0; i < total; i++)
             {
-                logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] No recommended settings found for feature '{featureId}'");
-                return;
-            }
-
-            foreach (var setting in settingsList)
-            {
+                var setting = settings[i];
                 try
                 {
-                    var recommendedValue = RecommendedSettingsService.GetRecommendedValueForSetting(setting);
-                    logService.Log(LogLevel.Debug, $"[RecommendedSettingsApplier] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'");
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        Progress = (double)i / total * 100,
+                        StatusText = $"Applying recommended: {setting.Name}",
+                        QueueCurrent = i + 1,
+                        QueueTotal = total,
+                        IsActive = true
+                    });
 
                     if (setting.InputType == InputType.Toggle)
                     {
-                        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
-                        bool enableValue = false;
-
-                        if (registrySetting != null && recommendedValue != null)
+                        var toggleState = SettingDefinitionToggleState.GetRecommendedToggleState(setting);
+                        if (toggleState is not bool enableValue) continue; // no recommendation
+                        await apply.ApplySettingAsync(new ApplySettingRequest
                         {
-                            enableValue = registrySetting.EnabledValue?.Any(ev => ev != null && recommendedValue.Equals(ev)) == true;
-                        }
-
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                        {
-                            SettingId = setting.Id,
-                            Enable = enableValue,
-                            Value = recommendedValue,
-                            SkipValuePrerequisites = true
+                            SettingId = setting.Id, Enable = enableValue, SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
                     else if (setting.InputType == InputType.Selection)
                     {
-                        var recommendedIndex = RecommendedSettingsService.GetRecommendedSelectionIndex(setting);
-
-                        if (recommendedIndex.HasValue)
+                        var powerCfgValue = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
+                        if (powerCfgValue != null)
                         {
-                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            await apply.ApplySettingAsync(new ApplySettingRequest
                             {
-                                SettingId = setting.Id,
-                                Enable = true,
-                                Value = recommendedIndex.Value,
-                                SkipValuePrerequisites = true
+                                SettingId = setting.Id, Enable = true, Value = powerCfgValue, SkipValuePrerequisites = true
                             }).ConfigureAwait(false);
                         }
                         else
                         {
-                            await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                            var idx = RecommendedSettingsResolver.GetRecommendedIndex(setting);
+                            if (idx is not int recommendedIndex) continue; // no IsRecommended option
+                            await apply.ApplySettingAsync(new ApplySettingRequest
                             {
-                                SettingId = setting.Id,
-                                Enable = true,
-                                Value = recommendedValue,
-                                SkipValuePrerequisites = true
+                                SettingId = setting.Id, Enable = true, Value = recommendedIndex, SkipValuePrerequisites = true
                             }).ConfigureAwait(false);
                         }
                     }
                     else
                     {
-                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                        var valueToApply = RecommendedSettingsResolver.GetRecommendedValueForSetting(setting)
+                            ?? RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
+                        if (valueToApply == null) continue; // nothing recommended
+                        await apply.ApplySettingAsync(new ApplySettingRequest
                         {
-                            SettingId = setting.Id,
-                            Enable = true,
-                            Value = recommendedValue,
-                            SkipValuePrerequisites = true
+                            SettingId = setting.Id, Enable = true, Value = valueToApply, SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
 
-                    logService.Log(LogLevel.Debug, $"[RecommendedSettingsApplier] Successfully applied recommended setting '{setting.Id}'");
+                    appliedForRestart.Add(setting);
+                    logService.Log(LogLevel.Debug, $"[RecommendedSettingsApplier] Applied recommended for '{setting.Id}'");
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"[RecommendedSettingsApplier] Failed to apply recommended setting '{setting.Id}': {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"[RecommendedSettingsApplier] Failed to apply recommended for '{setting.Id}': {ex.Message}");
                 }
             }
+        }
 
-            logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Completed applying recommended settings for feature '{featureId}'");
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"[RecommendedSettingsApplier] Error applying recommended settings: {ex.Message}");
-            throw;
-        }
+        return appliedForRestart;
+    }
+
+    public async Task<IReadOnlyList<SettingDefinition>> ApplyRecommendedForFeatureAsync(
+        string triggerSettingId, ISettingApplicationService apply)
+    {
+        var featureId = compatibleSettingsRegistry.GetFeatureIdForSetting(triggerSettingId)
+            ?? throw new InvalidOperationException($"Setting '{triggerSettingId}' has no feature mapping");
+
+        var osInfo = RecommendedSettingsResolver.BuildOSInfo(versionService);
+        var settings = compatibleSettingsRegistry.GetFilteredSettings(featureId)
+            .Where(s => s.Id != triggerSettingId && RecommendedSettingsResolver.IsCompatibleWithCurrentOS(s, osInfo))
+            .ToList();
+
+        logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Applying recommended for feature '{featureId}' ({settings.Count} candidate settings)");
+        return await ApplyRecommendedToSettingsAsync(settings, apply, null).ConfigureAwait(false);
+    }
+
+    public async Task ApplyRecommendedSettingsForFeatureAsync(string settingId, ISettingApplicationService apply)
+    {
+        var applied = await ApplyRecommendedForFeatureAsync(settingId, apply).ConfigureAwait(false);
+        await processRestartManager.FlushCoalescedRestartsAsync(applied).ConfigureAwait(false);
     }
 }

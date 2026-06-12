@@ -20,6 +20,8 @@ public static class CapabilityDefinitions
                     Description = "Legacy web browser",
                     GroupName = "Browser",
                     CapabilityName = "Browser.InternetExplorer",
+                    // Installed -> iexplore.exe; not-installed fallback -> shell32.dll resource
+                    // 512 (shell32 is always present; ieframe.dll,#190 leaves with the capability).
                     CanBeReinstalled = false
                 },
                 new ItemDefinition
@@ -74,6 +76,8 @@ public static class CapabilityDefinitions
                     Description = "Original Notepad without tabs, AI rewrite, or autosave",
                     GroupName = "Productivity",
                     CapabilityName = "Microsoft.Windows.Notepad",
+                    // Legacy Notepad installs the Win32 binary at System32\notepad.exe (the Store
+                    // version is appx), so exe-first yields the legacy icon when installed.
                     CanBeReinstalled = false
                 },
                 new ItemDefinition
@@ -83,6 +87,8 @@ public static class CapabilityDefinitions
                     Description = "Original Win32 Paint binary, kept for users who prefer the old interface",
                     GroupName = "Graphics",
                     CapabilityName = "Microsoft.Windows.MSPaint",
+                    // Legacy Paint installs the Win32 binary at System32\mspaint.exe (the Store
+                    // version is appx), so exe-first yields the legacy icon when installed.
                     CanBeReinstalled = false
                 },
                 new ItemDefinition

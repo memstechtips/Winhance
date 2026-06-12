@@ -1,0 +1,2027 @@
+{
+  "count": 253,
+  "description": "Icon manifest for memstechtips/package-icons. Keys are paths under icons/. external/ keyed by package-manager id (winget|choco); windows/ keyed by AppX package identity, DISM CapabilityName, or OptionalFeatureName. Commit-pin via jsDelivr; re-download an icon when its sha256 changes.",
+  "icons": {
+    "external/7zip.7zip.png": {
+      "choco": "7zip",
+      "name": "7-Zip",
+      "sha256": "7606362fe8c478e9c2daaef4f1f8596e1a4b3c4dbef3fa79fef35fdab80dfa96",
+      "winget": [
+        "7zip.7zip"
+      ]
+    },
+    "external/ablaze.floorp.png": {
+      "choco": "floorp",
+      "name": "Ablaze Floorp",
+      "sha256": "2c16bc5d49c89f37ee19e5a81f5405f204160ed35bce317940961e98505bd6ba",
+      "winget": [
+        "Ablaze.Floorp"
+      ]
+    },
+    "external/adobereader.png": {
+      "choco": "adobereader",
+      "msstore": "XPDP273C0XHQH2",
+      "name": "Adobe Acrobat Reader DC",
+      "sha256": "a0646a16839d583aaae0af28a67a9d674e246602ade9b3c45470eab1f1e44349"
+    },
+    "external/adrienallard.fileconverter.png": {
+      "choco": "file-converter",
+      "name": "File Converter",
+      "sha256": "657efb9f231babc4e72d6c11d0bf591fb263e034b787a88720b286cd1dfa8aa4",
+      "winget": [
+        "AdrienAllard.FileConverter"
+      ]
+    },
+    "external/aimp.aimp.png": {
+      "choco": "aimp",
+      "msstore": "9PCLLLH15SMT",
+      "name": "AIMP",
+      "sha256": "b686342aacdf22da1f5af82d96e25997270f65971e667871d3816127f7f13a4b",
+      "winget": [
+        "AIMP.AIMP"
+      ]
+    },
+    "external/alex313031.mercury.png": {
+      "choco": "mercury",
+      "name": "Mercury",
+      "sha256": "24d216fa8a06b200e264f7054526ff16943fe4ba9f2367c6b27e9d0b1bec6a01",
+      "winget": [
+        "Alex313031.Mercury"
+      ]
+    },
+    "external/alex313031.thorium.png": {
+      "name": "Thorium",
+      "sha256": "043f6c28c145e02c4b1f0ee23037d9ce645fda8c47f95447afa040d51bd5f911",
+      "winget": [
+        "Alex313031.Thorium"
+      ]
+    },
+    "external/antibodysoftware.wiztree.png": {
+      "choco": "wiztree",
+      "name": "WizTree",
+      "sha256": "f1f1bb0dd703f5ab54cfb7f3ef7f166a5b5c120ec7e13f551734ec56b9e5b4f4",
+      "winget": [
+        "AntibodySoftware.WizTree"
+      ]
+    },
+    "external/anydesk.anydesk.png": {
+      "choco": "anydesk",
+      "name": "AnyDesk",
+      "sha256": "eefa7cdc23680177ecf9ac007d4ddaacbc66ac5b86340f7ccf02fa65d5bbc260",
+      "winget": [
+        "AnyDesk.AnyDesk"
+      ]
+    },
+    "external/apache.openoffice.png": {
+      "choco": "openoffice",
+      "msstore": "XP89J5462CMGJD",
+      "name": "OpenOffice",
+      "sha256": "12460e590b44d00a0f17f2b549e317060307c39b4eac59b02f56c47fc01b2bf8",
+      "winget": [
+        "Apache.OpenOffice"
+      ]
+    },
+    "external/apple.itunes.png": {
+      "choco": "itunes",
+      "msstore": "9PB2MZ1ZMB1S",
+      "name": "iTunes",
+      "sha256": "c55c2143d863abe723a2406fed57d2fa56c51492fabf178fa02476d35ae52177",
+      "winget": [
+        "Apple.iTunes"
+      ]
+    },
+    "external/audacity.audacity.png": {
+      "choco": "audacity",
+      "msstore": "XP8K0J757HHRDW",
+      "name": "Audacity",
+      "sha256": "cbbfd31147be36508eac8cfe777f23b628b63956314404200b930448041ce1f8",
+      "winget": [
+        "Audacity.Audacity"
+      ]
+    },
+    "external/autohotkey-v1.png": {
+      "name": "AutoHotkey v1",
+      "sha256": "d06ea7c77bf4f4ff50d114704de0eaf9923be41fb928c98de3508ce52a3c6a98"
+    },
+    "external/autohotkey.autohotkey.png": {
+      "choco": "autohotkey",
+      "msstore": "9PLQFDG8HH9D",
+      "name": "AutoHotkey v2",
+      "sha256": "d06ea7c77bf4f4ff50d114704de0eaf9923be41fb928c98de3508ce52a3c6a98",
+      "winget": [
+        "AutoHotkey.AutoHotkey"
+      ]
+    },
+    "external/binisoft.windowsfirewallcontrol.png": {
+      "choco": "windowsfirewallcontrol",
+      "name": "Windows Firewall Control",
+      "sha256": "70b95ff8f60f779276c8f5059a8ec12b5757f8ee9ff177483fe50caa10a118d8",
+      "winget": [
+        "BiniSoft.WindowsFirewallControl"
+      ]
+    },
+    "external/blenderfoundation.blender.png": {
+      "choco": "blender",
+      "msstore": "9PP3C07GTVRH",
+      "name": "Blender",
+      "sha256": "1659fbc6ea1b97e0a35c27e5cb1f30e943608e8f8036af6f1441b431307ca3a5",
+      "winget": [
+        "BlenderFoundation.Blender"
+      ]
+    },
+    "external/blizzard.battlenet.png": {
+      "choco": "battle.net",
+      "msstore": "xpdm5vsmtkqlbj",
+      "name": "Battle.net",
+      "sha256": "2fcbf1f81918bd4b64675fddaf7734671b28d0318268b32ca096d85448259e1a",
+      "winget": [
+        "Blizzard.BattleNet"
+      ]
+    },
+    "external/brave.brave.png": {
+      "choco": "brave",
+      "msstore": "XP8C9QZMS2PC1T",
+      "name": "Brave",
+      "sha256": "052a5b9c4baa7e812c943b3bbb9fb279c860dc336aa8fc52ef66a7a53650a27e",
+      "winget": [
+        "Brave.Brave"
+      ]
+    },
+    "external/bytedance.capcut.png": {
+      "msstore": "XP9KN75RRB9NHS",
+      "name": "CapCut",
+      "sha256": "65a71f43fa2f4ef4ec37ef6765decbe2f0b547b37404bbee21e11d5ab611337e",
+      "winget": [
+        "ByteDance.CapCut"
+      ]
+    },
+    "external/cdburnerxp.png": {
+      "choco": "cdburnerxp",
+      "name": "CDBurnerXP",
+      "sha256": "cdddc6f707efb1fc5166f37e78c450a625178496415221b52dd7ecf02747fe7f"
+    },
+    "external/ceruleanstudios.trillian.png": {
+      "choco": "trillian",
+      "name": "Trillian",
+      "sha256": "3520e8398a9fef5a78eedf861e431e6e3fcb382f60d152d1a411e918db263b7f",
+      "winget": [
+        "CeruleanStudios.Trillian"
+      ]
+    },
+    "external/ch.losslesscut.png": {
+      "choco": "lossless-cut",
+      "msstore": "9P30LSR4705L",
+      "name": "LosslessCut",
+      "sha256": "8035167a0943815bf32ca719e944d25ae896fd903b89dfd48453261cb4345332",
+      "winget": [
+        "ch.LosslessCut"
+      ]
+    },
+    "external/codecguide.k-litecodecpack.mega.png": {
+      "choco": "k-litecodecpackmega",
+      "name": "K-Lite Codec Pack (Mega)",
+      "sha256": "8f604c946240d709d677a67ee66937310c97c9a0ba4390f4e93a520916379710",
+      "winget": [
+        "CodecGuide.K-LiteCodecPack.Mega"
+      ]
+    },
+    "external/codesector.teracopy.png": {
+      "choco": "teracopy",
+      "msstore": "XPDCCPPSK2XPQW",
+      "name": "TeraCopy",
+      "sha256": "b1cf9fee1589500a7fd43940f1222c82a8eb91471fd180238d76be1096cac739",
+      "winget": [
+        "CodeSector.TeraCopy"
+      ]
+    },
+    "external/cyanfish.naps2.png": {
+      "choco": "naps2",
+      "msstore": "9N3QQ9W0B23Q",
+      "name": "NAPS2",
+      "sha256": "229a7d502f9140338565de08a50e35c8796726c2e4b724912483838e71bfb663",
+      "winget": [
+        "Cyanfish.NAPS2"
+      ]
+    },
+    "external/daum.potplayer.png": {
+      "choco": "potplayer",
+      "msstore": "XP8BSBGQW2DKS0",
+      "name": "PotPlayer64",
+      "sha256": "dfb348ca5e7a990e9cf2cfe6caa628108427711c85efaaff4d88d4a245fa2292",
+      "winget": [
+        "Daum.PotPlayer"
+      ]
+    },
+    "external/deskflow.deskflow.png": {
+      "choco": "deskflow",
+      "name": "Deskflow",
+      "sha256": "8a044f27d141de33f7d2008d10863731be537122cafcfc755db2130a8f9115af",
+      "winget": [
+        "Deskflow.Deskflow"
+      ]
+    },
+    "external/discord.discord.png": {
+      "choco": "discord",
+      "msstore": "XPDC2RH70K22MN",
+      "name": "Discord",
+      "sha256": "40160b15802f2798447b80807108845507be88663128f9d1c7593139e2b05e15",
+      "winget": [
+        "Discord.Discord"
+      ]
+    },
+    "external/dotpdn.paintdotnet.png": {
+      "choco": "paint.net",
+      "msstore": "9NBHCS1LX4R0",
+      "name": "Paint.NET",
+      "sha256": "5592295109691b7aa21ca1aeaf6ebe11927faab3466402bfb7811c2c2d1f476f",
+      "winget": [
+        "dotPDN.PaintDotNet"
+      ]
+    },
+    "external/dropbox.dropbox.png": {
+      "choco": "dropbox",
+      "msstore": "9NK4T08DHQ80",
+      "name": "Dropbox",
+      "sha256": "d3a0b63ddf82e1cacc910dd475126387e90a833fdc267c88123ec68a6ffa141b",
+      "winget": [
+        "Dropbox.Dropbox"
+      ]
+    },
+    "external/ducfabulous.ultraviewer.png": {
+      "choco": "ultraviewer",
+      "name": "UltraViewer",
+      "sha256": "8a52bf34158ab2a2c13efee50a861a84909214c6bfe7fd5bf5f8164a7fdc16f6",
+      "winget": [
+        "DucFabulous.UltraViewer"
+      ]
+    },
+    "external/duckduckgo.desktopbrowser.png": {
+      "msstore": "9N74NHXCH1N6",
+      "name": "DuckDuckGo",
+      "sha256": "09a17822524b5917c0307ff96153fb06712e9c56e2d36092be6928110403985b",
+      "winget": [
+        "DuckDuckGo.DesktopBrowser"
+      ]
+    },
+    "external/duongdieuphap.imageglass.png": {
+      "choco": "imageglass",
+      "msstore": "9N33VZK3C7TH",
+      "name": "ImageGlass",
+      "sha256": "1413e3f669e83336932d2fe83807554eecdc8d0c1d2faabf81a9931defd43ec7",
+      "winget": [
+        "DuongDieuPhap.ImageGlass"
+      ]
+    },
+    "external/eclipsefoundation.eclipse.java.png": {
+      "choco": "eclipse-java-oxygen",
+      "name": "Eclipse IDE for Java",
+      "sha256": "d52a969fde72c1616afff176dab1544cd0a2567e387dc5140d11c82bf299b2a5",
+      "winget": [
+        "EclipseFoundation.Eclipse.Java"
+      ]
+    },
+    "external/electronicarts.eadesktop.png": {
+      "choco": "ea-app",
+      "name": "EA app",
+      "sha256": "75e75765191a2af3de0e856a231779547cbc47183766cdbdca90d6f97fd19790",
+      "winget": [
+        "ElectronicArts.EADesktop"
+      ]
+    },
+    "external/element.element.png": {
+      "choco": "element-desktop",
+      "name": "Element",
+      "sha256": "c3abe2a885cbcb05fa73a1b40f541e46e5b84f3b4e8a44bead9c39f8e0c86054",
+      "winget": [
+        "Element.Element"
+      ]
+    },
+    "external/eloston.ungoogled-chromium.png": {
+      "choco": "ungoogled-chromium",
+      "name": "ungoogled-chromium",
+      "sha256": "968b93f038c929ee22bbb11bcfbcd1894b6d3eacee53d9cc59c2e1294067dd42",
+      "winget": [
+        "Eloston.Ungoogled-Chromium"
+      ]
+    },
+    "external/emclient.emclient.png": {
+      "choco": "em-client",
+      "msstore": "9NM8S4PVF0N2",
+      "name": "eM Client",
+      "sha256": "930b2df051016732d576dd743e74605c7e44ecfddda00d2544828cd9ed0c1347",
+      "winget": [
+        "eMClient.eMClient"
+      ]
+    },
+    "external/epicgames.epicgameslauncher.png": {
+      "choco": "epicgameslauncher",
+      "msstore": "XP99VR1BPSBQJ2",
+      "name": "Epic Games Launcher",
+      "sha256": "ad131cf46ff6df53c1c902bd59c2aca904b4253764ad25787767aef9f7830241",
+      "winget": [
+        "EpicGames.EpicGamesLauncher"
+      ]
+    },
+    "external/evernote.evernote.png": {
+      "choco": "evernote",
+      "msstore": "9WZDNCRFJ3MB",
+      "name": "Evernote",
+      "sha256": "073bdcef8a798a8b9374c1dbda3b755243fc5ded23fb4d59d545841a83336070",
+      "winget": [
+        "Evernote.Evernote"
+      ]
+    },
+    "external/faststone.viewer.png": {
+      "choco": "fsviewer",
+      "name": "FastStone Image Viewer",
+      "sha256": "22493c3672cf00c6b7d78cacc2d29f9ff12bb2fdda7c59857bdf15bce9cb6262",
+      "winget": [
+        "FastStone.Viewer"
+      ]
+    },
+    "external/flameshot.flameshot.png": {
+      "choco": "flameshot",
+      "name": "Flameshot",
+      "sha256": "a7100ef36232e56e83a0d089a27d606a7dc9923c0a72f4df3b388a145762f98c",
+      "winget": [
+        "Flameshot.Flameshot"
+      ]
+    },
+    "external/foxitreader.png": {
+      "choco": "foxitreader",
+      "msstore": "XPFCG5NRKXQPKT",
+      "name": "Foxit PDF Reader",
+      "sha256": "3e6cd9f273eb41049a799ece57f2b4f4882e81038c7efe8219480441b2996ed4"
+    },
+    "external/freac.png": {
+      "choco": "freac",
+      "msstore": "9P1XD8ZQJ7JD",
+      "name": "fre:ac - free audio converter",
+      "sha256": "c7a7978af658d4e220afa1e2d1039dc3b50c6e15b4bcc7797a9a463265c6450a"
+    },
+    "external/freefilesync.png": {
+      "choco": "freefilesync",
+      "name": "FreeFileSync",
+      "sha256": "2d49141574966e07b7e16fe040747bfc1f0e48fed26d843f3a7addb777e96e87"
+    },
+    "external/fxsound.fxsound.png": {
+      "choco": "fxsound",
+      "msstore": "XP8JK4TBQ03LZ4",
+      "name": "FxSound",
+      "sha256": "4f8c7e2397c1eadcd660904256ae162a91c7401aa7d5784242cc0cd4e55d4c91",
+      "winget": [
+        "FxSound.FxSound"
+      ]
+    },
+    "external/geeksoftwaregmbh.pdf24creator.png": {
+      "choco": "pdf24",
+      "msstore": "XPFD51H3VQZFM0",
+      "name": "PDF24 Creator",
+      "sha256": "88b220d21638be01724017de9a0082fcbff5f1391e2051e0b27346983b8f8595",
+      "winget": [
+        "geeksoftwareGmbH.PDF24Creator"
+      ]
+    },
+    "external/gimp.gimp.3.png": {
+      "choco": "gimp",
+      "name": "GIMP",
+      "sha256": "7ac1ba6b8e059b2f03683f49d91a6c11cb70cbb1095322f9b775ced6db5e347c",
+      "winget": [
+        "GIMP.GIMP.3"
+      ]
+    },
+    "external/giorgiotani.peazip.png": {
+      "choco": "peazip",
+      "name": "PeaZip",
+      "sha256": "76461390eec153d19bd03857e55e0a3417230f899f93bcbd5afe9edaaf44fd8d",
+      "winget": [
+        "Giorgiotani.Peazip"
+      ]
+    },
+    "external/git.git.png": {
+      "choco": "git",
+      "name": "Git",
+      "sha256": "7aca3c686f0b89ae3eca614e582a22cc9373a6544267273d5f6708f9f1b23ae2",
+      "winget": [
+        "Git.Git"
+      ]
+    },
+    "external/github.githubdesktop.png": {
+      "choco": "github-desktop",
+      "name": "GitHub Desktop",
+      "sha256": "4fca768ca9c0ae5073304c2971dcd9144991485ab42c0369f667d8fb3316dd4f",
+      "winget": [
+        "GitHub.GitHubDesktop"
+      ]
+    },
+    "external/giuspen.cherrytree.png": {
+      "choco": "cherrytree",
+      "name": "CherryTree",
+      "sha256": "9e065fa76f581b70f30272e352d293474923bcae63a6f21384a5e11d786bcd0d",
+      "winget": [
+        "Giuspen.Cherrytree"
+      ]
+    },
+    "external/glenndelahoy.snappydriverinstallerorigin.png": {
+      "choco": "sdio",
+      "name": "Snappy Driver Installer Origin",
+      "sha256": "24b4cf381e6a2a1d3b943dc0a19f80ece1476147ff9071aa1345404943683891",
+      "winget": [
+        "GlennDelahoy.SnappyDriverInstallerOrigin"
+      ]
+    },
+    "external/gog.galaxy.png": {
+      "choco": "goggalaxy",
+      "msstore": "XPFFXW40W60KCF",
+      "name": "GOG GALAXY",
+      "sha256": "ac1fcc4f16d4e6751453e852808bfe6bdc834d453c0cb412da42a3baa10492b6",
+      "winget": [
+        "GOG.Galaxy"
+      ]
+    },
+    "external/gomlab.gomplayer.png": {
+      "choco": "gom-player",
+      "msstore": "XP8LKPZT4X0Z0P",
+      "name": "GOM Player",
+      "sha256": "c2df67642ec7689f90aa15c3d6dd6ebf0c156563127ada6be0fb369b39beb657",
+      "winget": [
+        "GOMLab.GOMPlayer"
+      ]
+    },
+    "external/google.chrome.png": {
+      "choco": "googlechrome",
+      "name": "Google Chrome",
+      "sha256": "71a6147d4e0709cc70622b170383fd082d61e58b2eac90892614004013ad59fe",
+      "winget": [
+        "Google.Chrome",
+        "Google.Chrome.EXE"
+      ]
+    },
+    "external/google.chromeremotedesktophost.png": {
+      "choco": "chrome-remote-desktop-host",
+      "name": "Chrome Remote Desktop",
+      "sha256": "14824a4900a3a757ef07f6f716d838b1dd48bd0f2082546c4bf1fa2edbcf3432",
+      "winget": [
+        "Google.ChromeRemoteDesktopHost"
+      ]
+    },
+    "external/google.googledrive.png": {
+      "choco": "googledrive",
+      "name": "Google Drive",
+      "sha256": "c322495222565a934720f3e1b661189a30155b6b8dd2f6d69a4b486ee16c1305",
+      "winget": [
+        "Google.GoogleDrive"
+      ]
+    },
+    "external/greenshot.greenshot.png": {
+      "choco": "greenshot",
+      "name": "Greenshot",
+      "sha256": "95d08b405085ceffbc60a05b628ffc9b0fd046c6ba93997c446ba32293613aef",
+      "winget": [
+        "Greenshot.Greenshot"
+      ]
+    },
+    "external/guinpinsoft.makemkv.png": {
+      "choco": "makemkv",
+      "name": "MakeMKV",
+      "sha256": "ad968eca0c789ba8e288d14c843a04d0b8d7d1a3bed5b8544b498d27fc63eb49",
+      "winget": [
+        "GuinpinSoft.MakeMKV"
+      ]
+    },
+    "external/handbrake.handbrake.png": {
+      "choco": "handbrake",
+      "name": "HandBrake",
+      "sha256": "80bb52e2089758d1a2718f5e0946616b6db1e242d6a802ad82f62f0e642d862e",
+      "winget": [
+        "HandBrake.HandBrake"
+      ]
+    },
+    "external/hekasoft.backup-restore.png": {
+      "msstore": "9NLJQ1B18MZT",
+      "name": "Hekasoft Backup & Restore",
+      "sha256": "3374e74ba00a6f113df116996dbff0f271136b4ae9faaaeb41e687feab484785",
+      "winget": [
+        "Hekasoft.Backup-Restore"
+      ]
+    },
+    "external/hulubulusoftware.advancedrenamer.png": {
+      "choco": "advanced-renamer",
+      "msstore": "XP9MD3S1KFCPH1",
+      "name": "Advanced Renamer",
+      "sha256": "f0486a350d07f9424d2a602b13ec8bb2a9e024c584bfbd003ba5e262f3d5c8ea",
+      "winget": [
+        "HulubuluSoftware.AdvancedRenamer"
+      ]
+    },
+    "external/imputnet.helium.png": {
+      "choco": "helium",
+      "name": "Helium",
+      "sha256": "824e29c408624c43d9a73209e0b82cb17eddbb537f5041dd9acb3fa59ee2243d",
+      "winget": [
+        "ImputNet.Helium"
+      ]
+    },
+    "external/inkscape.inkscape.png": {
+      "choco": "inkscape",
+      "msstore": "9PD9BHGLFC7H",
+      "name": "Inkscape",
+      "sha256": "db63976bca0997a7629b0ade041eb787bc0a813a6fb94b84b0a99371399f0f3a",
+      "winget": [
+        "Inkscape.Inkscape"
+      ]
+    },
+    "external/input-leap.input-leap.png": {
+      "choco": "input-leap",
+      "name": "InputLeap",
+      "sha256": "d00f5c503b932a567e99da31419fb2f61b82bde1cc912d8e21eaee37017dd413",
+      "winget": [
+        "input-leap.input-leap"
+      ]
+    },
+    "external/iobit.iobitunlocker.png": {
+      "choco": "iobit-unlocker",
+      "name": "IObit Unlocker",
+      "sha256": "8b1e25cb39a70e010d827834e4718c871afbc132f0dc8fdda918cc6fcd9e4e69",
+      "winget": [
+        "IObit.IObitUnlocker"
+      ]
+    },
+    "external/iobit.uninstaller.png": {
+      "choco": "iobit-uninstaller",
+      "msstore": "XP8K2SCQWD27VT",
+      "name": "IObit Uninstaller",
+      "sha256": "3ef1d33bdc904d4a82096d408507e20fade96911b908bac385a71894bf596da2",
+      "winget": [
+        "IObit.Uninstaller"
+      ]
+    },
+    "external/ipvanish.sugarsync.png": {
+      "choco": "sugarsync",
+      "name": "SugarSync",
+      "sha256": "f60a0060fd219c944e716ebb6f812b63e346efbd747abc2a5f70343bdf64b135",
+      "winget": [
+        "IPVanish.SugarSync"
+      ]
+    },
+    "external/irfanskiljan.irfanview.png": {
+      "choco": "irfanview",
+      "msstore": "9PJZ3BTL5PV6",
+      "name": "IrfanView64",
+      "sha256": "626e703033dec43c53dc33f6a78e3c674e8e8fa1bd1ba86c65a12adb35ae0d49",
+      "winget": [
+        "IrfanSkiljan.IrfanView"
+      ]
+    },
+    "external/irzyxa.volume2portable.png": {
+      "choco": "volume2",
+      "name": "Volume2",
+      "sha256": "25f696cfbb1af2b52561c76f524cb927bdb20c06e21af84dfc1c4c4eeac27078",
+      "winget": [
+        "irzyxa.Volume2Portable"
+      ]
+    },
+    "external/jamsoftware.treesize.free.png": {
+      "choco": "treesizefree",
+      "msstore": "XPDDXV3SD1SB5K",
+      "name": "TreeSize Free",
+      "sha256": "c543aa9a582635373644a9af1855a474a274922c627bfdf0f986403d4c9d15b7",
+      "winget": [
+        "JAMSoftware.TreeSize.Free"
+      ]
+    },
+    "external/johnsadventures.johnsbackgroundswitcher.png": {
+      "choco": "jbs",
+      "msstore": "9MWKCB9MH93K",
+      "name": "John's Background Switcher",
+      "sha256": "7aa19e349f25961a752b427b154fa6ba3afddd2a59970820f01ae00abfcdaee3",
+      "winget": [
+        "johnsadventures.JohnsBackgroundSwitcher"
+      ]
+    },
+    "external/kde.kdenlive.png": {
+      "choco": "kdenlive",
+      "name": "kdenlive",
+      "sha256": "a382e9f79e82980112e1472b42c750a9fc18b10c6f37c53457c47d7cc772b821",
+      "winget": [
+        "KDE.Kdenlive"
+      ]
+    },
+    "external/kde.krita.png": {
+      "choco": "krita",
+      "msstore": "9N6X57ZGRW96",
+      "name": "Krita",
+      "sha256": "02d5496539e3985f97e49978edd9689f1a963a21f4ffd1ea8da2309868e4fd82",
+      "winget": [
+        "KDE.Krita"
+      ]
+    },
+    "external/kde.okular.png": {
+      "choco": "okular",
+      "msstore": "9N41MSQ1WNM8",
+      "name": "Okular",
+      "sha256": "83640a25a335b6fb6c5906692e5c3a6c3a41a6eb0b76c5306be710cf1ec0304b",
+      "winget": [
+        "KDE.Okular",
+        "KDE.Okular.AppX"
+      ]
+    },
+    "external/librewolf.librewolf.png": {
+      "choco": "librewolf",
+      "msstore": "9NVN9SZ8KFD7",
+      "name": "LibreWolf",
+      "sha256": "16b409d04810d1af85f6d8c8434902df4ea4ad443297fa2b1f51159f3d8c65fb",
+      "winget": [
+        "LibreWolf.LibreWolf"
+      ]
+    },
+    "external/lightninguk.imgburn.png": {
+      "choco": "imgburn",
+      "name": "ImgBurn",
+      "sha256": "25760495e59ba83a23d6ed6b797ab3466c23f916a0da57cd8b4676249b1f6018",
+      "winget": [
+        "LIGHTNINGUK.ImgBurn"
+      ]
+    },
+    "external/m2team.nanazip.png": {
+      "choco": "nanazip",
+      "msstore": "9N8G7TSCL18R",
+      "name": "NanaZip",
+      "sha256": "75826f86926b1971aa27462cbce4d92b67f57e8ef1b8fcd33824360dd5d90612",
+      "winget": [
+        "M2Team.NanaZip"
+      ]
+    },
+    "external/malwarebytes.adwcleaner.png": {
+      "choco": "adwcleaner",
+      "name": "Malwarebytes AdwCleaner",
+      "sha256": "70b95ff8f60f779276c8f5059a8ec12b5757f8ee9ff177483fe50caa10a118d8",
+      "winget": [
+        "Malwarebytes.AdwCleaner"
+      ]
+    },
+    "external/malwarebytes.malwarebytes.png": {
+      "choco": "malwarebytes",
+      "name": "Malwarebytes",
+      "sha256": "70b95ff8f60f779276c8f5059a8ec12b5757f8ee9ff177483fe50caa10a118d8",
+      "winget": [
+        "Malwarebytes.Malwarebytes"
+      ]
+    },
+    "external/marticliment.unigetui.png": {
+      "choco": "wingetui",
+      "msstore": "XPFFTQ032PTPHF",
+      "name": "UniGetUI",
+      "sha256": "a996266c0b6dc53a9ebdfb3f58bc402b3b0246fa21810fb508553d16a42e1006",
+      "winget": [
+        "MartiCliment.UniGetUI"
+      ]
+    },
+    "external/maxthon.maxthon.png": {
+      "choco": "maxthon",
+      "name": "Maxthon",
+      "sha256": "dbe2bb30b0704e00d61186e7b78ca3aa65d6a0fddf4a62da7ec74c430cc6bc9f",
+      "winget": [
+        "Maxthon.Maxthon"
+      ]
+    },
+    "external/mediaarea.mediainfo.gui.png": {
+      "choco": "mediainfo",
+      "msstore": "9NK81654HHV5",
+      "name": "MediaInfo",
+      "sha256": "6de54b0928266fd7c028e792c904ca77f21df71a8b093216da97a9f536d12b3c",
+      "winget": [
+        "MediaArea.MediaInfo.GUI"
+      ]
+    },
+    "external/meld.meld.png": {
+      "choco": "meld",
+      "name": "Meld",
+      "sha256": "777dc69c24bb7485e3deaaa5e67a341e66fae8084674603e48d0437c9dda246e",
+      "winget": [
+        "Meld.Meld"
+      ]
+    },
+    "external/meltytech.shotcut.png": {
+      "choco": "Shotcut",
+      "msstore": "9PLNFFL3P6LR",
+      "name": "Shotcut",
+      "sha256": "a6f3995548cb9d0a7f563c1d179afdba2a0c526d086210d73e98e0d8ae570ad8",
+      "winget": [
+        "Meltytech.Shotcut"
+      ]
+    },
+    "external/microsoft.directx.png": {
+      "choco": "directx",
+      "name": "DirectX Runtime",
+      "sha256": "d071ba99e044d43c9267d7b138022cf988444265035b6ff4119f93001342dfd6",
+      "winget": [
+        "Microsoft.DirectX"
+      ]
+    },
+    "external/microsoft.dotnet.framework.developerpack_4.png": {
+      "choco": "netfx-4.8.1-devpack",
+      "name": ".NET Framework 4.8.1",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Framework.DeveloperPack_4"
+      ]
+    },
+    "external/microsoft.dotnet.runtime.3_1.png": {
+      "choco": "dotnetcore-3.1-runtime",
+      "name": "Microsoft .NET Runtime 3.1",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.3_1"
+      ]
+    },
+    "external/microsoft.dotnet.runtime.5.png": {
+      "choco": "dotnet-5.0-runtime",
+      "name": "Microsoft .NET Runtime 5.0",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.5"
+      ]
+    },
+    "external/microsoft.dotnet.runtime.6.png": {
+      "choco": "dotnet-6.0-runtime",
+      "name": "Microsoft .NET Runtime 6.0",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.6"
+      ]
+    },
+    "external/microsoft.dotnet.runtime.7.png": {
+      "choco": "dotnet-7.0-runtime",
+      "name": "Microsoft .NET Runtime 7.0",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.7"
+      ]
+    },
+    "external/microsoft.dotnet.runtime.8.png": {
+      "choco": "dotnet-8.0-runtime",
+      "name": "Microsoft .NET Runtime 8.0",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.8"
+      ]
+    },
+    "external/microsoft.edgewebview2runtime.png": {
+      "choco": "webview2-runtime",
+      "name": "Microsoft EdgeWebView",
+      "sha256": "1f4e19c9b357a988b140c7b34bfdebacd9fd806902870be3bc7bf1c78b88d7db",
+      "winget": [
+        "Microsoft.EdgeWebView2Runtime"
+      ]
+    },
+    "external/microsoft.office.png": {
+      "choco": "office365business",
+      "msstore": "9WZDNCRD29V9",
+      "name": "Microsoft 365",
+      "sha256": "a9d374487f622bf02a9bb9fad742e1cfbdb622807bd22c175f508a11afac36a4",
+      "winget": [
+        "Microsoft.Office"
+      ]
+    },
+    "external/microsoft.powershell.png": {
+      "choco": "powershell-core",
+      "msstore": "9MZ1SNWT0N5D",
+      "name": "PowerShell",
+      "sha256": "53897c11f49c07d294cf087ef71372850d405db3ebe4e2ca2d56b8aaeb50ffbd",
+      "winget": [
+        "Microsoft.PowerShell"
+      ]
+    },
+    "external/microsoft.powertoys.png": {
+      "choco": "powertoys",
+      "msstore": "XP89DCGQ3K6VLD",
+      "name": "Microsoft PowerToys",
+      "sha256": "f65fd258d9b50926837fb40466494f165a8ba6b524c067d944971699b931d194",
+      "winget": [
+        "Microsoft.PowerToys"
+      ]
+    },
+    "external/microsoft.vcredist.2005.x64.png": {
+      "choco": "vcredist2005",
+      "name": "Visual C++ 2005 (x64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2005.x64"
+      ]
+    },
+    "external/microsoft.vcredist.2005.x86.png": {
+      "choco": "vcredist2005",
+      "name": "Visual C++ 2005 (x86)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2005.x86"
+      ]
+    },
+    "external/microsoft.vcredist.2008.x64.png": {
+      "choco": "vcredist2008",
+      "name": "Visual C++ 2008 (x64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2008.x64"
+      ]
+    },
+    "external/microsoft.vcredist.2008.x86.png": {
+      "choco": "vcredist2008",
+      "name": "Visual C++ 2008 (x86)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2008.x86"
+      ]
+    },
+    "external/microsoft.vcredist.2010.x64.png": {
+      "choco": "vcredist2010",
+      "name": "Visual C++ 2010 (x64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2010.x64"
+      ]
+    },
+    "external/microsoft.vcredist.2010.x86.png": {
+      "choco": "vcredist2010",
+      "name": "Visual C++ 2010 (x86)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2010.x86"
+      ]
+    },
+    "external/microsoft.vcredist.2012.x64.png": {
+      "choco": "vcredist2012",
+      "name": "Visual C++ 2012 (x64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2012.x64"
+      ]
+    },
+    "external/microsoft.vcredist.2012.x86.png": {
+      "choco": "vcredist2012",
+      "name": "Visual C++ 2012 (x86)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2012.x86"
+      ]
+    },
+    "external/microsoft.vcredist.2013.x64.png": {
+      "choco": "vcredist2013",
+      "name": "Visual C++ 2013 (x64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2013.x64"
+      ]
+    },
+    "external/microsoft.vcredist.2013.x86.png": {
+      "choco": "vcredist2013",
+      "name": "Visual C++ 2013 (x86)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2013.x86"
+      ]
+    },
+    "external/microsoft.vcredist.2015+.arm64.png": {
+      "choco": "vcredist140",
+      "name": "Visual C++ 2022 (ARM64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2015+.arm64"
+      ]
+    },
+    "external/microsoft.vcredist.2015+.x64.png": {
+      "choco": "vcredist140",
+      "name": "Visual C++ 2015-2022 (x64)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2015+.x64"
+      ]
+    },
+    "external/microsoft.vcredist.2015+.x86.png": {
+      "choco": "vcredist140",
+      "name": "Visual C++ 2015-2022 (x86)",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.VCRedist.2015+.x86"
+      ]
+    },
+    "external/microsoft.visualstudiocode.png": {
+      "choco": "vscode",
+      "msstore": "XP9KHM4BK9FZ7Q",
+      "name": "Microsoft Visual Studio Code",
+      "sha256": "47669b3a87b9c2809bb27cf56fd00c4c24f84bc373c331f8f33c5dd42e83f624",
+      "winget": [
+        "Microsoft.VisualStudioCode"
+      ]
+    },
+    "external/moonchildproductions.palemoon.png": {
+      "choco": "palemoon",
+      "msstore": "XPDKN9FQ75F2MZ",
+      "name": "Pale Moon Browser",
+      "sha256": "a476c72b9ba73b1794ef1b23e78f3ed6311acb57dca5f352eaf3c530cfbd32df",
+      "winget": [
+        "MoonchildProductions.PaleMoon"
+      ]
+    },
+    "external/mozilla.firefox.png": {
+      "choco": "firefox",
+      "msstore": "9NZVDKPMR9RD",
+      "name": "Mozilla Firefox",
+      "sha256": "d25cecceafc0dcb575deb29b976083d768437de9c16866f360ad21bd74548f76",
+      "winget": [
+        "Mozilla.Firefox"
+      ]
+    },
+    "external/mozilla.thunderbird.png": {
+      "choco": "thunderbird",
+      "msstore": "9MX7TGVGQFCL",
+      "name": "Mozilla Thunderbird",
+      "sha256": "923d2fba311fc9dfa3553a41d46b0a35f4788d43f49b399c9cfc850dc2d93081",
+      "winget": [
+        "Mozilla.Thunderbird"
+      ]
+    },
+    "external/mpc-be.mpc-be.png": {
+      "choco": "mpc-be",
+      "msstore": "9PD88QB3BGKN",
+      "name": "MPC-BE",
+      "sha256": "4c5c88a6324e952955b650ee987c80069ce0d9c479b048207882c5084abf72c0",
+      "winget": [
+        "MPC-BE.MPC-BE"
+      ]
+    },
+    "external/mullvadvpn.mullvadbrowser.png": {
+      "name": "Mullvad Browser",
+      "sha256": "5641a7650687e20bd3b09f48aa1ce5c389cd6d636752a368e051e18734e965c0",
+      "winget": [
+        "MullvadVPN.MullvadBrowser"
+      ]
+    },
+    "external/musicbee.png": {
+      "choco": "musicbee",
+      "msstore": "9P4CLT2RJ1RS",
+      "name": "MusicBee",
+      "sha256": "e50629a4a37d83b0eacb3397dd7ebf40af484c69c8f688e16b45d72b5a8e72f0"
+    },
+    "external/nextcloud.nextclouddesktop.png": {
+      "choco": "nextcloud-client",
+      "name": "Nextcloud",
+      "sha256": "2eb180d3019cde4d9d2faed9b0cdb760fbb0c42db2830f6a9c16601a922fbf8c",
+      "winget": [
+        "Nextcloud.NextcloudDesktop"
+      ]
+    },
+    "external/nilesoft.shell.png": {
+      "choco": "nilesoft-shell",
+      "name": "Nilesoft Shell",
+      "sha256": "d6d11b3e509b0dd0f12a63b88007b3c7a9472a842260343ad270184a6297939d",
+      "winget": [
+        "Nilesoft.Shell"
+      ]
+    },
+    "external/notepad++.notepad++.png": {
+      "choco": "notepadplusplus",
+      "name": "Notepad++",
+      "sha256": "648f5ed976017df72b7ab503939e309ccda1d098b723f55ba5b0f62d9ec1b1ba",
+      "winget": [
+        "Notepad++.Notepad++"
+      ]
+    },
+    "external/obsproject.obsstudio.png": {
+      "choco": "obs-studio",
+      "name": "OBS Studio",
+      "sha256": "26b6916848b141561ae5fa1998dba23501f9c2d33dc4a23b4127ca45f3be669f",
+      "winget": [
+        "OBSProject.OBSStudio"
+      ]
+    },
+    "external/onionshare.onionshare.png": {
+      "choco": "onionshare",
+      "name": "OnionShare",
+      "sha256": "124f40182ee9fe89803f878457b7c28012f10a45c7cbc4bddf07068dff4205ff",
+      "winget": [
+        "OnionShare.OnionShare"
+      ]
+    },
+    "external/onlyoffice.desktopeditors.png": {
+      "choco": "onlyoffice",
+      "msstore": "XPDLH3XBZXQV23",
+      "name": "ONLYOFFICE Desktop Editors",
+      "sha256": "d0c069a553aa7b70a40ab939210477e4bae5e309789dd70dbc924573da0a344d",
+      "winget": [
+        "ONLYOFFICE.DesktopEditors"
+      ]
+    },
+    "external/oo-software.shutup10.png": {
+      "choco": "shutup10",
+      "name": "O&O ShutUp10++",
+      "sha256": "b11cbf33c581749ba6244ec97e132d44aa94466a249986b7d007459196dc37e5",
+      "winget": [
+        "OO-Software.ShutUp10"
+      ]
+    },
+    "external/open-shell.open-shell-menu.png": {
+      "choco": "open-shell",
+      "name": "Open-Shell",
+      "sha256": "c22137ccb437d63fda4d09f1a9845f34d2e6cf9dd55be22391f09dec7a8e9bf9",
+      "winget": [
+        "Open-Shell.Open-Shell-Menu"
+      ]
+    },
+    "external/openaudible.openaudible.png": {
+      "choco": "openaudible",
+      "name": "OpenAudible",
+      "sha256": "d314b021ea2dccc16e8e9be7a74526fc01191bd182d47398756ce53c96c840ee",
+      "winget": [
+        "OpenAudible.OpenAudible"
+      ]
+    },
+    "external/openrgb.openrgb.png": {
+      "choco": "openrgb",
+      "name": "OpenRGB",
+      "sha256": "600a58e9c6291372014fcef87ef260c801ca2d4ecc41626dc9c08b7b80accb53",
+      "winget": [
+        "OpenRGB.OpenRGB"
+      ]
+    },
+    "external/opera.opera.png": {
+      "choco": "opera",
+      "msstore": "XP8CF6S8G2D5T6",
+      "name": "Opera",
+      "sha256": "cf8bd453352099dbf0ae2fc40ac06ccfc740df36d4f34dd0ee398612473af44b",
+      "winget": [
+        "Opera.Opera"
+      ]
+    },
+    "external/opera.operagx.png": {
+      "choco": "opera-gx",
+      "msstore": "XPDBZ4MPRKNN30",
+      "name": "Opera GX",
+      "sha256": "f3682e1893ae0eeb88bf08eab433f5be06134ead019444fa747c85934bdd6e87",
+      "winget": [
+        "Opera.OperaGX"
+      ]
+    },
+    "external/oracle.javaruntimeenvironment.png": {
+      "choco": "jre8",
+      "name": "Java Runtime Environment",
+      "sha256": "0c586f4cda21de6ce26c8e86e88f340b578ea611961f35a52c21908732188cf3",
+      "winget": [
+        "Oracle.JavaRuntimeEnvironment"
+      ]
+    },
+    "external/oracle.virtualbox.png": {
+      "choco": "virtualbox",
+      "name": "Oracle VirtualBox",
+      "sha256": "ad2fea0f4e50af25e39c8da9d3e51e1998f50857b768d9c1710c9cc7ba4e701d",
+      "winget": [
+        "Oracle.VirtualBox"
+      ]
+    },
+    "external/parsec.parsec.png": {
+      "choco": "parsec",
+      "name": "Parsec",
+      "sha256": "f8a7034d2b5ba895d2d88866be903e2e2f644bfe9ba631c97ae7337a726cf536",
+      "winget": [
+        "Parsec.Parsec"
+      ]
+    },
+    "external/parsec.parsecvdd.png": {
+      "name": "Parsec Virtual Display Driver",
+      "sha256": "f8a7034d2b5ba895d2d88866be903e2e2f644bfe9ba631c97ae7337a726cf536",
+      "winget": [
+        "Parsec.ParsecVDD"
+      ]
+    },
+    "external/parsec.parsecvud.png": {
+      "name": "Parsec Virtual USB Driver",
+      "sha256": "f8a7034d2b5ba895d2d88866be903e2e2f644bfe9ba631c97ae7337a726cf536",
+      "winget": [
+        "Parsec.ParsecVUD"
+      ]
+    },
+    "external/pdfgear.pdfgear.png": {
+      "choco": "pdfgear",
+      "msstore": "XPDLNJ2FWVCXR1",
+      "name": "PDFgear",
+      "sha256": "6d7b6c67bd2dfdb78e028184e729d59b9b0aa34590078b90c060aaf4a8100c5d",
+      "winget": [
+        "PDFgear.PDFgear"
+      ]
+    },
+    "external/peterpawlowski.foobar2000.png": {
+      "choco": "foobar2000",
+      "msstore": "9PDJ8X9SPF2K",
+      "name": "foobar2000",
+      "sha256": "5d54ac11c7cd0003b85a7d192010515b6827fc7d360105aa81a19d1c4080a0cb",
+      "winget": [
+        "PeterPawlowski.foobar2000"
+      ]
+    },
+    "external/pidgin.pidgin.png": {
+      "choco": "pidgin",
+      "name": "Pidgin",
+      "sha256": "b3e2a8df8571cf4f8b51dd9779e3f67272dd318d2dca849e204312d4f2bf8e70",
+      "winget": [
+        "Pidgin.Pidgin"
+      ]
+    },
+    "external/piriform.ccleaner.png": {
+      "choco": "ccleaner",
+      "msstore": "XPFCWP0SQWXM3V",
+      "name": "CCleaner",
+      "sha256": "07778b9f110aac4e9f8b4eb3a3df941d0685de03ce5bd17dc9590ef2e0be4edc",
+      "winget": [
+        "Piriform.CCleaner"
+      ]
+    },
+    "external/playnite.playnite.png": {
+      "choco": "playnite",
+      "name": "Playnite",
+      "sha256": "e16955e1caaa3908364e1a705529f59182ec85decaabc4e088ded714113bd656",
+      "winget": [
+        "Playnite.Playnite"
+      ]
+    },
+    "external/powersoftware.anyburn.png": {
+      "name": "AnyBurn",
+      "sha256": "17503d96bd4015bc9305d73b7266b239880c37e887d0b666f2bc13e91bcf29a4",
+      "winget": [
+        "PowerSoftware.AnyBurn"
+      ]
+    },
+    "external/proton.protondrive.png": {
+      "choco": "protondrive",
+      "name": "Proton Drive",
+      "sha256": "2146b90035b69ba4240da3b60ec4b8d47750c36e2ca063c45439d4db4865da66",
+      "winget": [
+        "Proton.ProtonDrive"
+      ]
+    },
+    "external/proton.protonmail.png": {
+      "choco": "protonmail",
+      "name": "Proton Mail",
+      "sha256": "53950e5645b5b3ce320b3723dd72e38a34c0389d0f844a630233c6f3d392cdbb",
+      "winget": [
+        "Proton.ProtonMail"
+      ]
+    },
+    "external/putty.putty.png": {
+      "choco": "putty",
+      "msstore": "XPFNZKSKLBP7RJ",
+      "name": "PuTTY",
+      "sha256": "1b1f70b29dbe7772612309c0d0b6b9ee2bc55471f6eb9efe5a563d9ad4afaaea",
+      "winget": [
+        "PuTTY.PuTTY"
+      ]
+    },
+    "external/python.python.3.13.png": {
+      "choco": "python3",
+      "msstore": "9PNRBTZXMB4Z",
+      "name": "Python 3.13",
+      "sha256": "4d9303b71249cb4dafa7f6e58c5d783fb60a549a3f39afca3107c774679f4ca0",
+      "winget": [
+        "Python.Python.3.13"
+      ]
+    },
+    "external/rainmeter.rainmeter.png": {
+      "choco": "rainmeter",
+      "name": "Rainmeter",
+      "sha256": "cebbd8cdc3608c1c8c02b820ce3d6339b319fa44e1434a2c582c3d63581fe7df",
+      "winget": [
+        "Rainmeter.Rainmeter"
+      ]
+    },
+    "external/ramensoftware.windhawk.png": {
+      "choco": "windhawk",
+      "name": "Windhawk",
+      "sha256": "6836dc3e86775664a5bf642af88c723dd133181f6ba920fe7b33c6ea0e610569",
+      "winget": [
+        "RamenSoftware.Windhawk"
+      ]
+    },
+    "external/rarlab.winrar.png": {
+      "choco": "winrar",
+      "name": "WinRAR archiver",
+      "sha256": "0736af85ccbc0928eb3b16c6a2f4f0efeb35e27196db6ae0829d70aba7530a98",
+      "winget": [
+        "RARLab.WinRAR"
+      ]
+    },
+    "external/realvnc.vncserver.png": {
+      "choco": "vnc-connect",
+      "msstore": "XP98VL6ML4GPS9",
+      "name": "RealVNC Server",
+      "sha256": "00b843c5b16787c007cd61248eb4ea037dbe09dc913e01628dc82860a70f5d7f",
+      "winget": [
+        "RealVNC.VNCServer"
+      ]
+    },
+    "external/realvnc.vncviewer.png": {
+      "choco": "vnc-viewer",
+      "msstore": "XP99DVCPGKTXNJ",
+      "name": "RealVNC Viewer",
+      "sha256": "1070a7881531a67df7be18393c8d4a59f17c9fd32cb14544913f24fddd811b28",
+      "winget": [
+        "RealVNC.VNCViewer"
+      ]
+    },
+    "external/revouninstaller.revouninstaller.png": {
+      "choco": "revo-uninstaller",
+      "msstore": "XPFFVD4CMXN8VN",
+      "name": "Revo Uninstaller",
+      "sha256": "49de2d2c026aa0d462d3defde2110ea58bd834b5f42e983bdf6a47fa97646a68",
+      "winget": [
+        "RevoUninstaller.RevoUninstaller"
+      ]
+    },
+    "external/rocksdanister.livelywallpaper.png": {
+      "choco": "lively",
+      "msstore": "9NTM2QC6QWS7",
+      "name": "Lively Wallpaper",
+      "sha256": "b65b8a121b48d987210e821a5eedcb3ace98d22cdc54396bec236a1b4d3abf3a",
+      "winget": [
+        "rocksdanister.LivelyWallpaper"
+      ]
+    },
+    "external/rockstargames.launcher.png": {
+      "choco": "rockstar-launcher",
+      "name": "Rockstar Games Launcher",
+      "sha256": "6d853da434955bbdf503cacb7004c195caec543482e0e9df4deb4f4381955425",
+      "winget": [
+        "RockstarGames.Launcher"
+      ]
+    },
+    "external/rufus.rufus.png": {
+      "choco": "rufus",
+      "msstore": "9PC3H3V7Q9CH",
+      "name": "Rufus",
+      "sha256": "69eb4b112bf6794e586ea98a10c005c878123331696f36610b375fd4382d7a84",
+      "winget": [
+        "Rufus.Rufus"
+      ]
+    },
+    "external/rustdesk.rustdesk.png": {
+      "choco": "rustdesk",
+      "name": "RustDesk",
+      "sha256": "9dc3ea42b25890c70a1b31d37e89c39a02a4f2bbc1a7d80cbbf6859a40bb4973",
+      "winget": [
+        "RustDesk.RustDesk"
+      ]
+    },
+    "external/sandisk.dashboard.png": {
+      "choco": "sandisk-dashboard",
+      "name": "SanDisk Dashboard",
+      "sha256": "1c355204c49a04416296b8ab65554b898eff89ba0e59d2877ed5717eec52d1db",
+      "winget": [
+        "SanDisk.Dashboard"
+      ]
+    },
+    "external/sharex.sharex.png": {
+      "choco": "sharex",
+      "msstore": "9NBLGGH4Z1SP",
+      "name": "ShareX",
+      "sha256": "faa91d52d89fe439ace5976d199eed7112a5c2fa97dc2b015fa5bc3d98bded6c",
+      "winget": [
+        "ShareX.ShareX"
+      ]
+    },
+    "external/smplayer.smplayer.png": {
+      "choco": "smplayer",
+      "msstore": "9N80Q5M0QXW6",
+      "name": "SMPlayer",
+      "sha256": "59f9098c8b03dda819ed5ba30e5bab2c36a1eb778d653989d08d37384b3abe80",
+      "winget": [
+        "SMPlayer.SMPlayer"
+      ]
+    },
+    "external/sniffnet.png": {
+      "name": "Sniffnet",
+      "sha256": "92fa9d959c5eef1456579d2f5d7c6bea210a4a5c80e55832b4afb21958772016"
+    },
+    "external/spotify.spotify.png": {
+      "choco": "spotify",
+      "msstore": "9NCBCSZSJRSB",
+      "name": "Spotify",
+      "sha256": "b99976697d8ad7eb166de333d6e17e8a379d3e9de9cd6780b24043f2d6a5e254",
+      "winget": [
+        "Spotify.Spotify"
+      ]
+    },
+    "external/startisback.startallback.png": {
+      "choco": "startallback",
+      "msstore": "XPFMHKP3QHRQRH",
+      "name": "StartAllBack (Win 11)",
+      "sha256": "0dfc33de3e9a1f67ae5cfde4a891c23ba421e8d7c86b97ee9bd43a72889bd1ec",
+      "winget": [
+        "StartIsBack.StartAllBack"
+      ]
+    },
+    "external/startisback.startisback.png": {
+      "name": "StartIsBack++ (Win 10)",
+      "sha256": "c7a6cd2f8575289c9cae44a2f57974b34bc2129f944aba7836b355a55ca80388",
+      "winget": [
+        "StartIsBack.StartIsBack"
+      ]
+    },
+    "external/streamlabs-obs.png": {
+      "choco": "streamlabs-obs",
+      "name": "Streamlabs OBS",
+      "sha256": "5d0eb33b18cd5be0d6379138b249613fdc6a8d9cd0dca518a89a75700892fc2a"
+    },
+    "external/sumatrapdf.sumatrapdf.png": {
+      "choco": "sumatrapdf",
+      "name": "SumatraPDF",
+      "sha256": "5b830cab170151d5d93982a21cac985efbc63a760452141d2a3de510380020d9",
+      "winget": [
+        "SumatraPDF.SumatraPDF"
+      ]
+    },
+    "external/taiizor.sucrosewallpaperengine.png": {
+      "choco": "sucrose",
+      "msstore": "XP8JGPBHTJGLCQ",
+      "name": "Sucrose Wallpaper Engine",
+      "sha256": "09034abe6f829b3a0c4b73738bf381fab7eb8770d1c67f20b9b90374cca7b52c",
+      "winget": [
+        "Taiizor.SucroseWallpaperEngine"
+      ]
+    },
+    "external/teamviewer.teamviewer.png": {
+      "choco": "teamviewer",
+      "msstore": "XPDM17HK323C4X",
+      "name": "TeamViewer",
+      "sha256": "2915e0e69b5cef9c332ba765f109bdecf3000a4ac35b9fafeb2124cfcb93f350",
+      "winget": [
+        "TeamViewer.TeamViewer"
+      ]
+    },
+    "external/telegram.telegramdesktop.png": {
+      "choco": "telegram",
+      "msstore": "9NZTWSQNTD0S",
+      "name": "Telegram Desktop",
+      "sha256": "233f3ab6fde9844bd98e16a090eb9a1524dcde75acdfb5e1cb9d43e05ea92dfd",
+      "winget": [
+        "Telegram.TelegramDesktop"
+      ]
+    },
+    "external/teleguard.png": {
+      "name": "TeleGuard",
+      "sha256": "fb5e9f189788b57a796937265a15273941c9e797dd7c63a9efb144553e97bd3c"
+    },
+    "external/tgrmnsoftware.bulkrenameutility.png": {
+      "choco": "bulkrenameutility",
+      "name": "Bulk Rename Utility",
+      "sha256": "1ea6fd03ab9c697a3cd6ba13b0e62562e503bab44a6a5fcae190e28ecf44eb77",
+      "winget": [
+        "TGRMNSoftware.BulkRenameUtility"
+      ]
+    },
+    "external/thebrowsercompany.arc.png": {
+      "msstore": "XPFMDW72VHTTX9",
+      "name": "Arc Browser",
+      "sha256": "a7116addfbb36607d57010a7d51edc2cf75c4480ade0394a5da8a0950f357645",
+      "winget": [
+        "TheBrowserCompany.Arc"
+      ]
+    },
+    "external/thedocumentfoundation.libreoffice.png": {
+      "choco": "libreoffice-fresh",
+      "msstore": "9PB80DCFP83W",
+      "name": "LibreOffice",
+      "sha256": "ec6db866230846de2de6df65165f624c5e3e51ee0a7007b0fa986b97e7b44b4a",
+      "winget": [
+        "TheDocumentFoundation.LibreOffice"
+      ]
+    },
+    "external/torproject.torbrowser.png": {
+      "choco": "tor-browser",
+      "name": "Tor Browser",
+      "sha256": "1ebe87bd35271e128cd620bf1c56800196b9b6713a6b86cc96e60e4633a96430",
+      "winget": [
+        "TorProject.TorBrowser"
+      ]
+    },
+    "external/ubisoft.connect.png": {
+      "choco": "ubisoft-connect",
+      "msstore": "xpdp2qw12dfsfk",
+      "name": "Ubisoft Connect",
+      "sha256": "1e280a155400d2335102cde3cb10cac790f04ee5458214746a8250aee8b76620",
+      "winget": [
+        "Ubisoft.Connect"
+      ]
+    },
+    "external/valinet.explorerpatcher.png": {
+      "name": "ExplorerPatcher",
+      "sha256": "8d77ff4ac99a48aac46d0163a49494f7afbbd6cd34a3469d56910fb808c614d1",
+      "winget": [
+        "valinet.ExplorerPatcher"
+      ]
+    },
+    "external/valve.steam.png": {
+      "choco": "steam",
+      "name": "Steam",
+      "sha256": "9db4aeaff28ca9bbecbbd420a1159e63502aa51f4806b89dc045c73ba810e1c7",
+      "winget": [
+        "Valve.Steam"
+      ]
+    },
+    "external/ventismedia.mediamonkey.5.png": {
+      "choco": "mediamonkey",
+      "name": "MediaMonkey",
+      "sha256": "3149abba94fd73b22a3eb52c028a8f0ca9c88f64b4f4db1198cc295fa2ed399a",
+      "winget": [
+        "VentisMedia.MediaMonkey.5"
+      ]
+    },
+    "external/ventoy.ventoy.png": {
+      "choco": "ventoy",
+      "name": "Ventoy",
+      "sha256": "34f4839c80dd45a295f6ad6c6526e4599a479a60bb7f30e6130c0bf3f2f59ca2",
+      "winget": [
+        "Ventoy.Ventoy"
+      ]
+    },
+    "external/videolan.vlc.png": {
+      "choco": "vlc",
+      "msstore": "9NBLGGH4VVNH",
+      "name": "VLC media player",
+      "sha256": "3505e4bfbeb7cbfdf782901e715353051aec6e06b005e7fd4096a071a4af0bc4",
+      "winget": [
+        "VideoLAN.VLC"
+      ]
+    },
+    "external/vivaldi.vivaldi.png": {
+      "choco": "vivaldi",
+      "msstore": "XP99GVQDX7JPR4",
+      "name": "Vivaldi",
+      "sha256": "8c557989ef8766fde1c9248c70f93519a554e7013530c43afe6bd96c9b31baae",
+      "winget": [
+        "Vivaldi.Vivaldi"
+      ]
+    },
+    "external/voidtools.everything.png": {
+      "choco": "everything",
+      "name": "Everything",
+      "sha256": "a61660f9dade9b20816e169d7cde67bb19e56bcfc942e8ecc47437f12e79bb2c",
+      "winget": [
+        "voidtools.Everything"
+      ]
+    },
+    "external/waterfox.waterfox.png": {
+      "choco": "waterfox",
+      "name": "Waterfox",
+      "sha256": "244464b4069fe98e7c0b6b8aca0a90d9d358283d7574cde590660900d2499d74",
+      "winget": [
+        "Waterfox.Waterfox"
+      ]
+    },
+    "external/whatsapp.png": {
+      "choco": "whatsapp",
+      "msstore": "9NKSQGP7F2NH",
+      "name": "WhatsApp",
+      "sha256": "78fc6b8ab9b59f6e2e0cc453a4df373d45131f01ab133e14d85e9cb8b66901ca"
+    },
+    "external/windirstat.windirstat.png": {
+      "choco": "windirstat",
+      "name": "WinDirStat",
+      "sha256": "cb8b3f12b79f2cb6378b5595f36035aec8df76ba564916a23fb5d0df97773d6e",
+      "winget": [
+        "WinDirStat.WinDirStat"
+      ]
+    },
+    "external/winmerge.winmerge.png": {
+      "choco": "winmerge",
+      "name": "WinMerge",
+      "sha256": "4e4f38b557f28238d2c8738d01c1bed1834aa92c0333c6649195950490f40039",
+      "winget": [
+        "WinMerge.WinMerge"
+      ]
+    },
+    "external/winscp.winscp.png": {
+      "choco": "winscp",
+      "msstore": "9P0PQ8B65N8X",
+      "name": "WinSCP",
+      "sha256": "cc0bfaf00507291d70168facabdccaff5bf9871b4c5125ba7e1a6eba90c896dc",
+      "winget": [
+        "WinSCP.WinSCP"
+      ]
+    },
+    "external/winstep.nexus.png": {
+      "name": "Nexus",
+      "sha256": "c27beff32ad6de68181c18cf222e03912ee683de75873548544e914dae110f4a",
+      "winget": [
+        "WinStep.Nexus"
+      ]
+    },
+    "external/wisecleaner.wisediskcleaner.png": {
+      "msstore": "XP9CW3GPQQS852",
+      "name": "Wise Disk Cleaner",
+      "sha256": "9d534cb32e1fb93dca5931109f2819a3a473c5363d4003bf4f9bdf81e06055d6",
+      "winget": [
+        "WiseCleaner.WiseDiskCleaner"
+      ]
+    },
+    "external/wisecleaner.wiseregistrycleaner.png": {
+      "msstore": "XPDLS1XBTXVPP4",
+      "name": "Wise Registry Cleaner",
+      "sha256": "cb01bebd553b424692415a2cbdb2e563658e408db9e4f121af3a8f9210fc6ea2",
+      "winget": [
+        "WiseCleaner.WiseRegistryCleaner"
+      ]
+    },
+    "external/wssolinfor.crystaldiskinfo.png": {
+      "choco": "crystaldiskinfo",
+      "msstore": "XP8K4RGX25G3GM",
+      "name": "Crystal Disk Info",
+      "sha256": "97ec6d5d0b19eae3d5985926ac475ab53d6be35b638552bd3ccd8aa73f347c08",
+      "winget": [
+        "WsSolInfor.CrystalDiskInfo"
+      ]
+    },
+    "external/xnsoft.xnview.classic.png": {
+      "choco": "xnview",
+      "name": "XnView",
+      "sha256": "bf0faa9d0fbb478ac35d3426a1c36c243c952d1e3ad9ddce57143b15a55e9a65",
+      "winget": [
+        "XnSoft.XnView.Classic"
+      ]
+    },
+    "external/xnsoft.xnviewmp.png": {
+      "choco": "xnviewmp",
+      "name": "XnViewMP",
+      "sha256": "c5ff44fd8a701eaebb4cb8cc5d2c91a85ff0e3ce674a22cb3647ba06a7c94292",
+      "winget": [
+        "XnSoft.XnViewMP"
+      ]
+    },
+    "external/zen-team.zen-browser.png": {
+      "name": "Zen Browser",
+      "sha256": "c650fb1ce6a0ae5ef5a2c4853afd6596213e05bb79231b746b92750d33401118",
+      "winget": [
+        "Zen-Team.Zen-Browser"
+      ]
+    },
+    "external/zoom.zoom.png": {
+      "choco": "zoom",
+      "msstore": "XP99J3KP4XZ4VV",
+      "name": "Zoom Workplace",
+      "sha256": "4c1dd4dc46d1b7c6aee2f25d8977733670f80920180c220ac04440958120ceb0",
+      "winget": [
+        "Zoom.Zoom"
+      ]
+    },
+    "windows/app.stepsrecorder.png": {
+      "capability": "App.StepsRecorder",
+      "name": "Steps Recorder",
+      "sha256": "02eccf4bdf3c3fe25fbc08783e73494aa360594d869bf08a8cbd2a91bbb51478"
+    },
+    "windows/app.support.quickassist.png": {
+      "capability": "App.Support.QuickAssist",
+      "name": "Quick Assist (Legacy)",
+      "sha256": "a7b793879a9cae481700a27b46009342c809d18b0ea61407aaedc5a3cd99d6ca"
+    },
+    "windows/browser.internetexplorer.png": {
+      "capability": "Browser.InternetExplorer",
+      "name": "Internet Explorer",
+      "sha256": "ee813502a62d12807560fae2f5d3d3f967b947fe59061b9c4e353632847b7631"
+    },
+    "windows/clipchamp.clipchamp.png": {
+      "appx": [
+        "Clipchamp.Clipchamp"
+      ],
+      "msstore": "9P1J8S7CCWWT",
+      "name": "Clipchamp",
+      "sha256": "cf1db7bc88773e78ed663d0fdd52e3d5bb37d9ae5acb173aa89998c5b0d707be"
+    },
+    "windows/containers-disposableclientvm.png": {
+      "feature": "Containers-DisposableClientVM",
+      "name": "Windows Sandbox",
+      "sha256": "7254ac5122fd6e57e5f0413ff65b71e5736de939cc2bb6642f7642ae594f02d3"
+    },
+    "windows/media.windowsmediaplayer.png": {
+      "capability": "Media.WindowsMediaPlayer",
+      "name": "Windows Media Player",
+      "sha256": "6d59e7ef592908c16867b75323b22a7e5f4a11891ca806d4b7e7a69584e3f82c"
+    },
+    "windows/microsoft-hyper-v-all.png": {
+      "feature": "Microsoft-Hyper-V-All",
+      "name": "Hyper-V",
+      "sha256": "581c65e0aa5351772d36532f33bdf5d9c6a3cc8d0797f23d6308758e1ad05221"
+    },
+    "windows/microsoft-windows-subsystem-linux.png": {
+      "feature": "Microsoft-Windows-Subsystem-Linux",
+      "name": "Subsystem for Linux",
+      "sha256": "06ac9fd75c53cbf7479ea6e459987f1d5ce20a89ddd4feb72b8ade702a583f00"
+    },
+    "windows/microsoft.549981c3f5f10.png": {
+      "appx": [
+        "Microsoft.549981C3F5F10"
+      ],
+      "msstore": "9NFFX4SZZ23L",
+      "name": "Cortana",
+      "sha256": "a5d80ae8c76eaab5f9013cf80906235d1fcc8dac40f4aa6866526c8b7ddaad53"
+    },
+    "windows/microsoft.bingnews.png": {
+      "appx": [
+        "Microsoft.BingNews"
+      ],
+      "msstore": "9WZDNCRFHVFW",
+      "name": "Microsoft News",
+      "sha256": "c0910e2f915f900ffc0e97e4da5719e2613aa0b842d4d36d52249317987c1ecc"
+    },
+    "windows/microsoft.bingsearch.png": {
+      "appx": [
+        "Microsoft.BingSearch"
+      ],
+      "msstore": "9NZBF4GT040C",
+      "name": "Bing Search",
+      "sha256": "2fa23260216da4911fe674caf6f92429cbf400ecb97e939f676775f165f059c5"
+    },
+    "windows/microsoft.bingweather.png": {
+      "appx": [
+        "Microsoft.BingWeather"
+      ],
+      "msstore": "9WZDNCRFJ3Q2",
+      "name": "MSN Weather",
+      "sha256": "1b68de70db789065abe89da29216393e3ac7fd058232a6413a86bc1b37292e39"
+    },
+    "windows/microsoft.copilot.png": {
+      "appx": [
+        "Microsoft.Copilot",
+        "Microsoft.Windows.Ai.Copilot.Provider",
+        "Microsoft.Copilot_8wekyb3d8bbwe"
+      ],
+      "msstore": "XP9CXNGPPJ97XX",
+      "name": "Copilot",
+      "sha256": "717535856484deaead1168d62c5f38f29ada94f2da0dfb3599219072e32caf2c"
+    },
+    "windows/microsoft.desktopappinstaller.png": {
+      "appx": [
+        "Microsoft.DesktopAppInstaller"
+      ],
+      "msstore": "9NBLGGH4NNS1",
+      "name": "App Installer",
+      "sha256": "64f3d4568021a5a543a606bc60bcb9ee27ce19df7dddfd5a270459e4c5be4652"
+    },
+    "windows/microsoft.edge.gameassist.png": {
+      "appx": [
+        "Microsoft.Edge.GameAssist"
+      ],
+      "name": "Edge Game Assist",
+      "sha256": "3c52891b0d26747ede679c2c310aeb075b8b605092bcee42b39ec4acb2645a04"
+    },
+    "windows/microsoft.gamingapp.png": {
+      "appx": [
+        "Microsoft.GamingApp",
+        "Microsoft.XboxApp"
+      ],
+      "msstore": "9MV0B5HZVK9Z",
+      "name": "Xbox",
+      "sha256": "2c870d6fa12e97abd3dd3c8686806ff07b243ad57213625b1af599549eb20480"
+    },
+    "windows/microsoft.gethelp.png": {
+      "appx": [
+        "Microsoft.GetHelp"
+      ],
+      "msstore": "9PKDZBMV1H3T",
+      "name": "Get Help",
+      "sha256": "5cbe8d1888bee1392bd354771d894fcd58970c5c639cd5f60fd4fbbdb298a2c8"
+    },
+    "windows/microsoft.getstarted.png": {
+      "appx": [
+        "Microsoft.Getstarted"
+      ],
+      "name": "Tips",
+      "sha256": "4e467e54ace926ab77100e6614600fa3b42de91350b28cbf4561aa781fd4ff9f"
+    },
+    "windows/microsoft.microsoft3dviewer.png": {
+      "appx": [
+        "Microsoft.Microsoft3DViewer"
+      ],
+      "msstore": "9NBLGGH42THS",
+      "name": "3D Viewer",
+      "sha256": "156ffff8db92b535808610bd155bf51c85d903778ad6b29bc545e4742af5a6ed"
+    },
+    "windows/microsoft.microsoftedge.stable.png": {
+      "appx": [
+        "Microsoft.MicrosoftEdge.Stable"
+      ],
+      "msstore": "XPFFTQ037JWMHS",
+      "name": "Microsoft Edge",
+      "sha256": "b228b0337b1a34287b92d8bc3df91ba817a358d07ffc610e452244873b0b317c"
+    },
+    "windows/microsoft.microsoftofficehub.png": {
+      "appx": [
+        "Microsoft.MicrosoftOfficeHub"
+      ],
+      "msstore": "9WZDNCRD29V9",
+      "name": "MS 365 Copilot (Office Hub)",
+      "sha256": "9d54f848744707a923af3be487530eeaedda2e5403c384878c30b2c1097aa4c0"
+    },
+    "windows/microsoft.microsoftsolitairecollection.png": {
+      "appx": [
+        "Microsoft.MicrosoftSolitaireCollection"
+      ],
+      "msstore": "9WZDNCRFHWD2",
+      "name": "Solitaire Collection",
+      "sha256": "894db51d46188764dbb9257b7f33cc666a34e4265bd5bb42897a869d8a77e030"
+    },
+    "windows/microsoft.microsoftstickynotes.png": {
+      "appx": [
+        "Microsoft.MicrosoftStickyNotes"
+      ],
+      "msstore": "9NBLGGH4QGHW",
+      "name": "Sticky Notes",
+      "sha256": "7b1347751fb7b81fb6aea545598185e098d019f6ef53653147bdfbdb001faefb"
+    },
+    "windows/microsoft.mixedreality.portal.png": {
+      "appx": [
+        "Microsoft.MixedReality.Portal"
+      ],
+      "msstore": "9NG1H8B3ZC7M",
+      "name": "Mixed Reality Portal",
+      "sha256": "27a191005c23b32a8c1107ffa44d76527890905c55c6afc937d4660f31f804d3"
+    },
+    "windows/microsoft.mspaint.png": {
+      "appx": [
+        "Microsoft.MSPaint"
+      ],
+      "name": "Paint 3D",
+      "sha256": "315aa81ebc3c246c59ec1c31d7e682c30d235bdf4753fcde4d72762e7a658abf"
+    },
+    "windows/microsoft.office.onenote.png": {
+      "appx": [
+        "Microsoft.Office.OneNote"
+      ],
+      "msstore": "XPFFZHVGQWWLHB",
+      "name": "OneNote",
+      "sha256": "b12d7b368d5829c27c241483280b40715496c9f359ff7fc07f2c5103308d6295"
+    },
+    "windows/microsoft.onedrivesync.png": {
+      "appx": [
+        "Microsoft.OneDriveSync"
+      ],
+      "name": "OneDrive",
+      "sha256": "a10d659b31a0b812cd97e7d485ac7f19c4631c09716fa1902a3ee737614e8769"
+    },
+    "windows/microsoft.outlookforwindows.png": {
+      "appx": [
+        "Microsoft.OutlookForWindows"
+      ],
+      "msstore": "9NRX63209R7B",
+      "name": "Outlook for Windows",
+      "sha256": "2a0132f8571fb5291300bcb520eef2e5f671546ead3bd86feeb986b56398f395"
+    },
+    "windows/microsoft.paint.png": {
+      "appx": [
+        "Microsoft.Paint"
+      ],
+      "msstore": "9PCFS5B6T72H",
+      "name": "Paint",
+      "sha256": "18e46f81f7baaf8c012fdc448c0712d46188b307c96199ca650ddd79148cf37d"
+    },
+    "windows/microsoft.people.png": {
+      "appx": [
+        "Microsoft.People"
+      ],
+      "msstore": "9NBLGGH10PG8",
+      "name": "People",
+      "sha256": "f2dc4ad4d7ddff845d8929d31844b2ec06937ecb09a08ccbf507800ea67d4aa3"
+    },
+    "windows/microsoft.powerautomatedesktop.png": {
+      "appx": [
+        "Microsoft.PowerAutomateDesktop"
+      ],
+      "msstore": "9NFTCH6J7FHV",
+      "name": "Power Automate",
+      "sha256": "d99144c8c7af197c724d4d0d05da80eb3b22db4d11ca8ace84150dfec24d9ada"
+    },
+    "windows/microsoft.screensketch.png": {
+      "appx": [
+        "Microsoft.ScreenSketch"
+      ],
+      "msstore": "9MZ95KL8MR0L",
+      "name": "Snipping Tool",
+      "sha256": "124c2b21fb173552d224d4b55c3f54702fdbe64206986f1c0b224810b4d4fec3"
+    },
+    "windows/microsoft.skypeapp.png": {
+      "appx": [
+        "Microsoft.SkypeApp"
+      ],
+      "msstore": "9WZDNCRFJ364",
+      "name": "Skype",
+      "sha256": "ca8e68beed2b4f313aab4226f6d199516d85a7eafd8f17ca125467d1d044b107"
+    },
+    "windows/microsoft.todos.png": {
+      "appx": [
+        "Microsoft.Todos"
+      ],
+      "msstore": "9NBLGGH5R558",
+      "name": "To Do: Lists, Tasks & Reminders",
+      "sha256": "56bfbc476c14dbbee054e2edb89b0ccf4949bec9da3db7be333f3ea64cf11206"
+    },
+    "windows/microsoft.windows.devhome.png": {
+      "appx": [
+        "Microsoft.Windows.DevHome"
+      ],
+      "msstore": "9N8MHTPHNGVV",
+      "name": "Windows Advanced Settings",
+      "sha256": "8edaa77a95db85f822008e77e5f9fba60e69523369922b1f908d0c6fdffb8b93"
+    },
+    "windows/microsoft.windows.mspaint.png": {
+      "capability": "Microsoft.Windows.MSPaint",
+      "name": "Paint (Legacy)",
+      "sha256": "51461aa006d9752dd30f331a1335310697da4f29447d86a3acd0f38395f51c86"
+    },
+    "windows/microsoft.windows.notepad.png": {
+      "capability": "Microsoft.Windows.Notepad",
+      "name": "Notepad (Legacy)",
+      "sha256": "b0831c36dcd97d484069eedee2df8c054e25c716656cfd7c408a7047f2a61f32"
+    },
+    "windows/microsoft.windows.photos.png": {
+      "appx": [
+        "Microsoft.Windows.Photos"
+      ],
+      "msstore": "9WZDNCRFJBH4",
+      "name": "Photos",
+      "sha256": "35201f511580f1e116dfb42d757d4aaa9f695d77c43a803cf7ea69a390f88162"
+    },
+    "windows/microsoft.windows.powershell.ise.png": {
+      "capability": "Microsoft.Windows.PowerShell.ISE",
+      "name": "PowerShell ISE",
+      "sha256": "a742f619ad788054e492db5ea1fd94b6806a2c7b6254c5d317ed7659324b6ebf"
+    },
+    "windows/microsoft.windows.wordpad.png": {
+      "capability": "Microsoft.Windows.WordPad",
+      "name": "WordPad",
+      "sha256": "ea92d5324dd83d9aeb907c9c1f6042fe752aba6128a8096da7da1915a3dfdb68"
+    },
+    "windows/microsoft.windowsalarms.png": {
+      "appx": [
+        "Microsoft.WindowsAlarms"
+      ],
+      "msstore": "9WZDNCRFJ3PR",
+      "name": "Alarms & Clock",
+      "sha256": "9ad6f9ac0e06df7ade40988a37847d12a4caa6c67fb7b8c6e62c9ac7509cdf4e"
+    },
+    "windows/microsoft.windowscalculator.png": {
+      "appx": [
+        "Microsoft.WindowsCalculator"
+      ],
+      "msstore": "9WZDNCRFHVN5",
+      "name": "Calculator",
+      "sha256": "47d531d0f1916c021015943a3c12738b2ca00c46968a4a47496fed3d16e65389"
+    },
+    "windows/microsoft.windowscamera.png": {
+      "appx": [
+        "Microsoft.WindowsCamera"
+      ],
+      "msstore": "9WZDNCRFJBBG",
+      "name": "Camera",
+      "sha256": "bacbac2b3cf1bc85ea8760864426665befe7af0dfa772b89a959d2698226f3ee"
+    },
+    "windows/microsoft.windowscommunicationsapps.png": {
+      "appx": [
+        "microsoft.windowscommunicationsapps"
+      ],
+      "msstore": "9WZDNCRFHVQM",
+      "name": "Mail and Calendar",
+      "sha256": "132589b1c2d942e79ae88805002e564504754ace020d63910f3648506d41f13a"
+    },
+    "windows/microsoft.windowsfeedbackhub.png": {
+      "appx": [
+        "Microsoft.WindowsFeedbackHub"
+      ],
+      "msstore": "9NBLGGH4R32N",
+      "name": "Feedback Hub",
+      "sha256": "e76bf7a51892b49f8469a2ae6dd906afe4b6f29be92abe50117c84a5cbe733a6"
+    },
+    "windows/microsoft.windowsmaps.png": {
+      "appx": [
+        "Microsoft.WindowsMaps"
+      ],
+      "msstore": "9WZDNCRDTBVB",
+      "name": "Maps",
+      "sha256": "5da569e964350457612a1c45e012cd856b110b5047d614a5cb15d69c4467dea7"
+    },
+    "windows/microsoft.windowsnotepad.png": {
+      "appx": [
+        "Microsoft.WindowsNotepad"
+      ],
+      "msstore": "9MSMLRH6LZF3",
+      "name": "Notepad",
+      "sha256": "f974969ed293477b6d878d96500802ca679c841da1039e8c994e04171b61c646"
+    },
+    "windows/microsoft.windowssoundrecorder.png": {
+      "appx": [
+        "Microsoft.WindowsSoundRecorder"
+      ],
+      "msstore": "9WZDNCRFHWKN",
+      "name": "Sound Recorder",
+      "sha256": "b1f8ac11c5b4538afeb891fd39b686edcb178623a041a6282e3e7f1b108e5be6"
+    },
+    "windows/microsoft.windowsstore.png": {
+      "appx": [
+        "Microsoft.WindowsStore"
+      ],
+      "msstore": "9WZDNCRFJBMP",
+      "name": "Microsoft Store",
+      "sha256": "f08b6733611c336e5f86b38bfd849d329a2f0856c29c6dd6d406f4ca1aadc31f"
+    },
+    "windows/microsoft.windowsterminal.png": {
+      "appx": [
+        "Microsoft.WindowsTerminal"
+      ],
+      "msstore": "9N0DX20HK701",
+      "name": "Terminal",
+      "sha256": "c4b38aa70967f629c51d9b567dd8ca4417bf44887ad3b51d877966fba2d21d97"
+    },
+    "windows/microsoft.xbox.tcui.png": {
+      "appx": [
+        "Microsoft.Xbox.TCUI"
+      ],
+      "msstore": "9NKNC0LD5NN6",
+      "name": "Xbox Live In-Game Experience",
+      "sha256": "2a5ca81faa2c21a6b2f3ef0ff16b9fee62e09e0f82ee734ec7cee3ff4784c914"
+    },
+    "windows/microsoft.xboxgameoverlay.png": {
+      "appx": [
+        "Microsoft.XboxGameOverlay"
+      ],
+      "msstore": "9NBLGGH537C2",
+      "name": "Xbox Game Bar Plugin",
+      "sha256": "a0e059a560a275779b8e9e104cc97f450809e27a73aa994304d13d7eb1c9b121"
+    },
+    "windows/microsoft.xboxgamingoverlay.png": {
+      "appx": [
+        "Microsoft.XboxGamingOverlay"
+      ],
+      "msstore": "9NZKPSTSNW4P",
+      "name": "Xbox Game Bar",
+      "sha256": "6c68c56ceeb4feaa72a9f3e2f9cb37bc2da2710425bd1eb44a2a036e1d44f7aa"
+    },
+    "windows/microsoft.xboxidentityprovider.png": {
+      "appx": [
+        "Microsoft.XboxIdentityProvider"
+      ],
+      "msstore": "9WZDNCRD1HKW",
+      "name": "Xbox Identity Provider",
+      "sha256": "2a5ca81faa2c21a6b2f3ef0ff16b9fee62e09e0f82ee734ec7cee3ff4784c914"
+    },
+    "windows/microsoft.yourphone.png": {
+      "appx": [
+        "Microsoft.YourPhone"
+      ],
+      "msstore": "9NMPJ99VJBWV",
+      "name": "Phone Link",
+      "sha256": "9f1107d37156658c18bd8044e818ba4c11f3c031c00bb8ebd9963a3d2d48e77c"
+    },
+    "windows/microsoft.zunemusic.png": {
+      "appx": [
+        "Microsoft.ZuneMusic"
+      ],
+      "msstore": "9WZDNCRFJ3PT",
+      "name": "Media Player",
+      "sha256": "f520241f5c0087f9fc7d61e3d4d0535723a029fd822d8bc4558e108588673aba"
+    },
+    "windows/microsoft.zunevideo.png": {
+      "appx": [
+        "Microsoft.ZuneVideo"
+      ],
+      "msstore": "9WZDNCRFJ3P2",
+      "name": "Movies & TV",
+      "sha256": "db00a297c45af1c2f7fdfb2565866dbb78628acd996da160f4555ef3d0cb4c8f"
+    },
+    "windows/microsoftcorporationii.microsoftfamily.png": {
+      "appx": [
+        "MicrosoftCorporationII.MicrosoftFamily"
+      ],
+      "msstore": "9PDJDJS743XF",
+      "name": "Microsoft Family Safety",
+      "sha256": "88126d56aabfc1f80c6411c15de7e90ee5a99fdab3f513ed30ffe1610eed4938"
+    },
+    "windows/microsoftcorporationii.quickassist.png": {
+      "appx": [
+        "MicrosoftCorporationII.QuickAssist"
+      ],
+      "msstore": "9P7BP5VNWKX5",
+      "name": "Quick Assist",
+      "sha256": "ff97f546b4cd107ae52e892f7939c78c3f465c3caabe39fbdc9ff809ad281eb9"
+    },
+    "windows/msteams.png": {
+      "appx": [
+        "MSTeams"
+      ],
+      "msstore": "XP8BT8DW290MPQ",
+      "name": "Microsoft Teams",
+      "sha256": "f4b50f343fa3728856e13d645913272f857dab8e28532f8465d94b3f3df1b6bf"
+    },
+    "windows/recall.png": {
+      "feature": "Recall",
+      "name": "Recall",
+      "sha256": "97d0afa0c26e1263dc5b60518c8e27c37dc2c28709c1c130919c3ec727186b71"
+    }
+  },
+  "schemaVersion": 2
+}

@@ -123,7 +123,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.IsEnabled = false;
                 DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
                 DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
-                DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("CheckCircleIconPath");
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
                     _localizationService.GetString("Dialog_Success") ?? "Success");
@@ -212,11 +211,13 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 IsIsoCreated = true;
                 SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
 
-                var openFolder = await _dialogService.ShowConfirmationAsync(
-                    string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
-                    _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
-                    _localizationService.GetString("WIMUtil_Button_OpenFolder"),
-                    _localizationService.GetString("Button_Close"));
+                var openFolder = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
+                    Title = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
+                    ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_OpenFolder"),
+                    CancelButtonText = _localizationService.GetString("Button_Close"),
+                })).Confirmed;
                 if (openFolder)
                 {
                     _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"").FireAndForget(_logService);
@@ -269,7 +270,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.IsComplete = true;
             DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
             DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgFound");
-            DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("CheckCircleIconPath");
         }
         else
         {

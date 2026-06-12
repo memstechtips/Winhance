@@ -99,6 +99,9 @@ public class SettingOperationExecutor(
                     InputType.Toggle => enable,
                     InputType.NumericRange when value != null => NumericConversionHelper.ConvertNumericValue(value) != 0,
                     InputType.Selection => enable,
+                    // Action settings are one-shot "apply"; the button click always means write EnabledValue.
+                    // RunActionAsync hardcodes Enable=true, so this matches that semantic.
+                    InputType.Action => enable,
                     _ => throw new NotSupportedException($"Input type '{setting.InputType}' not supported for registry operations")
                 };
 
@@ -165,6 +168,13 @@ public class SettingOperationExecutor(
                     && scriptIndex >= 0 && scriptIndex < scriptOptions.Count
                     && scriptOptions[scriptIndex].Script is { } scriptOption)
                 {
+                    // A "None" option applies no script at all (e.g. a Custom /
+                    // leave-Windows-settings-alone dropdown choice).
+                    if (scriptOption == ScriptOption.None)
+                    {
+                        continue;
+                    }
+
                     useEnabled = scriptOption == ScriptOption.Enabled;
                 }
 

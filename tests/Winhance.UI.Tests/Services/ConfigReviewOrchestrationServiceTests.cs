@@ -14,6 +14,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IConfigReviewModeService> _mockConfigReviewModeService = new();
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigImportOverlayService> _mockOverlayService = new();
@@ -25,6 +26,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -37,6 +39,10 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] args) => string.Format(key, args));
+
+        _mockChangeHistoryService
+            .Setup(h => h.BeginBatch(It.IsAny<string>()))
+            .Returns(Mock.Of<IDisposable>());
     }
 
     private ConfigReviewOrchestrationService CreateService()
@@ -45,6 +51,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockLogService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
+            _mockApplicationModeService.Object,
             _mockConfigReviewModeService.Object,
             _mockConfigReviewDiffService.Object,
             _mockOverlayService.Object,
@@ -55,7 +62,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockCompatibleSettingsRegistry.Object,
             _mockEventBus.Object,
             _mockVmCoordinator.Object,
-            _mockPolicyCleanupService.Object);
+            _mockPolicyCleanupService.Object,
+            _mockChangeHistoryService.Object);
         return _service;
     }
 
@@ -134,6 +142,74 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockEventBus.Verify(
             e => e.Publish(It.IsAny<ReviewModeExitedEvent>()),
             Times.Once);
+    }
+
+    [Fact]
+    public void OnReviewModeChanged_EnteringReviewFromBuilder_SkipsReapplyOfStaleViewModels()
+    {
+        // Builder leaves authored (un-applied) positions on the loaded settings VMs;
+        // reapplying diffs against them would treat builder edits as system truth.
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        // ReviewModeChanged fires before ModeChanged during review entry, so the
+        // orchestrator still considers Builder the previous mode at this point.
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Raise(r => r.ReviewModeChanged += null, EventArgs.Empty);
+
+        _mockVmCoordinator.Verify(v => v.ReapplyReviewDiffsToExistingSettings(), Times.Never);
+    }
+
+    // -------------------------------------------------------
+    // ModeChanged handler (Builder exit)
+    // -------------------------------------------------------
+
+    [Fact]
+    public void OnApplicationModeChanged_BuilderToNormal_PublishesBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_BuilderToConfigReview_PublishesBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_NormalToConfigReview_DoesNotPublishBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Never);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_BuilderTargetSwitch_DoesNotPublishBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        // Builder target switches raise ModeChanged while CurrentMode stays Builder
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Never);
     }
 
     // -------------------------------------------------------
@@ -485,17 +561,18 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CancelReviewModeAsync_WhenInReviewMode_ClearsSelectionsAndExits()
+    public async Task CancelReviewModeAsync_WhenInReviewMode_PreservesSelectionsAndExits()
     {
         _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
 
         var service = CreateService();
         await service.CancelReviewModeAsync();
 
+        // Cancel should exit review mode without clearing selections
         _mockConfigAppSelectionService.Verify(
             s => s.ClearWindowsAppsSelectionAsync(),
-            Times.Once);
-        _mockVmCoordinator.Verify(v => v.ClearExternalAppSelections(), Times.Once);
+            Times.Never);
+        _mockVmCoordinator.Verify(v => v.ClearExternalAppSelections(), Times.Never);
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
     }
 

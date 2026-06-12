@@ -13,6 +13,14 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class VersionService : IVersionService
 {
+    // Dev-only override: when WINHANCE_LOCAL_INSTALLER points at an existing
+    // file, the in-app updater skips the GitHub round-trip entirely and uses
+    // that file as the "downloaded" installer. Used to test the silent-install
+    // flow (issue #649 and friends) without publishing a real release. Inert
+    // unless both conditions hold (env var set AND file exists), and every
+    // activation emits a loud [DEV MODE] warning log.
+    private const string LocalInstallerEnvVar = "WINHANCE_LOCAL_INSTALLER";
+
     private readonly ILogService _logService;
     private readonly IProcessExecutor _processExecutor;
     private readonly IFileSystemService _fileSystemService;
@@ -72,6 +80,19 @@ public class VersionService : IVersionService
 
     public async Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
+        // Dev-only short-circuit. See LocalInstallerEnvVar docs.
+        if (TryGetLocalInstallerOverride() is { } localPath)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"[DEV MODE] {LocalInstallerEnvVar} set to {localPath}. Skipping GitHub release lookup and reporting a synthetic update.");
+            return new VersionInfo
+            {
+                Version = "v99.99.99-localdev",
+                ReleaseDate = DateTime.UtcNow,
+                IsUpdateAvailable = true,
+            };
+        }
+
         const int maxRetries = 3;
         int delayMs = 2000;
 
@@ -144,6 +165,17 @@ public class VersionService : IVersionService
 
     public async Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default)
     {
+        // Dev-only short-circuit. See LocalInstallerEnvVar docs.
+        if (TryGetLocalInstallerOverride() is { } localPath)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"[DEV MODE] {LocalInstallerEnvVar} set to {localPath}. Skipping HTTP download and using the local file as the staged installer.");
+            _downloadedInstallerPath = localPath;
+            // Match the async signature without doing real I/O.
+            await Task.CompletedTask.ConfigureAwait(false);
+            return;
+        }
+
         _logService.Log(LogLevel.Info, "Downloading update...");
 
         // Create a temporary file to download the installer
@@ -175,15 +207,7 @@ public class VersionService : IVersionService
         bool isPortable = _fileSystemService.FileExists(_fileSystemService.CombinePath(appDir, "portable.marker"));
         string appExePath = _fileSystemService.CombinePath(appDir, "Winhance.exe");
 
-        string installerArgs;
-        if (isPortable)
-        {
-            installerArgs = $"/SILENT /SUPPRESSMSGBOXES /DIR=\"{appDir.TrimEnd(Path.DirectorySeparatorChar)}\" /MERGETASKS=\"portableinstall\"";
-        }
-        else
-        {
-            installerArgs = "/SILENT /SUPPRESSMSGBOXES /MERGETASKS=\"regularinstall\\desktopicon,regularinstall\\startmenuicon\"";
-        }
+        string installerArgs = BuildInstallerArgs(appDir, isPortable);
 
         _logService.Log(LogLevel.Info, $"Launching installer (portable: {isPortable}), app will restart after install...");
 
@@ -197,6 +221,46 @@ public class VersionService : IVersionService
             UseShellExecute = false,
             CreateNoWindow = true
         });
+    }
+
+    /// <summary>
+    /// Returns the local installer path if WINHANCE_LOCAL_INSTALLER is set and
+    /// points at an existing file, otherwise null. Inert in normal user runs.
+    /// </summary>
+    private string? TryGetLocalInstallerOverride()
+    {
+        string? path = Environment.GetEnvironmentVariable(LocalInstallerEnvVar);
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+        if (!_fileSystemService.FileExists(path))
+        {
+            _logService.Log(LogLevel.Warning,
+                $"[DEV MODE] {LocalInstallerEnvVar}={path} but the file does not exist. Falling back to normal update flow.");
+            return null;
+        }
+        return path;
+    }
+
+    /// <summary>
+    /// Builds the Inno Setup installer arguments for an in-app silent update.
+    /// Always pins the install directory to <paramref name="appDir"/> via /DIR=
+    /// (issue #649): without /DIR, Inno's UsePreviousAppDir/DefaultDirName chain
+    /// can resolve {app} to C:\Program Files\Winhance for regular installs at a
+    /// custom path, or to ~\Desktop\Winhance for portable installs, silently
+    /// relocating the install. The installer script (Winhance.Installer.iss)
+    /// cooperates by skipping its custom-dir-page sync when /DIR= is passed in
+    /// silent mode.
+    /// </summary>
+    /// <remarks>
+    /// Internal for testability via the test project's InternalsVisibleTo grant.
+    /// Pure function — no side effects.
+    /// </remarks>
+    internal static string BuildInstallerArgs(string appDir, bool isPortable)
+    {
+        string dirArg = $"/DIR=\"{appDir.TrimEnd('\\', '/')}\"";
+        return isPortable
+            ? $"/SILENT /SUPPRESSMSGBOXES {dirArg} /MERGETASKS=\"portableinstall\""
+            : $"/SILENT /SUPPRESSMSGBOXES {dirArg} /MERGETASKS=\"regularinstall\\desktopicon,regularinstall\\startmenuicon\"";
     }
 
     private VersionInfo CreateDefaultVersion()

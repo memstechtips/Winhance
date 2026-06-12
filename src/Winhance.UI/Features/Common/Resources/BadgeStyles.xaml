@@ -9,9 +9,9 @@
 
         <ResourceDictionary x:Key="Dark">
             <!-- Recommended: green -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#224EC94E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#404EC94E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF4EC94E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#223FB950"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#403FB950"/>
+            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF3FB950"/>
 
             <!-- Default: subtle light grey -->
             <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#12FFFFFF"/>
@@ -37,9 +37,9 @@
 
         <ResourceDictionary x:Key="Light">
             <!-- Recommended: darker green for legibility on white -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#222E7A2E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#402E7A2E"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF2E7A2E"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#221A7F37"/>
+            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#401A7F37"/>
+            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF1A7F37"/>
 
             <!-- Default: dark on light — fixes pre-existing invisibility bug -->
             <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#10000000"/>
@@ -84,8 +84,8 @@
     to guarantee a pill look.
     -->
     <Style x:Key="BadgePillBase" TargetType="Border">
-        <Setter Property="Height" Value="22"/>
-        <Setter Property="CornerRadius" Value="11"/>
+        <Setter Property="Height" Value="24"/>
+        <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Padding" Value="8,0,10,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -162,7 +162,7 @@
             <DataTemplate>
                 <FontIcon
                     Glyph="&#xE735;"
-                    FontSize="12"
+                    FontSize="16"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
                     Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -174,8 +174,8 @@
                     Data="{StaticResource BadgeDefaultIconPath}"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
-                    Height="12"
-                    Width="12"
+                    Height="16"
+                    Width="16"
                     Foreground="{ThemeResource BadgeDefaultForeground}"/>
             </DataTemplate>
         </converters:BadgeIconTemplateSelector.DefaultTemplate>
@@ -184,7 +184,7 @@
                 <fluentIcons:FluentIcon
                     Icon="PersonWrench"
                     IconVariant="Regular"
-                    FontSize="12"
+                    FontSize="16"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
                     Foreground="{ThemeResource BadgeCustomForeground}"/>
@@ -194,7 +194,7 @@
             <DataTemplate>
                 <FontIcon
                     Glyph="&#xE77B;"
-                    FontSize="12"
+                    FontSize="16"
                     VerticalAlignment="Center"
                     Margin="0,4,4,0"
                     Foreground="{ThemeResource BadgePreferenceForeground}"/>

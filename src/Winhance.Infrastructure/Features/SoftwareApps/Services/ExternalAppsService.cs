@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -24,7 +25,8 @@ public class ExternalAppsService(
     IChocolateyService chocolateyService,
     IInteractiveUserService interactiveUserService,
     IFileSystemService fileSystemService,
-    IProcessExecutor processExecutor) : IExternalAppsService
+    IProcessExecutor processExecutor,
+    IChangeHistoryService changeHistory) : IExternalAppsService
 {
     public string DomainName => FeatureIds.ExternalApps;
 
@@ -359,6 +361,7 @@ $Shortcut.Save()
 
             if (result.Success)
             {
+                changeHistory.LogAppChange(item.Name, AppChangeKind.Removed);
                 RemoveStartMenuShortcutIfExists(item.Name);
             }
 

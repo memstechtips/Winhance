@@ -24,10 +24,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Nilesoft.Shell"],
                         ChocoPackageId = "nilesoft-shell",
                         WebsiteUrl = "https://nilesoft.org/",
-                        IconSources = [
-                            "https://nilesoft.org/images/logo.png",
-                            "https://nilesoft.org/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -40,9 +36,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "startallback",
                         MsStoreId = "XPFMHKP3QHRQRH",
                         WebsiteUrl = "https://www.startallback.com/",
-                        IconSources = [
-                            "https://www.startallback.com/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -54,10 +47,6 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Customization Utilities",
                         WinGetPackageId = ["StartIsBack.StartIsBack"],
                         WebsiteUrl = "https://www.startisback.com/",
-                        IconSources = [
-                            "https://www.startisback.com/orb.png",
-                            "https://www.startisback.com/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -68,9 +57,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Open-Shell.Open-Shell-Menu"],
                         ChocoPackageId = "open-shell",
                         WebsiteUrl = "https://open-shell.github.io/Open-Shell-Menu/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/Open-Shell/Open-Shell-Menu/master/Src/Setup/OpenShell.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -81,9 +67,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["RamenSoftware.Windhawk"],
                         ChocoPackageId = "windhawk",
                         WebsiteUrl = "https://windhawk.net/",
-                        IconSources = [
-                            "https://windhawk.net/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -108,9 +91,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "sucrose",
                         MsStoreId = "XP8JGPBHTJGLCQ",
                         WebsiteUrl = "https://github.com/Taiizor/Sucrose",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/Taiizor/Sucrose/develop/.images/Logo.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -121,10 +101,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Rainmeter.Rainmeter"],
                         ChocoPackageId = "rainmeter",
                         WebsiteUrl = "https://www.rainmeter.net/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/rainmeter/rainmeter/master/Application/Rainmeter.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Rainmeter_Icon.svg/250px-Rainmeter_Icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -142,9 +118,6 @@ public static partial class ExternalAppDefinitions
                         // explorerpatcher.net WordPress media is Cloudflare-protected.
                         // Reuse Windows' own explorer.exe icon — visually appropriate
                         // since the app patches explorer, and present on every machine.
-                        IconSources = [
-                            @"%SystemRoot%\explorer.exe",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -158,10 +131,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "jbs",
                         MsStoreId = "9MWKCB9MH93K",
                         WebsiteUrl = "https://johnsad.ventures/software/backgroundswitcher/",
-                        IconSources = [
-                            "https://i0.wp.com/johnsad.ventures/wp-content/uploads/2007/11/jbslogo-152x152.png",
-                            "https://johnsad.ventures/wp-content/uploads/2007/11/jbslogo-152x152.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -174,10 +143,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "powertoys",
                         MsStoreId = "XP89DCGQ3K6VLD",
                         WebsiteUrl = "https://github.com/microsoft/PowerToys",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/microsoft/PowerToys/main/installer/PowerToysSetupVNext/Images/logo.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/2020_PowerToys_Icon.svg/250px-2020_PowerToys_Icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -191,9 +156,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://www.winstep.net/nexus.zip",
                         },
-                        IconSources = [
-                            "https://www.winstep.net/images/logo_96_nexus.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -213,10 +175,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://www.autohotkey.com/download/ahk-v2.exe",
                         },
-                        IconSources = [
-                            "https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/v2.0/source/resources/icon_main.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/250px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -231,10 +189,6 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://www.autohotkey.com/download/ahk-install.exe",
                             RequiresDirectDownload = true,
                         },
-                        IconSources = [
-                            "https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/alpha/source/resources/icon_main.ico",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Modern_AutoHotkey_Logo_%28no_text%29.svg/250px-Modern_AutoHotkey_Logo_%28no_text%29.svg.png",
-                        ],
                     }
                 }
             };

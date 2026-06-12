@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Settings.ViewModels;
 using Xunit;
@@ -28,6 +27,14 @@ public class SettingsViewModelTests
         _mockLocalization
             .Setup(l => l.CurrentLanguage)
             .Returns("en");
+        _mockLocalization
+            .Setup(l => l.GetAvailableLanguages())
+            .Returns(new List<LanguageOption>
+            {
+                new("en", "English"),
+                new("af", "Afrikaans"),
+                new("fr", "Français (French)"),
+            });
         _mockThemeService
             .Setup(t => t.CurrentTheme)
             .Returns(WinhanceTheme.System);
@@ -80,7 +87,9 @@ public class SettingsViewModelTests
         var vm = CreateViewModel();
 
         vm.Languages.Should().NotBeEmpty();
-        vm.Languages.Count.Should().Be(StringKeys.Languages.SupportedLanguages.Count);
+        vm.Languages.Count.Should().Be(3);
+        vm.Languages[0].DisplayText.Should().Be("English");
+        vm.Languages[0].Value.Should().Be("en");
     }
 
     [Fact]
@@ -276,7 +285,7 @@ public class SettingsViewModelTests
     public void PageTitle_ReturnsLocalizedString()
     {
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Settings.Title))
+            .Setup(l => l.GetString("Settings_Title"))
             .Returns("Settings Title");
 
         var vm = CreateViewModel();
@@ -288,7 +297,7 @@ public class SettingsViewModelTests
     public void PageTitle_WhenNull_ReturnsFallback()
     {
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Settings.Title))
+            .Setup(l => l.GetString("Settings_Title"))
             .Returns((string?)null!);
 
         var vm = CreateViewModel();
@@ -300,7 +309,7 @@ public class SettingsViewModelTests
     public void PageDescription_ReturnsLocalizedString()
     {
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Settings.Description))
+            .Setup(l => l.GetString("Settings_Description"))
             .Returns("My Desc");
 
         var vm = CreateViewModel();
@@ -312,7 +321,7 @@ public class SettingsViewModelTests
     public void ImportButtonText_ReturnsLocalizedString()
     {
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Buttons.Import))
+            .Setup(l => l.GetString("Button_Import"))
             .Returns("Import Config");
 
         var vm = CreateViewModel();
@@ -324,7 +333,7 @@ public class SettingsViewModelTests
     public void ExportButtonText_ReturnsLocalizedString()
     {
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Buttons.Export))
+            .Setup(l => l.GetString("Button_Export"))
             .Returns("Export Config");
 
         var vm = CreateViewModel();
@@ -340,20 +349,20 @@ public class SettingsViewModelTests
     public void OnLanguageChanged_UpdatesThemeDisplayNames()
     {
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Themes.System))
+            .Setup(l => l.GetString("Theme_System"))
             .Returns("System");
 
         var vm = CreateViewModel();
 
         // Now change the localization return for theme names
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Themes.System))
+            .Setup(l => l.GetString("Theme_System"))
             .Returns("Systeme");
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Themes.LightNative))
+            .Setup(l => l.GetString("Theme_LightNative"))
             .Returns("Clair");
         _mockLocalization
-            .Setup(l => l.GetString(StringKeys.Themes.DarkNative))
+            .Setup(l => l.GetString("Theme_DarkNative"))
             .Returns("Sombre");
 
         _mockLocalization.Raise(l => l.LanguageChanged += null, EventArgs.Empty);

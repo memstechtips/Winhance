@@ -27,9 +27,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
                         ChocoPackageId = "webview2-runtime",
                         WebsiteUrl = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Microsoft_Edge_logo_%282019%29.svg/500px-Microsoft_Edge_logo_%282019%29.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -43,9 +40,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://github.com/Alex313031/Thorium-Win/releases/latest/download/thorium_SSE3_mini_installer.exe",
                         },
-                        IconSources = [
-                            "https://raw.githubusercontent.com/Alex313031/thorium/main/logos/NEW/product_logo_256.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -58,9 +52,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Alex313031.Mercury"],
                         ChocoPackageId = "mercury",
                         WebsiteUrl = "https://thorium.rocks/mercury",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/Alex313031/Mercury/main/logos/Mercury_256.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -74,9 +65,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "firefox",
                         MsStoreId = "9NZVDKPMR9RD",
                         WebsiteUrl = "https://www.mozilla.org/firefox/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/500px-Firefox_logo%2C_2019.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -87,9 +75,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Google.Chrome", "Google.Chrome.EXE"],
                         ChocoPackageId = "googlechrome",
                         WebsiteUrl = "https://www.google.com/chrome/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Google_Chrome_icon_%28February_2022%29.svg/500px-Google_Chrome_icon_%28February_2022%29.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -101,9 +86,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Eloston.Ungoogled-Chromium"],
                         ChocoPackageId = "ungoogled-chromium",
                         WebsiteUrl = "https://github.com/ungoogled-software/ungoogled-chromium-windows",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Chromium_Logo.svg/250px-Chromium_Logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -115,9 +97,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "brave",
                         MsStoreId = "XP8C9QZMS2PC1T",
                         WebsiteUrl = "https://brave.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Brave_lion_icon.svg/500px-Brave_lion_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -131,9 +110,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "opera",
                         MsStoreId = "XP8CF6S8G2D5T6",
                         WebsiteUrl = "https://www.opera.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Opera_2015_icon.svg/500px-Opera_2015_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -147,9 +123,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "opera-gx",
                         MsStoreId = "XPDBZ4MPRKNN30",
                         WebsiteUrl = "https://www.opera.com/gx",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Opera_GX_Icon.svg/500px-Opera_GX_Icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -165,9 +138,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://releases.arc.net/windows/ArcInstaller.exe",
                         },
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Arc_%28browser%29_logo.svg/500px-Arc_%28browser%29_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -179,9 +149,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "tor-browser",
                         DetectionPaths = [@"%USERPROFILE%\Desktop\Tor Browser"],
                         WebsiteUrl = "https://www.torproject.org/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Tor_Browser_icon.svg/250px-Tor_Browser_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -193,9 +160,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vivaldi",
                         MsStoreId = "XP99GVQDX7JPR4",
                         WebsiteUrl = "https://vivaldi.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Vivaldi_web_browser_logo.svg/500px-Vivaldi_web_browser_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -208,9 +172,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Waterfox.Waterfox"],
                         ChocoPackageId = "waterfox",
                         WebsiteUrl = "https://www.waterfox.net/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Waterfox_logo_2020_%28vectorized%29.svg/500px-Waterfox_logo_2020_%28vectorized%29.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -224,9 +185,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://github.com/zen-browser/desktop/releases/latest/download/zen.installer.exe",
                         },
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Zen_Browser_logo_%28red_circles%29.svg/500px-Zen_Browser_logo_%28red_circles%29.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -240,10 +198,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://mullvad.net/en/download/browser/win64/latest",
                         },
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Mullvad_Browser_logo.svg/500px-Mullvad_Browser_logo.svg.png",
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Mullvad_logo.svg/500px-Mullvad_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -257,10 +211,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "palemoon",
                         MsStoreId = "XPDKN9FQ75F2MZ",
                         WebsiteUrl = "https://www.palemoon.org/",
-                        IconSources = [
-                            "https://www.palemoon.org/images/branding/logo128.png",
-                            "https://www.palemoon.org/favicon.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -271,9 +221,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Maxthon.Maxthon"],
                         ChocoPackageId = "maxthon",
                         WebsiteUrl = "https://www.maxthon.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maxthon_logo.svg/500px-Maxthon_logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -284,9 +231,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Ablaze.Floorp"],
                         ChocoPackageId = "floorp",
                         WebsiteUrl = "https://floorp.app/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Floorp_logo_without_text.svg/250px-Floorp_logo_without_text.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -302,9 +246,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://staticcdn.duckduckgo.com/windows-desktop-browser/installer/DuckDuckGo.Installer.exe",
                         },
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/en/9/90/The_DuckDuckGo_Duck.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -317,9 +258,16 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "librewolf",
                         MsStoreId = "9NVN9SZ8KFD7",
                         WebsiteUrl = "https://librewolf.net/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/LibreWolf_icon.svg/500px-LibreWolf_icon.svg.png",
-                        ],
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-helium",
+                        Name = "Helium",
+                        Description = "Open source Chromium-based browser built on ungoogled-chromium with uBlock Origin",
+                        GroupName = "Browsers",
+                        WinGetPackageId = ["ImputNet.Helium"],
+                        ChocoPackageId = "helium",
+                        WebsiteUrl = "https://helium.computer/",
                     }
                 }
             };

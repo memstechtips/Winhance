@@ -25,4 +25,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Winhance.Core\Winhance.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Snapshot of package-icons/manifest.json for the icon-coverage invariant
+         test (tests can't hit the network). Refresh when package-icons changes. -->
+    <None Include="Assets\package-icons-manifest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

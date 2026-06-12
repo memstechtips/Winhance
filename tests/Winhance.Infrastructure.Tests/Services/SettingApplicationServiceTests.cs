@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,7 +14,6 @@ public class SettingApplicationServiceTests
 {
     private readonly Mock<ICompatibleSettingsRegistry> _mockSettingsRegistry = new();
     private readonly Mock<ISpecialSettingHandlerRegistry> _mockSpecialHandlerRegistry = new();
-    private readonly Mock<IActionCommandRegistry> _mockActionCommandRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IGlobalSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
@@ -22,20 +22,40 @@ public class SettingApplicationServiceTests
     private readonly Mock<ISettingDependencyResolver> _mockDepResolver = new();
     private readonly Mock<IWindowsCompatibilityFilter> _mockCompatFilter = new();
     private readonly Mock<ISettingOperationExecutor> _mockExecutor = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
+    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscovery = new();
+    private readonly Mock<ILocalizationService> _mockLocalization = new();
+    private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
     {
+        // Default: machine HAS a battery, so every existing AC/DC test keeps its current
+        // "AC: x, DC: y" expectations. No-battery tests override this per-test.
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(true);
+
         _mockExecutor
             .Setup(e => e.ApplySettingOperationsAsync(
                 It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
+        // Default: discovery finds nothing (no before-state), and GetString echoes the key back.
+        // A key-echo is NOT the "[{key}]" miss-marker, so by default ResolveLocalized treats every
+        // key as a HIT returning the key text; tests that assert on display strings set explicit returns.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+        _mockLocalization
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string key) => key);
+
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
-            _mockActionCommandRegistry.Object, _mockLog.Object, _mockRegistry.Object,
+            _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
-            _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object);
+            _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
+            _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
+            _mockHardware.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -117,26 +137,6 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task ApplySettingAsync_WithCommandString_ExecutesCommand()
-    {
-        SetupSettingInRegistry("cmd-setting");
-        var mockCommand = new Mock<IActionCommandProvider>();
-        mockCommand.Setup(c => c.SupportedCommands).Returns(new HashSet<string> { "do-action" });
-        _mockActionCommandRegistry.Setup(r => r.TryGet("cmd-setting"))
-            .Returns(mockCommand.Object);
-
-        var result = await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "cmd-setting",
-            Enable = true,
-            CommandString = "do-action",
-        });
-
-        result.Success.Should().BeTrue();
-        mockCommand.Verify(c => c.ExecuteCommandAsync("do-action"), Times.Once);
-    }
-
-    [Fact]
     public async Task ApplySettingAsync_RegistersSettingInGlobalRegistry()
     {
         SetupSettingInRegistry("test-setting");
@@ -197,6 +197,55 @@ public class SettingApplicationServiceTests
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             "test-id", _service), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ActionWithApplyRecommended_OneCoalescedRestartForPrimaryPlusRecommended()
+    {
+        // Bug A "one restart per click": the primary Action apply and the recommended batch must
+        // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
+        // covering the primary action AND every recommended setting.
+        var actionSetting = new SettingDefinition
+        {
+            Id = "action-clean",
+            Name = "Action Clean",
+            Description = "desc",
+            InputType = InputType.Action,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("action-clean")).Returns(actionSetting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("action-clean")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { actionSetting });
+
+        var recommended = new SettingDefinition { Id = "rec1", Name = "Rec1", Description = "d" };
+        _mockRecommended
+            .Setup(r => r.ApplyRecommendedForFeatureAsync("action-clean", It.IsAny<ISettingApplicationService>()))
+            .ReturnsAsync(new List<SettingDefinition> { recommended });
+
+        // The using-scope needs a real IDisposable back from the mock.
+        _mockRestart.Setup(r => r.SuppressRestarts()).Returns(Mock.Of<IDisposable>());
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "action-clean",
+            Enable = true,
+            ApplyRecommended = true,
+        });
+
+        // One suppress scope wraps both the primary action and the recommended batch.
+        _mockRestart.Verify(r => r.SuppressRestarts(), Times.Once);
+
+        // The recommended batch runs through the NON-flushing feature core...
+        _mockRecommended.Verify(r => r.ApplyRecommendedForFeatureAsync(
+            "action-clean", _service), Times.Once);
+        // ...and the standalone flushing entry is NOT used on this path (would double-restart).
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+
+        // Exactly one coalesced flush, containing the primary action AND the recommended setting.
+        _mockRestart.Verify(r => r.FlushCoalescedRestartsAsync(
+            It.Is<IEnumerable<SettingDefinition>>(list =>
+                list.Any(s => s.Id == "action-clean") && list.Any(s => s.Id == "rec1"))),
+            Times.Once);
     }
 
     // ---------------------------------------------------------------
@@ -260,5 +309,672 @@ public class SettingApplicationServiceTests
         });
 
         result.Success.Should().BeTrue();
+    }
+
+    // ---------------------------------------------------------------
+    // Change history (#367): record setting changes before → after
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_ToggleSuccess_LogsChangeHistoryEntry()
+    {
+        SetupSettingInRegistry("toggle-setting");
+
+        // Before-state: discovery reports the toggle currently disabled.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["toggle-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "toggle-setting",
+            Enable = true,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "Disabled", "Enabled"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_BeforeEqualsAfter_DoesNotLog()
+    {
+        SetupSettingInRegistry("noop-setting");
+
+        // Before-state already matches the requested state (enabled → enable=true).
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["noop-setting"] = new SettingStateResult { Success = true, IsEnabled = true },
+            });
+
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "noop-setting",
+            Enable = true,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ChangeHistoryThrows_ApplyStillSucceeds()
+    {
+        SetupSettingInRegistry("throwing-setting");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["throwing-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+
+        _mockChangeHistory
+            .Setup(h => h.LogSettingChange(
+                It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new InvalidOperationException("history write blew up"));
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "throwing-setting",
+            Enable = true,
+        });
+
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_OperationFails_DoesNotLogChangeHistory()
+    {
+        SetupSettingInRegistry("fail-no-history");
+        _mockExecutor
+            .Setup(e => e.ApplySettingOperationsAsync(
+                It.Is<SettingDefinition>(s => s.Id == "fail-no-history"),
+                It.IsAny<bool>(), It.IsAny<object?>()))
+            .ReturnsAsync(OperationResult.Failed("denied"));
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["fail-no-history"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "fail-no-history",
+            Enable = true,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockChangeHistory.Verify(h => h.LogSettingAction(
+            It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    // ---------------------------------------------------------------
+    // Change history (#367): power AC/DC values + option labels render human-readable
+    // ---------------------------------------------------------------
+
+    private SettingDefinition RegisterSelectionSetting(
+        string settingId, IReadOnlyList<ComboBoxOption> options,
+        IReadOnlyList<PowerCfgSetting>? powerCfg = null, string featureId = "TestDomain")
+    {
+        var setting = new SettingDefinition
+        {
+            Id = settingId,
+            Name = $"Setting {settingId}",
+            Description = $"Description for {settingId}",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata { Options = options },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById(settingId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(settingId)).Returns(featureId);
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings(featureId)).Returns(new[] { setting });
+        return setting;
+    }
+
+    private static ComboBoxOption Opt(string displayName) => new() { DisplayName = displayName };
+
+    // Selection option carrying a PowerCfgValue mapping, so FindOptionIndexForPowerCfgValue can map a
+    // raw system value back to this option's index.
+    private static ComboBoxOption PowerOpt(string displayName, int powerCfgValue) => new()
+    {
+        DisplayName = displayName,
+        ValueMappings = new Dictionary<string, object?> { ["PowerCfgValue"] = powerCfgValue },
+    };
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionWithLocalizationKeyDisplayName_RendersLocalizedLabel()
+    {
+        // Power-setting options carry localization KEYS as their DisplayName. The receipt must
+        // localize the key, not print the raw "Template_..." string.
+        var options = new[] { Opt("Template_X_Option_0"), Opt("Template_X_Option_1") };
+        RegisterSelectionSetting("sel-localized", options);
+
+        _mockLocalization.Setup(l => l.GetString("Template_X_Option_1")).Returns("Enabled-ish label");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-localized",
+            Enable = true,
+            Value = 1,
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "Enabled-ish label"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionAcDcTuple_RendersAcDcLabels()
+    {
+        // Config-import Selection AC/DC values arrive as a (acIndex, dcIndex) ValueTuple.
+        var options = new[] { Opt("Setting_sel-tuple_Option_0"), Opt("Setting_sel-tuple_Option_1") };
+        RegisterSelectionSetting("sel-tuple", options);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_1")).Returns("4 minutes");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-tuple",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionAcDcDictionary_RendersAcDcLabels()
+    {
+        // UI / recommended Selection AC/DC values arrive as a dict of option indices.
+        var options = new[] { Opt("Setting_sel-dict_Option_0"), Opt("Setting_sel-dict_Option_1") };
+        RegisterSelectionSetting("sel-dict", options);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_1")).Returns("4 minutes");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-dict",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_PowerPlanShape_RendersJustTheName()
+    {
+        // The power-plan after-value is a dict with Guid + Name keys; the receipt shows the Name.
+        var options = new[] { Opt("PowerPlan_Custom") };
+        RegisterSelectionSetting("power-plan", options);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "power-plan",
+            Enable = true,
+            Value = new Dictionary<string, object?>
+            {
+                ["Guid"] = "11111111-2222-3333-4444-555555555555",
+                ["Name"] = "Winhance Power Plan",
+            },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "Winhance Power Plan"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NumericRangePowerCfg_ConvertsBeforeStateToDisplayUnitsWithSuffix()
+    {
+        // Before-state RawValues are SYSTEM units (seconds). For a Minutes-unit PowerCfg setting,
+        // 600s → 10 min. The before must render in display units so it matches the after format.
+        // Both before and after must carry the unit suffix (per-value) so no-op detection works.
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting
+            {
+                SettingGUIDAlias = "VIDEOIDLE",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = "Minutes",
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "num-power",
+            Name = "Setting num-power",
+            Description = "desc",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60, Units = "Minutes" },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("num-power")).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
+
+        _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["num-power"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 600 },
+                },
+            });
+
+        // After-value: display-unit AC/DC dict that differs from the before so an entry is logged.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "num-power",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 5, ["DCValue"] = 15 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            "AC: 0 Minutes, DC: 10 Minutes",
+            "AC: 5 Minutes, DC: 15 Minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NumericRangePowerCfgNoChange_DoesNotLog()
+    {
+        // Unchanged NumericRange PowerCfg setting: before and after must produce byte-identical
+        // strings (both include the unit suffix) so the no-op suppression fires and no receipt
+        // entry is logged.
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting
+            {
+                SettingGUIDAlias = "VIDEOIDLE",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = "Minutes",
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "num-power-noop",
+            Name = "Setting num-power-noop",
+            Description = "desc",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60, Units = "Minutes" },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("num-power-noop")).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power-noop")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
+
+        _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
+
+        // Before-state: 0s AC (= 0 min), 600s DC (= 10 min) — same values as the after.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["num-power-noop"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 600 },
+                },
+            });
+
+        // Re-applying the same display values: AC=0, DC=10 (minutes) — no change.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "num-power-noop",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 10 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NumericRangePowerCfgPercentUnit_RendersPercentSuffix()
+    {
+        // Percent-unit NumericRange PowerCfg setting — the "%" unit has no localization key
+        // and is passed through raw. Before (80%, 100%) changes to (60%, 80%).
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting
+            {
+                SettingGUIDAlias = "PROCMIN",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = "%",
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        };
+        var setting = new SettingDefinition
+        {
+            Id = "num-power-pct",
+            Name = "Setting num-power-pct",
+            Description = "desc",
+            InputType = InputType.NumericRange,
+            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = "%" },
+            PowerCfgSettings = powerCfg,
+        };
+        _mockSettingsRegistry.Setup(r => r.GetById("num-power-pct")).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power-pct")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
+
+        // "%" has no Common_Unit_* key — ResolveLocalized returns null for a miss-marker; leave
+        // mock at default (key echo). The switch default returns the raw "%" directly.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["num-power-pct"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    // % unit is 1:1 — system value == display value.
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 80, ["DCValue"] = 100 },
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "num-power-pct",
+            Enable = true,
+            Value = new Dictionary<string, object?> { ["ACValue"] = 60, ["DCValue"] = 80 },
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            "AC: 80 %, DC: 100 %",
+            "AC: 60 %, DC: 80 %"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionPowerCfgNoChange_DoesNotLog()
+    {
+        // PowerCfg Separate Selection setting. Before-state RawValues hold raw system PowerCfg values
+        // (100 → option 0, 200 → option 1). A config import re-applying the SAME state arrives as a
+        // (0, 0) ValueTuple. Before "AC: Never, DC: Never" must equal after "AC: Never, DC: Never"
+        // byte-for-byte so no phantom receipt entry is logged.
+        var options = new[] { PowerOpt("Setting_sel-pcfg-noop_Option_0", 100), PowerOpt("Setting_sel-pcfg-noop_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
+        };
+        RegisterSelectionSetting("sel-pcfg-noop", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_1")).Returns("4 minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-pcfg-noop"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-pcfg-noop",
+            Enable = true,
+            Value = (0, 0),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SelectionPowerCfgRealChange_LogsBeforeAndAfter()
+    {
+        // Same setting; DC actually changes (option 0 → option 1). The before renders from the raw
+        // system values, the after from the (0, 1) ValueTuple, both in AC/DC label shape.
+        var options = new[] { PowerOpt("Setting_sel-pcfg-change_Option_0", 100), PowerOpt("Setting_sel-pcfg-change_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
+        };
+        RegisterSelectionSetting("sel-pcfg-change", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_1")).Returns("4 minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-pcfg-change"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-pcfg-change",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    // ---------------------------------------------------------------
+    // #367: battery-less machines render AC-only (no phantom DC) +
+    //       a no-match raw PowerCfg value renders Custom, never index-by-raw
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_NoBatterySelection_RendersAcOnly()
+    {
+        // Battery-less desktop: only the AC dropdown exists and PowerCfgApplier skips all DC writes.
+        // The receipt must show "AC: <label>" only — no ", DC: ..." phantom.
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+
+        var options = new[] { PowerOpt("Setting_sel-nobat_Option_0", 100), PowerOpt("Setting_sel-nobat_Option_1", 200), PowerOpt("Setting_sel-nobat_Option_2", 300) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
+        };
+        RegisterSelectionSetting("sel-nobat", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_2")).Returns("9 minutes");
+
+        // Before-state raw AC = 100 → option 0 "Never". DC raw is garbage on a battery-less machine.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-nobat"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 999999 },
+                },
+            });
+
+        // After: apply tuple (2, 0). AC changes Never → 9 minutes; entry renders AC-only on both sides.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-nobat",
+            Enable = true,
+            Value = (2, 0),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never", "AC: 9 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NoBatteryAcUnchanged_DoesNotLog()
+    {
+        // KEY regression: on a battery-less desktop, the AC value is unchanged but the (irrelevant)
+        // DC garbage differs. The receipt must suppress the entry — DC garbage must NEVER create a
+        // phantom change. Before "AC: Never" == after "AC: Never".
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+
+        var options = new[] { PowerOpt("Setting_sel-nobat-noop_Option_0", 100), PowerOpt("Setting_sel-nobat-noop_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
+        };
+        RegisterSelectionSetting("sel-nobat-noop", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_1")).Returns("4 minutes");
+
+        // AC raw 100 → option 0 "Never". DC raw is garbage and DIFFERENT from the applied DC index.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-nobat-noop"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 12345 },
+                },
+            });
+
+        // Apply (0, 1): AC stays option 0 (Never); DC index differs but is suppressed on no-battery.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-nobat-noop",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_FallbackRawValueWithNoMatchingOption_RendersCustomNotIndexedLabel()
+    {
+        // Regression for the fallback-as-index bug (commit f9528147): a raw PowerCfg DC value that
+        // matches NO option (raw 1, options map 0/60/300) must render "Custom" — NOT Options[1].
+        // Battery present so DC still renders.
+        var options = new[]
+        {
+            PowerOpt("Setting_sel-fallback_Option_0", 0),
+            PowerOpt("Setting_sel-fallback_Option_1", 60),
+            PowerOpt("Setting_sel-fallback_Option_2", 300),
+        };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
+        };
+        RegisterSelectionSetting("sel-fallback", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_1")).Returns("1 minute");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_2")).Returns("5 minutes");
+        _mockLocalization.Setup(l => l.GetString("Common_CustomState")).Returns("Custom");
+
+        // AC raw 0 → option 0 "Never". DC raw 1 matches NO option's PowerCfgValue.
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-fallback"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 },
+                },
+            });
+
+        // After applies (0, 2) so an entry is logged and we can assert the BEFORE rendering.
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-fallback",
+            Enable = true,
+            Value = (0, 2),
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Custom", "AC: Never, DC: 5 minutes"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_BatteryDetectionThrows_AppliesAndRendersBothComponents()
+    {
+        // Fail-open: a hardware detection failure defaults to battery=true, so the apply still
+        // succeeds and the entry renders BOTH AC and DC (more information, never a phantom suppression).
+        _mockHardware.Setup(h => h.HasBatteryAsync()).ThrowsAsync(new InvalidOperationException("WMI exploded"));
+
+        var options = new[] { PowerOpt("Setting_sel-throw_Option_0", 100), PowerOpt("Setting_sel-throw_Option_1", 200) };
+        var powerCfg = new[]
+        {
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
+        };
+        RegisterSelectionSetting("sel-throw", options, powerCfg);
+
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_1")).Returns("4 minutes");
+
+        _mockDiscovery
+            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["sel-throw"] = new SettingStateResult
+                {
+                    Success = true,
+                    IsEnabled = true,
+                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                },
+            });
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "sel-throw",
+            Enable = true,
+            Value = (0, 1),
+        });
+
+        result.Success.Should().BeTrue();
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 }

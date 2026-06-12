@@ -17,7 +17,44 @@ public static class WinGetCliRunner
 {
     private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
 
-    public record WinGetCliResult(int ExitCode, string StandardOutput, string StandardError);
+    /// <summary>
+    /// Why the winget process stopped, when Winhance (not winget) ended it.
+    /// A killed process reports exit code -1 (0xFFFFFFFF), which is meaningless
+    /// as a winget exit code — callers use this to tell the user what really happened.
+    /// </summary>
+    public enum TerminationReason
+    {
+        None,
+        Cancelled,
+        IdleTimeout,
+        WallClockTimeout,
+    }
+
+    public record WinGetCliResult(
+        int ExitCode,
+        string StandardOutput,
+        string StandardError,
+        TerminationReason Termination = TerminationReason.None);
+
+    /// <summary>
+    /// Returns a human-readable explanation when Winhance terminated the process,
+    /// or null when winget exited on its own. Intended for the terminal output
+    /// dialog so users (and support transcripts) don't see a bare -1 (0xFFFFFFFF).
+    /// </summary>
+    public static string? DescribeTermination(WinGetCliResult result, int timeoutMs, int idleTimeoutMs)
+    {
+        return result.Termination switch
+        {
+            TerminationReason.IdleTimeout =>
+                $"winget was terminated by Winhance after producing no output for {idleTimeoutMs / 60_000} minutes. " +
+                "The package source or the system's app deployment services may be unresponsive on this system.",
+            TerminationReason.WallClockTimeout =>
+                $"winget was terminated by Winhance after exceeding the {timeoutMs / 60_000} minute time limit.",
+            TerminationReason.Cancelled =>
+                "winget was terminated because the operation was cancelled.",
+            _ => null,
+        };
+    }
 
     /// <summary>
     /// Returns the path to winget.exe.
@@ -200,6 +237,22 @@ public static class WinGetCliRunner
             }
             linkedCts = CancellationTokenSource.CreateLinkedTokenSource(tokens.ToArray());
 
+            // Classifies why the process ended. Only a kill via Process.Kill reports
+            // exit code -1; any other code means winget exited on its own, even if a
+            // timer happened to fire in the same instant.
+            TerminationReason GetTerminationReason(int exitCode)
+            {
+                if (exitCode != -1)
+                    return TerminationReason.None;
+                if (cancellationToken.IsCancellationRequested)
+                    return TerminationReason.Cancelled;
+                if (idleCts?.IsCancellationRequested == true)
+                    return TerminationReason.IdleTimeout;
+                if (wallClockCts?.IsCancellationRequested == true)
+                    return TerminationReason.WallClockTimeout;
+                return TerminationReason.None;
+            }
+
             // Wrap callbacks so any output line resets the idle deadline. Wall-clock CTS
             // is NOT reset — it stays an absolute upper bound. When idleCts is null the
             // wrappers are unnecessary, but keeping them uniform avoids branchy plumbing.
@@ -229,10 +282,11 @@ public static class WinGetCliRunner
                 try
                 {
                     using var conPty = new ConPtyProcess();
-                    return await conPty.RunAsync(
+                    var ptyResult = await conPty.RunAsync(
                         exePath, arguments,
                         wrapOutput, wrapError, wrapProgress,
                         linkedCts.Token).ConfigureAwait(false);
+                    return ptyResult with { Termination = GetTerminationReason(ptyResult.ExitCode) };
                 }
                 catch (Exception ex) when (
                     ex is InvalidOperationException or
@@ -287,12 +341,17 @@ public static class WinGetCliRunner
             }, CancellationToken.None);
 
             await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
-            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+            // Both streams hitting EOF means the process has exited (the kill
+            // registration guarantees that on cancellation). Wait with no token:
+            // passing the linked token here would throw on a timeout kill instead
+            // of returning the -1 exit code with its termination reason.
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
 
             return new WinGetCliResult(
                 process.ExitCode,
                 stdoutBuilder.ToString(),
-                stderrBuilder.ToString());
+                stderrBuilder.ToString(),
+                GetTerminationReason(process.ExitCode));
         }
         finally
         {

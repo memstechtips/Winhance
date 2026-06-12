@@ -184,13 +184,8 @@ public class WindowsVersionFilterServiceTests
             .Returns("Localized text");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, false)); // Confirmed, checkbox not checked
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false }); // Confirmed, checkbox not checked
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
@@ -201,12 +196,7 @@ public class WindowsVersionFilterServiceTests
         await service.ToggleFilterAsync(isInReviewMode: false);
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Once);
     }
 
@@ -226,12 +216,7 @@ public class WindowsVersionFilterServiceTests
         await service.ToggleFilterAsync(isInReviewMode: false);
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Never);
     }
 
@@ -247,13 +232,8 @@ public class WindowsVersionFilterServiceTests
             .Returns("Localized text");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((false, false)); // Cancelled
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false }); // Cancelled
 
         var service = CreateService();
         var originalState = service.IsFilterEnabled;
@@ -276,13 +256,8 @@ public class WindowsVersionFilterServiceTests
             .Returns("Localized text");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, true)); // Confirmed and checkbox checked
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = true }); // Confirmed and checkbox checked
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<bool>()))
@@ -309,13 +284,8 @@ public class WindowsVersionFilterServiceTests
             .Returns("Localized text");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((true, false)); // Confirmed but checkbox not checked
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false }); // Confirmed but checkbox not checked
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
@@ -495,25 +465,25 @@ public class WindowsVersionFilterServiceTests
             .Returns("Custom cancel");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                "Custom message",
-                "Custom checkbox",
-                "Custom title",
-                "Custom toggle",
-                "Custom cancel"))
-            .ReturnsAsync((false, false));
+            .Setup(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r =>
+                r.Message == "Custom message" &&
+                r.CheckboxText == "Custom checkbox" &&
+                r.Title == "Custom title" &&
+                r.ConfirmButtonText == "Custom toggle" &&
+                r.CancelButtonText == "Custom cancel")))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
         var service = CreateService();
 
         await service.ToggleFilterAsync(isInReviewMode: false);
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                "Custom message",
-                "Custom checkbox",
-                "Custom title",
-                "Custom toggle",
-                "Custom cancel"),
+            d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r =>
+                r.Message == "Custom message" &&
+                r.CheckboxText == "Custom checkbox" &&
+                r.Title == "Custom title" &&
+                r.ConfirmButtonText == "Custom toggle" &&
+                r.CancelButtonText == "Custom cancel")),
             Times.Once);
     }
 
@@ -529,13 +499,8 @@ public class WindowsVersionFilterServiceTests
             .Returns((string?)null);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((false, false));
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
         var service = CreateService();
 
@@ -543,12 +508,12 @@ public class WindowsVersionFilterServiceTests
         await service.ToggleFilterAsync(isInReviewMode: false);
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationWithCheckboxAsync(
-                It.Is<string>(s => s.Contains("Windows Version Filter")),
-                It.Is<string>(s => s.Contains("Don't show this message again")),
-                It.Is<string>(s => s == "Windows Version Filter"),
-                It.Is<string>(s => s == "Toggle Filter"),
-                It.Is<string>(s => s == "Cancel")),
+            d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r =>
+                r.Message.Contains("Windows Version Filter") &&
+                r.CheckboxText!.Contains("Don't show this message again") &&
+                r.Title == "Windows Version Filter" &&
+                r.ConfirmButtonText == "Toggle Filter" &&
+                r.CancelButtonText == "Cancel")),
             Times.Once);
     }
 
@@ -739,13 +704,8 @@ public class WindowsVersionFilterServiceTests
             .Returns("text");
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((false, true)); // Cancelled but checkbox checked
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = true }); // Cancelled but checkbox checked
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, true))

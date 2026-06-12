@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -12,7 +13,6 @@ public class ApplicationCloseService : IApplicationCloseService
     private readonly ITaskProgressService _taskProgressService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IDialogService _dialogService;
-    private readonly IProcessExecutor _processExecutor;
 
     public Func<Task>? BeforeShutdown { get; set; }
 
@@ -35,14 +35,12 @@ public class ApplicationCloseService : IApplicationCloseService
         ILogService logService,
         ITaskProgressService taskProgressService,
         IUserPreferencesService userPreferencesService,
-        IDialogService dialogService,
-        IProcessExecutor processExecutor)
+        IDialogService dialogService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
         _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     }
 
     public async Task<OperationResult> CheckOperationsAndCloseAsync()
@@ -67,13 +65,15 @@ public class ApplicationCloseService : IApplicationCloseService
 
                 _logService.LogInformation($"Close requested while operation in progress: {currentOperation}");
 
-                var confirmed = await _dialogService.ShowConfirmationAsync(
-                    $"The following operation is still running:\n\n{currentOperation}\n\n" +
-                    $"Closing now may leave incomplete files or mounted drives.\n\n" +
-                    $"Cancel this operation and close Winhance?",
-                    "Warning: Operation in Progress",
-                    "Yes, Close",
-                    "Cancel");
+                var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = $"The following operation is still running:\n\n{currentOperation}\n\n" +
+                              $"Closing now may leave incomplete files or mounted drives.\n\n" +
+                              $"Cancel this operation and close Winhance?",
+                    Title = "Warning: Operation in Progress",
+                    ConfirmButtonText = "Yes, Close",
+                    CancelButtonText = "Cancel",
+                })).Confirmed;
 
                 if (!confirmed)
                 {
@@ -114,35 +114,24 @@ public class ApplicationCloseService : IApplicationCloseService
 
             if (showDialog)
             {
-                _logService.LogInformation("Showing donation dialog");
+                _logService.LogInformation("Showing sponsors dialog");
 
-                var (result, dontShowAgain) = await _dialogService.ShowDonationDialogAsync();
+                // The sponsors builder launches the store URL itself on a support
+                // click, so the close service only awaits the dialog — it does not
+                // open any URL. SupportClicked is intentionally ignored here.
+                var (supportClicked, dontShowAgain) = await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit);
 
-                _logService.LogInformation($"Donation dialog completed with result: {result}, DontShowAgain: {dontShowAgain}");
+                _logService.LogInformation($"Sponsors dialog completed with SupportClicked: {supportClicked}, DontShowAgain: {dontShowAgain}");
 
                 if (dontShowAgain)
                 {
                     _logService.LogInformation("Saving DontShowSupport preference");
                     await SaveDontShowSupportPreferenceAsync(true);
                 }
-
-                if (result == true)
-                {
-                    _logService.LogInformation("User clicked Yes, opening donation page");
-                    try
-                    {
-                        await _processExecutor.ShellExecuteAsync("https://ko-fi.com/memstechtips");
-                        _logService.LogInformation("Donation page opened successfully");
-                    }
-                    catch (Exception openEx)
-                    {
-                        _logService.LogError($"Error opening donation page: {openEx.Message}", openEx);
-                    }
-                }
             }
             else
             {
-                _logService.LogInformation("Skipping donation dialog due to user preference");
+                _logService.LogInformation("Skipping sponsors dialog due to user preference");
             }
 
             _logService.LogInformation("Shutting down application");
@@ -173,7 +162,7 @@ public class ApplicationCloseService : IApplicationCloseService
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error checking donation dialog preference: {ex.Message}", ex);
+            _logService.LogError($"Error checking sponsors dialog preference: {ex.Message}", ex);
             return true;
         }
     }

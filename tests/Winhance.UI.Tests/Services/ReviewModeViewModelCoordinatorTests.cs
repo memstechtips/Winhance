@@ -41,6 +41,7 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<IConfigReviewBadgeService> _configReviewBadgeService = new();
     private readonly Mock<IScheduledTaskService> _scheduledTaskService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
+    private readonly Mock<IApplicationModeService> _applicationModeService = new();
 
     private readonly Mock<OptimizeViewModel> _optimizeVm = new();
     private readonly Mock<CustomizeViewModel> _customizeVm = new();
@@ -108,7 +109,8 @@ public class ReviewModeViewModelCoordinatorTests
         _configReviewModeService.Object,
         _configReviewBadgeService.Object,
         _scheduledTaskService.Object,
-        _fileSystemService.Object);
+        _fileSystemService.Object,
+        _applicationModeService.Object);
 
     /// <summary>
     /// Creates the coordinator with real child ViewModels but mocked OptimizeVM/CustomizeVM.

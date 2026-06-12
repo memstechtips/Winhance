@@ -26,7 +26,7 @@
                     Margin="0,8,0,0">
 
             <local:NavButton x:Name="SoftwareAppsButton"
-                             IconPath="{StaticResource SoftwareAppsIconPath}"
+                             IconSymbol="Apps"
                              Text="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
                              NavigationTag="SoftwareApps"
@@ -34,7 +34,7 @@
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="OptimizeButton"
-                             IconPath="{StaticResource OptimizeIconPath}"
+                             IconSymbol="Gauge"
                              Text="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
                              NavigationTag="Optimize"
@@ -42,8 +42,7 @@
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="CustomizeButton"
-                             IconPath="{StaticResource CustomizeIconPath}"
-                             IconMargin="-3,0,0,0"
+                             IconSymbol="DesignIdeas"
                              Text="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
                              NavigationTag="Customize"
@@ -59,7 +58,7 @@
                     Margin="0,0,0,8">
 
             <local:NavButton x:Name="AdvancedToolsButton"
-                             IconPath="{StaticResource AdvancedToolsIconPath}"
+                             IconSymbol="WrenchScrewdriver"
                              Text="{x:Bind ViewModel.NavAdvancedToolsText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavAdvancedToolsText, Mode=OneWay}"
                              NavigationTag="AdvancedTools"
@@ -67,7 +66,7 @@
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="SettingsButton"
-                             IconGlyph="{StaticResource SettingsIconGlyph}"
+                             IconSymbol="Settings"
                              Text="{x:Bind ViewModel.NavSettingsText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavSettingsText, Mode=OneWay}"
                              NavigationTag="Settings"
@@ -75,7 +74,7 @@
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="MoreButton"
-                             IconGlyph="{StaticResource MoreIconGlyph}"
+                             IconSymbol="ListBar"
                              Text="{x:Bind ViewModel.NavMoreText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavMoreText, Mode=OneWay}"
                              NavigationTag="More"
@@ -122,6 +121,13 @@
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
 
+                        <!-- Change History -->
+                        <MenuFlyoutItem x:Name="OpenChangeHistoryMenuItem" Click="MoreMenuItem_Click" Tag="OpenChangeHistory">
+                            <MenuFlyoutItem.Icon>
+                                <fluentIcons:FluentIcon Icon="History" IconVariant="Regular" FontSize="20"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
                         <!-- Winhance Scripts -->
                         <MenuFlyoutItem x:Name="OpenScriptsMenuItem" Click="MoreMenuItem_Click" Tag="OpenScripts">
                             <MenuFlyoutItem.Icon>
@@ -130,6 +136,13 @@
                         </MenuFlyoutItem>
 
                         <MenuFlyoutSeparator/>
+
+                        <!-- Support Winhance -->
+                        <MenuFlyoutItem x:Name="SupportWinhanceMenuItem" Click="MoreMenuItem_Click" Tag="SupportWinhance">
+                            <MenuFlyoutItem.Icon>
+                                <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
 
                         <!-- Close Winhance -->
                         <MenuFlyoutItem x:Name="CloseAppMenuItem" Click="MoreMenuItem_Click" Tag="CloseApp">

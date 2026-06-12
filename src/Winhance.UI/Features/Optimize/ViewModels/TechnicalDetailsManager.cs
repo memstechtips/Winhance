@@ -101,6 +101,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         var rows = new List<TechnicalDetailRow>();
         var setting = tooltipData.SettingDefinition;
         var isSelection = setting?.InputType == InputType.Selection;
+        var isAction = setting?.InputType == InputType.Action;
         foreach (var kvp in tooltipData.IndividualRegistryValues)
         {
             var reg = kvp.Key;
@@ -117,10 +118,16 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
             // For Selection settings the per-entry RecommendedValue / DefaultValue are null;
             // the state lives on the ComboBoxOption whose IsRecommended / IsDefault flag is set.
-            string recommendedColumn;
-            string defaultColumn;
+            string recommendedColumn = string.Empty;
+            string defaultColumn = string.Empty;
             string currentColumn;
-            if (isSelection && setting is not null)
+            if (isAction && setting is not null)
+            {
+                // One-shot Action: Recommended/Default are meaningless. Show the current value
+                // and (via OnApplyValue below) what clicking the button writes.
+                currentColumn = FormatValueColumn(kvp.Value, reg, setting);
+            }
+            else if (isSelection && setting is not null)
             {
                 recommendedColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: true, _labels);
                 defaultColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: false, _labels);
@@ -147,6 +154,9 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 CurrentLabel = _labels.Current,
                 RecommendedLabel = _labels.Recommended,
                 DefaultLabel = _labels.Default,
+                IsActionRow = isAction,
+                OnApplyLabel = _labels.ScriptOnApply,
+                OnApplyValue = isAction ? FormatOnApplyValue(reg) : string.Empty,
                 OpenRegeditCommand = OpenRegeditCommand,
                 RegeditIconSource = RegeditIconProvider.CachedIcon,
                 CanOpenRegedit = keyExists
@@ -224,16 +234,20 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private List<TechnicalDetailRow> BuildPowerShellScriptRows(SettingTooltipData tooltipData)
     {
         var rows = new List<TechnicalDetailRow>();
+        // Action settings are one-shot — label the script "On Apply" rather than "On Enable",
+        // and skip the disabled-direction row (Action settings have no reverse).
+        var isAction = tooltipData.SettingDefinition?.InputType == InputType.Action;
+        var enabledLabel = isAction ? _labels.ScriptOnApply : _labels.ScriptOnEnable;
         foreach (var s in tooltipData.PowerShellScripts)
         {
             if (!string.IsNullOrWhiteSpace(s.EnabledScript))
                 rows.Add(new TechnicalDetailRow
                 {
                     RowType     = DetailRowType.PowerShellScript,
-                    ScriptLabel = _labels.ScriptOnEnable,
+                    ScriptLabel = enabledLabel,
                     ScriptBody  = s.EnabledScript
                 });
-            if (!string.IsNullOrWhiteSpace(s.DisabledScript))
+            if (!isAction && !string.IsNullOrWhiteSpace(s.DisabledScript))
                 rows.Add(new TechnicalDetailRow
                 {
                     RowType     = DetailRowType.PowerShellScript,
@@ -406,6 +420,20 @@ internal sealed class TechnicalDetailsManager : IDisposable
         if (reg.DisabledValue?.Contains(null) == true)
             return $"{_labels.ValueNotExist} ({_labels.Off})";
         return _labels.ValueNotExist;
+    }
+
+    // For a one-shot Action setting, the "On Apply" column shows what clicking the button
+    // writes — the first concrete EnabledValue. Empty binary renders as "(empty)"; a null
+    // sentinel means the value is removed (ValueNotExist). Note: byte[] doesn't have a useful
+    // ToString(), so it's formatted to space-separated hex here rather than via FormatConcreteValueText.
+    private string FormatOnApplyValue(RegistrySetting reg)
+    {
+        var write = reg.EnabledValue?.FirstOrDefault(v => v != null);
+        if (write is null)
+            return _labels.ValueNotExist;
+        if (write is byte[] bytes)
+            return bytes.Length == 0 ? "(empty)" : string.Join(" ", bytes.Select(b => b.ToString("X2")));
+        return FormatConcreteValueText(write);
     }
 
     private void OpenRegeditAtPath(string? path)

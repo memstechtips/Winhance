@@ -27,9 +27,18 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "python3",
                         MsStoreId = "9PNRBTZXMB4Z",
                         WebsiteUrl = "https://www.python.org/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/250px-Python-logo-notext.svg.png",
-                        ],
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-powershell",
+                        Name = "PowerShell",
+                        Description = "Cross-platform task automation and configuration management shell",
+                        GroupName = "Development Apps",
+                        AppxPackageName = ["Microsoft.PowerShell"],
+                        WinGetPackageId = ["Microsoft.PowerShell"],
+                        ChocoPackageId = "powershell-core",
+                        MsStoreId = "9MZ1SNWT0N5D",
+                        WebsiteUrl = "https://github.com/PowerShell/PowerShell",
                     },
                     new ItemDefinition
                     {
@@ -40,9 +49,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Notepad++.Notepad++"],
                         ChocoPackageId = "notepadplusplus",
                         WebsiteUrl = "https://notepad-plus-plus.org/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/notepad-plus-plus/notepad-plus-plus/master/PowerEditor/src/icons/npp.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -56,9 +62,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "winscp",
                         MsStoreId = "9P0PQ8B65N8X",
                         WebsiteUrl = "https://winscp.net/",
-                        IconSources = [
-                            "https://winscp-static-746341.c.cdn77.org/assets/images/logos/logo.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -71,9 +74,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "putty",
                         MsStoreId = "XPFNZKSKLBP7RJ",
                         WebsiteUrl = "https://www.putty.org/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/github/putty/master/windows/puttygen.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -85,9 +85,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["WinMerge.WinMerge"],
                         ChocoPackageId = "winmerge",
                         WebsiteUrl = "https://winmerge.org/",
-                        IconSources = [
-                            "https://raw.githubusercontent.com/WinMerge/winmerge/master/Src/res/Merge.ico",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -99,9 +96,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["EclipseFoundation.Eclipse.Java"],
                         ChocoPackageId = "eclipse-java-oxygen",
                         WebsiteUrl = "https://eclipseide.org/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Eclipse-SVG.svg/250px-Eclipse-SVG.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -114,9 +108,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vscode",
                         MsStoreId = "XP9KHM4BK9FZ7Q",
                         WebsiteUrl = "https://code.visualstudio.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Visual_Studio_Code_1.35_icon.svg/250px-Visual_Studio_Code_1.35_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -127,9 +118,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Git.Git"],
                         ChocoPackageId = "git",
                         WebsiteUrl = "https://git-scm.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Git_icon.svg/250px-Git_icon.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -140,9 +128,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["GitHub.GitHubDesktop"],
                         ChocoPackageId = "github-desktop",
                         WebsiteUrl = "https://desktop.github.com/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Github-desktop-logo-symbol.svg/250px-Github-desktop-logo-symbol.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -153,9 +138,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Meld.Meld"],
                         ChocoPackageId = "meld",
                         WebsiteUrl = "https://meldmerge.org/",
-                        IconSources = [
-                            "https://gitlab.gnome.org/GNOME/meld/-/raw/main/data/icons/org.gnome.meld.ico",
-                        ],
                     }
                 }
             };

@@ -17,7 +17,7 @@ namespace Winhance.UI.Features.Common.Services;
 /// Eagerly computes diffs when entering review mode so badge counts
 /// reflect actual changes from current system state.
 /// </summary>
-public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IDisposable
+public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IApplicationModeService, IDisposable
 {
     private bool _disposed;
     private readonly ILogService _logService;
@@ -31,6 +31,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
     private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
     private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
+    private readonly Dictionary<string, BuilderEdit> _builderEdits = new();
 
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
@@ -68,7 +69,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _localizationService.LanguageChanged -= OnLanguageChanged;
     }
 
-    public bool IsInReviewMode { get; private set; }
+    public WinhanceMode CurrentMode { get; private set; } = WinhanceMode.Normal;
+    public BuilderTarget CurrentBuilderTarget { get; private set; } = BuilderTarget.Config;
+
+    // Legacy view retained for existing callers; now derived from CurrentMode.
+    public bool IsInReviewMode => CurrentMode == WinhanceMode.ConfigReview;
     public bool IsWindowsDefaults { get; private set; }
     public UnifiedConfigurationFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
@@ -80,16 +85,22 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public event EventHandler? ReviewModeChanged;
     public event EventHandler? ApprovalCountChanged;
     public event EventHandler? BadgeStateChanged;
+    public event EventHandler? ModeChanged;
 
     public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
     {
+        // Fully tear down whatever mode we're leaving (clears Builder edits / prior review
+        // state) before seeding review. Review entry is the one async transition, so it
+        // drives the teardown itself rather than routing through SetMode.
+        LeaveCurrentMode();
+
         ActiveConfig = config;
         IsWindowsDefaults = isWindowsDefaults;
         _diffs.Clear();
         _configItemCounts.Clear();
         _featuresInConfig.Clear();
         _visitedFeatures.Clear();
-        IsInReviewMode = true;
+        CurrentMode = WinhanceMode.ConfigReview;
 
         // First compute total config item counts and populate _featuresInConfig
         ComputeConfigItemCounts(config);
@@ -112,11 +123,72 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
         _logService.Log(LogLevel.Info,
             $"[ConfigReviewService] Entered review mode with {TotalConfigItems} total config items, {TotalChanges} actual diffs");
+        // Ordering is load-bearing: ReviewModeChanged must fire before ModeChanged so the
+        // orchestration service can still see the pre-review mode when deciding whether to
+        // reapply diffs in place (Normal -> Review) or reload stale Builder VMs first.
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+        ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void ExitReviewMode()
+    public void ExitReviewMode() => SetMode(WinhanceMode.Normal);
+
+    public void EnterBuilderMode(BuilderTarget target) => SetMode(WinhanceMode.Builder, target);
+
+    /// <summary>
+    /// The single entry point for synchronous mode transitions (Normal, Builder). Fully
+    /// exits whatever mode is active — clearing its state and raising its "exited" events so
+    /// subscribers clean up — before entering <paramref name="target"/>. This is the state
+    /// machine's chokepoint: no public method sets <see cref="CurrentMode"/> directly, so the
+    /// modes can never bleed into each other regardless of which transition a caller requests.
+    /// Review entry is async and routes its teardown through <see cref="LeaveCurrentMode"/>.
+    /// </summary>
+    private void SetMode(WinhanceMode target, BuilderTarget builderTarget = BuilderTarget.Config)
+    {
+        LeaveCurrentMode();
+
+        if (target == WinhanceMode.Builder)
+        {
+            CurrentBuilderTarget = builderTarget;
+        }
+
+        CurrentMode = target;
+        _logService.Log(LogLevel.Info, target == WinhanceMode.Builder
+            ? $"[ConfigReviewService] Entered Builder mode (target: {builderTarget})"
+            : $"[ConfigReviewService] Entered {target} mode");
+        ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Completely exits the active mode: clears its in-memory state and raises the
+    /// mode-specific "exited" events (so e.g. the orchestration service clears per-setting
+    /// review state). Leaves <see cref="CurrentMode"/> at Normal and does NOT raise
+    /// <see cref="ModeChanged"/> — the caller owns entering the next mode and raising that.
+    /// No-op when already Normal.
+    /// </summary>
+    private void LeaveCurrentMode()
+    {
+        switch (CurrentMode)
+        {
+            case WinhanceMode.ConfigReview:
+                ClearReviewArtifacts();
+                // Flip out of review BEFORE notifying so subscribers see IsInReviewMode == false.
+                CurrentMode = WinhanceMode.Normal;
+                ReviewModeChanged?.Invoke(this, EventArgs.Empty);
+                BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case WinhanceMode.Builder:
+                _builderEdits.Clear();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Resets the in-memory review artifacts (diffs, counts, active config). Does not
+    /// touch <see cref="CurrentMode"/> or raise events — callers own the transition.
+    /// </summary>
+    private void ClearReviewArtifacts()
     {
         ActiveConfig = null;
         _diffs.Clear();
@@ -124,11 +196,44 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _featuresInConfig.Clear();
         _visitedFeatures.Clear();
         TotalConfigItems = 0;
-        IsInReviewMode = false;
         IsWindowsDefaults = false;
-        _logService.Log(LogLevel.Info, "[ConfigReviewService] Exited review mode");
-        ReviewModeChanged?.Invoke(this, EventArgs.Empty);
-        BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RecordBuilderEdit(BuilderEdit edit)
+    {
+        if (edit == null || string.IsNullOrEmpty(edit.SettingId))
+        {
+            return;
+        }
+
+        _builderEdits[edit.SettingId] = edit;
+    }
+
+    public IReadOnlyCollection<BuilderEdit> GetBuilderEdits()
+    {
+        return _builderEdits.Values.ToList();
+    }
+
+    public void SetBuilderTarget(BuilderTarget target)
+    {
+        if (CurrentMode != WinhanceMode.Builder || CurrentBuilderTarget == target)
+        {
+            return;
+        }
+
+        CurrentBuilderTarget = target;
+        _logService.Log(LogLevel.Info, $"[ConfigReviewService] Builder target switched to {target}");
+        ModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void EnterNormalMode()
+    {
+        if (CurrentMode == WinhanceMode.Normal)
+        {
+            return;
+        }
+
+        SetMode(WinhanceMode.Normal);
     }
 
     public ConfigReviewDiff? GetDiffForSetting(string settingId)

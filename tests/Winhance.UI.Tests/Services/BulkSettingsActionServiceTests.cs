@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,12 +31,24 @@ public class BulkSettingsActionServiceTests
     private readonly Mock<IWindowsVersionService> _versionService = new();
     private readonly Mock<ISettingApplicationService> _applicationService = new();
     private readonly Mock<IProcessRestartManager> _processRestartManager = new();
+    private readonly Mock<IRecommendedSettingsApplier> _recommendedApplier = new();
     private readonly Mock<ILogService> _logService = new();
+    private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private readonly Mock<ILocalizationService> _localizationService = new();
 
     public BulkSettingsActionServiceTests()
     {
         _versionService.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
+        _versionService.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
         _versionService.Setup(v => v.IsWindows11()).Returns(true);
+
+        _changeHistoryService
+            .Setup(h => h.BeginBatch(It.IsAny<string>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        _localizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string k) => k);
     }
 
     private BulkSettingsActionService CreateSut(params SettingDefinition[] settings)
@@ -53,12 +66,53 @@ public class BulkSettingsActionServiceTests
             .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<System.Collections.Generic.IEnumerable<SettingDefinition>>()))
             .Returns(Task.CompletedTask);
 
+        // Applier mock: delegates each setting's apply to _applicationService so
+        // existing round-trip tests that capture the written Value still work.
+        _recommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<System.Collections.Generic.IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<System.IProgress<TaskProgressDetail>>()))
+            .Returns(async (System.Collections.Generic.IReadOnlyList<SettingDefinition> list,
+                            ISettingApplicationService applySvc,
+                            System.IProgress<TaskProgressDetail> _) =>
+            {
+                var applied = new System.Collections.Generic.List<SettingDefinition>();
+                foreach (var s in list)
+                {
+                    if (s.InputType == InputType.Selection &&
+                        s.ComboBox?.Options != null)
+                    {
+                        // Find the IsRecommended option index
+                        var recIdx = s.ComboBox.Options
+                            .Select((opt, i) => (opt, i))
+                            .FirstOrDefault(x => x.opt.IsRecommended);
+                        if (recIdx.opt != null)
+                        {
+                            await applySvc.ApplySettingAsync(new ApplySettingRequest
+                            {
+                                SettingId = s.Id,
+                                Enable = true,
+                                Value = recIdx.i,
+                                SkipValuePrerequisites = true,
+                            });
+                            applied.Add(s);
+                        }
+                    }
+                    // Other types: skip (not needed by existing UI tests)
+                }
+                return (System.Collections.Generic.IReadOnlyList<SettingDefinition>)applied;
+            });
+
         return new BulkSettingsActionService(
             _settingsRegistry.Object,
             _versionService.Object,
             _applicationService.Object,
             _processRestartManager.Object,
-            _logService.Object);
+            _recommendedApplier.Object,
+            _logService.Object,
+            _changeHistoryService.Object,
+            _localizationService.Object);
     }
 
     private static SettingDefinition MakeSelectionSetting(

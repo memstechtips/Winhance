@@ -47,6 +47,7 @@ public sealed partial class CustomizePage : Page
     private IUserPreferencesService? _userPreferencesService;
     private ILocalizationService? _localizationService;
     private IBulkSettingsActionService? _bulkSettingsActionService;
+    private IApplicationModeService? _applicationModeService;
     private Dictionary<string, InfoBadge>? _flyoutBadges;
     private bool _isTechnicalDetailsVisible;
     private bool _isInfoBadgesVisible = true;
@@ -89,6 +90,7 @@ public sealed partial class CustomizePage : Page
             _userPreferencesService = App.Services.GetService<IUserPreferencesService>();
             _localizationService = App.Services.GetService<ILocalizationService>();
             _bulkSettingsActionService = App.Services.GetService<IBulkSettingsActionService>();
+            _applicationModeService = App.Services.GetService<IApplicationModeService>();
 
             StartupLogger.Log("CustomizePage", "ViewModel obtained, constructor complete");
         }
@@ -571,9 +573,11 @@ public sealed partial class CustomizePage : Page
     private void SetDropdownLabels()
     {
         QuickActionsLabel.Text = _localizationService?.GetString("QuickActions_Menu") ?? "Quick Actions";
+        AutomationProperties.SetName(QuickActionsButton, QuickActionsLabel.Text);
         ApplyRecommendedItem.Text = _localizationService?.GetString("QuickActions_ApplyRecommended") ?? "Apply Recommended Settings";
         ResetDefaultsItem.Text = _localizationService?.GetString("QuickActions_ResetDefaults") ?? "Reset to Windows Defaults";
         ViewMenuLabel.Text = _localizationService?.GetString("View_Menu") ?? "View";
+        AutomationProperties.SetName(ViewMenuButton, ViewMenuLabel.Text);
         TechnicalDetailsToggleItem.Text = _localizationService?.GetString("View_TechnicalDetails") ?? "Technical Details";
         ToolTipService.SetToolTip(TechnicalDetailsToggleItem, _localizationService?.GetString("View_TechnicalDetails_Tooltip") ?? "Show or hide technical details for each setting");
         InfoBadgesToggleItem.Text = _localizationService?.GetString("View_InfoBadges") ?? "InfoBadges";
@@ -765,7 +769,13 @@ public sealed partial class CustomizePage : Page
             {
                 if (_showOnlyChanges)
                 {
-                    setting.IsVisible = setting.HasReviewDiff || setting.HasReviewAction;
+                    // Visibility is decided by the service's diff dictionary — the same
+                    // source that drives TotalChanges / ReviewedChanges and the Apply gate.
+                    // Reading per-VM flags here used to drift behind the service when a
+                    // sub-page's ViewModels hadn't been hydrated yet, hiding rows the user
+                    // still needed to review (issue #665). See ReviewModeFilter for context.
+                    setting.IsVisible = ReviewModeFilter.ShouldShowInReviewQueue(
+                        setting.SettingId, _configReviewService);
                 }
                 else
                 {
@@ -780,6 +790,8 @@ public sealed partial class CustomizePage : Page
     {
         if (_configReviewService?.IsInReviewMode == true)
             await ExecuteReviewBulkActionAsync(approved: true);
+        else if (_applicationModeService?.CurrentMode == WinhanceMode.Builder)
+            await ExecuteBuilderBulkActionAsync(BulkActionType.ApplyRecommended);
         else
             await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
     }
@@ -788,8 +800,71 @@ public sealed partial class CustomizePage : Page
     {
         if (_configReviewService?.IsInReviewMode == true)
             await ExecuteReviewBulkActionAsync(approved: false);
+        else if (_applicationModeService?.CurrentMode == WinhanceMode.Builder)
+            await ExecuteBuilderBulkActionAsync(BulkActionType.ResetToDefaults);
         else
             await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
+    }
+
+    /// <summary>
+    /// Builder-mode Quick Actions: moves every setting on the current page to its
+    /// recommended/default value in the UI only. Each setting routes through the same
+    /// guarded pipeline as the per-card quick-set buttons, which in Builder mode records
+    /// a builder edit instead of applying to the live system.
+    /// </summary>
+    private async Task ExecuteBuilderBulkActionAsync(BulkActionType actionType)
+    {
+        bool recommended = actionType == BulkActionType.ApplyRecommended;
+        var settings = GetCurrentPageSettingViewModels();
+
+        int count = settings.Count(s => recommended ? s.HasRecommendedQuickSetTarget : s.HasDefaultQuickSetTarget);
+        if (count == 0) return;
+
+        var confirmMessage = string.Format(
+            _localizationService?.GetString("QuickActions_ConfirmMessage") ?? "This will change {0} settings on this page. Continue?",
+            count);
+
+        var dialog = new ContentDialog
+        {
+            Title = _localizationService?.GetString("QuickActions_ConfirmTitle") ?? "Confirm Action",
+            Content = confirmMessage,
+            PrimaryButtonText = "OK",
+            CloseButtonText = _localizationService?.GetString("Button_Cancel") ?? "Cancel",
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary) return;
+
+        foreach (var setting in settings)
+        {
+            if (recommended) setting.TrySetToRecommended();
+            else setting.TrySetToDefault();
+        }
+
+        // Builder edits never publish SettingAppliedEvent (nothing is applied to the
+        // system), and that event is the only live trigger for the overview feature
+        // pills — without this explicit re-aggregation the overview shows no change
+        // at all after a bulk builder action.
+        UpdateOverviewBadgePills();
+        UpdateOverviewNewBadges();
+    }
+
+    private List<Winhance.UI.Features.Optimize.ViewModels.SettingItemViewModel> GetCurrentPageSettingViewModels()
+    {
+        var settings = new List<Winhance.UI.Features.Optimize.ViewModels.SettingItemViewModel>();
+        var sectionsToInclude = ViewModel.IsInDetailPage
+            ? CustomizeViewModel.Sections.Where(s => s.Key == ViewModel.CurrentSectionKey)
+            : CustomizeViewModel.Sections;
+
+        foreach (var section in sectionsToInclude)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            settings.AddRange(sectionVm.Settings);
+        }
+
+        return settings;
     }
 
     private async Task ExecuteBulkActionAsync(BulkActionType actionType)

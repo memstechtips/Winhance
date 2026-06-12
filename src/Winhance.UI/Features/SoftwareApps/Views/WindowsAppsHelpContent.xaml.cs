@@ -1,4 +1,6 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
@@ -9,9 +11,12 @@ namespace Winhance.UI.Features.SoftwareApps.Views;
 
 public sealed partial class WindowsAppsHelpContent : UserControl
 {
+    private readonly ILocalizationService _localizationService;
+
     public WindowsAppsHelpContent(ILocalizationService localizationService)
     {
         this.InitializeComponent();
+        _localizationService = localizationService;
 
         InstalledText.Text = localizationService.GetString("Status_Installed");
         NotInstalledText.Text = localizationService.GetString("Status_NotInstalled");
@@ -42,14 +47,43 @@ public sealed partial class WindowsAppsHelpContent : UserControl
         // Apply initial color
         UpdateIconColor(pathIcon, item);
 
-        // Update color when IsActive changes
+        bool wasLoading = item.IsLoading;
         item.PropertyChanged += (s, args) =>
         {
+            // Update icon color when IsActive flips.
             if (args.PropertyName == nameof(RemovalStatusViewModel.IsActive))
             {
                 DispatcherQueue.TryEnqueue(() => UpdateIconColor(pathIcon, item));
             }
+
+            // Live-region announcement on removal start / finish (issue #647).
+            if (args.PropertyName == nameof(RemovalStatusViewModel.IsLoading))
+            {
+                if (item.IsLoading && !wasLoading)
+                {
+                    var template = _localizationService.GetString("Accessibility_Removing") ?? "Removing {0}";
+                    DispatcherQueue.TryEnqueue(() => Announce(string.Format(template, item.ScheduledTaskName)));
+                }
+                else if (!item.IsLoading && wasLoading)
+                {
+                    var template = _localizationService.GetString("Accessibility_Removed") ?? "{0} removed";
+                    DispatcherQueue.TryEnqueue(() => Announce(string.Format(template, item.ScheduledTaskName)));
+                }
+                wasLoading = item.IsLoading;
+            }
         };
+    }
+
+    private void Announce(string message)
+    {
+        var peer = FrameworkElementAutomationPeer.FromElement(this)
+                   ?? FrameworkElementAutomationPeer.CreatePeerForElement(this);
+
+        peer?.RaiseNotificationEvent(
+            AutomationNotificationKind.ActionCompleted,
+            AutomationNotificationProcessing.ImportantMostRecent,
+            message,
+            "WindowsAppsRemoval");
     }
 
     private static void UpdateIconColor(PathIcon pathIcon, RemovalStatusViewModel item)

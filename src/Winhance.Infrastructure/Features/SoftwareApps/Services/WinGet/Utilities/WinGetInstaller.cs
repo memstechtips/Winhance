@@ -192,7 +192,16 @@ public class WinGetInstaller
                         _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
                     }
                 },
-                onErrorLine: line => _logService?.LogWarning($"[bundled-winget-err] {line}"),
+                onErrorLine: line =>
+                {
+                    _logService?.LogWarning($"[bundled-winget-err] {line}");
+                    // Surface stderr in the terminal too — winget's actual error text
+                    // is useless to users (and to bug reports) if it only hits the log file.
+                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                    {
+                        TerminalOutput = line
+                    });
+                },
                 cancellationToken: cancellationToken,
                 // Install can legitimately take >5 min for slow CDNs / large packages.
                 // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
@@ -221,6 +230,17 @@ public class WinGetInstaller
                 _logService?.LogInformation($"AppInstaller installed via bundled winget (exit code: 0x{result.ExitCode:X8})");
                 ReportProgress(100, GetString("Progress_WinGet_InstalledSuccessfully"));
                 return (true, GetString("Progress_WinGet_InstalledSuccessfully"));
+            }
+
+            // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict (see issue #675)
+            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: 180_000);
+            if (terminationNote != null)
+            {
+                _logService?.LogWarning($"[bundled-winget] {terminationNote}");
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = terminationNote
+                });
             }
 
             _logService?.LogWarning($"Bundled winget install failed with exit code: 0x{result.ExitCode:X8}");

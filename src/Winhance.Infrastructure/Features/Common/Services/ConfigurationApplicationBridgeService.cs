@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -12,15 +13,18 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ILogService _logService;
+    private readonly IConfigImportState _configImportState;
 
     public ConfigurationApplicationBridgeService(
         ISettingApplicationService settingApplicationService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ILogService logService)
+        ILogService logService,
+        IConfigImportState configImportState)
     {
         _settingApplicationService = settingApplicationService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _logService = logService;
+        _configImportState = configImportState;
     }
 
     public async Task<bool> ApplyConfigurationSectionAsync(
@@ -35,6 +39,19 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         }
 
         _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {sectionName} section");
+
+        // If this section carries individual PowerCfg-backed items alongside the power-plan
+        // selection, mark the import as the source of truth for power values. The power-plan
+        // special handler reads this flag and skips its recommended-settings re-apply, which
+        // would otherwise duplicate (and race with) these individual items in the same wave.
+        // Only set true here; the import orchestrators reset it (other sections run in parallel).
+        if (section.Items.Any(i =>
+                !string.IsNullOrEmpty(i.Id) &&
+                i.Id != SettingIds.PowerPlanSelection &&
+                i.PowerSettings != null))
+        {
+            _configImportState.ImportSuppliesPowerValues = true;
+        }
 
         var waves = BuildDependencyWaves(section.Items);
         _logService.Log(LogLevel.Info, $"Organized {section.Items.Count} settings into {waves.Count} parallel wave(s)");
@@ -125,10 +142,19 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         throw new InvalidOperationException("Configuration file is invalid or corrupted.");
     }
 
-    private object? ResolveNumericRangeValue(ConfigurationItem item)
+    private object? ResolveNumericRangeValue(SettingDefinition setting, ConfigurationItem item)
     {
         if (item.PowerSettings == null || item.PowerSettings.Count == 0)
             return null;
+
+        // PowerCfg-backed NumericRange settings are exported in SYSTEM units (raw powercfg
+        // reads, e.g. seconds). PowerCfgApplier treats incoming dict/scalar values as DISPLAY
+        // units and converts display→system itself, so we must convert system→display here —
+        // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
+        // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgSettings and pass
+        // through unchanged.
+        bool isPowerCfg = setting.PowerCfgSettings?.Any() == true;
+        string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
 
         var hasAcValue = item.PowerSettings.TryGetValue("ACValue", out var acVal);
         var hasDcValue = item.PowerSettings.TryGetValue("DCValue", out var dcVal);
@@ -137,17 +163,36 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         {
             return new Dictionary<string, object?>
             {
-                ["ACValue"] = UnwrapJsonElement(acVal),
-                ["DCValue"] = UnwrapJsonElement(dcVal ?? acVal)
+                ["ACValue"] = ConvertToDisplayIfPowerCfg(UnwrapJsonElement(acVal), isPowerCfg, displayUnits),
+                ["DCValue"] = ConvertToDisplayIfPowerCfg(UnwrapJsonElement(dcVal ?? acVal), isPowerCfg, displayUnits)
             };
         }
 
         if (item.PowerSettings.TryGetValue("Value", out var singleVal))
         {
-            return UnwrapJsonElement(singleVal);
+            return ConvertToDisplayIfPowerCfg(UnwrapJsonElement(singleVal), isPowerCfg, displayUnits);
         }
 
         return null;
+    }
+
+    // Converts a stored system-unit numeric value to display units for PowerCfg NumericRange
+    // settings, reusing RecommendedSettingsResolver's conversion table. Leaves the value
+    // untouched for non-PowerCfg settings or non-numeric values.
+    private static object? ConvertToDisplayIfPowerCfg(object? value, bool isPowerCfg, string? displayUnits)
+    {
+        if (!isPowerCfg || value == null)
+            return value;
+
+        try
+        {
+            int systemValue = Convert.ToInt32(value);
+            return RecommendedSettingsResolver.ConvertSystemToDisplayUnits(systemValue, displayUnits);
+        }
+        catch
+        {
+            return value;
+        }
     }
 
     private static object? UnwrapJsonElement(object? value)
@@ -278,21 +323,29 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             }
             else if (setting.InputType == InputType.NumericRange)
             {
-                valueToApply = ResolveNumericRangeValue(item);
+                valueToApply = ResolveNumericRangeValue(setting, item);
             }
 
-            if (setting.InputType == InputType.Action && !string.IsNullOrEmpty(setting.ActionCommand))
+            if (setting.InputType == InputType.Action)
             {
-                if (item.IsSelected ?? false)
+                // Action settings only apply when explicitly selected. An unselected Action has
+                // no "reverse" semantic — falling through with Enable=false would write
+                // DisabledValue (delete the keys the action set), which is destructive.
+                if (!(item.IsSelected ?? false))
                 {
-                    await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                    {
-                        SettingId = item.Id,
-                        Enable = false,
-                        CommandString = setting.ActionCommand,
-                        SkipValuePrerequisites = true
-                    }).ConfigureAwait(false);
+                    _logService.Log(LogLevel.Debug, $"Skipping unselected Action setting: {item.Name}");
+                    return (ApplyStatus.Applied, item.Name);
                 }
+
+                // Catalog path: operations declared directly on the SettingDefinition.
+                // Enable=true matches the runtime button-click flow (RunActionAsync).
+                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                {
+                    SettingId = item.Id,
+                    Enable = true,
+                    CheckboxResult = checkboxResult,
+                    SkipValuePrerequisites = true
+                }).ConfigureAwait(false);
             }
             else
             {

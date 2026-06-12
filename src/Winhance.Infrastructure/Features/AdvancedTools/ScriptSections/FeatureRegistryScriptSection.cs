@@ -123,6 +123,20 @@ internal class FeatureRegistryScriptSection
                 {
                     _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
+                else if (configItem.InputType == InputType.Action)
+                {
+                    // Action settings are one-shot "apply" — only emit when the user actually
+                    // selected them. Unlike Toggle, an unselected Action has no "disabled"
+                    // semantic; we must not emit a DisabledValue write (which would delete
+                    // the key the action would have set). Skip the registry emit when
+                    // IsSelected is false/null and let the PS-script block below also see
+                    // useEnabled=false (it already does the right thing by selecting the
+                    // null DisabledScript and emitting nothing).
+                    if (configItem.IsSelected == true)
+                    {
+                        _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
+                    }
+                }
 
                 // Emit PowerShell scripts whose RunContext matches the current pass.
                 if (settingDef.PowerShellScripts?.Count > 0)
@@ -148,6 +162,13 @@ internal class FeatureRegistryScriptSection
                             && configItem.SelectedIndex.Value < selScriptOptions.Count
                             && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
                         {
+                            // A "None" option applies no script — emit nothing into the
+                            // autounattend for this selection (e.g. Custom / leave-alone).
+                            if (scriptOption == ScriptOption.None)
+                            {
+                                continue;
+                            }
+
                             useEnabled = scriptOption == ScriptOption.Enabled;
                         }
 

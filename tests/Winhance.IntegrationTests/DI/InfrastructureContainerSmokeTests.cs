@@ -44,10 +44,12 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IGlobalSettingsPreloader))]
     [InlineData(typeof(IScheduledTaskService))]
     [InlineData(typeof(IVersionService))]
+    [InlineData(typeof(ISponsorsService))]
     [InlineData(typeof(ITooltipDataService))]
     [InlineData(typeof(IConfigurationApplicationBridgeService))]
     [InlineData(typeof(IConfigMigrationService))]
     [InlineData(typeof(IPolicyCleanupService))]
+    [InlineData(typeof(IChangeHistoryService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         // Arrange
@@ -84,8 +86,8 @@ public class InfrastructureContainerSmokeTests
         using var provider = BuildProvider();
 
         // Act & Assert — these are registered via factory lambdas
-        var recommended = provider.GetService<IRecommendedSettingsService>();
-        recommended.Should().NotBeNull("IRecommendedSettingsService (factory registration) should resolve");
+        var taskProgress = provider.GetService<ITaskProgressService>();
+        taskProgress.Should().NotBeNull("ITaskProgressService (factory registration) should resolve");
     }
 
     [Fact]

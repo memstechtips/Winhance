@@ -26,7 +26,19 @@ public static class TaskbarCustomizations
                     Icon = "Broom",
                     RequiresConfirmation = true,
                     RestartProcess = "Explorer",
-                    ActionCommand = "CleanTaskbarAsync",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband",
+                            ValueName = "Favorites",
+                            EnabledValue = [new byte[0]],
+                            DisabledValue = [null],
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.Binary,
+                        },
+                    },
                 },
                 new SettingDefinition
                 {
@@ -643,34 +655,44 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-system-tray-icons-11",
-                    IsSubjectivePreference = true,
-                    Name = "Always show all system tray icons",
-                    Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. When disabled, all icons will be hidden in the overflow menu. To control individual icon visibility, go to Windows Settings > Personalization > Taskbar > Other system tray icons",
+                    Name = "System tray icons",
+                    Description = "Choose how system tray icons appear on the taskbar. \"Show all icons\" promotes every icon to the taskbar; \"Hide all icons\" folds them into the overflow menu; \"Custom\" leaves your per-icon choices from Windows Settings > Personalization > Taskbar > Other system tray icons unchanged.",
                     GroupName = "Taskbar Behavior",
-                    InputType = InputType.Toggle,
+                    InputType = InputType.Selection,
                     Icon = "TrayFull",
                     IsWindows11Only = true,
                     AddedInVersion = "25.04.08",
+                    DetectionType = DetectionType.SystemTrayIcons,
                     RestartProcess = "Explorer",
-                    RegistrySettings = new List<RegistrySetting>
+                    ComboBox = new ComboBoxMetadata
                     {
-                        new RegistrySetting
+                        Options = new List<ComboBoxOption>
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify",
-                            ValueName = "SystemTrayChevronVisibility",
-                            RecommendedValue = 0,
-                            EnabledValue = [0],
-                            DisabledValue = [1],
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
+                            new()
+                            {
+                                DisplayName = "Show all icons",
+                                Script = ScriptOption.Enabled,
+                                IsRecommended = true,
+                            },
+                            new()
+                            {
+                                DisplayName = "Hide all icons",
+                                Script = ScriptOption.Disabled,
+                            },
+                            new()
+                            {
+                                DisplayName = "Custom",
+                                Script = ScriptOption.None,
+                                IsDefault = true,
+                            },
                         },
                     },
                     PowerShellScripts = new List<PowerShellScriptSetting>
                     {
                         new PowerShellScriptSetting
                         {
-                            EnabledScript = @"Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }",
-                            DisabledScript = @"Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 0 -Type DWord }",
+                            EnabledScript = @"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 0 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }",
+                            DisabledScript = @"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 1 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 0 -Type DWord }",
                             RequiresElevation = false,
                             RunContext = RunContext.User,
                         },

@@ -21,6 +21,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private readonly IConfigLoadService _configLoadService;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
+    private readonly IChangeHistoryService _changeHistoryService;
 
     public ConfigApplicationExecutionService(
         ILogService logService,
@@ -35,7 +36,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         IConfigAppSelectionService configAppSelectionService,
         IConfigLoadService configLoadService,
         IReviewModeViewModelCoordinator vmCoordinator,
-        IPolicyCleanupService policyCleanupService)
+        IPolicyCleanupService policyCleanupService,
+        IChangeHistoryService changeHistoryService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -50,6 +52,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _configLoadService = configLoadService;
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
+        _changeHistoryService = changeHistoryService;
     }
 
     public async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config, ImportOptions dialogOptions)
@@ -166,6 +169,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             _overlayService.ShowOverlay(overlayStatus);
 
             _configImportState.IsActive = true;
+            _configImportState.ImportSuppliesPowerValues = false;
+            var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
 
             try
             {
@@ -182,6 +187,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             finally
             {
                 _configImportState.IsActive = false;
+                _configImportState.ImportSuppliesPowerValues = false;
+                changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
 
@@ -562,6 +569,13 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         }
 
         return items;
+    }
+
+    private string BuildImportBatchHeader()
+    {
+        var label = _localizationService.GetString("ChangeHistory_ConfigImport");
+        var source = _configImportState.SourceName;
+        return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
     private async Task ShowImportSuccessMessage(List<string> selectedSections)

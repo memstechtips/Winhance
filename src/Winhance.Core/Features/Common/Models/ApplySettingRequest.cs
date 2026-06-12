@@ -6,7 +6,6 @@ public sealed record ApplySettingRequest
     public required bool Enable { get; init; }
     public object? Value { get; init; }
     public bool CheckboxResult { get; init; }
-    public string? CommandString { get; init; }
     public bool ApplyRecommended { get; init; }
     public bool SkipValuePrerequisites { get; init; }
     /// <summary>

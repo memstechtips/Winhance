@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
-using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Extensions.DI;
 using Winhance.UI.Features.Common.Interfaces;
 
@@ -189,7 +188,6 @@ public partial class App : Application
         try
         {
             var localizationService = Services.GetRequiredService<ILocalizationService>();
-            StringKeys.Localized.Initialize(localizationService);
 
             // Load and apply the saved language preference (sync to avoid async deadlock on UI thread)
             var preferencesService = Services.GetRequiredService<IUserPreferencesService>();

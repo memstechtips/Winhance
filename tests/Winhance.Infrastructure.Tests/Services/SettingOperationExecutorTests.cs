@@ -511,6 +511,39 @@ public class SettingOperationExecutorTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task ApplySettingOperationsAsync_ScriptMappings_NoneIndex_SkipsPowerShellRunner()
+    {
+        var setting = CreateSetting("ps-scriptmap-none", InputType.Selection) with
+        {
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Show all", Script = ScriptOption.Enabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Hide all", Script = ScriptOption.Disabled },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom", Script = ScriptOption.None },
+                },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting
+                {
+                    EnabledScript = "echo enabled",
+                    DisabledScript = "echo disabled",
+                    RunContext = RunContext.User,
+                },
+            },
+        };
+
+        // enable=false, value=2 (Custom index → ScriptOption.None → no script should run)
+        await _executor.ApplySettingOperationsAsync(setting, false, 2);
+
+        _mockPowerShell.Verify(
+            p => p.RunScriptInMemoryAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // ---------------------------------------------------------------
     // 5. Power config operations delegated to PowerCfgApplier
     // ---------------------------------------------------------------
@@ -1251,29 +1284,33 @@ public class SettingOperationExecutorTests
     }
 
     // ---------------------------------------------------------------
-    // Unsupported InputType for registry operations
+    // InputType.Action: one-shot apply emits EnabledValue writes via the
+    // same path as Toggle with enable=true. Catalog-declared operations
+    // for Action settings (Clean Start Menu, Taskbar Clean).
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplySettingOperationsAsync_UnsupportedInputType_ThrowsNotSupportedException()
+    public async Task ApplySettingOperationsAsync_ActionInputType_AppliesRegistryWithEnabledValue()
     {
         var reg1 = new RegistrySetting
         {
-            KeyPath = @"HKCU\Software\Test",
+            KeyPath = @"HKLM\Software\Test",
             ValueName = "Val",
-            ValueType = RegistryValueKind.DWord,
-            RecommendedValue = null,
+            ValueType = RegistryValueKind.String,
+            EnabledValue = ["payload"],
+            DisabledValue = [null],
+            RecommendedValue = "payload",
             DefaultValue = null
         };
-        var setting = CreateSetting("unsupported", InputType.Action) with
+        var setting = CreateSetting("action-apply", InputType.Action) with
         {
             RegistrySettings = new[] { reg1 },
         };
 
-        var action = () => _executor.ApplySettingOperationsAsync(setting, true, null);
+        var result = await _executor.ApplySettingOperationsAsync(setting, true, null);
 
-        await action.Should().ThrowAsync<NotSupportedException>()
-            .WithMessage("*Action*not supported*");
+        result.Success.Should().BeTrue();
+        _mockRegistry.Verify(r => r.ApplySetting(reg1, true, null), Times.Once);
     }
 
     // ---------------------------------------------------------------

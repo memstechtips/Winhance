@@ -25,6 +25,9 @@ public record TechnicalDetailLabels
     // Script / RegContent labels
     public string ScriptOnEnable        { get; init; } = "On Enable";
     public string ScriptOnDisable       { get; init; } = "On Disable";
+    // Used for one-shot Action settings (e.g. "Clean Start Menu") where the script runs once
+    // on click and has no reverse direction — "On Enable" / "On Disable" framing doesn't fit.
+    public string ScriptOnApply         { get; init; } = "On Apply";
     public string RegContentOnEnable    { get; init; } = "On Enable";
     public string RegContentOnDisable   { get; init; } = "On Disable";
 

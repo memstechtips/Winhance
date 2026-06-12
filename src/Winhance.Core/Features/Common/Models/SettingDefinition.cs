@@ -9,7 +9,6 @@ namespace Winhance.Core.Features.Common.Models;
 public sealed record SettingDefinition : BaseDefinition, ISettingItem
 {
     public bool RequiresConfirmation { get; init; } = false;
-    public string? ActionCommand { get; init; }
     public IReadOnlyList<(int MinBuild, int MaxBuild)> SupportedBuildRanges { get; init; } = Array.Empty<(int MinBuild, int MaxBuild)>();
     public IReadOnlyList<ScheduledTaskSetting> ScheduledTaskSettings { get; init; } = Array.Empty<ScheduledTaskSetting>();
     public IReadOnlyList<PowerShellScriptSetting> PowerShellScripts { get; init; } = Array.Empty<PowerShellScriptSetting>();
@@ -66,6 +65,15 @@ public sealed record SettingDefinition : BaseDefinition, ISettingItem
     /// DefaultValue, or no Default badge if those are also null".
     /// </summary>
     public bool? DefaultToggleState { get; init; }
+
+    /// <summary>
+    /// Optional override for the localization key base. When set, localized Name / Description /
+    /// ComboBox option strings resolve from <c>Setting_{LocalizationId}_*</c> instead of
+    /// <c>Setting_{Id}_*</c>. Lets two settings that differ only by OS gating (e.g. a Win10 and a
+    /// Win11 variant of the same feature, which must use different registry mechanisms but show
+    /// identical text) share a single set of localization entries. Null = use <c>Id</c>.
+    /// </summary>
+    public string? LocalizationId { get; init; }
 
     /// <summary>
     /// For Selection settings: when no <see cref="ComboBoxOption"/> matches the live registry

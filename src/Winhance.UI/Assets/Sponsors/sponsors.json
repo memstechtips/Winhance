@@ -1,0 +1,80 @@
+{
+  "$schemaNote": "See sponsors/README.md. This file is the single source of truth for Winhance sponsor & supporter recognition. It is fetched live by the app from the main branch and a snapshot ships with every release as the offline fallback.",
+  "updated": "2026-06-11",
+  "sponsors": [
+    {
+      "id": "contoso",
+      "name": "Contoso IT",
+      "tier": "emerald",
+      "city": "Redmond, WA",
+      "country": "US",
+      "contact": "it@example.com",
+      "url": "https://example.com",
+      "logo": "logos/contoso.png",
+      "since": "2026-06",
+      "example": true
+    },
+    {
+      "id": "fabrikam",
+      "name": "Fabrikam Systems",
+      "tier": "gold",
+      "city": "Austin, TX",
+      "country": "US",
+      "contact": "hello@example.com",
+      "url": "https://example.com",
+      "logo": "logos/fabrikam.png",
+      "since": "2026-06",
+      "example": true
+    },
+    {
+      "id": "example-it",
+      "name": "Example IT Services",
+      "tier": "gold",
+      "city": "Springfield, US",
+      "country": "US",
+      "contact": "it@example.com",
+      "url": "https://example.com",
+      "logo": "logos/example-it.png",
+      "since": "2026-06",
+      "example": true
+    },
+    {
+      "id": "winhance",
+      "name": "Winhance",
+      "tier": "gold",
+      "city": "WC, ZA",
+      "country": "ZA",
+      "contact": "contact@memstechtips.com",
+      "url": "https://www.winhance.net",
+      "logo": "logos/winhance.png",
+      "since": "2026-06",
+      "example": true
+    },
+    {
+      "id": "unattendedwinstall",
+      "name": "UnattendedWinstall",
+      "tier": "silver",
+      "city": "WC, ZA",
+      "country": "ZA",
+      "contact": "contact@memstechtips.com",
+      "logo": "logos/unattendedwinstall.png",
+      "since": "2026-06",
+      "example": true
+    },
+    {
+      "id": "memstechtips",
+      "name": "Memstechtips",
+      "tier": "bronze",
+      "country": "ZA",
+      "logo": "logos/memstechtips.png",
+      "since": "2026-06",
+      "example": true
+    }
+  ],
+  "supporters": [
+    {
+      "name": "Marco du Plessis",
+      "since": "2026-06"
+    }
+  ]
+}

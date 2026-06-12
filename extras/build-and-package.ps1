@@ -251,6 +251,29 @@ if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
 
+# Resolve signing certificate UP FRONT, before any subprocess runs.
+# `dotnet test` (invoked later by run-winhance-tests.ps1) consumes stdin via
+# Invoke-Expression + Out-String, which causes the cert-selection Read-Host
+# inside Get-SigningCertificate to return empty input instantly if we do it
+# later in the script. Resolving the cert here also fails fast on cert problems
+# before spending several minutes on a build we'd throw away. The cert and
+# shouldSign state are reused by Step 4 (exe signing), Step 5/6 (Inno Setup
+# uninstaller signing), and Step 7 (installer signing) below.
+if ($SignApplication -or (Read-Host "Do you want to sign the application? (y/n)").ToLower() -eq 'y') {
+    $certificate = Get-SigningCertificate -Subject $CertificateSubject -Thumbprint $CertificateThumbprint
+    if ($certificate) {
+        Write-Host "Selected certificate: $($certificate.Subject)" -ForegroundColor Green
+        Write-Host "Thumbprint: $($certificate.Thumbprint)" -ForegroundColor Green
+        $shouldSign = $true
+    }
+    else {
+        Write-Host "No certificate selected. Continuing with unsigned build..." -ForegroundColor Yellow
+    }
+}
+else {
+    Write-Host "Skipping signing for this build..." -ForegroundColor Yellow
+}
+
 # Check for newer .NET SDK and Windows App SDK versions
 Write-Host "Checking for dependency updates..." -ForegroundColor Green
 try {
@@ -398,30 +421,18 @@ else {
     Write-Host "Skipping tests (-SkipTests)..." -ForegroundColor Yellow
 }
 
-# Step 4: Sign the application executable
+# Step 4: Sign the application executable using the cert resolved at script start
 $mainExecutable = "$publishOutputPath\Winhance.exe"
-
-# Check if signing is requested
-if ($SignApplication -or (Read-Host "Do you want to sign the application? (y/n)").ToLower() -eq 'y') {
-    $certificate = Get-SigningCertificate -Subject $CertificateSubject -Thumbprint $CertificateThumbprint
-
-    if ($certificate) {
-        Write-Host "Selected certificate: $($certificate.Subject)" -ForegroundColor Green
-        Write-Host "Thumbprint: $($certificate.Thumbprint)" -ForegroundColor Green
-
-        # Sign the main executable
-        $signResult = Set-FileSignature -FilePath $mainExecutable -Certificate $certificate
-
-        if ($signResult) {
-            $shouldSign = $true
-            Write-Host "Application executable signed successfully." -ForegroundColor Green
-        }
-        else {
-            Write-Host "Warning: Failed to sign the application. Continuing with unsigned application..." -ForegroundColor Yellow
-        }
+if ($shouldSign -and $certificate) {
+    Write-Host "Signing application executable..." -ForegroundColor Cyan
+    $signResult = Set-FileSignature -FilePath $mainExecutable -Certificate $certificate
+    if ($signResult) {
+        Write-Host "Application executable signed successfully." -ForegroundColor Green
     }
     else {
-        Write-Host "No certificate selected. Continuing with unsigned application..." -ForegroundColor Yellow
+        Write-Host "Warning: Failed to sign the application. Continuing with unsigned application..." -ForegroundColor Yellow
+        # Failed exe signing disables downstream installer signing too (matches previous behavior)
+        $shouldSign = $false
     }
 }
 else {
@@ -539,4 +550,4 @@ if ($shouldSign) {
 }
 else {
     Write-Host "`nSigning Summary: No files were signed" -ForegroundColor Yellow
-}
+}

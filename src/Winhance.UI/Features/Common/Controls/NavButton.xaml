@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     IsTabStop="True"
     UseSystemFocusVisuals="True"
     AutomationProperties.Name="{x:Bind Text, Mode=OneWay}">
@@ -21,38 +22,41 @@
                 Background="Transparent"
                 CornerRadius="10"/>
 
-        <!-- Content Stack -->
+        <!-- Content Stack.
+             Spacing 2 (not 4) so that when Windows' "Make text bigger" scale
+             bumps the 2-line label height past its default ~24dp, the icon +
+             gap + text stack still fits inside the fixed 60dp button without
+             clipping the icon's top edge (issue #668 iter3). -->
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Spacing="4"
+                    Spacing="2"
                     Opacity="{x:Bind ContentOpacity, Mode=OneWay}">
-            <!-- FontIcon - for Segoe MDL2/Fluent glyph icons -->
-            <FontIcon x:Name="ButtonFontIcon"
-                      Glyph="{x:Bind IconGlyph, Mode=OneWay}"
-                      FontSize="{x:Bind IconSize, Mode=OneWay}"
-                      HorizontalAlignment="Center"
-                      Margin="{x:Bind IconMargin, Mode=OneWay}"
-                      Visibility="{x:Bind FontIconVisibility, Mode=OneWay}"/>
+            <!-- Colored Fluent System Icon (IconVariant=Color). The Icon name is set
+                 in code-behind from IconSymbol because Icon is an enum, not a string. -->
+            <fluentIcons:FluentIcon x:Name="ButtonFluentIcon"
+                                    IconVariant="Color"
+                                    FontSize="{x:Bind IconSize, Mode=OneWay}"
+                                    HorizontalAlignment="Center"
+                                    Margin="{x:Bind IconMargin, Mode=OneWay}"
+                                    Visibility="{x:Bind FluentIconVisibility, Mode=OneWay}"/>
 
-            <!-- PathIcon - for Material Design / vector path icons (wrapped in Viewbox for scaling) -->
-            <!-- Note: Data is set in code-behind via OnIconPropertyChanged because x:Bind doesn't support string-to-Geometry conversion -->
-            <Viewbox Width="{x:Bind IconSize, Mode=OneWay}"
-                     Height="{x:Bind IconSize, Mode=OneWay}"
-                     Stretch="Uniform"
-                     HorizontalAlignment="Center"
-                     Margin="{x:Bind IconMargin, Mode=OneWay}"
-                     Visibility="{x:Bind PathIconVisibility, Mode=OneWay}">
-                <PathIcon x:Name="ButtonPathIcon"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-            </Viewbox>
-
-            <!-- Text (Hidden when compact) -->
+            <!-- Text (Hidden when compact).
+                 Wrap to 2 lines so the default-scale rendering keeps the
+                 natural "Software & Apps" / "Advanced Tools" / etc. wrap
+                 behaviour; TextTrimming kicks in only when the wrapped text
+                 still exceeds 2 lines at higher Windows text-scale settings
+                 ("Software\n& App…"). Combined with the parent StackPanel's
+                 reduced Spacing=2, this fits inside the fixed 60dp button
+                 even at typical 125-150% text scale.
+                 AutomationProperties.Name on the parent UserControl binds the
+                 full text for screen readers, so trimming loses no info for
+                 accessibility (issue #668 iter3). -->
             <TextBlock x:Name="ButtonText"
                        Text="{x:Bind Text, Mode=OneWay}"
                        FontSize="10"
                        TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis"
+                       MaxLines="2"
                        TextAlignment="Center"
                        MaxWidth="60"
                        HorizontalAlignment="Center"

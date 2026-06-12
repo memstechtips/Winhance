@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -28,6 +29,8 @@ public class ConfigExportServiceTests
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
     private readonly Mock<IThemeService> _mockThemeService = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
+    private readonly Mock<IAutounattendXmlGeneratorService> _mockAutounattendGenerator = new();
 
     public ConfigExportServiceTests()
     {
@@ -61,7 +64,9 @@ public class ConfigExportServiceTests
             _mockWindowsAppsVM.Object,
             _mockExternalAppsVM.Object,
             _mockFileSystemService.Object,
-            _mockMainWindowProvider.Object);
+            _mockMainWindowProvider.Object,
+            _mockApplicationModeService.Object,
+            _mockAutounattendGenerator.Object);
     }
 
     // -------------------------------------------------------
@@ -218,8 +223,8 @@ public class ConfigExportServiceTests
         // Empty items triggers a "no apps selected" confirmation dialog before
         // the window check — allow it to proceed so we reach the null window path.
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockMainWindowProvider
             .Setup(p => p.MainWindow)

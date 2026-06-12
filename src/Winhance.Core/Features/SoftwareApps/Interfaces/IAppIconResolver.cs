@@ -7,15 +7,16 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
 /// <summary>
 /// Resolves and caches app icons, populating ItemDefinition.IconPath for each
-/// entry. Tries layered sources in order:
-///   Layer 1a — installed AppX (current user / all users / provisioned).
-///   Layer 1b — Win32 binary extraction from <c>InstalledBinaryHint</c>
-///              (registry DisplayIcon — Windows ARP).
-///   Layer 2a — Microsoft Store CDN (when <c>MsStoreId</c> is present).
-///   Layer 2b — Per-entry <c>IconSources</c> (URLs and/or local file paths,
-///              tried in array order; first hit wins).
-/// Entries that resolve via none of the above keep IconPath null and the UI
-/// renders a category-specific fallback glyph.
+/// entry. Tries two layered sources in order:
+///   Layer 1 — installed AppX extraction (current user / all users / provisioned),
+///             for windows-app-* entries whose package is present on the machine.
+///   Layer 2 — the package-icons repo (jsDelivr @main), sha256-verified against
+///             the manifest. Resolves external-app-*, windows-app-* (by AppX
+///             identity), capability-*, and feature-* entries via
+///             <see cref="Winhance.Core.Features.SoftwareApps.Models.RepoIconKey"/>.
+/// Entries that resolve via neither keep IconPath null (colored fallback) and the
+/// UI renders a category-specific fallback glyph. There is no live Store API and
+/// no local binary-hint extraction.
 /// </summary>
 public interface IAppIconResolver
 {
