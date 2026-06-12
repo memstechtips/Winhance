@@ -123,6 +123,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
         _logService.Log(LogLevel.Info,
             $"[ConfigReviewService] Entered review mode with {TotalConfigItems} total config items, {TotalChanges} actual diffs");
+        // Ordering is load-bearing: ReviewModeChanged must fire before ModeChanged so the
+        // orchestration service can still see the pre-review mode when deciding whether to
+        // reapply diffs in place (Normal -> Review) or reload stale Builder VMs first.
         ReviewModeChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
         ModeChanged?.Invoke(this, EventArgs.Empty);

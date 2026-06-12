@@ -86,10 +86,11 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _previousMode = current;
 
         // Builder authors toggle/selection state into the shared settings VMs without
-        // applying it. Returning to Normal leaves those positions stale, so reload from
-        // live system state. Builder -> ConfigReview is intentionally excluded: the review
-        // diff machinery re-seeds those VMs itself, and reloading would clobber it.
-        if (previous == WinhanceMode.Builder && current == WinhanceMode.Normal)
+        // applying it. Any transition out of Builder leaves those positions stale, so
+        // reload from live system state. This is safe during review entry too: the
+        // recreated ViewModels get their review decoration from SettingViewModelFactory,
+        // which applies the eagerly computed diffs against fresh discovery state.
+        if (previous == WinhanceMode.Builder && current != WinhanceMode.Builder)
         {
             _eventBus.Publish(new BuilderModeExitedEvent());
             _logService.Log(LogLevel.Info, "Published BuilderModeExitedEvent to reload settings from system state");
@@ -100,6 +101,17 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         if (_configReviewModeService.IsInReviewMode)
         {
+            // Entering review from Builder: skip the in-place reapply. The loaded VMs
+            // still show authored (un-applied) Builder positions, and the applier's
+            // fallback diff would read those as system truth and register false diffs.
+            // ReviewModeChanged fires before ModeChanged, so _previousMode still holds
+            // Builder here; the ModeChanged handler then publishes BuilderModeExitedEvent,
+            // and the reloaded ViewModels get review decoration from SettingViewModelFactory.
+            if (_previousMode == WinhanceMode.Builder)
+            {
+                return;
+            }
+
             // Review mode was entered - reapply diffs to any already-loaded singleton VMs
             _vmCoordinator.ReapplyReviewDiffsToExistingSettings();
             return;

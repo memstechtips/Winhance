@@ -144,6 +144,74 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             Times.Once);
     }
 
+    [Fact]
+    public void OnReviewModeChanged_EnteringReviewFromBuilder_SkipsReapplyOfStaleViewModels()
+    {
+        // Builder leaves authored (un-applied) positions on the loaded settings VMs;
+        // reapplying diffs against them would treat builder edits as system truth.
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        // ReviewModeChanged fires before ModeChanged during review entry, so the
+        // orchestrator still considers Builder the previous mode at this point.
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Raise(r => r.ReviewModeChanged += null, EventArgs.Empty);
+
+        _mockVmCoordinator.Verify(v => v.ReapplyReviewDiffsToExistingSettings(), Times.Never);
+    }
+
+    // -------------------------------------------------------
+    // ModeChanged handler (Builder exit)
+    // -------------------------------------------------------
+
+    [Fact]
+    public void OnApplicationModeChanged_BuilderToNormal_PublishesBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_BuilderToConfigReview_PublishesBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_NormalToConfigReview_DoesNotPublishBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Never);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_BuilderTargetSwitch_DoesNotPublishBuilderModeExitedEvent()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        // Builder target switches raise ModeChanged while CurrentMode stays Builder
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Never);
+    }
+
     // -------------------------------------------------------
     // EnterReviewModeAsync
     // -------------------------------------------------------
