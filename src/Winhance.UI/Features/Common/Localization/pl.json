@@ -395,7 +395,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Zawsze pokazuj wszystkie ikony zasobnika systemowego",
   "Setting_taskbar-system-tray-icons_Description": "Pokaż wszystkie ikony zasobnika systemowego bezpośrednio na pasku zadań zamiast ukrywać je w menu przepełnienia. Aby kontrolować widoczność poszczególnych ikon, przejdź do Ustawień paska zadań i wybierz, które ikony mają być wyświetlane na pasku zadań",
   "Setting_taskbar-system-tray-icons-11_Name": "Ikony zasobnika systemowego",
-  "Setting_taskbar-system-tray-icons-11_Description": "Wybierz, jak ikony zasobnika systemowego pojawiają się na pasku zadań. \"Pokaż wszystkie ikony\" umieszcza każdą ikonę bezpośrednio na pasku zadań; \"Ukryj wszystkie ikony\" zwija je do menu przepełnienia; \"Niestandardowe\" pozostawia bez zmian Twoje wybory dla poszczególnych ikon z Ustawienia Windows > Personalizacja > Pasek zadań > Inne ikony zasobnika systemowego.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Wybierz, jak ikony zasobnika systemowego pojawiają się na pasku zadań. “Pokaż wszystkie ikony” umieszcza każdą ikonę bezpośrednio na pasku zadań; “Ukryj wszystkie ikony” zwija je do menu przepełnienia; “Niestandardowe” pozostawia bez zmian Twoje wybory dla poszczególnych ikon z Ustawienia Windows > Personalizacja > Pasek zadań > Inne ikony zasobnika systemowego.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Pokaż wszystkie ikony",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Ukryj wszystkie ikony",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Niestandardowe",

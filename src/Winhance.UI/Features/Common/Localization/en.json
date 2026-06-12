@@ -429,7 +429,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Always show all system tray icons",
   "Setting_taskbar-system-tray-icons_Description": "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. To control individual icon visibility, go to Taskbar Settings and select which icons appear on the taskbar",
   "Setting_taskbar-system-tray-icons-11_Name": "System tray icons",
-  "Setting_taskbar-system-tray-icons-11_Description": "Choose how system tray icons appear on the taskbar. \"Show all icons\" promotes every icon to the taskbar; \"Hide all icons\" folds them into the overflow menu; \"Custom\" leaves your per-icon choices from Windows Settings > Personalization > Taskbar > Other system tray icons unchanged.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Choose how system tray icons appear on the taskbar. “Show all icons” promotes every icon to the taskbar; “Hide all icons” folds them into the overflow menu; “Custom” leaves your per-icon choices from Windows Settings > Personalization > Taskbar > Other system tray icons unchanged.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Show all icons",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Hide all icons",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Custom",

@@ -221,6 +221,7 @@ public class RecommendedSettingsApplierTests
                 {
                     KeyPath = @"HKLM\Software\Test", ValueName = "V",
                     ValueType = RegistryValueKind.DWord, IsPrimary = true,
+                    RecommendedValue = null, DefaultValue = null,
                 }
             }
         };

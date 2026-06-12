@@ -395,7 +395,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Mostrar siempre todos los iconos de la bandeja del sistema",
   "Setting_taskbar-system-tray-icons_Description": "Mostrar todos los iconos de la bandeja del sistema directamente en la barra de tareas en lugar de ocultarlos en el menú de desbordamiento. Para controlar la visibilidad de iconos individuales, vaya a Configuración de la barra de tareas y seleccione qué iconos aparecen en la barra de tareas",
   "Setting_taskbar-system-tray-icons-11_Name": "Iconos de la bandeja del sistema",
-  "Setting_taskbar-system-tray-icons-11_Description": "Elija cómo aparecen los iconos de la bandeja del sistema en la barra de tareas. \"Mostrar todos los iconos\" coloca cada icono directamente en la barra de tareas; \"Ocultar todos los iconos\" los repliega en el menú de desbordamiento; \"Personalizado\" deja sin cambios sus opciones por icono de Configuración de Windows > Personalización > Barra de tareas > Otros iconos de la bandeja del sistema.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Elija cómo aparecen los iconos de la bandeja del sistema en la barra de tareas. “Mostrar todos los iconos” coloca cada icono directamente en la barra de tareas; “Ocultar todos los iconos” los repliega en el menú de desbordamiento; “Personalizado” deja sin cambios sus opciones por icono de Configuración de Windows > Personalización > Barra de tareas > Otros iconos de la bandeja del sistema.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Mostrar todos los iconos",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Ocultar todos los iconos",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Personalizado",

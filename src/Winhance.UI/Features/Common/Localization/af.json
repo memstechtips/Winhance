@@ -395,7 +395,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Wys altyd alle stelselvakikone",
   "Setting_taskbar-system-tray-icons_Description": "Wys alle stelselbalk-ikone direk op die taakbalk in plaas daarvan om hulle in die oorloopkieslys te versteek. Om die sigbaarheid van individuele ikone te beheer, gaan na Taakbalkinstellings en kies watter ikone op die taakbalk verskyn",
   "Setting_taskbar-system-tray-icons-11_Name": "Stelselbalk-ikone",
-  "Setting_taskbar-system-tray-icons-11_Description": "Kies hoe stelselbalk-ikone op die taakbalk verskyn. \"Wys alle ikone\" plaas elke ikoon direk op die taakbalk; \"Versteek alle ikone\" vou hulle in die oorloopkieslys in; \"Pasgemaak\" laat jou per-ikoon keuses uit Windows-instellings > Personalisering > Taakbalk > Ander stelselbalk-ikone onveranderd.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Kies hoe stelselbalk-ikone op die taakbalk verskyn. “Wys alle ikone” plaas elke ikoon direk op die taakbalk; “Versteek alle ikone” vou hulle in die oorloopkieslys in; “Pasgemaak” laat jou per-ikoon keuses uit Windows-instellings > Personalisering > Taakbalk > Ander stelselbalk-ikone onveranderd.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Wys alle ikone",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Versteek alle ikone",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Pasgemaak",

@@ -429,7 +429,7 @@
   "Setting_taskbar-system-tray-icons_Name": "모든 시스템 트레이 아이콘 항상 표시",
   "Setting_taskbar-system-tray-icons_Description": "모든 시스템 트레이 아이콘을 오버플로 메뉴에 숨기지 않고 작업 표시줄에 직접 표시합니다. 개별 아이콘 표시 여부를 제어하려면 작업 표시줄 설정으로 이동하여 작업 표시줄에 표시할 아이콘을 선택하세요",
   "Setting_taskbar-system-tray-icons-11_Name": "시스템 트레이 아이콘",
-  "Setting_taskbar-system-tray-icons-11_Description": "시스템 트레이 아이콘이 작업 표시줄에 표시되는 방식을 선택합니다. \"모든 아이콘 표시\"는 모든 아이콘을 작업 표시줄에 직접 표시합니다. \"모든 아이콘 숨기기\"는 아이콘을 오버플로 메뉴로 접어 넣습니다. \"사용자 지정\"은 Windows 설정 > 개인 설정 > 작업 표시줄 > 기타 시스템 트레이 아이콘에서 지정한 아이콘별 선택을 그대로 유지합니다.",
+  "Setting_taskbar-system-tray-icons-11_Description": "시스템 트레이 아이콘이 작업 표시줄에 표시되는 방식을 선택합니다. “모든 아이콘 표시”는 모든 아이콘을 작업 표시줄에 직접 표시합니다. “모든 아이콘 숨기기”는 아이콘을 오버플로 메뉴로 접어 넣습니다. “사용자 지정”은 Windows 설정 > 개인 설정 > 작업 표시줄 > 기타 시스템 트레이 아이콘에서 지정한 아이콘별 선택을 그대로 유지합니다.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "모든 아이콘 표시",
   "Setting_taskbar-system-tray-icons-11_Option_1": "모든 아이콘 숨기기",
   "Setting_taskbar-system-tray-icons-11_Option_2": "사용자 지정",

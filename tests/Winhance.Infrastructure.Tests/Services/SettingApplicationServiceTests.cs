@@ -731,7 +731,7 @@ public class SettingApplicationServiceTests
         var options = new[] { PowerOpt("Setting_sel-pcfg-noop_Option_0", 100), PowerOpt("Setting_sel-pcfg-noop_Option_1", 200) };
         var powerCfg = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
         RegisterSelectionSetting("sel-pcfg-noop", options, powerCfg);
 
@@ -769,7 +769,7 @@ public class SettingApplicationServiceTests
         var options = new[] { PowerOpt("Setting_sel-pcfg-change_Option_0", 100), PowerOpt("Setting_sel-pcfg-change_Option_1", 200) };
         var powerCfg = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
         RegisterSelectionSetting("sel-pcfg-change", options, powerCfg);
 
@@ -814,7 +814,7 @@ public class SettingApplicationServiceTests
         var options = new[] { PowerOpt("Setting_sel-nobat_Option_0", 100), PowerOpt("Setting_sel-nobat_Option_1", 200), PowerOpt("Setting_sel-nobat_Option_2", 300) };
         var powerCfg = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
         RegisterSelectionSetting("sel-nobat", options, powerCfg);
 
@@ -857,7 +857,7 @@ public class SettingApplicationServiceTests
         var options = new[] { PowerOpt("Setting_sel-nobat-noop_Option_0", 100), PowerOpt("Setting_sel-nobat-noop_Option_1", 200) };
         var powerCfg = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
         RegisterSelectionSetting("sel-nobat-noop", options, powerCfg);
 
@@ -903,7 +903,7 @@ public class SettingApplicationServiceTests
         };
         var powerCfg = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
         RegisterSelectionSetting("sel-fallback", options, powerCfg);
 
@@ -947,7 +947,7 @@ public class SettingApplicationServiceTests
         var options = new[] { PowerOpt("Setting_sel-throw_Option_0", 100), PowerOpt("Setting_sel-throw_Option_1", 200) };
         var powerCfg = new[]
         {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate },
+            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
         RegisterSelectionSetting("sel-throw", options, powerCfg);
 

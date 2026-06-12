@@ -395,7 +395,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Luôn hiển thị tất cả các biểu tượng trên khay hệ thống",
   "Setting_taskbar-system-tray-icons_Description": "Hiển thị tất cả biểu tượng khay hệ thống trực tiếp trên thanh tác vụ thay vì ẩn chúng trong menu tràn. Để kiểm soát hiển thị của từng biểu tượng, hãy vào Cài đặt thanh tác vụ và chọn biểu tượng nào xuất hiện trên thanh tác vụ",
   "Setting_taskbar-system-tray-icons-11_Name": "Biểu tượng khay hệ thống",
-  "Setting_taskbar-system-tray-icons-11_Description": "Chọn cách biểu tượng khay hệ thống hiển thị trên thanh tác vụ. \"Hiển thị tất cả biểu tượng\" đưa mọi biểu tượng trực tiếp lên thanh tác vụ; \"Ẩn tất cả biểu tượng\" gập chúng vào menu tràn; \"Tùy chỉnh\" giữ nguyên các lựa chọn theo từng biểu tượng của bạn trong Cài đặt Windows > Cá nhân hóa > Thanh tác vụ > Biểu tượng khay hệ thống khác.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Chọn cách biểu tượng khay hệ thống hiển thị trên thanh tác vụ. “Hiển thị tất cả biểu tượng” đưa mọi biểu tượng trực tiếp lên thanh tác vụ; “Ẩn tất cả biểu tượng” gập chúng vào menu tràn; “Tùy chỉnh” giữ nguyên các lựa chọn theo từng biểu tượng của bạn trong Cài đặt Windows > Cá nhân hóa > Thanh tác vụ > Biểu tượng khay hệ thống khác.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Hiển thị tất cả biểu tượng",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Ẩn tất cả biểu tượng",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Tùy chỉnh",

@@ -395,7 +395,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Mostra sempre tutte le icone nell'area di notifica",
   "Setting_taskbar-system-tray-icons_Description": "Mostra tutte le icone dell'area di notifica direttamente sulla barra delle applicazioni invece di nasconderle nel menu di overflow. Per controllare la visibilità delle singole icone, vai alle Impostazioni della barra delle applicazioni e seleziona quali icone visualizzare",
   "Setting_taskbar-system-tray-icons-11_Name": "Icone dell'area di notifica",
-  "Setting_taskbar-system-tray-icons-11_Description": "Scegli come vengono visualizzate le icone dell'area di notifica sulla barra delle applicazioni. \"Mostra tutte le icone\" porta ogni icona direttamente sulla barra delle applicazioni; \"Nascondi tutte le icone\" le raccoglie nel menu di overflow; \"Personalizzato\" lascia invariate le tue scelte per singola icona da Impostazioni di Windows > Personalizzazione > Barra delle applicazioni > Altre icone dell'area di notifica.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Scegli come vengono visualizzate le icone dell'area di notifica sulla barra delle applicazioni. “Mostra tutte le icone” porta ogni icona direttamente sulla barra delle applicazioni; “Nascondi tutte le icone” le raccoglie nel menu di overflow; “Personalizzato” lascia invariate le tue scelte per singola icona da Impostazioni di Windows > Personalizzazione > Barra delle applicazioni > Altre icone dell'area di notifica.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Mostra tutte le icone",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Nascondi tutte le icone",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Personalizzato",

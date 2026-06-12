@@ -280,17 +280,17 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void SaveConfigTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
+    public void ModeConfigReviewTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.SaveConfigTooltip.Should().Be("Save Configuration");
+        sut.ModeConfigReviewTooltip.Should().Be("Config Review");
     }
 
     [Fact]
-    public void ImportConfigTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
+    public void ModeBuilderTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.ImportConfigTooltip.Should().Be("Import Configuration");
+        sut.ModeBuilderTooltip.Should().Be("Builder mode");
     }
 
     [Fact]
@@ -441,8 +441,9 @@ public class MainWindowViewModelTests : IDisposable
 
         changedProperties.Should().Contain(nameof(sut.AppTitle));
         changedProperties.Should().Contain(nameof(sut.AppSubtitle));
-        changedProperties.Should().Contain(nameof(sut.SaveConfigTooltip));
-        changedProperties.Should().Contain(nameof(sut.ImportConfigTooltip));
+        changedProperties.Should().Contain(nameof(sut.ModeNormalTooltip));
+        changedProperties.Should().Contain(nameof(sut.ModeBuilderTooltip));
+        changedProperties.Should().Contain(nameof(sut.ModeConfigReviewTooltip));
         changedProperties.Should().Contain(nameof(sut.WindowsFilterTooltip));
         changedProperties.Should().Contain(nameof(sut.ToggleNavigationTooltip));
         changedProperties.Should().Contain(nameof(sut.DonateTooltip));

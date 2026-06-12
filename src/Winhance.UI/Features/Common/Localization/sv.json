@@ -395,7 +395,7 @@
   "Setting_taskbar-system-tray-icons_Name": "Visa alltid alla ikoner i systemfältet",
   "Setting_taskbar-system-tray-icons_Description": "Visa alla systemfältsikoner direkt i aktivitetsfältet istället för att dölja dem i överfyllnadsmenyn. För att styra synligheten för enskilda ikoner, gå till Aktivitetsfältsinställningar och välj vilka ikoner som ska visas i aktivitetsfältet",
   "Setting_taskbar-system-tray-icons-11_Name": "Systemfältsikoner",
-  "Setting_taskbar-system-tray-icons-11_Description": "Välj hur systemfältsikoner visas i aktivitetsfältet. \"Visa alla ikoner\" placerar varje ikon direkt i aktivitetsfältet; \"Dölj alla ikoner\" fäller in dem i överfyllnadsmenyn; \"Anpassad\" lämnar dina val per ikon från Windows-inställningar > Anpassning > Aktivitetsfält > Övriga systemfältsikoner oförändrade.",
+  "Setting_taskbar-system-tray-icons-11_Description": "Välj hur systemfältsikoner visas i aktivitetsfältet. “Visa alla ikoner” placerar varje ikon direkt i aktivitetsfältet; “Dölj alla ikoner” fäller in dem i överfyllnadsmenyn; “Anpassad” lämnar dina val per ikon från Windows-inställningar > Anpassning > Aktivitetsfält > Övriga systemfältsikoner oförändrade.",
   "Setting_taskbar-system-tray-icons-11_Option_0": "Visa alla ikoner",
   "Setting_taskbar-system-tray-icons-11_Option_1": "Dölj alla ikoner",
   "Setting_taskbar-system-tray-icons-11_Option_2": "Anpassad",
