@@ -137,6 +137,35 @@ public class CatalogValidatorTests
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
     }
 
+    [Fact]
+    public void Fallback_state_may_carry_a_partial_set()
+    {
+        // A fallback is the last-resort catch-all, so a partial representative Set is allowed —
+        // it must NOT trip the "missing target key" rule that non-fallback states do.
+        var s = Make(
+            new[] { Reg("Start", "Start"), Reg("Preload", "P") },
+            new[]
+            {
+                St("Known",   new() { ["Start"] = StateValue.Of(3), ["Preload"] = StateValue.Of(1) }),
+                St("Default", new() { ["Start"] = StateValue.Of(2) }, fallback: true), // only 1 of 2 keys
+            });
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
+    }
+
+    [Fact]
+    public void Fallback_state_with_an_unknown_key_is_still_an_error()
+    {
+        // Exempt from "missing", but a typo'd/unknown key is always caught — fallback or not.
+        var s = Make(
+            new[] { Reg("Start", "Start") },
+            new[]
+            {
+                St("Known",   new() { ["Start"] = StateValue.Of(3) }),
+                St("Default", new() { ["Start"] = StateValue.Of(2), ["Ghost"] = StateValue.Of(1) }, fallback: true),
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("unknown target key"));
+    }
+
     private sealed class FakeDetector : IStateDetector
     {
         public string? Detect(IStateReadings readings) => null;

@@ -5,7 +5,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// The value that means a given <see cref="SettingState"/> for one target. Carries the write payload
-/// AND derives its own detection-accept set, so detect and apply come from one declaration
+/// AND derives its own detection-accept set, so detect and apply come from one declaration.
 /// Never author an "accepted values" list separately.
 /// </summary>
 public sealed record StateValue
