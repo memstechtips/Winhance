@@ -3,10 +3,10 @@ using System.Collections.Generic;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
-/// THE detection function (design §4.1). Returns the label of the first state whose every Set entry
+/// THE detection function. Returns the label of the first state whose every Set entry
 /// the live readings satisfy; null = Custom. One engine for toggles (2 states) and selections (N) —
 /// replaces the old bool-resolver AND the duplicated ResolveRawValuesToIndex. Pure; no service deps.
-/// Tier-2 IStateDetector (custom detectors) is consulted by the CALLER before this engine, not here.
+/// IStateDetector (custom detectors) is consulted by the CALLER before this engine, not here.
 /// </summary>
 public static class StateDetectionEngine
 {

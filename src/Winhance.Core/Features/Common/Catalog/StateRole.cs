@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Open tag-set (design §3). Today: WindowsDefault, Recommended. Future presets add values here
+/// <summary>Open tag-set. Today: WindowsDefault, Recommended. Future presets add values here
 /// with zero schema change.</summary>
 public enum RoleKind { None, WindowsDefault, Recommended }
 

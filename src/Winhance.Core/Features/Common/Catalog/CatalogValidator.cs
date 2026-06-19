@@ -5,8 +5,8 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// Validates a Setting's authoring against the structural invariants the detection engine relies on
-/// (design §6.6, Phase-1 subset). Pure; returns ALL violations (empty list = valid). Rules needing later
-/// phases (acyclic Links — Phase 3; referenced loc keys exist — Phase 7) are added when those land.
+/// Pure; returns ALL violations (empty list = valid). Some rules (e.g. acyclic relationship graphs and
+/// "referenced localization key exists") will be added once those parts of the model exist.
 /// </summary>
 public static class CatalogValidator
 {

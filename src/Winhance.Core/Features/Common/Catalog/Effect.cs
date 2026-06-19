@@ -2,7 +2,7 @@ using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>An apply-only side-effect. Fire-and-forget — NEVER participates in detection (design Appendix A).</summary>
+/// <summary>An apply-only side-effect. Fire-and-forget — NEVER participates in detection.</summary>
 public abstract record Effect;
 
 /// <summary>PowerShell run on enable/disable. Detection comes from an accompanying Target in the state's Set.</summary>

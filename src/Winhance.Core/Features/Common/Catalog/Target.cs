@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>A detectable read/write location. Declared ONCE per setting; carries no values (design §2.2).</summary>
+/// <summary>A detectable read/write location. Declared ONCE per setting; carries no values.</summary>
 public abstract record Target(string Key);
 
 /// <summary>Registry location. Multiple <see cref="Paths"/> = a mirror (write all, read first non-null).</summary>
