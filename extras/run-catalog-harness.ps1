@@ -19,7 +19,7 @@ $ErrorActionPreference = "Continue"
 $solutionDir = Resolve-Path "$PSScriptRoot\.."
 $proj    = Join-Path $solutionDir "tests\Winhance.Infrastructure.Tests\Winhance.Infrastructure.Tests.csproj"
 $logFile = Join-Path $PSScriptRoot "catalog-harness-results.txt"
-# Build the test output to a LOCAL dir so testhost.exe launches from C:\ — the Z:\ share blocks
+# Build the test output to a LOCAL dir so testhost.exe launches from C:\ - the Z:\ share blocks
 # launching executables (testhost.exe -> "Access is denied"). Source stays on Z:\; only build output is local.
 $outDir  = Join-Path $env:TEMP "winhance-catalog-harness"
 
