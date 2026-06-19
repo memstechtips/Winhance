@@ -18,7 +18,7 @@ public sealed record EquivalenceRow(string Id, string OldState, string NewState,
 /// Deleted once the migration is complete.</summary>
 public static class RegistryToggleEquivalenceHarness
 {
-    /// <summary>True when a definition is a pure registry toggle — the cleanest first slice to compare.
+    /// <summary>True when a definition is a pure registry toggle - the cleanest first slice to compare.
     /// Excludes anything that detects via a non-registry mechanism (powercfg, scheduled task, native
     /// power API, .reg blobs, PowerShell, or a custom DetectionType).</summary>
     public static bool IsPureRegistryToggle(SettingDefinition def)
@@ -59,9 +59,21 @@ public static class RegistryToggleEquivalenceHarness
             if (!IsPureRegistryToggle(def))
                 continue;
 
-            // OLD: the existing app treats the setting as enabled when any of its registry
-            // settings is in the applied state.
-            bool oldEnabled = def.RegistrySettings.Any(rs => reg.IsSettingApplied(rs));
+            // OLD: reproduce the existing app's real per-setting detection
+            // (SystemSettingsDiscoveryService.DetermineIfSettingIsEnabled): per-NIC/per-monitor
+            // settings expand sub-keys via IsSettingApplied; key-existence settings pass a bool
+            // (does the key exist); everything else passes the raw value. A setting is enabled
+            // when any of its registry settings is in the enabled state.
+            bool oldEnabled = def.RegistrySettings.Any(rs =>
+            {
+                if (rs.ApplyPerNetworkInterface || rs.ApplyPerMonitor)
+                    return reg.IsSettingApplied(rs);
+
+                object? current = rs.ValueName == null
+                    ? (object)reg.KeyExists(rs.KeyPath)              // key-existence toggles pass a bool
+                    : reg.GetValue(rs.KeyPath, rs.ValueName);
+                return reg.IsRegistryValueInEnabledState(rs, current, current != null);
+            });
             string oldState = oldEnabled ? "Enabled" : "Disabled";
 
             // NEW: convert to the unified Setting model and run the new detection engine.
