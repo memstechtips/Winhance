@@ -10,4 +10,11 @@ public interface IDetectionContext
 
     /// <summary>The immediate sub-key names under a registry key (empty if the key is absent).</summary>
     string[] GetSubKeyNames(string keyPath);
+
+    /// <summary>The active network adapter's primary IPv4 DNS server, or null when DNS is automatic (DHCP)
+    /// or there is no active adapter.</summary>
+    string? PrimaryDnsV4OfActiveAdapter();
+
+    /// <summary>Whether System Restore is enabled for the system drive.</summary>
+    bool IsSystemRestoreEnabled();
 }
