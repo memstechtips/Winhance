@@ -17,4 +17,10 @@ public sealed record Setting
     public IReadOnlyList<Target> Targets { get; init; } = System.Array.Empty<Target>();
     public IReadOnlyList<SettingState> States { get; init; } = System.Array.Empty<SettingState>();
     public IStateDetector? Detector { get; init; }                       // custom-detector escape hatch
+
+    public IReadOnlyList<Link> Links { get; init; } = System.Array.Empty<Link>();
+
+    /// <summary>Presentation only: nest this setting under the parent in the UI and disable its control
+    /// when the parent is off. No apply behaviour. Null = top-level.</summary>
+    public string? UiParentId { get; init; }
 }
