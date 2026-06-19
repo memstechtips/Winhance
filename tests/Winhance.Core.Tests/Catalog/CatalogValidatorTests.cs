@@ -168,6 +168,6 @@ public class CatalogValidatorTests
 
     private sealed class FakeDetector : IStateDetector
     {
-        public string? Detect(IStateReadings readings) => null;
+        public string? Detect(Setting setting, IDetectionContext context) => null;
     }
 }
