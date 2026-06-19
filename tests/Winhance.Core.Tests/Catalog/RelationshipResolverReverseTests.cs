@@ -1,0 +1,106 @@
+using System.Collections.Generic;
+using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
+using Xunit;
+
+namespace Winhance.Core.Tests.Catalog;
+
+public class RelationshipResolverReverseTests
+{
+    private static SettingState St(string label, bool isDefault = false,
+        IReadOnlyDictionary<string, string>? controls = null) =>
+        new()
+        {
+            Label = label,
+            Controls = controls,
+            Roles = isDefault ? new[] { new StateRole(RoleKind.WindowsDefault) } : System.Array.Empty<StateRole>(),
+        };
+
+    private static Setting S(string id, IReadOnlyList<SettingState> states, params Link[] links) =>
+        new() { Id = id, Name = id, Description = id, States = states, Links = links };
+
+    // ---- reverse cascade ----
+
+    [Fact]
+    public void Broken_requirement_resets_an_active_dependent()
+    {
+        // dependent "a" requires "b" in "On"; a is currently active ("On"); b just moved to "Off"
+        var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
+        var actions = RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a },
+            id => id == "a" ? "On" : "Off");
+        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off");
+    }
+
+    [Fact]
+    public void Requirement_still_met_resets_nothing()
+    {
+        var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
+        // b moved to "On" — still satisfies the requirement
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "On", new[] { a }, id => "On"));
+    }
+
+    [Fact]
+    public void Dependent_already_at_default_is_not_reset()
+    {
+        var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
+        // requirement broken (b=Off) but a is already at its default "Off"
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => "Off"));
+    }
+
+    [Fact]
+    public void Reverse_cascade_opt_out_is_respected()
+    {
+        var a = S("a", new[] { St("On"), St("Off", isDefault: true) },
+            new Link("b", LinkKind.Requires, "On") { ReverseCascade = false });
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => id == "a" ? "On" : "Off"));
+    }
+
+    // ---- reverse sync ----
+
+    [Fact]
+    public void Parent_snaps_when_all_children_match_an_option()
+    {
+        var parent = S("p", new[]
+        {
+            St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
+            St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+        });
+        // both children currently Off → matches "Deny"; parent currently "Allow"
+        var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
+            id => id == "p" ? "Allow" : "Off");
+        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny");
+    }
+
+    [Fact]
+    public void Parent_does_not_snap_when_children_are_mixed()
+    {
+        var parent = S("p", new[]
+        {
+            St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
+            St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+        });
+        // c1 Off, c2 On → matches neither option fully
+        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
+            id => id switch { "c1" => "Off", "c2" => "On", _ => "Allow" }));
+    }
+
+    [Fact]
+    public void Parent_already_in_matching_state_is_not_reapplied()
+    {
+        var parent = S("p", new[]
+        {
+            St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
+            St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+        });
+        // children all Off (matches Deny) and parent already "Deny"
+        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
+            id => id == "p" ? "Deny" : "Off"));
+    }
+
+    [Fact]
+    public void Setting_not_controlling_the_child_is_ignored()
+    {
+        var other = S("o", new[] { St("x"), St("y", isDefault: true) });
+        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, id => "Off"));
+    }
+}

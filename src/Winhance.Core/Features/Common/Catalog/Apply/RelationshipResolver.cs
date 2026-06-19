@@ -42,4 +42,64 @@ public static class RelationshipResolver
 
         return actions;
     }
+
+    /// <summary>
+    /// When <paramref name="changedSettingId"/> moves to <paramref name="newStateLabel"/>, the dependents
+    /// whose Requires link on it is now broken (and that opt into reverse cascade) reset to their own
+    /// default state. Only dependents currently away from their default are reset.
+    /// </summary>
+    public static IReadOnlyList<ApplyAction> ResolveReverseCascade(
+        string changedSettingId, string newStateLabel,
+        IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf)
+    {
+        var actions = new List<ApplyAction>();
+
+        foreach (var dependent in allSettings)
+        {
+            bool broken = dependent.Links.Any(l =>
+                l.Kind == LinkKind.Requires &&
+                l.OtherId == changedSettingId &&
+                l.ReverseCascade &&
+                l.RequiredState != newStateLabel);
+            if (!broken)
+                continue;
+
+            var defaultState = dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
+            if (defaultState != null && currentStateOf(dependent.Id) != defaultState)
+                actions.Add(new ApplyAction(dependent.Id, defaultState));
+        }
+
+        return actions;
+    }
+
+    /// <summary>
+    /// When <paramref name="changedChildId"/> changes, snap any parent that Controls it to the first of the
+    /// parent's states whose Controls are now ALL satisfied by the children's current states. Parents
+    /// already in that state, and parents where no state fully matches, are left as they are.
+    /// </summary>
+    public static IReadOnlyList<ApplyAction> ResolveReverseSync(
+        string changedChildId, IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf)
+    {
+        var actions = new List<ApplyAction>();
+
+        foreach (var parent in allSettings)
+        {
+            bool controlsChild = parent.States.Any(st => st.Controls?.ContainsKey(changedChildId) == true);
+            if (!controlsChild)
+                continue;
+
+            foreach (var state in parent.States.Where(s => s.Controls is { Count: > 0 }))
+            {
+                bool allSatisfied = state.Controls!.All(kv => currentStateOf(kv.Key) == kv.Value);
+                if (allSatisfied)
+                {
+                    if (currentStateOf(parent.Id) != state.Label)
+                        actions.Add(new ApplyAction(parent.Id, state.Label));
+                    break; // first fully-matching state wins
+                }
+            }
+        }
+
+        return actions;
+    }
 }
