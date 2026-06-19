@@ -22,7 +22,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_self_loop_is_an_error()
     {
-        var errs = CatalogValidator.Validate(S("a", links: new[] { new Link("a", LinkKind.RequiresEnabled) }));
+        var errs = CatalogValidator.Validate(S("a", links: new[] { new Link("a", LinkKind.Requires, "on") }));
         Assert.Contains(errs, e => e.Message.Contains("self-loop"));
     }
 
@@ -49,7 +49,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_to_missing_setting_is_an_error()
     {
-        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", links: new[] { new Link("ghost", LinkKind.RequiresEnabled) }) });
+        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", links: new[] { new Link("ghost", LinkKind.Requires, "on") }) });
         Assert.Contains(errs, e => e.Message.Contains("Link target 'ghost' is not a known setting"));
     }
 
@@ -70,16 +70,16 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_cycle_is_detected()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.RequiresEnabled) });
-        var b = S("b", links: new[] { new Link("a", LinkKind.RequiresEnabled) });
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") });
+        var b = S("b", links: new[] { new Link("a", LinkKind.Requires, "on") });
         Assert.Contains(CatalogValidator.ValidateCatalog(new[] { a, b }), e => e.Message.Contains("cycle detected"));
     }
 
     [Fact]
     public void Acyclic_graph_has_no_cycle_error()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.RequiresEnabled) });
-        var b = S("b", links: new[] { new Link("c", LinkKind.RequiresEnabled) });
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") });
+        var b = S("b", links: new[] { new Link("c", LinkKind.Requires, "on") });
         var c = S("c");
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { a, b, c }), e => e.Message.Contains("cycle detected"));
     }
@@ -87,7 +87,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Valid_catalog_has_no_errors()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.RequiresEnabled) }, uiParent: "b");
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") }, uiParent: "b");
         var b = S("b");
         Assert.Empty(CatalogValidator.ValidateCatalog(new[] { a, b }));
     }

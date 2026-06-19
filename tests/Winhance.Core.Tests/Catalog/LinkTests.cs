@@ -8,16 +8,16 @@ public class LinkTests
     [Fact]
     public void Requires_link_defaults_to_reverse_cascade_no_force()
     {
-        var l = new Link("other", LinkKind.RequiresEnabled);
+        var l = new Link("other", LinkKind.Requires, "On");
         Assert.True(l.ReverseCascade);
         Assert.False(l.Force);
-        Assert.Null(l.RequiredValue);
+        Assert.Equal("On", l.RequiredState);
     }
 
     [Fact]
     public void Auto_enable_style_link_is_enables_no_reverse_force()
     {
-        var l = new Link("other", LinkKind.Enables) { ReverseCascade = false, Force = true };
+        var l = new Link("other", LinkKind.Enables, "On") { ReverseCascade = false, Force = true };
         Assert.Equal(LinkKind.Enables, l.Kind);
         Assert.False(l.ReverseCascade);
         Assert.True(l.Force);
