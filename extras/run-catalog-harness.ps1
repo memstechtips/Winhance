@@ -19,6 +19,9 @@ $ErrorActionPreference = "Continue"
 $solutionDir = Resolve-Path "$PSScriptRoot\.."
 $proj    = Join-Path $solutionDir "tests\Winhance.Infrastructure.Tests\Winhance.Infrastructure.Tests.csproj"
 $logFile = Join-Path $PSScriptRoot "catalog-harness-results.txt"
+# Build the test output to a LOCAL dir so testhost.exe launches from C:\ — the Z:\ share blocks
+# launching executables (testhost.exe -> "Access is denied"). Source stays on Z:\; only build output is local.
+$outDir  = Join-Path $env:TEMP "winhance-catalog-harness"
 
 Write-Host ""
 Write-Host ("=" * 60) -ForegroundColor Cyan
@@ -35,7 +38,7 @@ Write-Host ("=" * 60) -ForegroundColor Cyan
 # (Tee-Object -FilePath writes UTF-16 on PowerShell 5.1, which is unreadable to the agent; capturing
 # and writing via Out-File -Encoding utf8 keeps the log plain UTF-8. --verbosity minimal cuts build noise
 # while still showing build errors and the test [MATCH]/[DIFF] lines.)
-dotnet test "$proj" --filter $Filter --verbosity minimal --logger "console;verbosity=detailed" 2>&1 |
+dotnet test "$proj" --filter $Filter --output "$outDir" --verbosity minimal --logger "console;verbosity=detailed" 2>&1 |
     Tee-Object -Variable harnessLines
 
 $code = $LASTEXITCODE
