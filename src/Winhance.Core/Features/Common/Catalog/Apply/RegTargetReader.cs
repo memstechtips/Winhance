@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// <summary>
 /// Turns a registry target's raw reads into the single comparable value the detection engine matches
 /// against. Mirror paths fold HKLM-first to the first non-null read; REG_BINARY targets reduce to a bool
-/// (bitmask) or a single byte. Pure — the raw read is injected so this is testable without a registry.
+/// (bitmask) or a single byte. Pure - the raw read is injected so this is testable without a registry.
 /// </summary>
 public static class RegTargetReader
 {
@@ -31,6 +31,20 @@ public static class RegTargetReader
         if (raw is null)
             return (null, false);
 
+        // CompositeStringKey: the value is a ";"-delimited "key=value" string; reduce to the sub-value.
+        if (target.CompositeStringKey is { } compositeKey)
+        {
+            if (raw is not string composite)
+                return (null, false);
+            foreach (var entry in composite.Split(';', System.StringSplitOptions.RemoveEmptyEntries))
+            {
+                var eq = entry.IndexOf('=');
+                if (eq > 0 && string.Equals(entry[..eq], compositeKey, System.StringComparison.OrdinalIgnoreCase))
+                    return (entry[(eq + 1)..], true);
+            }
+            return (null, false); // sub-key not present -> absent
+        }
+
         // REG_BINARY bit test -> bool
         if (target.BitMask is { } mask && target.ByteIndex is { } maskIdx && raw is byte[] maskBlob)
         {
@@ -47,7 +61,7 @@ public static class RegTargetReader
             return (null, false);
         }
 
-        // CompositeStringKey / PerNetworkInterface / PerMonitor are not handled here yet.
+        // PerNetworkInterface / PerMonitor are not handled here yet.
         return (raw, true);
     }
 

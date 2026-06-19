@@ -84,4 +84,43 @@ public class RegTargetReaderTests
         Assert.False(present);
         Assert.Null(val);
     }
+
+    [Fact]
+    public void Composite_extracts_the_subkey_value()
+    {
+        var t = new RegTarget("K", new[] { @"HKCU\A" }, "DirectXUserGlobalSettings", RegistryValueKind.String)
+        { CompositeStringKey = "SwapEffectUpgradeEnable" };
+        var (val, present) = RegTargetReader.Read(t,
+            (p, v) => "VRROptimizeEnable=0;SwapEffectUpgradeEnable=1;AutoHDREnable=0");
+        Assert.True(present);
+        Assert.Equal("1", val);
+    }
+
+    [Fact]
+    public void Composite_subkey_is_case_insensitive()
+    {
+        var t = new RegTarget("K", new[] { @"HKCU\A" }, "V", RegistryValueKind.String)
+        { CompositeStringKey = "swapeffectupgradeenable" };
+        var (val, _) = RegTargetReader.Read(t, (p, v) => "SwapEffectUpgradeEnable=1");
+        Assert.Equal("1", val);
+    }
+
+    [Fact]
+    public void Composite_missing_subkey_is_absent()
+    {
+        var t = new RegTarget("K", new[] { @"HKCU\A" }, "V", RegistryValueKind.String)
+        { CompositeStringKey = "NotThere" };
+        var (val, present) = RegTargetReader.Read(t, (p, v) => "SwapEffectUpgradeEnable=1");
+        Assert.False(present);
+        Assert.Null(val);
+    }
+
+    [Fact]
+    public void Composite_absent_value_is_absent()
+    {
+        var t = new RegTarget("K", new[] { @"HKCU\A" }, "V", RegistryValueKind.String)
+        { CompositeStringKey = "X" };
+        var (_, present) = RegTargetReader.Read(t, (p, v) => null);
+        Assert.False(present);
+    }
 }
