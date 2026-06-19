@@ -8,7 +8,7 @@ namespace Winhance.Core.Tests.Catalog;
 public class CatalogRelationshipValidatorTests
 {
     private static Setting S(string id, IReadOnlyList<Link>? links = null, string? uiParent = null,
-        IReadOnlyDictionary<string, bool>? controls = null) =>
+        IReadOnlyDictionary<string, string>? controls = null) =>
         new()
         {
             Id = id, Name = id, Description = id,
@@ -35,7 +35,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Controls_self_reference_is_an_error()
     {
-        var errs = CatalogValidator.Validate(S("a", controls: new Dictionary<string, bool> { ["a"] = true }));
+        var errs = CatalogValidator.Validate(S("a", controls: new Dictionary<string, string> { ["a"] = "on" }));
         Assert.Contains(errs, e => e.Message.Contains("Controls cannot reference its own"));
     }
 
@@ -56,7 +56,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Controls_to_missing_child_is_an_error()
     {
-        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", controls: new Dictionary<string, bool> { ["ghost"] = true }) });
+        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", controls: new Dictionary<string, string> { ["ghost"] = "on" }) });
         Assert.Contains(errs, e => e.Message.Contains("Controls child 'ghost' is not a known setting"));
     }
 

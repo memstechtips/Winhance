@@ -23,9 +23,9 @@ public sealed record SettingState
     /// </summary>
     public bool IsFallback { get; init; }
 
-    /// <summary>When this selection state is active, the child settings it drives and their desired
-    /// enabled state (childId → enabled). Replaces the old preset map. Null = controls nothing.</summary>
-    public IReadOnlyDictionary<string, bool>? Controls { get; init; }
+    /// <summary>When this selection state is active, the child settings it drives and the state each must
+    /// be in (childId → required state label). Replaces the old preset map. Null = controls nothing.</summary>
+    public IReadOnlyDictionary<string, string>? Controls { get; init; }
 
     public bool HasRole(RoleKind kind, PowerContext context = PowerContext.Always) =>
         Roles.Any(r => r.Kind == kind && r.Context == context);
