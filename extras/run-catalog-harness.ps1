@@ -31,11 +31,15 @@ Write-Host ("=" * 60) -ForegroundColor Cyan
 "# Catalog equivalence harness run: $(Get-Date -Format o)  (filter: $Filter)" |
     Out-File -FilePath $logFile -Encoding utf8
 
-# Run the harness; show output live AND append it to the log.
-dotnet test "$proj" --filter $Filter --logger "console;verbosity=detailed" 2>&1 |
-    Tee-Object -FilePath $logFile -Append
+# Run the harness; stream output live (Tee -Variable) AND capture it, then append as UTF-8.
+# (Tee-Object -FilePath writes UTF-16 on PowerShell 5.1, which is unreadable to the agent; capturing
+# and writing via Out-File -Encoding utf8 keeps the log plain UTF-8. --verbosity minimal cuts build noise
+# while still showing build errors and the test [MATCH]/[DIFF] lines.)
+dotnet test "$proj" --filter $Filter --verbosity minimal --logger "console;verbosity=detailed" 2>&1 |
+    Tee-Object -Variable harnessLines
 
 $code = $LASTEXITCODE
+$harnessLines | Out-File -FilePath $logFile -Append -Encoding utf8
 
 Write-Host ""
 if ($code -eq 0) {
