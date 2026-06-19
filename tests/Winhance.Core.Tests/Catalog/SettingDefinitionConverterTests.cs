@@ -66,4 +66,28 @@ public class SettingDefinitionConverterTests
         Assert.True(enabled.Matches(1, present: true));
         Assert.True(enabled.Matches(null, present: false)); // OrAbsent
     }
+
+    [Fact]
+    public void Disabled_state_is_a_fallback_so_unrecognised_values_are_not_custom()
+    {
+        var def = ToggleDef(new RegistrySetting
+        {
+            KeyPath = @"HKLM\A", ValueName = "V",
+            EnabledValue = new object?[] { 1 }, DisabledValue = new object?[] { 0 },
+            RecommendedValue = null, DefaultValue = 0, ValueType = RegistryValueKind.DWord,
+        });
+
+        var s = SettingDefinitionConverter.ConvertToggle(def);
+
+        var enabled = s.States.Single(x => x.Label == "Enabled");
+        var disabled = s.States.Single(x => x.Label == "Disabled");
+        Assert.False(enabled.IsFallback);   // On is exact (EnabledValue)
+        Assert.True(disabled.IsFallback);    // Off is the catch-all (binary toggle, never Custom)
+
+        // And the detection engine resolves an unrecognised live value (3, neither 1 nor 0) to Disabled,
+        // not Custom -- reproducing the old binary-toggle behaviour.
+        var readings = new DictReadings();
+        readings.Set("V", 3, present: true);
+        Assert.Equal("Disabled", StateDetectionEngine.Detect(s.States, readings));
+    }
 }

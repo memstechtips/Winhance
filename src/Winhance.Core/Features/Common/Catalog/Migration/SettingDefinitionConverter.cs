@@ -47,7 +47,7 @@ public static class SettingDefinitionConverter
         var def_ = SettingDefinitionToggleState.GetDefaultToggleState(def);
 
         var enabled = new SettingState { Label = "Enabled", Set = enabledSet, Roles = RolesFor(true, rec, def_) };
-        var disabled = new SettingState { Label = "Disabled", Set = disabledSet, Roles = RolesFor(false, rec, def_) };
+        var disabled = new SettingState { Label = "Disabled", Set = disabledSet, Roles = RolesFor(false, rec, def_), IsFallback = true };
 
         return new Setting
         {
