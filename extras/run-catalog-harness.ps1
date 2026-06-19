@@ -3,7 +3,7 @@
 # the agent can read (the repo is a shared drive, so extras\catalog-harness-results.txt here
 # is the same file the agent sees at /srv/projects/winhance/extras/catalog-harness-results.txt).
 #
-# The project stays on Z:\ — this uses an EXPLICIT project path so testhost launches correctly.
+# The project stays on Z:\ - this uses an EXPLICIT project path so testhost launches correctly.
 # (A solution-wide `dotnet test --filter ...` fans out to every test project and aborts launching
 # testhost.exe from the share; pointing at one project's .csproj avoids that, same as
 # run-winhance-tests.ps1.)
@@ -42,7 +42,7 @@ if ($code -eq 0) {
     Write-Host "  Result: all harness assertions passed (new == old)." -ForegroundColor Green
 }
 else {
-    Write-Host "  Result: harness reported differences or an error — see the [DIFF] lines in the log." -ForegroundColor Yellow
+    Write-Host "  Result: harness reported differences or an error - see the [DIFF] lines in the log." -ForegroundColor Yellow
 }
 Write-Host "  Full output written to: $logFile" -ForegroundColor Green
 Write-Host "  The agent reads it at /srv/projects/winhance/extras/catalog-harness-results.txt" -ForegroundColor DarkGray
