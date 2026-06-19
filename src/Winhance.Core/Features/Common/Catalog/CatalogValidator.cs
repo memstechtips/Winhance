@@ -60,6 +60,81 @@ public static class CatalogValidator
             }
         }
 
+        // Self-references: a setting cannot relate to itself.
+        foreach (var l in setting.Links.Where(l => l.OtherId == id))
+            errors.Add(new CatalogValidationError(id, $"Link cannot target its own setting (self-loop) — kind {l.Kind}."));
+        foreach (var st in setting.States)
+            if (st.Controls is { } controls && controls.ContainsKey(id))
+                errors.Add(new CatalogValidationError(id, $"State '{st.Label}' Controls cannot reference its own setting."));
+        if (setting.UiParentId == id)
+            errors.Add(new CatalogValidationError(id, "UiParentId cannot be its own setting."));
+
         return errors;
+    }
+
+    /// <summary>
+    /// Cross-setting checks that need the whole catalog: unique ids, every relationship target exists,
+    /// and the Link relationship graph is acyclic (the cycle guard the old apply path lacked — an
+    /// auto-applied requirement that loops back would recurse without it).
+    /// </summary>
+    public static IReadOnlyList<CatalogValidationError> ValidateCatalog(IReadOnlyList<Setting> settings)
+    {
+        var errors = new List<CatalogValidationError>();
+
+        foreach (var g in settings.GroupBy(s => s.Id).Where(g => g.Count() > 1))
+            errors.Add(new CatalogValidationError(g.Key, $"Duplicate setting Id '{g.Key}' ({g.Count()} settings)."));
+
+        var ids = new HashSet<string>(settings.Select(s => s.Id));
+
+        foreach (var s in settings)
+        {
+            foreach (var l in s.Links.Where(l => !ids.Contains(l.OtherId)))
+                errors.Add(new CatalogValidationError(s.Id, $"Link target '{l.OtherId}' is not a known setting."));
+            foreach (var st in s.States)
+                if (st.Controls is { } controls)
+                    foreach (var childId in controls.Keys.Where(c => !ids.Contains(c)))
+                        errors.Add(new CatalogValidationError(s.Id, $"Controls child '{childId}' is not a known setting."));
+            if (s.UiParentId is { } parent && !ids.Contains(parent))
+                errors.Add(new CatalogValidationError(s.Id, $"UiParentId '{parent}' is not a known setting."));
+        }
+
+        errors.AddRange(DetectLinkCycles(settings, ids));
+        return errors;
+    }
+
+    private static IReadOnlyList<CatalogValidationError> DetectLinkCycles(IReadOnlyList<Setting> settings, HashSet<string> ids)
+    {
+        var adj = new Dictionary<string, List<string>>();
+        foreach (var s in settings)
+        {
+            if (!adj.ContainsKey(s.Id)) adj[s.Id] = new List<string>();
+            foreach (var l in s.Links)
+                if (ids.Contains(l.OtherId) && !adj[s.Id].Contains(l.OtherId))
+                    adj[s.Id].Add(l.OtherId);
+        }
+
+        var color = new Dictionary<string, int>();   // 0=white, 1=gray (on stack), 2=black
+        var reported = new HashSet<string>();
+        var errors = new List<CatalogValidationError>();
+
+        foreach (var node in adj.Keys)
+            if (!color.ContainsKey(node))
+                Visit(node, adj, color, errors, reported);
+
+        return errors;
+    }
+
+    private static void Visit(string node, Dictionary<string, List<string>> adj,
+        Dictionary<string, int> color, List<CatalogValidationError> errors, HashSet<string> reported)
+    {
+        color[node] = 1;
+        foreach (var next in adj[node])
+        {
+            if (!color.TryGetValue(next, out var c) || c == 0)
+                Visit(next, adj, color, errors, reported);
+            else if (c == 1 && reported.Add(next))
+                errors.Add(new CatalogValidationError(next, $"Link relationship cycle detected involving '{next}'."));
+        }
+        color[node] = 2;
     }
 }
