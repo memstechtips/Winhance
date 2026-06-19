@@ -13,6 +13,8 @@ public class SystemTrayDetectorTests
         public string[] GetSubKeyNames(string keyPath) => SubKeys;
         public object? GetValue(string keyPath, string? valueName) =>
             Values.TryGetValue($"{keyPath}\\{valueName}", out var v) ? v : null;
+        public string? PrimaryDnsV4OfActiveAdapter() => null;
+        public bool IsSystemRestoreEnabled() => false;
     }
 
     private const string Key = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";
