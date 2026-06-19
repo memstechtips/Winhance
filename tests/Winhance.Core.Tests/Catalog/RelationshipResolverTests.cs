@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
@@ -54,7 +53,7 @@ public class RelationshipResolverTests
         var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
             new Link("b", LinkKind.Enables, "On"));
         var actions = RelationshipResolver.ResolveForward(s, "On", id => "On"); // b already On
-        var act = Assert.Single(actions.Where(x => x.SettingId == "b"));
+        var act = Assert.Single(actions, x => x.SettingId == "b");
         Assert.True(act.Force);
         Assert.Equal("On", act.StateLabel);
     }

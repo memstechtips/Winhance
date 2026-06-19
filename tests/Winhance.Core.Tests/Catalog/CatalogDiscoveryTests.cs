@@ -9,7 +9,6 @@ public class CatalogDiscoveryTests
 {
     private sealed class FakeCtx : IDetectionContext
     {
-        public string? Result;
         public object? GetValue(string keyPath, string? valueName) => null;
         public string[] GetSubKeyNames(string keyPath) => System.Array.Empty<string>();
         public string? PrimaryDnsV4OfActiveAdapter() => null;
