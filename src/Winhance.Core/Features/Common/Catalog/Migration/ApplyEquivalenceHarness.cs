@@ -49,7 +49,7 @@ public static class ApplyEquivalenceHarness
             foreach (var (label, isEnabled) in new[] { ("Enabled", true), ("Disabled", false) })
             {
                 var oldWrites = def.RegistrySettings
-                    .SelectMany(rs => OldPlainToggleWrites(rs, isEnabled))
+                    .SelectMany(rs => OldApplyWrite(rs, isEnabled, specificValue: null))
                     .OrderBy(s => s).ToList();
 
                 var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, label))
@@ -67,9 +67,73 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>A plain registry selection whose apply is pure value writes - no key-existence, binary,
+    /// composite, per-subkey, effect, or non-registry mechanism. The cleanest selection apply slice.</summary>
+    public static bool IsPlainRegistrySelectionForApply(SettingDefinition def)
+    {
+        if (!RegistryToggleEquivalenceHarness.IsPureRegistrySelection(def))
+            return false;
+        if (def.PowerShellScripts.Count > 0 || def.RegContents.Count > 0 || def.NativePowerApiSettings.Count > 0)
+            return false;
+        return def.RegistrySettings.All(r =>
+            r.ValueName != null
+            && !r.ApplyPerNetworkInterface
+            && !r.ApplyPerMonitor
+            && r.CompositeStringKey == null
+            && !r.BitMask.HasValue
+            && !r.ModifyByteOnly);
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (selection, option). OLD mirrors the live selection
+    /// apply (SettingOperationExecutor: per registry setting, ApplySetting(rs, true, optionValue) when the option
+    /// maps that ValueName, else ApplySetting(rs, false)); NEW is the ApplyPlanBuilder plan for that option's
+    /// state. Both normalised. Callers should pre-filter with <see cref="IsPlainRegistrySelectionForApply"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunSelectionApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPlainRegistrySelectionForApply(def))
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertSelection(def);
+            var options = def.ComboBox!.Options;
+
+            foreach (var opt in options)
+            {
+                var mapped = opt.ValueMappings ?? EmptyValues;
+
+                var oldWrites = def.RegistrySettings.SelectMany(rs =>
+                {
+                    var key = rs.ValueName ?? "KeyExists";
+                    object? specificValue = mapped.TryGetValue(key, out var v) ? v : null;
+                    // Live apply: a mapped non-null value -> ApplySetting(rs, true, value); otherwise
+                    // ApplySetting(rs, false) (which, for a selection, deletes - DisabledValue is unset).
+                    return OldApplyWrite(rs, isEnabled: specificValue != null, specificValue);
+                }).OrderBy(s => s).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, opt.DisplayName))
+                    .OrderBy(s => s).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [{opt.DisplayName}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
+    private static readonly Dictionary<string, object?> EmptyValues = new();
+
     /// <summary>The old live apply's write intent for one plain registry setting, mirroring the relevant
-    /// branches of <c>WindowsRegistryService.ApplySetting(setting, isEnabled)</c> WITHOUT executing.</summary>
-    private static IEnumerable<string> OldPlainToggleWrites(RegistrySetting rs, bool isEnabled)
+    /// branches of <c>WindowsRegistryService.ApplySetting(setting, isEnabled, specificValue)</c> WITHOUT
+    /// executing. <paramref name="specificValue"/> overrides the Enabled/DisabledValue (selection apply path).</summary>
+    private static IEnumerable<string> OldApplyWrite(RegistrySetting rs, bool isEnabled, object? specificValue)
     {
         // ValueName == null: state is key existence (create on enable, delete on disable).
         if (rs.ValueName == null)
@@ -78,8 +142,8 @@ public static class ApplyEquivalenceHarness
             yield break;
         }
 
-        // Plain value: write the enabled/disabled value, or delete when that value is the null sentinel.
-        var valueToSet = GetWriteValue(isEnabled ? rs.EnabledValue : rs.DisabledValue);
+        // Plain value: a specific value (selection) wins; else the enabled/disabled value. Null -> delete.
+        var valueToSet = specificValue ?? GetWriteValue(isEnabled ? rs.EnabledValue : rs.DisabledValue);
         yield return valueToSet == null
             ? $"DELETE {rs.KeyPath}\\{rs.ValueName}"
             : $"SET {rs.KeyPath}\\{rs.ValueName} = {Format(valueToSet)} ({rs.ValueType})";
@@ -112,6 +176,10 @@ public static class ApplyEquivalenceHarness
     /// <c>GetWriteValue</c>.</summary>
     private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
 
-    private static string Format(object value) =>
-        value is System.IFormattable f ? f.ToString(null, CultureInfo.InvariantCulture) : value.ToString() ?? "";
+    private static string Format(object value) => value switch
+    {
+        byte[] bytes => System.Convert.ToHexString(bytes),   // compare REG_BINARY by content, not "System.Byte[]"
+        System.IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? "",
+    };
 }
