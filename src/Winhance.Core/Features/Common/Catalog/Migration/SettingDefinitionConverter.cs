@@ -65,6 +65,12 @@ public static class SettingDefinitionConverter
         // mapping value equal to that DefaultValue must also accept absence. Index DefaultValue by group key.
         var defaultByKey = groups.ToDictionary(g => g.Key, g => g.First().DefaultValue);
 
+        // Old ResolveRawValuesToIndex resolves an all-targets-absent read to the IsDefault option (its "all
+        // backing absent" path) even when ResolveUnmatchedToDefault is off. For a single-target selection
+        // that collapses to "the one value is absent", so let that option's value also accept absence. Scoped
+        // to single-target to avoid a multi-key option matching a partially-absent read (which old would not).
+        bool singleTarget = groups.Count == 1;
+
         var options = def.ComboBox!.Options;
         var states = new List<SettingState>(options.Count);
         foreach (var opt in options)
@@ -72,8 +78,14 @@ public static class SettingDefinitionConverter
             var set = new Dictionary<string, StateValue>();
             if (opt.ValueMappings is { } vm)
             {
+                bool absorbAbsent = opt.IsDefault && singleTarget && !def.ResolveUnmatchedToDefault;
                 foreach (var (key, expected) in vm)
-                    set[key] = ToSelectionStateValue(expected, defaultByKey.TryGetValue(key, out var dv) ? dv : null);
+                {
+                    var sv = ToSelectionStateValue(expected, defaultByKey.TryGetValue(key, out var dv) ? dv : null);
+                    if (absorbAbsent)
+                        sv = sv.OrAbsent();
+                    set[key] = sv;
+                }
             }
 
             var roles = new List<StateRole>();

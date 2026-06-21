@@ -220,4 +220,29 @@ public class SettingDefinitionConverterTests
         readings.Set("Mode", 9, present: true);
         Assert.Null(StateDetectionEngine.Detect(s.States, readings));   // unrecognised -> Custom, not a default
     }
+
+    [Fact]
+    public void Selection_single_target_resolves_absent_to_default_option_without_resolve_unmatched()
+    {
+        // Mirrors start-all-apps-view: single DWORD target, an IsDefault option, ResolveUnmatchedToDefault off.
+        // Old detection sends an all-absent read to the IsDefault option; the new engine must too (not Custom).
+        var def = SelectionDef(
+            resolveUnmatched: false,
+            new RegistrySetting { KeyPath = @"HKCU\Start", ValueName = "Mode", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
+            new ComboBoxOption { DisplayName = "Category", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 0 }, IsDefault = true },
+            new ComboBoxOption { DisplayName = "Grid", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 1 } },
+            new ComboBoxOption { DisplayName = "List", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 2 } });
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+        var readings = new DictReadings();
+
+        readings.Set("Mode", null, present: false);                    // value absent -> the IsDefault option
+        Assert.Equal("Category", StateDetectionEngine.Detect(s.States, readings));
+
+        readings.Set("Mode", 1, present: true);                        // a recognised value still wins its option
+        Assert.Equal("Grid", StateDetectionEngine.Detect(s.States, readings));
+
+        readings.Set("Mode", 7, present: true);                        // present but unrecognised is still Custom
+        Assert.Null(StateDetectionEngine.Detect(s.States, readings));
+    }
 }
