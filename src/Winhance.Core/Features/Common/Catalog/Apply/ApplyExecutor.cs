@@ -22,6 +22,7 @@ public static class ApplyExecutor
                     RegistryEnsureKeyOp e => writer.EnsureRegistryKey(e.Target, e.Path),
                     RegistryBitSetOp b => writer.SetRegistryBit(b.Target, b.Path, b.ByteIndex, b.BitMask, b.Set),
                     RegistryByteSetOp y => writer.SetRegistryByte(y.Target, y.Path, y.ByteIndex, y.Value),
+                    RegistryCompositeSetOp c => writer.SetRegistryComposite(c.Target, c.Path, c.CompositeKey, c.SubValue),
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
                     EffectOp fx => writer.RunEffect(fx.Effect),
                     _ => true,

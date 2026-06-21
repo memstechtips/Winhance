@@ -27,7 +27,13 @@ public static class ApplyPlanBuilder
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) — leave it alone
                     foreach (var path in reg.Paths)
                     {
-                        if (reg.BitMask is { } bitMask && reg.ByteIndex is { } bitByteIndex)
+                        if (reg.CompositeStringKey is { } compositeKey)
+                        {
+                            // Set (or remove, when the payload is null) one sub-key inside the packed string;
+                            // the read-merge-write of the other sub-keys happens in the writer.
+                            ops.Add(new RegistryCompositeSetOp(reg, path, compositeKey, sv.WritePayload?.ToString()));
+                        }
+                        else if (reg.BitMask is { } bitMask && reg.ByteIndex is { } bitByteIndex)
                         {
                             // Surgical bit edit within a REG_BINARY byte: the payload's truthiness is the bit state.
                             bool setBit = sv.WritePayload is { } bp && Convert.ToBoolean(bp);

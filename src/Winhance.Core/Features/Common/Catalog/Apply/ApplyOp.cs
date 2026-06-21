@@ -21,6 +21,11 @@ public sealed record RegistryBitSetOp(RegTarget Target, string Path, int ByteInd
 /// edit the old apply did via ModifyBinaryByte).</summary>
 public sealed record RegistryByteSetOp(RegTarget Target, string Path, int ByteIndex, byte Value) : ApplyOp;
 
+/// <summary>Set (or, when <see cref="SubValue"/> is null, remove) one sub-key inside a packed ";"-delimited
+/// "key=value" REG_SZ value, preserving the other sub-keys (the read-merge-write the old apply did for a
+/// CompositeStringKey setting).</summary>
+public sealed record RegistryCompositeSetOp(RegTarget Target, string Path, string CompositeKey, string? SubValue) : ApplyOp;
+
 /// <summary>Enable or disable a scheduled task.</summary>
 public sealed record TaskSetOp(TaskTarget Target, bool Enabled) : ApplyOp;
 

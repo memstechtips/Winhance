@@ -128,6 +128,37 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void Composite_target_emits_a_sub_key_set_op_from_the_payload()
+    {
+        var reg = Reg("DirectXUserGlobalSettings", "DirectXUserGlobalSettings", @"HKCU\UserGpuPreferences")
+            with { CompositeStringKey = "AutoHDREnable" };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = StateValue.Of("1") } },
+            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = StateValue.Of("0") } });
+
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryCompositeSetOp>());
+        Assert.Equal("AutoHDREnable", on.CompositeKey);
+        Assert.Equal("1", on.SubValue);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+
+        Assert.Equal("0", Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryCompositeSetOp>()).SubValue);
+    }
+
+    [Fact]
+    public void Composite_target_with_absent_payload_emits_a_remove()
+    {
+        var reg = Reg("Packed", "Packed") with { CompositeStringKey = "SubKey" };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Packed"] = StateValue.Absent } });
+
+        var op = Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryCompositeSetOp>());
+        Assert.Null(op.SubValue);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryDeleteOp>());
+    }
+
+    [Fact]
     public void Task_state_emits_enable_or_disable()
     {
         var setting = Make(

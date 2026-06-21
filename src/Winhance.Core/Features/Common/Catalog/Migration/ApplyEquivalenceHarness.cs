@@ -9,15 +9,15 @@ namespace Winhance.Core.Features.Common.Catalog.Migration;
 /// <summary>Throwaway migration tool: proves the new <see cref="ApplyPlanBuilder"/> produces the same registry
 /// WRITE INTENT the old live apply (<c>WindowsRegistryService.ApplySetting</c>) does, for a setting + target
 /// state. Pure - both sides are computed without touching the registry, then compared as a normalised set of
-/// write-intent strings. Covers registry toggles and selections including binary bit/byte surgical writes
-/// (value set/delete, key existence, BITSET, BYTESET). Composite (read-merge), per-NIC/monitor (live subkey
-/// enumeration), and apply-only effects are excluded here and handled in later slices. Deleted once the
-/// migration is complete.</summary>
+/// write-intent strings. Covers registry toggles and selections including binary bit/byte surgical writes and
+/// composite packed-string sub-key writes (value set/delete, key existence, BITSET, BYTESET, COMPOSITESET/DEL).
+/// Per-NIC/monitor (live subkey enumeration) and apply-only effects are excluded here and handled in later
+/// slices. Deleted once the migration is complete.</summary>
 public static class ApplyEquivalenceHarness
 {
     /// <summary>A registry toggle whose apply is a self-contained registry write - a value set/delete, a
-    /// key-existence create/delete, or a surgical binary bit/byte edit. Composite (read-merge), per-subkey,
-    /// apply-only effect, and non-registry mechanisms are excluded (later slices).</summary>
+    /// key-existence create/delete, a surgical binary bit/byte edit, or a composite packed-string sub-key write.
+    /// Per-subkey (per-NIC/monitor), apply-only effect, and non-registry mechanisms are excluded (later slices).</summary>
     public static bool IsPlainRegistryToggleForApply(SettingDefinition def)
     {
         if (!RegistryToggleEquivalenceHarness.IsPureRegistryToggle(def))
@@ -25,12 +25,11 @@ public static class ApplyEquivalenceHarness
         // Apply-only effects are a separate slice (the old apply also runs the script/.reg/native write).
         if (def.PowerShellScripts.Count > 0 || def.RegContents.Count > 0 || def.NativePowerApiSettings.Count > 0)
             return false;
-        // Composite read-merge and per-subkey enumeration need a live context - later slices. Binary bit/byte
-        // are covered here (BITSET/BYTESET ops mirror ModifyBinaryBit/ModifyBinaryByte deterministically).
+        // Per-subkey enumeration needs a live context - later slice. Binary bit/byte and composite sub-key writes
+        // are covered here (BITSET/BYTESET/COMPOSITESET ops mirror the old surgical edits deterministically).
         return def.RegistrySettings.All(r =>
             !r.ApplyPerNetworkInterface
-            && !r.ApplyPerMonitor
-            && r.CompositeStringKey == null);
+            && !r.ApplyPerMonitor);
     }
 
     /// <summary>Builds one <see cref="EquivalenceRow"/> per (toggle, state): OLD is the live apply's write
@@ -142,6 +141,19 @@ public static class ApplyEquivalenceHarness
             yield break;
         }
 
+        // Composite: set or remove one sub-key inside the packed ";"-string (mirrors ApplySetting's
+        // CompositeStringKey branch). A specific value (selection) wins; else the enabled/disabled value;
+        // a null value removes the sub-key.
+        if (rs.CompositeStringKey != null)
+        {
+            var subValue = specificValue?.ToString()
+                ?? (isEnabled ? GetWriteValue(rs.EnabledValue)?.ToString() : GetWriteValue(rs.DisabledValue)?.ToString());
+            yield return subValue != null
+                ? $"COMPOSITESET {rs.KeyPath}\\{rs.ValueName}[{rs.CompositeStringKey}] = {subValue}"
+                : $"COMPOSITEDEL {rs.KeyPath}\\{rs.ValueName}[{rs.CompositeStringKey}]";
+            yield break;
+        }
+
         // Binary bit: surgical set/clear of one bit (mirrors ApplySetting's ModifyBinaryBit branch). A bit
         // value (bool / int!=0 / byte!=0) from a selection wins; a plain toggle uses isEnabled.
         if (rs.BitMask.HasValue && rs.BinaryByteIndex.HasValue)
@@ -201,6 +213,11 @@ public static class ApplyEquivalenceHarness
                     break;
                 case RegistryByteSetOp y:
                     yield return $"BYTESET {y.Path}\\{y.Target.ValueName}[{y.ByteIndex}] = 0x{y.Value:X2}";
+                    break;
+                case RegistryCompositeSetOp c:
+                    yield return c.SubValue != null
+                        ? $"COMPOSITESET {c.Path}\\{c.Target.ValueName}[{c.CompositeKey}] = {c.SubValue}"
+                        : $"COMPOSITEDEL {c.Path}\\{c.Target.ValueName}[{c.CompositeKey}]";
                     break;
                 // TaskSetOp / EffectOp do not occur for a registry toggle/selection (filtered out).
             }
