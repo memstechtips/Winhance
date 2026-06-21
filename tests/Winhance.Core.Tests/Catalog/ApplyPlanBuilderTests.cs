@@ -159,6 +159,52 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void RegContent_setting_skips_registry_writes_and_emits_only_the_import()
+    {
+        // A setting that applies via a .reg import has detect-only registry targets - no registry write op.
+        var setting = Make(
+            new[] { Reg("Sentinel", "") },
+            new SettingState
+            {
+                Label = "On",
+                Set = new Dictionary<string, StateValue> { ["Sentinel"] = StateValue.Of("X") },
+                Effects = new Effect[] { new RegContentEffect("REGDATA-ON") },
+            },
+            new SettingState
+            {
+                Label = "Off",
+                Set = new Dictionary<string, StateValue> { ["Sentinel"] = StateValue.Absent },
+                Effects = new Effect[] { new RegContentEffect("REGDATA-OFF") },
+            });
+
+        var onPlan = ApplyPlanBuilder.Build(setting, "On");
+        Assert.Empty(onPlan.OfType<RegistryWriteOp>());
+        Assert.Equal("REGDATA-ON", ((RegContentEffect)onPlan.OfType<EffectOp>().Single().Effect).Content);
+
+        var offPlan = ApplyPlanBuilder.Build(setting, "Off");
+        Assert.Empty(offPlan.OfType<RegistryDeleteOp>()); // Absent would normally DELETE; skipped for regcontent
+        Assert.Equal("REGDATA-OFF", ((RegContentEffect)offPlan.OfType<EffectOp>().Single().Effect).Content);
+    }
+
+    [Fact]
+    public void Native_power_effect_rides_alongside_the_registry_write()
+    {
+        // No RegContentEffect -> the registry write is NOT skipped; the native effect rides along after it.
+        var setting = Make(
+            new[] { Reg("HibernateEnabled", "HibernateEnabled") },
+            new SettingState
+            {
+                Label = "On",
+                Set = new Dictionary<string, StateValue> { ["HibernateEnabled"] = StateValue.Of(1) },
+                Effects = new Effect[] { new NativePowerEffect(11, 1) },
+            });
+
+        var plan = ApplyPlanBuilder.Build(setting, "On");
+        Assert.Single(plan.OfType<RegistryWriteOp>());
+        Assert.Equal((byte)1, ((NativePowerEffect)plan.OfType<EffectOp>().Single().Effect).Value);
+    }
+
+    [Fact]
     public void Task_state_emits_enable_or_disable()
     {
         var setting = Make(

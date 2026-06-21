@@ -9,24 +9,23 @@ namespace Winhance.Core.Features.Common.Catalog.Migration;
 /// <summary>Throwaway migration tool: proves the new <see cref="ApplyPlanBuilder"/> produces the same registry
 /// WRITE INTENT the old live apply (<c>WindowsRegistryService.ApplySetting</c>) does, for a setting + target
 /// state. Pure - both sides are computed without touching the registry, then compared as a normalised set of
-/// write-intent strings. Covers registry toggles and selections including binary bit/byte surgical writes and
-/// composite packed-string sub-key writes (value set/delete, key existence, BITSET, BYTESET, COMPOSITESET/DEL).
-/// Per-NIC/monitor (live subkey enumeration) and apply-only effects are excluded here and handled in later
-/// slices. Deleted once the migration is complete.</summary>
+/// write-intent strings. Covers registry toggles and selections including binary bit/byte surgical writes,
+/// composite packed-string sub-key writes, and apply-only effects (SCRIPT / REGIMPORT / NATIVEPOWER). A setting
+/// that applies via a .reg import skips its registry writes (detect-only targets), mirroring the old apply.
+/// Per-NIC/monitor (live subkey enumeration) is excluded here and handled in a later slice. Deleted once the
+/// migration is complete.</summary>
 public static class ApplyEquivalenceHarness
 {
     /// <summary>A registry toggle whose apply is a self-contained registry write - a value set/delete, a
-    /// key-existence create/delete, a surgical binary bit/byte edit, or a composite packed-string sub-key write.
-    /// Per-subkey (per-NIC/monitor), apply-only effect, and non-registry mechanisms are excluded (later slices).</summary>
+    /// key-existence create/delete, a surgical binary bit/byte edit, a composite packed-string sub-key write,
+    /// and/or apply-only effects (script / .reg import / native power). Per-subkey (per-NIC/monitor) needs a
+    /// live context and is excluded (later slice).</summary>
     public static bool IsPlainRegistryToggleForApply(SettingDefinition def)
     {
         if (!RegistryToggleEquivalenceHarness.IsPureRegistryToggle(def))
             return false;
-        // Apply-only effects are a separate slice (the old apply also runs the script/.reg/native write).
-        if (def.PowerShellScripts.Count > 0 || def.RegContents.Count > 0 || def.NativePowerApiSettings.Count > 0)
-            return false;
-        // Per-subkey enumeration needs a live context - later slice. Binary bit/byte and composite sub-key writes
-        // are covered here (BITSET/BYTESET/COMPOSITESET ops mirror the old surgical edits deterministically).
+        // Per-subkey enumeration needs a live context - later slice. Binary bit/byte, composite sub-key writes,
+        // and apply-only effects are covered here (BITSET/BYTESET/COMPOSITESET + SCRIPT/REGIMPORT/NATIVEPOWER).
         return def.RegistrySettings.All(r =>
             !r.ApplyPerNetworkInterface
             && !r.ApplyPerMonitor);
@@ -48,8 +47,14 @@ public static class ApplyEquivalenceHarness
 
             foreach (var (label, isEnabled) in new[] { ("Enabled", true), ("Disabled", false) })
             {
-                var oldWrites = def.RegistrySettings
-                    .SelectMany(rs => OldApplyWrite(rs, isEnabled, specificValue: null))
+                // A setting that applies via a .reg import does NOT write its registry targets (mirrors the old
+                // apply, which skips registry writes when RegContents is present); the import is the apply.
+                var oldRegWrites = def.RegContents.Count == 0
+                    ? def.RegistrySettings.SelectMany(rs => OldApplyWrite(rs, isEnabled, specificValue: null))
+                    : Enumerable.Empty<string>();
+
+                var oldWrites = oldRegWrites
+                    .Concat(OldEffectWrites(def, isEnabled))
                     .OrderBy(s => s).ToList();
 
                 var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, label))
@@ -219,10 +224,45 @@ public static class ApplyEquivalenceHarness
                         ? $"COMPOSITESET {c.Path}\\{c.Target.ValueName}[{c.CompositeKey}] = {c.SubValue}"
                         : $"COMPOSITEDEL {c.Path}\\{c.Target.ValueName}[{c.CompositeKey}]";
                     break;
-                // TaskSetOp / EffectOp do not occur for a registry toggle/selection (filtered out).
+                case EffectOp fx:
+                    yield return EffectIntent(fx.Effect);
+                    break;
+                // TaskSetOp does not occur for a registry toggle/selection (filtered out).
             }
         }
     }
+
+    /// <summary>The old apply's effect intent for one setting + state, mirroring the script / .reg / native-power
+    /// branches of <c>SettingOperationExecutor</c>. Scripts and .reg imports only run when their body is non-empty
+    /// (old guards with IsNullOrEmpty); native power always runs.</summary>
+    private static IEnumerable<string> OldEffectWrites(SettingDefinition def, bool isEnabled)
+    {
+        foreach (var ps in def.PowerShellScripts)
+        {
+            var script = isEnabled ? ps.EnabledScript : ps.DisabledScript;
+            if (!string.IsNullOrEmpty(script))
+                yield return EffectIntent(new ScriptEffect(script!, ps.RunContext));
+        }
+
+        foreach (var rc in def.RegContents)
+        {
+            var content = isEnabled ? rc.EnabledContent : rc.DisabledContent;
+            if (!string.IsNullOrEmpty(content))
+                yield return EffectIntent(new RegContentEffect(content!));
+        }
+
+        foreach (var np in def.NativePowerApiSettings)
+            yield return EffectIntent(new NativePowerEffect(np.InformationLevel, isEnabled ? np.EnabledValue : np.DisabledValue));
+    }
+
+    /// <summary>One effect's apply intent, normalised identically for the old and new sides.</summary>
+    private static string EffectIntent(Effect effect) => effect switch
+    {
+        ScriptEffect s => $"SCRIPT run={s.Run} {s.Script}",
+        RegContentEffect r => $"REGIMPORT {r.Content}",
+        NativePowerEffect n => $"NATIVEPOWER level={n.InformationLevel} value={n.Value}",
+        _ => $"EFFECT {effect}",
+    };
 
     /// <summary>The first non-null entry of an old EnabledValue/DisabledValue array - matches the old apply's
     /// <c>GetWriteValue</c>.</summary>

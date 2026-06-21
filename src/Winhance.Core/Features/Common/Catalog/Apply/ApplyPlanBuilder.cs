@@ -18,11 +18,17 @@ public static class ApplyPlanBuilder
 
         var ops = new List<ApplyOp>();
 
+        // A setting that applies via a .reg import does NOT write its registry targets - those are detect-only;
+        // the import is the apply. Mirrors the old apply, which skips registry writes when RegContents is present.
+        bool appliesViaRegContent = setting.States.Any(s => s.Effects.OfType<RegContentEffect>().Any());
+
         foreach (var target in setting.Targets)
         {
             switch (target)
             {
                 case RegTarget reg:
+                    if (appliesViaRegContent)
+                        break; // detect-only: the .reg import (an Effect) is the apply
                     if (!state.Set.TryGetValue(reg.Key, out var sv))
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) — leave it alone
                     foreach (var path in reg.Paths)

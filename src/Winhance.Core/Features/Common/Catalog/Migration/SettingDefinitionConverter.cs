@@ -38,8 +38,8 @@ public static class SettingDefinitionConverter
         var rec = SettingDefinitionToggleState.GetRecommendedToggleState(def);
         var def_ = SettingDefinitionToggleState.GetDefaultToggleState(def);
 
-        var enabled = new SettingState { Label = "Enabled", Set = enabledSet, Roles = RolesFor(true, rec, def_) };
-        var disabled = new SettingState { Label = "Disabled", Set = disabledSet, Roles = RolesFor(false, rec, def_), IsFallback = true };
+        var enabled = new SettingState { Label = "Enabled", Set = enabledSet, Roles = RolesFor(true, rec, def_), Effects = BuildToggleEffects(def, isEnabled: true) };
+        var disabled = new SettingState { Label = "Disabled", Set = disabledSet, Roles = RolesFor(false, rec, def_), IsFallback = true, Effects = BuildToggleEffects(def, isEnabled: false) };
 
         return new Setting
         {
@@ -261,6 +261,33 @@ public static class SettingDefinitionConverter
         if (defaultValue is not null && CatalogValueComparer.AreEqual(defaultValue, expected))
             sv = sv.OrAbsent();
         return sv;
+    }
+
+    /// <summary>Maps a toggle's apply-only mechanisms to the per-state Effects the old apply runs for that state.
+    /// PowerShell scripts and .reg imports only run when their body is non-empty (old guards with IsNullOrEmpty);
+    /// native power always runs. Order (script -> regcontent -> native) mirrors the old apply's effect order.</summary>
+    private static IReadOnlyList<Effect> BuildToggleEffects(SettingDefinition def, bool isEnabled)
+    {
+        var effects = new List<Effect>();
+
+        foreach (var ps in def.PowerShellScripts)
+        {
+            var script = isEnabled ? ps.EnabledScript : ps.DisabledScript;
+            if (!string.IsNullOrEmpty(script))
+                effects.Add(new ScriptEffect(script!, ps.RunContext));
+        }
+
+        foreach (var rc in def.RegContents)
+        {
+            var content = isEnabled ? rc.EnabledContent : rc.DisabledContent;
+            if (!string.IsNullOrEmpty(content))
+                effects.Add(new RegContentEffect(content!));
+        }
+
+        foreach (var np in def.NativePowerApiSettings)
+            effects.Add(new NativePowerEffect(np.InformationLevel, isEnabled ? np.EnabledValue : np.DisabledValue));
+
+        return effects;
     }
 
     private static IReadOnlyList<StateRole> RolesFor(bool isEnabledState, bool? recommendedIsEnabled, bool? defaultIsEnabled)
