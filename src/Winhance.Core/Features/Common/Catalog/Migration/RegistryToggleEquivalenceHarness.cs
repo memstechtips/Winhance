@@ -170,6 +170,33 @@ public static class RegistryToggleEquivalenceHarness
         return options[index].DisplayName;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per system-restore toggle
+    /// (DetectionType.SystemRestore). OLD is the app's real detection (<see cref="ISystemRestoreService.IsEnabledForC"/>
+    /// -> the toggle is Enabled iff System Restore is on for C:); NEW runs the <see cref="SystemRestoreDetector"/>
+    /// over the same pre-fetched value. Definitions of other detection types are skipped defensively.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunSystemRestore(
+        ISystemRestoreService restoreService,
+        IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (def.DetectionType != DetectionType.SystemRestore)
+                continue;
+
+            bool enabled = restoreService.IsEnabledForC();
+            string oldState = enabled ? "Enabled" : "Disabled";
+
+            var setting = SettingDefinitionConverter.ConvertSystemRestore(def);
+            string newState = CatalogDiscovery.DetectState(setting, new SystemRestoreDetectionContext(enabled)) ?? "Custom";
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
+    }
+
     /// <summary>Builds one <see cref="EquivalenceRow"/> per system-tray-icons selection
     /// (DetectionType.SystemTrayIcons). OLD is the app's real detection (DetectSystemTrayIndex via
     /// <see cref="IComboBoxResolver.ResolveCurrentValueAsync"/> -> option index -> DisplayName); NEW runs the

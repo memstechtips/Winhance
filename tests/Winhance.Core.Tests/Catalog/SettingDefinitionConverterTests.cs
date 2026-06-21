@@ -322,4 +322,33 @@ public class SettingDefinitionConverterTests
         Assert.Equal("Hide all icons", CatalogDiscovery.DetectState(s, new TrayCtx(keys, promoted: 0)));
         Assert.Null(CatalogDiscovery.DetectState(s, new TrayCtx(keys, promoted: 1)));
     }
+
+    private sealed class RestoreCtx : IDetectionContext
+    {
+        private readonly bool _enabled;
+        public RestoreCtx(bool enabled) => _enabled = enabled;
+        public bool IsSystemRestoreEnabled() => _enabled;
+        public object? GetValue(string keyPath, string? valueName) => null;
+        public string[] GetSubKeyNames(string keyPath) => System.Array.Empty<string>();
+        public bool KeyExists(string keyPath) => false;
+        public string? PrimaryDnsV4OfActiveAdapter() => null;
+        public bool? ScheduledTaskEnabled(string taskPath) => null;
+    }
+
+    [Fact]
+    public void SystemRestore_converts_to_a_detector_mapping_enabled_disabled()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle,
+            DetectionType = DetectionType.SystemRestore,
+            RecommendedToggleState = true, DefaultToggleState = true,
+        };
+
+        var s = SettingDefinitionConverter.ConvertSystemRestore(def);
+        Assert.IsType<SystemRestoreDetector>(s.Detector);
+
+        Assert.Equal("Enabled", CatalogDiscovery.DetectState(s, new RestoreCtx(enabled: true)));
+        Assert.Equal("Disabled", CatalogDiscovery.DetectState(s, new RestoreCtx(enabled: false)));
+    }
 }

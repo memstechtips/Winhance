@@ -172,6 +172,29 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates the system-restore toggle (DetectionType.SystemRestore) into a Setting that detects
+    /// via <see cref="SystemRestoreDetector"/>: System Restore on for C: = Enabled, off = Disabled (the old
+    /// toggle reads the same IsEnabledForC bool). Roles come from the toggle's recommended/default state.</summary>
+    public static Setting ConvertSystemRestore(SettingDefinition def)
+    {
+        var rec = SettingDefinitionToggleState.GetRecommendedToggleState(def);
+        var def_ = SettingDefinitionToggleState.GetDefaultToggleState(def);
+
+        var enabled = new SettingState { Label = "Enabled", Roles = RolesFor(true, rec, def_) };
+        var disabled = new SettingState { Label = "Disabled", Roles = RolesFor(false, rec, def_) };
+
+        return new Setting
+        {
+            Id = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            GroupName = def.GroupName,
+            Icon = def.Icon,
+            States = new[] { enabled, disabled },
+            Detector = new SystemRestoreDetector("Enabled", "Disabled"),
+        };
+    }
+
     /// <summary>Folds registry settings into targets: a mirror (same ValueName under several KeyPaths) is one
     /// target with many paths. ValueName == null groups under the "KeyExists" key (key-existence target).</summary>
     private static List<RegTarget> BuildTargets(List<IGrouping<string, RegistrySetting>> groups) =>
