@@ -12,26 +12,7 @@ public static class SettingDefinitionConverter
     {
         // A mirror = the same ValueName written under multiple KeyPaths -> one target, many paths.
         var groups = def.RegistrySettings.GroupBy(r => r.ValueName ?? "KeyExists").ToList();
-
-        var targets = groups.Select(g =>
-        {
-            var first = g.First();
-            return new RegTarget(
-                g.Key,
-                g.Select(r => r.KeyPath).ToArray(),
-                first.ValueName,
-                first.ValueType)
-            {
-                ByteIndex = first.BinaryByteIndex,
-                BitMask = first.BitMask,
-                ByteOnly = first.ModifyByteOnly,
-                CompositeStringKey = first.CompositeStringKey,
-                PerNetworkInterface = first.ApplyPerNetworkInterface,
-                PerMonitor = first.ApplyPerMonitor,
-                IsGroupPolicy = first.IsGroupPolicy,
-                LockKeyAccess = first.LockKeyAccess,
-            };
-        }).ToList();
+        var targets = BuildTargets(groups);
 
         var enabledSet = new Dictionary<string, StateValue>();
         var disabledSet = new Dictionary<string, StateValue>();
@@ -69,6 +50,92 @@ public static class SettingDefinitionConverter
             Targets = targets.Cast<Target>().ToList(),
             States = new[] { enabled, disabled },
         };
+    }
+
+    /// <summary>Translates an old registry SELECTION (ComboBox) SettingDefinition into the new Setting model.
+    /// One state per ComboBox option (Label = option DisplayName); each option's ValueMappings become the
+    /// state's per-target accept Set; IsRecommended/IsDefault become roles; the IsDefault option becomes the
+    /// catch-all fallback when the definition opts in via ResolveUnmatchedToDefault.</summary>
+    public static Setting ConvertSelection(SettingDefinition def)
+    {
+        var groups = def.RegistrySettings.GroupBy(r => r.ValueName ?? "KeyExists").ToList();
+        var targets = BuildTargets(groups);
+
+        // Old ResolveRawValuesToIndex substitutes a target's DefaultValue when the live read is absent, so a
+        // mapping value equal to that DefaultValue must also accept absence. Index DefaultValue by group key.
+        var defaultByKey = groups.ToDictionary(g => g.Key, g => g.First().DefaultValue);
+
+        var options = def.ComboBox!.Options;
+        var states = new List<SettingState>(options.Count);
+        foreach (var opt in options)
+        {
+            var set = new Dictionary<string, StateValue>();
+            if (opt.ValueMappings is { } vm)
+            {
+                foreach (var (key, expected) in vm)
+                    set[key] = ToSelectionStateValue(expected, defaultByKey.TryGetValue(key, out var dv) ? dv : null);
+            }
+
+            var roles = new List<StateRole>();
+            if (opt.IsRecommended) roles.Add(new StateRole(RoleKind.Recommended));
+            if (opt.IsDefault) roles.Add(new StateRole(RoleKind.WindowsDefault));
+
+            states.Add(new SettingState
+            {
+                Label = opt.DisplayName,
+                Set = set,
+                Roles = roles,
+                // ResolveUnmatchedToDefault: an unrecognised live state resolves to the IsDefault option.
+                IsFallback = def.ResolveUnmatchedToDefault && opt.IsDefault,
+            });
+        }
+
+        return new Setting
+        {
+            Id = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            GroupName = def.GroupName,
+            Icon = def.Icon,
+            Targets = targets.Cast<Target>().ToList(),
+            States = states,
+        };
+    }
+
+    /// <summary>Folds registry settings into targets: a mirror (same ValueName under several KeyPaths) is one
+    /// target with many paths. ValueName == null groups under the "KeyExists" key (key-existence target).</summary>
+    private static List<RegTarget> BuildTargets(List<IGrouping<string, RegistrySetting>> groups) =>
+        groups.Select(g =>
+        {
+            var first = g.First();
+            return new RegTarget(
+                g.Key,
+                g.Select(r => r.KeyPath).ToArray(),
+                first.ValueName,
+                first.ValueType)
+            {
+                ByteIndex = first.BinaryByteIndex,
+                BitMask = first.BitMask,
+                ByteOnly = first.ModifyByteOnly,
+                CompositeStringKey = first.CompositeStringKey,
+                PerNetworkInterface = first.ApplyPerNetworkInterface,
+                PerMonitor = first.ApplyPerMonitor,
+                IsGroupPolicy = first.IsGroupPolicy,
+                LockKeyAccess = first.LockKeyAccess,
+            };
+        }).ToList();
+
+    /// <summary>Maps one ComboBox ValueMapping scalar to the accept-value for a selection state. A null
+    /// mapping means the value is absent; a concrete value matches that value when present, and also accepts
+    /// absence when it equals the target's DefaultValue (old detection reads absent as the DefaultValue).</summary>
+    private static StateValue ToSelectionStateValue(object? expected, object? defaultValue)
+    {
+        if (expected is null)
+            return StateValue.Absent;
+        var sv = StateValue.Of(expected);
+        if (defaultValue is not null && CatalogValueComparer.AreEqual(defaultValue, expected))
+            sv = sv.OrAbsent();
+        return sv;
     }
 
     private static IReadOnlyList<StateRole> RolesFor(bool isEnabledState, bool? recommendedIsEnabled, bool? defaultIsEnabled)

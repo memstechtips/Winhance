@@ -50,6 +50,17 @@ public class StateValueTests
     }
 
     [Fact]
+    public void Of_compares_byte_arrays_by_content_not_reference()
+    {
+        // REG_BINARY selection values (e.g. explorer-customization-shortcut-suffix) are raw byte arrays.
+        // Equal content must match; different content must not - never "all byte[] are equal".
+        var v = StateValue.Of(new byte[] { 0x00, 0x00, 0x00, 0x00 });
+        Assert.True(v.Matches(new byte[] { 0x00, 0x00, 0x00, 0x00 }, present: true));
+        Assert.False(v.Matches(new byte[] { 0x1E, 0x00, 0x00, 0x00 }, present: true));
+        Assert.False(v.Matches(null, present: false));
+    }
+
+    [Fact]
     public void OneOf_matches_any_listed_value()
     {
         var v = StateValue.OneOf(2, 0x26);

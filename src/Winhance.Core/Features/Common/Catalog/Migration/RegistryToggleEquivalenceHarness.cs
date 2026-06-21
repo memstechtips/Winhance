@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -28,6 +30,31 @@ public static class RegistryToggleEquivalenceHarness
         if (def.RegistrySettings.Count == 0)
             return false;
         if (def.ComboBox != null)
+            return false;
+        if (def.PowerCfgSettings is { Count: > 0 })
+            return false;
+        if (def.ScheduledTaskSettings.Count > 0)
+            return false;
+        if (def.PowerShellScripts.Count > 0)
+            return false;
+        if (def.RegContents.Count > 0)
+            return false;
+        if (def.NativePowerApiSettings.Count > 0)
+            return false;
+        if (def.DetectionType.HasValue)
+            return false;
+        return true;
+    }
+
+    /// <summary>True when a definition is a pure registry selection (ComboBox) - registry-backed, no
+    /// non-registry mechanism. The selection analogue of <see cref="IsPureRegistryToggle"/>.</summary>
+    public static bool IsPureRegistrySelection(SettingDefinition def)
+    {
+        if (def.InputType != InputType.Selection)
+            return false;
+        if (def.ComboBox?.Options is not { Count: > 0 })
+            return false;
+        if (def.RegistrySettings.Count == 0)
             return false;
         if (def.PowerCfgSettings is { Count: > 0 })
             return false;
@@ -84,5 +111,47 @@ public static class RegistryToggleEquivalenceHarness
         }
 
         return rows;
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per supplied registry SELECTION definition. OLD is the
+    /// app's real selection detection (<see cref="IComboBoxResolver.ResolveCurrentValueAsync"/> -> option
+    /// index -> its DisplayName); NEW converts to the unified model and runs the engine. Callers should
+    /// pre-filter with <see cref="IsPureRegistrySelection"/>; any other definitions are skipped defensively.</summary>
+    public static async Task<IReadOnlyList<EquivalenceRow>> RunSelections(
+        IWindowsRegistryService reg,
+        IComboBoxResolver resolver,
+        IEnumerable<SettingDefinition> selectionDefs)
+    {
+        var context = new WindowsDetectionContext(reg);
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in selectionDefs)
+        {
+            if (!IsPureRegistrySelection(def))
+                continue;
+
+            // OLD: the app's real selection detection resolves the live registry to an option index.
+            var resolved = await resolver.ResolveCurrentValueAsync(def).ConfigureAwait(false);
+            int oldIndex = resolved is int idx ? idx : ComboBoxConstants.CustomStateIndex;
+            string oldState = LabelForIndex(def, oldIndex);
+
+            // NEW: convert to the unified Setting model and run the new detection engine.
+            var setting = SettingDefinitionConverter.ConvertSelection(def);
+            string newState = CatalogDiscovery.DetectState(setting, context) ?? "Custom";
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
+    }
+
+    /// <summary>The DisplayName of the option at <paramref name="index"/>, or "Custom" for the custom-state
+    /// index / any out-of-range index - so OLD and NEW are compared on the same label vocabulary.</summary>
+    private static string LabelForIndex(SettingDefinition def, int index)
+    {
+        var options = def.ComboBox?.Options;
+        if (options is null || index < 0 || index >= options.Count)
+            return "Custom";
+        return options[index].DisplayName;
     }
 }

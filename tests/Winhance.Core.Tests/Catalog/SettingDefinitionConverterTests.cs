@@ -146,4 +146,78 @@ public class SettingDefinitionConverterTests
         Assert.True(s.States.Single(x => x.Label == "Enabled").Set["KeyExists"].Matches(null, present: false));
         Assert.True(s.States.Single(x => x.Label == "Disabled").Set["KeyExists"].Matches(null, present: true));
     }
+
+    private static SettingDefinition SelectionDef(bool resolveUnmatched, RegistrySetting reg, params ComboBoxOption[] options) => new()
+    {
+        Id = "s", Name = "n", Description = "d", InputType = InputType.Selection,
+        ResolveUnmatchedToDefault = resolveUnmatched,
+        RegistrySettings = new[] { reg },
+        ComboBox = new ComboBoxMetadata { Options = options },
+    };
+
+    [Fact]
+    public void Selection_maps_each_option_to_a_state_with_value_set_roles_and_fallback()
+    {
+        var def = SelectionDef(
+            resolveUnmatched: true,
+            new RegistrySetting { KeyPath = @"HKCU\E", ValueName = "link", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
+            new ComboBoxOption { DisplayName = "Keep", ValueMappings = new Dictionary<string, object?> { ["link"] = null }, IsRecommended = true, IsDefault = true },
+            new ComboBoxOption { DisplayName = "Remove", ValueMappings = new Dictionary<string, object?> { ["link"] = 0 } });
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+
+        Assert.Equal(2, s.States.Count);
+        var keep = s.States.Single(x => x.Label == "Keep");
+        var remove = s.States.Single(x => x.Label == "Remove");
+
+        // Keep maps link=null -> Absent; Remove maps link=0 -> Of(0).
+        Assert.True(keep.Set["link"].Matches(null, present: false));
+        Assert.False(keep.Set["link"].Matches(0, present: true));
+        Assert.True(remove.Set["link"].Matches(0, present: true));
+        Assert.False(remove.Set["link"].Matches(null, present: false));
+
+        Assert.True(keep.HasRole(RoleKind.Recommended));
+        Assert.True(keep.HasRole(RoleKind.WindowsDefault));
+        Assert.True(keep.IsFallback);     // ResolveUnmatchedToDefault + IsDefault
+        Assert.False(remove.IsFallback);
+    }
+
+    [Fact]
+    public void Selection_mapping_equal_to_default_value_also_accepts_absence()
+    {
+        var def = SelectionDef(
+            resolveUnmatched: false,
+            new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", RecommendedValue = null, DefaultValue = 1, ValueType = RegistryValueKind.DWord },
+            new ComboBoxOption { DisplayName = "On", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 1 }, IsDefault = true },
+            new ComboBoxOption { DisplayName = "Off", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 0 } });
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+        var on = s.States.Single(x => x.Label == "On").Set["Mode"];
+        var off = s.States.Single(x => x.Label == "Off").Set["Mode"];
+
+        // "On" maps Mode=1, which equals DefaultValue=1, so an absent read (which the old resolver reads as
+        // the default) also resolves to On.
+        Assert.True(on.Matches(1, present: true));
+        Assert.True(on.Matches(null, present: false));   // OrAbsent
+        // "Off" maps Mode=0, not the default, so an absent read does not match Off.
+        Assert.True(off.Matches(0, present: true));
+        Assert.False(off.Matches(null, present: false));
+    }
+
+    [Fact]
+    public void Selection_without_resolve_unmatched_resolves_unrecognised_value_to_custom()
+    {
+        var def = SelectionDef(
+            resolveUnmatched: false,
+            new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
+            new ComboBoxOption { DisplayName = "A", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 0 }, IsDefault = true },
+            new ComboBoxOption { DisplayName = "B", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 1 } });
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+
+        Assert.All(s.States, st => Assert.False(st.IsFallback));
+        var readings = new DictReadings();
+        readings.Set("Mode", 9, present: true);
+        Assert.Null(StateDetectionEngine.Detect(s.States, readings));   // unrecognised -> Custom, not a default
+    }
 }
