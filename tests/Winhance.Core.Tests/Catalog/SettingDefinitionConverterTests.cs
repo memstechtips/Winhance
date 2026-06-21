@@ -90,4 +90,60 @@ public class SettingDefinitionConverterTests
         readings.Set("V", 3, present: true);
         Assert.Equal("Disabled", StateDetectionEngine.Detect(s.States, readings));
     }
+
+    [Fact]
+    public void KeyExistence_standard_shape_enabled_when_key_present()
+    {
+        // ValueName == null with EnabledValue/DisabledValue both null: standard shape - the key being
+        // present means Enabled, absent means Disabled.
+        var def = ToggleDef(new RegistrySetting
+        {
+            KeyPath = @"HKLM\NameSpace\X", ValueName = null,
+            EnabledValue = null, DisabledValue = null,
+            RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.None,
+        });
+
+        var s = SettingDefinitionConverter.ConvertToggle(def);
+        var enabled = s.States.Single(x => x.Label == "Enabled").Set["KeyExists"];
+        var disabled = s.States.Single(x => x.Label == "Disabled").Set["KeyExists"];
+
+        Assert.True(enabled.Matches(null, present: true));     // key present -> Enabled
+        Assert.False(enabled.Matches(null, present: false));
+        Assert.True(disabled.Matches(null, present: false));   // key absent -> Disabled
+    }
+
+    [Fact]
+    public void KeyExistence_enabledvalue_null_sentinel_array_is_still_standard_shape()
+    {
+        // EnabledValue = [null] still carries the null sentinel, so it is standard (not inverted).
+        var def = ToggleDef(new RegistrySetting
+        {
+            KeyPath = @"HKLM\Delegate\X", ValueName = null,
+            EnabledValue = new object?[] { null }, DisabledValue = null,
+            RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.None,
+        });
+
+        var s = SettingDefinitionConverter.ConvertToggle(def);
+
+        Assert.True(s.States.Single(x => x.Label == "Enabled").Set["KeyExists"].Matches(null, present: true));
+        Assert.True(s.States.Single(x => x.Label == "Disabled").Set["KeyExists"].Matches(null, present: false));
+    }
+
+    [Fact]
+    public void KeyExistence_inverted_shape_enabled_when_key_absent()
+    {
+        // Inverted: DisabledValue carries the null sentinel and EnabledValue does not -> the key being
+        // absent means Enabled, present means Disabled.
+        var def = ToggleDef(new RegistrySetting
+        {
+            KeyPath = @"HKLM\Inverted\X", ValueName = null,
+            EnabledValue = new object?[] { "x" }, DisabledValue = new object?[] { null },
+            RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.None,
+        });
+
+        var s = SettingDefinitionConverter.ConvertToggle(def);
+
+        Assert.True(s.States.Single(x => x.Label == "Enabled").Set["KeyExists"].Matches(null, present: false));
+        Assert.True(s.States.Single(x => x.Label == "Disabled").Set["KeyExists"].Matches(null, present: true));
+    }
 }

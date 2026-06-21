@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
@@ -9,8 +10,11 @@ public class CatalogDiscoveryTests
 {
     private sealed class FakeCtx : IDetectionContext
     {
-        public object? GetValue(string keyPath, string? valueName) => null;
-        public string[] GetSubKeyNames(string keyPath) => System.Array.Empty<string>();
+        private readonly Func<string, string?, object?> _get;
+        public FakeCtx(Func<string, string?, object?>? get = null) => _get = get ?? ((_, _) => null);
+        public object? GetValue(string keyPath, string? valueName) => _get(keyPath, valueName);
+        public bool KeyExists(string keyPath) => false;
+        public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
     }
@@ -39,7 +43,7 @@ public class CatalogDiscoveryTests
             },
         };
         // raw read returns 2 for the target's value
-        var state = CatalogDiscovery.DetectState(setting, (p, v) => 2, new FakeCtx());
+        var state = CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => 2));
         Assert.Equal("Box", state);
     }
 
@@ -55,7 +59,7 @@ public class CatalogDiscoveryTests
                 new SettingState { Label = "Manual", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } },
             },
         };
-        var state = CatalogDiscovery.DetectState(setting, (p, v) => null, new FakeCtx()); // absent
+        var state = CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => null)); // absent
         Assert.Equal("Manual", state);
     }
 
@@ -71,7 +75,7 @@ public class CatalogDiscoveryTests
                 new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
             },
         };
-        Assert.Null(CatalogDiscovery.DetectState(setting, (p, v) => 99, new FakeCtx()));
+        Assert.Null(CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => 99)));
     }
 
     [Fact]
@@ -83,6 +87,6 @@ public class CatalogDiscoveryTests
             Detector = new FixedDetector("Show all"),
             // targets/states are ignored when a detector is present
         };
-        Assert.Equal("Show all", CatalogDiscovery.DetectState(setting, (p, v) => null, new FakeCtx()));
+        Assert.Equal("Show all", CatalogDiscovery.DetectState(setting, new FakeCtx()));
     }
 }

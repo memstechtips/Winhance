@@ -12,6 +12,7 @@ public class DnsAndRestoreDetectorTests
         public bool RestoreEnabled;
         public object? GetValue(string keyPath, string? valueName) => null;
         public string[] GetSubKeyNames(string keyPath) => System.Array.Empty<string>();
+        public bool KeyExists(string keyPath) => false;
         public string? PrimaryDnsV4OfActiveAdapter() => PrimaryDns;
         public bool IsSystemRestoreEnabled() => RestoreEnabled;
     }

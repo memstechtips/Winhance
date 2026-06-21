@@ -13,6 +13,7 @@ public class SystemTrayDetectorTests
         public string[] GetSubKeyNames(string keyPath) => SubKeys;
         public object? GetValue(string keyPath, string? valueName) =>
             Values.TryGetValue($"{keyPath}\\{valueName}", out var v) ? v : null;
+        public bool KeyExists(string keyPath) => false;
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
     }

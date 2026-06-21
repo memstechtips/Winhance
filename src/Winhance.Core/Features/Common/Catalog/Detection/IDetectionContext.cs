@@ -11,6 +11,10 @@ public interface IDetectionContext
     /// <summary>The immediate sub-key names under a registry key (empty if the key is absent).</summary>
     string[] GetSubKeyNames(string keyPath);
 
+    /// <summary>Whether a registry key exists. A setting whose ValueName is null encodes its state as
+    /// key presence rather than a stored value.</summary>
+    bool KeyExists(string keyPath);
+
     /// <summary>The active network adapter's primary IPv4 DNS server, or null when DNS is automatic (DHCP)
     /// or there is no active adapter.</summary>
     string? PrimaryDnsV4OfActiveAdapter();

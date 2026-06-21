@@ -38,7 +38,17 @@ public static class SettingDefinitionConverter
         foreach (var g in groups)
         {
             var first = g.First();
-            // Null helper result = key-existence toggle: present means Enabled, absent means Disabled.
+            if (first.ValueName == null)
+            {
+                // ValueName == null toggles encode state as key existence, not a stored value. Mirror the
+                // old detection's shape rule: inverted (rare) when DisabledValue carries the null sentinel
+                // and EnabledValue does not; otherwise standard, where Enabled means the key is present.
+                bool inverted = first.EnabledValue?.Contains(null) != true
+                                && first.DisabledValue?.Contains(null) == true;
+                enabledSet[g.Key] = inverted ? StateValue.Absent : StateValue.Exists;
+                disabledSet[g.Key] = inverted ? StateValue.Exists : StateValue.Absent;
+                continue;
+            }
             enabledSet[g.Key] = ToStateValue(first.EnabledValue) ?? StateValue.Exists;
             disabledSet[g.Key] = ToStateValue(first.DisabledValue) ?? StateValue.Absent;
         }

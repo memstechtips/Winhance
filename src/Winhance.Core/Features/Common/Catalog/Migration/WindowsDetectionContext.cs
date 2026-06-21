@@ -18,6 +18,8 @@ public sealed class WindowsDetectionContext : IDetectionContext
 
     public string[] GetSubKeyNames(string keyPath) => _reg.GetSubKeyNames(keyPath);
 
+    public bool KeyExists(string keyPath) => _reg.KeyExists(keyPath);
+
     public string? PrimaryDnsV4OfActiveAdapter() =>
         throw new NotSupportedException("not needed for the toggle harness");
 

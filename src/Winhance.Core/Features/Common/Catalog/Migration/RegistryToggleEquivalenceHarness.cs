@@ -78,10 +78,7 @@ public static class RegistryToggleEquivalenceHarness
 
             // NEW: convert to the unified Setting model and run the new detection engine.
             var setting = SettingDefinitionConverter.ConvertToggle(def);
-            string newState = CatalogDiscovery.DetectState(
-                setting,
-                (p, v) => reg.GetValue(p, v ?? ""),
-                context) ?? "Custom";
+            string newState = CatalogDiscovery.DetectState(setting, context) ?? "Custom";
 
             rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
         }
