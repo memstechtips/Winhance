@@ -195,6 +195,38 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates the DNS-server selection (DetectionType.DnsServer) into a Setting that detects via
+    /// <see cref="DnsServerDetector"/>. The automatic label is the first option's DisplayName (the old code
+    /// returns index 0 for DHCP / no adapter / no primary). The primary-IP -> label map is built FIRST-WINS so a
+    /// duplicate primary resolves to the earliest option, matching the old first-match loop.</summary>
+    public static Setting ConvertDnsServer(SettingDefinition def)
+    {
+        var options = def.ComboBox!.Options;
+        string automaticLabel = options[0].DisplayName;
+
+        var primaryIpToLabel = new Dictionary<string, string>();
+        foreach (var opt in options)
+        {
+            if (opt.ScriptVariables is { } vars
+                && vars.TryGetValue("primary", out var primary)
+                && !primaryIpToLabel.ContainsKey(primary))
+            {
+                primaryIpToLabel[primary] = opt.DisplayName;
+            }
+        }
+
+        return new Setting
+        {
+            Id = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            GroupName = def.GroupName,
+            Icon = def.Icon,
+            States = options.Select(o => new SettingState { Label = o.DisplayName }).ToList(),
+            Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
+        };
+    }
+
     /// <summary>Folds registry settings into targets: a mirror (same ValueName under several KeyPaths) is one
     /// target with many paths. ValueName == null groups under the "KeyExists" key (key-existence target).</summary>
     private static List<RegTarget> BuildTargets(List<IGrouping<string, RegistrySetting>> groups) =>

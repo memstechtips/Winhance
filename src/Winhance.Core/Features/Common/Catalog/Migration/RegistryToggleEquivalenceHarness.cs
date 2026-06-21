@@ -170,6 +170,39 @@ public static class RegistryToggleEquivalenceHarness
         return options[index].DisplayName;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per DNS-server selection (DetectionType.DnsServer).
+    /// OLD is the app's real detection (DetectDnsServerIndex via <see cref="IComboBoxResolver.ResolveCurrentValueAsync"/>
+    /// -> option index -> DisplayName); NEW runs the <see cref="DnsServerDetector"/> over the live adapter (the
+    /// <see cref="DnsDetectionContext"/> reproduces the same active-adapter primary-DNS read). Other detection
+    /// types are skipped defensively.</summary>
+    public static async Task<IReadOnlyList<EquivalenceRow>> RunDns(
+        IWindowsRegistryService reg,
+        IComboBoxResolver resolver,
+        IEnumerable<SettingDefinition> defs)
+    {
+        var context = new DnsDetectionContext(reg);
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (def.DetectionType != DetectionType.DnsServer)
+                continue;
+
+            // OLD: the app's real detection resolves the live adapter/registry to an option index.
+            var resolved = await resolver.ResolveCurrentValueAsync(def).ConfigureAwait(false);
+            int oldIndex = resolved is int idx ? idx : ComboBoxConstants.CustomStateIndex;
+            string oldState = LabelForIndex(def, oldIndex);
+
+            // NEW: convert to a detector-backed Setting and run the engine (which delegates to the detector).
+            var setting = SettingDefinitionConverter.ConvertDnsServer(def);
+            string newState = CatalogDiscovery.DetectState(setting, context) ?? "Custom";
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
+    }
+
     /// <summary>Builds one <see cref="EquivalenceRow"/> per system-restore toggle
     /// (DetectionType.SystemRestore). OLD is the app's real detection (<see cref="ISystemRestoreService.IsEnabledForC"/>
     /// -> the toggle is Enabled iff System Restore is on for C:); NEW runs the <see cref="SystemRestoreDetector"/>

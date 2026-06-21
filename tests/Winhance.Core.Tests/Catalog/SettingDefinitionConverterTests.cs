@@ -351,4 +351,46 @@ public class SettingDefinitionConverterTests
         Assert.Equal("Enabled", CatalogDiscovery.DetectState(s, new RestoreCtx(enabled: true)));
         Assert.Equal("Disabled", CatalogDiscovery.DetectState(s, new RestoreCtx(enabled: false)));
     }
+
+    private sealed class DnsCtx : IDetectionContext
+    {
+        private readonly string? _primary;
+        public DnsCtx(string? primary) => _primary = primary;
+        public string? PrimaryDnsV4OfActiveAdapter() => _primary;
+        public object? GetValue(string keyPath, string? valueName) => null;
+        public string[] GetSubKeyNames(string keyPath) => System.Array.Empty<string>();
+        public bool KeyExists(string keyPath) => false;
+        public bool IsSystemRestoreEnabled() => false;
+        public bool? ScheduledTaskEnabled(string taskPath) => null;
+    }
+
+    [Fact]
+    public void DnsServer_converts_to_a_detector_with_first_wins_ip_map()
+    {
+        // Mirrors gaming-dns-server: option 0 is automatic (no ScriptVariables); two later options share the
+        // same primary IP (1.1.1.1), and the old first-match loop returns the earlier one.
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Selection,
+            DetectionType = DetectionType.DnsServer,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption { DisplayName = "Automatic", IsDefault = true, IsRecommended = true },
+                    new ComboBoxOption { DisplayName = "Cloudflare", ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1" } },
+                    new ComboBoxOption { DisplayName = "Google", ScriptVariables = new Dictionary<string, string> { ["primary"] = "8.8.8.8" } },
+                    new ComboBoxOption { DisplayName = "Cloudflare DoH", ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1" } },
+                },
+            },
+        };
+
+        var s = SettingDefinitionConverter.ConvertDnsServer(def);
+        Assert.IsType<DnsServerDetector>(s.Detector);
+
+        Assert.Equal("Automatic", CatalogDiscovery.DetectState(s, new DnsCtx(null)));        // DHCP / no adapter
+        Assert.Equal("Google", CatalogDiscovery.DetectState(s, new DnsCtx("8.8.8.8")));
+        Assert.Equal("Cloudflare", CatalogDiscovery.DetectState(s, new DnsCtx("1.1.1.1")));  // first-wins over DoH
+        Assert.Null(CatalogDiscovery.DetectState(s, new DnsCtx("5.5.5.5")));                  // unknown -> Custom
+    }
 }
