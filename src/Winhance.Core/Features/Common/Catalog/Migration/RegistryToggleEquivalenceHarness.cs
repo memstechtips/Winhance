@@ -20,9 +20,10 @@ public sealed record EquivalenceRow(string Id, string OldState, string NewState,
 /// Deleted once the migration is complete.</summary>
 public static class RegistryToggleEquivalenceHarness
 {
-    /// <summary>True when a definition is a pure registry toggle - the cleanest first slice to compare.
-    /// Excludes anything that detects via a non-registry mechanism (powercfg, scheduled task, native
-    /// power API, .reg blobs, PowerShell, or a custom DetectionType).</summary>
+    /// <summary>True when a toggle's DETECTION is registry-based. Apply-only effects (PowerShell scripts, .reg
+    /// blobs, native-power API) are ALLOWED - per the design they ride along on apply and do not change
+    /// detection, which always comes from the registry Set. Only non-registry DETECTION is excluded: a
+    /// combobox, powercfg (deferred), a scheduled task, or a custom DetectionType.</summary>
     public static bool IsPureRegistryToggle(SettingDefinition def)
     {
         if (def.InputType != InputType.Toggle && def.InputType != InputType.CheckBox)
@@ -35,19 +36,14 @@ public static class RegistryToggleEquivalenceHarness
             return false;
         if (def.ScheduledTaskSettings.Count > 0)
             return false;
-        if (def.PowerShellScripts.Count > 0)
-            return false;
-        if (def.RegContents.Count > 0)
-            return false;
-        if (def.NativePowerApiSettings.Count > 0)
-            return false;
         if (def.DetectionType.HasValue)
             return false;
         return true;
     }
 
-    /// <summary>True when a definition is a pure registry selection (ComboBox) - registry-backed, no
-    /// non-registry mechanism. The selection analogue of <see cref="IsPureRegistryToggle"/>.</summary>
+    /// <summary>True when a selection's (ComboBox) DETECTION is registry-based. Apply-only effects (PowerShell
+    /// scripts, .reg blobs, native-power API) are ALLOWED - they do not change detection. The selection
+    /// analogue of <see cref="IsPureRegistryToggle"/>.</summary>
     public static bool IsPureRegistrySelection(SettingDefinition def)
     {
         if (def.InputType != InputType.Selection)
@@ -59,12 +55,6 @@ public static class RegistryToggleEquivalenceHarness
         if (def.PowerCfgSettings is { Count: > 0 })
             return false;
         if (def.ScheduledTaskSettings.Count > 0)
-            return false;
-        if (def.PowerShellScripts.Count > 0)
-            return false;
-        if (def.RegContents.Count > 0)
-            return false;
-        if (def.NativePowerApiSettings.Count > 0)
             return false;
         if (def.DetectionType.HasValue)
             return false;
