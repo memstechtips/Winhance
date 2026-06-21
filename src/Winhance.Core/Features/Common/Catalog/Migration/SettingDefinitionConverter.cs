@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog.Migration;
@@ -146,6 +147,28 @@ public static class SettingDefinitionConverter
             Icon = def.Icon,
             Targets = new List<Target> { target },
             States = new[] { enabled, disabled },
+        };
+    }
+
+    /// <summary>Translates the system-tray-icons selection (DetectionType.SystemTrayIcons) into a Setting that
+    /// detects via <see cref="SystemTrayDetector"/>: the "show all" / "hide all" labels are the options whose
+    /// Script is Enabled / Disabled (the old code keys off the same Script field). A null detection (no subkeys,
+    /// no IsPromoted values, or a mix) is Custom.</summary>
+    public static Setting ConvertSystemTray(SettingDefinition def)
+    {
+        var options = def.ComboBox!.Options;
+        string showAll = options.First(o => o.Script == ScriptOption.Enabled).DisplayName;
+        string hideAll = options.First(o => o.Script == ScriptOption.Disabled).DisplayName;
+
+        return new Setting
+        {
+            Id = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            GroupName = def.GroupName,
+            Icon = def.Icon,
+            States = options.Select(o => new SettingState { Label = o.DisplayName }).ToList(),
+            Detector = new SystemTrayDetector(showAll, hideAll),
         };
     }
 

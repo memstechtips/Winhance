@@ -273,4 +273,53 @@ public class SettingDefinitionConverterTests
         Assert.True(disabled.HasRole(RoleKind.Recommended));
         Assert.True(enabled.HasRole(RoleKind.WindowsDefault));
     }
+
+    /// <summary>Fake context for the tray detector: the first <c>promoted</c> of <c>subKeys</c> have
+    /// IsPromoted=1, the rest 0.</summary>
+    private sealed class TrayCtx : IDetectionContext
+    {
+        private readonly string[] _subKeys;
+        private readonly int _promoted;
+        public TrayCtx(string[] subKeys, int promoted) { _subKeys = subKeys; _promoted = promoted; }
+        public string[] GetSubKeyNames(string keyPath) => _subKeys;
+        public object? GetValue(string keyPath, string? valueName)
+        {
+            for (int i = 0; i < _subKeys.Length; i++)
+                if (keyPath.EndsWith("\\" + _subKeys[i]))
+                    return i < _promoted ? 1 : 0;
+            return null;
+        }
+        public bool KeyExists(string keyPath) => false;
+        public string? PrimaryDnsV4OfActiveAdapter() => null;
+        public bool IsSystemRestoreEnabled() => false;
+        public bool? ScheduledTaskEnabled(string taskPath) => null;
+    }
+
+    [Fact]
+    public void SystemTray_converts_to_a_detector_using_the_script_keyed_labels()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Selection,
+            DetectionType = DetectionType.SystemTrayIcons,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption { DisplayName = "Show all icons", Script = ScriptOption.Enabled, IsRecommended = true },
+                    new ComboBoxOption { DisplayName = "Hide all icons", Script = ScriptOption.Disabled },
+                    new ComboBoxOption { DisplayName = "Custom", Script = ScriptOption.None, IsDefault = true },
+                },
+            },
+        };
+
+        var s = SettingDefinitionConverter.ConvertSystemTray(def);
+        Assert.IsType<SystemTrayDetector>(s.Detector);
+
+        var keys = new[] { "a", "b", "c" };
+        // all promoted -> the Script.Enabled label; none -> the Script.Disabled label; mixed -> Custom.
+        Assert.Equal("Show all icons", CatalogDiscovery.DetectState(s, new TrayCtx(keys, promoted: 3)));
+        Assert.Equal("Hide all icons", CatalogDiscovery.DetectState(s, new TrayCtx(keys, promoted: 0)));
+        Assert.Null(CatalogDiscovery.DetectState(s, new TrayCtx(keys, promoted: 1)));
+    }
 }

@@ -170,6 +170,39 @@ public static class RegistryToggleEquivalenceHarness
         return options[index].DisplayName;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per system-tray-icons selection
+    /// (DetectionType.SystemTrayIcons). OLD is the app's real detection (DetectSystemTrayIndex via
+    /// <see cref="IComboBoxResolver.ResolveCurrentValueAsync"/> -> option index -> DisplayName); NEW runs the
+    /// new <see cref="SystemTrayDetector"/> over the live registry. Definitions of other detection types are
+    /// skipped defensively.</summary>
+    public static async Task<IReadOnlyList<EquivalenceRow>> RunSystemTray(
+        IWindowsRegistryService reg,
+        IComboBoxResolver resolver,
+        IEnumerable<SettingDefinition> defs)
+    {
+        var context = new WindowsDetectionContext(reg);
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (def.DetectionType != DetectionType.SystemTrayIcons)
+                continue;
+
+            // OLD: the app's real detection resolves the live registry to an option index.
+            var resolved = await resolver.ResolveCurrentValueAsync(def).ConfigureAwait(false);
+            int oldIndex = resolved is int idx ? idx : ComboBoxConstants.CustomStateIndex;
+            string oldState = LabelForIndex(def, oldIndex);
+
+            // NEW: convert to a detector-backed Setting and run the engine (which delegates to the detector).
+            var setting = SettingDefinitionConverter.ConvertSystemTray(def);
+            string newState = CatalogDiscovery.DetectState(setting, context) ?? "Custom";
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
+    }
+
     /// <summary>Builds one <see cref="EquivalenceRow"/> per supplied scheduled-task toggle. OLD is the app's
     /// real detection (<see cref="IScheduledTaskService.IsTaskEnabledAsync"/> -> the toggle is on iff the task
     /// is enabled; an absent task makes the setting unavailable). NEW reads the same task state through the
