@@ -11,12 +11,18 @@ public class CatalogDiscoveryTests
     private sealed class FakeCtx : IDetectionContext
     {
         private readonly Func<string, string?, object?> _get;
-        public FakeCtx(Func<string, string?, object?>? get = null) => _get = get ?? ((_, _) => null);
+        private readonly bool? _taskEnabled;
+        public FakeCtx(Func<string, string?, object?>? get = null, bool? taskEnabled = null)
+        {
+            _get = get ?? ((_, _) => null);
+            _taskEnabled = taskEnabled;
+        }
         public object? GetValue(string keyPath, string? valueName) => _get(keyPath, valueName);
         public bool KeyExists(string keyPath) => false;
         public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
+        public bool? ScheduledTaskEnabled(string taskPath) => _taskEnabled;
     }
 
     private sealed class FixedDetector : IStateDetector
@@ -76,6 +82,27 @@ public class CatalogDiscoveryTests
             },
         };
         Assert.Null(CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => 99)));
+    }
+
+    [Fact]
+    public void Resolves_scheduled_task_state_from_context()
+    {
+        var setting = new Setting
+        {
+            Id = "s", Name = "s", Description = "s",
+            Targets = new[] { new TaskTarget("Task", @"\MS\Task") },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) } },
+                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) }, IsFallback = true },
+            },
+        };
+
+        Assert.Equal("Enabled", CatalogDiscovery.DetectState(setting, new FakeCtx(taskEnabled: true)));
+        Assert.Equal("Disabled", CatalogDiscovery.DetectState(setting, new FakeCtx(taskEnabled: false)));
+        // An absent task is not present, so nothing matches and the engine falls back to Disabled. (The
+        // harness never reaches this path - it treats an absent task as Unavailable before calling the engine.)
+        Assert.Equal("Disabled", CatalogDiscovery.DetectState(setting, new FakeCtx(taskEnabled: null)));
     }
 
     [Fact]

@@ -114,6 +114,41 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates an old scheduled-task toggle SettingDefinition into the new Setting model: a single
+    /// <see cref="TaskTarget"/> with Enabled (task enabled) / Disabled (task disabled) states. Roles come from
+    /// the task's RecommendedState/DefaultState. An absent task is an availability concern, handled by the
+    /// caller (the old app marks the setting unavailable), not a detected state here.</summary>
+    public static Setting ConvertScheduledTaskToggle(SettingDefinition def)
+    {
+        var task = def.ScheduledTaskSettings[0];
+        var target = new TaskTarget("Task", task.TaskPath);
+
+        var enabled = new SettingState
+        {
+            Label = "Enabled",
+            Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) },
+            Roles = RolesFor(true, task.RecommendedState, task.DefaultState),
+        };
+        var disabled = new SettingState
+        {
+            Label = "Disabled",
+            Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) },
+            Roles = RolesFor(false, task.RecommendedState, task.DefaultState),
+            IsFallback = true,   // a present task that is not enabled is Disabled (mirrors the old detection)
+        };
+
+        return new Setting
+        {
+            Id = def.Id,
+            Name = def.Name,
+            Description = def.Description,
+            GroupName = def.GroupName,
+            Icon = def.Icon,
+            Targets = new List<Target> { target },
+            States = new[] { enabled, disabled },
+        };
+    }
+
     /// <summary>Folds registry settings into targets: a mirror (same ValueName under several KeyPaths) is one
     /// target with many paths. ValueName == null groups under the "KeyExists" key (key-existence target).</summary>
     private static List<RegTarget> BuildTargets(List<IGrouping<string, RegistrySetting>> groups) =>

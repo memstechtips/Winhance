@@ -25,4 +25,7 @@ public sealed class WindowsDetectionContext : IDetectionContext
 
     public bool IsSystemRestoreEnabled() =>
         throw new NotSupportedException("not needed for the toggle harness");
+
+    public bool? ScheduledTaskEnabled(string taskPath) =>
+        throw new NotSupportedException("not needed for the registry harness; tasks use their own context");
 }

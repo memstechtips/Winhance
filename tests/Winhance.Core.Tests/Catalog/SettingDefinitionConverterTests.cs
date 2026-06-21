@@ -245,4 +245,32 @@ public class SettingDefinitionConverterTests
         readings.Set("Mode", 7, present: true);                        // present but unrecognised is still Custom
         Assert.Null(StateDetectionEngine.Detect(s.States, readings));
     }
+
+    [Fact]
+    public void ScheduledTask_toggle_maps_enabled_disabled_states_and_roles()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle,
+            ScheduledTaskSettings = new[]
+            {
+                new ScheduledTaskSetting { Id = "x", TaskPath = @"\MS\Task", RecommendedState = false, DefaultState = true },
+            },
+        };
+
+        var s = SettingDefinitionConverter.ConvertScheduledTaskToggle(def);
+
+        var target = Assert.IsType<TaskTarget>(Assert.Single(s.Targets));
+        Assert.Equal(@"\MS\Task", target.TaskPath);
+
+        var enabled = s.States.Single(x => x.Label == "Enabled");
+        var disabled = s.States.Single(x => x.Label == "Disabled");
+        Assert.True(enabled.Set["Task"].Matches(true, present: true));
+        Assert.True(disabled.Set["Task"].Matches(false, present: true));
+        Assert.True(disabled.IsFallback);
+
+        // RecommendedState=false -> Disabled is recommended; DefaultState=true -> Enabled is the Windows default.
+        Assert.True(disabled.HasRole(RoleKind.Recommended));
+        Assert.True(enabled.HasRole(RoleKind.WindowsDefault));
+    }
 }

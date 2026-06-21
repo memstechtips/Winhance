@@ -71,6 +71,31 @@ public static class RegistryToggleEquivalenceHarness
         return true;
     }
 
+    /// <summary>True when a definition is a pure scheduled-task toggle - a single ScheduledTaskSetting and no
+    /// other mechanism (no registry, combobox, powercfg, script, .reg, native-power, custom detector).</summary>
+    public static bool IsPureScheduledTaskToggle(SettingDefinition def)
+    {
+        if (def.InputType != InputType.Toggle && def.InputType != InputType.CheckBox)
+            return false;
+        if (def.ScheduledTaskSettings.Count == 0)
+            return false;
+        if (def.RegistrySettings.Count > 0)
+            return false;
+        if (def.ComboBox != null)
+            return false;
+        if (def.PowerCfgSettings is { Count: > 0 })
+            return false;
+        if (def.PowerShellScripts.Count > 0)
+            return false;
+        if (def.RegContents.Count > 0)
+            return false;
+        if (def.NativePowerApiSettings.Count > 0)
+            return false;
+        if (def.DetectionType.HasValue)
+            return false;
+        return true;
+    }
+
     /// <summary>Builds one <see cref="EquivalenceRow"/> per supplied toggle definition. Callers should
     /// pre-filter with <see cref="IsPureRegistryToggle"/>; any non-toggle definitions passed in are
     /// skipped defensively.</summary>
@@ -153,5 +178,44 @@ public static class RegistryToggleEquivalenceHarness
         if (options is null || index < 0 || index >= options.Count)
             return "Custom";
         return options[index].DisplayName;
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per supplied scheduled-task toggle. OLD is the app's
+    /// real detection (<see cref="IScheduledTaskService.IsTaskEnabledAsync"/> -> the toggle is on iff the task
+    /// is enabled; an absent task makes the setting unavailable). NEW reads the same task state through the
+    /// engine. Callers should pre-filter with <see cref="IsPureScheduledTaskToggle"/>.</summary>
+    public static async Task<IReadOnlyList<EquivalenceRow>> RunScheduledTasks(
+        IScheduledTaskService taskService,
+        IEnumerable<SettingDefinition> taskDefs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in taskDefs)
+        {
+            if (!IsPureScheduledTaskToggle(def))
+                continue;
+
+            var taskPath = def.ScheduledTaskSettings[0].TaskPath;
+            bool? enabled = await taskService.IsTaskEnabledAsync(taskPath).ConfigureAwait(false);
+
+            string oldState;
+            string newState;
+            if (enabled is null)
+            {
+                // Old app marks a missing task's setting unavailable; the new engine has nothing to detect.
+                oldState = newState = "Unavailable";
+            }
+            else
+            {
+                // OLD: DetermineIfSettingIsEnabled -> the toggle is Enabled iff the task is enabled.
+                oldState = enabled.Value ? "Enabled" : "Disabled";
+                var setting = SettingDefinitionConverter.ConvertScheduledTaskToggle(def);
+                newState = CatalogDiscovery.DetectState(setting, new ScheduledTaskDetectionContext(enabled)) ?? "Custom";
+            }
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
     }
 }

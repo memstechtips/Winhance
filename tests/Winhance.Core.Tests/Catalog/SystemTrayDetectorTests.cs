@@ -14,6 +14,7 @@ public class SystemTrayDetectorTests
         public object? GetValue(string keyPath, string? valueName) =>
             Values.TryGetValue($"{keyPath}\\{valueName}", out var v) ? v : null;
         public bool KeyExists(string keyPath) => false;
+        public bool? ScheduledTaskEnabled(string taskPath) => null;
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
     }

@@ -21,4 +21,8 @@ public interface IDetectionContext
 
     /// <summary>Whether System Restore is enabled for the system drive.</summary>
     bool IsSystemRestoreEnabled();
+
+    /// <summary>The enabled state of a scheduled task: true (enabled), false (disabled), or null when the task
+    /// does not exist on this system.</summary>
+    bool? ScheduledTaskEnabled(string taskPath);
 }

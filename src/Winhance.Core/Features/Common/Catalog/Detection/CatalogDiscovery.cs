@@ -4,9 +4,9 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// Resolves a setting's current state. A setting with a custom <see cref="IStateDetector"/> delegates to
-/// it; otherwise each registry target is read and reduced, and the detection engine matches the readings
-/// to a state. Pure - the raw registry read is injected so this is testable without a registry. Non-registry
-/// targets (powercfg, scheduled task) are read by the wiring layer in a later step.
+/// it; otherwise each registry or scheduled-task target is read and reduced, and the detection engine matches
+/// the readings to a state. Reads go through the injected context so this is testable without a real system.
+/// PowerCfg targets are read by a later wiring step (design 4A: power detection is context-keyed, deferred).
 /// </summary>
 public static class CatalogDiscovery
 {
@@ -28,7 +28,13 @@ public static class CatalogDiscovery
                 var (value, present) = RegTargetReader.Read(reg, context);
                 readings.Set(reg.Key, value, present);
             }
-            // PowerCfgTarget / TaskTarget reads are wired in by the platform layer later.
+            else if (target is TaskTarget task)
+            {
+                // A scheduled task reads as its enabled flag; an absent task (null) reads as not present.
+                bool? enabled = context.ScheduledTaskEnabled(task.TaskPath);
+                readings.Set(task.Key, enabled, present: enabled.HasValue);
+            }
+            // PowerCfgTarget reads are wired in by a later step (deferred, design 4A).
         }
 
         return StateDetectionEngine.Detect(setting.States, readings);

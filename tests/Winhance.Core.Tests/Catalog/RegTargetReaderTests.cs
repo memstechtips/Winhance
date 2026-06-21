@@ -24,6 +24,7 @@ public class RegTargetReaderTests
         public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
+        public bool? ScheduledTaskEnabled(string taskPath) => null;
     }
 
     private static RegTarget Reg(string[] paths, string? valueName = "V") =>
