@@ -8,6 +8,8 @@ public interface IStateWriter
     bool WriteRegistry(RegTarget target, string path, object value);
     bool DeleteRegistry(RegTarget target, string path);
     bool EnsureRegistryKey(RegTarget target, string path);
+    bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set);
+    bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value);
     bool SetTask(TaskTarget target, bool enabled);
     bool RunEffect(Effect effect);
 }

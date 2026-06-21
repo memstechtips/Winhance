@@ -13,6 +13,14 @@ public sealed record RegistryDeleteOp(RegTarget Target, string Path) : ApplyOp;
 /// <summary>Ensure the key/value exists at one registry path (key-existence "on" state).</summary>
 public sealed record RegistryEnsureKeyOp(RegTarget Target, string Path) : ApplyOp;
 
+/// <summary>Set or clear a single bit within one byte of a REG_BINARY value, preserving the other bytes
+/// (the surgical bit edit the old apply did via ModifyBinaryBit).</summary>
+public sealed record RegistryBitSetOp(RegTarget Target, string Path, int ByteIndex, byte BitMask, bool Set) : ApplyOp;
+
+/// <summary>Overwrite a single byte of a REG_BINARY value, preserving the other bytes (the surgical byte
+/// edit the old apply did via ModifyBinaryByte).</summary>
+public sealed record RegistryByteSetOp(RegTarget Target, string Path, int ByteIndex, byte Value) : ApplyOp;
+
 /// <summary>Enable or disable a scheduled task.</summary>
 public sealed record TaskSetOp(TaskTarget Target, bool Enabled) : ApplyOp;
 

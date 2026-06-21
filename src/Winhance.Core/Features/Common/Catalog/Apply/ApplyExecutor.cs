@@ -20,6 +20,8 @@ public static class ApplyExecutor
                     RegistryWriteOp w => writer.WriteRegistry(w.Target, w.Path, w.Value),
                     RegistryDeleteOp d => writer.DeleteRegistry(d.Target, d.Path),
                     RegistryEnsureKeyOp e => writer.EnsureRegistryKey(e.Target, e.Path),
+                    RegistryBitSetOp b => writer.SetRegistryBit(b.Target, b.Path, b.ByteIndex, b.BitMask, b.Set),
+                    RegistryByteSetOp y => writer.SetRegistryByte(y.Target, y.Path, y.ByteIndex, y.Value),
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
                     EffectOp fx => writer.RunEffect(fx.Effect),
                     _ => true,

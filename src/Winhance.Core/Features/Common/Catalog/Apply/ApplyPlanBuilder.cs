@@ -27,7 +27,19 @@ public static class ApplyPlanBuilder
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) — leave it alone
                     foreach (var path in reg.Paths)
                     {
-                        if (sv.DeleteOnWrite)
+                        if (reg.BitMask is { } bitMask && reg.ByteIndex is { } bitByteIndex)
+                        {
+                            // Surgical bit edit within a REG_BINARY byte: the payload's truthiness is the bit state.
+                            bool setBit = sv.WritePayload is { } bp && Convert.ToBoolean(bp);
+                            ops.Add(new RegistryBitSetOp(reg, path, bitByteIndex, bitMask, setBit));
+                        }
+                        else if (reg.ByteOnly && reg.ByteIndex is { } byteIndex)
+                        {
+                            // Single-byte overwrite within a REG_BINARY value: the payload is the byte to write.
+                            byte value = sv.WritePayload is { } yp ? Convert.ToByte(yp) : (byte)0;
+                            ops.Add(new RegistryByteSetOp(reg, path, byteIndex, value));
+                        }
+                        else if (sv.DeleteOnWrite)
                             ops.Add(new RegistryDeleteOp(reg, path));
                         else if (sv.WritePayload is { } payload)
                             ops.Add(new RegistryWriteOp(reg, path, payload));

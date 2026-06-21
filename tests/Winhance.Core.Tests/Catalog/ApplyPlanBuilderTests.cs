@@ -82,6 +82,52 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void Bit_target_emits_a_bit_set_op_keyed_off_the_payload()
+    {
+        var reg = Reg("Settings", "Settings", @"HKCU\CabinetState") with { ByteIndex = 4, BitMask = 0x20 };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(1) } },
+            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(0) } });
+
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryBitSetOp>());
+        Assert.Equal(4, on.ByteIndex);
+        Assert.Equal((byte)0x20, on.BitMask);
+        Assert.True(on.Set);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+
+        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryBitSetOp>()).Set);
+    }
+
+    [Fact]
+    public void ByteOnly_target_emits_a_byte_set_op_with_the_payload_byte()
+    {
+        var reg = Reg("Settings", "Settings", @"HKCU\StuckRects3") with { ByteIndex = 8, ByteOnly = true };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(3) } },
+            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(2) } });
+
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryByteSetOp>());
+        Assert.Equal(8, on.ByteIndex);
+        Assert.Equal((byte)3, on.Value);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+
+        Assert.Equal((byte)2, Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryByteSetOp>()).Value);
+    }
+
+    [Fact]
+    public void Bit_op_is_emitted_per_mirror_path()
+    {
+        var reg = Reg("Settings", "Settings", @"HKCU\A", @"HKLM\B") with { ByteIndex = 4, BitMask = 0x20 };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(1) } });
+
+        Assert.Equal(2, ApplyPlanBuilder.Build(setting, "On").OfType<RegistryBitSetOp>().Count());
+    }
+
+    [Fact]
     public void Task_state_emits_enable_or_disable()
     {
         var setting = Make(

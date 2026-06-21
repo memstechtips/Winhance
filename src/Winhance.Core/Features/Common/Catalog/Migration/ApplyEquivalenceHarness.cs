@@ -9,13 +9,15 @@ namespace Winhance.Core.Features.Common.Catalog.Migration;
 /// <summary>Throwaway migration tool: proves the new <see cref="ApplyPlanBuilder"/> produces the same registry
 /// WRITE INTENT the old live apply (<c>WindowsRegistryService.ApplySetting</c>) does, for a setting + target
 /// state. Pure - both sides are computed without touching the registry, then compared as a normalised set of
-/// write-intent strings. First slice: PLAIN registry toggles (value set/delete + key existence). Binary
-/// (bit/byte), composite, per-NIC/monitor, and apply-only effects are excluded here and handled in later
-/// slices. Deleted once the migration is complete.</summary>
+/// write-intent strings. Covers registry toggles and selections including binary bit/byte surgical writes
+/// (value set/delete, key existence, BITSET, BYTESET). Composite (read-merge), per-NIC/monitor (live subkey
+/// enumeration), and apply-only effects are excluded here and handled in later slices. Deleted once the
+/// migration is complete.</summary>
 public static class ApplyEquivalenceHarness
 {
-    /// <summary>A plain registry toggle whose apply is a pure value/key write - no binary, composite,
-    /// per-subkey, effect, or non-registry mechanism. The cleanest first apply slice.</summary>
+    /// <summary>A registry toggle whose apply is a self-contained registry write - a value set/delete, a
+    /// key-existence create/delete, or a surgical binary bit/byte edit. Composite (read-merge), per-subkey,
+    /// apply-only effect, and non-registry mechanisms are excluded (later slices).</summary>
     public static bool IsPlainRegistryToggleForApply(SettingDefinition def)
     {
         if (!RegistryToggleEquivalenceHarness.IsPureRegistryToggle(def))
@@ -23,13 +25,12 @@ public static class ApplyEquivalenceHarness
         // Apply-only effects are a separate slice (the old apply also runs the script/.reg/native write).
         if (def.PowerShellScripts.Count > 0 || def.RegContents.Count > 0 || def.NativePowerApiSettings.Count > 0)
             return false;
-        // These write paths are binary-surgical, read-merge, or need live subkey enumeration - later slices.
+        // Composite read-merge and per-subkey enumeration need a live context - later slices. Binary bit/byte
+        // are covered here (BITSET/BYTESET ops mirror ModifyBinaryBit/ModifyBinaryByte deterministically).
         return def.RegistrySettings.All(r =>
             !r.ApplyPerNetworkInterface
             && !r.ApplyPerMonitor
-            && r.CompositeStringKey == null
-            && !r.BitMask.HasValue
-            && !r.ModifyByteOnly);
+            && r.CompositeStringKey == null);
     }
 
     /// <summary>Builds one <see cref="EquivalenceRow"/> per (toggle, state): OLD is the live apply's write
@@ -67,8 +68,9 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
-    /// <summary>A plain registry selection whose apply is pure value writes - no key-existence, binary,
-    /// composite, per-subkey, effect, or non-registry mechanism. The cleanest selection apply slice.</summary>
+    /// <summary>A registry selection whose apply is self-contained registry writes - value sets and surgical
+    /// binary bit/byte edits (every target has a ValueName). Composite (read-merge), per-subkey, apply-only
+    /// effect, and non-registry mechanisms are excluded (later slices).</summary>
     public static bool IsPlainRegistrySelectionForApply(SettingDefinition def)
     {
         if (!RegistryToggleEquivalenceHarness.IsPureRegistrySelection(def))
@@ -79,9 +81,7 @@ public static class ApplyEquivalenceHarness
             r.ValueName != null
             && !r.ApplyPerNetworkInterface
             && !r.ApplyPerMonitor
-            && r.CompositeStringKey == null
-            && !r.BitMask.HasValue
-            && !r.ModifyByteOnly);
+            && r.CompositeStringKey == null);
     }
 
     /// <summary>Builds one <see cref="EquivalenceRow"/> per (selection, option). OLD mirrors the live selection
@@ -142,6 +142,35 @@ public static class ApplyEquivalenceHarness
             yield break;
         }
 
+        // Binary bit: surgical set/clear of one bit (mirrors ApplySetting's ModifyBinaryBit branch). A bit
+        // value (bool / int!=0 / byte!=0) from a selection wins; a plain toggle uses isEnabled.
+        if (rs.BitMask.HasValue && rs.BinaryByteIndex.HasValue)
+        {
+            bool setBit = specificValue switch
+            {
+                bool b => b,
+                int i => i != 0,
+                byte b => b != 0,
+                _ => isEnabled,
+            };
+            yield return $"BITSET {rs.KeyPath}\\{rs.ValueName}[{rs.BinaryByteIndex.Value}] mask=0x{rs.BitMask.Value:X2} set={setBit}";
+            yield break;
+        }
+
+        // Binary byte: surgical overwrite of one byte (mirrors ApplySetting's ModifyByteOnly branch). A
+        // specific value (selection) wins; else the enabled/disabled value, coerced to a byte.
+        if (rs.ModifyByteOnly && rs.BinaryByteIndex.HasValue)
+        {
+            byte byteValue = specificValue switch
+            {
+                byte b => b,
+                int i => (byte)i,
+                _ => ToByte(GetWriteValue(isEnabled ? rs.EnabledValue : rs.DisabledValue)),
+            };
+            yield return $"BYTESET {rs.KeyPath}\\{rs.ValueName}[{rs.BinaryByteIndex.Value}] = 0x{byteValue:X2}";
+            yield break;
+        }
+
         // Plain value: a specific value (selection) wins; else the enabled/disabled value. Null -> delete.
         var valueToSet = specificValue ?? GetWriteValue(isEnabled ? rs.EnabledValue : rs.DisabledValue);
         yield return valueToSet == null
@@ -167,7 +196,13 @@ public static class ApplyEquivalenceHarness
                 case RegistryEnsureKeyOp e:
                     yield return $"CREATEKEY {e.Path}";
                     break;
-                // TaskSetOp / EffectOp do not occur for a plain registry toggle (filtered out).
+                case RegistryBitSetOp b:
+                    yield return $"BITSET {b.Path}\\{b.Target.ValueName}[{b.ByteIndex}] mask=0x{b.BitMask:X2} set={b.Set}";
+                    break;
+                case RegistryByteSetOp y:
+                    yield return $"BYTESET {y.Path}\\{y.Target.ValueName}[{y.ByteIndex}] = 0x{y.Value:X2}";
+                    break;
+                // TaskSetOp / EffectOp do not occur for a registry toggle/selection (filtered out).
             }
         }
     }
@@ -175,6 +210,15 @@ public static class ApplyEquivalenceHarness
     /// <summary>The first non-null entry of an old EnabledValue/DisabledValue array - matches the old apply's
     /// <c>GetWriteValue</c>.</summary>
     private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
+
+    /// <summary>Coerces an old enabled/disabled value to the byte the old ModifyByteOnly branch would write
+    /// (byte as-is, int truncated, anything else 0).</summary>
+    private static byte ToByte(object? value) => value switch
+    {
+        byte b => b,
+        int i => (byte)i,
+        _ => (byte)0,
+    };
 
     private static string Format(object value) => value switch
     {
