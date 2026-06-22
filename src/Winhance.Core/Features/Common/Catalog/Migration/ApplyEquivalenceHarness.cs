@@ -9,27 +9,20 @@ namespace Winhance.Core.Features.Common.Catalog.Migration;
 /// <summary>Throwaway migration tool: proves the new <see cref="ApplyPlanBuilder"/> produces the same registry
 /// WRITE INTENT the old live apply (<c>WindowsRegistryService.ApplySetting</c>) does, for a setting + target
 /// state. Pure - both sides are computed without touching the registry, then compared as a normalised set of
-/// write-intent strings. Covers registry toggles and selections including binary bit/byte surgical writes,
-/// composite packed-string sub-key writes, and apply-only effects (SCRIPT / REGIMPORT / NATIVEPOWER). A setting
-/// that applies via a .reg import skips its registry writes (detect-only targets), mirroring the old apply.
-/// Per-NIC/monitor (live subkey enumeration) is excluded here and handled in a later slice. Deleted once the
-/// migration is complete.</summary>
+/// write-intent strings. Covers EVERY registry toggle/selection apply mechanism: value set/delete, key existence,
+/// binary bit/byte surgical writes, composite packed-string sub-key writes, per-NIC/per-monitor "write each
+/// sub-key" expansion, and apply-only effects (SCRIPT / REGIMPORT / NATIVEPOWER). A setting that applies via a
+/// .reg import skips its registry writes (detect-only targets), mirroring the old apply. The live sub-key
+/// enumeration for composite/per-subkey defers to the writer; the harness compares the deferred INTENT. Deleted
+/// once the migration is complete.</summary>
 public static class ApplyEquivalenceHarness
 {
-    /// <summary>A registry toggle whose apply is a self-contained registry write - a value set/delete, a
-    /// key-existence create/delete, a surgical binary bit/byte edit, a composite packed-string sub-key write,
-    /// and/or apply-only effects (script / .reg import / native power). Per-subkey (per-NIC/monitor) needs a
-    /// live context and is excluded (later slice).</summary>
-    public static bool IsPlainRegistryToggleForApply(SettingDefinition def)
-    {
-        if (!RegistryToggleEquivalenceHarness.IsPureRegistryToggle(def))
-            return false;
-        // Per-subkey enumeration needs a live context - later slice. Binary bit/byte, composite sub-key writes,
-        // and apply-only effects are covered here (BITSET/BYTESET/COMPOSITESET + SCRIPT/REGIMPORT/NATIVEPOWER).
-        return def.RegistrySettings.All(r =>
-            !r.ApplyPerNetworkInterface
-            && !r.ApplyPerMonitor);
-    }
+    /// <summary>Any pure registry toggle qualifies for the apply comparison - every toggle apply mechanism is now
+    /// handled (value set/delete, key existence, binary bit/byte, composite sub-key, per-NIC/per-monitor, and
+    /// apply-only effects). Non-registry DETECTION (combobox, powercfg, scheduled-task, custom detector) is gated
+    /// out by <see cref="RegistryToggleEquivalenceHarness.IsPureRegistryToggle"/>.</summary>
+    public static bool IsPlainRegistryToggleForApply(SettingDefinition def) =>
+        RegistryToggleEquivalenceHarness.IsPureRegistryToggle(def);
 
     /// <summary>Builds one <see cref="EquivalenceRow"/> per (toggle, state): OLD is the live apply's write
     /// intent (mirrored from ApplySetting's plain branches), NEW is the ApplyPlanBuilder plan, both normalised.
@@ -143,6 +136,19 @@ public static class ApplyEquivalenceHarness
     /// executing. <paramref name="specificValue"/> overrides the Enabled/DisabledValue (selection apply path).</summary>
     private static IEnumerable<string> OldApplyWrite(RegistrySetting rs, bool isEnabled, object? specificValue)
     {
+        // Per-NIC / per-monitor: old apply enumerates the parent key's sub-keys and applies the same write to
+        // each (checked FIRST in ApplySetting). The underlying write is the plain enabled/disabled value (these
+        // settings are plain DWord; null -> delete). Enumeration is deferred; emit the per-sub-key intent.
+        if (rs.ApplyPerNetworkInterface || rs.ApplyPerMonitor)
+        {
+            var scope = rs.ApplyPerNetworkInterface ? "PERNIC" : "PERMONITOR";
+            var perSubValue = specificValue ?? GetWriteValue(isEnabled ? rs.EnabledValue : rs.DisabledValue);
+            yield return perSubValue == null
+                ? $"{scope} DELETE {rs.KeyPath}\\*\\{rs.ValueName}"
+                : $"{scope} SET {rs.KeyPath}\\*\\{rs.ValueName} = {Format(perSubValue)} ({rs.ValueType})";
+            yield break;
+        }
+
         // ValueName == null: state is key existence (create on enable, delete on disable).
         if (rs.ValueName == null)
         {
@@ -228,6 +234,12 @@ public static class ApplyEquivalenceHarness
                         ? $"COMPOSITESET {c.Path}\\{c.Target.ValueName}[{c.CompositeKey}] = {c.SubValue}"
                         : $"COMPOSITEDEL {c.Path}\\{c.Target.ValueName}[{c.CompositeKey}]";
                     break;
+                case RegistryPerSubkeyWriteOp pw:
+                    yield return $"{ScopeLabel(pw.Target)} SET {pw.ParentPath}\\*\\{pw.Target.ValueName} = {Format(pw.Value)} ({pw.Target.Type})";
+                    break;
+                case RegistryPerSubkeyDeleteOp pd:
+                    yield return $"{ScopeLabel(pd.Target)} DELETE {pd.ParentPath}\\*\\{pd.Target.ValueName}";
+                    break;
                 case EffectOp fx:
                     yield return EffectIntent(fx.Effect);
                     break;
@@ -278,6 +290,10 @@ public static class ApplyEquivalenceHarness
                 yield return EffectIntent(new ScriptEffect(script!, ps.RunContext));
         }
     }
+
+    /// <summary>The per-sub-key scope label (PERNIC / PERMONITOR), derived from the target's flags so the old and
+    /// new sides render identically.</summary>
+    private static string ScopeLabel(RegTarget target) => target.PerNetworkInterface ? "PERNIC" : "PERMONITOR";
 
     /// <summary>One effect's apply intent, normalised identically for the old and new sides.</summary>
     private static string EffectIntent(Effect effect) => effect switch

@@ -23,6 +23,8 @@ public static class ApplyExecutor
                     RegistryBitSetOp b => writer.SetRegistryBit(b.Target, b.Path, b.ByteIndex, b.BitMask, b.Set),
                     RegistryByteSetOp y => writer.SetRegistryByte(y.Target, y.Path, y.ByteIndex, y.Value),
                     RegistryCompositeSetOp c => writer.SetRegistryComposite(c.Target, c.Path, c.CompositeKey, c.SubValue),
+                    RegistryPerSubkeyWriteOp p => writer.WriteRegistryPerSubkey(p.Target, p.ParentPath, p.Value),
+                    RegistryPerSubkeyDeleteOp p => writer.DeleteRegistryPerSubkey(p.Target, p.ParentPath),
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
                     EffectOp fx => writer.RunEffect(fx.Effect),
                     _ => true,

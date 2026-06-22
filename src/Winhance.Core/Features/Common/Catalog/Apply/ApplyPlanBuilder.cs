@@ -33,7 +33,16 @@ public static class ApplyPlanBuilder
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) — leave it alone
                     foreach (var path in reg.Paths)
                     {
-                        if (reg.CompositeStringKey is { } compositeKey)
+                        if (reg.PerNetworkInterface || reg.PerMonitor)
+                        {
+                            // Expand-and-write-each: the old apply enumerates the parent key's sub-keys and applies
+                            // the same write to each. Enumeration is deferred to the writer; emit the per-sub-key intent.
+                            if (sv.DeleteOnWrite)
+                                ops.Add(new RegistryPerSubkeyDeleteOp(reg, path));
+                            else if (sv.WritePayload is { } subPayload)
+                                ops.Add(new RegistryPerSubkeyWriteOp(reg, path, subPayload));
+                        }
+                        else if (reg.CompositeStringKey is { } compositeKey)
                         {
                             // Set (or remove, when the payload is null) one sub-key inside the packed string;
                             // the read-merge-write of the other sub-keys happens in the writer.

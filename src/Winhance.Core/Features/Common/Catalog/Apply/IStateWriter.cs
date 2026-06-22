@@ -11,6 +11,8 @@ public interface IStateWriter
     bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set);
     bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value);
     bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue);
+    bool WriteRegistryPerSubkey(RegTarget target, string parentPath, object value);
+    bool DeleteRegistryPerSubkey(RegTarget target, string parentPath);
     bool SetTask(TaskTarget target, bool enabled);
     bool RunEffect(Effect effect);
 }

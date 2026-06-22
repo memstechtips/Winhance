@@ -205,6 +205,40 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void Per_network_interface_target_emits_a_per_subkey_write_or_delete()
+    {
+        var reg = Reg("TcpAckFrequency", "TcpAckFrequency", @"HKLM\...\Interfaces") with { PerNetworkInterface = true };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Of(1) } },
+            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Absent } });
+
+        // "Off" writes 1 to TcpAckFrequency under every interface sub-key; no plain write op.
+        var write = Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryPerSubkeyWriteOp>());
+        Assert.Equal(@"HKLM\...\Interfaces", write.ParentPath);
+        Assert.Equal(1, (int)write.Value);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryWriteOp>());
+
+        // "On" (Absent) deletes the value under every sub-key; no plain delete op.
+        Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryPerSubkeyDeleteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryDeleteOp>());
+    }
+
+    [Fact]
+    public void Per_monitor_target_emits_a_per_subkey_write()
+    {
+        var reg = Reg("AutoColorManagementEnabled", "AutoColorManagementEnabled", @"HKLM\...\MonitorDataStore") with { PerMonitor = true };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["AutoColorManagementEnabled"] = StateValue.Of(1) } });
+
+        var write = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryPerSubkeyWriteOp>());
+        Assert.Equal(@"HKLM\...\MonitorDataStore", write.ParentPath);
+        Assert.Equal(1, (int)write.Value);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+    }
+
+    [Fact]
     public void Task_state_emits_enable_or_disable()
     {
         var setting = Make(

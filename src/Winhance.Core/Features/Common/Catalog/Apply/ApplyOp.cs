@@ -26,6 +26,15 @@ public sealed record RegistryByteSetOp(RegTarget Target, string Path, int ByteIn
 /// CompositeStringKey setting).</summary>
 public sealed record RegistryCompositeSetOp(RegTarget Target, string Path, string CompositeKey, string? SubValue) : ApplyOp;
 
+/// <summary>Write one value to <see cref="Target"/>'s ValueName under EVERY sub-key of <see cref="ParentPath"/>
+/// (the per-network-interface / per-monitor "enumerate sub-keys and write each" the old apply did). The sub-key
+/// enumeration is deferred to the writer; this op carries the per-sub-key write intent.</summary>
+public sealed record RegistryPerSubkeyWriteOp(RegTarget Target, string ParentPath, object Value) : ApplyOp;
+
+/// <summary>Delete <see cref="Target"/>'s ValueName under EVERY sub-key of <see cref="ParentPath"/> (the
+/// per-NIC/per-monitor "absent" state). Sub-key enumeration is deferred to the writer.</summary>
+public sealed record RegistryPerSubkeyDeleteOp(RegTarget Target, string ParentPath) : ApplyOp;
+
 /// <summary>Enable or disable a scheduled task.</summary>
 public sealed record TaskSetOp(TaskTarget Target, bool Enabled) : ApplyOp;
 
