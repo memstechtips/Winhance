@@ -18,6 +18,9 @@ public sealed class SystemTrayDetector : IStateDetector
         _hideAllLabel = hideAllLabel;
     }
 
+    public string ShowAllLabel => _showAllLabel;
+    public string HideAllLabel => _hideAllLabel;
+
     public string? Detect(Setting setting, IDetectionContext context)
     {
         var subKeys = context.GetSubKeyNames(KeyPath);

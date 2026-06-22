@@ -17,9 +17,9 @@ public static class SettingStructuralComparer
         if (a.Id != b.Id) d.Add($"Id: {a.Id} != {b.Id}");
         if (!a.Display.Equals(b.Display)) d.Add($"Display: {a.Display} != {b.Display}");          // scalar/record members -> structural
         if (a.UiParentId != b.UiParentId) d.Add($"UiParentId: {a.UiParentId} != {b.UiParentId}");
-        if (a.Detector?.GetType() != b.Detector?.GetType()) d.Add("Detector type differs");
         if (!a.Apply.Equals(b.Apply)) d.Add($"Apply: {a.Apply} != {b.Apply}");                    // RestartTarget records compare structurally
 
+        DiffDetector(a.Detector, b.Detector, d);
         DiffSequence(a.Contexts, b.Contexts, "Contexts", d);
         DiffSequence(a.Links, b.Links, "Links", d);                                                // Link record -> structural
         DiffAvailability(a.Availability, b.Availability, d);
@@ -27,6 +27,34 @@ public static class SettingStructuralComparer
         DiffStates(a.States, b.States, d);
 
         return d;
+    }
+
+    private static void DiffDetector(IStateDetector? a, IStateDetector? b, List<string> d)
+    {
+        if ((a is null) != (b is null)) { d.Add("Detector nullness differs"); return; }
+        if (a is null) return;
+        if (a.GetType() != b!.GetType()) { d.Add("Detector type differs"); return; }
+
+        // Detectors are classes with injected config (labels, the DNS IP->label map); GetType() alone would
+        // miss a wrong label or map, so compare each known detector's config explicitly.
+        switch (a)
+        {
+            case SystemTrayDetector ta when b is SystemTrayDetector tb:
+                if (ta.ShowAllLabel != tb.ShowAllLabel || ta.HideAllLabel != tb.HideAllLabel)
+                    d.Add("Detector(SystemTray) labels differ");
+                break;
+            case SystemRestoreDetector ra when b is SystemRestoreDetector rb:
+                if (ra.EnabledLabel != rb.EnabledLabel || ra.DisabledLabel != rb.DisabledLabel)
+                    d.Add("Detector(SystemRestore) labels differ");
+                break;
+            case DnsServerDetector da when b is DnsServerDetector db:
+                if (da.AutomaticLabel != db.AutomaticLabel || !DictEqual(da.PrimaryIpToLabel, db.PrimaryIpToLabel))
+                    d.Add("Detector(DnsServer) config differs");
+                break;
+            default:
+                d.Add("Detector type not structurally compared (unknown detector)");
+                break;
+        }
     }
 
     private static void DiffAvailability(Availability a, Availability b, List<string> d)
@@ -45,19 +73,32 @@ public static class SettingStructuralComparer
             if (a[i].Key != b[i].Key) d.Add($"Targets[{i}].Key {a[i].Key} != {b[i].Key}");
             if (!a[i].AppliesTo.SequenceEqual(b[i].AppliesTo)) d.Add($"Targets[{i}].AppliesTo differs");
 
-            if (a[i] is RegTarget ra && b[i] is RegTarget rb)
-            {
-                if (!ra.Paths.SequenceEqual(rb.Paths)) d.Add($"Targets[{i}].Paths differs");
-                if (ra.ValueName != rb.ValueName || ra.Type != rb.Type || ra.ByteIndex != rb.ByteIndex
-                    || ra.BitMask != rb.BitMask || ra.ByteOnly != rb.ByteOnly || ra.CompositeStringKey != rb.CompositeStringKey
-                    || ra.PerNetworkInterface != rb.PerNetworkInterface || ra.PerMonitor != rb.PerMonitor
-                    || ra.IsGroupPolicy != rb.IsGroupPolicy || ra.LockKeyAccess != rb.LockKeyAccess)
-                    d.Add($"Targets[{i}] reg attributes differ");
-            }
+            if (a[i] is RegTarget ra && b[i] is RegTarget rb && RegAttrsDiffer(ra, rb))
+                d.Add($"Targets[{i}] reg attributes differ");
+
             if (a[i] is TaskTarget ta && b[i] is TaskTarget tb && ta.TaskPath != tb.TaskPath)
                 d.Add($"Targets[{i}].TaskPath differs");
+
+            if (a[i] is PowerCfgTarget pa && b[i] is PowerCfgTarget pb)
+            {
+                bool keyDiffers =
+                    (pa.EnablementKey is null) != (pb.EnablementKey is null)
+                    || (pa.EnablementKey is { } ea && pb.EnablementKey is { } eb
+                        && (ea.Key != eb.Key || !ea.AppliesTo.SequenceEqual(eb.AppliesTo) || RegAttrsDiffer(ea, eb)));
+                if (pa.SubgroupGuid != pb.SubgroupGuid || pa.SettingGuid != pb.SettingGuid
+                    || pa.Mode != pb.Mode || pa.Units != pb.Units
+                    || pa.CheckForHardwareControl != pb.CheckForHardwareControl || keyDiffers)
+                    d.Add($"Targets[{i}] powercfg attributes differ");
+            }
         }
     }
+
+    private static bool RegAttrsDiffer(RegTarget a, RegTarget b)
+        => !a.Paths.SequenceEqual(b.Paths)
+           || a.ValueName != b.ValueName || a.Type != b.Type || a.ByteIndex != b.ByteIndex
+           || a.BitMask != b.BitMask || a.ByteOnly != b.ByteOnly || a.CompositeStringKey != b.CompositeStringKey
+           || a.PerNetworkInterface != b.PerNetworkInterface || a.PerMonitor != b.PerMonitor
+           || a.IsGroupPolicy != b.IsGroupPolicy || a.LockKeyAccess != b.LockKeyAccess;
 
     private static void DiffStates(IReadOnlyList<SettingState> a, IReadOnlyList<SettingState> b, List<string> d)
     {
@@ -78,8 +119,7 @@ public static class SettingStructuralComparer
     {
         if ((a is null) != (b is null)) { d.Add($"States[{i}].Controls nullness differs"); return; }
         if (a is null) return;
-        if (a.Count != b!.Count || a.Any(kv => !b.TryGetValue(kv.Key, out var v) || v != kv.Value))
-            d.Add($"States[{i}].Controls differ");
+        if (!DictEqual(a, b!)) d.Add($"States[{i}].Controls differ");
     }
 
     private static void DiffSet(IReadOnlyDictionary<string, StateValue> a, IReadOnlyDictionary<string, StateValue> b, int i, List<string> d)
@@ -97,6 +137,9 @@ public static class SettingStructuralComparer
                 d.Add($"States[{i}].Set[{k}] StateValue differs");
         }
     }
+
+    private static bool DictEqual(IReadOnlyDictionary<string, string> a, IReadOnlyDictionary<string, string> b)
+        => a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && v == kv.Value);
 
     private static void DiffSequence<T>(IReadOnlyList<T> a, IReadOnlyList<T> b, string name, List<string> d)
     {

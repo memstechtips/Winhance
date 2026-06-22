@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Catalog.Migration;
+using Winhance.Core.Features.Common.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -109,5 +110,29 @@ public class SettingStructuralComparerTests
     {
         var changed = Baseline() with { Links = new[] { new Link("other", LinkKind.Requires, "Disabled") } };
         Assert.Contains(SettingStructuralComparer.Diff(Baseline(), changed), s => s.StartsWith("Links"));
+    }
+
+    [Fact]
+    public void Detector_config_change_is_caught()
+    {
+        var a = Baseline() with { Detector = new DnsServerDetector("Auto", new Dictionary<string, string> { ["1.1.1.1"] = "CF" }) };
+        var b = Baseline() with { Detector = new DnsServerDetector("Auto", new Dictionary<string, string> { ["8.8.8.8"] = "Google" }) };
+        Assert.Contains(SettingStructuralComparer.Diff(a, b), s => s.Contains("Detector"));
+    }
+
+    [Fact]
+    public void Detector_identical_config_produces_no_diff()
+    {
+        var a = Baseline() with { Detector = new SystemRestoreDetector("On", "Off") };
+        var b = Baseline() with { Detector = new SystemRestoreDetector("On", "Off") };
+        Assert.Empty(SettingStructuralComparer.Diff(a, b));
+    }
+
+    [Fact]
+    public void PowerCfg_attribute_change_is_caught()
+    {
+        var a = Baseline() with { Targets = new Target[] { new PowerCfgTarget("p", "sub", "guidA", PowerModeSupport.Both) }, States = Array.Empty<SettingState>() };
+        var b = Baseline() with { Targets = new Target[] { new PowerCfgTarget("p", "sub", "guidB", PowerModeSupport.Both) }, States = Array.Empty<SettingState>() };
+        Assert.Contains(SettingStructuralComparer.Diff(a, b), s => s.Contains("powercfg"));
     }
 }

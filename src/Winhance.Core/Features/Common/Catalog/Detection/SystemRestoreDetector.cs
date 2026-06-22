@@ -13,6 +13,9 @@ public sealed class SystemRestoreDetector : IStateDetector
         _disabledLabel = disabledLabel;
     }
 
+    public string EnabledLabel => _enabledLabel;
+    public string DisabledLabel => _disabledLabel;
+
     public string? Detect(Setting setting, IDetectionContext context)
         => context.IsSystemRestoreEnabled() ? _enabledLabel : _disabledLabel;
 }

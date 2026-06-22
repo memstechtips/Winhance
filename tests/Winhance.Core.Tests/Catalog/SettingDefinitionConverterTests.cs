@@ -15,6 +15,80 @@ public class SettingDefinitionConverterTests
         RegistrySettings = regs,
     };
 
+    private static RegistrySetting Reg() => new()
+    {
+        KeyPath = @"HKLM\A", ValueName = "V", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord,
+    };
+
+    [Fact]
+    public void Availability_win11_only_with_max_build_excludes_builds_above_max()
+    {
+        // The originally-buggy case: Win11Only + a max build must INTERSECT, not union (a build above max is hidden).
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle,
+            IsWindows11Only = true, MinimumBuildNumber = 22000, MaximumBuildNumber = 26120,
+            RegistrySettings = new[] { Reg() },
+        };
+        var avail = SettingDefinitionConverter.ConvertToggle(def).Availability;
+        Assert.True(avail.Allows(new WinBuild(25000)));    // inside the window
+        Assert.False(avail.Allows(new WinBuild(27000)));   // above max - was wrongly shown by the union
+        Assert.False(avail.Allows(new WinBuild(19045)));   // Win10 build - excluded
+    }
+
+    [Fact]
+    public void Availability_win11_only_starts_at_build_22000()
+    {
+        var def = new SettingDefinition { Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle, IsWindows11Only = true, RegistrySettings = new[] { Reg() } };
+        var avail = SettingDefinitionConverter.ConvertToggle(def).Availability;
+        Assert.True(avail.Allows(new WinBuild(22000)));
+        Assert.False(avail.Allows(new WinBuild(21999)));
+    }
+
+    [Fact]
+    public void Availability_win10_only_excludes_win11()
+    {
+        var def = new SettingDefinition { Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle, IsWindows10Only = true, RegistrySettings = new[] { Reg() } };
+        var avail = SettingDefinitionConverter.ConvertToggle(def).Availability;
+        Assert.True(avail.Allows(new WinBuild(19045)));
+        Assert.False(avail.Allows(new WinBuild(22000)));
+    }
+
+    [Fact]
+    public void Links_map_directional_dependencies_and_skip_value_prerequisites()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle,
+            RegistrySettings = new[] { Reg() },
+            Dependencies = new[]
+            {
+                new SettingDependency { DependencyType = SettingDependencyType.RequiresEnabled, DependentSettingId = "t", RequiredSettingId = "a" },
+                new SettingDependency { DependencyType = SettingDependencyType.RequiresDisabled, DependentSettingId = "t", RequiredSettingId = "b" },
+                new SettingDependency { DependencyType = SettingDependencyType.RequiresSpecificValue, DependentSettingId = "t", RequiredSettingId = "c" },
+                new SettingDependency { DependencyType = SettingDependencyType.RequiresValueBeforeAnyChange, DependentSettingId = "t", RequiredSettingId = "vbc" },
+            },
+            AutoEnableSettingIds = new[] { "e" },
+        };
+
+        var links = SettingDefinitionConverter.ConvertToggle(def).Links;
+
+        Assert.Equal(3, links.Count); // a (requires-enabled) + b (requires-disabled) + e (auto-enable); value-prerequisites skipped
+        var a = links.Single(l => l.OtherId == "a");
+        Assert.Equal(LinkKind.Requires, a.Kind);
+        Assert.Equal("Enabled", a.RequiredState);
+        Assert.True(a.ReverseCascade);
+        var b = links.Single(l => l.OtherId == "b");
+        Assert.Equal(LinkKind.Requires, b.Kind);
+        Assert.Equal("Disabled", b.RequiredState);
+        Assert.False(b.ReverseCascade);
+        var e = links.Single(l => l.OtherId == "e");
+        Assert.Equal(LinkKind.Enables, e.Kind);
+        Assert.False(e.ReverseCascade);
+        Assert.True(e.Force);
+        Assert.DoesNotContain(links, l => l.OtherId == "c" || l.OtherId == "vbc");
+    }
+
     [Fact]
     public void Single_target_toggle_maps_enabled_disabled()
     {
