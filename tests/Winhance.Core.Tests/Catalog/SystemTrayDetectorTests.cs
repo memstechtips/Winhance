@@ -8,6 +8,7 @@ public class SystemTrayDetectorTests
 {
     private sealed class FakeCtx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         public string[] SubKeys = System.Array.Empty<string>();
         public Dictionary<string, object?> Values = new(); // "path\\name" -> value
         public string[] GetSubKeyNames(string keyPath) => SubKeys;
@@ -20,7 +21,7 @@ public class SystemTrayDetectorTests
     }
 
     private const string Key = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";
-    private static readonly Setting Dummy = new() { Id = "tray", Name = "t", Description = "t" };
+    private static readonly Setting Dummy = new() { Id = "tray", Display = new() { Name = "t", Description = "t" } };
     private static readonly SystemTrayDetector Det = new("Show all", "Hide all");
 
     [Fact]

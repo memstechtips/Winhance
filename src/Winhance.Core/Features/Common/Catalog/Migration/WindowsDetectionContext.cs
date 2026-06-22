@@ -14,6 +14,17 @@ public sealed class WindowsDetectionContext : IDetectionContext
 
     public WindowsDetectionContext(IWindowsRegistryService reg) => _reg = reg;
 
+    public WinBuild CurrentBuild
+    {
+        get
+        {
+            const string key = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+            int build = int.TryParse(_reg.GetValue(key, "CurrentBuildNumber")?.ToString(), out var b) ? b : 0;
+            int ubr = int.TryParse(_reg.GetValue(key, "UBR")?.ToString(), out var r) ? r : 0;
+            return new WinBuild(build, ubr);
+        }
+    }
+
     public object? GetValue(string keyPath, string? valueName) => _reg.GetValue(keyPath, valueName ?? "");
 
     public string[] GetSubKeyNames(string keyPath) => _reg.GetSubKeyNames(keyPath);

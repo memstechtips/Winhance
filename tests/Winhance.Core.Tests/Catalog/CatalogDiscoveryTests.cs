@@ -10,6 +10,7 @@ public class CatalogDiscoveryTests
 {
     private sealed class FakeCtx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         private readonly Func<string, string?, object?> _get;
         private readonly bool? _taskEnabled;
         public FakeCtx(Func<string, string?, object?>? get = null, bool? taskEnabled = null)
@@ -40,7 +41,7 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Name = "s", Description = "s",
+            Id = "s", Display = new() { Name = "s", Description = "s" },
             Targets = new[] { Reg("Mode", "SearchboxTaskbarMode") },
             States = new[]
             {
@@ -58,7 +59,7 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Name = "s", Description = "s",
+            Id = "s", Display = new() { Name = "s", Description = "s" },
             Targets = new[] { Reg("Start", "Start") },
             States = new[]
             {
@@ -74,7 +75,7 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Name = "s", Description = "s",
+            Id = "s", Display = new() { Name = "s", Description = "s" },
             Targets = new[] { Reg("K", "V") },
             States = new[]
             {
@@ -89,7 +90,7 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Name = "s", Description = "s",
+            Id = "s", Display = new() { Name = "s", Description = "s" },
             Targets = new[] { new TaskTarget("Task", @"\MS\Task") },
             States = new[]
             {
@@ -110,7 +111,7 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Name = "s", Description = "s",
+            Id = "s", Display = new() { Name = "s", Description = "s" },
             Detector = new FixedDetector("Show all"),
             // targets/states are ignored when a detector is present
         };

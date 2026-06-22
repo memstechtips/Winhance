@@ -17,6 +17,8 @@ public sealed class DnsDetectionContext : IDetectionContext
 
     public DnsDetectionContext(IWindowsRegistryService reg) => _reg = reg;
 
+    public WinBuild CurrentBuild => new(int.MaxValue); // DNS settings are not build-gated
+
     public string? PrimaryDnsV4OfActiveAdapter()
     {
         var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()

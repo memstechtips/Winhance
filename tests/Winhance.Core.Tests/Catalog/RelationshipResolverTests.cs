@@ -16,7 +16,7 @@ public class RelationshipResolverTests
         };
 
     private static Setting S(string id, IReadOnlyList<SettingState> states, params Link[] links) =>
-        new() { Id = id, Name = id, Description = id, States = states, Links = links };
+        new() { Id = id, Display = new() { Name = id, Description = id }, States = states, Links = links };
 
     // currentStateOf that knows nothing (everything "unknown")
     private static string? None(string _) => null;

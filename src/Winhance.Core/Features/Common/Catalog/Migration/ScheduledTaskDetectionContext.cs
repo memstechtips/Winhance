@@ -12,6 +12,8 @@ public sealed class ScheduledTaskDetectionContext : IDetectionContext
 
     public ScheduledTaskDetectionContext(bool? enabled) => _enabled = enabled;
 
+    public WinBuild CurrentBuild => new(int.MaxValue); // scheduled-task settings are not build-gated
+
     public bool? ScheduledTaskEnabled(string taskPath) => _enabled;
 
     public object? GetValue(string keyPath, string? valueName) =>

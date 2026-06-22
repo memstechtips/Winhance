@@ -5,13 +5,13 @@ using System.Linq;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
-/// Turns "apply state &lt;label&gt; of &lt;setting&gt;" into an ordered list of declarative write ops — the
+/// Turns "apply state &lt;label&gt; of &lt;setting&gt;" into an ordered list of declarative write ops - the
 /// forward direction of target-by-state. Pure; no I/O. Registry/task/effects are handled here; powercfg
 /// apply is handled by the dedicated power work and throws here if encountered.
 /// </summary>
 public static class ApplyPlanBuilder
 {
-    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel)
+    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null)
     {
         var state = setting.States.FirstOrDefault(s => s.Label == stateLabel)
             ?? throw new ArgumentException($"No state labelled '{stateLabel}' on setting '{setting.Id}'.", nameof(stateLabel));
@@ -24,13 +24,16 @@ public static class ApplyPlanBuilder
 
         foreach (var target in setting.Targets)
         {
+            if (build is { } b && target.AppliesTo.Count > 0 && !target.AppliesTo.Any(r => r.Contains(b)))
+                continue; // target not live on this build
+
             switch (target)
             {
                 case RegTarget reg:
                     if (appliesViaRegContent)
                         break; // detect-only: the .reg import (an Effect) is the apply
                     if (!state.Set.TryGetValue(reg.Key, out var sv))
-                        continue; // state doesn't cover this target (e.g. a fallback's partial Set) — leave it alone
+                        continue; // state doesn't cover this target (e.g. a fallback's partial Set) - leave it alone
                     foreach (var path in reg.Paths)
                     {
                         if (reg.PerNetworkInterface || reg.PerMonitor)

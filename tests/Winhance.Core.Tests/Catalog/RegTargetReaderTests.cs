@@ -12,6 +12,7 @@ public class RegTargetReaderTests
     /// <paramref name="keyExists"/> (defaults to "no key exists" for the value-based tests).</summary>
     private sealed class Ctx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         private readonly Func<string, string?, object?> _get;
         private readonly Func<string, bool> _keyExists;
         public Ctx(Func<string, string?, object?> get, Func<string, bool>? keyExists = null)

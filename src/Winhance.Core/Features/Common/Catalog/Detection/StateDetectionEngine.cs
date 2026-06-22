@@ -3,14 +3,18 @@ using System.Collections.Generic;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
-/// THE detection function. Returns the label of the first state whose every Set entry
-/// the live readings satisfy; null = Custom. One engine for toggles (2 states) and selections (N) —
-/// replaces the old bool-resolver AND the duplicated ResolveRawValuesToIndex. Pure; no service deps.
+/// THE detection function. Returns the label of the first state whose every live Set entry the readings
+/// satisfy; null = Custom. One engine for toggles (2 states) and selections (N) - replaces the old
+/// bool-resolver AND the duplicated ResolveRawValuesToIndex. Pure; no service deps.
 /// IStateDetector (custom detectors) is consulted by the CALLER before this engine, not here.
+/// When activeTargetKeys is supplied, Set entries for targets not live on the current build are ignored.
 /// </summary>
 public static class StateDetectionEngine
 {
-    public static string? Detect(IReadOnlyList<SettingState> states, IStateReadings readings)
+    public static string? Detect(
+        IReadOnlyList<SettingState> states,
+        IStateReadings readings,
+        IReadOnlyCollection<string>? activeTargetKeys = null)
     {
         SettingState? fallback = null;
 
@@ -19,12 +23,13 @@ public static class StateDetectionEngine
             if (state.IsFallback)
                 fallback = state; // remember it; only used if nothing matches
 
-            if (state.Set.Count == 0)
-                continue; // a state with no detectable Set cannot be matched declaratively (e.g. Action)
-
+            bool anyChecked = false;
             bool allMatch = true;
             foreach (var (targetKey, expected) in state.Set)
             {
+                if (activeTargetKeys != null && !activeTargetKeys.Contains(targetKey))
+                    continue; // target not live on this build; ignore its Set entry
+                anyChecked = true;
                 readings.TryGet(targetKey, out var current, out var present);
                 if (!expected.Matches(current, present))
                 {
@@ -32,6 +37,9 @@ public static class StateDetectionEngine
                     break;
                 }
             }
+
+            if (!anyChecked)
+                continue; // no live, declarative Set entry (Action, or every entry build-inactive)
 
             if (allMatch)
                 return state.Label;

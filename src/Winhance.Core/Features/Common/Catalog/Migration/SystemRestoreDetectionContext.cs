@@ -12,6 +12,8 @@ public sealed class SystemRestoreDetectionContext : IDetectionContext
 
     public SystemRestoreDetectionContext(bool enabled) => _enabled = enabled;
 
+    public WinBuild CurrentBuild => new(int.MaxValue); // system-restore is not build-gated
+
     public bool IsSystemRestoreEnabled() => _enabled;
 
     public object? GetValue(string keyPath, string? valueName) =>

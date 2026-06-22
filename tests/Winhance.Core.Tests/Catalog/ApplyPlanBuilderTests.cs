@@ -13,7 +13,7 @@ public class ApplyPlanBuilderTests
         new(key, paths.Length == 0 ? new[] { @"HKEY_LOCAL_MACHINE\TEST" } : paths, valueName, RegistryValueKind.DWord);
 
     private static Setting Make(IReadOnlyList<Target> targets, params SettingState[] states) =>
-        new() { Id = "t", Name = "t", Description = "t", Targets = targets, States = states };
+        new() { Id = "t", Display = new() { Name = "t", Description = "t" }, Targets = targets, States = states };
 
     [Fact]
     public void Writes_concrete_value_to_each_mirror_path()

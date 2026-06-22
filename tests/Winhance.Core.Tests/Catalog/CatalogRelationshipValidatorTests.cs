@@ -11,7 +11,7 @@ public class CatalogRelationshipValidatorTests
         IReadOnlyDictionary<string, string>? controls = null) =>
         new()
         {
-            Id = id, Name = id, Description = id,
+            Id = id, Display = new() { Name = id, Description = id },
             Links = links ?? new List<Link>(),
             UiParentId = uiParent,
             States = controls == null

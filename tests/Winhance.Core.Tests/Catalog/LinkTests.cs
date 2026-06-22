@@ -26,7 +26,7 @@ public class LinkTests
     [Fact]
     public void Setting_and_state_relationship_fields_default_empty()
     {
-        var setting = new Setting { Id = "s", Name = "s", Description = "s" };
+        var setting = new Setting { Id = "s", Display = new() { Name = "s", Description = "s" } };
         Assert.Empty(setting.Links);
         Assert.Null(setting.UiParentId);
 

@@ -17,7 +17,7 @@ public class RelationshipResolverReverseTests
         };
 
     private static Setting S(string id, IReadOnlyList<SettingState> states, params Link[] links) =>
-        new() { Id = id, Name = id, Description = id, States = states, Links = links };
+        new() { Id = id, Display = new() { Name = id, Description = id }, States = states, Links = links };
 
     // ---- reverse cascade ----
 
@@ -35,7 +35,7 @@ public class RelationshipResolverReverseTests
     public void Requirement_still_met_resets_nothing()
     {
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
-        // b moved to "On" — still satisfies the requirement
+        // b moved to "On" - still satisfies the requirement
         Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "On", new[] { a }, id => "On"));
     }
 
@@ -65,7 +65,7 @@ public class RelationshipResolverReverseTests
             St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
             St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
         });
-        // both children currently Off → matches "Deny"; parent currently "Allow"
+        // both children currently Off -> matches "Deny"; parent currently "Allow"
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id == "p" ? "Allow" : "Off");
         Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny");
@@ -79,7 +79,7 @@ public class RelationshipResolverReverseTests
             St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
             St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
         });
-        // c1 Off, c2 On → matches neither option fully
+        // c1 Off, c2 On -> matches neither option fully
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id switch { "c1" => "Off", "c2" => "On", _ => "Allow" }));
     }

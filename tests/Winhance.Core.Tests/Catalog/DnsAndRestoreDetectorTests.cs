@@ -8,6 +8,7 @@ public class DnsAndRestoreDetectorTests
 {
     private sealed class FakeCtx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         public string? PrimaryDns;
         public bool RestoreEnabled;
         public object? GetValue(string keyPath, string? valueName) => null;
@@ -18,7 +19,7 @@ public class DnsAndRestoreDetectorTests
         public bool IsSystemRestoreEnabled() => RestoreEnabled;
     }
 
-    private static readonly Setting Dummy = new() { Id = "d", Name = "d", Description = "d" };
+    private static readonly Setting Dummy = new() { Id = "d", Display = new() { Name = "d", Description = "d" } };
 
     private static readonly DnsServerDetector Dns = new("Automatic",
         new Dictionary<string, string> { ["1.1.1.1"] = "Cloudflare", ["8.8.8.8"] = "Google" });

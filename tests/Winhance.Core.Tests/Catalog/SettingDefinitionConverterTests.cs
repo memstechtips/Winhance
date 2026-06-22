@@ -351,6 +351,7 @@ public class SettingDefinitionConverterTests
     /// IsPromoted=1, the rest 0.</summary>
     private sealed class TrayCtx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         private readonly string[] _subKeys;
         private readonly int _promoted;
         public TrayCtx(string[] subKeys, int promoted) { _subKeys = subKeys; _promoted = promoted; }
@@ -398,6 +399,7 @@ public class SettingDefinitionConverterTests
 
     private sealed class RestoreCtx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         private readonly bool _enabled;
         public RestoreCtx(bool enabled) => _enabled = enabled;
         public bool IsSystemRestoreEnabled() => _enabled;
@@ -427,6 +429,7 @@ public class SettingDefinitionConverterTests
 
     private sealed class DnsCtx : IDetectionContext
     {
+        public WinBuild CurrentBuild => new(int.MaxValue);
         private readonly string? _primary;
         public DnsCtx(string? primary) => _primary = primary;
         public string? PrimaryDnsV4OfActiveAdapter() => _primary;

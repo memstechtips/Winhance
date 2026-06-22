@@ -5,6 +5,9 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// services. Grows as more detectors are ported.</summary>
 public interface IDetectionContext
 {
+    /// <summary>The running Windows build. Used to select build-applicable targets (Target.AppliesTo).</summary>
+    WinBuild CurrentBuild { get; }
+
     /// <summary>Read a registry value, or null if the key/value is absent.</summary>
     object? GetValue(string keyPath, string? valueName);
 

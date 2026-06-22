@@ -19,7 +19,7 @@ public class CatalogValidatorTests
         IReadOnlyList<PowerContext>? contexts = null, IStateDetector? detector = null) =>
         new()
         {
-            Id = "test-setting", Name = "Test", Description = "Test",
+            Id = "test-setting", Display = new() { Name = "Test", Description = "Test" },
             Targets = targets, States = states, Detector = detector,
             Contexts = contexts ?? new[] { PowerContext.Always },
         };
@@ -140,7 +140,7 @@ public class CatalogValidatorTests
     [Fact]
     public void Fallback_state_may_carry_a_partial_set()
     {
-        // A fallback is the last-resort catch-all, so a partial representative Set is allowed —
+        // A fallback is the last-resort catch-all, so a partial representative Set is allowed -
         // it must NOT trip the "missing target key" rule that non-fallback states do.
         var s = Make(
             new[] { Reg("Start", "Start"), Reg("Preload", "P") },
@@ -155,7 +155,7 @@ public class CatalogValidatorTests
     [Fact]
     public void Fallback_state_with_an_unknown_key_is_still_an_error()
     {
-        // Exempt from "missing", but a typo'd/unknown key is always caught — fallback or not.
+        // Exempt from "missing", but a typo'd/unknown key is always caught - fallback or not.
         var s = Make(
             new[] { Reg("Start", "Start") },
             new[]
