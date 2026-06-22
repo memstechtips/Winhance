@@ -51,6 +51,76 @@ public class CatalogAuthoringEquivalenceTests
             PrivacyOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
             PrivacyOptimizationsCatalog.All);
 
+    // The 6 ThisPC-folder settings each merge TWO old defs (a Win11 value toggle + a Win10 key-existence toggle
+    // sharing display and loc) into ONE Setting with build-gated targets, so the 1:1 gate cannot apply to them.
+    private static readonly string[] ThisPcMergedIds =
+    {
+        "explorer-customization-thispc-folder-desktop",
+        "explorer-customization-thispc-folder-documents",
+        "explorer-customization-thispc-folder-downloads",
+        "explorer-customization-thispc-folder-music",
+        "explorer-customization-thispc-folder-pictures",
+        "explorer-customization-thispc-folder-videos",
+    };
+
+    [Fact]
+    public void Explorer()
+    {
+        var old = ExplorerCustomizations.GetExplorerCustomizations().Settings;
+        var authored = ExplorerCustomizationsCatalog.All;
+        var merged = new HashSet<string>(ThisPcMergedIds);
+        var win10 = new HashSet<string>(ThisPcMergedIds.Select(id => id + "-win10"));
+
+        // 1:1 equivalence for every NON-merged setting (the 12 ThisPC old defs are verified build-aware below).
+        AssertCatalogMatches(
+            old.Where(d => !merged.Contains(d.Id) && !win10.Contains(d.Id)).ToList(),
+            authored.Where(s => !merged.Contains(s.Id)).ToList());
+
+        // Build-aware equivalence for the 6 merges: the setting PROJECTED at a Win11 build must equal the converter's
+        // output for the Win11 def, and projected at a Win10 build must equal the converter's output for the -win10 def.
+        var byId = authored.ToDictionary(s => s.Id);
+        foreach (var id in ThisPcMergedIds)
+        {
+            AssertMergedProjectionMatches(byId[id], old.Single(d => d.Id == id), new WinBuild(22631));
+            AssertMergedProjectionMatches(byId[id], old.Single(d => d.Id == id + "-win10"), new WinBuild(19045));
+        }
+    }
+
+    private static void AssertMergedProjectionMatches(Setting merged, SettingDefinition osDef, WinBuild build)
+    {
+        var diff = SettingStructuralComparer.Diff(
+            Normalize(ProjectAtBuild(merged, build) with { Id = osDef.Id }),
+            Normalize(Convert(osDef)));
+        Assert.True(diff.Count == 0,
+            $"merged '{merged.Id}' projected at build {build.Build} differs from converter('{osDef.Id}'): {string.Join(" | ", diff)}");
+    }
+
+    /// <summary>Projects a build-adaptive setting onto a single build: keep only targets whose AppliesTo admits the
+    /// build (and clear AppliesTo, since the single-OS converter target carries none), and restrict each state's Set
+    /// to those active targets' keys. Reduces the merge to the one OS's live mechanism for comparison.</summary>
+    private static Setting ProjectAtBuild(Setting s, WinBuild build)
+    {
+        var active = s.Targets.Where(t => t.AppliesTo.Count == 0 || t.AppliesTo.Any(r => r.Contains(build))).ToList();
+        var keys = new HashSet<string>(active.Select(t => t.Key));
+        return s with
+        {
+            Targets = active.Select(t => t with { AppliesTo = System.Array.Empty<BuildRange>() }).ToList(),
+            States = s.States.Select(st => st with
+            {
+                Set = st.Set.Where(kv => keys.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value),
+            }).ToList(),
+        };
+    }
+
+    /// <summary>Clears the fields a merge deliberately diverges on between OSes so a per-build projection can be
+    /// compared to the single-OS converter output: Roles (the OS-default badge is dropped in the merge) and
+    /// Availability (the merge has no setting-level gate - the gate moved onto Target.AppliesTo).</summary>
+    private static Setting Normalize(Setting s) => s with
+    {
+        Availability = Availability.Everywhere,
+        States = s.States.Select(st => st with { Roles = System.Array.Empty<StateRole>() }).ToList(),
+    };
+
     private static void AssertCatalogMatches(IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored)
     {
         var byId = authored.ToDictionary(s => s.Id);
