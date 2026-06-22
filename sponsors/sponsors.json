@@ -1,6 +1,6 @@
 {
   "$schemaNote": "See sponsors/README.md. This file is the single source of truth for Winhance sponsor & supporter recognition. It is fetched live by the app from the main branch and a snapshot ships with every release as the offline fallback.",
-  "updated": "2026-06-20",
+  "updated": "2026-06-22",
   "sponsors": [
     {
       "id": "contoso",
@@ -72,6 +72,10 @@
     }
   ],
   "supporters": [
+    {
+      "name": "Andres Rosales",
+      "since": "2026-06"
+    },
     {
       "name": "Philip Skora",
       "since": "2026-06"
