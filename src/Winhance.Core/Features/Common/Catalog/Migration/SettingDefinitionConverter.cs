@@ -257,28 +257,38 @@ public static class SettingDefinitionConverter
     /// max apply independently, with revision as a tie-break (mirrors the old compatibility filter).</summary>
     private static Availability BuildAvailability(SettingDefinition def)
     {
-        var ranges = new List<BuildRange>();
-        if (def.IsWindows10Only) ranges.Add(BuildRange.Windows10);
-        if (def.IsWindows11Only) ranges.Add(BuildRange.Windows11);
+        // OS-only gating is a build threshold (Windows 11 starts at 22000). When an explicit build bound is
+        // ALSO present the two INTERSECT (the old filter applies the OS rule and the bound together), so clamp
+        // each bound to the OS range rather than emitting two independent ranges that would OR together.
+        var osMin = def.IsWindows11Only ? new WinBuild(22000) : new WinBuild(0);
+        var osMax = def.IsWindows10Only ? new WinBuild(21999, int.MaxValue) : new WinBuild(int.MaxValue, int.MaxValue);
+        bool hasOs = def.IsWindows10Only || def.IsWindows11Only;
 
+        var bounds = new List<BuildRange>();
         if (def.SupportedBuildRanges.Count > 0)
         {
             foreach (var r in def.SupportedBuildRanges)
-                ranges.Add(BuildRange.Between(r.MinBuild, r.MaxBuild));
+                bounds.Add(BuildRange.Between(r.MinBuild, r.MaxBuild));
         }
-        else if (def.MinimumBuildNumber is { } min)
+        else if (def.MinimumBuildNumber is not null || def.MaximumBuildNumber is not null)
         {
-            var max = def.MaximumBuildNumber is { } maxB
-                ? new WinBuild(maxB, def.MaximumBuildRevision ?? int.MaxValue)
-                : new WinBuild(int.MaxValue, int.MaxValue);
-            ranges.Add(new BuildRange(new WinBuild(min, def.MinimumBuildRevision ?? 0), max));
-        }
-        else if (def.MaximumBuildNumber is { } maxOnly)
-        {
-            ranges.Add(new BuildRange(new WinBuild(0), new WinBuild(maxOnly, def.MaximumBuildRevision ?? int.MaxValue)));
+            var bMin = def.MinimumBuildNumber is { } min ? new WinBuild(min, def.MinimumBuildRevision ?? 0) : new WinBuild(0);
+            var bMax = def.MaximumBuildNumber is { } max ? new WinBuild(max, def.MaximumBuildRevision ?? int.MaxValue) : new WinBuild(int.MaxValue, int.MaxValue);
+            bounds.Add(new BuildRange(bMin, bMax));
         }
 
-        return ranges.Count == 0 ? Availability.Everywhere : new Availability { Builds = ranges };
+        if (bounds.Count == 0)
+            return hasOs ? new Availability { Builds = new[] { new BuildRange(osMin, osMax) } } : Availability.Everywhere;
+
+        var result = new List<BuildRange>();
+        foreach (var b in bounds)
+        {
+            var lo = b.Min >= osMin ? b.Min : osMin;   // max(bound.Min, osMin)
+            var hi = b.Max <= osMax ? b.Max : osMax;   // min(bound.Max, osMax)
+            if (lo <= hi) result.Add(new BuildRange(lo, hi));
+        }
+
+        return new Availability { Builds = result };
     }
 
     /// <summary>Maps the confirmation gate and the restart hints. The two old restart strings unify into one
@@ -308,11 +318,19 @@ public static class SettingDefinitionConverter
         var links = new List<Link>();
         foreach (var dep in def.Dependencies)
         {
-            bool requiresDisabled = dep.DependencyType == SettingDependencyType.RequiresDisabled;
-            links.Add(new Link(dep.RequiredSettingId, LinkKind.Requires, requiresDisabled ? "Disabled" : "Enabled")
+            // Only the two directional dependency kinds map to a Link. RequiresSpecificValue and
+            // RequiresValueBeforeAnyChange are value-prerequisite relationships the old app handles on a
+            // separate path; they have no Link representation, so leave them out rather than inventing an
+            // enable-requirement with a reverse cascade.
+            switch (dep.DependencyType)
             {
-                ReverseCascade = !requiresDisabled,
-            });
+                case SettingDependencyType.RequiresEnabled:
+                    links.Add(new Link(dep.RequiredSettingId, LinkKind.Requires, "Enabled"));
+                    break;
+                case SettingDependencyType.RequiresDisabled:
+                    links.Add(new Link(dep.RequiredSettingId, LinkKind.Requires, "Disabled") { ReverseCascade = false });
+                    break;
+            }
         }
         if (def.AutoEnableSettingIds is { } auto)
         {
