@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Catalog.Migration;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
+using Winhance.Core.Features.Optimize.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -19,6 +20,12 @@ public class CatalogAuthoringEquivalenceTests
         => AssertCatalogMatches(
             WindowsThemeCustomizations.GetWindowsThemeCustomizations().Settings,
             WindowsThemeCustomizationsCatalog.All);
+
+    [Fact]
+    public void Sound()
+        => AssertCatalogMatches(
+            SoundOptimizations.GetSoundOptimizations().Settings,
+            SoundOptimizationsCatalog.All);
 
     private static void AssertCatalogMatches(IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored)
     {
