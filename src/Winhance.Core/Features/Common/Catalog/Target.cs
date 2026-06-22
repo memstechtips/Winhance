@@ -4,8 +4,13 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>A detectable read/write location. Declared ONCE per setting; carries no values.</summary>
-public abstract record Target(string Key);
+/// <summary>A detectable read/write location. Declared ONCE per setting; carries no values. A non-empty
+/// AppliesTo restricts the target to those build ranges (empty = active on every build) so one setting can
+/// carry an OS-specific mechanism.</summary>
+public abstract record Target(string Key)
+{
+    public IReadOnlyList<BuildRange> AppliesTo { get; init; } = System.Array.Empty<BuildRange>();
+}
 
 /// <summary>Registry location. Multiple <see cref="Paths"/> = a mirror (write all, read first non-null).</summary>
 public sealed record RegTarget(
