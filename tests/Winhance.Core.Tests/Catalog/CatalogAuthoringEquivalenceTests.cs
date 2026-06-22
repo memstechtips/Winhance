@@ -27,6 +27,12 @@ public class CatalogAuthoringEquivalenceTests
             SoundOptimizations.GetSoundOptimizations().Settings,
             SoundOptimizationsCatalog.All);
 
+    [Fact]
+    public void Update()
+        => AssertCatalogMatches(
+            UpdateOptimizations.GetUpdateOptimizations().Settings,
+            UpdateOptimizationsCatalog.All);
+
     private static void AssertCatalogMatches(IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored)
     {
         var byId = authored.ToDictionary(s => s.Id);
