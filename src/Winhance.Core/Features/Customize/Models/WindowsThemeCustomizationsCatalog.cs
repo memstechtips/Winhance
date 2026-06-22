@@ -11,9 +11,6 @@ public static class WindowsThemeCustomizationsCatalog
     public const string FeatureId = FeatureIds.WindowsTheme;
     public const string FeatureName = "Windows Theme";
 
-    private const string Personalize =
-        @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
         new()
@@ -30,8 +27,8 @@ public static class WindowsThemeCustomizationsCatalog
             Apply = new() { RequiresConfirmation = true, Restart = new RestartProcess("Explorer") },
             Targets = new Target[]
             {
-                new RegTarget("AppsUseLightTheme", new[] { Personalize }, "AppsUseLightTheme", RegistryValueKind.DWord),
-                new RegTarget("SystemUsesLightTheme", new[] { Personalize }, "SystemUsesLightTheme", RegistryValueKind.DWord),
+                new RegTarget("AppsUseLightTheme", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" }, "AppsUseLightTheme", RegistryValueKind.DWord),
+                new RegTarget("SystemUsesLightTheme", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" }, "SystemUsesLightTheme", RegistryValueKind.DWord),
             },
             States = new[]
             {
@@ -62,7 +59,7 @@ public static class WindowsThemeCustomizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("EnableTransparency", new[] { Personalize }, "EnableTransparency", RegistryValueKind.DWord),
+                new RegTarget("EnableTransparency", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" }, "EnableTransparency", RegistryValueKind.DWord),
             },
             States = new[]
             {

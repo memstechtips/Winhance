@@ -11,10 +11,6 @@ public static class SoundOptimizationsCatalog
     public const string FeatureId = FeatureIds.Sound;
     public const string FeatureName = "Sound";
 
-    private const string Speech =
-        @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SpeechOneCore\Settings";
-    private const string Accessibility = @"HKEY_CURRENT_USER\Control Panel\Accessibility";
-
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
         new()
@@ -142,7 +138,7 @@ public static class SoundOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("AgentActivationEnabled", new[] { Speech }, "AgentActivationEnabled", RegistryValueKind.DWord),
+                new RegTarget("AgentActivationEnabled", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SpeechOneCore\Settings" }, "AgentActivationEnabled", RegistryValueKind.DWord),
             },
             States = new[]
             {
@@ -173,7 +169,7 @@ public static class SoundOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("AgentActivationLastUsed", new[] { Speech }, "AgentActivationLastUsed", RegistryValueKind.DWord),
+                new RegTarget("AgentActivationLastUsed", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SpeechOneCore\Settings" }, "AgentActivationLastUsed", RegistryValueKind.DWord),
             },
             States = new[]
             {
@@ -204,7 +200,7 @@ public static class SoundOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("Sound on Activation", new[] { Accessibility }, "Sound on Activation", RegistryValueKind.DWord),
+                new RegTarget("Sound on Activation", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility" }, "Sound on Activation", RegistryValueKind.DWord),
             },
             States = new[]
             {
@@ -235,7 +231,7 @@ public static class SoundOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("Warning Sounds", new[] { Accessibility }, "Warning Sounds", RegistryValueKind.DWord),
+                new RegTarget("Warning Sounds", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility" }, "Warning Sounds", RegistryValueKind.DWord),
             },
             States = new[]
             {
