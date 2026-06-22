@@ -48,7 +48,7 @@ public class CatalogAuthoringEquivalenceTests
     [Fact]
     public void Privacy()
         => AssertCatalogMatches(
-            PrivacyOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
+            PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
             PrivacyOptimizationsCatalog.All);
 
     // The 6 ThisPC-folder settings each merge TWO old defs (a Win11 value toggle + a Win10 key-existence toggle
