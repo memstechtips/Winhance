@@ -192,7 +192,7 @@ public class SettingDefinitionConverterTests
             Id = "s", Name = "n", Description = "d", InputType = InputType.Selection,
             RegistrySettings = new[]
             {
-                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", ValueType = RegistryValueKind.DWord },
+                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
             },
             PowerShellScripts = new[]
             {
@@ -229,7 +229,7 @@ public class SettingDefinitionConverterTests
             Id = "s", Name = "n", Description = "d", InputType = InputType.Selection,
             RegistrySettings = new[]
             {
-                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", ValueType = RegistryValueKind.DWord },
+                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
             },
             PowerShellScripts = new[]
             {
