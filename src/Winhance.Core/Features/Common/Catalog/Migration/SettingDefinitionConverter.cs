@@ -98,6 +98,7 @@ public static class SettingDefinitionConverter
                 Label = opt.DisplayName,
                 Set = set,
                 Roles = roles,
+                Effects = BuildSelectionOptionEffects(def, opt),
                 // ResolveUnmatchedToDefault: an unrecognised live state resolves to the IsDefault option.
                 IsFallback = def.ResolveUnmatchedToDefault && opt.IsDefault,
             });
@@ -288,6 +289,43 @@ public static class SettingDefinitionConverter
             effects.Add(new NativePowerEffect(np.InformationLevel, isEnabled ? np.EnabledValue : np.DisabledValue));
 
         return effects;
+    }
+
+    /// <summary>Maps a selection OPTION's apply-only script to the effect that option's state runs. The option's
+    /// Script field selects which shared script body runs (mirrors the old SettingOperationExecutor selection path):
+    /// Enabled -> EnabledScript, Disabled -> DisabledScript, None -> no script. The option's ScriptVariables are
+    /// substituted into the body, and an empty body runs nothing. Selections carry no .reg/native effects in the
+    /// catalog, so only scripts are mapped here. (An option with an UNSET Script is treated as None here; the old
+    /// code instead fell through to its enable/disable default. Every catalog selection option sets Script
+    /// explicitly, so this is unreachable - revisit if a script-bearing selection ever leaves an option Script unset.)</summary>
+    private static IReadOnlyList<Effect> BuildSelectionOptionEffects(SettingDefinition def, ComboBoxOption opt)
+    {
+        var effects = new List<Effect>();
+
+        if (opt.Script is not { } scriptOption || scriptOption == ScriptOption.None)
+            return effects;
+
+        foreach (var ps in def.PowerShellScripts)
+        {
+            var script = scriptOption == ScriptOption.Enabled ? ps.EnabledScript : ps.DisabledScript;
+            script = SubstituteScriptVariables(script, opt.ScriptVariables);
+            if (!string.IsNullOrEmpty(script))
+                effects.Add(new ScriptEffect(script!, ps.RunContext));
+        }
+
+        return effects;
+    }
+
+    /// <summary>Substitutes a selection option's <c>{{key}}</c> placeholders into a script body, matching the old
+    /// SettingOperationExecutor selection-script substitution. Returns the body unchanged when there are no
+    /// variables or the body is empty.</summary>
+    private static string? SubstituteScriptVariables(string? script, IReadOnlyDictionary<string, string>? variables)
+    {
+        if (string.IsNullOrEmpty(script) || variables is null)
+            return script;
+        foreach (var kvp in variables)
+            script = script!.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+        return script;
     }
 
     private static IReadOnlyList<StateRole> RolesFor(bool isEnabledState, bool? recommendedIsEnabled, bool? defaultIsEnabled)

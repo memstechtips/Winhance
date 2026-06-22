@@ -183,6 +183,79 @@ public class SettingDefinitionConverterTests
     }
 
     [Fact]
+    public void Selection_option_script_maps_to_that_states_effect()
+    {
+        // The option's Script field selects which shared script body runs (mirrors the old apply): Enabled ->
+        // EnabledScript, Disabled -> DisabledScript (here null -> no effect), None -> no effect.
+        var def = new SettingDefinition
+        {
+            Id = "s", Name = "n", Description = "d", InputType = InputType.Selection,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", ValueType = RegistryValueKind.DWord },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "ENABLE-BODY", DisabledScript = null, RunContext = RunContext.User },
+            },
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption { DisplayName = "On",  ValueMappings = new Dictionary<string, object?> { ["Mode"] = 1 }, Script = ScriptOption.Enabled },
+                    new ComboBoxOption { DisplayName = "Off", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 0 }, Script = ScriptOption.Disabled },
+                    new ComboBoxOption { DisplayName = "Leave", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 2 }, Script = ScriptOption.None },
+                },
+            },
+        };
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+
+        var on = s.States.Single(x => x.Label == "On");
+        var onEffect = Assert.IsType<ScriptEffect>(Assert.Single(on.Effects));
+        Assert.Equal("ENABLE-BODY", onEffect.Script);
+        Assert.Equal(RunContext.User, onEffect.Run);
+
+        // Off -> DisabledScript is null -> no effect; None -> no effect.
+        Assert.Empty(s.States.Single(x => x.Label == "Off").Effects);
+        Assert.Empty(s.States.Single(x => x.Label == "Leave").Effects);
+    }
+
+    [Fact]
+    public void Selection_option_script_substitutes_script_variables()
+    {
+        var def = new SettingDefinition
+        {
+            Id = "s", Name = "n", Description = "d", InputType = InputType.Selection,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", ValueType = RegistryValueKind.DWord },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "set {{ip}} now", RunContext = RunContext.System },
+            },
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption
+                    {
+                        DisplayName = "Cloudflare",
+                        ValueMappings = new Dictionary<string, object?> { ["Mode"] = 1 },
+                        Script = ScriptOption.Enabled,
+                        ScriptVariables = new Dictionary<string, string> { ["ip"] = "1.1.1.1" },
+                    },
+                },
+            },
+        };
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+        var effect = Assert.IsType<ScriptEffect>(Assert.Single(s.States.Single(x => x.Label == "Cloudflare").Effects));
+        Assert.Equal("set 1.1.1.1 now", effect.Script);
+    }
+
+    [Fact]
     public void Selection_mapping_equal_to_default_value_also_accepts_absence()
     {
         var def = SelectionDef(

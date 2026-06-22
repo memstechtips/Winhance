@@ -73,13 +73,15 @@ public static class ApplyEquivalenceHarness
     }
 
     /// <summary>A registry selection whose apply is self-contained registry writes - value sets and surgical
-    /// binary bit/byte edits (every target has a ValueName). Composite (read-merge), per-subkey, apply-only
-    /// effect, and non-registry mechanisms are excluded (later slices).</summary>
+    /// binary bit/byte edits (every target has a ValueName) - plus optional per-option PowerShell-script effects.
+    /// .reg-import / native-power selections (none exist) and per-subkey (per-NIC/monitor) are excluded.</summary>
     public static bool IsPlainRegistrySelectionForApply(SettingDefinition def)
     {
         if (!RegistryToggleEquivalenceHarness.IsPureRegistrySelection(def))
             return false;
-        if (def.PowerShellScripts.Count > 0 || def.RegContents.Count > 0 || def.NativePowerApiSettings.Count > 0)
+        // .reg-import and native-power SELECTIONS are not handled here (the catalog has none; if one is added it
+        // needs the regcontent write-skip + native mapping like the toggle slice). Script selections ARE covered.
+        if (def.RegContents.Count > 0 || def.NativePowerApiSettings.Count > 0)
             return false;
         return def.RegistrySettings.All(r =>
             r.ValueName != null
@@ -115,7 +117,9 @@ public static class ApplyEquivalenceHarness
                     // Live apply: a mapped non-null value -> ApplySetting(rs, true, value); otherwise
                     // ApplySetting(rs, false) (which, for a selection, deletes - DisabledValue is unset).
                     return OldApplyWrite(rs, isEnabled: specificValue != null, specificValue);
-                }).OrderBy(s => s).ToList();
+                })
+                    .Concat(OldSelectionEffectWrites(def, opt))
+                    .OrderBy(s => s).ToList();
 
                 var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, opt.DisplayName))
                     .OrderBy(s => s).ToList();
@@ -253,6 +257,26 @@ public static class ApplyEquivalenceHarness
 
         foreach (var np in def.NativePowerApiSettings)
             yield return EffectIntent(new NativePowerEffect(np.InformationLevel, isEnabled ? np.EnabledValue : np.DisabledValue));
+    }
+
+    /// <summary>The old apply's per-option script intent for a selection, mirroring the selection branch of
+    /// <c>SettingOperationExecutor</c>: the option's Script field selects which shared script body runs
+    /// (None/unset -> none); the option's ScriptVariables are substituted into the body; an empty body runs
+    /// nothing. Selections carry no .reg/native effects in the catalog.</summary>
+    private static IEnumerable<string> OldSelectionEffectWrites(SettingDefinition def, ComboBoxOption opt)
+    {
+        if (opt.Script is not { } scriptOption || scriptOption == ScriptOption.None)
+            yield break;
+
+        foreach (var ps in def.PowerShellScripts)
+        {
+            var script = scriptOption == ScriptOption.Enabled ? ps.EnabledScript : ps.DisabledScript;
+            if (opt.ScriptVariables is { } vars && !string.IsNullOrEmpty(script))
+                foreach (var kvp in vars)
+                    script = script!.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+            if (!string.IsNullOrEmpty(script))
+                yield return EffectIntent(new ScriptEffect(script!, ps.RunContext));
+        }
     }
 
     /// <summary>One effect's apply intent, normalised identically for the old and new sides.</summary>
