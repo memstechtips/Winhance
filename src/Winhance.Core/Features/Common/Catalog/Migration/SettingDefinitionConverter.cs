@@ -44,10 +44,11 @@ public static class SettingDefinitionConverter
         return new Setting
         {
             Id = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            GroupName = def.GroupName,
-            Icon = def.Icon,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
             Targets = targets.Cast<Target>().ToList(),
             States = new[] { enabled, disabled },
         };
@@ -74,8 +75,9 @@ public static class SettingDefinitionConverter
 
         var options = def.ComboBox!.Options;
         var states = new List<SettingState>(options.Count);
-        foreach (var opt in options)
+        for (int optionIndex = 0; optionIndex < options.Count; optionIndex++)
         {
+            var opt = options[optionIndex];
             var set = new Dictionary<string, StateValue>();
             if (opt.ValueMappings is { } vm)
             {
@@ -99,6 +101,9 @@ public static class SettingDefinitionConverter
                 Set = set,
                 Roles = roles,
                 Effects = BuildSelectionOptionEffects(def, opt),
+                Controls = def.SettingPresets is { } presets && presets.TryGetValue(optionIndex, out var childMap)
+                    ? childMap.ToDictionary(kv => kv.Key, kv => kv.Value ? "Enabled" : "Disabled")
+                    : null,
                 // ResolveUnmatchedToDefault: an unrecognised live state resolves to the IsDefault option.
                 IsFallback = def.ResolveUnmatchedToDefault && opt.IsDefault,
             });
@@ -107,10 +112,11 @@ public static class SettingDefinitionConverter
         return new Setting
         {
             Id = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            GroupName = def.GroupName,
-            Icon = def.Icon,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
             Targets = targets.Cast<Target>().ToList(),
             States = states,
         };
@@ -142,10 +148,11 @@ public static class SettingDefinitionConverter
         return new Setting
         {
             Id = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            GroupName = def.GroupName,
-            Icon = def.Icon,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
             Targets = new List<Target> { target },
             States = new[] { enabled, disabled },
         };
@@ -164,10 +171,11 @@ public static class SettingDefinitionConverter
         return new Setting
         {
             Id = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            GroupName = def.GroupName,
-            Icon = def.Icon,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
             States = options.Select(o => new SettingState { Label = o.DisplayName }).ToList(),
             Detector = new SystemTrayDetector(showAll, hideAll),
         };
@@ -187,10 +195,11 @@ public static class SettingDefinitionConverter
         return new Setting
         {
             Id = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            GroupName = def.GroupName,
-            Icon = def.Icon,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
             States = new[] { enabled, disabled },
             Detector = new SystemRestoreDetector("Enabled", "Disabled"),
         };
@@ -219,13 +228,98 @@ public static class SettingDefinitionConverter
         return new Setting
         {
             Id = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            GroupName = def.GroupName,
-            Icon = def.Icon,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
             States = options.Select(o => new SettingState { Label = o.DisplayName }).ToList(),
             Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
         };
+    }
+
+    /// <summary>Everything the user sees: the source name/description/group, the icon (pack + glyph unified),
+    /// the NEW-badge version, and the subjective-preference flag.</summary>
+    private static Display BuildDisplay(SettingDefinition def) => new()
+    {
+        Name = def.Name,
+        Description = def.Description,
+        GroupName = def.GroupName,
+        Icon = def.Icon is { } glyph
+            ? new Icon(def.IconPack == "Fluent" ? IconPack.Fluent : IconPack.Material, glyph)
+            : null,
+        AddedInVersion = def.AddedInVersion,
+        IsSubjectivePreference = def.IsSubjectivePreference,
+    };
+
+    /// <summary>Collapses the old OS/build gating flags into one build-range list (empty = every build).
+    /// Windows 10/11-only are build thresholds; SupportedBuildRanges wins over min/max when present; min and
+    /// max apply independently, with revision as a tie-break (mirrors the old compatibility filter).</summary>
+    private static Availability BuildAvailability(SettingDefinition def)
+    {
+        var ranges = new List<BuildRange>();
+        if (def.IsWindows10Only) ranges.Add(BuildRange.Windows10);
+        if (def.IsWindows11Only) ranges.Add(BuildRange.Windows11);
+
+        if (def.SupportedBuildRanges.Count > 0)
+        {
+            foreach (var r in def.SupportedBuildRanges)
+                ranges.Add(BuildRange.Between(r.MinBuild, r.MaxBuild));
+        }
+        else if (def.MinimumBuildNumber is { } min)
+        {
+            var max = def.MaximumBuildNumber is { } maxB
+                ? new WinBuild(maxB, def.MaximumBuildRevision ?? int.MaxValue)
+                : new WinBuild(int.MaxValue, int.MaxValue);
+            ranges.Add(new BuildRange(new WinBuild(min, def.MinimumBuildRevision ?? 0), max));
+        }
+        else if (def.MaximumBuildNumber is { } maxOnly)
+        {
+            ranges.Add(new BuildRange(new WinBuild(0), new WinBuild(maxOnly, def.MaximumBuildRevision ?? int.MaxValue)));
+        }
+
+        return ranges.Count == 0 ? Availability.Everywhere : new Availability { Builds = ranges };
+    }
+
+    /// <summary>Maps the confirmation gate and the restart hints. The two old restart strings unify into one
+    /// RestartTarget; a system reboot stays a separate flag because a setting may need both.</summary>
+    private static ApplyBehavior BuildApply(SettingDefinition def)
+    {
+        RestartTarget? restart =
+            !string.IsNullOrEmpty(def.RestartProcess) ? new RestartProcess(def.RestartProcess!)
+            : !string.IsNullOrEmpty(def.RestartService) ? new RestartService(def.RestartService!)
+            : null;
+
+        if (!def.RequiresConfirmation && !def.RequiresRestart && restart is null)
+            return ApplyBehavior.None;
+
+        return new ApplyBehavior
+        {
+            RequiresConfirmation = def.RequiresConfirmation,
+            RequiresReboot = def.RequiresRestart,
+            Restart = restart,
+        };
+    }
+
+    /// <summary>Maps the old directional dependencies + auto-enable into Links. A RequiresDisabled dependency
+    /// carries no reverse cascade; auto-enable forces the target on without a reverse and re-applies it.</summary>
+    private static IReadOnlyList<Link> BuildLinks(SettingDefinition def)
+    {
+        var links = new List<Link>();
+        foreach (var dep in def.Dependencies)
+        {
+            bool requiresDisabled = dep.DependencyType == SettingDependencyType.RequiresDisabled;
+            links.Add(new Link(dep.RequiredSettingId, LinkKind.Requires, requiresDisabled ? "Disabled" : "Enabled")
+            {
+                ReverseCascade = !requiresDisabled,
+            });
+        }
+        if (def.AutoEnableSettingIds is { } auto)
+        {
+            foreach (var id in auto)
+                links.Add(new Link(id, LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true });
+        }
+        return links;
     }
 
     /// <summary>Folds registry settings into targets: a mirror (same ValueName under several KeyPaths) is one
