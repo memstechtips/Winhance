@@ -33,6 +33,12 @@ public class CatalogAuthoringEquivalenceTests
             UpdateOptimizations.GetUpdateOptimizations().Settings,
             UpdateOptimizationsCatalog.All);
 
+    [Fact]
+    public void Notifications()
+        => AssertCatalogMatches(
+            NotificationOptimizations.GetNotificationOptimizations().Settings,
+            NotificationOptimizationsCatalog.All);
+
     private static void AssertCatalogMatches(IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored)
     {
         var byId = authored.ToDictionary(s => s.Id);
