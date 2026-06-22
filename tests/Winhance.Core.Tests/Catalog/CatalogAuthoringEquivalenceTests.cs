@@ -45,6 +45,12 @@ public class CatalogAuthoringEquivalenceTests
             GamingAndPerformanceOptimizations.GetGamingAndPerformanceOptimizations().Settings,
             GamingAndPerformanceOptimizationsCatalog.All);
 
+    [Fact]
+    public void Privacy()
+        => AssertCatalogMatches(
+            PrivacyOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
+            PrivacyOptimizationsCatalog.All);
+
     private static void AssertCatalogMatches(IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored)
     {
         var byId = authored.ToDictionary(s => s.Id);
