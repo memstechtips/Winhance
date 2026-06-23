@@ -90,4 +90,29 @@ public static class ApplyPlanBuilder
 
         return ops;
     }
+
+    /// <summary>Turns "apply this Action" into write ops. An Action has no state - its setting-level Effects
+    /// run on click. A RegistryWriteEffect becomes the same RegistryWriteOp a toggle's enabled value-write
+    /// emits (via a synthesized single-path target, so the harness renders both sides identically); every other
+    /// effect becomes an EffectOp. Order is the authored Effects order.</summary>
+    public static IReadOnlyList<ApplyOp> BuildAction(Setting setting)
+    {
+        var ops = new List<ApplyOp>();
+        foreach (var effect in setting.Effects)
+        {
+            if (effect is RegistryWriteEffect rw)
+            {
+                var target = new RegTarget(rw.ValueName, new[] { rw.Path }, rw.ValueName, rw.Kind)
+                {
+                    IsGroupPolicy = rw.IsGroupPolicy,
+                };
+                ops.Add(new RegistryWriteOp(target, rw.Path, rw.Value));
+            }
+            else
+            {
+                ops.Add(new EffectOp(effect));
+            }
+        }
+        return ops;
+    }
 }

@@ -269,4 +269,63 @@ public class ApplyPlanBuilderTests
         Assert.Single(plan.OfType<RegistryWriteOp>());
         Assert.Equal(@"HKEY_LOCAL_MACHINE\TEST", plan.OfType<RegistryWriteOp>().Single().Path);
     }
+
+    [Fact]
+    public void BuildAction_RegistryWriteEffect_EmitsRegistryWriteOp_WithSynthesizedTarget()
+    {
+        var setting = new Setting
+        {
+            Id = "a",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Effects = new Effect[]
+            {
+                new RegistryWriteEffect(@"HKLM\SOFTWARE\X", "ConfigureStartPins", RegistryValueKind.String, "v") { IsGroupPolicy = true },
+            },
+        };
+
+        var op = Assert.IsType<RegistryWriteOp>(Assert.Single(ApplyPlanBuilder.BuildAction(setting)));
+        Assert.Equal(@"HKLM\SOFTWARE\X", op.Path);
+        Assert.Equal("v", op.Value);
+        Assert.Equal("ConfigureStartPins", op.Target.ValueName);
+        Assert.Equal(RegistryValueKind.String, op.Target.Type);
+        Assert.True(op.Target.IsGroupPolicy);
+        Assert.Equal(new[] { @"HKLM\SOFTWARE\X" }, op.Target.Paths);
+    }
+
+    [Fact]
+    public void BuildAction_ScriptEffect_EmitsEffectOp()
+    {
+        var setting = new Setting
+        {
+            Id = "a",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+        };
+
+        var op = Assert.IsType<EffectOp>(Assert.Single(ApplyPlanBuilder.BuildAction(setting)));
+        var fx = Assert.IsType<ScriptEffect>(op.Effect);
+        Assert.Equal("echo hi", fx.Script);
+    }
+
+    [Fact]
+    public void BuildAction_PreservesEffectOrder()
+    {
+        var setting = new Setting
+        {
+            Id = "a",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Effects = new Effect[]
+            {
+                new RegistryWriteEffect(@"HKLM\A", "v1", RegistryValueKind.String, "x"),
+                new RegistryWriteEffect(@"HKLM\B", "v2", RegistryValueKind.String, "y"),
+                new ScriptEffect("echo hi", RunContext.System),
+            },
+        };
+
+        var ops = ApplyPlanBuilder.BuildAction(setting);
+        Assert.Collection(ops,
+            o => Assert.Equal(@"HKLM\A", Assert.IsType<RegistryWriteOp>(o).Path),
+            o => Assert.Equal(@"HKLM\B", Assert.IsType<RegistryWriteOp>(o).Path),
+            o => Assert.IsType<EffectOp>(o));
+    }
 }
