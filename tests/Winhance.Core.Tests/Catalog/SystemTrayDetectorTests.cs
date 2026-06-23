@@ -18,6 +18,7 @@ public class SystemTrayDetectorTests
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     private const string Key = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";

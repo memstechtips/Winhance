@@ -17,7 +17,7 @@ public static class CatalogDiscovery
     /// checks for ValueName-less targets) go through <paramref name="context"/>, which also serves Tier-2
     /// custom detectors.
     /// </summary>
-    public static string? DetectState(Setting setting, IDetectionContext context)
+    public static string? DetectState(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)
     {
         if (setting.Detector is { } detector)
             return detector.Detect(setting, context);
@@ -42,9 +42,28 @@ public static class CatalogDiscovery
                 bool? enabled = context.ScheduledTaskEnabled(task.TaskPath);
                 readings.Set(task.Key, enabled, present: enabled.HasValue);
             }
-            // PowerCfgTarget reads are wired in by a later step (deferred).
+            else if (target is PowerCfgTarget power)
+            {
+                int? value = context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, powerContext);
+                readings.Set(power.Key, value, present: value.HasValue);
+            }
         }
 
         return StateDetectionEngine.Detect(setting.States, readings, activeKeys);
+    }
+
+    /// <summary>The raw current value of a numeric (slider) setting for the given context, or null when not
+    /// present. A slider has no enumerated states - its value IS the reading. Reads the setting's single
+    /// PowerCfgTarget (numeric settings are powercfg-backed) through the context.</summary>
+    public static int? DetectValue(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)
+    {
+        foreach (var target in setting.Targets)
+        {
+            if (target.AppliesTo.Count > 0 && !target.AppliesTo.Any(r => r.Contains(context.CurrentBuild)))
+                continue;
+            if (target is PowerCfgTarget power)
+                return context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, powerContext);
+        }
+        return null;
     }
 }

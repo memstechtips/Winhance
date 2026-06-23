@@ -26,6 +26,7 @@ public static class SettingStructuralComparer
         DiffTargets(a.Targets, b.Targets, d);
         DiffStates(a.States, b.States, d);
         DiffEffects(a.Effects, b.Effects, d);
+        DiffNumeric(a.Numeric, b.Numeric, d);
 
         return d;
     }
@@ -63,6 +64,21 @@ public static class SettingStructuralComparer
         if (a.Builds.Count != b.Builds.Count) { d.Add($"Availability.Builds count {a.Builds.Count} != {b.Builds.Count}"); return; }
         for (int i = 0; i < a.Builds.Count; i++)
             if (!a.Builds[i].Equals(b.Builds[i])) d.Add($"Availability.Builds[{i}]: {a.Builds[i]} != {b.Builds[i]}");
+
+        if (!a.Hardware.SequenceEqual(b.Hardware)) d.Add("Availability.Hardware differ");
+        if (a.RequiresAdvancedUnlock != b.RequiresAdvancedUnlock) d.Add("Availability.RequiresAdvancedUnlock differs");
+        if (a.ValidatesExistence != b.ValidatesExistence) d.Add("Availability.ValidatesExistence differs");
+    }
+
+    private static void DiffNumeric(Numeric? a, Numeric? b, List<string> d)
+    {
+        if ((a is null) != (b is null)) { d.Add("Numeric nullness differs"); return; }
+        if (a is null) return;
+        if (a.Min != b!.Min) d.Add($"Numeric.Min {a.Min} != {b.Min}");
+        if (a.Max != b.Max) d.Add($"Numeric.Max {a.Max} != {b.Max}");
+        if (a.Units != b.Units) d.Add($"Numeric.Units {a.Units} != {b.Units}");
+        if (!a.Recommended.SequenceEqual(b.Recommended)) d.Add("Numeric.Recommended differ");
+        if (!a.WindowsDefault.SequenceEqual(b.WindowsDefault)) d.Add("Numeric.WindowsDefault differ");
     }
 
     private static void DiffTargets(IReadOnlyList<Target> a, IReadOnlyList<Target> b, List<string> d)

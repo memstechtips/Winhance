@@ -28,4 +28,8 @@ public interface IDetectionContext
     /// <summary>The enabled state of a scheduled task: true (enabled), false (disabled), or null when the task
     /// does not exist on this system.</summary>
     bool? ScheduledTaskEnabled(string taskPath);
+
+    /// <summary>The current AC or DC value index of a powercfg setting on the active power scheme, or null when
+    /// the setting is not present / not readable. A powercfg target reads its value through this, once per context.</summary>
+    int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context);
 }

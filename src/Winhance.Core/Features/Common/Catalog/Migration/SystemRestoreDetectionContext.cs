@@ -30,4 +30,7 @@ public sealed class SystemRestoreDetectionContext : IDetectionContext
 
     public bool? ScheduledTaskEnabled(string taskPath) =>
         throw new NotSupportedException("not needed for the system-restore harness");
+
+    public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
+        throw new NotSupportedException("not needed for the system-restore harness");
 }

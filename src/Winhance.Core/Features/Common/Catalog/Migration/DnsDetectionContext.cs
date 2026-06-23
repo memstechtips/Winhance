@@ -54,4 +54,7 @@ public sealed class DnsDetectionContext : IDetectionContext
 
     public bool? ScheduledTaskEnabled(string taskPath) =>
         throw new NotSupportedException("not needed for the DNS harness");
+
+    public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
+        throw new NotSupportedException("not needed for the DNS harness");
 }

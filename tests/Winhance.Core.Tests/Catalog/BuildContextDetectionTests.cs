@@ -37,6 +37,7 @@ public class BuildContextDetectionTests
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     [Fact]

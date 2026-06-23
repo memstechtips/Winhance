@@ -443,6 +443,7 @@ public class SettingDefinitionConverterTests
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     [Fact]
@@ -484,6 +485,7 @@ public class SettingDefinitionConverterTests
         public bool KeyExists(string keyPath) => false;
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     [Fact]
@@ -514,6 +516,7 @@ public class SettingDefinitionConverterTests
         public bool KeyExists(string keyPath) => false;
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     [Fact]

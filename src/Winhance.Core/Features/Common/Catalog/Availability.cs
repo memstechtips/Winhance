@@ -33,4 +33,19 @@ public sealed record Availability
     public IReadOnlyList<BuildRange> Builds { get; init; } = Array.Empty<BuildRange>();
     public static readonly Availability Everywhere = new();
     public bool Allows(WinBuild build) => Builds.Count == 0 || Builds.Any(r => r.Contains(build));
+
+    /// <summary>Hardware capabilities the machine must have for this setting to apply (the old RequiresBattery /
+    /// RequiresHybridSleepCapable / RequiresLid / RequiresDesktop / RequiresBrightnessSupport gates). Empty = none.</summary>
+    public IReadOnlyList<HardwareRequirement> Hardware { get; init; } = Array.Empty<HardwareRequirement>();
+
+    /// <summary>The setting is hidden behind the advanced-settings unlock (old RequiresAdvancedUnlock). Presentation
+    /// gate only; does not affect detection.</summary>
+    public bool RequiresAdvancedUnlock { get; init; }
+
+    /// <summary>Hide the setting when its underlying powercfg setting is not present on this machine (old
+    /// ValidateExistence). Only meaningful for powercfg settings.</summary>
+    public bool ValidatesExistence { get; init; }
 }
+
+/// <summary>A hardware capability a setting requires to be shown/applied.</summary>
+public enum HardwareRequirement { Battery, HybridSleepCapable, Lid, Desktop, BrightnessSupport }

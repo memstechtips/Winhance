@@ -39,4 +39,7 @@ public sealed class WindowsDetectionContext : IDetectionContext
 
     public bool? ScheduledTaskEnabled(string taskPath) =>
         throw new NotSupportedException("not needed for the registry harness; tasks use their own context");
+
+    public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
+        throw new NotSupportedException("Powercfg reads are not needed for the registry harness.");
 }

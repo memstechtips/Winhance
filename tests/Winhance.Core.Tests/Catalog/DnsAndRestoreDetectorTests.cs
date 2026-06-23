@@ -17,6 +17,7 @@ public class DnsAndRestoreDetectorTests
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public string? PrimaryDnsV4OfActiveAdapter() => PrimaryDns;
         public bool IsSystemRestoreEnabled() => RestoreEnabled;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     private static readonly Setting Dummy = new() { Id = "d", Display = new() { Name = "d", Description = "d" } };

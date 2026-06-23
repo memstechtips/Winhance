@@ -14,6 +14,10 @@ public sealed record Setting
     public IReadOnlyList<Target> Targets { get; init; } = System.Array.Empty<Target>();
     public IReadOnlyList<SettingState> States { get; init; } = System.Array.Empty<SettingState>();
 
+    /// <summary>A slider setting's range + per-context recommended/default values; null for a state-based
+    /// setting. A Numeric setting carries this instead of enumerated States.</summary>
+    public Numeric? Numeric { get; init; }
+
     /// <summary>Apply-only side-effects that run when this setting is applied, independent of any state. The
     /// Action mechanism: a stateless one-shot (no States/Targets) whose Effects run on click. Empty for every
     /// detected setting - toggles/selections carry their effects per-state on SettingState.Effects.</summary>

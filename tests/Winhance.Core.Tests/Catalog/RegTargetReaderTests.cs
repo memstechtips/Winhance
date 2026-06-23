@@ -26,6 +26,7 @@ public class RegTargetReaderTests
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     private static RegTarget Reg(string[] paths, string? valueName = "V") =>

@@ -24,6 +24,7 @@ public class CatalogDiscoveryTests
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => _taskEnabled;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
     }
 
     private sealed class FixedDetector : IStateDetector
