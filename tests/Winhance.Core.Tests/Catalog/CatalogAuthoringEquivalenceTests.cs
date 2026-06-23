@@ -137,6 +137,7 @@ public class CatalogAuthoringEquivalenceTests
     /// before the registry selection/toggle split), mirroring how the equivalence harness routes settings.</summary>
     private static Setting Convert(SettingDefinition def)
     {
+        if (def.InputType == InputType.Action) return SettingDefinitionConverter.ConvertAction(def);
         if (def.DetectionType == DetectionType.SystemTrayIcons) return SettingDefinitionConverter.ConvertSystemTray(def);
         if (def.DetectionType == DetectionType.SystemRestore) return SettingDefinitionConverter.ConvertSystemRestore(def);
         if (def.DetectionType == DetectionType.DnsServer) return SettingDefinitionConverter.ConvertDnsServer(def);

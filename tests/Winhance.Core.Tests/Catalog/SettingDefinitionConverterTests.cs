@@ -1,8 +1,10 @@
+using System.Linq;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Catalog.Migration;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -542,5 +544,75 @@ public class SettingDefinitionConverterTests
         Assert.Equal("Google", CatalogDiscovery.DetectState(s, new DnsCtx("8.8.8.8")));
         Assert.Equal("Cloudflare", CatalogDiscovery.DetectState(s, new DnsCtx("1.1.1.1")));  // first-wins over DoH
         Assert.Null(CatalogDiscovery.DetectState(s, new DnsCtx("5.5.5.5")));                  // unknown -> Custom
+    }
+
+    private static SettingDefinition StartMenuDef(string id) =>
+        StartMenuCustomizations.GetStartMenuCustomizations().Settings.Single(d => d.Id == id);
+
+    private static SettingDefinition TaskbarDef(string id) =>
+        TaskbarCustomizations.GetTaskbarCustomizations().Settings.Single(d => d.Id == id);
+
+    [Fact]
+    public void ConvertAction_TaskbarClean_OneBinaryRegistryWrite_NoStatesNoTargets()
+    {
+        var def = TaskbarDef("taskbar-clean");
+        var s = SettingDefinitionConverter.ConvertAction(def);
+
+        Assert.Empty(s.States);
+        Assert.Empty(s.Targets);
+        var rw = Assert.IsType<RegistryWriteEffect>(Assert.Single(s.Effects));
+        Assert.Equal(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband", rw.Path);
+        Assert.Equal("Favorites", rw.ValueName);
+        Assert.Equal(RegistryValueKind.Binary, rw.Kind);
+        Assert.Equal("", System.Convert.ToHexString((byte[])rw.Value)); // byte[0]
+        Assert.False(rw.IsGroupPolicy);
+    }
+
+    [Fact]
+    public void ConvertAction_StartMenuCleanWin10_ScriptOnly()
+    {
+        var def = StartMenuDef("start-menu-clean-10");
+        var s = SettingDefinitionConverter.ConvertAction(def);
+
+        Assert.Empty(s.States);
+        Assert.Empty(s.Targets);
+        var script = Assert.IsType<ScriptEffect>(Assert.Single(s.Effects));
+        Assert.Equal(def.PowerShellScripts[0].EnabledScript, script.Script);
+        Assert.Equal(def.PowerShellScripts[0].RunContext, script.Run);
+    }
+
+    [Fact]
+    public void ConvertAction_StartMenuCleanWin11_TwoRegistryWritesThenScript_GpoFlagPreserved()
+    {
+        var def = StartMenuDef("start-menu-clean-11");
+        var s = SettingDefinitionConverter.ConvertAction(def);
+
+        Assert.Empty(s.States);
+        Assert.Empty(s.Targets);
+        Assert.Equal(3, s.Effects.Count);
+
+        var w0 = Assert.IsType<RegistryWriteEffect>(s.Effects[0]);
+        Assert.Equal(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start", w0.Path);
+        Assert.Equal("ConfigureStartPins", w0.ValueName);
+        Assert.Equal(@"{""pinnedList"":[]}", w0.Value);
+        Assert.False(w0.IsGroupPolicy);
+
+        var w1 = Assert.IsType<RegistryWriteEffect>(s.Effects[1]);
+        Assert.Equal(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer", w1.Path);
+        Assert.True(w1.IsGroupPolicy); // the GPO path keeps its own flag (unfolded)
+
+        var script = Assert.IsType<ScriptEffect>(s.Effects[2]);
+        Assert.Equal(def.PowerShellScripts[0].EnabledScript, script.Script);
+    }
+
+    [Fact]
+    public void ConvertAction_CarriesDisplayAndAvailabilityAndApply()
+    {
+        var def = StartMenuDef("start-menu-clean-11");
+        var s = SettingDefinitionConverter.ConvertAction(def);
+
+        Assert.Equal("Clean Start Menu", s.Display.Name);
+        Assert.True(s.Apply.RequiresConfirmation);
+        Assert.Single(s.Availability.Builds); // Windows 11 only -> one build range
     }
 }

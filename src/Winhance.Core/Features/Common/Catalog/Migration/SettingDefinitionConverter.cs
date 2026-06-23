@@ -238,6 +238,58 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates an old InputType.Action one-shot into the new Setting model: zero States/Targets,
+    /// with setting-level Effects that run on click. Maps the ENABLED branch only (the old apply hardcodes
+    /// enable=true): each RegistrySetting's EnabledValue -> a RegistryWriteEffect (unfolded, source order, so a
+    /// per-setting IsGroupPolicy is preserved), then the enabled PowerShell / .reg / native-power effects, in
+    /// that order (mirroring the old apply order: registry writes before script/native execution).</summary>
+    public static Setting ConvertAction(SettingDefinition def)
+    {
+        var effects = new List<Effect>();
+
+        foreach (var rs in def.RegistrySettings)
+        {
+            // Actions are plain value-writes only. A surgical-binary / composite / per-subkey write on an
+            // Action is unsupported (none exist) - fail loud rather than emit a wrong op.
+            if (rs.BitMask.HasValue || rs.ModifyByteOnly || rs.CompositeStringKey != null
+                || rs.ApplyPerNetworkInterface || rs.ApplyPerMonitor || rs.ValueName == null)
+                throw new System.NotSupportedException(
+                    $"Action '{def.Id}' has a non-plain registry write (bit/byte/composite/per-subkey/key-existence) - not supported.");
+
+            var nonNull = (rs.EnabledValue ?? System.Array.Empty<object?>()).Where(v => v != null).ToArray();
+            if (nonNull.Length != 1)
+                throw new System.NotSupportedException(
+                    $"Action '{def.Id}' RegistrySetting '{rs.ValueName}' must have exactly one concrete EnabledValue; found {nonNull.Length}.");
+
+            effects.Add(new RegistryWriteEffect(rs.KeyPath, rs.ValueName!, rs.ValueType, nonNull[0]!)
+            {
+                IsGroupPolicy = rs.IsGroupPolicy,
+            });
+        }
+
+        foreach (var ps in def.PowerShellScripts)
+            if (!string.IsNullOrEmpty(ps.EnabledScript))
+                effects.Add(new ScriptEffect(ps.EnabledScript!, ps.RunContext));
+
+        foreach (var rc in def.RegContents)
+            if (!string.IsNullOrEmpty(rc.EnabledContent))
+                effects.Add(new RegContentEffect(rc.EnabledContent!));
+
+        foreach (var np in def.NativePowerApiSettings)
+            effects.Add(new NativePowerEffect(np.InformationLevel, np.EnabledValue));
+
+        return new Setting
+        {
+            Id = def.Id,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
+            Effects = effects,
+        };
+    }
+
     /// <summary>Everything the user sees: the source name/description/group, the icon (pack + glyph unified),
     /// the NEW-badge version, and the subjective-preference flag.</summary>
     private static Display BuildDisplay(SettingDefinition def) => new()
