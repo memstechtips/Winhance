@@ -38,5 +38,8 @@ public sealed record RegistryPerSubkeyDeleteOp(RegTarget Target, string ParentPa
 /// <summary>Enable or disable a scheduled task.</summary>
 public sealed record TaskSetOp(TaskTarget Target, bool Enabled) : ApplyOp;
 
+/// <summary>Write one AC or DC value index for a powercfg setting on the active scheme.</summary>
+public sealed record PowerCfgSetOp(PowerCfgTarget Target, PowerContext Context, int Value) : ApplyOp;
+
 /// <summary>Run one apply-only effect (script / .reg import / native power write).</summary>
 public sealed record EffectOp(Effect Effect) : ApplyOp;

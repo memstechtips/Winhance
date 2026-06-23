@@ -78,9 +78,17 @@ public static class ApplyPlanBuilder
                         ops.Add(new TaskSetOp(task, Convert.ToBoolean(tval)));
                     break;
 
-                case PowerCfgTarget:
-                    throw new NotSupportedException(
-                        $"PowerCfgTarget apply for setting '{setting.Id}' is handled by the dedicated power work, not the generic planner.");
+                case PowerCfgTarget pc:
+                    // A powercfg SELECTION applies the chosen option's int value to BOTH the AC and DC contexts
+                    // (the symmetric single-index semantics). Pull the StateValue for this target the same way the
+                    // RegTarget branch does (by the target's Key), then cast its WritePayload to the option's int.
+                    if (state.Set.TryGetValue(pc.Key, out var pv) && pv.WritePayload is { } powerPayload)
+                    {
+                        int value = Convert.ToInt32(powerPayload);
+                        ops.Add(new PowerCfgSetOp(pc, PowerContext.AC, value));
+                        ops.Add(new PowerCfgSetOp(pc, PowerContext.DC, value));
+                    }
+                    break;
             }
         }
 
@@ -115,4 +123,23 @@ public static class ApplyPlanBuilder
         }
         return ops;
     }
+
+    /// <summary>Apply plan for a numeric (slider) setting: one PowerCfgSetOp per context value, the display value
+    /// converted to system units (the inverse of the converter's system->display, matching the old apply).</summary>
+    public static IReadOnlyList<ApplyOp> BuildPowerCfgNumeric(Setting setting, IReadOnlyList<ContextValue> values)
+    {
+        var ops = new List<ApplyOp>();
+        var pc = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pc is null) return ops;
+        foreach (var cv in values)
+            ops.Add(new PowerCfgSetOp(pc, cv.Context, ConvertToSystem(cv.Value, setting.Numeric?.Units)));
+        return ops;
+    }
+
+    private static int ConvertToSystem(int displayValue, string? units) => units?.ToLowerInvariant() switch
+    {
+        "minutes" => displayValue * 60,
+        "hours" => displayValue * 3600,
+        _ => displayValue,   // milliseconds, percent, default 1:1
+    };
 }

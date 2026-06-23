@@ -24,6 +24,16 @@ public static class ApplyEquivalenceHarness
     public static bool IsPlainRegistryToggleForApply(SettingDefinition def) =>
         RegistryToggleEquivalenceHarness.IsPureRegistryToggle(def);
 
+    /// <summary>A powercfg SELECTION (ComboBox over the AC value index) whose apply writes the chosen option's
+    /// value to both AC and DC. Reuses the detection predicate - the apply population is the same set.</summary>
+    public static bool IsPlainPowerCfgSelectionForApply(SettingDefinition def) =>
+        RegistryToggleEquivalenceHarness.IsPurePowerCfgSelection(def);
+
+    /// <summary>A powercfg NUMERIC (slider) whose apply writes the per-context display value (converted to system
+    /// units) to each context. Reuses the detection predicate - the apply population is the same set.</summary>
+    public static bool IsPlainPowerCfgNumericForApply(SettingDefinition def) =>
+        RegistryToggleEquivalenceHarness.IsPurePowerCfgNumeric(def);
+
     /// <summary>Builds one <see cref="EquivalenceRow"/> per (toggle, state): OLD is the live apply's write
     /// intent (mirrored from ApplySetting's plain branches), NEW is the ApplyPlanBuilder plan, both normalised.
     /// Callers should pre-filter with <see cref="IsPlainRegistryToggleForApply"/>.</summary>
@@ -120,6 +130,99 @@ public static class ApplyEquivalenceHarness
                 bool match = oldWrites.SequenceEqual(newWrites);
                 rows.Add(new EquivalenceRow(
                     $"{def.Id} [{opt.DisplayName}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (powercfg selection, option). OLD mirrors the live
+    /// powercfg apply (PowerCfgApplier): the option's int PowerCfgValue is written to BOTH the AC and DC value
+    /// indices of the active scheme (the battery-gate / value-differs / commit are runtime concerns, not intent).
+    /// NEW is the ApplyPlanBuilder plan for that option's state. Both normalised. Callers should pre-filter with
+    /// <see cref="IsPlainPowerCfgSelectionForApply"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunPowerCfgSelectionApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPlainPowerCfgSelectionForApply(def))
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertPowerCfg(def);
+            var pcs = def.PowerCfgSettings![0];
+            var options = def.ComboBox!.Options;
+
+            foreach (var opt in options)
+            {
+                int v = System.Convert.ToInt32(opt.ValueMappings!["PowerCfgValue"]);
+
+                var oldWrites = new[]
+                {
+                    $"POWERWRITEAC sub={pcs.SubgroupGuid} setting={pcs.SettingGuid} = {v}",
+                    $"POWERWRITEDC sub={pcs.SubgroupGuid} setting={pcs.SettingGuid} = {v}",
+                }.OrderBy(s => s).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, opt.DisplayName))
+                    .OrderBy(s => s).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [{opt.DisplayName}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (powercfg numeric, quick-set). OLD mirrors the live
+    /// powercfg apply (PowerCfgApplier): the RAW system value the catalog stores (RecommendedValueAC/DC or
+    /// DefaultValueAC/DC, skipping a null context) is written to that context's value index. NEW is the
+    /// ApplyPlanBuilder plan over the converter's display-unit Recommended/WindowsDefault list (which
+    /// BuildPowerCfgNumeric rounds back to system units). A match proves the display->system round-trip is
+    /// lossless. Both normalised. Callers should pre-filter with <see cref="IsPlainPowerCfgNumericForApply"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunPowerCfgNumericApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPlainPowerCfgNumericForApply(def))
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertPowerCfg(def);
+            var pcs = def.PowerCfgSettings![0];
+
+            var quickSets = new (string Label, IReadOnlyList<ContextValue> Values, int? RawAc, int? RawDc)[]
+            {
+                ("Recommended", setting.Numeric?.Recommended ?? System.Array.Empty<ContextValue>(),
+                    pcs.RecommendedValueAC, pcs.RecommendedValueDC),
+                ("WindowsDefault", setting.Numeric?.WindowsDefault ?? System.Array.Empty<ContextValue>(),
+                    pcs.DefaultValueAC, pcs.DefaultValueDC),
+            };
+
+            foreach (var (label, values, rawAc, rawDc) in quickSets)
+            {
+                var oldList = new List<string>();
+                if (rawAc is { } ac)
+                    oldList.Add($"POWERWRITEAC sub={pcs.SubgroupGuid} setting={pcs.SettingGuid} = {ac}");
+                if (rawDc is { } dc)
+                    oldList.Add($"POWERWRITEDC sub={pcs.SubgroupGuid} setting={pcs.SettingGuid} = {dc}");
+                var oldWrites = oldList.OrderBy(s => s).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.BuildPowerCfgNumeric(setting, values))
+                    .OrderBy(s => s).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [{label}]",
                     string.Join(" | ", oldWrites),
                     string.Join(" | ", newWrites),
                     match));
@@ -280,6 +383,9 @@ public static class ApplyEquivalenceHarness
                 case RegistryPerSubkeyDeleteOp pd:
                     yield return $"{ScopeLabel(pd.Target)} DELETE {pd.ParentPath}\\*\\{pd.Target.ValueName}";
                     break;
+                case PowerCfgSetOp p:
+                    yield return PowerCfgIntent(p);
+                    break;
                 case EffectOp fx:
                     yield return EffectIntent(fx.Effect);
                     break;
@@ -334,6 +440,11 @@ public static class ApplyEquivalenceHarness
     /// <summary>The per-sub-key scope label (PERNIC / PERMONITOR), derived from the target's flags so the old and
     /// new sides render identically.</summary>
     private static string ScopeLabel(RegTarget target) => target.PerNetworkInterface ? "PERNIC" : "PERMONITOR";
+
+    /// <summary>One powercfg value-index write's apply intent (POWERWRITEAC / POWERWRITEDC), normalised identically
+    /// for the old and new sides.</summary>
+    private static string PowerCfgIntent(PowerCfgSetOp p) =>
+        $"POWERWRITE{p.Context} sub={p.Target.SubgroupGuid} setting={p.Target.SettingGuid} = {p.Value}";
 
     /// <summary>One effect's apply intent, normalised identically for the old and new sides.</summary>
     private static string EffectIntent(Effect effect) => effect switch

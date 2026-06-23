@@ -14,5 +14,10 @@ public interface IStateWriter
     bool WriteRegistryPerSubkey(RegTarget target, string parentPath, object value);
     bool DeleteRegistryPerSubkey(RegTarget target, string parentPath);
     bool SetTask(TaskTarget target, bool enabled);
+
+    /// <summary>Writes the AC or DC value index for the active scheme; the real Windows writer uses
+    /// PowerWriteAC/DCValueIndex.</summary>
+    bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value);
+
     bool RunEffect(Effect effect);
 }

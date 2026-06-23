@@ -21,6 +21,7 @@ public class ApplyExecutorTests
         public bool WriteRegistryPerSubkey(RegTarget t, string parentPath, object value) { Calls.Add($"PW {parentPath}={value}"); return !FailRegistryWrites; }
         public bool DeleteRegistryPerSubkey(RegTarget t, string parentPath) { Calls.Add($"PD {parentPath}"); return !FailRegistryWrites; }
         public bool SetTask(TaskTarget t, bool enabled) { Calls.Add($"T {enabled}"); return true; }
+        public bool WritePowerCfgValue(PowerCfgTarget t, PowerContext context, int value) { Calls.Add($"P {context}={value}"); return !FailRegistryWrites; }
         public bool RunEffect(Effect e) { Calls.Add("FX"); return true; }
     }
 

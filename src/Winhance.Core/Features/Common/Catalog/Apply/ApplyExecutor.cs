@@ -26,6 +26,7 @@ public static class ApplyExecutor
                     RegistryPerSubkeyWriteOp p => writer.WriteRegistryPerSubkey(p.Target, p.ParentPath, p.Value),
                     RegistryPerSubkeyDeleteOp p => writer.DeleteRegistryPerSubkey(p.Target, p.ParentPath),
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
+                    PowerCfgSetOp p => writer.WritePowerCfgValue(p.Target, p.Context, p.Value),
                     EffectOp fx => writer.RunEffect(fx.Effect),
                     _ => true,
                 };
