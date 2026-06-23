@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Catalog.Migration;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
 
@@ -134,5 +135,52 @@ public class SettingStructuralComparerTests
         var a = Baseline() with { Targets = new Target[] { new PowerCfgTarget("p", "sub", "guidA", PowerModeSupport.Both) }, States = Array.Empty<SettingState>() };
         var b = Baseline() with { Targets = new Target[] { new PowerCfgTarget("p", "sub", "guidB", PowerModeSupport.Both) }, States = Array.Empty<SettingState>() };
         Assert.Contains(SettingStructuralComparer.Diff(a, b), s => s.Contains("powercfg"));
+    }
+
+    private static Setting Action(params Effect[] effects) => new()
+    {
+        Id = "a",
+        Display = new() { Name = "n", Description = "d", GroupName = "g" },
+        Effects = effects,
+    };
+
+    [Fact]
+    public void Effects_IdenticalRegistryWrites_WithDistinctByteArrays_AreEqual()
+    {
+        var a = Action(new RegistryWriteEffect(@"HKCU\T", "Favorites", RegistryValueKind.Binary, new byte[0]));
+        var b = Action(new RegistryWriteEffect(@"HKCU\T", "Favorites", RegistryValueKind.Binary, new byte[0]));
+        Assert.Empty(SettingStructuralComparer.Diff(a, b)); // distinct byte[] instances must compare by content
+    }
+
+    [Fact]
+    public void Effects_DifferentByteContent_Differs()
+    {
+        var a = Action(new RegistryWriteEffect(@"HKCU\T", "Favorites", RegistryValueKind.Binary, new byte[] { 1 }));
+        var b = Action(new RegistryWriteEffect(@"HKCU\T", "Favorites", RegistryValueKind.Binary, new byte[] { 2 }));
+        Assert.NotEmpty(SettingStructuralComparer.Diff(a, b));
+    }
+
+    [Fact]
+    public void Effects_DifferentIsGroupPolicy_Differs()
+    {
+        var a = Action(new RegistryWriteEffect(@"HKLM\E", "ConfigureStartPins", RegistryValueKind.String, "x"));
+        var b = Action(new RegistryWriteEffect(@"HKLM\E", "ConfigureStartPins", RegistryValueKind.String, "x") { IsGroupPolicy = true });
+        Assert.NotEmpty(SettingStructuralComparer.Diff(a, b));
+    }
+
+    [Fact]
+    public void Effects_DifferentScriptBody_Differs()
+    {
+        var a = Action(new ScriptEffect("one", RunContext.System));
+        var b = Action(new ScriptEffect("two", RunContext.System));
+        Assert.NotEmpty(SettingStructuralComparer.Diff(a, b));
+    }
+
+    [Fact]
+    public void Effects_DifferentCount_Differs()
+    {
+        var a = Action(new ScriptEffect("one", RunContext.System));
+        var b = Action(new ScriptEffect("one", RunContext.System), new ScriptEffect("two", RunContext.System));
+        Assert.NotEmpty(SettingStructuralComparer.Diff(a, b));
     }
 }

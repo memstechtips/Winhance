@@ -25,6 +25,7 @@ public static class SettingStructuralComparer
         DiffAvailability(a.Availability, b.Availability, d);
         DiffTargets(a.Targets, b.Targets, d);
         DiffStates(a.States, b.States, d);
+        DiffEffects(a.Effects, b.Effects, d);
 
         return d;
     }
@@ -112,6 +113,27 @@ public static class SettingStructuralComparer
             if (!x.Effects.SequenceEqual(y.Effects)) d.Add($"States[{i}].Effects differ");           // Effect records -> structural
             DiffControls(x.Controls, y.Controls, i, d);
             DiffSet(x.Set, y.Set, i, d);
+        }
+    }
+
+    private static void DiffEffects(IReadOnlyList<Effect> a, IReadOnlyList<Effect> b, List<string> d)
+    {
+        if (a.Count != b.Count) { d.Add($"Effects count {a.Count} != {b.Count}"); return; }
+        for (int i = 0; i < a.Count; i++)
+        {
+            // RegistryWriteEffect carries an object-typed Value; for a byte[] that is REG_BINARY content,
+            // record equality would compare by reference. Compare it field-wise with the value-content comparer.
+            if (a[i] is RegistryWriteEffect ra && b[i] is RegistryWriteEffect rb)
+            {
+                if (ra.Path != rb.Path || ra.ValueName != rb.ValueName || ra.Kind != rb.Kind
+                    || ra.IsGroupPolicy != rb.IsGroupPolicy
+                    || !CatalogValueComparer.AreEqual(ra.Value, rb.Value))
+                    d.Add($"Effects[{i}] RegistryWriteEffect differs");
+            }
+            else if (!a[i].Equals(b[i]))   // ScriptEffect / RegContentEffect / NativePowerEffect: record equality is correct
+            {
+                d.Add($"Effects[{i}] differs");
+            }
         }
     }
 
