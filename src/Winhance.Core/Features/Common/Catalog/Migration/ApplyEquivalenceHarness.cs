@@ -129,6 +129,46 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>An Action is a stateless one-shot; the old apply hardcodes enable=true. Eligible when the def is
+    /// InputType.Action.</summary>
+    public static bool IsActionForApply(SettingDefinition def) => def.InputType == InputType.Action;
+
+    /// <summary>One EquivalenceRow per Action: OLD is the live apply's enabled-branch write intent (each
+    /// RegistrySetting at enable=true, plus the enabled effects), NEW is the BuildAction plan, both normalised.
+    /// A .reg-import Action would skip its registry writes (none exist today), mirroring the toggle path.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunActionApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsActionForApply(def))
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertAction(def);
+
+            var oldRegWrites = def.RegContents.Count == 0
+                ? def.RegistrySettings.SelectMany(rs => OldApplyWrite(rs, isEnabled: true, specificValue: null))
+                : Enumerable.Empty<string>();
+
+            var oldWrites = oldRegWrites
+                .Concat(OldEffectWrites(def, isEnabled: true))
+                .OrderBy(s => s).ToList();
+
+            var newWrites = NewWrites(ApplyPlanBuilder.BuildAction(setting))
+                .OrderBy(s => s).ToList();
+
+            bool match = oldWrites.SequenceEqual(newWrites);
+            rows.Add(new EquivalenceRow(
+                def.Id,
+                string.Join(" | ", oldWrites),
+                string.Join(" | ", newWrites),
+                match));
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live apply's write intent for one plain registry setting, mirroring the relevant
