@@ -290,6 +290,112 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates a powercfg SettingDefinition into the new Setting model. A Selection becomes one state
+    /// per ComboBox option whose Set carries the option's PowerCfgValue, with context-scoped roles (Recommended /
+    /// WindowsDefault per AC and DC) derived from the per-mode recommended/default VALUES (matching the old
+    /// recommended-settings resolver, which finds the option whose PowerCfgValue equals RecommendedValueAC/DC -
+    /// not the recommended-option label). A NumericRange becomes a stateless slider carrying a Numeric range +
+    /// per-context recommended/default values. Both declare the AC and DC contexts and a single PowerCfgTarget.</summary>
+    public static Setting ConvertPowerCfg(SettingDefinition def)
+    {
+        var pcs = def.PowerCfgSettings[0];
+        var target = BuildPowerCfgTarget(pcs);
+
+        if (def.InputType == InputType.NumericRange)
+        {
+            // Numeric values are stored in display units (what the slider shows): the per-mode recommended/default
+            // come back from powercfg in system units and are converted, matching the old units conversion.
+            string units = def.NumericRange?.Units ?? pcs.Units ?? string.Empty;
+            var recommended = new List<ContextValue>();
+            if (pcs.RecommendedValueAC is { } rac) recommended.Add(new ContextValue(PowerContext.AC, ConvertSystemToDisplay(rac, units)));
+            if (pcs.RecommendedValueDC is { } rdc) recommended.Add(new ContextValue(PowerContext.DC, ConvertSystemToDisplay(rdc, units)));
+            var windowsDefault = new List<ContextValue>();
+            if (pcs.DefaultValueAC is { } dac) windowsDefault.Add(new ContextValue(PowerContext.AC, ConvertSystemToDisplay(dac, units)));
+            if (pcs.DefaultValueDC is { } ddc) windowsDefault.Add(new ContextValue(PowerContext.DC, ConvertSystemToDisplay(ddc, units)));
+
+            return new Setting
+            {
+                Id = def.Id,
+                Display = BuildDisplay(def),
+                Availability = BuildAvailability(def),
+                Apply = BuildApply(def),
+                Links = BuildLinks(def),
+                UiParentId = def.ParentSettingId,
+                Contexts = new[] { PowerContext.AC, PowerContext.DC },
+                Targets = new List<Target> { target },
+                Numeric = new Numeric
+                {
+                    Min = def.NumericRange!.MinValue,
+                    Max = def.NumericRange.MaxValue,
+                    Units = units,
+                    Recommended = recommended,
+                    WindowsDefault = windowsDefault,
+                },
+            };
+        }
+
+        var options = def.ComboBox!.Options;
+        var states = new List<SettingState>(options.Count);
+        foreach (var opt in options)
+        {
+            int value = System.Convert.ToInt32(opt.ValueMappings!["PowerCfgValue"]);
+            // Context-scoped roles in a fixed order (Recommended AC, Recommended DC, WindowsDefault AC,
+            // WindowsDefault DC) so the authored catalog matches the role sequence exactly. A null per-mode value
+            // never equals a concrete option value, so an unset mode contributes no role.
+            var roles = new List<StateRole>();
+            if (pcs.RecommendedValueAC == value) roles.Add(new StateRole(RoleKind.Recommended, PowerContext.AC));
+            if (pcs.RecommendedValueDC == value) roles.Add(new StateRole(RoleKind.Recommended, PowerContext.DC));
+            if (pcs.DefaultValueAC == value) roles.Add(new StateRole(RoleKind.WindowsDefault, PowerContext.AC));
+            if (pcs.DefaultValueDC == value) roles.Add(new StateRole(RoleKind.WindowsDefault, PowerContext.DC));
+
+            states.Add(new SettingState
+            {
+                Label = opt.DisplayName,
+                Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(value) },
+                Roles = roles,
+            });
+        }
+
+        return new Setting
+        {
+            Id = def.Id,
+            Display = BuildDisplay(def),
+            Availability = BuildAvailability(def),
+            Apply = BuildApply(def),
+            Links = BuildLinks(def),
+            UiParentId = def.ParentSettingId,
+            Contexts = new[] { PowerContext.AC, PowerContext.DC },
+            Targets = new List<Target> { target },
+            States = states,
+        };
+    }
+
+    /// <summary>Builds the single PowerCfgTarget for a powercfg setting: subgroup/setting GUIDs, the AC/DC mode,
+    /// the display units, the optional enablement ("Attributes") key that unhides a hidden setting before reading,
+    /// and the hardware-control flag.</summary>
+    private static PowerCfgTarget BuildPowerCfgTarget(PowerCfgSetting pcs)
+    {
+        RegTarget? enablement = null;
+        if (pcs.EnablementRegistrySetting is { } ers)
+            enablement = new RegTarget(ers.ValueName ?? "KeyExists", new[] { ers.KeyPath }, ers.ValueName, ers.ValueType);
+
+        return new PowerCfgTarget("Power", pcs.SubgroupGuid, pcs.SettingGuid, pcs.PowerModeSupport)
+        {
+            Units = pcs.Units,
+            EnablementKey = enablement,
+            CheckForHardwareControl = pcs.CheckForHardwareControl,
+        };
+    }
+
+    /// <summary>Converts a powercfg system-unit value to the slider's display units, mirroring the old
+    /// recommended-settings resolver: minutes and hours divide, everything else (milliseconds, percent) is 1:1.</summary>
+    private static int ConvertSystemToDisplay(int systemValue, string? units) => units?.ToLowerInvariant() switch
+    {
+        "minutes" => systemValue / 60,
+        "hours" => systemValue / 3600,
+        _ => systemValue,
+    };
+
     /// <summary>Everything the user sees: the source name/description/group, the icon (pack + glyph unified),
     /// the NEW-badge version, and the subjective-preference flag.</summary>
     private static Display BuildDisplay(SettingDefinition def) => new()
@@ -329,18 +435,45 @@ public static class SettingDefinitionConverter
             bounds.Add(new BuildRange(bMin, bMax));
         }
 
+        IReadOnlyList<BuildRange> builds;
         if (bounds.Count == 0)
-            return hasOs ? new Availability { Builds = new[] { new BuildRange(osMin, osMax) } } : Availability.Everywhere;
-
-        var result = new List<BuildRange>();
-        foreach (var b in bounds)
         {
-            var lo = b.Min >= osMin ? b.Min : osMin;   // max(bound.Min, osMin)
-            var hi = b.Max <= osMax ? b.Max : osMax;   // min(bound.Max, osMax)
-            if (lo <= hi) result.Add(new BuildRange(lo, hi));
+            builds = hasOs ? new[] { new BuildRange(osMin, osMax) } : System.Array.Empty<BuildRange>();
+        }
+        else
+        {
+            var result = new List<BuildRange>();
+            foreach (var b in bounds)
+            {
+                var lo = b.Min >= osMin ? b.Min : osMin;   // max(bound.Min, osMin)
+                var hi = b.Max <= osMax ? b.Max : osMax;   // min(bound.Max, osMax)
+                if (lo <= hi) result.Add(new BuildRange(lo, hi));
+            }
+            builds = result;
         }
 
-        return new Availability { Builds = result };
+        // Power hardware-capability + unlock + existence gates (old RequiresBattery / RequiresHybridSleepCapable /
+        // RequiresLid / RequiresDesktop / RequiresBrightnessSupport / RequiresAdvancedUnlock / ValidateExistence).
+        // ValidateExistence defaults true catalog-wide but only governs powercfg settings, so it maps to the model
+        // only for a powercfg-backed setting - a non-power setting keeps it unset (so its converted output is unchanged).
+        var hardware = new List<HardwareRequirement>();
+        if (def.RequiresBattery) hardware.Add(HardwareRequirement.Battery);
+        if (def.RequiresHybridSleepCapable) hardware.Add(HardwareRequirement.HybridSleepCapable);
+        if (def.RequiresLid) hardware.Add(HardwareRequirement.Lid);
+        if (def.RequiresDesktop) hardware.Add(HardwareRequirement.Desktop);
+        if (def.RequiresBrightnessSupport) hardware.Add(HardwareRequirement.BrightnessSupport);
+        bool validatesExistence = def.PowerCfgSettings is { Count: > 0 } && def.ValidateExistence;
+
+        if (builds.Count == 0 && hardware.Count == 0 && !def.RequiresAdvancedUnlock && !validatesExistence)
+            return Availability.Everywhere;
+
+        return new Availability
+        {
+            Builds = builds,
+            Hardware = hardware,
+            RequiresAdvancedUnlock = def.RequiresAdvancedUnlock,
+            ValidatesExistence = validatesExistence,
+        };
     }
 
     /// <summary>Maps the confirmation gate and the restart hints. The two old restart strings unify into one
