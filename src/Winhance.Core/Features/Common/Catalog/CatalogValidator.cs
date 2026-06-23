@@ -69,6 +69,20 @@ public static class CatalogValidator
         if (setting.UiParentId == id)
             errors.Add(new CatalogValidationError(id, "UiParentId cannot be its own setting."));
 
+        // R6: setting-level Effects are the Action mechanism - a stateless one-shot, never detected. If a
+        // setting carries any, it must have no States, Targets, or Detector. Conversely a setting that detects
+        // nothing (no States, no Targets, no Detector) and does nothing (no Effects) is an authoring bug. A
+        // range setting (a Target, no states, no effects) is exempt because it has a Target.
+        if (setting.Effects.Count > 0
+            && (setting.States.Count > 0 || setting.Targets.Count > 0 || setting.Detector is not null))
+            errors.Add(new CatalogValidationError(id,
+                "Setting-level Effects are only for stateless Actions: a setting with Effects must have no States, Targets, or Detector."));
+
+        if (setting.Effects.Count == 0 && setting.States.Count == 0
+            && setting.Targets.Count == 0 && setting.Detector is null)
+            errors.Add(new CatalogValidationError(id,
+                "Setting detects nothing and does nothing: a 0-state, 0-target, detector-less setting must carry at least one setting-level Effect."));
+
         return errors;
     }
 

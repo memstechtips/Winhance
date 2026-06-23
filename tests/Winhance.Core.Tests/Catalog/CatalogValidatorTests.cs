@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -164,6 +165,67 @@ public class CatalogValidatorTests
                 St("Default", new() { ["Start"] = StateValue.Of(2), ["Ghost"] = StateValue.Of(1) }, fallback: true),
             });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("unknown target key"));
+    }
+
+    [Fact]
+    public void Action_ZeroStateWithEffect_IsValid()
+    {
+        var s = new Setting
+        {
+            Id = "act-ok",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+        };
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void Action_EffectsWithStates_IsRejected()
+    {
+        var s = new Setting
+        {
+            Id = "act-bad-states",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+            States = new[] { new SettingState { Label = "Enabled", IsFallback = true } },
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("stateless Actions"));
+    }
+
+    [Fact]
+    public void Action_EffectsWithTargets_IsRejected()
+    {
+        var s = new Setting
+        {
+            Id = "act-bad-targets",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+            Targets = new Target[] { Reg("k", "k") },
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("stateless Actions"));
+    }
+
+    [Fact]
+    public void Setting_NoStatesNoTargetsNoDetectorNoEffects_IsRejected()
+    {
+        var s = new Setting
+        {
+            Id = "does-nothing",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("detects nothing and does nothing"));
+    }
+
+    [Fact]
+    public void NumericRangeShape_ZeroStateWithTargetNoEffects_IsValid()
+    {
+        var s = new Setting
+        {
+            Id = "range-ok",
+            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Targets = new Target[] { Reg("v", "v") },
+        };
+        Assert.Empty(CatalogValidator.Validate(s));
     }
 
     private sealed class FakeDetector : IStateDetector
