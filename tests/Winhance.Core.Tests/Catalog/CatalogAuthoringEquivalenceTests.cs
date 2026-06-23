@@ -57,6 +57,12 @@ public class CatalogAuthoringEquivalenceTests
             PowerOptimizations.GetPowerOptimizations().Settings,
             PowerOptimizationsCatalog.All);
 
+    [Fact]
+    public void StartMenu()
+        => AssertCatalogMatches(
+            StartMenuCustomizations.GetStartMenuCustomizations().Settings,
+            StartMenuCustomizationsCatalog.All);
+
     // The 6 ThisPC-folder settings each merge TWO old defs (a Win11 value toggle + a Win10 key-existence toggle
     // sharing display and loc) into ONE Setting with build-gated targets, so the 1:1 gate cannot apply to them.
     private static readonly string[] ThisPcMergedIds =
