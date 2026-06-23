@@ -51,6 +51,12 @@ public class CatalogAuthoringEquivalenceTests
             PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
             PrivacyOptimizationsCatalog.All);
 
+    [Fact]
+    public void Power()
+        => AssertCatalogMatches(
+            PowerOptimizations.GetPowerOptimizations().Settings,
+            PowerOptimizationsCatalog.All);
+
     // The 6 ThisPC-folder settings each merge TWO old defs (a Win11 value toggle + a Win10 key-existence toggle
     // sharing display and loc) into ONE Setting with build-gated targets, so the 1:1 gate cannot apply to them.
     private static readonly string[] ThisPcMergedIds =
@@ -142,6 +148,11 @@ public class CatalogAuthoringEquivalenceTests
         if (def.DetectionType == DetectionType.SystemRestore) return SettingDefinitionConverter.ConvertSystemRestore(def);
         if (def.DetectionType == DetectionType.DnsServer) return SettingDefinitionConverter.ConvertDnsServer(def);
         if (def.ScheduledTaskSettings.Count > 0) return SettingDefinitionConverter.ConvertScheduledTaskToggle(def);
+        // Powercfg routing MUST precede the registry selection/toggle split: a power Selection has the same
+        // InputType.Selection but converts via ConvertPowerCfg, and a power NumericRange would otherwise fall to
+        // ConvertToggle. The dynamic power-plan (no PowerCfgSettings) converts via its own detector path.
+        if (def.Recommendation?.LoadDynamicOptions == true) return SettingDefinitionConverter.ConvertPowerPlan(def);
+        if (def.PowerCfgSettings is { Count: > 0 }) return SettingDefinitionConverter.ConvertPowerCfg(def);
         if (def.InputType == InputType.Selection) return SettingDefinitionConverter.ConvertSelection(def);
         return SettingDefinitionConverter.ConvertToggle(def);
     }
