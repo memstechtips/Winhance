@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Catalog;
@@ -14,3 +15,10 @@ public sealed record RegContentEffect(string Content) : Effect;
 
 /// <summary>Native power API write (CallNtPowerInformation) this state performs on apply. Apply-only; no read path exists.</summary>
 public sealed record NativePowerEffect(int InformationLevel, byte Value) : Effect;
+
+/// <summary>Writes a registry value on apply. Apply-only - an Action is never detected, so this never
+/// participates in detection. Mirrors what the old enabled-branch ApplySetting writes for this value.</summary>
+public sealed record RegistryWriteEffect(string Path, string ValueName, RegistryValueKind Kind, object Value) : Effect
+{
+    public bool IsGroupPolicy { get; init; }
+}

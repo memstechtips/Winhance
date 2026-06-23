@@ -13,6 +13,12 @@ public sealed record Setting
     public IReadOnlyList<PowerContext> Contexts { get; init; } = new[] { PowerContext.Always };
     public IReadOnlyList<Target> Targets { get; init; } = System.Array.Empty<Target>();
     public IReadOnlyList<SettingState> States { get; init; } = System.Array.Empty<SettingState>();
+
+    /// <summary>Apply-only side-effects that run when this setting is applied, independent of any state. The
+    /// Action mechanism: a stateless one-shot (no States/Targets) whose Effects run on click. Empty for every
+    /// detected setting - toggles/selections carry their effects per-state on SettingState.Effects.</summary>
+    public IReadOnlyList<Effect> Effects { get; init; } = System.Array.Empty<Effect>();
+
     public IStateDetector? Detector { get; init; }
 
     public Availability Availability { get; init; } = Availability.Everywhere;   // gating
