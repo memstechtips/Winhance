@@ -53,6 +53,8 @@ public static class SettingStructuralComparer
                 if (da.AutomaticLabel != db.AutomaticLabel || !DictEqual(da.PrimaryIpToLabel, db.PrimaryIpToLabel))
                     d.Add("Detector(DnsServer) config differs");
                 break;
+            case PowerPlanDetector when b is PowerPlanDetector:
+                break;
             default:
                 d.Add("Detector type not structurally compared (unknown detector)");
                 break;

@@ -32,4 +32,8 @@ public interface IDetectionContext
     /// <summary>The current AC or DC value index of a powercfg setting on the active power scheme, or null when
     /// the setting is not present / not readable. A powercfg target reads its value through this, once per context.</summary>
     int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context);
+
+    /// <summary>The active power scheme's GUID as a string (lowercase), or null when there is no active scheme. Used
+    /// by the power-plan detector; unrelated to the per-setting powercfg value reads.</summary>
+    string? ActivePowerPlanGuid();
 }

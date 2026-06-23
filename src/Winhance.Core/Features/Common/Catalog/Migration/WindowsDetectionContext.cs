@@ -42,4 +42,7 @@ public sealed class WindowsDetectionContext : IDetectionContext
 
     public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
         throw new NotSupportedException("Powercfg reads are not needed for the registry harness.");
+
+    public string? ActivePowerPlanGuid() =>
+        throw new NotSupportedException("not needed for the toggle harness");
 }

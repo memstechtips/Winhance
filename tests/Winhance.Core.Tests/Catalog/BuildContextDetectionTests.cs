@@ -38,6 +38,7 @@ public class BuildContextDetectionTests
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
+        public string? ActivePowerPlanGuid() => null;
     }
 
     [Fact]

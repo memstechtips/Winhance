@@ -205,6 +205,20 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates the dynamic power-plan-selection (LoadDynamicOptions) into a Setting that detects via
+    /// PowerPlanDetector: its options are the machine's installed plans, so it carries no static states - the detector
+    /// returns the active plan GUID at runtime.</summary>
+    public static Setting ConvertPowerPlan(SettingDefinition def) => new Setting
+    {
+        Id = def.Id,
+        Display = BuildDisplay(def),
+        Availability = BuildAvailability(def),
+        Apply = BuildApply(def),
+        Links = BuildLinks(def),
+        UiParentId = def.ParentSettingId,
+        Detector = new PowerPlanDetector(),
+    };
+
     /// <summary>Translates the DNS-server selection (DetectionType.DnsServer) into a Setting that detects via
     /// <see cref="DnsServerDetector"/>. The automatic label is the first option's DisplayName (the old code
     /// returns index 0 for DHCP / no adapter / no primary). The primary-IP -> label map is built FIRST-WINS so a

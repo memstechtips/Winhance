@@ -57,4 +57,7 @@ public sealed class DnsDetectionContext : IDetectionContext
 
     public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
         throw new NotSupportedException("not needed for the DNS harness");
+
+    public string? ActivePowerPlanGuid() =>
+        throw new NotSupportedException("not needed for the DNS harness");
 }

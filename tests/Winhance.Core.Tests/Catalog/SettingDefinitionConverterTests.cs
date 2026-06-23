@@ -444,6 +444,7 @@ public class SettingDefinitionConverterTests
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
+        public string? ActivePowerPlanGuid() => null;
     }
 
     [Fact]
@@ -486,6 +487,7 @@ public class SettingDefinitionConverterTests
         public string? PrimaryDnsV4OfActiveAdapter() => null;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
+        public string? ActivePowerPlanGuid() => null;
     }
 
     [Fact]
@@ -517,6 +519,7 @@ public class SettingDefinitionConverterTests
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
+        public string? ActivePowerPlanGuid() => null;
     }
 
     [Fact]

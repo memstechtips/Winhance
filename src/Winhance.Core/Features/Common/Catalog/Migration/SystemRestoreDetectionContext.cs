@@ -33,4 +33,7 @@ public sealed class SystemRestoreDetectionContext : IDetectionContext
 
     public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
         throw new NotSupportedException("not needed for the system-restore harness");
+
+    public string? ActivePowerPlanGuid() =>
+        throw new NotSupportedException("not needed for the system-restore harness");
 }

@@ -39,4 +39,7 @@ public sealed class PowerCfgDetectionContext : IDetectionContext
 
     public bool? ScheduledTaskEnabled(string taskPath) =>
         throw new NotSupportedException("not needed for the powercfg harness");
+
+    public string? ActivePowerPlanGuid() =>
+        throw new NotSupportedException("not needed for the powercfg harness");
 }

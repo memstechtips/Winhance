@@ -33,4 +33,7 @@ public sealed class ScheduledTaskDetectionContext : IDetectionContext
 
     public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) =>
         throw new NotSupportedException("not needed for the scheduled-task harness");
+
+    public string? ActivePowerPlanGuid() =>
+        throw new NotSupportedException("not needed for the scheduled-task harness");
 }
