@@ -61,6 +61,45 @@ public static class RegistryToggleEquivalenceHarness
         return true;
     }
 
+    /// <summary>True when a selection's (ComboBox) DETECTION is powercfg-based: it carries powercfg settings
+    /// AND a ComboBox (so it maps the AC value index to an option). Excludes the power-plan selection (which has
+    /// no ComboBox) and anything with a registry/scheduled-task/custom detection mechanism. The powercfg
+    /// analogue of <see cref="IsPureRegistrySelection"/>.</summary>
+    public static bool IsPurePowerCfgSelection(SettingDefinition def)
+    {
+        if (def.InputType != InputType.Selection)
+            return false;
+        if (def.PowerCfgSettings is not { Count: > 0 })
+            return false;
+        if (def.ComboBox?.Options is not { Count: > 0 })
+            return false; // excludes power-plan-selection (no ComboBox)
+        if (def.RegistrySettings.Count > 0)
+            return false;
+        if (def.ScheduledTaskSettings.Count > 0)
+            return false;
+        if (def.DetectionType.HasValue)
+            return false;
+        return true;
+    }
+
+    /// <summary>True when a numeric (slider) setting's DETECTION is powercfg-based - it carries powercfg settings
+    /// and no registry/scheduled-task/custom detection mechanism. A numeric has no ComboBox; its value IS the
+    /// raw AC value index.</summary>
+    public static bool IsPurePowerCfgNumeric(SettingDefinition def)
+    {
+        if (def.InputType != InputType.NumericRange)
+            return false;
+        if (def.PowerCfgSettings is not { Count: > 0 })
+            return false;
+        if (def.RegistrySettings.Count > 0)
+            return false;
+        if (def.ScheduledTaskSettings.Count > 0)
+            return false;
+        if (def.DetectionType.HasValue)
+            return false;
+        return true;
+    }
+
     /// <summary>True when a definition is a pure scheduled-task toggle - a single ScheduledTaskSetting and no
     /// other mechanism (no registry, combobox, powercfg, script, .reg, native-power, custom detector).</summary>
     public static bool IsPureScheduledTaskToggle(SettingDefinition def)
@@ -153,6 +192,75 @@ public static class RegistryToggleEquivalenceHarness
             // NEW: convert to the unified Setting model and run the new detection engine.
             var setting = SettingDefinitionConverter.ConvertSelection(def);
             string newState = CatalogDiscovery.DetectState(setting, context) ?? "Custom";
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per supplied powercfg SELECTION definition. OLD is the
+    /// app's real selection detection (<see cref="IComboBoxResolver.ResolveCurrentValueAsync"/> resolves the live
+    /// AC value index to an option index -> its DisplayName); NEW converts to the unified model and runs the
+    /// engine over the same pre-fetched AC/DC value pair (canonical detection = the AC context). The harness reads
+    /// the AC/DC pair async up front since the context API is synchronous. Callers should pre-filter with
+    /// <see cref="IsPurePowerCfgSelection"/>.</summary>
+    public static async Task<IReadOnlyList<EquivalenceRow>> RunPowerCfgSelections(
+        IPowerSettingsQueryService powerQuery,
+        IComboBoxResolver resolver,
+        IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPurePowerCfgSelection(def))
+                continue;
+
+            var (ac, dc) = await powerQuery.GetPowerSettingACDCValuesAsync(def.PowerCfgSettings![0]).ConfigureAwait(false);
+            var ctx = new PowerCfgDetectionContext(ac, dc);
+
+            // NEW: convert to the unified Setting model and run the new detection engine (AC = canonical).
+            var setting = SettingDefinitionConverter.ConvertPowerCfg(def);
+            string newState = CatalogDiscovery.DetectState(setting, ctx, PowerContext.AC) ?? "Custom";
+
+            // OLD: the app's real selection detection resolves the live powercfg value to an option index.
+            var resolved = await resolver.ResolveCurrentValueAsync(def).ConfigureAwait(false);
+            int oldIndex = resolved is int idx ? idx : ComboBoxConstants.CustomStateIndex;
+            string oldState = LabelForIndex(def, oldIndex);
+
+            rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
+        }
+
+        return rows;
+    }
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per supplied powercfg NUMERIC (slider) definition. A
+    /// numeric has no options, so it compares the raw AC value index (the old app's canonical detected value)
+    /// against the engine's <see cref="CatalogDiscovery.DetectValue"/> over the same pre-fetched pair. A value
+    /// that is not present reads as "absent" on both sides. Callers should pre-filter with
+    /// <see cref="IsPurePowerCfgNumeric"/>.</summary>
+    public static async Task<IReadOnlyList<EquivalenceRow>> RunPowerCfgNumerics(
+        IPowerSettingsQueryService powerQuery,
+        IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPurePowerCfgNumeric(def))
+                continue;
+
+            var (ac, dc) = await powerQuery.GetPowerSettingACDCValuesAsync(def.PowerCfgSettings![0]).ConfigureAwait(false);
+            var ctx = new PowerCfgDetectionContext(ac, dc);
+
+            // NEW: convert to the unified Setting model and read the slider's value through the engine (AC).
+            var setting = SettingDefinitionConverter.ConvertPowerCfg(def);
+            int? newVal = CatalogDiscovery.DetectValue(setting, ctx, PowerContext.AC);
+
+            // OLD: the old app's canonical detected value is the raw AC value index.
+            string oldState = ac?.ToString() ?? "absent";
+            string newState = newVal?.ToString() ?? "absent";
 
             rows.Add(new EquivalenceRow(def.Id, oldState, newState, oldState == newState));
         }
