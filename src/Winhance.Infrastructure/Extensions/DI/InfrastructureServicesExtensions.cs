@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Events;
 using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -99,6 +101,10 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
         services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
+
+        // Catalog detection context (new unified engine): a factory, because each detection batch needs a fresh
+        // context to hold its own pre-fetched async reads.
+        services.AddSingleton<ISystemDetectionContextFactory, SystemDetectionContextFactory>();
 
         // ComboBox Services
         services.AddSingleton<IComboBoxSetupService, ComboBoxSetupService>();
