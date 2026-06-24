@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
@@ -19,6 +20,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ISettingPreparationPipeline _preparationPipeline;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
+    private readonly IDetectionShadowRunner _shadowRunner;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -28,7 +30,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         IComboBoxResolver comboBoxResolver,
         ISettingPreparationPipeline preparationPipeline,
         IUserPreferencesService userPreferencesService,
-        ISettingViewModelFactory viewModelFactory)
+        ISettingViewModelFactory viewModelFactory,
+        IDetectionShadowRunner shadowRunner)
     {
         _discoveryService = discoveryService;
         _eventBus = eventBus;
@@ -38,6 +41,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _preparationPipeline = preparationPipeline;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
+        _shadowRunner = shadowRunner;
     }
 
     public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
@@ -63,6 +67,10 @@ public class SettingsLoadingService : ISettingsLoadingService
 
             // Resolve combo box values for Selection type settings
             await ResolveComboBoxStatesAsync(settingsList, batchStates);
+
+            // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). Runs
+            // after combo-box resolution so the selection baseline is the same value the UI consumes.
+            await _shadowRunner.RunAsync(settingsList, batchStates);
 
             // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
             foreach (var setting in settingsList)
@@ -116,6 +124,9 @@ public class SettingsLoadingService : ISettingsLoadingService
 
         // Resolve combo box values for Selection type settings
         await ResolveComboBoxStatesAsync(definitions, batchStates);
+
+        // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled).
+        await _shadowRunner.RunAsync(definitions, batchStates);
 
         return batchStates;
     }

@@ -52,6 +52,8 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IPolicyCleanupService))]
     [InlineData(typeof(IChangeHistoryService))]
     [InlineData(typeof(ISystemDetectionContextFactory))]
+    [InlineData(typeof(ICatalogDetectionService))]
+    [InlineData(typeof(IDetectionShadowRunner))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         // Arrange

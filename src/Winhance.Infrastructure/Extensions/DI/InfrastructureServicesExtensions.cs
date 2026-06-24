@@ -105,6 +105,9 @@ public static class InfrastructureServicesExtensions
         // Catalog detection context (new unified engine): a factory, because each detection batch needs a fresh
         // context to hold its own pre-fetched async reads.
         services.AddSingleton<ISystemDetectionContextFactory, SystemDetectionContextFactory>();
+        // Catalog detection batch driver + the observe-only parallel-run shadow (logs old-vs-new divergences).
+        services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
+        services.AddSingleton<IDetectionShadowRunner, DetectionShadowRunner>();
 
         // ComboBox Services
         services.AddSingleton<IComboBoxSetupService, ComboBoxSetupService>();
