@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Xunit;
