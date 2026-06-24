@@ -20,6 +20,7 @@ public static class SettingStructuralComparer
         if (!a.Apply.Equals(b.Apply)) d.Add($"Apply: {a.Apply} != {b.Apply}");                    // RestartTarget records compare structurally
 
         DiffDetector(a.Detector, b.Detector, d);
+        DiffOptionSource(a.OptionSource, b.OptionSource, d);
         DiffSequence(a.Contexts, b.Contexts, "Contexts", d);
         DiffSequence(a.Links, b.Links, "Links", d);                                                // Link record -> structural
         DiffAvailability(a.Availability, b.Availability, d);
@@ -59,6 +60,15 @@ public static class SettingStructuralComparer
                 d.Add("Detector type not structurally compared (unknown detector)");
                 break;
         }
+    }
+
+    // Dynamic-option sources are config-free markers (the runtime enumeration lives in the wired-in source), so a
+    // null-ness + type comparison is sufficient - mirrors how config-free detectors compare.
+    private static void DiffOptionSource(IDynamicOptionSource? a, IDynamicOptionSource? b, List<string> d)
+    {
+        if ((a is null) != (b is null)) { d.Add("OptionSource nullness differs"); return; }
+        if (a is null) return;
+        if (a.GetType() != b!.GetType()) d.Add("OptionSource type differs");
     }
 
     private static void DiffAvailability(Availability a, Availability b, List<string> d)

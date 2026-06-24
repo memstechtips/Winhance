@@ -25,6 +25,10 @@ public sealed record Setting
 
     public IStateDetector? Detector { get; init; }
 
+    /// <summary>Set when this setting's options are produced at runtime (e.g. the installed power plans) rather
+    /// than authored as static States. Null = static options/states.</summary>
+    public IDynamicOptionSource? OptionSource { get; init; }
+
     public Availability Availability { get; init; } = Availability.Everywhere;   // gating
     public ApplyBehavior Apply { get; init; } = ApplyBehavior.None;              // confirmation + restart
 

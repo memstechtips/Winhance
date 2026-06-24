@@ -24,6 +24,7 @@ public static class PowerOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             Detector = new PowerPlanDetector(),
+            OptionSource = new PowerPlanOptionSource(),
         },
         new()
         {

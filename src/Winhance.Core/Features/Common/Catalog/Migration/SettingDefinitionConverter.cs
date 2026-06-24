@@ -217,6 +217,7 @@ public static class SettingDefinitionConverter
         Links = BuildLinks(def),
         UiParentId = def.ParentSettingId,
         Detector = new PowerPlanDetector(),
+        OptionSource = new PowerPlanOptionSource(),
     };
 
     /// <summary>Translates the DNS-server selection (DetectionType.DnsServer) into a Setting that detects via
