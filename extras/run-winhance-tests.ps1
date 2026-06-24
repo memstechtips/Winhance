@@ -16,7 +16,11 @@
 # .\run-winhance-tests.ps1 -IntegrationOnly
 param (
     [switch]$SkipUITests = $false,
-    [switch]$IntegrationOnly = $false
+    [switch]$IntegrationOnly = $false,
+    # When set, dotnet test build output goes under this dir instead of each project's bin/.
+    # Needed when the source lives on a network share that blocks launching testhost.exe from it
+    # (run the build output on a local disk). Empty = default behaviour (output stays in bin/).
+    [string]$OutputDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,7 +44,13 @@ function Run-TestProject {
     Write-Host "  Running $Name..." -ForegroundColor Cyan
     Write-Host ("=" * 60) -ForegroundColor DarkGray
 
-    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet $ExtraArgs"
+    $outArg = ""
+    if ($OutputDir) {
+        $projOut = Join-Path $OutputDir ($Name -replace '[^A-Za-z0-9]', '_')
+        $outArg = "--output `"$projOut`""
+    }
+
+    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet $outArg $ExtraArgs"
     $output = Invoke-Expression $cmd 2>&1 | Out-String
 
     # Parse results from output
