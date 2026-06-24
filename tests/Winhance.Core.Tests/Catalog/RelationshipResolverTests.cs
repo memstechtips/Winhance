@@ -78,4 +78,49 @@ public class RelationshipResolverTests
         var s = S("a", new[] { St("On"), St("Off", isDefault: true) });
         Assert.Empty(RelationshipResolver.ResolveForward(s, "Nope", None));
     }
+
+    // Mirrors visual-effects-mode: the WindowsDefault state ("LetWindows") carries its OWN preset (Controls), and
+    // the neutral "Custom" (no Controls, NOT the default) is a separate state. Snap-to-neutral must pick the
+    // no-Controls state, NOT the WindowsDefault one.
+    private static Setting Master() => S("m", new[]
+    {
+        St("LetWindows", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "Off" }),
+        St("Appearance", controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+        St("Performance", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
+        St("Custom"),
+    });
+
+    [Fact]
+    public void ReverseSync_snaps_parent_to_a_matching_preset()
+    {
+        string? Cur(string id) => id switch { "c1" => "Off", "c2" => "Off", "m" => "Custom", _ => null };
+        var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur);
+        Assert.Contains(actions, x => x.SettingId == "m" && x.StateLabel == "Performance");
+    }
+
+    [Fact]
+    public void ReverseSync_snaps_parent_to_the_no_controls_neutral_not_the_windows_default()
+    {
+        // c1=Off,c2=On matches no preset; master currently "Appearance" -> drops to the neutral "Custom"
+        // (the no-Controls state), NOT to the WindowsDefault "LetWindows" (which carries its own preset).
+        string? Cur(string id) => id switch { "c1" => "Off", "c2" => "On", "m" => "Appearance", _ => null };
+        var act = Assert.Single(RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur));
+        Assert.Equal("m", act.SettingId);
+        Assert.Equal("Custom", act.StateLabel);
+    }
+
+    [Fact]
+    public void ReverseSync_no_action_when_parent_already_at_target()
+    {
+        // no preset matches and the master is already at the neutral "Custom" -> nothing to do.
+        string? Cur(string id) => id switch { "c1" => "Off", "c2" => "On", "m" => "Custom", _ => null };
+        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur));
+    }
+
+    [Fact]
+    public void ReverseSync_ignores_parents_that_dont_control_the_child()
+    {
+        var other = S("other", new[] { St("On"), St("Off", isDefault: true) });
+        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, None));
+    }
 }

@@ -5,7 +5,7 @@ using System.Linq;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
-/// Works out the follow-on applies that one setting change triggers through its relationships — pure; no
+/// Works out the follow-on applies that one setting change triggers through its relationships - pure; no
 /// I/O. Forward relationships fire only when the owner moves to a non-default ("active") state, matching
 /// the app's existing enable-triggered behaviour.
 /// </summary>
@@ -27,7 +27,7 @@ public static class RelationshipResolver
             return actions;
 
         if (targetState.HasRole(RoleKind.WindowsDefault))
-            return actions; // applying the default state is a deactivation — no forward triggers
+            return actions; // applying the default state is a deactivation - no forward triggers
 
         foreach (var link in setting.Links.Where(l => l.Kind == LinkKind.Requires))
             if (currentStateOf(link.OtherId) != link.RequiredState)
@@ -74,8 +74,9 @@ public static class RelationshipResolver
 
     /// <summary>
     /// When <paramref name="changedChildId"/> changes, snap any parent that Controls it to the first of the
-    /// parent's states whose Controls are now ALL satisfied by the children's current states. Parents
-    /// already in that state, and parents where no state fully matches, are left as they are.
+    /// parent's states whose Controls are now ALL satisfied by the children's current states; if no preset state
+    /// matches, the parent drops to its neutral state (the one that imposes no Controls). A parent already in the
+    /// resulting state is left as is.
     /// </summary>
     public static IReadOnlyList<ApplyAction> ResolveReverseSync(
         string changedChildId, IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf)
@@ -88,16 +89,26 @@ public static class RelationshipResolver
             if (!controlsChild)
                 continue;
 
+            // Snap the parent to the first preset state whose Controls are now ALL satisfied by the children's
+            // current states. If NO preset matches, the children have been customised away from every preset, so
+            // the parent drops to its neutral state - the one that imposes NO preset (no Controls), e.g. each
+            // master's "Custom". Identify it by "imposes no Controls", NOT by role: that neutral is WindowsDefault
+            // for privacy-ads-promotional-master but Recommended for visual-effects-mode (whose WindowsDefault
+            // "Let Windows choose" carries its own preset). This replaces the old per-child "force master to Custom".
+            string? target = null;
             foreach (var state in parent.States.Where(s => s.Controls is { Count: > 0 }))
             {
-                bool allSatisfied = state.Controls!.All(kv => currentStateOf(kv.Key) == kv.Value);
-                if (allSatisfied)
+                if (state.Controls!.All(kv => currentStateOf(kv.Key) == kv.Value))
                 {
-                    if (currentStateOf(parent.Id) != state.Label)
-                        actions.Add(new ApplyAction(parent.Id, state.Label));
-                    break; // first fully-matching state wins
+                    target = state.Label;
+                    break; // first fully-matching preset wins
                 }
             }
+
+            target ??= parent.States.FirstOrDefault(s => s.Controls is null || s.Controls.Count == 0)?.Label;
+
+            if (target is not null && currentStateOf(parent.Id) != target)
+                actions.Add(new ApplyAction(parent.Id, target));
         }
 
         return actions;
