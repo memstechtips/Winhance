@@ -20,6 +20,8 @@ public static class ApplyExecutor
                     RegistryWriteOp w => writer.WriteRegistry(w.Target, w.Path, w.Value),
                     RegistryDeleteOp d => writer.DeleteRegistry(d.Target, d.Path),
                     RegistryEnsureKeyOp e => writer.EnsureRegistryKey(e.Target, e.Path),
+                    RegistryUnlockKeyOp u => writer.UnlockKey(u.Target, u.Path),
+                    RegistryLockKeyOp l => writer.LockKey(l.Target, l.Path),
                     RegistryBitSetOp b => writer.SetRegistryBit(b.Target, b.Path, b.ByteIndex, b.BitMask, b.Set),
                     RegistryByteSetOp y => writer.SetRegistryByte(y.Target, y.Path, y.ByteIndex, y.Value),
                     RegistryCompositeSetOp c => writer.SetRegistryComposite(c.Target, c.Path, c.CompositeKey, c.SubValue),

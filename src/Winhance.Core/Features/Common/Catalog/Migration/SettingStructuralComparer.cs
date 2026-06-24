@@ -117,7 +117,7 @@ public static class SettingStructuralComparer
            || a.ValueName != b.ValueName || a.Type != b.Type || a.ByteIndex != b.ByteIndex
            || a.BitMask != b.BitMask || a.ByteOnly != b.ByteOnly || a.CompositeStringKey != b.CompositeStringKey
            || a.PerNetworkInterface != b.PerNetworkInterface || a.PerMonitor != b.PerMonitor
-           || a.IsGroupPolicy != b.IsGroupPolicy || a.LockKeyAccess != b.LockKeyAccess;
+           || a.IsGroupPolicy != b.IsGroupPolicy || a.LockWhenValue != b.LockWhenValue;
 
     private static void DiffStates(IReadOnlyList<SettingState> a, IReadOnlyList<SettingState> b, List<string> d)
     {

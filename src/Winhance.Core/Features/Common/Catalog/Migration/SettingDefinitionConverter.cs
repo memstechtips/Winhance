@@ -558,7 +558,9 @@ public static class SettingDefinitionConverter
                 PerNetworkInterface = first.ApplyPerNetworkInterface,
                 PerMonitor = first.ApplyPerMonitor,
                 IsGroupPolicy = first.IsGroupPolicy,
-                LockKeyAccess = first.LockKeyAccess,
+                // Old apply hardcoded "lock the key when the written value == 4 (service Start = Disabled)"; carry
+                // that as data so the permanent model is self-describing once the converter is gone.
+                LockWhenValue = first.LockKeyAccess ? 4 : (int?)null,
             };
         }).ToList();
 

@@ -2275,7 +2275,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService" }, "Start", RegistryValueKind.DWord) { LockKeyAccess = true },
+                new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 },
                 new RegTarget("IsInputAppPreloadEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\input" }, "IsInputAppPreloadEnabled", RegistryValueKind.DWord),
             },
             States = new[]

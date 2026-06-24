@@ -8,6 +8,12 @@ public interface IStateWriter
     bool WriteRegistry(RegTarget target, string path, object value);
     bool DeleteRegistry(RegTarget target, string path);
     bool EnsureRegistryKey(RegTarget target, string path);
+
+    /// <summary>Restore writable permissions on a key before writing it (old UnlockRegistryKey).</summary>
+    bool UnlockKey(RegTarget target, string path);
+
+    /// <summary>ACL-lock a key read-only for SYSTEM after writing its protective value (old LockRegistryKey).</summary>
+    bool LockKey(RegTarget target, string path);
     bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set);
     bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value);
     bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue);

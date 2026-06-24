@@ -13,6 +13,14 @@ public sealed record RegistryDeleteOp(RegTarget Target, string Path) : ApplyOp;
 /// <summary>Ensure the key/value exists at one registry path (key-existence "on" state).</summary>
 public sealed record RegistryEnsureKeyOp(RegTarget Target, string Path) : ApplyOp;
 
+/// <summary>Restore writable permissions on a registry key before writing it (the inverse of the ACL lock the old
+/// apply did via UnlockRegistryKey). Emitted before the value write for a lockable target (RegTarget.LockWhenValue).</summary>
+public sealed record RegistryUnlockKeyOp(RegTarget Target, string Path) : ApplyOp;
+
+/// <summary>ACL-lock a registry key to read-only for SYSTEM after writing its protective value, so Windows cannot
+/// revert it (the old apply's LockRegistryKey). Emitted only when the written value equals the target's LockWhenValue.</summary>
+public sealed record RegistryLockKeyOp(RegTarget Target, string Path) : ApplyOp;
+
 /// <summary>Set or clear a single bit within one byte of a REG_BINARY value, preserving the other bytes
 /// (the surgical bit edit the old apply did via ModifyBinaryBit).</summary>
 public sealed record RegistryBitSetOp(RegTarget Target, string Path, int ByteIndex, byte BitMask, bool Set) : ApplyOp;

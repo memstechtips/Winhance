@@ -31,6 +31,26 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void Lockable_target_unlocks_before_and_locks_after_only_the_protective_value()
+    {
+        var setting = Make(
+            new Target[] { new RegTarget("Start", new[] { @"HKLM\Svc" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 } },
+            new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) } },
+            new SettingState { Label = "Manual",   Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) } });
+
+        // The protective value (4): unlock, write, lock — in order.
+        Assert.Collection(ApplyPlanBuilder.Build(setting, "Disabled"),
+            op => Assert.IsType<RegistryUnlockKeyOp>(op),
+            op => Assert.IsType<RegistryWriteOp>(op),
+            op => Assert.IsType<RegistryLockKeyOp>(op));
+
+        // A non-protective value (3): unlock + write, but NO lock.
+        Assert.Collection(ApplyPlanBuilder.Build(setting, "Manual"),
+            op => Assert.IsType<RegistryUnlockKeyOp>(op),
+            op => Assert.IsType<RegistryWriteOp>(op));
+    }
+
+    [Fact]
     public void Absent_state_emits_a_delete_per_path()
     {
         var setting = Make(

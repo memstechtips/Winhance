@@ -63,13 +63,25 @@ public static class ApplyPlanBuilder
                             byte value = sv.WritePayload is { } yp ? Convert.ToByte(yp) : (byte)0;
                             ops.Add(new RegistryByteSetOp(reg, path, byteIndex, value));
                         }
-                        else if (sv.DeleteOnWrite)
-                            ops.Add(new RegistryDeleteOp(reg, path));
-                        else if (sv.WritePayload is { } payload)
-                            ops.Add(new RegistryWriteOp(reg, path, payload));
-                        else if (sv.AcceptsAnyPresent)
-                            ops.Add(new RegistryEnsureKeyOp(reg, path)); // Exists: ensure key/value present
-                        // else: nothing concrete to write (defensive; the validator should prevent this)
+                        else
+                        {
+                            // Plain value path. A lockable target (LockWhenValue set) is unlocked before the write
+                            // and re-locked after, but only when the written value is the protective LockWhenValue
+                            // (mirrors the old apply's unlock-before / lock-after-on-the-disabled-value ACL dance).
+                            if (reg.LockWhenValue is not null)
+                                ops.Add(new RegistryUnlockKeyOp(reg, path));
+                            if (sv.DeleteOnWrite)
+                                ops.Add(new RegistryDeleteOp(reg, path));
+                            else if (sv.WritePayload is { } payload)
+                            {
+                                ops.Add(new RegistryWriteOp(reg, path, payload));
+                                if (reg.LockWhenValue is { } lockVal && Convert.ToInt64(payload) == lockVal)
+                                    ops.Add(new RegistryLockKeyOp(reg, path));
+                            }
+                            else if (sv.AcceptsAnyPresent)
+                                ops.Add(new RegistryEnsureKeyOp(reg, path)); // Exists: ensure key/value present
+                            // else: nothing concrete to write (defensive; the validator should prevent this)
+                        }
                     }
                     break;
 

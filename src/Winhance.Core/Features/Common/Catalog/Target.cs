@@ -20,7 +20,7 @@ public sealed record RegTarget(
     RegistryValueKind Type) : Target(Key)
 {
     public bool IsGroupPolicy { get; init; }
-    public bool LockKeyAccess { get; init; }            // apply-only
+    public int? LockWhenValue { get; init; }            // apply-only: ACL-lock the key after writing THIS value (null = never lock)
     public int? ByteIndex { get; init; }                // REG_BINARY surgical edit
     public byte? BitMask { get; init; }                 // bit-within-byte
     public bool ByteOnly { get; init; }                 // single-byte edit, preserve rest

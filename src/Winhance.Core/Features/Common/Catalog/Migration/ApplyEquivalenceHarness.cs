@@ -342,10 +342,16 @@ public static class ApplyEquivalenceHarness
         }
 
         // Plain value: a specific value (selection) wins; else the enabled/disabled value. Null -> delete.
+        // A LockKeyAccess key is unlocked before the write and re-locked after, but only when the written value is
+        // the disabled state (Start = 4) — mirrors WindowsRegistryService.ApplySetting's unlock-before/lock-after dance.
         var valueToSet = specificValue ?? GetWriteValue(isEnabled ? rs.EnabledValue : rs.DisabledValue);
+        if (rs.LockKeyAccess)
+            yield return $"UNLOCK {rs.KeyPath}";
         yield return valueToSet == null
             ? $"DELETE {rs.KeyPath}\\{rs.ValueName}"
             : $"SET {rs.KeyPath}\\{rs.ValueName} = {Format(valueToSet)} ({rs.ValueType})";
+        if (rs.LockKeyAccess && (!isEnabled || (valueToSet is int v && v == 4)))
+            yield return $"LOCK {rs.KeyPath}";
     }
 
     /// <summary>The new plan's write intent, normalised to the same strings as the old side.</summary>
@@ -365,6 +371,12 @@ public static class ApplyEquivalenceHarness
                     break;
                 case RegistryEnsureKeyOp e:
                     yield return $"CREATEKEY {e.Path}";
+                    break;
+                case RegistryUnlockKeyOp u:
+                    yield return $"UNLOCK {u.Path}";
+                    break;
+                case RegistryLockKeyOp l:
+                    yield return $"LOCK {l.Path}";
                     break;
                 case RegistryBitSetOp b:
                     yield return $"BITSET {b.Path}\\{b.Target.ValueName}[{b.ByteIndex}] mask=0x{b.BitMask:X2} set={b.Set}";

@@ -15,6 +15,8 @@ public class ApplyExecutorTests
         public bool WriteRegistry(RegTarget t, string path, object value) { Calls.Add($"W {path}={value}"); return !FailRegistryWrites; }
         public bool DeleteRegistry(RegTarget t, string path) { Calls.Add($"D {path}"); return true; }
         public bool EnsureRegistryKey(RegTarget t, string path) { Calls.Add($"E {path}"); return true; }
+        public bool UnlockKey(RegTarget t, string path) { Calls.Add($"UNLK {path}"); return true; }
+        public bool LockKey(RegTarget t, string path) { Calls.Add($"LK {path}"); return true; }
         public bool SetRegistryBit(RegTarget t, string path, int byteIndex, byte bitMask, bool set) { Calls.Add($"B {path}[{byteIndex}] 0x{bitMask:X2}={set}"); return !FailRegistryWrites; }
         public bool SetRegistryByte(RegTarget t, string path, int byteIndex, byte value) { Calls.Add($"Y {path}[{byteIndex}]=0x{value:X2}"); return !FailRegistryWrites; }
         public bool SetRegistryComposite(RegTarget t, string path, string compositeKey, string? subValue) { Calls.Add($"C {path}[{compositeKey}]={subValue ?? "<del>"}"); return !FailRegistryWrites; }
@@ -54,6 +56,21 @@ public class ApplyExecutorTests
         var result = ApplyExecutor.Execute(plan, w);
         Assert.True(result.AllSucceeded);
         Assert.Equal(new[] { @"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03" }, w.Calls);
+    }
+
+    [Fact]
+    public void Dispatches_unlock_and_lock_ops_to_the_writer()
+    {
+        var w = new RecordingWriter();
+        var plan = new ApplyOp[]
+        {
+            new RegistryUnlockKeyOp(Reg(), @"HKLM\A"),
+            new RegistryWriteOp(Reg(), @"HKLM\A", 4),
+            new RegistryLockKeyOp(Reg(), @"HKLM\A"),
+        };
+        var result = ApplyExecutor.Execute(plan, w);
+        Assert.True(result.AllSucceeded);
+        Assert.Equal(new[] { @"UNLK HKLM\A", @"W HKLM\A=4", @"LK HKLM\A" }, w.Calls);
     }
 
     [Fact]
