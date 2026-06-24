@@ -1,0 +1,160 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+
+namespace Winhance.Infrastructure.Features.Common.Catalog;
+
+/// <summary>The live detection context: the real Windows reads behind <see cref="IDetectionContext"/>, so the new
+/// detection engine can read a machine. Registry, DNS, build and system-restore reads delegate straight through;
+/// the asynchronous reads (scheduled tasks, powercfg values, the active power plan) are pre-fetched per batch by
+/// <see cref="PrefetchAsync"/> and then served synchronously from a cache, keeping the engine and detectors
+/// synchronous. One instance per detection batch - it holds that batch's pre-fetch cache.</summary>
+public sealed class SystemDetectionContext : IPrefetchableDetectionContext
+{
+    private readonly IWindowsRegistryService _reg;
+    private readonly ISystemRestoreService _restore;
+    private readonly IScheduledTaskService _tasks;
+    private readonly IPowerSettingsQueryService _power;
+    private readonly ILogService _log;
+
+    private Dictionary<string, bool?> _taskCache = new();
+    private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
+    private bool _powerPrefetched;
+    private string? _activePlanGuid;
+    private bool _planPrefetched;
+
+    public SystemDetectionContext(
+        IWindowsRegistryService reg,
+        ISystemRestoreService restore,
+        IScheduledTaskService tasks,
+        IPowerSettingsQueryService power,
+        ILogService log)
+    {
+        _reg = reg;
+        _restore = restore;
+        _tasks = tasks;
+        _power = power;
+        _log = log;
+    }
+
+    public WinBuild CurrentBuild
+    {
+        get
+        {
+            const string key = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+            int build = int.TryParse(_reg.GetValue(key, "CurrentBuildNumber")?.ToString(), out var b) ? b : 0;
+            int ubr = int.TryParse(_reg.GetValue(key, "UBR")?.ToString(), out var r) ? r : 0;
+            return new WinBuild(build, ubr);
+        }
+    }
+
+    public object? GetValue(string keyPath, string? valueName) => _reg.GetValue(keyPath, valueName ?? "");
+
+    public string[] GetSubKeyNames(string keyPath) => _reg.GetSubKeyNames(keyPath);
+
+    public bool KeyExists(string keyPath) => _reg.KeyExists(keyPath);
+
+    public string? PrimaryDnsV4OfActiveAdapter()
+    {
+        var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
+            .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
+                && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+        if (activeAdapter == null)
+            return null;
+
+        // DNS via DHCP leaves NameServer empty; that reads as the Automatic state.
+        var nameServer = _reg.GetValue(
+            $@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{activeAdapter.Id}",
+            "NameServer") as string;
+        if (string.IsNullOrEmpty(nameServer))
+            return null;
+
+        var primaryDns = activeAdapter.GetIPProperties().DnsAddresses
+            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
+            .ToString();
+        return string.IsNullOrEmpty(primaryDns) ? null : primaryDns;
+    }
+
+    public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
+
+    public bool? ScheduledTaskEnabled(string taskPath)
+    {
+        if (_taskCache.TryGetValue(taskPath, out var enabled))
+            return enabled;
+
+        _log.Log(LogLevel.Warning,
+            $"[SystemDetectionContext] Scheduled task '{taskPath}' was not pre-fetched; returning null.");
+        return null;
+    }
+
+    public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context)
+    {
+        if (!_powerPrefetched)
+        {
+            _log.Log(LogLevel.Warning,
+                $"[SystemDetectionContext] Power setting '{settingGuid}' read before a powercfg pre-fetch; returning null.");
+            return null;
+        }
+
+        // A setting absent from the active scheme's read set reads as not present - the same outcome the old
+        // discovery service produces when its batched dictionary has no entry for the setting GUID.
+        if (!_powerCache.TryGetValue(settingGuid, out var values))
+            return null;
+
+        return context == PowerContext.DC ? values.dcValue : values.acValue;
+    }
+
+    public string? ActivePowerPlanGuid()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "[SystemDetectionContext] Active power plan read before a pre-fetch; returning null.");
+        return _activePlanGuid;
+    }
+
+    public async Task PrefetchAsync(IReadOnlyCollection<Setting> settings)
+    {
+        var build = CurrentBuild;
+
+        // Scheduled tasks: read every distinct live task path in parallel; cache enabled / disabled / null (absent).
+        var taskPaths = settings
+            .SelectMany(s => LiveTargets(s, build).OfType<TaskTarget>())
+            .Select(t => t.TaskPath)
+            .Distinct()
+            .ToList();
+        if (taskPaths.Count > 0)
+        {
+            var read = await Task.WhenAll(taskPaths.Select(async path =>
+                new KeyValuePair<string, bool?>(path, await _tasks.IsTaskEnabledAsync(path).ConfigureAwait(false))))
+                .ConfigureAwait(false);
+            _taskCache = new Dictionary<string, bool?>(read);
+        }
+
+        // PowerCfg: one batched read of the active scheme's AC/DC values, keyed by setting GUID. The old discovery
+        // service keys this same dictionary by PowerCfgSetting.SettingGuid, which the converter copies verbatim onto
+        // PowerCfgTarget.SettingGuid, so PowerCfgValue serves it with the same lookup.
+        bool needsPower = settings.Any(s => LiveTargets(s, build).OfType<PowerCfgTarget>().Any());
+        if (needsPower)
+        {
+            _powerCache = await _power.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT").ConfigureAwait(false);
+            _powerPrefetched = true;
+        }
+
+        // Active power plan: read once when a setting selects the power plan (its options are runtime-sourced).
+        bool needsPlan = settings.Any(s => s.Detector is PowerPlanDetector || s.OptionSource is PowerPlanOptionSource);
+        if (needsPlan)
+        {
+            var plan = await _power.GetActivePowerPlanAsync().ConfigureAwait(false);
+            _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
+            _planPrefetched = true;
+        }
+    }
+
+    private static IEnumerable<Target> LiveTargets(Setting setting, WinBuild build) =>
+        setting.Targets.Where(t => t.AppliesTo.Count == 0 || t.AppliesTo.Any(r => r.Contains(build)));
+}
