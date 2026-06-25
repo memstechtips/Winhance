@@ -782,7 +782,7 @@ public static class PrivacyOptimizationsCatalog
             Targets = new Target[]
             {
                 new RegTarget("RotatingLockScreenOverlayEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "RotatingLockScreenOverlayEnabled", RegistryValueKind.DWord),
-                new RegTarget("SubscribedContent-338387Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "SubscribedContent-338387Enabled", RegistryValueKind.DWord),
+                new RegTarget("SubscribedContent-338387Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "SubscribedContent-338387Enabled", RegistryValueKind.DWord) { ApplyOnly = true },
             },
             States = new[]
             {
@@ -792,7 +792,7 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["RotatingLockScreenOverlayEnabled"] = Of(1),
+                        ["RotatingLockScreenOverlayEnabled"] = Of(1).OrAbsent(),
                         ["SubscribedContent-338387Enabled"] = Of(1),
                     },
                 },
@@ -822,7 +822,7 @@ public static class PrivacyOptimizationsCatalog
             Targets = new Target[]
             {
                 new RegTarget("Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" }, "Enabled", RegistryValueKind.DWord),
-                new RegTarget("Value", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\AdvertisingInfo" }, "Value", RegistryValueKind.DWord),
+                new RegTarget("Value", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\AdvertisingInfo" }, "Value", RegistryValueKind.DWord) { ApplyOnly = true },
                 new RegTarget("DisabledByGroupPolicy", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo" }, "DisabledByGroupPolicy", RegistryValueKind.DWord) { IsGroupPolicy = true },
             },
             States = new[]
@@ -833,7 +833,7 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["Enabled"] = Of(1),
+                        ["Enabled"] = Of(1).OrAbsent(),
                         ["Value"] = Of(1),
                         ["DisabledByGroupPolicy"] = Absent,
                     },
@@ -1161,7 +1161,7 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["ShowedToastAtLevel"] = Of(3),
+                        ["ShowedToastAtLevel"] = Of(3).OrAbsent(),
                         ["AllowTelemetry"] = Of(3),
                         ["MaxTelemetryAllowed"] = Of(3),
                         ["AITEnable"] = Absent,

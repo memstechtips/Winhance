@@ -616,7 +616,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = Of("1") },
+                    Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = Of("1").OrAbsent() },
                 },
                 new SettingState
                 {
@@ -644,7 +644,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = Of("1") },
+                    Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = Of("1").OrAbsent() },
                 },
                 new SettingState
                 {
@@ -2276,7 +2276,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             Targets = new Target[]
             {
                 new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 },
-                new RegTarget("IsInputAppPreloadEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\input" }, "IsInputAppPreloadEnabled", RegistryValueKind.DWord),
+                new RegTarget("IsInputAppPreloadEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\input" }, "IsInputAppPreloadEnabled", RegistryValueKind.DWord) { ApplyOnly = true },
             },
             States = new[]
             {
@@ -2298,7 +2298,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Effects = new Effect[] { new ScriptEffect(@"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue", RunContext.System) },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["Start"] = Of(3),
+                        ["Start"] = Of(3).OrAbsent(),
                         ["IsInputAppPreloadEnabled"] = Of(1),
                     },
                 },

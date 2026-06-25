@@ -43,13 +43,15 @@ public class CatalogAuthoringEquivalenceTests
     public void GamingAndPerformance()
         => AssertCatalogMatches(
             GamingAndPerformanceOptimizations.GetGamingAndPerformanceOptimizations().Settings,
-            GamingAndPerformanceOptimizationsCatalog.All);
+            GamingAndPerformanceOptimizationsCatalog.All,
+            PrecedenceCorrectedIds);
 
     [Fact]
     public void Privacy()
         => AssertCatalogMatches(
             PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
-            PrivacyOptimizationsCatalog.All);
+            PrivacyOptimizationsCatalog.All,
+            PrecedenceCorrectedIds);
 
     [Fact]
     public void Power()
@@ -139,13 +141,28 @@ public class CatalogAuthoringEquivalenceTests
         States = s.States.Select(st => st with { Roles = System.Array.Empty<StateRole>() }).ToList(),
     };
 
-    private static void AssertCatalogMatches(IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored)
+    // Settings whose registry detection was corrected to the effective-value-by-precedence model. They INTENTIONALLY
+    // diverge from the throwaway converter: the converter mirrors the OLD app's detection, which does not treat an
+    // absent key as its DefaultValue, so it cannot express "absent = the Windows default state". The catalog adds
+    // Of(v).OrAbsent() on the deciding key (and ApplyOnly on mirror/cloud keys, which the comparer ignores). Their
+    // detection correctness is pinned by CatalogDetectionModelConformanceTests, not this structural gate.
+    private static readonly string[] PrecedenceCorrectedIds =
     {
+        "privacy-advertising-id", "privacy-diagnostics", "privacy-lock-screen-overlay",
+        "gaming-directx-flip-model", "gaming-directx-vrr-optimizations", "gaming-touch-keyboard-service",
+    };
+
+    private static void AssertCatalogMatches(
+        IReadOnlyList<SettingDefinition> old, IReadOnlyList<Setting> authored, IReadOnlyList<string>? precedenceCorrected = null)
+    {
+        var corrected = new HashSet<string>(precedenceCorrected ?? System.Array.Empty<string>());
         var byId = authored.ToDictionary(s => s.Id);
-        Assert.Equal(old.Count, authored.Count); // nothing dropped, nothing added
+        Assert.Equal(old.Count, authored.Count); // nothing dropped, nothing added (corrected settings are still present)
         foreach (var def in old)
         {
             Assert.True(byId.ContainsKey(def.Id), $"authored catalog is missing setting '{def.Id}'");
+            if (corrected.Contains(def.Id))
+                continue; // detection-corrected: validated by the conformance tests, not the converter comparison
             var diff = SettingStructuralComparer.Diff(byId[def.Id], Convert(def));
             Assert.True(diff.Count == 0, $"'{def.Id}' differs from converter output: {string.Join(" | ", diff)}");
         }
