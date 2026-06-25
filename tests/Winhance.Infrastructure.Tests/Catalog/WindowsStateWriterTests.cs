@@ -10,8 +10,8 @@ using Xunit;
 namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Unit tests for the live <see cref="WindowsStateWriter"/>: each writer method must delegate to the right
-/// WindowsRegistryService primitive / scheduled-task call with the right arguments (the byte logic itself lives in
-/// the proven primitives and is covered elsewhere). Powercfg + effects are Slice 2b/2c placeholders.</summary>
+/// WindowsRegistryService primitive / scheduled-task / powercfg call with the right arguments (the byte logic itself
+/// lives in the proven primitives and is covered elsewhere). RunEffect is a Slice 2c placeholder.</summary>
 public class WindowsStateWriterTests
 {
     private const string Path = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test";
@@ -19,12 +19,13 @@ public class WindowsStateWriterTests
 
     private readonly Mock<IWindowsRegistryService> _reg = new(MockBehavior.Strict);
     private readonly Mock<IScheduledTaskService> _tasks = new(MockBehavior.Strict);
+    private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
-        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _log.Object);
+        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
@@ -267,13 +268,25 @@ public class WindowsStateWriterTests
         act.Should().Throw<System.NotSupportedException>();
     }
 
-    [Fact]
-    public void WritePowerCfgValue_IsNotYetImplemented()
+    [Theory]
+    [InlineData(PowerContext.AC)]
+    [InlineData(PowerContext.DC)]
+    public void WritePowerCfgValue_DelegatesToApplierPerContext(PowerContext context)
     {
         var target = new PowerCfgTarget("key", "381b4222-f694-41f0-9685-ff5bb260df2e", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", PowerModeSupport.Both);
+        _powerCfg.Setup(p => p.WriteValueIndexAsync(target, context, 3)).ReturnsAsync(true);
 
-        var act = () => _sut.WritePowerCfgValue(target, PowerContext.AC, 0);
+        _sut.WritePowerCfgValue(target, context, 3).Should().BeTrue();
 
-        act.Should().Throw<System.NotSupportedException>();
+        _powerCfg.Verify(p => p.WriteValueIndexAsync(target, context, 3), Times.Once);
+    }
+
+    [Fact]
+    public void WritePowerCfgValue_PassesThroughFailure()
+    {
+        var target = new PowerCfgTarget("key", "381b4222-f694-41f0-9685-ff5bb260df2e", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", PowerModeSupport.Both);
+        _powerCfg.Setup(p => p.WriteValueIndexAsync(target, PowerContext.AC, 1)).ReturnsAsync(false);
+
+        _sut.WritePowerCfgValue(target, PowerContext.AC, 1).Should().BeFalse();
     }
 }

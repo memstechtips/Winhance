@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -102,6 +103,45 @@ public class PowerCfgApplier(
         }
 
         return OperationResult.Succeeded();
+    }
+
+    public async Task<bool> WriteValueIndexAsync(PowerCfgTarget target, PowerContext context, int value)
+    {
+        // Per-(target, context) write that mirrors ExecutePowerCfgSettings for a single context: a DC write is
+        // skipped on a battery-less machine; the active scheme is resolved, the value index written, and the scheme
+        // committed by re-activating it. The new apply engine emits one PowerCfgSetOp per context, so the writer
+        // calls this once per context (AC then DC) - the resulting on-disk state matches the old batch apply
+        // (the old single end-of-batch commit vs this per-call commit re-activates the same scheme; no functional
+        // difference). The value-differs short-circuit the old apply used only gated its change counter; writing
+        // the same value again is a no-op on disk, so it is omitted here.
+        if (context == PowerContext.DC && !await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false))
+        {
+            logService.Log(LogLevel.Debug, $"[PowerCfgApplier] Skipping DC write for {target.SettingGuid} - no battery present");
+            return true;
+        }
+
+        var activeSchemeResult = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out var activeSchemePtr);
+        if (activeSchemeResult != PowerProf.ERROR_SUCCESS)
+        {
+            logService.Log(LogLevel.Error, "[PowerCfgApplier] Failed to get active power scheme");
+            return false;
+        }
+
+        var activeSchemeGuid = Marshal.PtrToStructure<Guid>(activeSchemePtr);
+        PowerProf.LocalFree(activeSchemePtr);
+
+        var subgroupGuid = Guid.Parse(target.SubgroupGuid);
+        var settingGuid = Guid.Parse(target.SettingGuid);
+
+        var rc = context == PowerContext.DC
+            ? PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)value)
+            : PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)value);
+
+        // Commit the change (mirrors ExecutePowerCfgSettings' end-of-batch PowerSetActiveScheme).
+        PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref activeSchemeGuid);
+
+        logService.Log(LogLevel.Info, $"[PowerCfgApplier] Wrote {context} value index {value} for setting {target.SettingGuid} (rc={rc})");
+        return rc == PowerProf.ERROR_SUCCESS;
     }
 
     private async Task ExecutePowerCfgSettings(IReadOnlyList<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)

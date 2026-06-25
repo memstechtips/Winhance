@@ -17,15 +17,18 @@ public sealed class WindowsStateWriter : IStateWriter
 {
     private readonly IWindowsRegistryService _reg;
     private readonly IScheduledTaskService _tasks;
+    private readonly IPowerCfgApplier _powerCfg;
     private readonly ILogService _log;
 
     public WindowsStateWriter(
         IWindowsRegistryService reg,
         IScheduledTaskService tasks,
+        IPowerCfgApplier powerCfg,
         ILogService log)
     {
         _reg = reg;
         _tasks = tasks;
+        _powerCfg = powerCfg;
         _log = log;
     }
 
@@ -134,12 +137,15 @@ public sealed class WindowsStateWriter : IStateWriter
         return result.Success;
     }
 
-    // --- Powercfg + effects: Phase 6.4 Slice 2b/2c. The writer is NOT wired into the apply funnel until Slice 4,
-    //     so these throwing placeholders are unreachable in production until then. ---
+    // --- Powercfg ---
 
     public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
-        throw new NotSupportedException(
-            "WindowsStateWriter.WritePowerCfgValue is implemented in Phase 6.4 Slice 2b; the writer is not wired into the apply funnel until Slice 4.");
+        // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the
+        // native P/Invoke already lives and is exercised by the powercfg apply-smoke. Sync-over-async at the boundary.
+        _powerCfg.WriteValueIndexAsync(target, context, value).GetAwaiter().GetResult();
+
+    // --- Effects: Phase 6.4 Slice 2c. The writer is NOT wired into the apply funnel until Slice 4,
+    //     so this throwing placeholder is unreachable in production until then. ---
 
     public bool RunEffect(Effect effect) =>
         throw new NotSupportedException(

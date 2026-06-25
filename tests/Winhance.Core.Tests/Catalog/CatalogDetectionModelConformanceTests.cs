@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -209,5 +210,30 @@ public class CatalogDetectionModelConformanceTests
     {
         Assert.Equal("Enabled", Detect(id));                                                   // clean -> shown (default)
         Assert.Equal("Disabled", Detect(id, (clsidPath, "System.IsPinnedToNameSpaceTree", 0))); // unpinned -> hidden
+    }
+
+    // ============================================================================================================
+    //  Apply-engine invariant guarding the new powercfg writer (Phase 6.4 Slice 2b)
+    // ============================================================================================================
+
+    /// <summary>ApplyPlanBuilder emits one PowerCfgSetOp per context (AC then DC) for EVERY powercfg target, and
+    /// WindowsStateWriter writes each unconditionally (battery-gating only the DC write). That reproduces the old
+    /// apply EXACTLY for PowerModeSupport.Separate (old ExecutePowerCfgSettings also writes AC always + DC if
+    /// battery). An ACOnly/DCOnly setting, however, would have the old apply SKIP the other context - so the new
+    /// engine would write a context the old apply never touched. Guard the assumption: if a future powercfg setting
+    /// is not Separate, this fails loud, signalling that ApplyPlanBuilder must learn to honour PowerCfgTarget.Mode
+    /// (skip DC for ACOnly, skip AC for DCOnly) before that setting can apply through the new engine.</summary>
+    [Fact]
+    public void EveryPowerCfgTarget_IsSeparateMode()
+    {
+        var nonSeparate = SettingCatalog.All
+            .SelectMany(s => s.Targets.OfType<PowerCfgTarget>().Select(t => $"{s.Id}/{t.SettingGuid}={t.Mode}"))
+            .Where(x => !x.EndsWith($"={PowerModeSupport.Separate}"))
+            .ToList();
+
+        Assert.True(nonSeparate.Count == 0,
+            "ApplyPlanBuilder emits AC+DC unconditionally for every powercfg target; only PowerModeSupport.Separate " +
+            "matches the old per-mode apply. Teach ApplyPlanBuilder to honour Mode before adding: " +
+            string.Join(", ", nonSeparate));
     }
 }
