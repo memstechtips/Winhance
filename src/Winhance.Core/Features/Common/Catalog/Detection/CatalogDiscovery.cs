@@ -69,12 +69,12 @@ public static class CatalogDiscovery
     }
 
     /// <summary>Resolves a registry setting's state by precedence: a present group-policy target wins; else the
-    /// first present target decides. When NOTHING is present, Windows resolves the setting to its default, so the
-    /// state tagged WindowsDefault wins (a clean/default machine reports its default, not the recommended catch-all);
-    /// only when no WindowsDefault state exists does it fall through to the first target's absence handling then the
-    /// IsFallback catch-all. The chosen present target's value decides which state matches, so a binary toggle never
-    /// reports Custom. Mirrors how the old app read these (any single authoritative key decides) without its bug of
-    /// letting a stray lower-precedence key win, and without its absent-key-counts-as-enabled false positive.</summary>
+    /// first present target; else the first target (so its absence handling still applies). The chosen target's
+    /// value decides which state matches, so a binary toggle never reports Custom - it falls to the IsFallback
+    /// state when nothing matches. Mirrors how the old app read these (any single authoritative key decides)
+    /// without its bug of letting a stray lower-precedence key win. A setting whose default state is "key absent"
+    /// carries that absence on the deciding key's StateValue (Absent / Of(v).OrAbsent()), so a clean machine
+    /// resolves to its default through the normal match, not a role-based guess.</summary>
     private static string? DetectByPrecedence(
         IReadOnlyList<SettingState> states, IStateReadings readings, IReadOnlyList<RegTarget> regTargets)
     {
@@ -84,20 +84,10 @@ public static class CatalogDiscovery
             return present;
         }
 
-        RegTarget? presentTarget =
+        RegTarget deciding =
             regTargets.FirstOrDefault(t => t.IsGroupPolicy && Present(t.Key))
-            ?? regTargets.FirstOrDefault(t => Present(t.Key));
-
-        // Nothing present: the effective value is the Windows default. Prefer the WindowsDefault-tagged state; if a
-        // setting has none, fall through so a state that explicitly accepts absence on the first target still matches.
-        if (presentTarget is null)
-        {
-            var windowsDefault = states.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault));
-            if (windowsDefault is not null)
-                return windowsDefault.Label;
-        }
-
-        RegTarget deciding = presentTarget ?? regTargets[0];
+            ?? regTargets.FirstOrDefault(t => Present(t.Key))
+            ?? regTargets[0];
 
         SettingState? fallback = null;
         foreach (var state in states)
