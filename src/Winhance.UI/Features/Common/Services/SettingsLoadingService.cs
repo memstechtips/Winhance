@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -21,6 +22,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
     private readonly IDetectionShadowRunner _shadowRunner;
+    private readonly ICatalogDetectionService _catalogDetectionService;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -31,7 +33,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         ISettingPreparationPipeline preparationPipeline,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
-        IDetectionShadowRunner shadowRunner)
+        IDetectionShadowRunner shadowRunner,
+        ICatalogDetectionService catalogDetectionService)
     {
         _discoveryService = discoveryService;
         _eventBus = eventBus;
@@ -42,6 +45,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
         _shadowRunner = shadowRunner;
+        _catalogDetectionService = catalogDetectionService;
     }
 
     public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
@@ -71,6 +75,10 @@ public class SettingsLoadingService : ISettingsLoadingService
             // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). Runs
             // after combo-box resolution so the selection baseline is the same value the UI consumes.
             await _shadowRunner.RunAsync(settingsList, batchStates);
+
+            // Detection cutover: the new catalog engine decides each setting's primary state (toggle on/off,
+            // selection option). Auxiliary data (RawValues, TooltipData, AC/DC) stays as the old discovery read it.
+            await OverlayCatalogStatesAsync(settingsList, batchStates);
 
             // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
             foreach (var setting in settingsList)
@@ -128,7 +136,44 @@ public class SettingsLoadingService : ISettingsLoadingService
         // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled).
         await _shadowRunner.RunAsync(definitions, batchStates);
 
+        // Detection cutover: the new catalog engine decides each setting's primary state.
+        await OverlayCatalogStatesAsync(definitions, batchStates);
+
         return batchStates;
+    }
+
+    /// <summary>
+    /// Overlays the new catalog detection engine's authoritative primary state (a toggle's on/off, a selection's
+    /// chosen option index) onto the batch states the UI consumes, for every setting that has a catalog peer. The
+    /// old result's auxiliary data (RawValues, TooltipData, the AC/DC split) is preserved, and unpaired settings keep
+    /// their old state. Any failure is logged and leaves the old states in place, so detection never hard-fails a page.
+    /// </summary>
+    private async Task OverlayCatalogStatesAsync(
+        IReadOnlyList<SettingDefinition> definitions,
+        Dictionary<string, SettingStateResult> batchStates)
+    {
+        try
+        {
+            var ids = new HashSet<string>(definitions.Select(d => d.Id));
+            var pairedSettings = SettingCatalog.All.Where(s => ids.Contains(s.Id)).ToList();
+            if (pairedSettings.Count == 0)
+                return;
+
+            var newResults = await _catalogDetectionService.DetectAsync(pairedSettings);
+
+            foreach (var def in definitions)
+            {
+                if (!batchStates.TryGetValue(def.Id, out var oldState))
+                    continue;
+                newResults.TryGetValue(def.Id, out var newResult);
+                batchStates[def.Id] = CatalogDetectionStateOverlay.Apply(def, oldState, newResult);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"[SettingsLoadingService] Catalog detection overlay failed (keeping old states): {ex.Message}");
+        }
     }
 
     /// <summary>
