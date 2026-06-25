@@ -128,4 +128,98 @@ public class CatalogDiscoveryPrecedenceTests
         Assert.Equal("On", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 1 })));
         Assert.Equal("Off", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 0 })));
     }
+
+    private const string DiagPref = @"HKEY_CURRENT_USER\Software\X\Diagnostics\DiagTrack";
+    private const string DiagGpo = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\X\DataCollection";
+
+    /// <summary>diagnostics shape: a preference key (the deciding key when nothing is present) whose Enabled value is
+    /// a concrete value with NO absent-accept, plus a group-policy override. The Enabled state carries WindowsDefault.</summary>
+    private static Setting DiagSetting() => new()
+    {
+        Id = "diag",
+        Display = new() { Name = "diag", Description = "diag" },
+        Targets = new Target[]
+        {
+            new RegTarget("Toast", new[] { DiagPref }, "ShowedToastAtLevel", RegistryValueKind.DWord),
+            new RegTarget("Telemetry", new[] { DiagGpo }, "AllowTelemetry", RegistryValueKind.DWord) { IsGroupPolicy = true },
+        },
+        States = new[]
+        {
+            new SettingState
+            {
+                Label = "Enabled",
+                Roles = new[] { StateRole.WindowsDefault },
+                Set = new Dictionary<string, StateValue> { ["Toast"] = StateValue.Of(3), ["Telemetry"] = StateValue.Of(3) },
+            },
+            new SettingState
+            {
+                Label = "Disabled",
+                Roles = new[] { StateRole.Recommended },
+                IsFallback = true,
+                Set = new Dictionary<string, StateValue> { ["Toast"] = StateValue.Of(1), ["Telemetry"] = StateValue.Of(0) },
+            },
+        },
+    };
+
+    [Fact]
+    public void Nothing_present_resolves_to_windows_default_state() // Gap 2: clean machine -> default, not the catch-all
+    {
+        // No key present and the deciding pref's Enabled entry is Of(3) (no absent): without Gap 2 this falls to the
+        // IsFallback "Disabled" catch-all, which is wrong - a clean machine has telemetry on (the Windows default).
+        Assert.Equal("Enabled", CatalogDiscovery.DetectState(DiagSetting(), new Ctx(new())));
+    }
+
+    [Fact]
+    public void Group_policy_off_decides_over_the_default()
+    {
+        var ctx = new Ctx(new() { [(DiagGpo, "AllowTelemetry")] = 0 }); // GP disables telemetry
+        Assert.Equal("Disabled", CatalogDiscovery.DetectState(DiagSetting(), ctx));
+    }
+
+    [Fact]
+    public void Preference_off_decides_when_no_group_policy_present()
+    {
+        var ctx = new Ctx(new() { [(DiagPref, "ShowedToastAtLevel")] = 1 }); // only the pref is set, to the disabled value
+        Assert.Equal("Disabled", CatalogDiscovery.DetectState(DiagSetting(), ctx));
+    }
+
+    [Fact]
+    public void Nothing_present_without_windows_default_role_stays_on_fallback() // Gap 2 is gated: no role -> old behaviour
+    {
+        var setting = new Setting
+        {
+            Id = "nd",
+            Display = new() { Name = "nd", Description = "nd" },
+            Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TESTND" }, "V", RegistryValueKind.DWord) },
+            States = new[]
+            {
+                new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
+                new SettingState { Label = "Off", IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
+            },
+        };
+
+        Assert.Equal("Off", CatalogDiscovery.DetectState(setting, new Ctx(new())));
+    }
+
+    [Fact]
+    public void Selection_decides_by_authoritative_key_and_defaults_when_absent() // touch-keyboard shape
+    {
+        var setting = new Setting
+        {
+            Id = "svc",
+            Display = new() { Name = "svc", Description = "svc" },
+            Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SVC" }, "Start", RegistryValueKind.DWord) },
+            States = new[]
+            {
+                new SettingState { Label = "DisabledRec", Roles = new[] { StateRole.Recommended }, Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) } },
+                new SettingState { Label = "Manual", Roles = new[] { StateRole.WindowsDefault }, Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) } },
+                new SettingState { Label = "Automatic", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(2) } },
+            },
+        };
+
+        Assert.Equal("Manual", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\SVC", "Start")] = 3 })));
+        Assert.Equal("DisabledRec", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\SVC", "Start")] = 4 })));
+        Assert.Equal("Manual", CatalogDiscovery.DetectState(setting, new Ctx(new())));                                  // absent -> WindowsDefault
+        Assert.Null(CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\SVC", "Start")] = 1 }))); // unrecognised present -> Custom
+    }
 }
