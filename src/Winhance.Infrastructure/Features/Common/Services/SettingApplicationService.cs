@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
@@ -27,7 +28,8 @@ public class SettingApplicationService(
     IChangeHistoryService changeHistory,
     ISystemSettingsDiscoveryService discoveryService,
     ILocalizationService localizationService,
-    IHardwareDetectionService hardwareDetectionService) : ISettingApplicationService
+    IHardwareDetectionService hardwareDetectionService,
+    IStateWriter stateWriter) : ISettingApplicationService
 {
     // Battery presence doesn't change mid-session, so resolve it once and cache. The async
     // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
@@ -51,6 +53,39 @@ public class SettingApplicationService(
         }
 
         return _hasBatteryCache.Value;
+    }
+
+    /// <summary>Phase 6.4 cutover seam: apply a setting's operations through the NEW catalog engine when the setting
+    /// is paired and the request is representable (plain toggle / check-box / selection / Action), else fall back to
+    /// the proven old apply. <see cref="ApplyRequestResolver"/> decides; <see cref="ApplyExecutor"/> runs the plan
+    /// against the live <see cref="IStateWriter"/>. Unpaired / reset-to-default / numeric / custom-detector requests
+    /// resolve to null and keep the old <see cref="ISettingOperationExecutor"/> path, so nothing regresses.</summary>
+    private async Task<OperationResult> ApplyOperationsAsync(SettingDefinition setting, bool enable, object? value, bool resetToDefault)
+    {
+        var plan = ApplyRequestResolver.Resolve(setting, enable, value, resetToDefault);
+        if (plan is null)
+        {
+            // The old executor runs HandleProcessAndServiceRestartsAsync internally as its final step, so the
+            // fallback path needs nothing extra here.
+            return await operationExecutor
+                .ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
+        }
+
+        var result = ApplyExecutor.Execute(plan, stateWriter);
+
+        // The new apply engine performs no process/service restarts, but the old executor did as its final,
+        // unconditional step (SettingOperationExecutor's HandleProcessAndServiceRestartsAsync). Mirror it so a paired
+        // setting that restarts Explorer/a service on apply still takes visual effect. This respects an active
+        // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart - identical to
+        // how the old executor's call behaved under suppression.
+        await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
+
+        if (result.AllSucceeded)
+            return OperationResult.Succeeded();
+
+        var message = $"{result.Failed}/{result.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", result.Failures)}";
+        logService.Log(LogLevel.Warning, $"[SettingApplicationService] {message}");
+        return OperationResult.Failed(message);
     }
 
     public async Task<OperationResult> ApplySettingAsync(ApplySettingRequest request)
@@ -136,8 +171,7 @@ public class SettingApplicationService(
             var toRestart = new List<SettingDefinition>();
             using (processRestartManager.SuppressRestarts())
             {
-                operationResult = await operationExecutor
-                    .ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
+                operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
                 toRestart.Add(setting);
 
                 var recApplied = await recommendedSettingsApplier
@@ -148,8 +182,7 @@ public class SettingApplicationService(
         }
         else
         {
-            operationResult = await operationExecutor
-                .ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
+            operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
         }
 
         if (setting.SettingPresets != null &&
