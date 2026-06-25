@@ -1,0 +1,92 @@
+using System.Collections.Generic;
+using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Catalog;
+using Xunit;
+
+namespace Winhance.Infrastructure.Tests.Catalog;
+
+public class CatalogDetectionStateOverlayTests
+{
+    private static SettingDefinition Toggle() =>
+        new() { Id = "t", Name = "t", Description = "t", InputType = InputType.Toggle };
+
+    private static SettingDefinition Selection(params string[] options) => new()
+    {
+        Id = "s",
+        Name = "s",
+        Description = "s",
+        InputType = InputType.Selection,
+        ComboBox = new ComboBoxMetadata
+        {
+            Options = options.Select(o => new ComboBoxOption { DisplayName = o }).ToList(),
+        },
+    };
+
+    private static SettingDefinition Bare(InputType type) =>
+        new() { Id = "x", Name = "x", Description = "x", InputType = type };
+
+    [Fact]
+    public void Toggle_new_disabled_overlays_isenabled_false_and_keeps_old_aux()
+    {
+        var old = new SettingStateResult { IsEnabled = true, Success = true, ErrorMessage = "keep me" };
+        var result = CatalogDetectionStateOverlay.Apply(Toggle(), old,
+            new CatalogDetectionResult { StateLabel = "Disabled", Detected = true });
+        Assert.False(result.IsEnabled);
+        Assert.True(result.Success);              // old auxiliary fields preserved
+        Assert.Equal("keep me", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void Toggle_new_enabled_overlays_isenabled_true()
+    {
+        var old = new SettingStateResult { IsEnabled = false, Success = true };
+        var result = CatalogDetectionStateOverlay.Apply(Toggle(), old,
+            new CatalogDetectionResult { StateLabel = "Enabled", Detected = true });
+        Assert.True(result.IsEnabled);
+    }
+
+    [Fact]
+    public void Toggle_custom_or_null_label_keeps_old()
+    {
+        var old = new SettingStateResult { IsEnabled = true, Success = true };
+        Assert.True(CatalogDetectionStateOverlay.Apply(Toggle(), old, new CatalogDetectionResult { StateLabel = null }).IsEnabled);
+        Assert.True(CatalogDetectionStateOverlay.Apply(Toggle(), old, new CatalogDetectionResult { StateLabel = "Custom" }).IsEnabled);
+    }
+
+    [Fact]
+    public void Selection_resolves_label_to_index()
+    {
+        var old = new SettingStateResult { CurrentValue = 0, Success = true };
+        var def = Selection("Off", "On", "Custom mode");
+        var result = CatalogDetectionStateOverlay.Apply(def, old,
+            new CatalogDetectionResult { StateLabel = "Custom mode", Detected = true });
+        Assert.Equal(2, result.CurrentValue);
+    }
+
+    [Fact]
+    public void Selection_unmatched_label_keeps_old_index()
+    {
+        var old = new SettingStateResult { CurrentValue = 1, Success = true };
+        var def = Selection("Off", "On");
+        var result = CatalogDetectionStateOverlay.Apply(def, old,
+            new CatalogDetectionResult { StateLabel = "Nonexistent" });
+        Assert.Equal(1, result.CurrentValue);
+    }
+
+    [Fact]
+    public void Numeric_action_and_unpaired_keep_old()
+    {
+        var old = new SettingStateResult { CurrentValue = 42, IsEnabled = true, Success = true };
+        Assert.Equal(42, CatalogDetectionStateOverlay.Apply(
+            Bare(InputType.NumericRange), old, new CatalogDetectionResult { Value = 7 }).CurrentValue);
+        Assert.Equal(42, CatalogDetectionStateOverlay.Apply(
+            Bare(InputType.Action), old, new CatalogDetectionResult { StateLabel = "Enabled" }).CurrentValue);
+        // unpaired (null new result) -> old unchanged
+        var unpaired = CatalogDetectionStateOverlay.Apply(Toggle(), old, null);
+        Assert.True(unpaired.IsEnabled);
+        Assert.Equal(42, unpaired.CurrentValue);
+    }
+}
