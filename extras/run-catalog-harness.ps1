@@ -17,6 +17,9 @@ param (
 
 $ErrorActionPreference = "Continue"
 $solutionDir = Resolve-Path "$PSScriptRoot\.."
+# Redirect build outputs to a local disk when the repo is on a network share (otherwise Winhance.Core
+# silently links a stale prebuilt dll and catalog edits are ignored). No-op on a local repo.
+. "$PSScriptRoot\Use-LocalBuildOutputs.ps1" -RepoRoot $solutionDir
 $proj    = Join-Path $solutionDir "tests\Winhance.Infrastructure.Tests\Winhance.Infrastructure.Tests.csproj"
 $logFile = Join-Path $PSScriptRoot "catalog-harness-results.txt"
 # Build the test output to a LOCAL dir so testhost.exe launches from C:\ - the Z:\ share blocks

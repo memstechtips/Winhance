@@ -26,6 +26,11 @@ param (
 $ErrorActionPreference = "Stop"
 $solutionDir = Resolve-Path "$PSScriptRoot\.."
 
+# Redirect build outputs to a local disk when the repo is on a network share (otherwise a project can
+# silently link a stale prebuilt dll and ignore source edits, or the build fails writing the share's
+# obj\). No-op on a local repo.
+. "$PSScriptRoot\Use-LocalBuildOutputs.ps1" -RepoRoot $solutionDir
+
 # Track results
 $totalPassed = 0
 $totalFailed = 0
