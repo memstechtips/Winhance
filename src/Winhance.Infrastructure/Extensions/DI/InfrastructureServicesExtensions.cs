@@ -108,7 +108,9 @@ public static class InfrastructureServicesExtensions
         // Catalog detection batch driver + the observe-only parallel-run shadow (logs old-vs-new divergences).
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
         services.AddSingleton<IDetectionShadowRunner, DetectionShadowRunner>();
-        // Catalog apply: the live IStateWriter that executes apply plans against the real system (Phase 6.4).
+        // Catalog apply: the live IStateWriter that executes apply plans against the real system (Phase 6.4),
+        // plus the OTS-aware .reg-import effect runner it delegates to.
+        services.AddSingleton<IRegImportService, RegImportService>();
         services.AddSingleton<IStateWriter, WindowsStateWriter>();
 
         // ComboBox Services

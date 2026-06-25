@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
@@ -18,17 +19,23 @@ public sealed class WindowsStateWriter : IStateWriter
     private readonly IWindowsRegistryService _reg;
     private readonly IScheduledTaskService _tasks;
     private readonly IPowerCfgApplier _powerCfg;
+    private readonly IPowerShellRunner _powerShell;
+    private readonly IRegImportService _regImport;
     private readonly ILogService _log;
 
     public WindowsStateWriter(
         IWindowsRegistryService reg,
         IScheduledTaskService tasks,
         IPowerCfgApplier powerCfg,
+        IPowerShellRunner powerShell,
+        IRegImportService regImport,
         ILogService log)
     {
         _reg = reg;
         _tasks = tasks;
         _powerCfg = powerCfg;
+        _powerShell = powerShell;
+        _regImport = regImport;
         _log = log;
     }
 
@@ -144,10 +151,40 @@ public sealed class WindowsStateWriter : IStateWriter
         // native P/Invoke already lives and is exercised by the powercfg apply-smoke. Sync-over-async at the boundary.
         _powerCfg.WriteValueIndexAsync(target, context, value).GetAwaiter().GetResult();
 
-    // --- Effects: Phase 6.4 Slice 2c. The writer is NOT wired into the apply funnel until Slice 4,
-    //     so this throwing placeholder is unreachable in production until then. ---
+    // --- Effects (apply-only side-effects a state runs on apply) ---
 
-    public bool RunEffect(Effect effect) =>
-        throw new NotSupportedException(
-            "WindowsStateWriter.RunEffect is implemented in Phase 6.4 Slice 2c; the writer is not wired into the apply funnel until Slice 4.");
+    public bool RunEffect(Effect effect)
+    {
+        switch (effect)
+        {
+            case ScriptEffect s:
+                // Old apply runs the script in-memory and does NOT track its result (it never adds to
+                // failedOperations). RunContext is carried for fidelity but the old apply does not pass it.
+                // Sync-over-async at the writer boundary.
+                _powerShell.RunScriptInMemoryAsync(s.Script).GetAwaiter().GetResult();
+                return true;
+
+            case RegContentEffect r:
+                // .reg import via the OTS-aware dance (throws on a file-system / process exception, like the old
+                // apply; a non-zero reg.exe exit is logged, not treated as failure).
+                _regImport.RunRegImportAsync(r.Content).GetAwaiter().GetResult();
+                return true;
+
+            case NativePowerEffect n:
+                // CallNtPowerInformation (e.g. the hibernate toggle); the old apply treats status 0 as success.
+                byte value = n.Value;
+                return PowerProf.CallNtPowerInformation(n.InformationLevel, ref value, 1, IntPtr.Zero, 0) == 0;
+
+            case RegistryWriteEffect w:
+                // Apply-only registry write (an Action's enabled-branch value write): CreateKey then SetValue,
+                // matching the old enabled-branch ApplySetting.
+                if (!_reg.CreateKey(w.Path))
+                    return false;
+                return _reg.SetValue(w.Path, w.ValueName, w.Value, w.Kind);
+
+            default:
+                // Unknown effect: no-op success (matches ApplyExecutor's permissive default for unknown ops).
+                return true;
+        }
+    }
 }

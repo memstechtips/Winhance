@@ -55,6 +55,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(ICatalogDetectionService))]
     [InlineData(typeof(IDetectionShadowRunner))]
     [InlineData(typeof(IStateWriter))]
+    [InlineData(typeof(IRegImportService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         // Arrange

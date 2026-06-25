@@ -1,7 +1,11 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
@@ -10,8 +14,9 @@ using Xunit;
 namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Unit tests for the live <see cref="WindowsStateWriter"/>: each writer method must delegate to the right
-/// WindowsRegistryService primitive / scheduled-task / powercfg call with the right arguments (the byte logic itself
-/// lives in the proven primitives and is covered elsewhere). RunEffect is a Slice 2c placeholder.</summary>
+/// WindowsRegistryService primitive / scheduled-task / powercfg / effect service with the right arguments (the byte
+/// logic itself lives in the proven primitives and is covered elsewhere; the native CallNtPowerInformation in the
+/// NativePowerEffect branch is review + apply-smoke gated).</summary>
 public class WindowsStateWriterTests
 {
     private const string Path = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test";
@@ -20,12 +25,14 @@ public class WindowsStateWriterTests
     private readonly Mock<IWindowsRegistryService> _reg = new(MockBehavior.Strict);
     private readonly Mock<IScheduledTaskService> _tasks = new(MockBehavior.Strict);
     private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
+    private readonly Mock<IPowerShellRunner> _powerShell = new(MockBehavior.Strict);
+    private readonly Mock<IRegImportService> _regImport = new(MockBehavior.Strict);
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
-        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _log.Object);
+        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _powerShell.Object, _regImport.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
@@ -260,12 +267,51 @@ public class WindowsStateWriterTests
 
     // --- Slice 2b/2c placeholders throw loudly (unwired until Slice 4) ---
 
-    [Fact]
-    public void RunEffect_IsNotYetImplemented()
-    {
-        var act = () => _sut.RunEffect(new RegContentEffect("Windows Registry Editor Version 5.00"));
+    // --- RunEffect: dispatch each effect to the right service (NativePowerEffect calls the static PowerProf
+    //     P/Invoke directly, so it is review + apply-smoke gated, not unit-tested here). ---
 
-        act.Should().Throw<System.NotSupportedException>();
+    [Fact]
+    public void RunEffect_Script_RunsInMemoryAndSucceeds()
+    {
+        _powerShell
+            .Setup(p => p.RunScriptInMemoryAsync("Write-Host hi", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(string.Empty);
+
+        _sut.RunEffect(new ScriptEffect("Write-Host hi", RunContext.System)).Should().BeTrue();
+
+        _powerShell.Verify(p => p.RunScriptInMemoryAsync("Write-Host hi", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_RegContent_ImportsAndSucceeds()
+    {
+        _regImport.Setup(r => r.RunRegImportAsync("REGCONTENT")).Returns(Task.CompletedTask);
+
+        _sut.RunEffect(new RegContentEffect("REGCONTENT")).Should().BeTrue();
+
+        _regImport.Verify(r => r.RunRegImportAsync("REGCONTENT"), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_RegistryWrite_CreatesKeyThenSetsValue()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, ValueName, 7, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.RunEffect(new RegistryWriteEffect(Path, ValueName, RegistryValueKind.DWord, 7)).Should().BeTrue();
+
+        _reg.Verify(r => r.CreateKey(Path), Times.Once);
+        _reg.Verify(r => r.SetValue(Path, ValueName, 7, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_RegistryWrite_WhenCreateKeyFails_ReturnsFalse()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(false);
+
+        _sut.RunEffect(new RegistryWriteEffect(Path, ValueName, RegistryValueKind.DWord, 7)).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
     }
 
     [Theory]
