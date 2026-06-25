@@ -27,7 +27,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
     private static object? GetParentDisableValue(object?[]? disabledValues) =>
         disabledValues?.Length > 1 ? disabledValues[1] : GetWriteValue(disabledValues);
 
-    private bool CreateKey(string keyPath)
+    public bool CreateKey(string keyPath)
     {
         try
         {
@@ -386,7 +386,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    private bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
+    public bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
     {
         try
         {
@@ -436,7 +436,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    private bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
+    public bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
     {
         try
         {
@@ -551,28 +551,9 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             if (setting.CompositeStringKey != null)
             {
-                if (!CreateKey(setting.KeyPath))
-                    return false;
-
-                var currentComposite = ValueExists(setting.KeyPath, setting.ValueName)
-                    ? (GetValue(setting.KeyPath, setting.ValueName)?.ToString() ?? "")
-                    : "";
-
-                var pairs = ParseCompositeString(currentComposite);
                 var newSubValue = specificValue?.ToString()
                     ?? (isEnabled ? GetWriteValue(setting.EnabledValue)?.ToString() : GetWriteValue(setting.DisabledValue)?.ToString());
-
-                if (newSubValue != null)
-                    pairs[setting.CompositeStringKey] = newSubValue;
-                else
-                    pairs.Remove(setting.CompositeStringKey);
-
-                var mergedValue = BuildCompositeString(pairs);
-                var compositeResult = SetValue(setting.KeyPath, setting.ValueName, mergedValue, RegistryValueKind.String);
-
-                logService.Log(LogLevel.Info,
-                    $"[WindowsRegistryService] Updated composite key '{setting.CompositeStringKey}' to '{newSubValue}' in '{setting.KeyPath}\\{setting.ValueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
-                return compositeResult;
+                return SetCompositeSubValue(setting.KeyPath, setting.ValueName, setting.CompositeStringKey, newSubValue);
             }
 
             if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
@@ -680,7 +661,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
     /// preventing Windows from resetting the value.
     /// Administrators retain full control to allow Winhance to unlock later.
     /// </summary>
-    private bool LockRegistryKey(string keyPath)
+    public bool LockRegistryKey(string keyPath)
     {
         try
         {
@@ -744,7 +725,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
     /// Restores default permissions on a registry key, re-enabling
     /// inheritance and granting SYSTEM full control again.
     /// </summary>
-    private bool UnlockRegistryKey(string keyPath)
+    public bool UnlockRegistryKey(string keyPath)
     {
         try
         {
@@ -824,6 +805,45 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         if (pairs.Count == 0)
             return "";
         return string.Join(";", pairs.Select(p => $"{p.Key}={p.Value}")) + ";";
+    }
+
+    /// <summary>
+    /// Read-merge-write of one sub-key inside a packed ";"-delimited "key=value" REG_SZ value: ensures the key
+    /// exists, re-reads the current composite value, sets (or, when <paramref name="subValue"/> is null, removes)
+    /// the given sub-key, then writes the merged string back (trailing ";", OrdinalIgnoreCase sub-keys via
+    /// <see cref="ParseCompositeString"/>). Extracted verbatim from the old ApplySetting CompositeStringKey branch
+    /// so the old apply and the new IStateWriter share identical behaviour; the caller resolves the sub-value.
+    /// </summary>
+    public bool SetCompositeSubValue(string keyPath, string valueName, string compositeKey, string? subValue)
+    {
+        try
+        {
+            if (!CreateKey(keyPath))
+                return false;
+
+            var currentComposite = ValueExists(keyPath, valueName)
+                ? (GetValue(keyPath, valueName)?.ToString() ?? "")
+                : "";
+
+            var pairs = ParseCompositeString(currentComposite);
+
+            if (subValue != null)
+                pairs[compositeKey] = subValue;
+            else
+                pairs.Remove(compositeKey);
+
+            var mergedValue = BuildCompositeString(pairs);
+            var compositeResult = SetValue(keyPath, valueName, mergedValue, RegistryValueKind.String);
+
+            logService.Log(LogLevel.Info,
+                $"[WindowsRegistryService] Updated composite key '{compositeKey}' to '{subValue}' in '{keyPath}\\{valueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
+            return compositeResult;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error setting composite key '{compositeKey}' in '{keyPath}\\{valueName}': {ex.Message}");
+            return false;
+        }
     }
 
     private (RegistryKey rootKey, string subKeyPath) ParseKeyPath(string keyPath)

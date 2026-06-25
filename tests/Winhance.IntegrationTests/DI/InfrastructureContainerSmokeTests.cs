@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
@@ -50,6 +51,11 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IConfigMigrationService))]
     [InlineData(typeof(IPolicyCleanupService))]
     [InlineData(typeof(IChangeHistoryService))]
+    [InlineData(typeof(ISystemDetectionContextFactory))]
+    [InlineData(typeof(ICatalogDetectionService))]
+    [InlineData(typeof(IDetectionShadowRunner))]
+    [InlineData(typeof(IStateWriter))]
+    [InlineData(typeof(IRegImportService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         // Arrange

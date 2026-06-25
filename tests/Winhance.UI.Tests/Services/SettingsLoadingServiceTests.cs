@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
@@ -24,11 +25,17 @@ public class SettingsLoadingServiceTests
     private readonly Mock<ISettingPreparationPipeline> _mockPreparationPipeline = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
+    private readonly Mock<IDetectionShadowRunner> _mockShadowRunner = new();
+    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
 
     private readonly SettingsLoadingService _sut;
 
     public SettingsLoadingServiceTests()
     {
+        _mockCatalogDetectionService
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+
         _sut = new SettingsLoadingService(
             _mockDiscoveryService.Object,
             _mockEventBus.Object,
@@ -37,7 +44,9 @@ public class SettingsLoadingServiceTests
             _mockComboBoxResolver.Object,
             _mockPreparationPipeline.Object,
             _mockUserPreferencesService.Object,
-            _mockViewModelFactory.Object);
+            _mockViewModelFactory.Object,
+            _mockShadowRunner.Object,
+            _mockCatalogDetectionService.Object);
     }
 
     // ── LoadConfiguredSettingsAsync ──

@@ -1,5 +1,7 @@
+using System.Linq;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
@@ -26,6 +28,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscovery = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
+    private readonly Mock<IStateWriter> _mockStateWriter = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
@@ -55,7 +58,7 @@ public class SettingApplicationServiceTests
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
             _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
-            _mockHardware.Object);
+            _mockHardware.Object, _mockStateWriter.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -72,6 +75,28 @@ public class SettingApplicationServiceTests
         _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(settingId)).Returns(featureId);
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings(featureId))
             .Returns(new[] { setting });
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_PairedPlainToggle_RoutesThroughNewWriter_BypassingOldExecutor()
+    {
+        // Phase 6.4 cutover: a real catalog plain registry toggle (no custom detector / dynamic options / numeric,
+        // with both an Enabled and a Disabled state) applies through the new ApplyExecutor + IStateWriter, NOT the
+        // old ISettingOperationExecutor. Unpaired/fake ids (every other test) still fall back to the old executor.
+        var paired = SettingCatalog.All.First(s =>
+            s.Detector is null && s.OptionSource is null && s.Numeric is null
+            && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
+            && s.Targets.OfType<RegTarget>().Any());
+        SetupSettingInRegistry(paired.Id);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = paired.Id, Enable = true });
+
+        _mockExecutor.Verify(e => e.ApplySettingOperationsAsync(
+            It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>(), It.IsAny<bool>()), Times.Never);
+        _mockStateWriter.Invocations.Should().NotBeEmpty("the paired toggle must apply through the new writer");
+        // The new engine performs no restarts itself, so the funnel must still run process/service restarts
+        // (the old executor did this as its final step) - else a setting that restarts Explorer would not take effect.
+        _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<SettingDefinition>()), Times.Once);
     }
 
     [Fact]
