@@ -149,6 +149,7 @@ public class CatalogAuthoringEquivalenceTests
     private static readonly string[] PrecedenceCorrectedIds =
     {
         "privacy-advertising-id", "privacy-diagnostics", "privacy-lock-screen-overlay",
+        "privacy-inking-typing-dictionary",
         "gaming-directx-flip-model", "gaming-directx-vrr-optimizations", "gaming-touch-keyboard-service",
     };
 

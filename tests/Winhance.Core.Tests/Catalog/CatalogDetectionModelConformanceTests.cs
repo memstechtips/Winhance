@@ -59,6 +59,8 @@ public class CatalogDetectionModelConformanceTests
     private const string CdmKey = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
     private const string DirectXKey = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences";
     private const string TabletSvc = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService";
+    private const string InkCpss = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization";
+    private const string InkAccepted = @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings";
 
     // ============================================================================================================
     //  The 6 detection-corrected settings (OrAbsent + ApplyOnly). These must hold ON A CLEAN MACHINE too.
@@ -120,6 +122,21 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("ServiceOption_Manual", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 3)));
         Assert.Equal("ServiceOption_Automatic", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 2)));
         Assert.Null(Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 1)));                        // unrecognised -> Custom
+    }
+
+    [Fact]
+    public void Inking_typing_dictionary_cpss_wins_else_accepted_policy() // CPSS Value (Win11) > AcceptedPrivacyPolicy (Win10)
+    {
+        // CPSS Value is tagged a policy tier (the connected-privacy store the Win11 Settings app binds to); the two
+        // InputPersonalization keys are apply-only enforcement keys. Default (all absent) reads OFF.
+        Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary"));                                 // clean -> off (default)
+        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));           // Win11 CPSS on
+        // CPSS is authoritative on Win11: Value=0 wins even over a stale AcceptedPrivacyPolicy=1
+        Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary",
+            (InkCpss, "Value", 0), (InkAccepted, "AcceptedPrivacyPolicy", 1)));
+        // Win10 (no CPSS store): AcceptedPrivacyPolicy decides
+        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 1)));
+        Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 0)));
     }
 
     // ============================================================================================================

@@ -1102,10 +1102,10 @@ public static class PrivacyOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("Value", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization" }, "Value", RegistryValueKind.DWord),
+                new RegTarget("Value", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization" }, "Value", RegistryValueKind.DWord) { IsGroupPolicy = true },
                 new RegTarget("AcceptedPrivacyPolicy", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings" }, "AcceptedPrivacyPolicy", RegistryValueKind.DWord),
-                new RegTarget("RestrictImplicitTextCollection", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization" }, "RestrictImplicitTextCollection", RegistryValueKind.DWord),
-                new RegTarget("HarvestContacts", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization\TrainedDataStore" }, "HarvestContacts", RegistryValueKind.DWord),
+                new RegTarget("RestrictImplicitTextCollection", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization" }, "RestrictImplicitTextCollection", RegistryValueKind.DWord) { ApplyOnly = true },
+                new RegTarget("HarvestContacts", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization\TrainedDataStore" }, "HarvestContacts", RegistryValueKind.DWord) { ApplyOnly = true },
             },
             States = new[]
             {
