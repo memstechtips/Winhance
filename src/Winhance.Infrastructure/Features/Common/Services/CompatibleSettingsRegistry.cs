@@ -88,6 +88,26 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
         return index.TryGetValue(settingId, out var f) ? f : null;
     }
 
+    public SettingDefinition? GetByIdBypassed(string settingId)
+    {
+        if (!_isInitialized)
+            throw new InvalidOperationException("Registry not initialized. Call InitializeAsync first.");
+
+        ArgumentNullException.ThrowIfNull(settingId);
+
+        return _bypassedById.TryGetValue(settingId, out var s) ? s : null;
+    }
+
+    public string? GetFeatureIdForSettingBypassed(string settingId)
+    {
+        if (!_isInitialized)
+            throw new InvalidOperationException("Registry not initialized. Call InitializeAsync first.");
+
+        ArgumentNullException.ThrowIfNull(settingId);
+
+        return _bypassedSettingIdToFeatureId.TryGetValue(settingId, out var f) ? f : null;
+    }
+
     public IEnumerable<SettingDefinition> GetFilteredSettings(string featureId)
     {
         if (!_isInitialized)

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -233,7 +234,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             if (string.IsNullOrEmpty(item.Id))
                 continue;
 
-            var setting = FindSettingById(item.Id, allSettings);
+            var setting = FindSettingById(item.Id, allSettings)
+                ?? ResolveBypassedCatalogSetting(item.Id);
             if (setting != null)
             {
                 remainingItems.Add((item, setting));
@@ -368,6 +370,17 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             return (ApplyStatus.Failed, item.Name);
         }
     }
+
+    // Phase 6.5 cross-OS resolution: when the OS-filtered model has no def for this (already-normalized) id but the
+    // NEW catalog has a peer, resolve the def from the BYPASSED model so the item reaches the apply funnel - which is
+    // the build authority (it applies via the new engine for a build-compatible setting, or fails gracefully for a
+    // build-incompatible one via its own catalog+build gate). Gated on catalog membership so genuinely-unknown ids
+    // are still dropped. Covers a merged This PC setting imported from a "-win10" config (normalized to canonical)
+    // whose old split-def is OS-filtered-out on this machine.
+    private SettingDefinition? ResolveBypassedCatalogSetting(string id)
+        => SettingCatalog.All.Any(s => s.Id == id)
+            ? FindSettingById(id, _compatibleSettingsRegistry.GetAllBypassedSettings())
+            : null;
 
     private SettingDefinition? FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
     {

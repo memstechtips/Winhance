@@ -56,6 +56,12 @@ public class SettingApplicationService(
         return _hasBatteryCache.Value;
     }
 
+    // The live Windows build, used to (a) gate ApplyPlanBuilder's per-target AppliesTo and (b) decide whether a
+    // catalog setting whose OLD def is OS-filtered-out is still build-compatible enough to resolve via the bypassed
+    // registry. Same source the config build-gating uses.
+    private WinBuild CurrentBuild()
+        => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
+
     /// <summary>Phase 6.4 cutover seam: apply a setting's operations through the NEW catalog engine when the setting
     /// is paired and the request is representable (plain toggle / check-box / selection / Action), else fall back to
     /// the proven old apply. <see cref="ApplyRequestResolver"/> decides; <see cref="ApplyExecutor"/> runs the plan
@@ -68,8 +74,7 @@ public class SettingApplicationService(
         // This PC folder settings - a Windows-11 HiddenByDefault write AND a Windows-10 key-delete on the SAME
         // key) would apply BOTH per-OS mechanisms. Settings with no build-gated targets (AppliesTo empty) are
         // unaffected: their targets are emitted regardless of build.
-        var build = new WinBuild(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
-        var plan = ApplyRequestResolver.Resolve(setting, enable, value, resetToDefault, build);
+        var plan = ApplyRequestResolver.Resolve(setting, enable, value, resetToDefault, CurrentBuild());
         if (plan is null)
         {
             // The old executor runs HandleProcessAndServiceRestartsAsync internally as its final step, so the
@@ -113,9 +118,21 @@ public class SettingApplicationService(
 
         var setting = settingsRegistry.GetById(settingId);
         if (setting == null)
+        {
+            // Phase 6.5 cross-OS resolution: a merged catalog setting whose OLD def is OS-filtered-out on this
+            // machine (e.g. a This PC folder setting imported from a "-win10" config, normalized to its canonical
+            // id, running on the OS whose old split-def is filtered) misses the OS-filtered registry. The NEW engine
+            // applies it OS-portably via build-gated targets, so resolve from the BYPASSED index when the catalog
+            // has a peer that is build-compatible with this machine. A genuinely-incompatible / non-catalog id is
+            // not resolved and still falls through to the throw below.
+            if (SettingCatalog.All.Any(s => s.Id == settingId && s.Availability.Allows(CurrentBuild())))
+                setting = settingsRegistry.GetByIdBypassed(settingId);
+        }
+        if (setting == null)
             throw new ArgumentException($"Setting '{settingId}' not found in registry");
 
         var featureId = settingsRegistry.GetFeatureIdForSetting(settingId)
+            ?? settingsRegistry.GetFeatureIdForSettingBypassed(settingId)
             ?? throw new InvalidOperationException($"Setting '{settingId}' has no feature mapping");
 
         globalSettingsRegistry.RegisterSetting(featureId, setting);

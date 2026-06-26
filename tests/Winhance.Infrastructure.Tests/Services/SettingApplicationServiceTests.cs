@@ -131,6 +131,61 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
+    public async Task ApplySettingAsync_CatalogSettingFilteredOutOnThisOs_ResolvesViaBypassed()
+    {
+        // Phase 6.5 (Slice 3b): a merged This PC setting imported from a "-win10" config is normalized to its
+        // canonical id. On Windows 10 the OLD canonical def is Win11Only -> OS-filtered out, so GetById/
+        // GetFeatureIdForSetting MISS. The funnel must fall back to the BYPASSED registry (the catalog has a
+        // build-compatible peer) and apply via the new engine's Win10 target instead of dropping/throwing.
+        const string id = "explorer-customization-thispc-folder-desktop";
+        SettingCatalog.All.Should().Contain(s => s.Id == id);
+        var def = CreateSetting(id);
+        _mockSettingsRegistry.Setup(r => r.GetById(id)).Returns((SettingDefinition?)null);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(id)).Returns((string?)null);
+        _mockSettingsRegistry.Setup(r => r.GetByIdBypassed(id)).Returns(def);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSettingBypassed(id)).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { def });
+        _mockVersion.Setup(v => v.GetWindowsBuildNumber()).Returns(19045); // Windows 10
+
+        var act = async () => await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = id, Enable = false });
+
+        await act.Should().NotThrowAsync();
+        // Win10 Disabled -> the KeyExists key-delete fires; the Win11 HiddenByDefault write is gated out.
+        _mockStateWriter.Verify(w => w.DeleteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>()), Times.AtLeastOnce());
+        _mockStateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()), Times.Never());
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NonCatalogIdMissingFromRegistry_StillThrows()
+    {
+        // The bypassed fallback is gated on catalog membership: a non-catalog id that misses the filtered registry
+        // must NOT be resolved via bypassed (even if bypassed happens to hold it) - it still throws as before.
+        const string id = "definitely-not-a-catalog-setting";
+        _mockSettingsRegistry.Setup(r => r.GetById(id)).Returns((SettingDefinition?)null);
+        _mockSettingsRegistry.Setup(r => r.GetByIdBypassed(id)).Returns(CreateSetting(id));
+
+        var act = async () => await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = id, Enable = true });
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_CatalogSettingNotBuildCompatible_DoesNotResolveViaBypassed()
+    {
+        // The fallback is also build-gated: a catalog setting whose Availability excludes this build must NOT be
+        // resolved via bypassed. taskbar-copilot's authored window is [22621, 26099]; build 30000 is outside it.
+        const string id = "taskbar-copilot";
+        SettingCatalog.All.Should().Contain(s => s.Id == id);
+        _mockSettingsRegistry.Setup(r => r.GetById(id)).Returns((SettingDefinition?)null);
+        _mockSettingsRegistry.Setup(r => r.GetByIdBypassed(id)).Returns(CreateSetting(id));
+        _mockVersion.Setup(v => v.GetWindowsBuildNumber()).Returns(30000); // above copilot's max -> incompatible
+
+        var act = async () => await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = id, Enable = true });
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
     public async Task ApplySettingAsync_ValidSetting_ReturnsSuccess()
     {
         SetupSettingInRegistry("test-setting");
