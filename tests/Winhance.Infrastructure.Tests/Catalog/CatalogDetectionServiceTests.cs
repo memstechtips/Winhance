@@ -99,6 +99,29 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
+    public async Task DetectAsync_populates_Ac_and_Dc_for_a_powercfg_setting()
+    {
+        // Distinct AC vs DC so the per-context read is exercised, not one shared value.
+        var service = ServiceWith(new FakeContext(power: (_, _, ctx) => ctx == PowerContext.DC ? 7 : 3));
+
+        var results = await service.DetectAsync(new[] { NumericSetting() });
+
+        Assert.Equal(3, results["numeric"].AcValue);
+        Assert.Equal(7, results["numeric"].DcValue);
+    }
+
+    [Fact]
+    public async Task DetectAsync_leaves_Ac_and_Dc_null_for_a_registry_setting()
+    {
+        var service = ServiceWith(new FakeContext(get: (_, _) => 1));
+
+        var results = await service.DetectAsync(new[] { Toggle() });
+
+        Assert.Null(results["toggle"].AcValue);
+        Assert.Null(results["toggle"].DcValue);
+    }
+
+    [Fact]
     public async Task DetectAsync_prefetches_once_before_detecting()
     {
         var ctx = new FakeContext();

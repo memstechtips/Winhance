@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
@@ -33,15 +34,16 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         {
             try
             {
+                var (acValue, dcValue) = ReadPowerAcDc(setting, context);
                 if (setting.Numeric is not null)
                 {
                     int? value = CatalogDiscovery.DetectValue(setting, context);
-                    results[setting.Id] = new CatalogDetectionResult { Value = value, Detected = value.HasValue };
+                    results[setting.Id] = new CatalogDetectionResult { Value = value, Detected = value.HasValue, AcValue = acValue, DcValue = dcValue };
                 }
                 else
                 {
                     string? label = CatalogDiscovery.DetectState(setting, context);
-                    results[setting.Id] = new CatalogDetectionResult { StateLabel = label, Detected = label is not null };
+                    results[setting.Id] = new CatalogDetectionResult { StateLabel = label, Detected = label is not null, AcValue = acValue, DcValue = dcValue };
                 }
             }
             catch (Exception ex)
@@ -52,5 +54,24 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         }
 
         return results;
+    }
+
+    /// <summary>Reads the raw AC and DC powercfg values for a setting's live <see cref="PowerCfgTarget"/> (the first
+    /// whose AppliesTo admits the current build, mirroring <see cref="CatalogDiscovery"/>'s target filter). Both come
+    /// from the context's already pre-fetched cache (no extra I/O). (null, null) when the setting has no live powercfg
+    /// target - i.e. for every registry/task/custom-detector setting.</summary>
+    private static (int? ac, int? dc) ReadPowerAcDc(Setting setting, IDetectionContext context)
+    {
+        foreach (var target in setting.Targets)
+        {
+            if (target is not PowerCfgTarget power)
+                continue;
+            if (power.AppliesTo.Count > 0 && !power.AppliesTo.Any(r => r.Contains(context.CurrentBuild)))
+                continue; // target not live on this build
+            return (
+                context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, PowerContext.AC),
+                context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, PowerContext.DC));
+        }
+        return (null, null);
     }
 }

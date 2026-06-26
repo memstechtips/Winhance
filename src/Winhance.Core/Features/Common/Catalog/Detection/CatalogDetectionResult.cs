@@ -11,6 +11,14 @@ public sealed record CatalogDetectionResult
     public string? StateLabel { get; init; }
     public int? Value { get; init; }
     public bool Detected { get; init; }
+
+    /// <summary>Raw powercfg value indices for a setting with a live <see cref="PowerCfgTarget"/>, read per power
+    /// context (the same raw units the old <c>RawValues["ACValue"]/["DCValue"]</c> carried - PowerReadAC/DCValueIndex).
+    /// Null for non-powercfg settings. The UI maps these to a selection index (via the option ValueMappings) or a
+    /// display number (via the setting's Units); the interpretation stays UI-side. <see cref="Value"/> already carries
+    /// the AC reading for a numeric powercfg setting; these expose AC and DC distinctly for the AC/DC binding.</summary>
+    public int? AcValue { get; init; }
+    public int? DcValue { get; init; }
 }
 
 /// <summary>Drives the new catalog detection engine over a batch of settings against the live machine, returning
