@@ -11,6 +11,17 @@ public sealed record SettingState
     public IReadOnlyList<StateRole> Roles { get; init; } = System.Array.Empty<StateRole>();
     public IReadOnlyDictionary<string, StateValue> Set { get; init; } =
         new Dictionary<string, StateValue>();
+
+    /// <summary>Apply-only override of <see cref="Set"/> for a RESET-to-default apply (the per-card / bulk
+    /// "Reset to Defaults" and the relationship reverse-cascade). Null = a reset writes exactly what
+    /// <see cref="Set"/> writes. Present = for each target key listed, the reset write is THIS
+    /// <see cref="StateValue"/> (e.g. <see cref="StateValue.Absent"/> to DELETE) instead of the detect/normal-apply
+    /// <see cref="Set"/> value; target keys NOT in ResetSet fall back to <see cref="Set"/>. This lets a state DETECT
+    /// "1-or-absent" yet on reset DELETE - the divergence the old apply expressed via <c>DisabledValue[1] == null</c>
+    /// (GetParentDisableValue). Only the WindowsDefault state needs one, and only for the targets whose reset write
+    /// differs from their normal Set write.</summary>
+    public IReadOnlyDictionary<string, StateValue>? ResetSet { get; init; }
+
     public IReadOnlyList<Effect> Effects { get; init; } = System.Array.Empty<Effect>();
 
     /// <summary>

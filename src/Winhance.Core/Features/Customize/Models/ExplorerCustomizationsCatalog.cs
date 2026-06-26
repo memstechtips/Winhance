@@ -2198,6 +2198,11 @@ if (Test-Path $appPathsKey) {
                         ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2240,6 +2245,11 @@ if (Test-Path $appPathsKey) {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2387,6 +2397,11 @@ if (Test-Path $appPathsKey) {
                         ["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2428,6 +2443,11 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2471,6 +2491,11 @@ if (Test-Path $appPathsKey) {
                         ["{374DE290-123F-4565-9164-39C4925E467B}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{374DE290-123F-4565-9164-39C4925E467B}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2512,6 +2537,11 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{1CF1260C-4DD0-4ebb-811F-33C572699FDE}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{1CF1260C-4DD0-4ebb-811F-33C572699FDE}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2555,6 +2585,11 @@ if (Test-Path $appPathsKey) {
                         ["{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2596,6 +2631,11 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{A0953C92-50DC-43bf-BE83-3742FED03C9C}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{A0953C92-50DC-43bf-BE83-3742FED03C9C}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2640,6 +2680,11 @@ if (Test-Path $appPathsKey) {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{031E4825-7B94-4dc3-B131-E946B44C8DD5}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{031E4825-7B94-4dc3-B131-E946B44C8DD5}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },

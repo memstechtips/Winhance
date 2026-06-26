@@ -11,7 +11,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// </summary>
 public static class ApplyPlanBuilder
 {
-    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null)
+    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null, bool reset = false)
     {
         var state = setting.States.FirstOrDefault(s => s.Label == stateLabel)
             ?? throw new ArgumentException($"No state labelled '{stateLabel}' on setting '{setting.Id}'.", nameof(stateLabel));
@@ -32,8 +32,16 @@ public static class ApplyPlanBuilder
                 case RegTarget reg:
                     if (appliesViaRegContent)
                         break; // detect-only: the .reg import (an Effect) is the apply
-                    if (!state.Set.TryGetValue(reg.Key, out var sv))
+                    // Reset-to-default (Phase 6.4b 3A): a state's ResetSet overrides its Set per target for the
+                    // reset write (the 18 [1,null] Explorer targets detect "1-or-absent" but DELETE on reset); a
+                    // target absent from ResetSet falls back to its normal Set write.
+                    StateValue sv;
+                    if (reset && state.ResetSet is { } resetSet && resetSet.TryGetValue(reg.Key, out var resetSv))
+                        sv = resetSv;
+                    else if (!state.Set.TryGetValue(reg.Key, out var setSv))
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) - leave it alone
+                    else
+                        sv = setSv;
                     foreach (var path in reg.Paths)
                     {
                         if (reg.PerNetworkInterface || reg.PerMonitor)

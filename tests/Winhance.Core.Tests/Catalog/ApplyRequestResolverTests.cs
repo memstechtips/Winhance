@@ -80,8 +80,10 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_to_default_returns_null()
+    public void Reset_with_no_default_state_returns_null()
     {
+        // ToggleSetting()'s states carry NO WindowsDefault role, so the resolver cannot derive a reset target
+        // (no default direction) and falls back to the old apply by returning null.
         var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
             resetToDefault: true, new[] { ToggleSetting() });
         Assert.Null(plan);
@@ -166,6 +168,37 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled"), plan);
+    }
+
+    [Fact]
+    public void Reset_applies_windows_default_state_with_reset_overrides()
+    {
+        // A toggle whose Disabled state is the WindowsDefault AND carries a ResetSet (its [1,null]-style target
+        // DELETEs on reset though it DETECTs "1-or-absent"). The resolver must route reset to that default state
+        // and build with reset:true, so the plan equals ApplyPlanBuilder.Build(setting, "Disabled", reset:true).
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Targets = new[] { Reg() },
+            States = new[]
+            {
+                State("Enabled", 1),
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+
+        Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled", build: null, reset: true), plan);
     }
 
     [Fact]

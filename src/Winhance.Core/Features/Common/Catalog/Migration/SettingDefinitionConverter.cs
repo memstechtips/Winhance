@@ -17,6 +17,11 @@ public static class SettingDefinitionConverter
 
         var enabledSet = new Dictionary<string, StateValue>();
         var disabledSet = new Dictionary<string, StateValue>();
+        // Per-target reset-write override for the Disabled state: the old reset writes GetParentDisableValue
+        // (DisabledValue[1] when DisabledValue has 2+ entries, else its first non-null) rather than the normal
+        // disabled write. Only the [x, null] shape (today only [1, null]) diverges - it DETECTS "1-or-absent"
+        // but DELETES on reset - so it gets a ResetSet entry; everything else resets to its normal Set write.
+        var resetSet = new Dictionary<string, StateValue>();
         foreach (var g in groups)
         {
             var first = g.First();
@@ -33,13 +38,22 @@ public static class SettingDefinitionConverter
             }
             enabledSet[g.Key] = ToStateValue(first.EnabledValue) ?? StateValue.Exists;
             disabledSet[g.Key] = ToStateValue(first.DisabledValue) ?? StateValue.Absent;
+
+            // GetParentDisableValue rule: a DisabledValue with 2+ entries resets to its SECOND entry (DisabledValue[1])
+            // rather than its first. A null second entry => DELETE (StateValue.Absent). When the reset write equals
+            // the normal disabled write this would be a no-op, but the only multi-entry shape in the catalog is
+            // [1, null] (reset = DELETE, normal = "1-or-absent"), which always diverges, so emit it unconditionally.
+            if (first.DisabledValue is { Length: > 1 })
+                resetSet[g.Key] = first.DisabledValue[1] is null
+                    ? StateValue.Absent
+                    : StateValue.Of(first.DisabledValue[1]!);
         }
 
         var rec = SettingDefinitionToggleState.GetRecommendedToggleState(def);
         var def_ = SettingDefinitionToggleState.GetDefaultToggleState(def);
 
         var enabled = new SettingState { Label = "Enabled", Set = enabledSet, Roles = RolesFor(true, rec, def_), Effects = BuildToggleEffects(def, isEnabled: true) };
-        var disabled = new SettingState { Label = "Disabled", Set = disabledSet, Roles = RolesFor(false, rec, def_), IsFallback = true, Effects = BuildToggleEffects(def, isEnabled: false) };
+        var disabled = new SettingState { Label = "Disabled", Set = disabledSet, Roles = RolesFor(false, rec, def_), IsFallback = true, Effects = BuildToggleEffects(def, isEnabled: false), ResetSet = resetSet.Count > 0 ? resetSet : null };
 
         return new Setting
         {

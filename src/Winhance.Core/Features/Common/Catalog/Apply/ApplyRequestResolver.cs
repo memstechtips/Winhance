@@ -12,11 +12,10 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// request is not (yet) representable in the new model so the caller falls back to the proven old apply. Pure.
 ///
 /// Handles the common PLAIN cases - registry/scheduled-task toggles + check-boxes, plain registry/task selections,
-/// stateless Actions, and numeric powercfg sliders (Phase 6.4b) - by pairing the def with its
+/// stateless Actions, numeric powercfg sliders, and reset-to-default (Phase 6.4b) - by pairing the def with its
 /// <see cref="SettingCatalog"/> Setting and running <see cref="ApplyPlanBuilder"/>. Returns null (-> old apply) for:
 ///   - an unpaired def (no SettingCatalog peer, e.g. the -win10 merged variants until the 6.5 alias),
-///   - resetToDefault (the apply-only [x, null] reset-write divergence - roadmap 3A - is not modelled yet, so the
-///     new WindowsDefault state would write x where the old reset deletes),
+///   - a reset-to-default of a setting that has no WindowsDefault state (no reset target can be derived),
 ///   - a NumericRange whose value is not an AC/DC display-units dictionary (the only shape the catalog produces),
 ///   - custom-detector / dynamic-option settings (DNS / system-tray / system-restore / power-plan),
 ///   - a selection whose value is not a plain option index, or whose option label has no matching authored state.
@@ -33,12 +32,6 @@ public static class ApplyRequestResolver
         SettingDefinition def, bool enable, object? value, bool resetToDefault,
         IReadOnlyList<Setting> catalog, WinBuild? build = null)
     {
-        // Reset-to-default still routes through the old apply: the apply-only reset write-payload for the
-        // [x, null] ExplorerCustomizations settings (roadmap 3A) is not modelled, so applying the WindowsDefault
-        // state would write x where the old reset deletes. Keep reset on the proven path.
-        if (resetToDefault)
-            return null;
-
         var setting = catalog.FirstOrDefault(s => s.Id == def.Id);
         if (setting is null)
             return null; // unpaired -> old apply
@@ -47,6 +40,15 @@ public static class ApplyRequestResolver
         // the plan builder does not reproduce (and their special handlers run earlier in the funnel anyway).
         if (setting.Detector is not null || setting.OptionSource is not null)
             return null;
+
+        // Reset-to-default (Phase 6.4b 3A): apply the WindowsDefault-roled state with its per-target reset
+        // write-overrides (ResetSet) - the [1,null] Explorer targets DELETE on reset where their normal Set writes 1.
+        // Falls back to old apply when the setting has no WindowsDefault state (no reset target can be derived).
+        if (resetToDefault)
+        {
+            var defaultLabel = setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
+            return defaultLabel is null ? null : ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true);
+        }
 
         switch (def.InputType)
         {

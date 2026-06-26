@@ -140,7 +140,8 @@ public static class SettingStructuralComparer
             if (!x.Effects.SequenceEqual(y.Effects)) d.Add($"States[{i}].Effects differ");           // Effect records -> structural
             DiffSequence(x.Links, y.Links, $"States[{i}].Links", d);                                 // Link record -> structural (moved per-state, Phase 6.6)
             DiffControls(x.Controls, y.Controls, i, d);
-            DiffSet(x.Set, y.Set, i, d);
+            DiffSet(x.Set, y.Set, i, "Set", d);
+            DiffResetSet(x.ResetSet, y.ResetSet, i, d);
         }
     }
 
@@ -172,20 +173,29 @@ public static class SettingStructuralComparer
         if (!DictEqual(a, b!)) d.Add($"States[{i}].Controls differ");
     }
 
-    private static void DiffSet(IReadOnlyDictionary<string, StateValue> a, IReadOnlyDictionary<string, StateValue> b, int i, List<string> d)
+    private static void DiffSet(IReadOnlyDictionary<string, StateValue> a, IReadOnlyDictionary<string, StateValue> b, int i, string field, List<string> d)
     {
-        if (a.Count != b.Count) { d.Add($"States[{i}].Set count {a.Count} != {b.Count}"); return; }
+        if (a.Count != b.Count) { d.Add($"States[{i}].{field} count {a.Count} != {b.Count}"); return; }
         foreach (var (k, av) in a)
         {
-            if (!b.TryGetValue(k, out var bv)) { d.Add($"States[{i}].Set missing key {k}"); continue; }
+            if (!b.TryGetValue(k, out var bv)) { d.Add($"States[{i}].{field} missing key {k}"); continue; }
             if (av.AcceptsAbsent != bv.AcceptsAbsent
                 || av.AcceptsAnyPresent != bv.AcceptsAnyPresent
                 || av.DeleteOnWrite != bv.DeleteOnWrite
                 || !CatalogValueComparer.AreEqual(av.WritePayload, bv.WritePayload)
                 || av.AcceptedValues.Count != bv.AcceptedValues.Count
                 || av.AcceptedValues.Where((val, idx) => !CatalogValueComparer.AreEqual(val, bv.AcceptedValues[idx])).Any())
-                d.Add($"States[{i}].Set[{k}] StateValue differs");
+                d.Add($"States[{i}].{field}[{k}] StateValue differs");
         }
+    }
+
+    /// <summary>Compares the optional per-state reset-write override (Phase 6.4b 3A). Null on both = equal; a
+    /// nullness mismatch is a diff; otherwise the dictionaries are compared key-by-key like a Set.</summary>
+    private static void DiffResetSet(IReadOnlyDictionary<string, StateValue>? a, IReadOnlyDictionary<string, StateValue>? b, int i, List<string> d)
+    {
+        if ((a is null) != (b is null)) { d.Add($"States[{i}].ResetSet nullness differs"); return; }
+        if (a is null) return;
+        DiffSet(a, b!, i, "ResetSet", d);
     }
 
     private static bool DictEqual(IReadOnlyDictionary<string, string> a, IReadOnlyDictionary<string, string> b)

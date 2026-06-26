@@ -75,6 +75,57 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per PLAIN registry toggle that has a Windows-default
+    /// direction: OLD is the live RESET apply's write intent (the old reset routes to the default direction -
+    /// a normal enabled write for a default-ON toggle, or a <c>useDefaultValue:true</c> disabled write, which
+    /// substitutes GetParentDisableValue for the plain-value branch - and runs the default direction's effects),
+    /// NEW is the ApplyPlanBuilder plan with <c>reset:true</c> over the WindowsDefault state label. Both normalised.
+    /// A toggle with no Windows-default direction (GetDefaultToggleState == null) is skipped - the new resolver
+    /// also returns null there and the reset stays on the old apply path. Callers should pre-filter with
+    /// <see cref="IsPlainRegistryToggleForApply"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunResetApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPlainRegistryToggleForApply(def))
+                continue;
+
+            // The reset only routes to the new engine when the setting has a Windows-default direction; otherwise
+            // the resolver returns null (-> old apply) and there is no default label to build. Skip those here too.
+            var defaultEnabled = SettingDefinitionToggleState.GetDefaultToggleState(def);
+            if (defaultEnabled is null)
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertToggle(def);
+            var label = defaultEnabled.Value ? "Enabled" : "Disabled";
+
+            // A setting that applies via a .reg import does NOT write its registry targets (mirrors the old apply,
+            // which skips registry writes when RegContents is present); the import is the apply.
+            var oldRegWrites = def.RegContents.Count == 0
+                ? def.RegistrySettings.SelectMany(rs => OldResetWrite(rs, defaultEnabled.Value))
+                : Enumerable.Empty<string>();
+
+            // The reset runs the DEFAULT direction's effects (script / .reg / native-power for that direction).
+            var oldWrites = oldRegWrites
+                .Concat(OldEffectWrites(def, isEnabled: defaultEnabled.Value))
+                .OrderBy(s => s).ToList();
+
+            var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, label, build: null, reset: true))
+                .OrderBy(s => s).ToList();
+
+            bool match = oldWrites.SequenceEqual(newWrites);
+            rows.Add(new EquivalenceRow(
+                $"{def.Id} [reset]",
+                string.Join(" | ", oldWrites),
+                string.Join(" | ", newWrites),
+                match));
+        }
+
+        return rows;
+    }
+
     /// <summary>A registry selection whose apply is self-contained registry writes - value sets and surgical
     /// binary bit/byte edits (every target has a ValueName) - plus optional per-option PowerShell-script effects.
     /// .reg-import / native-power selections (none exist) and per-subkey (per-NIC/monitor) are excluded.</summary>
@@ -273,6 +324,63 @@ public static class ApplyEquivalenceHarness
     }
 
     private static readonly Dictionary<string, object?> EmptyValues = new();
+
+    /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring
+    /// <c>WindowsRegistryService.ApplySetting(setting, isEnabled, specificValue: null, useDefaultValue: ...)</c>
+    /// for the reset-to-default direction WITHOUT executing.
+    ///
+    /// The old reset routes the setting to its Windows-default direction:
+    ///   - default-ON  -> a NORMAL enabled write (useDefaultValue is irrelevant when isEnabled), so this is exactly
+    ///                    <see cref="OldApplyWrite"/>(rs, isEnabled: true).
+    ///   - default-OFF -> the disabled write with <c>useDefaultValue: true</c>. In the real ApplySetting that flag
+    ///                    is consulted ONLY in the plain-value branch (valueToSet = GetParentDisableValue(DisabledValue)
+    ///                    instead of GetWriteValue(DisabledValue)) and in the matching lock-after dance; every other
+    ///                    branch (per-NIC/monitor, ValueName==null key existence, composite, bit, byte) returns earlier
+    ///                    and is byte-for-byte identical to a normal disable. So for a non-plain target the reset write
+    ///                    equals <see cref="OldApplyWrite"/>(rs, isEnabled: false); only the plain-value branch diverges.</summary>
+    private static IEnumerable<string> OldResetWrite(RegistrySetting rs, bool defaultEnabled)
+    {
+        // default-ON reset == normal enabled write (useDefaultValue does not affect the enabled path).
+        if (defaultEnabled)
+            return OldApplyWrite(rs, isEnabled: true, specificValue: null);
+
+        // default-OFF reset: only the PLAIN-value target diverges (GetParentDisableValue). Every non-plain target
+        // is unaffected by useDefaultValue, so its reset write equals a normal disable - reuse OldApplyWrite.
+        bool isPlainValueTarget =
+            !rs.ApplyPerNetworkInterface && !rs.ApplyPerMonitor
+            && rs.ValueName != null
+            && rs.CompositeStringKey == null
+            && !(rs.BitMask.HasValue && rs.BinaryByteIndex.HasValue)
+            && !(rs.ModifyByteOnly && rs.BinaryByteIndex.HasValue);
+
+        return isPlainValueTarget
+            ? OldResetPlainWrite(rs)
+            : OldApplyWrite(rs, isEnabled: false, specificValue: null);
+    }
+
+    /// <summary>The plain-value branch of the old reset apply (default-OFF): identical to OldApplyWrite's plain
+    /// branch for isEnabled:false EXCEPT the written value is GetParentDisableValue(DisabledValue) - DisabledValue[1]
+    /// when DisabledValue has 2+ entries, else its first non-null - mirroring ApplySetting's useDefaultValue path.
+    /// A null result DELETEs. The LockKeyAccess unlock-before / lock-after dance is identical (the reset is a disable,
+    /// so the lock-after condition !isEnabled holds whenever LockKeyAccess is set, just like OldApplyWrite).</summary>
+    private static IEnumerable<string> OldResetPlainWrite(RegistrySetting rs)
+    {
+        var valueToSet = GetParentDisableValue(rs.DisabledValue);
+        if (rs.LockKeyAccess)
+            yield return $"UNLOCK {rs.KeyPath}";
+        yield return valueToSet == null
+            ? $"DELETE {rs.KeyPath}\\{rs.ValueName}"
+            : $"SET {rs.KeyPath}\\{rs.ValueName} = {Format(valueToSet)} ({rs.ValueType})";
+        // Reset is the disabled direction (isEnabled:false), so the lock-after fires whenever the key is lockable -
+        // matching OldApplyWrite's (!isEnabled || ...) condition.
+        if (rs.LockKeyAccess)
+            yield return $"LOCK {rs.KeyPath}";
+    }
+
+    /// <summary>GetParentDisableValue, mirrored from WindowsRegistryService: a DisabledValue with 2+ entries resets
+    /// to its SECOND entry (DisabledValue[1]); otherwise its first non-null entry (the normal disabled write).</summary>
+    private static object? GetParentDisableValue(object?[]? disabledValues) =>
+        disabledValues is { Length: > 1 } ? disabledValues[1] : GetWriteValue(disabledValues);
 
     /// <summary>The old live apply's write intent for one plain registry setting, mirroring the relevant
     /// branches of <c>WindowsRegistryService.ApplySetting(setting, isEnabled, specificValue)</c> WITHOUT

@@ -64,10 +64,11 @@ public class SettingApplicationService(
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
     /// <summary>Phase 6.4 cutover seam: apply a setting's operations through the NEW catalog engine when the setting
-    /// is paired and the request is representable (plain toggle / check-box / selection / Action), else fall back to
-    /// the proven old apply. <see cref="ApplyRequestResolver"/> decides; <see cref="ApplyExecutor"/> runs the plan
-    /// against the live <see cref="IStateWriter"/>. Unpaired / reset-to-default / numeric / custom-detector requests
-    /// resolve to null and keep the old <see cref="ISettingOperationExecutor"/> path, so nothing regresses.</summary>
+    /// is paired and the request is representable (plain toggle / check-box / selection / Action, numeric powercfg
+    /// slider, and reset-to-default - Phase 6.4b), else fall back to the proven old apply.
+    /// <see cref="ApplyRequestResolver"/> decides; <see cref="ApplyExecutor"/> runs the plan against the live
+    /// <see cref="IStateWriter"/>. Unpaired / custom-detector / dynamic-option requests resolve to null and keep the
+    /// old <see cref="ISettingOperationExecutor"/> path, so nothing regresses.</summary>
     private async Task<OperationResult> ApplyOperationsAsync(SettingDefinition setting, bool enable, object? value, bool resetToDefault)
     {
         // Phase 6.5: pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
