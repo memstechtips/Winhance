@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
@@ -21,6 +22,20 @@ public static class CatalogDetectionStateOverlay
     {
         if (newResult is null)
             return old;
+
+        // 6b: thread the new engine's live AC/DC powercfg values into RawValues so the VM/factory read them
+        // (RawValues["ACValue"]/["DCValue"]) from the new engine instead of the old discovery - same raw powercfg
+        // value-index units. Null for non-powercfg settings -> RawValues untouched. RawValues["PowerCfgValue"] and
+        // every other auxiliary entry stay exactly as the old discovery produced them.
+        if (newResult.AcValue is not null || newResult.DcValue is not null)
+        {
+            var raw = old.RawValues is null
+                ? new Dictionary<string, object?>()
+                : new Dictionary<string, object?>(old.RawValues);
+            if (newResult.AcValue is int ac) raw["ACValue"] = ac;
+            if (newResult.DcValue is int dc) raw["DCValue"] = dc;
+            old = old with { RawValues = raw };
+        }
 
         switch (def.InputType)
         {

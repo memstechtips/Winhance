@@ -89,4 +89,32 @@ public class CatalogDetectionStateOverlayTests
         Assert.True(unpaired.IsEnabled);
         Assert.Equal(42, unpaired.CurrentValue);
     }
+
+    [Fact]
+    public void Powercfg_acdc_values_overlay_into_rawvalues_preserving_other_aux()
+    {
+        var old = new SettingStateResult
+        {
+            CurrentValue = 42,
+            Success = true,
+            RawValues = new Dictionary<string, object?> { ["PowerCfgValue"] = 99, ["ACValue"] = 1, ["DCValue"] = 2 },
+        };
+        var result = CatalogDetectionStateOverlay.Apply(
+            Bare(InputType.NumericRange), old,
+            new CatalogDetectionResult { Value = 5, AcValue = 5, DcValue = 8, Detected = true });
+        Assert.Equal(5, result.RawValues!["ACValue"]);          // new engine's AC overlaid
+        Assert.Equal(8, result.RawValues!["DCValue"]);          // new engine's DC overlaid
+        Assert.Equal(99, result.RawValues!["PowerCfgValue"]);   // other auxiliary entries preserved
+    }
+
+    [Fact]
+    public void Null_acdc_leaves_rawvalues_reference_untouched()
+    {
+        var raw = new Dictionary<string, object?> { ["ACValue"] = 1 };
+        var old = new SettingStateResult { IsEnabled = false, Success = true, RawValues = raw };
+        var result = CatalogDetectionStateOverlay.Apply(
+            Toggle(), old, new CatalogDetectionResult { StateLabel = "Enabled", AcValue = null, DcValue = null });
+        Assert.Same(raw, result.RawValues);   // non-powercfg: threading skipped, no clone
+        Assert.True(result.IsEnabled);
+    }
 }
