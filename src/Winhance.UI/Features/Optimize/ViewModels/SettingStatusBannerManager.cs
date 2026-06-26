@@ -80,10 +80,10 @@ internal sealed class SettingStatusBannerManager
     /// Gets a restart-required banner if the setting requires restart and has been changed.
     /// Returns null if no banner should be shown.
     /// </summary>
-    public BannerState? GetRestartBanner(SettingDefinition? definition, bool hasChangedThisSession)
+    public BannerState? GetRestartBanner(bool requiresRestart, bool hasChangedThisSession)
     {
         if (!hasChangedThisSession) return null;
-        if (definition?.RequiresRestart != true) return null;
+        if (!requiresRestart) return null;
 
         return new BannerState(
             _localizationService.GetString("Common_RestartRequired"),

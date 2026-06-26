@@ -355,7 +355,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                     newSettingsById[setting.SettingId] = setting;
 
                 // Index children by their parent ID for fast lookup when parent changes
-                var parentId = setting.SettingDefinition?.ParentSettingId;
+                var parentId = setting.EffectiveUiParentId;
                 if (!string.IsNullOrEmpty(parentId))
                 {
                     if (!newChildrenByParentId.TryGetValue(parentId, out var children))
@@ -484,9 +484,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     {
         foreach (var setting in Settings)
         {
-            if (!string.IsNullOrEmpty(setting.SettingDefinition?.ParentSettingId))
+            if (!string.IsNullOrEmpty(setting.EffectiveUiParentId))
             {
-                var parent = Settings.FirstOrDefault(s => s.SettingId == setting.SettingDefinition.ParentSettingId);
+                var parent = Settings.FirstOrDefault(s => s.SettingId == setting.EffectiveUiParentId);
                 if (parent != null)
                 {
                     bool parentEnabled = parent.InputType switch

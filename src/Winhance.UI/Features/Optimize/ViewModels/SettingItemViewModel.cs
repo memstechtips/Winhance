@@ -788,7 +788,8 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsLocked { get; set; }
 
-    public bool RequiresAdvancedUnlock => SettingDefinition?.RequiresAdvancedUnlock == true;
+    public bool RequiresAdvancedUnlock =>
+        Setting?.Availability.RequiresAdvancedUnlock ?? (SettingDefinition?.RequiresAdvancedUnlock ?? false);
     public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
     public IAsyncRelayCommand UnlockCommand { get; }
 
@@ -943,7 +944,12 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsNumericType => InputType == InputType.NumericRange;
     public bool IsActionType => InputType == InputType.Action;
     public bool IsCheckBoxType => InputType == InputType.CheckBox;
-    public bool IsSubSetting => !string.IsNullOrEmpty(SettingDefinition?.ParentSettingId);
+    /// <summary>The UI parent this setting nests under: the new catalog peer's UiParentId when paired,
+    /// else the old SettingDefinition.ParentSettingId. Null = top-level. Single source for IsSubSetting
+    /// and the parent-child tree-build in BaseSettingsFeatureViewModel.</summary>
+    public string? EffectiveUiParentId => Setting?.UiParentId ?? SettingDefinition?.ParentSettingId;
+
+    public bool IsSubSetting => !string.IsNullOrEmpty(EffectiveUiParentId);
 
     [ObservableProperty]
     public partial ObservableCollection<SettingItemViewModel>? Children { get; set; }
@@ -1685,7 +1691,9 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationIfNeededAsync(object? value)
     {
-        if (SettingDefinition == null || !SettingDefinition.RequiresConfirmation)
+        bool requiresConfirmation =
+            Setting?.Apply.RequiresConfirmation ?? (SettingDefinition?.RequiresConfirmation ?? false);
+        if (!requiresConfirmation)
             return (true, false);
 
         var title = _localizationService.GetString($"Setting_{SettingId}_ConfirmTitle");
@@ -1782,7 +1790,9 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private void ShowRestartBannerIfNeeded()
     {
-        var banner = _statusBannerManager.GetRestartBanner(SettingDefinition, _hasChangedThisSession);
+        bool requiresRestart =
+            Setting?.Apply.RequiresReboot ?? (SettingDefinition?.RequiresRestart ?? false);
+        var banner = _statusBannerManager.GetRestartBanner(requiresRestart, _hasChangedThisSession);
         if (!banner.HasValue) return;
 
         // Do not overwrite an existing option-warning banner (Error severity) with the

@@ -374,29 +374,10 @@ public class SettingStatusBannerManagerTests
     // ──────────────────────────────────────────────────
 
     [Fact]
-    public void GetRestartBanner_NullDefinition_ReturnsNull()
-    {
-        // Act
-        var result = _manager.GetRestartBanner(null, true);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
     public void GetRestartBanner_NoRestartRequired_ReturnsNull()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            RequiresRestart = false
-        };
-
         // Act
-        var result = _manager.GetRestartBanner(definition, true);
+        var result = _manager.GetRestartBanner(false, true);
 
         // Assert
         result.Should().BeNull();
@@ -405,17 +386,8 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void GetRestartBanner_NotChangedThisSession_ReturnsNull()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            RequiresRestart = true
-        };
-
         // Act
-        var result = _manager.GetRestartBanner(definition, hasChangedThisSession: false);
+        var result = _manager.GetRestartBanner(true, hasChangedThisSession: false);
 
         // Assert
         result.Should().BeNull();
@@ -429,16 +401,8 @@ public class SettingStatusBannerManagerTests
             .Setup(l => l.GetString("Common_RestartRequired"))
             .Returns("Restart your PC to apply changes.");
 
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            RequiresRestart = true
-        };
-
         // Act
-        var result = _manager.GetRestartBanner(definition, hasChangedThisSession: true);
+        var result = _manager.GetRestartBanner(true, hasChangedThisSession: true);
 
         // Assert
         result.Should().NotBeNull();
@@ -449,17 +413,8 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void GetRestartBanner_RequiresRestartAndChanged_CallsLocalizationService()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            RequiresRestart = true
-        };
-
         // Act
-        _manager.GetRestartBanner(definition, hasChangedThisSession: true);
+        _manager.GetRestartBanner(true, hasChangedThisSession: true);
 
         // Assert
         _mockLocalizationService.Verify(l => l.GetString("Common_RestartRequired"), Times.Once);
