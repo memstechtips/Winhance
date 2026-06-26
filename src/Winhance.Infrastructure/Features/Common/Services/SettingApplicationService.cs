@@ -30,7 +30,8 @@ public class SettingApplicationService(
     ILocalizationService localizationService,
     IHardwareDetectionService hardwareDetectionService,
     IStateWriter stateWriter,
-    IWindowsVersionService windowsVersionService) : ISettingApplicationService
+    IWindowsVersionService windowsVersionService,
+    ICatalogDetectionService catalogDetection) : ISettingApplicationService
 {
     // Battery presence doesn't change mid-session, so resolve it once and cache. The async
     // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
@@ -137,6 +138,12 @@ public class SettingApplicationService(
 
         globalSettingsRegistry.RegisterSetting(featureId, setting);
 
+        // Phase 6.6 Slice 2: a setting is "paired" when the new catalog holds a peer for it. Paired settings run
+        // their relationships through the NEW RelationshipResolver engine (ApplyCatalogRelationshipsAsync, AFTER the
+        // main apply); unpaired settings keep the OLD dependency-resolver / inline-preset paths below as the
+        // fallback, so nothing regresses while the catalog is still being filled in.
+        bool paired = SettingCatalog.All.Any(s => s.Id == settingId);
+
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
         // Captured BEFORE the dependency resolver runs so nested applies don't mutate the read.
         // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
@@ -163,7 +170,9 @@ public class SettingApplicationService(
             ? Enumerable.Empty<SettingDefinition>()
             : settingsRegistry.GetFilteredSettings(featureId);
 
-        if (!skipValuePrerequisites)
+        // Paired settings run forward/reverse relationships through the new engine AFTER the main apply
+        // (ApplyCatalogRelationshipsAsync). Only unpaired settings still use the OLD value-prereq + dependency paths.
+        if (!skipValuePrerequisites && !paired)
         {
             await dependencyResolver.HandleValuePrerequisitesAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
             await dependencyResolver.HandleDependenciesAsync(settingId, allSettings, enable, value, this).ConfigureAwait(false);
@@ -209,7 +218,9 @@ public class SettingApplicationService(
             operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
         }
 
-        if (setting.SettingPresets != null &&
+        // Unpaired only: the OLD inline-preset path (preset -> apply children). Paired selections drive their
+        // children through the new engine's State.Controls in ApplyCatalogRelationshipsAsync instead.
+        if (!paired && setting.SettingPresets != null &&
             setting.InputType == InputType.Selection &&
             value is int selectedIndex)
         {
@@ -257,9 +268,21 @@ public class SettingApplicationService(
             }
         }
 
-        if (!skipValuePrerequisites)
+        // Unpaired only: the OLD reverse parent-sync. Paired settings get reverse-sync from the new engine
+        // (RelationshipResolver.ResolveReverseSync) inside ApplyCatalogRelationshipsAsync below.
+        if (!skipValuePrerequisites && !paired)
         {
             await dependencyResolver.SyncParentToMatchingPresetAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
+        }
+
+        // Phase 6.6 Slice 2: paired settings run ALL their relationships (forward Requires/Enables/Controls, reverse
+        // parent-sync, reverse cascade-disable) through the new engine here, AFTER the main apply. A paired setting
+        // with no relationships makes this a harmless no-op.
+        if (!skipValuePrerequisites && paired)
+        {
+            var catalogSetting = SettingCatalog.All.First(s => s.Id == settingId);
+            var targetLabel = ResolveTargetLabel(catalogSetting, enable, value, resetToDefault);
+            await ApplyCatalogRelationshipsAsync(catalogSetting, targetLabel).ConfigureAwait(false);
         }
 
         // Always publish the event — even on partial failure, some operations may
@@ -279,6 +302,136 @@ public class SettingApplicationService(
 
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
+
+    /// <summary>
+    /// Phase 6.6 Slice 2: the state label the catalog setting was just moved into, derived the same way
+    /// <see cref="ApplyRequestResolver"/> derives the apply label. Toggle/CheckBox -> "Enabled"/"Disabled";
+    /// Selection -> the catalog state label at the applied option index; resetToDefault -> the WindowsDefault
+    /// state's label. Returns null when the label cannot be derived (non-index selection value, or no
+    /// WindowsDefault state) so the caller skips relationship resolution rather than guessing.
+    /// </summary>
+    private static string? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault)
+    {
+        if (resetToDefault)
+            return setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
+
+        // A two-state Enabled/Disabled target is a toggle/check-box; map enable straight to its label.
+        bool isToggle = setting.States.Any(s => s.Label == "Enabled") && setting.States.Any(s => s.Label == "Disabled");
+        if (isToggle)
+            return enable ? "Enabled" : "Disabled";
+
+        // Otherwise a selection: it moves to the state at the applied option index (States are authored
+        // one-per-option, in option order, so the index IS the state index). A non-index selection value is not
+        // representable, so return null and skip relationship resolution rather than guessing.
+        if (value is int idx && idx >= 0 && idx < setting.States.Count)
+            return setting.States[idx].Label;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Phase 6.6 Slice 2: runs a paired setting's relationships through the new <see cref="RelationshipResolver"/>
+    /// engine AFTER the main apply. Resolves forward (Requires/Enables + the target state's Controls), reverse
+    /// parent-sync, and reverse cascade-disable, then applies each follow-on as a LEAF
+    /// (SkipValuePrerequisites = true) so it triggers no further cascade. A shared visited set + self-skip
+    /// prevents loops. Current state is read once from the new detection engine and served synchronously to the
+    /// pure resolvers.
+    /// </summary>
+    private async Task ApplyCatalogRelationshipsAsync(Setting setting, string? targetLabel)
+    {
+        if (targetLabel is null)
+            return;
+
+        // Pre-fetch every catalog setting's current state ONCE. currentStateOf is sync (the resolvers are pure),
+        // but DetectAsync is async, so resolve up front and serve from the cache. Detecting the whole catalog in
+        // one batch is acceptable for a one-shot apply and is simplest/correct: it covers every related id the
+        // resolvers may scan (forward Links, reverse Controls, reverse cascade dependents). DetectAsync isolates
+        // each setting's failure, so a partial machine read degrades gracefully (unknown ids resolve to null).
+        Dictionary<string, CatalogDetectionResult> detected;
+        try
+        {
+            detected = await catalogDetection.DetectAsync(SettingCatalog.All).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Catalog relationship detection failed for '{setting.Id}': {ex.Message}");
+            return;
+        }
+
+        string? currentStateOf(string id) =>
+            detected != null && detected.TryGetValue(id, out var r) ? r.StateLabel : null;
+
+        var fwd = RelationshipResolver.ResolveForward(setting, targetLabel, currentStateOf);
+        var sync = RelationshipResolver.ResolveReverseSync(setting.Id, SettingCatalog.All, currentStateOf);
+        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, targetLabel, SettingCatalog.All, currentStateOf);
+
+        // Self-skip + visited loop guard. Seed with the setting being applied so a relationship pointing back at
+        // it is never re-applied.
+        var visited = new HashSet<string> { setting.Id };
+
+        foreach (var action in fwd.Concat(sync).Concat(cascade))
+        {
+            if (!visited.Add(action.SettingId))
+                continue;
+
+            var request = ToRequest(action.SettingId, action.StateLabel);
+            if (request is null)
+                continue; // label not representable on the target setting - logged inside ToRequest
+
+            try
+            {
+                await ApplySettingAsync(request).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Relationship apply of '{action.SettingId}' (-> {action.StateLabel}) for '{setting.Id}' failed: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Phase 6.6 Slice 2: maps a relationship <c>ApplyAction</c> (target id + desired state label) into an
+    /// <see cref="ApplySettingRequest"/>. The follow-on is always a LEAF (SkipValuePrerequisites = true) so it
+    /// performs no further cascade - matching the old auto-enable / preset-child behaviour. A two-state
+    /// Enabled/Disabled target maps the label to Enable; a selection maps the label to the option index (the
+    /// state index, which equals the ComboBox option index by construction). Returns null (logged) when the
+    /// target setting is missing or has no state with that label, so a bad relationship is skipped, never thrown.
+    /// </summary>
+    private ApplySettingRequest? ToRequest(string targetId, string label)
+    {
+        var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
+        if (target is null)
+        {
+            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Relationship target '{targetId}' is not in the catalog - skipping");
+            return null;
+        }
+
+        bool isToggle = target.States.Any(s => s.Label == "Enabled") && target.States.Any(s => s.Label == "Disabled");
+        if (isToggle)
+        {
+            return new ApplySettingRequest { SettingId = targetId, Enable = label == "Enabled", Value = null, SkipValuePrerequisites = true };
+        }
+
+        // Selection: the option index is the index of the state whose Label matches (states are authored
+        // one-per-option in option order).
+        int index = -1;
+        for (int i = 0; i < target.States.Count; i++)
+        {
+            if (target.States[i].Label == label)
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index < 0)
+        {
+            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Relationship target '{targetId}' has no state labelled '{label}' - skipping");
+            return null;
+        }
+
+        return new ApplySettingRequest { SettingId = targetId, Enable = true, Value = index, SkipValuePrerequisites = true };
+    }
 
     private void LogChangeHistory(SettingDefinition setting, string settingId, bool enable, object? value, string? beforeDisplay)
     {

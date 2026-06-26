@@ -30,6 +30,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly Mock<IStateWriter> _mockStateWriter = new();
     private readonly Mock<IWindowsVersionService> _mockVersion = new();
+    private readonly Mock<ICatalogDetectionService> _mockCatalogDetection = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
@@ -58,13 +59,21 @@ public class SettingApplicationServiceTests
         _mockVersion.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
         _mockVersion.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
 
+        // Default: the new catalog detection engine resolves nothing. With an empty dictionary, currentStateOf
+        // returns null for every id, so the relationship resolvers fire no follow-on applies - paired settings
+        // with no live-state-dependent relationships stay a no-op (the existing funnel tests assert nothing extra).
+        _mockCatalogDetection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
             _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
-            _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object);
+            _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
+            _mockCatalogDetection.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -183,6 +192,39 @@ public class SettingApplicationServiceTests
         var act = async () => await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = id, Enable = true });
 
         await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_PairedSetting_FiresForwardRequiresFollowOn()
+    {
+        // Phase 6.6 Slice 2 (relationship go-live): applying a paired setting whose target state declares a Requires
+        // Link must, via RelationshipResolver.ResolveForward, recursively apply the prerequisite when it is not already
+        // met. Asserted by the prerequisite's SettingAppliedEvent being published (proof the follow-on apply ran).
+        var owner = SettingCatalog.All.FirstOrDefault(s =>
+            s.Detector is null && s.OptionSource is null
+            && s.States.Any(st => st.Label == "Disabled")
+            && s.States.Any(st => st.Label == "Enabled" && st.Links.Any(l => l.Kind == LinkKind.Requires)));
+        Assert.NotNull(owner);
+        var req = owner!.States.First(st => st.Label == "Enabled").Links.First(l => l.Kind == LinkKind.Requires);
+        Assert.Contains(SettingCatalog.All, s => s.Id == req.OtherId);
+
+        SetupSettingInRegistry(owner.Id);
+        SetupSettingInRegistry(req.OtherId);
+        // Prerequisite detected as NOT in its required state -> ResolveForward must fire it.
+        _mockCatalogDetection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>
+            {
+                [req.OtherId] = new CatalogDetectionResult
+                {
+                    StateLabel = req.RequiredState == "Enabled" ? "Disabled" : "Enabled",
+                    Detected = true,
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = owner.Id, Enable = true });
+
+        _mockEventBus.Verify(e => e.Publish(It.Is<SettingAppliedEvent>(x => x.SettingId == req.OtherId)), Times.Once);
     }
 
     [Fact]
