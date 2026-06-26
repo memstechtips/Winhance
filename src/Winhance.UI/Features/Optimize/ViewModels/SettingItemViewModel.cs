@@ -1002,9 +1002,13 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsPowerPlanSetting => InputType == InputType.Selection &&
         SettingDefinition?.Recommendation?.LoadDynamicOptions == true;
 
+    // Paired Setting: a powercfg setting carries exactly one PowerCfgTarget (converter) whose Mode is the old
+    // PowerModeSupport. Non-powercfg paired settings have no PowerCfgTarget -> false (== old null PowerCfgSettings).
     public bool SupportsSeparateACDC =>
-        SettingDefinition?.PowerCfgSettings?.Any(p =>
-            p.PowerModeSupport == PowerModeSupport.Separate) == true;
+        Setting is { } s
+            ? s.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate
+            : (SettingDefinition?.PowerCfgSettings?.Any(p =>
+                p.PowerModeSupport == PowerModeSupport.Separate) == true);
 
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
