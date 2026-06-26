@@ -29,6 +29,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly Mock<IStateWriter> _mockStateWriter = new();
+    private readonly Mock<IWindowsVersionService> _mockVersion = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
@@ -52,13 +53,18 @@ public class SettingApplicationServiceTests
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
 
+        // Default: a Windows 11 build. Build-agnostic settings (no Target.AppliesTo) are unaffected by this value,
+        // so every existing test is unchanged; build-gated tests override it per-test.
+        _mockVersion.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
+        _mockVersion.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
             _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
-            _mockHardware.Object, _mockStateWriter.Object);
+            _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -97,6 +103,31 @@ public class SettingApplicationServiceTests
         // The new engine performs no restarts itself, so the funnel must still run process/service restarts
         // (the old executor did this as its final step) - else a setting that restarts Explorer would not take effect.
         _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<SettingDefinition>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(22631)] // Windows 11: only the HiddenByDefault write target is live; the Win10 key-delete is gated out.
+    [InlineData(19045)] // Windows 10: only the KeyExists key-delete target is live; the Win11 write is gated out.
+    public async Task ApplySettingAsync_MergedThisPcToggle_AppliesOnlyTheLiveBuildTarget(int buildNumber)
+    {
+        // Phase 6.5: a merged This PC folder setting has two build-gated targets on the SAME key - a Windows-11
+        // HiddenByDefault DWORD write and a Windows-10 key existence/delete. The funnel must thread the live build
+        // so ApplyPlanBuilder emits ONLY this OS's target. (With build=null BOTH would fire - the latent 6.4 bug.)
+        const string id = "explorer-customization-thispc-folder-desktop";
+        SettingCatalog.All.Should().Contain(s => s.Id == id, "the merged This PC setting must exist for this test");
+        SetupSettingInRegistry(id);
+        _mockVersion.Setup(v => v.GetWindowsBuildNumber()).Returns(buildNumber);
+
+        // Disabled: Win11 writes HiddenByDefault=1; Win10 deletes the namespace key (KeyExists = Absent).
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = id, Enable = false });
+
+        bool isWin11 = buildNumber >= 22000;
+        _mockStateWriter.Verify(
+            w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()),
+            isWin11 ? Times.AtLeastOnce() : Times.Never());
+        _mockStateWriter.Verify(
+            w => w.DeleteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>()),
+            isWin11 ? Times.Never() : Times.AtLeastOnce());
     }
 
     [Fact]

@@ -29,7 +29,8 @@ public class SettingApplicationService(
     ISystemSettingsDiscoveryService discoveryService,
     ILocalizationService localizationService,
     IHardwareDetectionService hardwareDetectionService,
-    IStateWriter stateWriter) : ISettingApplicationService
+    IStateWriter stateWriter,
+    IWindowsVersionService windowsVersionService) : ISettingApplicationService
 {
     // Battery presence doesn't change mid-session, so resolve it once and cache. The async
     // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
@@ -62,7 +63,13 @@ public class SettingApplicationService(
     /// resolve to null and keep the old <see cref="ISettingOperationExecutor"/> path, so nothing regresses.</summary>
     private async Task<OperationResult> ApplyOperationsAsync(SettingDefinition setting, bool enable, object? value, bool resetToDefault)
     {
-        var plan = ApplyRequestResolver.Resolve(setting, enable, value, resetToDefault);
+        // Phase 6.5: pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
+        // (Target.AppliesTo). Without it the build gate is skipped and a build-gated/merged setting (e.g. the
+        // This PC folder settings - a Windows-11 HiddenByDefault write AND a Windows-10 key-delete on the SAME
+        // key) would apply BOTH per-OS mechanisms. Settings with no build-gated targets (AppliesTo empty) are
+        // unaffected: their targets are emitted regardless of build.
+        var build = new WinBuild(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
+        var plan = ApplyRequestResolver.Resolve(setting, enable, value, resetToDefault, build);
         if (plan is null)
         {
             // The old executor runs HandleProcessAndServiceRestartsAsync internally as its final step, so the
