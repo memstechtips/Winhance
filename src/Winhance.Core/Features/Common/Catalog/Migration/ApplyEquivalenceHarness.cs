@@ -406,6 +406,50 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>The DNS-server selection (DetectionType.DnsServer): detection runs via the custom DnsServerDetector
+    /// but APPLY (Phase 6.4b Slice 6) is now the per-option PowerShell scripts the new engine runs as EffectOps -
+    /// the two shared script bodies with the option's {{primary}}/{{secondary}}/{{dohtemplate}} ScriptVariables
+    /// substituted. It has no registry targets, so the apply comparison is effects-only.</summary>
+    public static bool IsDnsServerForApply(SettingDefinition def) =>
+        def.DetectionType == DetectionType.DnsServer && def.ComboBox is not null;
+
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (DNS-server selection, option). These settings carry NO
+    /// registry targets - their apply is purely the per-option PowerShell scripts (with ScriptVariables substituted)
+    /// - so OLD is the live selection script intent (<see cref="OldSelectionEffectWrites"/>, which already does the
+    /// substitution) and NEW is the EffectOps the ApplyPlanBuilder plan produces for that option's state. Both
+    /// normalised. Callers should pre-filter with <see cref="IsDnsServerForApply"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunDnsServerApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsDnsServerForApply(def))
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertDnsServer(def);
+            var options = def.ComboBox!.Options;
+
+            foreach (var opt in options)
+            {
+                var oldWrites = OldSelectionEffectWrites(def, opt)
+                    .OrderBy(s => s).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, opt.DisplayName))
+                    .OrderBy(s => s).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [{opt.DisplayName}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring

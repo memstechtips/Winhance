@@ -970,16 +970,96 @@ public static class GamingAndPerformanceOptimizationsCatalog
             },
             States = new[]
             {
-                new SettingState { Label = "Setting_gaming-dns-server_Option_0" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_1" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_2" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_3" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_4" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_5" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_6" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_7" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_8" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_9" },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_0",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_1",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_2",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.2','1.0.0.2') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_3",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.3','1.0.0.3') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_4",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('8.8.8.8','8.8.4.4') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_5",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('9.9.9.9','149.112.112.112') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_6",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('208.67.222.222','208.67.220.220') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=208.67.222.222 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=208.67.220.220 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_7",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://cloudflare-dns.com/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_8",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('8.8.8.8','8.8.4.4') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://dns.google/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_9",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('9.9.9.9','149.112.112.112') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://dns.quad9.net/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
             },
             Detector = new DnsServerDetector("Setting_gaming-dns-server_Option_0", new Dictionary<string, string>
             {

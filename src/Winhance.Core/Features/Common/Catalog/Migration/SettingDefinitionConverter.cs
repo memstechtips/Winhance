@@ -265,7 +265,15 @@ public static class SettingDefinitionConverter
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
             UiParentId = def.ParentSettingId,
-            States = WithLinks(options.Select(o => new SettingState { Label = o.DisplayName }).ToList(), BuildLinks(def)),
+            // APPLY moved to the new engine (Phase 6.4b Slice 6): each option's state carries its apply script(s) as
+            // Effects (Enabled -> EnabledScript, Disabled -> DisabledScript), with the option's {{primary}}/{{secondary}}/
+            // {{dohtemplate}} ScriptVariables substituted in - exactly as the old selection apply ran them. Detection is
+            // unchanged - it still routes through DnsServerDetector below.
+            States = WithLinks(options.Select(o => new SettingState
+            {
+                Label = o.DisplayName,
+                Effects = BuildSelectionOptionEffects(def, o),
+            }).ToList(), BuildLinks(def)),
             Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
         };
     }

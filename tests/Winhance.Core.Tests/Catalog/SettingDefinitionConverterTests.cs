@@ -564,11 +564,19 @@ public class SettingDefinitionConverterTests
             {
                 Options = new[]
                 {
-                    new ComboBoxOption { DisplayName = "Automatic", IsDefault = true, IsRecommended = true },
-                    new ComboBoxOption { DisplayName = "Cloudflare", ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1" } },
-                    new ComboBoxOption { DisplayName = "Google", ScriptVariables = new Dictionary<string, string> { ["primary"] = "8.8.8.8" } },
-                    new ComboBoxOption { DisplayName = "Cloudflare DoH", ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1" } },
+                    new ComboBoxOption { DisplayName = "Automatic", IsDefault = true, IsRecommended = true, Script = ScriptOption.Disabled },
+                    new ComboBoxOption { DisplayName = "Cloudflare", Script = ScriptOption.Enabled, ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" } },
+                    new ComboBoxOption { DisplayName = "Google", Script = ScriptOption.Enabled, ScriptVariables = new Dictionary<string, string> { ["primary"] = "8.8.8.8", ["secondary"] = "8.8.4.4" } },
+                    new ComboBoxOption { DisplayName = "Cloudflare DoH", Script = ScriptOption.Enabled, ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1", ["dohtemplate"] = "https://cloudflare-dns.com/dns-query" } },
                 },
+            },
+            // Two shared script bodies mirroring gaming-dns-server: scriptA sets/resets adapter DNS using
+            // {{primary}}/{{secondary}}; scriptB is the DoH-encryption pass using {{dohtemplate}}. The converter
+            // selects EnabledScript/DisabledScript per option's Script and substitutes the option's ScriptVariables.
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "SET {{primary}} {{secondary}}", DisabledScript = "RESET", RunContext = RunContext.User },
+                new PowerShellScriptSetting { EnabledScript = "DOH t={{dohtemplate}} p={{primary}} s={{secondary}}", DisabledScript = "DOHCLEAR", RunContext = RunContext.User },
             },
         };
 
@@ -579,6 +587,27 @@ public class SettingDefinitionConverterTests
         Assert.Equal("Google", CatalogDiscovery.DetectState(s, new DnsCtx("8.8.8.8")));
         Assert.Equal("Cloudflare", CatalogDiscovery.DetectState(s, new DnsCtx("1.1.1.1")));  // first-wins over DoH
         Assert.Null(CatalogDiscovery.DetectState(s, new DnsCtx("5.5.5.5")));                  // unknown -> Custom
+
+        // APPLY moved to the new engine (Slice 6): each option's state carries BOTH shared scripts as Effects in
+        // def.PowerShellScripts order (scriptA then scriptB), with the option's ScriptVariables substituted.
+        // The Disabled option (Automatic) runs the DisabledScript of both (no substitution).
+        var autoEffects = s.States.Single(x => x.Label == "Automatic").Effects;
+        Assert.Equal(2, autoEffects.Count);
+        Assert.Equal("RESET", Assert.IsType<ScriptEffect>(autoEffects[0]).Script);
+        Assert.Equal("DOHCLEAR", Assert.IsType<ScriptEffect>(autoEffects[1]).Script);
+        Assert.Equal(RunContext.User, Assert.IsType<ScriptEffect>(autoEffects[0]).Run);
+
+        // An Enabled option with a dohtemplate: scriptA substitutes primary/secondary; scriptB substitutes all three.
+        var dohEffects = s.States.Single(x => x.Label == "Cloudflare DoH").Effects;
+        Assert.Equal(2, dohEffects.Count);
+        Assert.Equal("SET 1.1.1.1 1.0.0.1", Assert.IsType<ScriptEffect>(dohEffects[0]).Script);
+        Assert.Equal("DOH t=https://cloudflare-dns.com/dns-query p=1.1.1.1 s=1.0.0.1", Assert.IsType<ScriptEffect>(dohEffects[1]).Script);
+
+        // An Enabled option WITHOUT a dohtemplate leaves the {{dohtemplate}} placeholder literal (the live script
+        // self-guards on it), while primary/secondary are still substituted.
+        var googleEffects = s.States.Single(x => x.Label == "Google").Effects;
+        Assert.Equal("SET 8.8.8.8 8.8.4.4", Assert.IsType<ScriptEffect>(googleEffects[0]).Script);
+        Assert.Equal("DOH t={{dohtemplate}} p=8.8.8.8 s=8.8.4.4", Assert.IsType<ScriptEffect>(googleEffects[1]).Script);
     }
 
     private static SettingDefinition StartMenuDef(string id) =>
