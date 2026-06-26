@@ -540,8 +540,22 @@ public partial class SettingItemViewModel : BaseViewModel
         return null;
     }
 
-    public int? SelectionRecommendedIndex => FindOptionIndex(o => o.IsRecommended);
-    public int? SelectionDefaultIndex => FindOptionIndex(o => o.IsDefault);
+    // Paired Setting: per-state roles drive recommended/default. States order == old option order (converter 1:1,
+    // proven by CatalogAuthoringEquivalenceTests), so the index matches. HasRole defaults to PowerContext.Always -
+    // standard selections match here; PowerCfg AC/DC-scoped roles do NOT (their recommended/default surface via the
+    // AcSelection*/DcSelection* accessors), preserving the old null for PowerCfg settings.
+    private static int? FindStateIndexWithRole(Setting setting, RoleKind kind)
+    {
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
+            if (states[i].HasRole(kind)) return i;
+        return null;
+    }
+
+    public int? SelectionRecommendedIndex =>
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended) : FindOptionIndex(o => o.IsRecommended);
+    public int? SelectionDefaultIndex =>
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault) : FindOptionIndex(o => o.IsDefault);
 
     private string? OptionDisplayText(int? index)
     {
