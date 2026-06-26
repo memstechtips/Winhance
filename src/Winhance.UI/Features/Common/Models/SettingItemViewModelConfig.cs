@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -11,6 +12,7 @@ namespace Winhance.UI.Features.Common.Models;
 public record SettingItemViewModelConfig
 {
     public required SettingDefinition SettingDefinition { get; init; }
+    public Setting? Setting { get; init; }
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; init; }
     public required string SettingId { get; init; }
     public required string Name { get; init; }

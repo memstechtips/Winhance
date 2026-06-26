@@ -1,4 +1,5 @@
 using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -56,6 +57,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = setting,
+            Setting = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id),
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
             Name = setting.Name,

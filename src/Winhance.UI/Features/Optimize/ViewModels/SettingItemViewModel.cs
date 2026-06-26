@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Globalization.NumberFormatting;
 
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -40,6 +41,8 @@ public partial class SettingItemViewModel : BaseViewModel
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
 
     public SettingDefinition? SettingDefinition { get; set; }
+
+    public Setting? Setting { get; set; }
 
     [ObservableProperty]
     public partial string SettingId { get; set; }
@@ -1000,6 +1003,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         // Unpack config data
         SettingDefinition = config.SettingDefinition;
+        Setting = config.Setting;
         ParentFeatureViewModel = config.ParentFeatureViewModel;
         SettingId = config.SettingId;
         Name = config.Name;
