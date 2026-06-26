@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -67,7 +68,14 @@ public class ConfigMigrationService : IConfigMigrationService
 
         foreach (var item in section.Items)
         {
-            if (item?.Id != null && _migrations.TryGetValue(item.Id, out var migration))
+            if (item?.Id == null) continue;
+
+            // Phase 6.5: normalize a retired config id (e.g. the merged "-win10" This PC variants) to its canonical
+            // catalog id BEFORE any id-keyed migration runs, so every downstream consumer (build-gating, apply,
+            // export round-trip) sees the canonical id. Pure passthrough for ids that are not aliases.
+            item.Id = SettingIdAliases.Normalize(item.Id);
+
+            if (_migrations.TryGetValue(item.Id, out var migration))
             {
                 try
                 {
