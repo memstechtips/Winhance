@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
@@ -288,6 +289,19 @@ public class ConfigLoadService : IConfigLoadService
 
                 foreach (var configItem in feature.Value.Items)
                 {
+                    // Phase 6.5: a paired catalog setting is gated by the new Availability model (the post-migration
+                    // source of truth); only unpaired (not-yet-migrated) settings still consult the old build flags.
+                    var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == configItem.Id);
+                    if (newSetting != null)
+                    {
+                        if (!newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
+                        {
+                            var name = allSettings.FirstOrDefault(s => s.Id == configItem.Id)?.Name ?? newSetting.Display.Name;
+                            incompatible.Add($"{name} ({feature.Key})");
+                        }
+                        continue;
+                    }
+
                     var settingDef = allSettings.FirstOrDefault(s => s.Id == configItem.Id);
                     if (settingDef != null)
                     {
@@ -369,6 +383,18 @@ public class ConfigLoadService : IConfigLoadService
 
             foreach (var item in feature.Value.Items)
             {
+                // Phase 6.5: paired catalog setting -> gate via the new Availability model; unpaired -> old flags;
+                // unknown id -> keep (unchanged).
+                var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == item.Id);
+                if (newSetting != null)
+                {
+                    if (newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
+                    {
+                        filteredItems.Add(item);
+                    }
+                    continue;
+                }
+
                 var settingDef = allSettings.FirstOrDefault(s => s.Id == item.Id);
                 if (settingDef != null)
                 {
