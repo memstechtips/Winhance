@@ -474,7 +474,8 @@ public partial class SettingItemViewModel : BaseViewModel
     /// recommendations against the key-absent state must be expressed via RecommendedToggleState.
     /// </summary>
     public bool? ToggleRecommendedState =>
-        SettingDefinition is { } sd ? SettingDefinitionToggleState.GetRecommendedToggleState(sd) : null;
+        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended)
+            : (SettingDefinition is { } sd ? SettingDefinitionToggleState.GetRecommendedToggleState(sd) : null);
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
@@ -482,7 +483,22 @@ public partial class SettingItemViewModel : BaseViewModel
     /// DisabledValue contains the null sentinel (key-absent convention).
     /// </summary>
     public bool? ToggleDefaultState =>
-        SettingDefinition is { } sd ? SettingDefinitionToggleState.GetDefaultToggleState(sd) : null;
+        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault)
+            : (SettingDefinition is { } sd ? SettingDefinitionToggleState.GetDefaultToggleState(sd) : null);
+
+    // Paired Setting: a toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role.
+    // The converter pairs each role with its enabled-ness via RolesFor(isEnabled, GetRecommendedToggleState,
+    // GetDefaultToggleState), so the role-bearing state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null)
+    // reproduces the old SettingDefinitionToggleState output exactly (proven by CatalogAuthoringEquivalenceTests).
+    // HasRole defaults to PowerContext.Always so PowerCfg AC/DC roles never match (preserving the old null there);
+    // a non-Enabled/Disabled role label (e.g. a Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
+    private static bool? RoleToggleState(Setting setting, RoleKind kind)
+    {
+        foreach (var st in setting.States)
+            if (st.HasRole(kind))
+                return st.Label switch { "Enabled" => true, "Disabled" => false, _ => (bool?)null };
+        return null;
+    }
 
     /// <summary>
     /// Resolves a target value into the toggle state it represents. Thin delegate to
