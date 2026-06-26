@@ -186,7 +186,14 @@ public static class SettingDefinitionConverter
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
             UiParentId = def.ParentSettingId,
-            States = WithLinks(options.Select(o => new SettingState { Label = o.DisplayName }).ToList(), BuildLinks(def)),
+            // APPLY moved to the new engine (Phase 6.4b Slice 5): each option's state carries its apply script as an
+            // Effect (Enabled -> EnabledScript, Disabled -> DisabledScript, None/Custom -> none), exactly as the old
+            // selection apply ran them. Detection is unchanged - it still routes through SystemTrayDetector below.
+            States = WithLinks(options.Select(o => new SettingState
+            {
+                Label = o.DisplayName,
+                Effects = BuildSelectionOptionEffects(def, o),
+            }).ToList(), BuildLinks(def)),
             Detector = new SystemTrayDetector(showAll, hideAll),
         };
     }
@@ -199,8 +206,11 @@ public static class SettingDefinitionConverter
         var rec = SettingDefinitionToggleState.GetRecommendedToggleState(def);
         var def_ = SettingDefinitionToggleState.GetDefaultToggleState(def);
 
-        var enabled = new SettingState { Label = "Enabled", Roles = RolesFor(true, rec, def_) };
-        var disabled = new SettingState { Label = "Disabled", Roles = RolesFor(false, rec, def_) };
+        // APPLY moved to the new engine (Phase 6.4b Slice 5): each state carries its apply script as an Effect
+        // (Enabled -> EnabledScript, Disabled -> DisabledScript), exactly as the old toggle apply ran them.
+        // Detection is unchanged - it still routes through SystemRestoreDetector below.
+        var enabled = new SettingState { Label = "Enabled", Roles = RolesFor(true, rec, def_), Effects = BuildToggleEffects(def, isEnabled: true) };
+        var disabled = new SettingState { Label = "Disabled", Roles = RolesFor(false, rec, def_), Effects = BuildToggleEffects(def, isEnabled: false) };
 
         return new Setting
         {

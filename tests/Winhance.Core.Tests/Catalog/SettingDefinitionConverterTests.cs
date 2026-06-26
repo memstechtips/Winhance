@@ -466,10 +466,24 @@ public class SettingDefinitionConverterTests
                     new ComboBoxOption { DisplayName = "Custom", Script = ScriptOption.None, IsDefault = true },
                 },
             },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "SHOW-ALL", DisabledScript = "HIDE-ALL", RunContext = RunContext.User },
+            },
         };
 
         var s = SettingDefinitionConverter.ConvertSystemTray(def);
         Assert.IsType<SystemTrayDetector>(s.Detector);
+
+        // APPLY moved to the new engine (Slice 5): each option's state carries its script as an Effect
+        // (Enabled -> EnabledScript, Disabled -> DisabledScript, None/Custom -> none).
+        var showEffect = Assert.IsType<ScriptEffect>(Assert.Single(s.States.Single(x => x.Label == "Show all icons").Effects));
+        Assert.Equal("SHOW-ALL", showEffect.Script);
+        Assert.Equal(RunContext.User, showEffect.Run);
+        var hideEffect = Assert.IsType<ScriptEffect>(Assert.Single(s.States.Single(x => x.Label == "Hide all icons").Effects));
+        Assert.Equal("HIDE-ALL", hideEffect.Script);
+        Assert.Equal(RunContext.User, hideEffect.Run);
+        Assert.Empty(s.States.Single(x => x.Label == "Custom").Effects);
 
         var keys = new[] { "a", "b", "c" };
         // all promoted -> the Script.Enabled label; none -> the Script.Disabled label; mixed -> Custom.
@@ -501,10 +515,22 @@ public class SettingDefinitionConverterTests
             Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle,
             DetectionType = DetectionType.SystemRestore,
             RecommendedToggleState = true, DefaultToggleState = true,
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "ENABLE-RESTORE", DisabledScript = "DISABLE-RESTORE", RunContext = RunContext.System },
+            },
         };
 
         var s = SettingDefinitionConverter.ConvertSystemRestore(def);
         Assert.IsType<SystemRestoreDetector>(s.Detector);
+
+        // APPLY moved to the new engine (Slice 5): each state carries its toggle script as an Effect.
+        var enabledEffect = Assert.IsType<ScriptEffect>(Assert.Single(s.States.Single(x => x.Label == "Enabled").Effects));
+        Assert.Equal("ENABLE-RESTORE", enabledEffect.Script);
+        Assert.Equal(RunContext.System, enabledEffect.Run);
+        var disabledEffect = Assert.IsType<ScriptEffect>(Assert.Single(s.States.Single(x => x.Label == "Disabled").Effects));
+        Assert.Equal("DISABLE-RESTORE", disabledEffect.Script);
+        Assert.Equal(RunContext.System, disabledEffect.Run);
 
         Assert.Equal("Enabled", CatalogDiscovery.DetectState(s, new RestoreCtx(enabled: true)));
         Assert.Equal("Disabled", CatalogDiscovery.DetectState(s, new RestoreCtx(enabled: false)));

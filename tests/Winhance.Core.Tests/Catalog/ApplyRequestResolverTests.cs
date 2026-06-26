@@ -90,11 +90,45 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Custom_detector_setting_returns_null()
+    public void Bare_custom_detector_setting_returns_null()
     {
+        // A custom-detector setting whose states carry NO apply effects (e.g. DNS, not yet migrated) has nothing
+        // for the new engine to apply, so it falls back to the old apply. ToggleSetting()'s states are effect-less.
         var setting = ToggleSetting() with { Detector = new FakeDetector() };
         var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: true, value: null,
             resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Custom_detector_reset_returns_null()
+    {
+        // A custom-detector setting WITH apply effects (system-restore-style) still routes its RESET to the old
+        // apply - Slice 5 is apply-only. Even though the Enabled state is WindowsDefault (a reset target the
+        // generic reset block would otherwise pick up), the custom-detector reset guard returns null first.
+        var setting = ToggleSetting() with
+        {
+            Detector = new FakeDetector(),
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("Enable-ComputerRestore", RunContext.System) },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                    Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
+            resetToDefault: true, new[] { setting });
         Assert.Null(plan);
     }
 
@@ -168,6 +202,37 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled"), plan);
+    }
+
+    [Fact]
+    public void Custom_detector_setting_with_effects_resolves()
+    {
+        // A custom-detector setting whose states carry apply effects (system-tray / system-restore, Slice 5) is
+        // applied by the new engine: the resolver routes the enable request to the matching state's plan exactly
+        // as ApplyPlanBuilder.Build would, instead of falling back to the old apply.
+        var setting = ToggleSetting() with
+        {
+            Detector = new FakeDetector(),
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("Enable-ComputerRestore", RunContext.System) },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                    Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: true, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
     }
 
     [Fact]

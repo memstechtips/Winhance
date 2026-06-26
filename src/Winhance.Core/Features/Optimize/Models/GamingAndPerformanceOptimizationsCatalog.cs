@@ -3665,10 +3665,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Effects = new Effect[] { new ScriptEffect(@"Enable-ComputerRestore -Drive 'C:\'", RunContext.System) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Effects = new Effect[] { new ScriptEffect(@"Disable-ComputerRestore -Drive 'C:\'", RunContext.System) },
                 },
             },
             Detector = new SystemRestoreDetector("Enabled", "Disabled"),

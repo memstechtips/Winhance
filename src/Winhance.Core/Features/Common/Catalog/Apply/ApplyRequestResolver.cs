@@ -36,9 +36,21 @@ public static class ApplyRequestResolver
         if (setting is null)
             return null; // unpaired -> old apply
 
-        // Custom-detector / dynamic-option settings (DNS, system-tray, system-restore, power-plan) apply via paths
-        // the plan builder does not reproduce (and their special handlers run earlier in the funnel anyway).
-        if (setting.Detector is not null || setting.OptionSource is not null)
+        // Dynamic-option settings (power-plan) carry machine-discovered options and apply via a path the plan
+        // builder does not reproduce -> old apply (deferred to 6.7).
+        if (setting.OptionSource is not null)
+            return null;
+
+        // A BARE-state custom detector (e.g. DNS, not yet migrated to the new apply) has no apply effects to run,
+        // so the new engine has nothing to build -> old apply. A custom-detector setting WHOSE states carry apply
+        // effects (system-tray / system-restore, Slice 5) is allowed through and flows into the InputType switch.
+        if (setting.Detector is not null && !setting.States.Any(s => s.Effects.Count > 0))
+            return null;
+
+        // Custom-detector RESET is not modelled on the new engine (Slice 5 is apply-only): the special detectors'
+        // reset still runs the old apply. Without this the system-restore reset would route to the new engine,
+        // because its Enabled state is WindowsDefault (so the reset block below would otherwise pick it up).
+        if (resetToDefault && setting.Detector is not null)
             return null;
 
         // Reset-to-default (Phase 6.4b 3A): apply the WindowsDefault-roled state with its per-target reset

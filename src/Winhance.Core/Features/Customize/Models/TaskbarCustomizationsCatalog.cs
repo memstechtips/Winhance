@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using static Winhance.Core.Features.Common.Catalog.StateValue;
 
 namespace Winhance.Core.Features.Customize.Models;
@@ -631,8 +632,8 @@ public static class TaskbarCustomizationsCatalog
             Apply = new() { Restart = new RestartProcess("Explorer") },
             States = new[]
             {
-                new SettingState { Label = "Show all icons" },
-                new SettingState { Label = "Hide all icons" },
+                new SettingState { Label = "Show all icons", Effects = new Effect[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 0 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }", RunContext.User) } },
+                new SettingState { Label = "Hide all icons", Effects = new Effect[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 1 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 0 -Type DWord }", RunContext.User) } },
                 new SettingState { Label = "Custom" },
             },
             Detector = new SystemTrayDetector("Show all icons", "Hide all icons"),
