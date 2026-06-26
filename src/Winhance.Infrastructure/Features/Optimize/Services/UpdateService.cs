@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,7 +14,8 @@ public class UpdateService(
     IWindowsRegistryService registryService,
     IProcessExecutor processExecutor,
     IPowerShellRunner powerShellRunner,
-    IFileSystemService fileSystemService) : ISpecialSettingHandler
+    IFileSystemService fileSystemService,
+    IStateWriter stateWriter) : ISpecialSettingHandler
 {
     public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
     {
@@ -348,31 +350,24 @@ public class UpdateService(
         if (options == null || index < 0 || index >= options.Count)
             return;
 
-        var valueMapping = options[index].ValueMappings;
-        if (valueMapping == null)
-            return;
-
-        foreach (var registrySetting in setting.RegistrySettings)
+        // Phase 6.4b: apply the registry block through the NEW catalog engine instead of the old
+        // WindowsRegistryService.ApplySetting (a teardown-deleted method on the teardown-deleted RegistrySetting).
+        // The updates-policy-mode catalog Setting's States are authored one-per-option in option order, so
+        // States[index] is the chosen mode; its Set encodes the same per-option writes the old ValueMappings did
+        // (verified write-equivalent - every option maps all 22 ValueNames, and updates-policy-mode is green in
+        // SelectionApplyEquivalenceTests). The bespoke service/DLL/task orchestration around this call stays as-is.
+        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
+        if (catalogSetting == null || index >= catalogSetting.States.Count)
         {
-            try
-            {
-                if (valueMapping.TryGetValue(registrySetting.ValueName!, out var value))
-                {
-                    if (value == null)
-                    {
-                        registryService.ApplySetting(registrySetting, false);
-                    }
-                    else
-                    {
-                        registryService.ApplySetting(registrySetting, true, value);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"Failed to apply registry setting {registrySetting.ValueName}: {ex.Message}");
-            }
+            logService.Log(LogLevel.Warning,
+                $"[UpdateService] updates-policy-mode missing from the catalog or index {index} out of range - registry block skipped");
+            return;
         }
+
+        var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label), stateWriter);
+        if (!result.AllSucceeded)
+            logService.Log(LogLevel.Warning,
+                $"[UpdateService] {result.Failed}/{result.Total} update-policy registry op(s) failed: {string.Join("; ", result.Failures)}");
     }
 
     public async Task<int> GetCurrentUpdatePolicyIndexAsync()

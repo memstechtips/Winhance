@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Optimize.Services;
@@ -14,6 +15,7 @@ public class UpdateServiceTests
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
+    private readonly Mock<IStateWriter> _mockStateWriter = new();
     private readonly UpdateService _service;
 
     public UpdateServiceTests()
@@ -23,7 +25,8 @@ public class UpdateServiceTests
             _mockRegistryService.Object,
             _mockProcessExecutor.Object,
             _mockPowerShellRunner.Object,
-            _mockFileSystemService.Object);
+            _mockFileSystemService.Object,
+            _mockStateWriter.Object);
     }
 
     #region TryApplySpecialSettingAsync
