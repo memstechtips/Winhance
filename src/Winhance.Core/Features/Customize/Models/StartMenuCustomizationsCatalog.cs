@@ -355,6 +355,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
+                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, "Show") },
                     Set = new Dictionary<string, StateValue> { ["Start_TrackDocs"] = Of(1).OrAbsent() },
                 },
                 new SettingState

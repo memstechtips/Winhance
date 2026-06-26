@@ -49,7 +49,7 @@ public static class SettingDefinitionConverter
             Apply = BuildApply(def),
             UiParentId = def.ParentSettingId,
             Targets = targets.Cast<Target>().ToList(),
-            States = WithLinks(new[] { enabled, disabled }, BuildLinks(def)),
+            States = WithLinksOnLabel(WithLinks(new[] { enabled, disabled }, BuildLinks(def)), BuildValuePrereqLinks(def), "Enabled"),
         };
     }
 
@@ -508,6 +508,14 @@ public static class SettingDefinitionConverter
     private static IReadOnlyList<SettingState> WithLinks(IReadOnlyList<SettingState> states, IReadOnlyList<Link> links) =>
         links.Count == 0 ? states : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList();
 
+    /// <summary>Places value-prerequisite Links (Phase 6.6 Slice 1b) onto the state matching <paramref name="label"/>,
+    /// regardless of that state's role. The value-prereq owners are default-ON toggles whose prerequisite fires when
+    /// the owner is ENABLED, and "Enabled" is their WindowsDefault state - so the general role-skip placement of
+    /// <see cref="WithLinks"/> does not apply here. Appends to any links already on that state (so a 1a general Link
+    /// stays first and the value-prereq follows). Empty links = states unchanged.</summary>
+    private static IReadOnlyList<SettingState> WithLinksOnLabel(IReadOnlyList<SettingState> states, IReadOnlyList<Link> links, string label) =>
+        links.Count == 0 ? states : states.Select(s => s.Label == label ? s with { Links = s.Links.Concat(links).ToList() } : s).ToList();
+
     /// <summary>Maps the old directional dependencies + auto-enable into Links. A RequiresDisabled dependency
     /// carries no reverse cascade; auto-enable forces the target on without a reverse and re-applies it.</summary>
     private static IReadOnlyList<Link> BuildLinks(SettingDefinition def)
@@ -534,6 +542,18 @@ public static class SettingDefinitionConverter
             foreach (var id in auto)
                 links.Add(new Link(id, LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true });
         }
+        return links;
+    }
+
+    /// <summary>Maps the old RequiresSpecificValue dependencies into value-prerequisite Links (Phase 6.6 Slice 1b):
+    /// the owner needs the required setting in the named value-state. Only RequiresSpecificValue is mapped;
+    /// RequiresValueBeforeAnyChange is left out (it is handled by the master snap-to-neutral mechanism, not Links).</summary>
+    private static IReadOnlyList<Link> BuildValuePrereqLinks(SettingDefinition def)
+    {
+        var links = new List<Link>();
+        foreach (var dep in def.Dependencies)
+            if (dep.DependencyType == SettingDependencyType.RequiresSpecificValue && dep.RequiredValue is { } v)
+                links.Add(new Link(dep.RequiredSettingId, LinkKind.Requires, v));
         return links;
     }
 

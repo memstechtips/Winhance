@@ -757,6 +757,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
+                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, "Show") },
                     Set = new Dictionary<string, StateValue> { ["RotatingLockScreenEnabled"] = Of(1) },
                 },
                 new SettingState
@@ -936,6 +937,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
+                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, "Show") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["SubscribedContent-338393Enabled"] = Absent,
