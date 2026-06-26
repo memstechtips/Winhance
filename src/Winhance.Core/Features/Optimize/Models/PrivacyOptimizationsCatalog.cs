@@ -1192,7 +1192,6 @@ public static class PrivacyOptimizationsCatalog
                 GroupName = "Diagnostics & Feedback",
                 Icon = FluentIcons.PenSparkle,
             },
-            Links = new[] { new Link("privacy-diagnostics", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Input\TIPC" }, "Enabled", RegistryValueKind.DWord),
@@ -1215,6 +1214,7 @@ public static class PrivacyOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("privacy-diagnostics", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(0),

@@ -379,7 +379,6 @@ if (-not (Test-Path $icoPath)) {
                 Icon = FluentIcons.DocumentQuestionMark,
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions" }, "ExplorerCommandHandler", RegistryValueKind.String),
@@ -389,6 +388,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{4ac6c205-2853-4bf5-b47c-919a42a48a16}") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -463,7 +463,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\SFC" }, "MUIVerb", RegistryValueKind.String),
@@ -473,6 +472,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("SFC /SCANNOW") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -526,7 +526,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage" }, "MUIVerb", RegistryValueKind.String),
@@ -540,6 +539,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["MUIVerb"] = Of("Repair Windows Image"),
@@ -577,7 +577,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK" }, "MUIVerb", RegistryValueKind.String),
@@ -587,6 +586,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("CHKDSK") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -643,7 +643,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with" }, "MUIVerb", RegistryValueKind.String),
@@ -653,6 +652,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("Edit or Run with") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -770,7 +770,6 @@ if (-not (Test-Path $icoPath)) {
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Between(26100, int.MaxValue) } },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu" }, "ExplorerCommandHandler", RegistryValueKind.String),
@@ -780,6 +779,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -1503,7 +1503,6 @@ if (-not (Test-Path $icoPath)) {
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
-            Links = new[] { new Link("explorer-customization-show-file-ext", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("NeverShowExt", new[] { @"HKEY_CLASSES_ROOT\lnkfile" }, "NeverShowExt", RegistryValueKind.String),
@@ -1513,6 +1512,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-show-file-ext", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["NeverShowExt"] = Absent },
                 },
                 new SettingState
@@ -2318,16 +2318,6 @@ if (Test-Path $appPathsKey) {
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
-            Links = new[]
-            {
-                new Link("explorer-customization-nav-saf-desktop", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-documents", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-downloads", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-music", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-pictures", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-videos", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-show-libraries", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-            },
             Targets = new Target[]
             {
                 new RegTarget("NavPaneShowAllFolders", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "NavPaneShowAllFolders", RegistryValueKind.DWord),
@@ -2337,6 +2327,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[]
+                    {
+                        new Link("explorer-customization-nav-saf-desktop", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-documents", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-downloads", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-music", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-pictures", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-videos", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-show-libraries", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                    },
                     Set = new Dictionary<string, StateValue> { ["NavPaneShowAllFolders"] = Of(1) },
                 },
                 new SettingState

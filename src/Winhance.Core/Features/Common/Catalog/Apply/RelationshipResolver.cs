@@ -26,14 +26,14 @@ public static class RelationshipResolver
         if (targetState is null)
             return actions;
 
-        if (targetState.HasRole(RoleKind.WindowsDefault))
-            return actions; // applying the default state is a deactivation - no forward triggers
-
-        foreach (var link in setting.Links.Where(l => l.Kind == LinkKind.Requires))
+        // Forward triggers are a property of the STATE being applied (like Controls): applying a state fires the
+        // relationships IT declares. A deactivation/off state simply declares no Links, so there is no role-based
+        // skip - this also lets a default-ON owner's active (WindowsDefault) state fire its prerequisites.
+        foreach (var link in targetState.Links.Where(l => l.Kind == LinkKind.Requires))
             if (currentStateOf(link.OtherId) != link.RequiredState)
                 actions.Add(new ApplyAction(link.OtherId, link.RequiredState, link.Force));
 
-        foreach (var link in setting.Links.Where(l => l.Kind == LinkKind.Enables))
+        foreach (var link in targetState.Links.Where(l => l.Kind == LinkKind.Enables))
             actions.Add(new ApplyAction(link.OtherId, link.RequiredState, Force: true));
 
         if (targetState.Controls is { } controls)
@@ -56,11 +56,18 @@ public static class RelationshipResolver
 
         foreach (var dependent in allSettings)
         {
-            bool broken = dependent.Links.Any(l =>
+            // The dependent's Requires now live on its states; it relies on changedSettingId only if its CURRENT
+            // state declares that Requires. (Equivalent to the old setting-level check: the links sit on the active/
+            // non-default states, and a dependent away from its default is exactly one in such a state.)
+            var currentLabel = currentStateOf(dependent.Id);
+            var currentState = currentLabel is null
+                ? null
+                : dependent.States.FirstOrDefault(s => s.Label == currentLabel);
+            bool broken = currentState?.Links.Any(l =>
                 l.Kind == LinkKind.Requires &&
                 l.OtherId == changedSettingId &&
                 l.ReverseCascade &&
-                l.RequiredState != newStateLabel);
+                l.RequiredState != newStateLabel) ?? false;
             if (!broken)
                 continue;
 

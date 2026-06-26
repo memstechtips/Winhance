@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
@@ -16,7 +17,15 @@ public class RelationshipResolverTests
         };
 
     private static Setting S(string id, IReadOnlyList<SettingState> states, params Link[] links) =>
-        new() { Id = id, Display = new() { Name = id, Description = id }, States = states, Links = links };
+        new()
+        {
+            Id = id,
+            Display = new() { Name = id, Description = id },
+            // Links moved per-state (Phase 6.6): place them on the active/non-default states, mirroring the converter.
+            States = links.Length == 0
+                ? states
+                : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList(),
+        };
 
     // currentStateOf that knows nothing (everything "unknown")
     private static string? None(string _) => null;
@@ -45,6 +54,27 @@ public class RelationshipResolverTests
         var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
             new Link("b", LinkKind.Requires, "On"));
         Assert.Empty(RelationshipResolver.ResolveForward(s, "Off", None));
+    }
+
+    [Fact]
+    public void Default_on_owner_fires_requires_from_its_windowsdefault_state()
+    {
+        // Phase 6.6 regression: a default-ON setting whose ACTIVE state IS its WindowsDefault must still fire its
+        // prerequisite when applied. Proves the old "skip forward triggers on the WindowsDefault state" is gone.
+        var onDefault = new SettingState
+        {
+            Label = "On",
+            Roles = new[] { new StateRole(RoleKind.WindowsDefault) },
+            Links = new[] { new Link("b", LinkKind.Requires, "On") },
+        };
+        var s = new Setting
+        {
+            Id = "a",
+            Display = new() { Name = "a", Description = "a" },
+            States = new[] { onDefault, St("Off") },
+        };
+        var actions = RelationshipResolver.ResolveForward(s, "On", None);
+        Assert.Contains(actions, x => x.SettingId == "b" && x.StateLabel == "On");
     }
 
     [Fact]

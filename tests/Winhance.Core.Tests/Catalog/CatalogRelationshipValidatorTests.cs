@@ -8,16 +8,28 @@ namespace Winhance.Core.Tests.Catalog;
 public class CatalogRelationshipValidatorTests
 {
     private static Setting S(string id, IReadOnlyList<Link>? links = null, string? uiParent = null,
-        IReadOnlyDictionary<string, string>? controls = null) =>
-        new()
+        IReadOnlyDictionary<string, string>? controls = null)
+    {
+        // Phase 6.6: Links live per-state. Host any test links on a state so the validator (which reads
+        // States.SelectMany(st => st.Links)) sees them; reuse the controls state if present.
+        var states = new List<SettingState>();
+        if (controls != null)
+            states.Add(new SettingState { Label = "on", Controls = controls });
+        if (links is { Count: > 0 })
         {
-            Id = id, Display = new() { Name = id, Description = id },
-            Links = links ?? new List<Link>(),
+            if (states.Count > 0)
+                states[0] = states[0] with { Links = links };
+            else
+                states.Add(new SettingState { Label = "on", Links = links });
+        }
+        return new()
+        {
+            Id = id,
+            Display = new() { Name = id, Description = id },
             UiParentId = uiParent,
-            States = controls == null
-                ? new List<SettingState>()
-                : new List<SettingState> { new() { Label = "on", Controls = controls } },
+            States = states,
         };
+    }
 
     [Fact]
     public void Link_self_loop_is_an_error()

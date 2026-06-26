@@ -17,7 +17,15 @@ public class RelationshipResolverReverseTests
         };
 
     private static Setting S(string id, IReadOnlyList<SettingState> states, params Link[] links) =>
-        new() { Id = id, Display = new() { Name = id, Description = id }, States = states, Links = links };
+        new()
+        {
+            Id = id,
+            Display = new() { Name = id, Description = id },
+            // Phase 6.6: Links live per-state - place them on the active/non-default states (mirrors the converter).
+            States = links.Length == 0
+                ? states
+                : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList(),
+        };
 
     // ---- reverse cascade ----
 

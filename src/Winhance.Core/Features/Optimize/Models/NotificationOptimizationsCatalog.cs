@@ -88,7 +88,6 @@ public static class NotificationOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
-            Links = new[] { new Link("privacy-lock-screen", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" }, "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK", RegistryValueKind.DWord),
@@ -111,6 +110,7 @@ public static class NotificationOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("privacy-lock-screen", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK"] = Of(0),
@@ -130,7 +130,6 @@ public static class NotificationOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
-            Links = new[] { new Link("privacy-lock-screen", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" }, "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK", RegistryValueKind.DWord),
@@ -148,6 +147,7 @@ public static class NotificationOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("privacy-lock-screen", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK"] = Of(0) },
                 },
             },

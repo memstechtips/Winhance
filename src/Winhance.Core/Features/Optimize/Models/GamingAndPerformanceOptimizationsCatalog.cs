@@ -1050,7 +1050,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             Apply = new() { RequiresReboot = true },
-            Links = new[] { new Link("gaming-virtualization-based-security", LinkKind.Requires, "Enabled") },
             UiParentId = "gaming-virtualization-based-security",
             Targets = new Target[]
             {
@@ -1076,6 +1075,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("gaming-virtualization-based-security", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(0),
@@ -1257,7 +1257,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Download,
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("gaming-sysmain-service", LinkKind.Requires, "Enabled") },
             UiParentId = "gaming-sysmain-service",
             Targets = new Target[] { new RegTarget("EnablePrefetcher", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" }, "EnablePrefetcher", RegistryValueKind.DWord) },
             States = new[]
@@ -1273,6 +1272,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("gaming-sysmain-service", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["EnablePrefetcher"] = Of(0) },
                 },
             },

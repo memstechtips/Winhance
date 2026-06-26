@@ -32,7 +32,8 @@ public sealed record Setting
     public Availability Availability { get; init; } = Availability.Everywhere;   // gating
     public ApplyBehavior Apply { get; init; } = ApplyBehavior.None;              // confirmation + restart
 
-    public IReadOnlyList<Link> Links { get; init; } = System.Array.Empty<Link>();
+    // Forward relationships (Requires/Enables) moved onto SettingState.Links (Phase 6.6) - they are a property of the
+    // state that triggers them, like Controls. ResolveReverseCascade/CatalogValidator now read States.SelectMany(Links).
 
     /// <summary>Presentation only: nest this setting under the parent in the UI and disable its control when
     /// the parent is off. No apply behaviour. Null = top-level.</summary>

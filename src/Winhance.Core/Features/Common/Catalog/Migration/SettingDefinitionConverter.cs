@@ -47,10 +47,9 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
             Targets = targets.Cast<Target>().ToList(),
-            States = new[] { enabled, disabled },
+            States = WithLinks(new[] { enabled, disabled }, BuildLinks(def)),
         };
     }
 
@@ -115,10 +114,9 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
             Targets = targets.Cast<Target>().ToList(),
-            States = states,
+            States = WithLinks(states, BuildLinks(def)),
         };
     }
 
@@ -151,10 +149,9 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
             Targets = new List<Target> { target },
-            States = new[] { enabled, disabled },
+            States = WithLinks(new[] { enabled, disabled }, BuildLinks(def)),
         };
     }
 
@@ -174,9 +171,8 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
-            States = options.Select(o => new SettingState { Label = o.DisplayName }).ToList(),
+            States = WithLinks(options.Select(o => new SettingState { Label = o.DisplayName }).ToList(), BuildLinks(def)),
             Detector = new SystemTrayDetector(showAll, hideAll),
         };
     }
@@ -198,9 +194,8 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
-            States = new[] { enabled, disabled },
+            States = WithLinks(new[] { enabled, disabled }, BuildLinks(def)),
             Detector = new SystemRestoreDetector("Enabled", "Disabled"),
         };
     }
@@ -214,7 +209,6 @@ public static class SettingDefinitionConverter
         Display = BuildDisplay(def),
         Availability = BuildAvailability(def),
         Apply = BuildApply(def),
-        Links = BuildLinks(def),
         UiParentId = def.ParentSettingId,
         Detector = new PowerPlanDetector(),
         OptionSource = new PowerPlanOptionSource(),
@@ -246,9 +240,8 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
-            States = options.Select(o => new SettingState { Label = o.DisplayName }).ToList(),
+            States = WithLinks(options.Select(o => new SettingState { Label = o.DisplayName }).ToList(), BuildLinks(def)),
             Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
         };
     }
@@ -299,7 +292,6 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
             Effects = effects,
         };
@@ -334,7 +326,6 @@ public static class SettingDefinitionConverter
                 Display = BuildDisplay(def),
                 Availability = BuildAvailability(def),
                 Apply = BuildApply(def),
-                Links = BuildLinks(def),
                 UiParentId = def.ParentSettingId,
                 Contexts = new[] { PowerContext.AC, PowerContext.DC },
                 Targets = new List<Target> { target },
@@ -377,11 +368,10 @@ public static class SettingDefinitionConverter
             Display = BuildDisplay(def),
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
-            Links = BuildLinks(def),
             UiParentId = def.ParentSettingId,
             Contexts = new[] { PowerContext.AC, PowerContext.DC },
             Targets = new List<Target> { target },
-            States = states,
+            States = WithLinks(states, BuildLinks(def)),
         };
     }
 
@@ -510,6 +500,13 @@ public static class SettingDefinitionConverter
             Restart = restart,
         };
     }
+
+    /// <summary>Places a setting's forward Links onto the states that trigger them (Phase 6.6): every
+    /// non-WindowsDefault (active) state carries the full link list; the WindowsDefault state(s) carry none.
+    /// This reproduces the old behaviour where setting-level Links fired on any non-WindowsDefault target state.
+    /// Empty links = states unchanged.</summary>
+    private static IReadOnlyList<SettingState> WithLinks(IReadOnlyList<SettingState> states, IReadOnlyList<Link> links) =>
+        links.Count == 0 ? states : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList();
 
     /// <summary>Maps the old directional dependencies + auto-enable into Links. A RequiresDisabled dependency
     /// carries no reverse cascade; auto-enable forces the target on without a reverse and re-applies it.</summary>

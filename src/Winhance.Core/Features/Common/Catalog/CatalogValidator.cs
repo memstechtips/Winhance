@@ -60,8 +60,8 @@ public static class CatalogValidator
             }
         }
 
-        // Self-references: a setting cannot relate to itself.
-        foreach (var l in setting.Links.Where(l => l.OtherId == id))
+        // Self-references: a setting cannot relate to itself. (Links now live per-state.)
+        foreach (var l in setting.States.SelectMany(st => st.Links).Where(l => l.OtherId == id))
             errors.Add(new CatalogValidationError(id, $"Link cannot target its own setting (self-loop) — kind {l.Kind}."));
         foreach (var st in setting.States)
             if (st.Controls is { } controls && controls.ContainsKey(id))
@@ -102,7 +102,7 @@ public static class CatalogValidator
 
         foreach (var s in settings)
         {
-            foreach (var l in s.Links.Where(l => !ids.Contains(l.OtherId)))
+            foreach (var l in s.States.SelectMany(st => st.Links).Where(l => !ids.Contains(l.OtherId)))
                 errors.Add(new CatalogValidationError(s.Id, $"Link target '{l.OtherId}' is not a known setting."));
             foreach (var st in s.States)
                 if (st.Controls is { } controls)
@@ -122,7 +122,7 @@ public static class CatalogValidator
         foreach (var s in settings)
         {
             if (!adj.ContainsKey(s.Id)) adj[s.Id] = new List<string>();
-            foreach (var l in s.Links)
+            foreach (var l in s.States.SelectMany(st => st.Links))
                 if (ids.Contains(l.OtherId) && !adj[s.Id].Contains(l.OtherId))
                     adj[s.Id].Add(l.OtherId);
         }

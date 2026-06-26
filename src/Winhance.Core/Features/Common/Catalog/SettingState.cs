@@ -27,6 +27,12 @@ public sealed record SettingState
     /// be in (childId → required state label). Replaces the old preset map. Null = controls nothing.</summary>
     public IReadOnlyDictionary<string, string>? Controls { get; init; }
 
+    /// <summary>Forward relationships triggered by APPLYING this state: the prerequisites it Requires and the
+    /// settings it Enables (the per-state home of what used to be the setting-level Links). Applying this state
+    /// fires them; a deactivation/off state simply declares none - so there is no role-based skip, and a default-ON
+    /// owner's active (WindowsDefault) state can still fire its prerequisites. Empty = none.</summary>
+    public IReadOnlyList<Link> Links { get; init; } = System.Array.Empty<Link>();
+
     public bool HasRole(RoleKind kind, PowerContext context = PowerContext.Always) =>
         Roles.Any(r => r.Kind == kind && r.Context == context);
 }

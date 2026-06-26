@@ -28,10 +28,9 @@ public class SettingStructuralComparerTests
         },
         States = new[]
         {
-            new SettingState { Label = "Enabled", Roles = new[] { StateRole.Recommended }, Set = new Dictionary<string, StateValue> { ["v"] = StateValue.Of(0) } },
+            new SettingState { Label = "Enabled", Roles = new[] { StateRole.Recommended }, Links = new[] { new Link("other", LinkKind.Requires, "Enabled") }, Set = new Dictionary<string, StateValue> { ["v"] = StateValue.Of(0) } },
             new SettingState { Label = "Disabled", IsFallback = true, Set = new Dictionary<string, StateValue> { ["v"] = StateValue.Of(1) } },
         },
-        Links = new[] { new Link("other", LinkKind.Requires, "Enabled") },
         UiParentId = "parent",
     };
 
@@ -109,8 +108,11 @@ public class SettingStructuralComparerTests
     [Fact]
     public void Links_change_is_caught()
     {
-        var changed = Baseline() with { Links = new[] { new Link("other", LinkKind.Requires, "Disabled") } };
-        Assert.Contains(SettingStructuralComparer.Diff(Baseline(), changed), s => s.StartsWith("Links"));
+        var changed = Baseline();
+        var states = changed.States.ToArray();
+        states[0] = states[0] with { Links = new[] { new Link("other", LinkKind.Requires, "Disabled") } };
+        changed = changed with { States = states };
+        Assert.Contains(SettingStructuralComparer.Diff(Baseline(), changed), s => s.StartsWith("States[0].Links"));
     }
 
     [Fact]

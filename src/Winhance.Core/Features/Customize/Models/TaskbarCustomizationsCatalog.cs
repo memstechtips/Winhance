@@ -892,7 +892,6 @@ public static class TaskbarCustomizationsCatalog
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
             Apply = new() { Restart = new RestartProcess("Explorer") },
-            Links = new[] { new Link("theme-transparency", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("TaskbarAcrylicOpacity", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarAcrylicOpacity", RegistryValueKind.DWord),
@@ -908,11 +907,13 @@ public static class TaskbarCustomizationsCatalog
                 new SettingState
                 {
                     Label = "Transparent",
+                    Links = new[] { new Link("theme-transparency", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["TaskbarAcrylicOpacity"] = Of(0) },
                 },
                 new SettingState
                 {
                     Label = "Opaque",
+                    Links = new[] { new Link("theme-transparency", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["TaskbarAcrylicOpacity"] = Of(255) },
                 },
             },

@@ -22,7 +22,6 @@ public static class SettingStructuralComparer
         DiffDetector(a.Detector, b.Detector, d);
         DiffOptionSource(a.OptionSource, b.OptionSource, d);
         DiffSequence(a.Contexts, b.Contexts, "Contexts", d);
-        DiffSequence(a.Links, b.Links, "Links", d);                                                // Link record -> structural
         DiffAvailability(a.Availability, b.Availability, d);
         DiffTargets(a.Targets, b.Targets, d);
         DiffStates(a.States, b.States, d);
@@ -139,6 +138,7 @@ public static class SettingStructuralComparer
             if (x.IsFallback != y.IsFallback) d.Add($"States[{i}].IsFallback differs");
             if (!x.Roles.SequenceEqual(y.Roles)) d.Add($"States[{i}].Roles differ");
             if (!x.Effects.SequenceEqual(y.Effects)) d.Add($"States[{i}].Effects differ");           // Effect records -> structural
+            DiffSequence(x.Links, y.Links, $"States[{i}].Links", d);                                 // Link record -> structural (moved per-state, Phase 6.6)
             DiffControls(x.Controls, y.Controls, i, d);
             DiffSet(x.Set, y.Set, i, d);
         }

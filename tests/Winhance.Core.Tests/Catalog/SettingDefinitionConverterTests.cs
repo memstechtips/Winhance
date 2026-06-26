@@ -73,7 +73,10 @@ public class SettingDefinitionConverterTests
             AutoEnableSettingIds = new[] { "e" },
         };
 
-        var links = SettingDefinitionConverter.ConvertToggle(def).Links;
+        // Links moved onto the SettingState(s) (Phase 6.6): with no recommended/default toggle state
+        // resolved for this synthetic def, neither state carries WindowsDefault, so both states carry the
+        // identical link list. Read one state's Links to assert the BuildLinks mapping.
+        var links = SettingDefinitionConverter.ConvertToggle(def).States[0].Links;
 
         Assert.Equal(3, links.Count); // a (requires-enabled) + b (requires-disabled) + e (auto-enable); value-prerequisites skipped
         var a = links.Single(l => l.OtherId == "a");

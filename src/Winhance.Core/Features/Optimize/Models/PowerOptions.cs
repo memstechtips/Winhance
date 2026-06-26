@@ -82,7 +82,8 @@ public static class PowerOptions
     /// PowerCfgValue under the "Power" key, with context-scoped roles (Recommended/WindowsDefault per
     /// AC and DC) derived from the per-mode recommended/default VALUES, in a fixed role order.</summary>
     public static IReadOnlyList<SettingState> SelectionStates(
-        (string Label, int Value)[] options, int? recAC, int? recDC, int? defAC, int? defDC)
+        (string Label, int Value)[] options, int? recAC, int? recDC, int? defAC, int? defDC,
+        IReadOnlyList<Link>? links = null)
     {
         var states = new List<SettingState>(options.Length);
         foreach (var (label, value) in options)
@@ -92,12 +93,18 @@ public static class PowerOptions
             if (recDC == value) roles.Add(new StateRole(RoleKind.Recommended, PowerContext.DC));
             if (defAC == value) roles.Add(new StateRole(RoleKind.WindowsDefault, PowerContext.AC));
             if (defDC == value) roles.Add(new StateRole(RoleKind.WindowsDefault, PowerContext.DC));
-            states.Add(new SettingState
+            var state = new SettingState
             {
                 Label = label,
                 Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(value) },
                 Roles = roles,
-            });
+            };
+            // Forward Links (Phase 6.6) ride on every non-WindowsDefault state, matching
+            // SettingDefinitionConverter.WithLinks (HasRole defaults to PowerContext.Always, so a
+            // context-scoped WindowsDefault role does not suppress the link).
+            if (links is { Count: > 0 } && !state.HasRole(RoleKind.WindowsDefault))
+                state = state with { Links = links };
+            states.Add(state);
         }
         return states;
     }
