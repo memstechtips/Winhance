@@ -38,6 +38,18 @@ public class ApplyRequestResolverTests
         States = new[] { State("OptA", 0), State("OptB", 1) },
     };
 
+    private static Setting NumericSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = "n", Description = "d" },
+        Targets = new Target[]
+        {
+            new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate),
+        },
+        Numeric = new Numeric { Min = 0, Max = 100, Units = "Minutes" },
+    };
+
     private static SettingDefinition Def(InputType type, params string[] optionNames)
     {
         var def = new SettingDefinition { Id = "t", Name = "n", Description = "d", InputType = type };
@@ -94,10 +106,20 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Numeric_range_returns_null()
+    public void Numeric_setting_without_numeric_model_returns_null()
     {
+        // A NumericRange def whose catalog peer was not authored as a Numeric (no slider model) falls back.
         var plan = ApplyRequestResolver.Resolve(Def(InputType.NumericRange), enable: true, value: 5,
             resetToDefault: false, new[] { ToggleSetting() });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Numeric_non_dict_value_returns_null()
+    {
+        // The new engine only handles the AC/DC display-units dictionary shape; a bare int falls back.
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.NumericRange), enable: true, value: 5,
+            resetToDefault: false, new[] { NumericSetting() });
         Assert.Null(plan);
     }
 
@@ -176,5 +198,20 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve(Def(InputType.Action), enable: true, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.BuildAction(setting), plan);
+    }
+
+    [Fact]
+    public void Numeric_acdc_dict_builds_powercfg_numeric_plan()
+    {
+        var setting = NumericSetting();
+        var value = new Dictionary<string, object?> { ["ACValue"] = 10, ["DCValue"] = 5 };
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.NumericRange), enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        var expected = ApplyPlanBuilder.BuildPowerCfgNumeric(setting, new[]
+        {
+            new ContextValue(PowerContext.AC, 10),
+            new ContextValue(PowerContext.DC, 5),
+        });
+        Assert.Equal(expected, plan);
     }
 }

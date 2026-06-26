@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Winhance.Core.Features.Common.Enums;
@@ -11,12 +12,12 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// request is not (yet) representable in the new model so the caller falls back to the proven old apply. Pure.
 ///
 /// Handles the common PLAIN cases - registry/scheduled-task toggles + check-boxes, plain registry/task selections,
-/// and stateless Actions - by pairing the def with its <see cref="SettingCatalog"/> Setting and running
-/// <see cref="ApplyPlanBuilder"/>. Returns null (-> old apply) for:
+/// stateless Actions, and numeric powercfg sliders (Phase 6.4b) - by pairing the def with its
+/// <see cref="SettingCatalog"/> Setting and running <see cref="ApplyPlanBuilder"/>. Returns null (-> old apply) for:
 ///   - an unpaired def (no SettingCatalog peer, e.g. the -win10 merged variants until the 6.5 alias),
 ///   - resetToDefault (the apply-only [x, null] reset-write divergence - roadmap 3A - is not modelled yet, so the
 ///     new WindowsDefault state would write x where the old reset deletes),
-///   - NumericRange sliders (the display->system value conversion is not ported here),
+///   - a NumericRange whose value is not an AC/DC display-units dictionary (the only shape the catalog produces),
 ///   - custom-detector / dynamic-option settings (DNS / system-tray / system-restore / power-plan),
 ///   - a selection whose value is not a plain option index, or whose option label has no matching authored state.
 /// Every fallback keeps the setting on the old apply path, so nothing regresses.</summary>
@@ -65,9 +66,40 @@ public static class ApplyRequestResolver
                 }
                 return null; // non-index selection value (AC/DC dict, string, tuple) -> old apply
 
-            default: // NumericRange and anything else -> old apply
+            case InputType.NumericRange:
+                // Powercfg slider (Phase 6.4b). The funnel always passes display-units AC/DC in a dictionary
+                // (UI quick-set, the recommended applier, and the config-import bridge all build that shape).
+                // Pull the two values and hand them to BuildPowerCfgNumeric, which converts display->system per
+                // Numeric.Units - identical to the old PowerCfgApplier.ConvertToSystemUnits. The DC battery-gate
+                // is enforced downstream in the writer, so emit both contexts and keep this pure. Any other value
+                // shape (or a def the new model did not author as a Numeric) falls back to the proven old apply.
+                if (setting.Numeric is not null
+                    && value is Dictionary<string, object?> numericDict
+                    && numericDict.TryGetValue("ACValue", out var acRaw)
+                    && numericDict.TryGetValue("DCValue", out var dcRaw)
+                    && TryToInt(acRaw) is { } ac
+                    && TryToInt(dcRaw) is { } dc)
+                {
+                    return ApplyPlanBuilder.BuildPowerCfgNumeric(setting, new[]
+                    {
+                        new ContextValue(PowerContext.AC, ac),
+                        new ContextValue(PowerContext.DC, dc),
+                    });
+                }
+                return null;
+
+            default: // anything else -> old apply
                 return null;
         }
+    }
+
+    /// <summary>Best-effort coercion of a JSON-sourced numeric (the value may box as long/double) to int;
+    /// null when the input is not numeric, so the caller falls back rather than throwing.</summary>
+    private static int? TryToInt(object? value)
+    {
+        if (value is null) return null;
+        try { return Convert.ToInt32(value); }
+        catch { return null; }
     }
 
     /// <summary>Build the plan for a named state, or null when the setting has no such state (e.g. a custom-detector
