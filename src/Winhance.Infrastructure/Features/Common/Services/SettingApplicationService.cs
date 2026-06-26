@@ -375,7 +375,7 @@ public class SettingApplicationService(
             if (!visited.Add(action.SettingId))
                 continue;
 
-            var request = ToRequest(action.SettingId, action.StateLabel);
+            var request = ToRequest(action.SettingId, action.StateLabel, action.IsReset);
             if (request is null)
                 continue; // label not representable on the target setting - logged inside ToRequest
 
@@ -397,8 +397,10 @@ public class SettingApplicationService(
     /// Enabled/Disabled target maps the label to Enable; a selection maps the label to the option index (the
     /// state index, which equals the ComboBox option index by construction). Returns null (logged) when the
     /// target setting is missing or has no state with that label, so a bad relationship is skipped, never thrown.
+    /// A reverse-cascade action passes <paramref name="isReset"/> = true, so the follow-on applies with
+    /// ResetToDefault = true (deleting a [1,null] target via its ResetSet, matching the old DependencyManager cascade).
     /// </summary>
-    private ApplySettingRequest? ToRequest(string targetId, string label)
+    private ApplySettingRequest? ToRequest(string targetId, string label, bool isReset)
     {
         var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
         if (target is null)
@@ -410,7 +412,7 @@ public class SettingApplicationService(
         bool isToggle = target.States.Any(s => s.Label == "Enabled") && target.States.Any(s => s.Label == "Disabled");
         if (isToggle)
         {
-            return new ApplySettingRequest { SettingId = targetId, Enable = label == "Enabled", Value = null, SkipValuePrerequisites = true };
+            return new ApplySettingRequest { SettingId = targetId, Enable = label == "Enabled", Value = null, SkipValuePrerequisites = true, ResetToDefault = isReset };
         }
 
         // Selection: the option index is the index of the state whose Label matches (states are authored
@@ -431,7 +433,7 @@ public class SettingApplicationService(
             return null;
         }
 
-        return new ApplySettingRequest { SettingId = targetId, Enable = true, Value = index, SkipValuePrerequisites = true };
+        return new ApplySettingRequest { SettingId = targetId, Enable = true, Value = index, SkipValuePrerequisites = true, ResetToDefault = isReset };
     }
 
     private void LogChangeHistory(SettingDefinition setting, string settingId, bool enable, object? value, string? beforeDisplay)

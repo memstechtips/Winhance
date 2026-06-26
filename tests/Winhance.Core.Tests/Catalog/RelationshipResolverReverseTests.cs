@@ -36,7 +36,7 @@ public class RelationshipResolverReverseTests
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
         var actions = RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a },
             id => id == "a" ? "On" : "Off");
-        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off");
+        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off" && x.IsReset);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class RelationshipResolverReverseTests
         // both children currently Off -> matches "Deny"; parent currently "Allow"
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id == "p" ? "Allow" : "Off");
-        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny");
+        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny" && !x.IsReset);
     }
 
     [Fact]

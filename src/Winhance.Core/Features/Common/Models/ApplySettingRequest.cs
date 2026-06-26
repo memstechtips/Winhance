@@ -9,11 +9,12 @@ public sealed record ApplySettingRequest
     public bool ApplyRecommended { get; init; }
     public bool SkipValuePrerequisites { get; init; }
     /// <summary>
-    /// When true, uses DisabledValue[1] (parent cascade value) instead of DisabledValue[0]
-    /// for each registry setting. Settings can declare e.g. DisabledValue = [1, null] where
-    /// index 0 is the explicit disable value and index 1 is the value to write when the
-    /// parent cascades a disable (e.g. null to delete the value for a clean slate).
-    /// If no second element exists, falls back to normal disable behavior.
+    /// When true, applies the setting's default state as a RESET rather than a normal apply. On the new catalog
+    /// engine (ApplyRequestResolver) this applies the WindowsDefault-roled state with its per-target ResetSet
+    /// overrides - the [1,null] Explorer settings DELETE instead of writing their normal Set value (Phase 6.4b).
+    /// On the old fallback path (unpaired / custom-detector settings) it writes DisabledValue[1] (the parent-cascade
+    /// value; e.g. null to delete the value for a clean slate) instead of DisabledValue[0], falling back to normal
+    /// disable when no second element exists. Also set by the relationship reverse-cascade (ApplyAction.IsReset).
     /// </summary>
     public bool ResetToDefault { get; init; }
 }

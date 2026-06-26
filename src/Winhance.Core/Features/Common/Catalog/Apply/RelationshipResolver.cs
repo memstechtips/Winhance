@@ -73,7 +73,7 @@ public static class RelationshipResolver
 
             var defaultState = dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
             if (defaultState != null && currentStateOf(dependent.Id) != defaultState)
-                actions.Add(new ApplyAction(dependent.Id, defaultState));
+                actions.Add(new ApplyAction(dependent.Id, defaultState, IsReset: true));
         }
 
         return actions;
