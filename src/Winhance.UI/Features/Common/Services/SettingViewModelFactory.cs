@@ -54,15 +54,17 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel)
     {
+        var catalogPeer = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id);
+
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = setting,
-            Setting = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id),
+            Setting = catalogPeer,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            Name = setting.Name,
-            Description = setting.Description,
-            GroupName = setting.GroupName ?? string.Empty,
+            Name = catalogPeer?.Display.Name ?? setting.Name,
+            Description = catalogPeer?.Display.Description ?? setting.Description,
+            GroupName = catalogPeer?.Display.GroupName ?? setting.GroupName ?? string.Empty,
             Icon = setting.Icon ?? string.Empty,
             IconPack = setting.IconPack ?? "Material",
             InputType = setting.InputType,

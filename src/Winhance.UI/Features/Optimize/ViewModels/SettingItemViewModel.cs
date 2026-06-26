@@ -1031,7 +1031,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         // Check if this setting is new in the current release
         IsNew = _newBadgeService?.IsSettingNew(
-            config.SettingDefinition?.AddedInVersion, config.SettingId) == true;
+            config.Setting?.Display.AddedInVersion ?? config.SettingDefinition?.AddedInVersion, config.SettingId) == true;
 
         _statusBannerManager = new SettingStatusBannerManager(localizationService);
         _technicalDetailsManager = new TechnicalDetailsManager(
@@ -1930,7 +1930,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         var row = new List<BadgePillState>(capacity: 8);
 
-        if (SettingDefinition.IsSubjectivePreference)
+        if (Setting?.Display.IsSubjectivePreference ?? SettingDefinition.IsSubjectivePreference)
         {
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Preference);
             row.Add(new BadgePillState(SettingBadgeKind.Preference, IsHighlighted: true, label, tooltip));
