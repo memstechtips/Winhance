@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Win32;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -16,15 +17,18 @@ public class ThemeWallpaperApplierTests
 {
     private readonly Mock<IWallpaperService> _wallpaper = new();
     private readonly Mock<IWindowsVersionService> _version = new();
-    private readonly Mock<IWindowsRegistryService> _registry = new();
+    private readonly Mock<IStateWriter> _stateWriter = new();
     private readonly Mock<ILogService> _log = new();
     private readonly Mock<IFileSystemService> _fs = new();
     private readonly ThemeWallpaperApplier _sut;
 
     public ThemeWallpaperApplierTests()
     {
+        _stateWriter
+            .Setup(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()))
+            .Returns(true);
         _sut = new ThemeWallpaperApplier(
-            _wallpaper.Object, _version.Object, _registry.Object, _log.Object, _fs.Object);
+            _wallpaper.Object, _version.Object, _stateWriter.Object, _log.Object, _fs.Object);
     }
 
     [Fact]
@@ -35,7 +39,7 @@ public class ThemeWallpaperApplierTests
         var result = await _sut.TryApplySpecialSettingAsync(setting, 0);
 
         result.Should().BeFalse();
-        _registry.VerifyNoOtherCalls();
+        _stateWriter.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -49,51 +53,28 @@ public class ThemeWallpaperApplierTests
     }
 
     [Fact]
-    public async Task TryApply_DarkMode_WritesZeroToRegistry()
+    public async Task TryApply_DarkMode_WritesZeroToBothThemeKeys()
     {
-        var regSetting = new RegistrySetting
-        {
-            KeyPath = @"HKCU\Software\Test",
-            ValueName = "Test",
-            RecommendedValue = 0,
-            DefaultValue = 1,
-            ValueType = RegistryValueKind.DWord,
-        };
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting> { regSetting }
-        };
+        // The handler now ignores the passed def's RegistrySettings and applies the catalog
+        // theme-mode-windows "Dark Mode" state through the new engine (Phase 6.4b): both
+        // AppsUseLightTheme + SystemUsesLightTheme are written 0 via the state writer.
+        var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
         await _sut.TryApplySpecialSettingAsync(setting, 1);  // 1 = Dark
 
-        _registry.Verify(r => r.ApplySetting(regSetting, true, 0), Times.Once);
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
+            It.Is<object>(v => v.Equals(0))), Times.Exactly(2));
     }
 
     [Fact]
-    public async Task TryApply_LightMode_WritesOneToRegistry()
+    public async Task TryApply_LightMode_WritesOneToBothThemeKeys()
     {
-        var regSetting = new RegistrySetting
-        {
-            KeyPath = @"HKCU\Software\Test",
-            ValueName = "Test",
-            RecommendedValue = 0,
-            DefaultValue = 1,
-            ValueType = RegistryValueKind.DWord,
-        };
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting> { regSetting }
-        };
+        var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
         await _sut.TryApplySpecialSettingAsync(setting, 0);  // 0 = Light
 
-        _registry.Verify(r => r.ApplySetting(regSetting, true, 1), Times.Once);
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
+            It.Is<object>(v => v.Equals(1))), Times.Exactly(2));
     }
 
     [Fact]
