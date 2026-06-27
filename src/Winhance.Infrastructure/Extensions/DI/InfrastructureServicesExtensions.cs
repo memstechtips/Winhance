@@ -87,12 +87,12 @@ public static class InfrastructureServicesExtensions
         // TryAdd here provides an empty default so the infrastructure container is
         // self-contained when composed on its own (e.g. integration smoke tests).
         services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
-            new SpecialDiscoveryRegistry([]));
+            new SpecialDiscoveryRegistry(() => System.Array.Empty<ISpecialSettingHandler>()));
         // SettingApplicationService also depends on the ISpecialSettingHandlerRegistry
         // dispatcher registry, re-registered by the UI composition root with the real
         // handler set. Same TryAdd-default rationale as ISpecialDiscoveryRegistry above.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
-            new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>()));
+            new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>()));
         services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
