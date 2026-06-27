@@ -568,6 +568,18 @@ public partial class SettingItemViewModel : BaseViewModel
         return null;
     }
 
+    // Context-scoped variant for AC/DC powercfg selections. States order == option order (converter 1:1), and
+    // ConvertPowerCfg tags the option whose PowerCfgValue == RecommendedValueAC/DefaultValueDC/... with
+    // HasRole(kind, AC/DC) - so this index equals the old FindPowerCfgOptionIndex(thatValue). Null when no state
+    // carries the role (== old FindPowerCfgOptionIndex(null)).
+    private static int? FindStateIndexWithRole(Setting setting, RoleKind kind, PowerContext context)
+    {
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
+            if (states[i].HasRole(kind, context)) return i;
+        return null;
+    }
+
     public int? SelectionRecommendedIndex =>
         Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended) : FindOptionIndex(o => o.IsRecommended);
     public int? SelectionDefaultIndex =>
@@ -636,16 +648,20 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public int? AcSelectionRecommendedIndex =>
-        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.AC)
+            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC);
 
     public int? AcSelectionDefaultIndex =>
-        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, PowerContext.AC)
+            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC);
 
     public int? DcSelectionRecommendedIndex =>
-        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.DC)
+            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC);
 
     public int? DcSelectionDefaultIndex =>
-        FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, PowerContext.DC)
+            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC);
 
     public string AcSelectionRecommendedTooltip =>
         OptionDisplayText(AcSelectionRecommendedIndex) is { } label
