@@ -272,19 +272,38 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// AC-side recommended value for Separate PowerCfg NumericRange settings.
+    /// AC-side recommended value for Separate PowerCfg NumericRange settings, in SYSTEM units.
+    /// Paired (6d): reconstructed from the new model's per-context Numeric target (display units ->
+    /// system units), so the unchanged call sites' ConvertFromSystemUnits re-derives the same display
+    /// value. Unpaired: the old raw PowerCfgSetting value. Null when that mode has no value (== old null).
     /// </summary>
     public int? AcRecommendedValue =>
-        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC;
+        PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.AC,
+            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC);
 
     public int? AcDefaultValue =>
-        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC;
+        PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.AC,
+            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC);
 
     public int? DcRecommendedValue =>
-        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC;
+        PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.DC,
+            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC);
 
     public int? DcDefaultValue =>
-        SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC;
+        PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.DC,
+            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC);
+
+    // Returns the new model's per-context numeric target reconstructed to SYSTEM units, or the old raw
+    // PowerCfgSetting value when unpaired (Setting/Numeric null). When the setting is paired but the mode
+    // carries no ContextValue, returns null - the converter adds a ContextValue only when the matching
+    // PowerCfgSetting.*Value* was set, so this equals the old behaviour (RecommendedValueAC etc. were null).
+    private int? PairedNumericValue(IReadOnlyList<ContextValue>? values, PowerContext context, int? old)
+    {
+        if (Setting?.Numeric is null || values is null) return old;
+        foreach (var cv in values)
+            if (cv.Context == context) return ConvertToSystemUnits(cv.Value);
+        return null;
+    }
 
     private static int? TryConvertToInt(object? value)
     {
@@ -1291,6 +1310,17 @@ public partial class SettingItemViewModel : BaseViewModel
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
+    // Inverse of ConvertFromSystemUnits, used only by the new-model numeric accessors (6d). The catalog
+    // stores per-context numeric targets in DISPLAY units (the converter pre-applied ConvertSystemToDisplay);
+    // the old PowerCfgSetting.*Value* were SYSTEM units and every call site applies ConvertFromSystemUnits.
+    // Reconstructing the system value here keeps all call sites unchanged. Units come from the same model the
+    // ContextValue was built with (Setting.Numeric.Units), so the display->system->display round trip is exact.
+    private int ConvertToSystemUnits(int displayValue)
+    {
+        var displayUnits = Setting?.Numeric?.Units;
+        return UnitConversionHelper.ConvertToSystemUnits(displayValue, displayUnits);
+    }
+
     #region UI Event Handlers
 
     public void OnToggleSwitchToggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -1953,30 +1983,34 @@ public partial class SettingItemViewModel : BaseViewModel
 
                     if (InputType == InputType.Selection)
                     {
-                        // AC/DC selection - compare indices against recommended/default PowerCfg values.
-                        // On battery-less systems DC isn't writable by PowerCfgApplier and the DC
-                        // control isn't shown — skip DC comparisons or a system-state refresh would
-                        // visibly correct the VM and flip the badge.
-                        if (pcfg.RecommendedValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value))
+                        // AC/DC selection - compare the live AC/DC option index against the recommended/
+                        // default index derived from the new model's context-scoped state roles (6c). For a
+                        // paired setting these indices equal the old PowerCfgIndexMatchesValue verdict (state
+                        // order == option order, 1:1; the role tags the option whose PowerCfgValue matched the
+                        // per-mode value); the accessors fall back to the old PowerCfg value lookup when unpaired.
+                        // On battery-less systems DC isn't writable by PowerCfgApplier and the DC control isn't
+                        // shown - skip DC comparisons or a system-state refresh would visibly flip the badge.
+                        if (AcSelectionRecommendedIndex is int rai && AcValue != rai)
                             matchesRecommended = false;
-                        if (considerDc && pcfg.RecommendedValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value))
+                        if (considerDc && DcSelectionRecommendedIndex is int rdi && DcValue != rdi)
                             matchesRecommended = false;
-                        if (pcfg.DefaultValueAC.HasValue && !PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value))
+                        if (AcSelectionDefaultIndex is int dai && AcValue != dai)
                             matchesDefault = false;
-                        if (considerDc && pcfg.DefaultValueDC.HasValue && !PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value))
+                        if (considerDc && DcSelectionDefaultIndex is int ddi && DcValue != ddi)
                             matchesDefault = false;
                     }
                     else if (InputType == InputType.NumericRange)
                     {
-                        // AcNumericValue/DcNumericValue are in display units (e.g. Minutes);
-                        // pcfg values are in system units (e.g. Seconds). Convert before compare.
-                        if (pcfg.RecommendedValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value))
+                        // AcNumericValue/DcNumericValue are in display units (e.g. Minutes). The accessors
+                        // (6d) return SYSTEM units reconstructed from the new model, so the existing
+                        // ConvertFromSystemUnits at the call site is unchanged and the compare is identical.
+                        if (AcRecommendedValue is int rac && AcNumericValue != ConvertFromSystemUnits(rac))
                             matchesRecommended = false;
-                        if (considerDc && pcfg.RecommendedValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value))
+                        if (considerDc && DcRecommendedValue is int rdc && DcNumericValue != ConvertFromSystemUnits(rdc))
                             matchesRecommended = false;
-                        if (pcfg.DefaultValueAC.HasValue && AcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueAC.Value))
+                        if (AcDefaultValue is int dac && AcNumericValue != ConvertFromSystemUnits(dac))
                             matchesDefault = false;
-                        if (considerDc && pcfg.DefaultValueDC.HasValue && DcNumericValue != ConvertFromSystemUnits(pcfg.DefaultValueDC.Value))
+                        if (considerDc && DcDefaultValue is int ddc && DcNumericValue != ConvertFromSystemUnits(ddc))
                             matchesDefault = false;
                     }
                 }
@@ -2013,17 +2047,15 @@ public partial class SettingItemViewModel : BaseViewModel
         // the user can see at a glance which mode matches recommended/default and which is
         // custom. On battery-less systems (desktops) DC is hidden and not writable, so we
         // keep the single-pill behaviour that the rest of the catalog uses.
-        bool perModeBadges = SupportsSeparateACDC
-            && HasBattery
-            && SettingDefinition.PowerCfgSettings is { Count: > 0 } pcfgList
-            && pcfgList[0].PowerModeSupport == PowerModeSupport.Separate;
+        // SupportsSeparateACDC already encodes "has a Separate PowerCfgTarget" (6e, off the new model),
+        // so the old PowerCfgSettings[0].Separate clause is redundant.
+        bool perModeBadges = SupportsSeparateACDC && HasBattery;
 
         if (perModeBadges)
         {
-            var pcfg = SettingDefinition.PowerCfgSettings![0];
-            AddAcDcRecommendedPills(row, pcfg);
-            AddAcDcDefaultPills(row, pcfg);
-            AddAcDcCustomPills(row, pcfg);
+            AddAcDcRecommendedPills(row);
+            AddAcDcDefaultPills(row);
+            AddAcDcCustomPills(row);
         }
         else
         {
@@ -2055,93 +2087,111 @@ public partial class SettingItemViewModel : BaseViewModel
         BadgeRow = row;
     }
 
-    private void AddAcDcRecommendedPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    // 6c/6d: per-mode pills read the new model via the AC/DC accessors (selection: AcSelectionRecommendedIndex
+    // etc., off context-scoped state roles; numeric: AcRecommendedValue etc., reconstructed to system units).
+    // For a paired setting these reproduce the old pcfg.*Value* verdicts exactly; the accessors fall back to
+    // the old PowerCfg lookup when unpaired.
+    private void AddAcDcRecommendedPills(List<BadgePillState> row)
     {
-        if (pcfg.RecommendedValueAC.HasValue)
+        bool isNumeric = InputType == InputType.NumericRange;
+        if ((isNumeric ? AcRecommendedValue.HasValue : AcSelectionRecommendedIndex.HasValue))
         {
-            bool match = InputType == InputType.NumericRange
-                ? AcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value)
-                : PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value);
+            bool match = isNumeric
+                ? AcNumericValue == ConvertFromSystemUnits(AcRecommendedValue!.Value)
+                : AcValue == AcSelectionRecommendedIndex!.Value;
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended, SettingBadgeMode.AC);
             row.Add(new BadgePillState(SettingBadgeKind.Recommended, match, label, tooltip, SettingBadgeMode.AC));
         }
-        if (pcfg.RecommendedValueDC.HasValue)
+        if ((isNumeric ? DcRecommendedValue.HasValue : DcSelectionRecommendedIndex.HasValue))
         {
-            bool match = InputType == InputType.NumericRange
-                ? DcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value)
-                : PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value);
+            bool match = isNumeric
+                ? DcNumericValue == ConvertFromSystemUnits(DcRecommendedValue!.Value)
+                : DcValue == DcSelectionRecommendedIndex!.Value;
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Recommended, SettingBadgeMode.DC);
             row.Add(new BadgePillState(SettingBadgeKind.Recommended, match, label, tooltip, SettingBadgeMode.DC));
         }
     }
 
-    private void AddAcDcDefaultPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    private void AddAcDcDefaultPills(List<BadgePillState> row)
     {
-        if (pcfg.DefaultValueAC.HasValue)
+        bool isNumeric = InputType == InputType.NumericRange;
+        if ((isNumeric ? AcDefaultValue.HasValue : AcSelectionDefaultIndex.HasValue))
         {
-            bool match = InputType == InputType.NumericRange
-                ? AcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueAC.Value)
-                : PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value);
+            bool match = isNumeric
+                ? AcNumericValue == ConvertFromSystemUnits(AcDefaultValue!.Value)
+                : AcValue == AcSelectionDefaultIndex!.Value;
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default, SettingBadgeMode.AC);
             row.Add(new BadgePillState(SettingBadgeKind.Default, match, label, tooltip, SettingBadgeMode.AC));
         }
-        if (pcfg.DefaultValueDC.HasValue)
+        if ((isNumeric ? DcDefaultValue.HasValue : DcSelectionDefaultIndex.HasValue))
         {
-            bool match = InputType == InputType.NumericRange
-                ? DcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueDC.Value)
-                : PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value);
+            bool match = isNumeric
+                ? DcNumericValue == ConvertFromSystemUnits(DcDefaultValue!.Value)
+                : DcValue == DcSelectionDefaultIndex!.Value;
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Default, SettingBadgeMode.DC);
             row.Add(new BadgePillState(SettingBadgeKind.Default, match, label, tooltip, SettingBadgeMode.DC));
         }
     }
 
-    private void AddAcDcCustomPills(List<BadgePillState> row, PowerCfgSetting pcfg)
+    private void AddAcDcCustomPills(List<BadgePillState> row)
     {
-        // Custom (per-mode) lights when the current value matches neither Recommended
-        // nor Default on that side, AND the setting actually has comparison data on that
-        // side. For Selection we also treat an out-of-range index as Custom.
+        // Custom (per-mode) lights when the current value matches neither Recommended nor Default on that
+        // side, AND the setting has comparison data on that side. Selection also treats an out-of-range
+        // index as Custom. 6c/6d: data presence + verdicts read the new model via the AC/DC accessors.
+        bool isNumeric = InputType == InputType.NumericRange;
+        bool acHasData = isNumeric
+            ? (AcRecommendedValue.HasValue || AcDefaultValue.HasValue)
+            : (AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue);
+        bool dcHasData = isNumeric
+            ? (DcRecommendedValue.HasValue || DcDefaultValue.HasValue)
+            : (DcSelectionRecommendedIndex.HasValue || DcSelectionDefaultIndex.HasValue);
+
         bool acCustom = false, dcCustom = false;
 
         if (InputType == InputType.Selection)
         {
-            var options = SettingDefinition?.ComboBox?.Options;
-            if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+            // Paired state count == option count (1:1); fall back to the old combobox count when unpaired.
+            int optionCount = Setting is { States.Count: > 0 } s
+                ? s.States.Count
+                : SettingDefinition?.ComboBox?.Options?.Count ?? 0;
+            bool hasOptions = optionCount > 0;
+            if (acHasData)
             {
-                bool acRec = pcfg.RecommendedValueAC.HasValue && PowerCfgIndexMatchesValue(AcValue, pcfg.RecommendedValueAC.Value);
-                bool acDef = pcfg.DefaultValueAC.HasValue && PowerCfgIndexMatchesValue(AcValue, pcfg.DefaultValueAC.Value);
-                bool acOutOfRange = options != null && (AcValue < 0 || AcValue >= options.Count);
+                bool acRec = AcSelectionRecommendedIndex is int rai && AcValue == rai;
+                bool acDef = AcSelectionDefaultIndex is int dai && AcValue == dai;
+                bool acOutOfRange = hasOptions && (AcValue < 0 || AcValue >= optionCount);
                 acCustom = acOutOfRange || (!acRec && !acDef);
             }
-            if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+            if (dcHasData)
             {
-                bool dcRec = pcfg.RecommendedValueDC.HasValue && PowerCfgIndexMatchesValue(DcValue, pcfg.RecommendedValueDC.Value);
-                bool dcDef = pcfg.DefaultValueDC.HasValue && PowerCfgIndexMatchesValue(DcValue, pcfg.DefaultValueDC.Value);
-                bool dcOutOfRange = options != null && (DcValue < 0 || DcValue >= options.Count);
+                bool dcRec = DcSelectionRecommendedIndex is int rdi && DcValue == rdi;
+                bool dcDef = DcSelectionDefaultIndex is int ddi && DcValue == ddi;
+                bool dcOutOfRange = hasOptions && (DcValue < 0 || DcValue >= optionCount);
                 dcCustom = dcOutOfRange || (!dcRec && !dcDef);
             }
         }
         else if (InputType == InputType.NumericRange)
         {
-            if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+            if (acHasData)
             {
-                bool acRec = pcfg.RecommendedValueAC.HasValue && AcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value);
-                bool acDef = pcfg.DefaultValueAC.HasValue && AcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueAC.Value);
+                bool acRec = AcRecommendedValue is int rac && AcNumericValue == ConvertFromSystemUnits(rac);
+                bool acDef = AcDefaultValue is int dac && AcNumericValue == ConvertFromSystemUnits(dac);
                 acCustom = !acRec && !acDef;
             }
-            if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+            if (dcHasData)
             {
-                bool dcRec = pcfg.RecommendedValueDC.HasValue && DcNumericValue == ConvertFromSystemUnits(pcfg.RecommendedValueDC.Value);
-                bool dcDef = pcfg.DefaultValueDC.HasValue && DcNumericValue == ConvertFromSystemUnits(pcfg.DefaultValueDC.Value);
+                bool dcRec = DcRecommendedValue is int rdc && DcNumericValue == ConvertFromSystemUnits(rdc);
+                bool dcDef = DcDefaultValue is int ddc && DcNumericValue == ConvertFromSystemUnits(ddc);
                 dcCustom = !dcRec && !dcDef;
             }
         }
 
-        if (pcfg.RecommendedValueAC.HasValue || pcfg.DefaultValueAC.HasValue)
+        if (acHasData)
         {
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.AC);
             row.Add(new BadgePillState(SettingBadgeKind.Custom, acCustom, label, tooltip, SettingBadgeMode.AC));
         }
-        if (pcfg.RecommendedValueDC.HasValue || pcfg.DefaultValueDC.HasValue)
+        if (dcHasData)
         {
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.DC);
             row.Add(new BadgePillState(SettingBadgeKind.Custom, dcCustom, label, tooltip, SettingBadgeMode.DC));
@@ -2273,19 +2323,6 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private bool PowerCfgIndexMatchesValue(int index, int targetPowerCfgValue)
-    {
-        var options = SettingDefinition?.ComboBox?.Options;
-        if (options == null || index < 0 || index >= options.Count) return false;
-
-        if (options[index].ValueMappings is { } mapping &&
-            mapping.TryGetValue("PowerCfgValue", out var val) && val != null)
-        {
-            return Convert.ToInt32(val) == targetPowerCfgValue;
-        }
-        return false;
-    }
-
     private bool HasAnyRecommendedData()
     {
         if (SettingDefinition is null) return false;
@@ -2308,8 +2345,10 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         if (SettingDefinition.ScheduledTaskSettings.Any(t => t.RecommendedState.HasValue))
             return true;
-        if (SettingDefinition.PowerCfgSettings?.Any(
-                p => p.RecommendedValueAC.HasValue || p.RecommendedValueDC.HasValue) == true)
+        // 6c/6d: paired powercfg recommended-data lives on the new model (numeric ContextValues /
+        // selection state roles); the accessors fall back to the old PowerCfg reads when unpaired.
+        if (AcRecommendedValue.HasValue || DcRecommendedValue.HasValue
+            || AcSelectionRecommendedIndex.HasValue || DcSelectionRecommendedIndex.HasValue)
             return true;
         return false;
     }
@@ -2356,8 +2395,9 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         if (SettingDefinition.ScheduledTaskSettings.Any(t => t.DefaultState.HasValue))
             return true;
-        if (SettingDefinition.PowerCfgSettings?.Any(
-                p => p.DefaultValueAC.HasValue || p.DefaultValueDC.HasValue) == true)
+        // 6c/6d: paired powercfg default-data lives on the new model; accessors fall back when unpaired.
+        if (AcDefaultValue.HasValue || DcDefaultValue.HasValue
+            || AcSelectionDefaultIndex.HasValue || DcSelectionDefaultIndex.HasValue)
             return true;
         return false;
     }
@@ -2368,14 +2408,17 @@ public partial class SettingItemViewModel : BaseViewModel
         // Paired non-PowerCfg selection: the new model's States are the option set (States order 1:1 with options).
         if (Setting is { States.Count: > 0 } s3 && SettingDefinition?.PowerCfgSettings?.Any() != true && !IsPowerPlanSetting)
             return SelectedValue is int idxK && idxK >= 0 && idxK < s3.States.Count;
-        var options = SettingDefinition?.ComboBox?.Options;
-        if (options == null || options.Count == 0) return true;
-        // Separate AC/DC Selection settings (PowerCfg-backed) drive the UI via AcValue/DcValue
-        // rather than SelectedValue — validate those indices instead.
+        // PowerCfg AC/DC selections reach here (the paired non-PowerCfg branch returned above). Validate
+        // against the new model's state count (== option count, 1:1); fall back to the old combobox count
+        // when unpaired. Separate AC/DC settings drive the UI via AcValue/DcValue rather than SelectedValue.
+        int optionCount = Setting is { States.Count: > 0 } s4
+            ? s4.States.Count
+            : SettingDefinition?.ComboBox?.Options?.Count ?? 0;
+        if (optionCount == 0) return true;
         if (SupportsSeparateACDC)
-            return AcValue >= 0 && AcValue < options.Count
-                && DcValue >= 0 && DcValue < options.Count;
-        return SelectedValue is int idx && idx >= 0 && idx < options.Count;
+            return AcValue >= 0 && AcValue < optionCount
+                && DcValue >= 0 && DcValue < optionCount;
+        return SelectedValue is int idx && idx >= 0 && idx < optionCount;
     }
 
     private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind, SettingBadgeMode mode = SettingBadgeMode.None)
