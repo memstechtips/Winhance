@@ -127,8 +127,61 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             }
         }
 
+        // Phase 6.7 Slice 7b-ui-3b: bind the power-plan dropdown to the new GUID model (runtime only). The detection
+        // overlay threads the runtime-sourced options + active scheme GUID into the result; build the dropdown directly
+        // off them (Value = scheme GUID, no index round-trip - applied via the GUID branch in
+        // PowerService.TryApplySpecialSettingAsync, Slice 7b-ui-3a). The custom PowerPlanComboBox drives its per-item
+        // visuals (status dot / [Active] badge / delete) off ComboBoxDisplayOption.Tag as PowerPlanComboBoxOption, so
+        // synthesize that Tag from the new-model option. Builder mode stays on the OLD index path below so config
+        // export's index-based BuilderEdit serialization (ConfigExportService, 6.8 scope) is unchanged.
+        var powerPlanHandled = false;
+        if (setting.InputType == InputType.Selection
+            && setting.Recommendation?.LoadDynamicOptions == true
+            && _viewModelDeps.ApplicationModeService?.CurrentMode != WinhanceMode.Builder
+            && currentState.DynamicOptions is { } dynamicOptions)
+        {
+            viewModel.ComboBoxOptions.Clear();
+
+            foreach (var opt in dynamicOptions)
+            {
+                var label = opt.Label.StartsWith("PowerPlan_")
+                    ? _localizationService.GetString(opt.Label)
+                    : opt.Label;
+
+                var isActive = currentState.DynamicSelection != null
+                    && string.Equals(opt.Value, currentState.DynamicSelection, StringComparison.OrdinalIgnoreCase);
+
+                // The PowerPlanComboBox control + the VM delete path read these off the Tag. ExistsOnSystem/IsActive
+                // drive the visuals; SystemPlan.Guid is the delete target (null for a not-installed predefined plan,
+                // so its delete button stays hidden). DisplayName carries the raw loc key (the delete dialog
+                // re-localizes it), matching the old PowerPlanComboBoxOption Tag.
+                var tag = new PowerPlanComboBoxOption
+                {
+                    DisplayName = opt.Label,
+                    ExistsOnSystem = opt.ExistsOnSystem,
+                    IsActive = isActive,
+                    SystemPlan = opt.ExistsOnSystem
+                        ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = label, IsActive = isActive }
+                        : null
+                };
+
+                viewModel.ComboBoxOptions.Add(new ComboBoxDisplayOption(
+                    label,
+                    opt.Value,
+                    opt.ExistsOnSystem ? "Installed on system" : "Not installed",
+                    tag));
+            }
+
+            // The stored selection is the active scheme GUID (default to the first option when the active plan is
+            // unreadable, mirroring the old index-0 fallback).
+            viewModel.SelectedValue = currentState.DynamicSelection ?? dynamicOptions.FirstOrDefault()?.Value;
+            _enricher.SetCrossGroupInfoMessage(viewModel, setting);
+            viewModel.UpdateStatusBanner(viewModel.SelectedValue);
+            powerPlanHandled = true;
+        }
+
         // Set up combo box options for selection settings
-        if (setting.InputType == InputType.Selection)
+        if (setting.InputType == InputType.Selection && !powerPlanHandled)
         {
             try
             {
@@ -197,7 +250,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 _logService.Log(LogLevel.Warning, $"Failed to setup combo box for '{setting.Id}': {ex.Message}");
             }
         }
-        else
+        else if (setting.InputType != InputType.Selection)
         {
             // For non-Selection types, initialize compatibility banner (Selection types handle this in UpdateStatusBanner)
             viewModel.InitializeCompatibilityBanner();

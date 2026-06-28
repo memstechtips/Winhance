@@ -82,7 +82,15 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             var options = await _powerPlanComboBoxService.GetPowerPlanOptionsAsync();
             var activePlan = await _powerService.GetActivePowerPlanAsync();
 
-            int currentIndex = 0;
+            // Phase 6.7 Slice 7b-ui-3b: runtime uses the new scheme-GUID model (Value = GUID, no index round-trip;
+            // mirrors the SettingViewModelFactory gate + the GUID apply path). Builder mode stays on the OLD int-index
+            // model so config-export's index-based BuilderEdit serialization (ConfigExportService, 6.8) is unchanged -
+            // keep this gate in lockstep with the factory's. This refresh is reachable in builder mode (delete + an
+            // external PowerPlanChangedEvent), so it MUST honour the mode too, not just the factory. The rich
+            // PowerPlanComboBoxOption stays the Tag (status dot / [Active] badge / delete-by-GUID), unchanged in both.
+            var isBuilderMode = _applicationModeService.CurrentMode == WinhanceMode.Builder;
+
+            int matchedIndex = -1;
             if (activePlan != null)
             {
                 for (int i = 0; i < options.Count; i++)
@@ -90,11 +98,22 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                     if (options[i].ExistsOnSystem && options[i].SystemPlan != null &&
                         string.Equals(options[i].SystemPlan!.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
                     {
-                        currentIndex = i;
+                        matchedIndex = i;
                         break;
                     }
                 }
             }
+            // Default to the first option when the active plan is unreadable (mirrors the old index-0 default).
+            if (matchedIndex < 0 && options.Count > 0)
+                matchedIndex = 0;
+
+            object? currentSelection;
+            if (isBuilderMode)
+                currentSelection = matchedIndex >= 0 ? matchedIndex : 0;
+            else
+                currentSelection = matchedIndex >= 0
+                    ? (options[matchedIndex].SystemPlan?.Guid ?? options[matchedIndex].PredefinedPlan?.Guid)
+                    : null;
 
             // Build the new ComboBoxDisplayOption list before touching the UI
             var newItems = new List<ComboBoxDisplayOption>(options.Count);
@@ -106,9 +125,15 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                     displayName = _localizationService.GetString(displayName);
                 }
 
+                object optionValue;
+                if (isBuilderMode)
+                    optionValue = options[i].Index;
+                else
+                    optionValue = options[i].SystemPlan?.Guid ?? options[i].PredefinedPlan?.Guid ?? string.Empty;
+
                 newItems.Add(new ComboBoxDisplayOption(
                     displayName,
-                    options[i].Index,
+                    optionValue,
                     options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
                     options[i]));
             }
@@ -116,7 +141,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             // Await the UI update to ensure it completes before returning
             await _dispatcherService.RunOnUIThreadAsync(() =>
             {
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] Starting refresh, currentIndex={currentIndex}, current SelectedValue={powerPlanSetting.SelectedValue}");
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] Starting refresh, currentSelection={currentSelection}, current SelectedValue={powerPlanSetting.SelectedValue}");
 
                 powerPlanSetting.ComboBoxOptions.Clear();
 
@@ -125,8 +150,8 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                     powerPlanSetting.ComboBoxOptions.Add(item);
                 }
 
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate ({newItems.Count} items), setting SelectedValue to {currentIndex}");
-                powerPlanSetting.SelectedValue = currentIndex;
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate ({newItems.Count} items), setting SelectedValue to {currentSelection}");
+                powerPlanSetting.SelectedValue = currentSelection;
 
                 return Task.CompletedTask;
             });
