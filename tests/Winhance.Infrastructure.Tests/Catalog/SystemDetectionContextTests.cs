@@ -151,6 +151,7 @@ public class SystemDetectionContextTests
         var (ctx, _, _, _, power) = Build();
         power.Setup(p => p.GetActivePowerPlanAsync())
             .ReturnsAsync(new PowerPlan { Guid = "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", Name = "High", IsActive = true });
+        power.Setup(p => p.GetAvailablePowerPlansAsync()).ReturnsAsync(new List<PowerPlan>());
         var setting = new Setting
         {
             Id = "power-plan-selection",
@@ -173,5 +174,62 @@ public class SystemDetectionContextTests
 
         power.Verify(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()), Times.Never);
         power.Verify(p => p.GetActivePowerPlanAsync(), Times.Never);
+        power.Verify(p => p.GetAvailablePowerPlansAsync(), Times.Never);
+    }
+
+    private static Setting PowerPlanSetting() => new()
+    {
+        Id = "power-plan-selection",
+        Display = new() { Name = "p", Description = "p" },
+        OptionSource = new PowerPlanOptionSource(),
+    };
+
+    [Fact]
+    public async Task InstalledPowerPlans_returns_the_prefetched_plans_lowercased_in_order()
+    {
+        var (ctx, _, _, _, power) = Build();
+        power.Setup(p => p.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Guid = "BBBBBBBB-0000-0000-0000-000000000000", Name = "Balanced", IsActive = true });
+        power.Setup(p => p.GetAvailablePowerPlansAsync()).ReturnsAsync(new List<PowerPlan>
+        {
+            new() { Name = "Balanced", Guid = "BBBBBBBB-0000-0000-0000-000000000000" },
+            new() { Name = "High performance", Guid = "CCCCCCCC-0000-0000-0000-000000000000" },
+        });
+
+        // An OptionSource (no Detector) must trigger the per-batch plan pre-fetch.
+        await ctx.PrefetchAsync(new[] { PowerPlanSetting() });
+
+        Assert.Equal(new[]
+        {
+            new DynamicOption("Balanced", "bbbbbbbb-0000-0000-0000-000000000000"),
+            new DynamicOption("High performance", "cccccccc-0000-0000-0000-000000000000"),
+        }, ctx.InstalledPowerPlans());
+    }
+
+    [Fact]
+    public void InstalledPowerPlans_returns_empty_before_any_prefetch()
+    {
+        var (ctx, _, _, _, _) = Build();
+
+        Assert.Empty(ctx.InstalledPowerPlans());
+    }
+
+    [Fact]
+    public async Task PowerPlanOptionSource_enumerates_options_and_reports_the_active_selection()
+    {
+        var (ctx, _, _, _, power) = Build();
+        power.Setup(p => p.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Guid = "CCCCCCCC-0000-0000-0000-000000000000", Name = "High performance", IsActive = true });
+        power.Setup(p => p.GetAvailablePowerPlansAsync()).ReturnsAsync(new List<PowerPlan>
+        {
+            new() { Name = "Balanced", Guid = "BBBBBBBB-0000-0000-0000-000000000000" },
+            new() { Name = "High performance", Guid = "CCCCCCCC-0000-0000-0000-000000000000" },
+        });
+        await ctx.PrefetchAsync(new[] { PowerPlanSetting() });
+
+        var source = new PowerPlanOptionSource();
+
+        Assert.Equal(ctx.InstalledPowerPlans(), source.EnumerateOptions(ctx));
+        Assert.Equal("cccccccc-0000-0000-0000-000000000000", source.CurrentSelection(ctx));
     }
 }

@@ -1,13 +1,34 @@
+using System.Collections.Generic;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Marks a setting whose selectable options are produced at runtime from the machine rather than authored
-/// as static States (e.g. the installed power plans, which vary per PC). Replaces the old per-setting
-/// LoadDynamicOptions flag and the SettingId-based special-casing. The concrete source enumerates the options and
-/// reports the current selection when the engine is wired into the UI; that runtime contract is defined at the UI
-/// cutover, alongside removing the now-redundant current-selection Detector.</summary>
-public interface IDynamicOptionSource { }
+/// <summary>A selectable option produced at runtime (not authored as a static State). <see cref="Value"/> is the
+/// stored selection - for the power plan that is the scheme GUID, so detection matches the live selection directly
+/// without an index round-trip.</summary>
+public sealed record DynamicOption(string Label, string Value);
 
-/// <summary>Runtime-sources the machine's installed power plans as the power-plan selection's options (the active
-/// scheme GUID is the stored selection). Supplants the old PowerPlanComboBoxService index/GUID round-tripping and the
-/// `setting.Id == PowerPlanSelection` special-cases.</summary>
-public sealed class PowerPlanOptionSource : IDynamicOptionSource { }
+/// <summary>A setting whose selectable options are produced at runtime from the machine rather than authored as
+/// static States (e.g. the installed power plans, which vary per PC). Replaces the old per-setting LoadDynamicOptions
+/// flag and the SettingId-based special-casing. The source enumerates the live options and reports the current
+/// selection from the same <see cref="IDetectionContext"/> the detectors use - so a dynamic-option setting needs no
+/// separate current-selection detector.</summary>
+public interface IDynamicOptionSource
+{
+    /// <summary>The machine's current options for this setting, in display order. Reads from the detection context's
+    /// pre-fetched cache (synchronous, like the detectors).</summary>
+    IReadOnlyList<DynamicOption> EnumerateOptions(IDetectionContext context);
+
+    /// <summary>The currently-selected option's <see cref="DynamicOption.Value"/> (e.g. the active scheme GUID), or
+    /// null when nothing is selected / readable.</summary>
+    string? CurrentSelection(IDetectionContext context);
+}
+
+/// <summary>Runtime-sources the machine's installed power plans as the power-plan selection's options; the active
+/// scheme GUID is both the per-option Value and the current selection. Supplants the old PowerPlanComboBoxService
+/// index/GUID round-tripping and the `setting.Id == PowerPlanSelection` special-cases.</summary>
+public sealed class PowerPlanOptionSource : IDynamicOptionSource
+{
+    public IReadOnlyList<DynamicOption> EnumerateOptions(IDetectionContext context) => context.InstalledPowerPlans();
+
+    public string? CurrentSelection(IDetectionContext context) => context.ActivePowerPlanGuid();
+}

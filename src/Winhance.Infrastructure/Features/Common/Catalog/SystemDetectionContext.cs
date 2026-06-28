@@ -27,6 +27,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private bool _powerPrefetched;
     private string? _activePlanGuid;
     private bool _planPrefetched;
+    private IReadOnlyList<DynamicOption> _installedPlans = System.Array.Empty<DynamicOption>();
 
     public SystemDetectionContext(
         IWindowsRegistryService reg,
@@ -117,6 +118,14 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
         return _activePlanGuid;
     }
 
+    public IReadOnlyList<DynamicOption> InstalledPowerPlans()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "[SystemDetectionContext] Installed power plans read before a pre-fetch; returning none.");
+        return _installedPlans;
+    }
+
     public async Task PrefetchAsync(IReadOnlyCollection<Setting> settings)
     {
         var build = CurrentBuild;
@@ -145,12 +154,20 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _powerPrefetched = true;
         }
 
-        // Active power plan: read once when a setting selects the power plan (its options are runtime-sourced).
+        // Active power plan + the installed plans (the runtime-sourced options): read once when a setting selects
+        // the power plan. Both the active GUID and each option's GUID are lowercased so a dynamic-option setting can
+        // match the current selection to an option Value directly (no index round-trip).
         bool needsPlan = settings.Any(s => s.Detector is PowerPlanDetector || s.OptionSource is PowerPlanOptionSource);
         if (needsPlan)
         {
             var plan = await _power.GetActivePowerPlanAsync().ConfigureAwait(false);
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
+
+            var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
+            _installedPlans = plans
+                .Select(p => new DynamicOption(p.Name, (p.Guid ?? string.Empty).ToLowerInvariant()))
+                .ToList();
+
             _planPrefetched = true;
         }
     }

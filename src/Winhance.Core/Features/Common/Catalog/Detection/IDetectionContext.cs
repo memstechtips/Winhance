@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The platform reads a custom detector needs, abstracted so detectors are unit-testable without
@@ -36,4 +38,9 @@ public interface IDetectionContext
     /// <summary>The active power scheme's GUID as a string (lowercase), or null when there is no active scheme. Used
     /// by the power-plan detector; unrelated to the per-setting powercfg value reads.</summary>
     string? ActivePowerPlanGuid();
+
+    /// <summary>The machine's installed power plans as dynamic options (Label = plan name, Value = scheme GUID),
+    /// pre-fetched per batch like the active plan. Consumed by <see cref="PowerPlanOptionSource"/>. Default empty:
+    /// only the live context enumerates them; the throwaway migration contexts and test fakes have no plans to read.</summary>
+    IReadOnlyList<DynamicOption> InstalledPowerPlans() => System.Array.Empty<DynamicOption>();
 }
