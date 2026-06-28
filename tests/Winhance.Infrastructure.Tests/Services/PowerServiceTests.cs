@@ -153,6 +153,35 @@ public class PowerServiceTests
     }
 
     [Fact]
+    public async Task TryApplySpecialSettingAsync_StringGuid_AppliesByGuidWithoutIndexResolution()
+    {
+        // Arrange - the new-model UI stores the scheme GUID directly (no index round-trip).
+        var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+        var setting = MakeSetting(SettingIds.PowerPlanSelection);
+        _powerSettingsQueryService
+            .Setup(s => s.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Name = "High performance", Guid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", IsActive = true });
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { new() { Name = "Balanced", Guid = balancedGuid } });
+        _powerSchemeOperations
+            .Setup(s => s.SetActiveScheme(Guid.Parse(balancedGuid)))
+            .Returns(PowerProf.ERROR_SUCCESS);
+        _powerPlanComboBoxService
+            .Setup(s => s.GetPowerPlanOptionsAsync())
+            .ReturnsAsync(new List<PowerPlanComboBoxOption>());
+
+        // Act
+        var result = await _sut.TryApplySpecialSettingAsync(setting, balancedGuid);
+
+        // Assert
+        result.Should().BeTrue();
+        _powerSchemeOperations.Verify(s => s.SetActiveScheme(Guid.Parse(balancedGuid)), Times.Once);
+        // The GUID path must NOT fall through to the legacy index resolver.
+        _powerPlanComboBoxService.Verify(s => s.ResolvePowerPlanByIndexAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
     public async Task DiscoverSpecialSettingsAsync_WithPowerPlanSetting_ReturnsActivePlanInfo()
     {
         // Arrange

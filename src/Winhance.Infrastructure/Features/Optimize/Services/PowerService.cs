@@ -59,6 +59,15 @@ public class PowerService(
                 return await ApplyPowerPlanByGuidAsync(setting, guid, name, settingApplicationService).ConfigureAwait(false);
             }
 
+            // New-model UI selection (Phase 6.7 Slice 7b): the stored value is the scheme GUID directly (no index
+            // round-trip). ApplyPowerPlanByGuidAsync drives everything off the GUID - applying it, or importing the
+            // predefined plan when not installed (matched by GUID against BuiltInPowerPlans); the name is logging-only.
+            if (value is string planGuid)
+            {
+                logService.Log(LogLevel.Info, $"[PowerService] UI selection: applying power plan by GUID {planGuid}");
+                return await ApplyPowerPlanByGuidAsync(setting, planGuid, planGuid, settingApplicationService).ConfigureAwait(false);
+            }
+
             if (value is int index)
             {
                 logService.Log(LogLevel.Info, $"[PowerService] UI selection: applying power plan at index {index}");
