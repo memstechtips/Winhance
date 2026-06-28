@@ -4,8 +4,10 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A selectable option produced at runtime (not authored as a static State). <see cref="Value"/> is the
 /// stored selection - for the power plan that is the scheme GUID, so detection matches the live selection directly
-/// without an index round-trip.</summary>
-public sealed record DynamicOption(string Label, string Value);
+/// without an index round-trip. <see cref="ExistsOnSystem"/> is false for an option offered but not currently present
+/// (e.g. a predefined power plan not installed on this machine - selecting it creates/imports it); the UI shows it as
+/// available-to-create. Defaults true (an enumerated option is normally present).</summary>
+public sealed record DynamicOption(string Label, string Value, bool ExistsOnSystem = true);
 
 /// <summary>A setting whose selectable options are produced at runtime from the machine rather than authored as
 /// static States (e.g. the installed power plans, which vary per PC). Replaces the old per-setting LoadDynamicOptions

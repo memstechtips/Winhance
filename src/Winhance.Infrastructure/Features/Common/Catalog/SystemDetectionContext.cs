@@ -164,9 +164,9 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
 
             var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-            _installedPlans = plans
-                .Select(p => new DynamicOption(p.Name, (p.Guid ?? string.Empty).ToLowerInvariant()))
-                .ToList();
+            // Faithful port of the old PowerPlanComboBoxService dropdown list (predefined plans incl. not-installed,
+            // localized labels, custom plans, sorted) in the new GUID-valued shape.
+            _installedPlans = PowerPlanOptions.Build(plans);
 
             _planPrefetched = true;
         }

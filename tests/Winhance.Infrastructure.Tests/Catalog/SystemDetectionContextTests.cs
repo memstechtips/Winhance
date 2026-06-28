@@ -185,25 +185,24 @@ public class SystemDetectionContextTests
     };
 
     [Fact]
-    public async Task InstalledPowerPlans_returns_the_prefetched_plans_lowercased_in_order()
+    public async Task InstalledPowerPlans_reflects_the_prefetched_plans_via_PowerPlanOptions_Build()
     {
         var (ctx, _, _, _, power) = Build();
-        power.Setup(p => p.GetActivePowerPlanAsync())
-            .ReturnsAsync(new PowerPlan { Guid = "BBBBBBBB-0000-0000-0000-000000000000", Name = "Balanced", IsActive = true });
-        power.Setup(p => p.GetAvailablePowerPlansAsync()).ReturnsAsync(new List<PowerPlan>
+        var systemPlans = new List<PowerPlan>
         {
-            new() { Name = "Balanced", Guid = "BBBBBBBB-0000-0000-0000-000000000000" },
-            new() { Name = "High performance", Guid = "CCCCCCCC-0000-0000-0000-000000000000" },
-        });
+            new() { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" },
+            new() { Name = "My Custom Plan", Guid = "AAAAAAAA-0000-0000-0000-000000000000" },
+        };
+        power.Setup(p => p.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Guid = "381b4222-f694-41f0-9685-ff5bb260df2e", Name = "Balanced", IsActive = true });
+        power.Setup(p => p.GetAvailablePowerPlansAsync()).ReturnsAsync(systemPlans);
 
-        // An OptionSource (no Detector) must trigger the per-batch plan pre-fetch.
+        // An OptionSource (no Detector) must trigger the per-batch plan pre-fetch, which populates the installed
+        // plans via the faithful PowerPlanOptions.Build port (content equivalence is covered by
+        // PowerPlanOptionsEquivalenceTests; this asserts the context delegates to it on the prefetched plans).
         await ctx.PrefetchAsync(new[] { PowerPlanSetting() });
 
-        Assert.Equal(new[]
-        {
-            new DynamicOption("Balanced", "bbbbbbbb-0000-0000-0000-000000000000"),
-            new DynamicOption("High performance", "cccccccc-0000-0000-0000-000000000000"),
-        }, ctx.InstalledPowerPlans());
+        Assert.Equal(PowerPlanOptions.Build(systemPlans), ctx.InstalledPowerPlans());
     }
 
     [Fact]
