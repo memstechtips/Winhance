@@ -37,6 +37,12 @@ public static class CatalogDetectionStateOverlay
             old = old with { RawValues = raw };
         }
 
+        // 7b-ui-2: thread the new engine's runtime-sourced options + current selection (the scheme GUID) for a
+        // dynamic-option setting (power plan) so the UI factory can bind the dropdown to the new model. Additive -
+        // no consumer until 7b-ui-3, and the old discovery's RawValues/CurrentValue stay intact for the live path.
+        if (newResult.Options is { } dynOptions)
+            old = old with { DynamicOptions = dynOptions, DynamicSelection = newResult.StateLabel };
+
         switch (def.InputType)
         {
             case InputType.Toggle:

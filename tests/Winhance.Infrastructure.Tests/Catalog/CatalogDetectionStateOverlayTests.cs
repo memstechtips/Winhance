@@ -117,4 +117,33 @@ public class CatalogDetectionStateOverlayTests
         Assert.Same(raw, result.RawValues);   // non-powercfg: threading skipped, no clone
         Assert.True(result.IsEnabled);
     }
+
+    [Fact]
+    public void Dynamic_options_result_threads_options_and_selection_keeping_old_currentvalue()
+    {
+        var options = new[]
+        {
+            new DynamicOption("PowerPlan_Balanced_Name", "381b4222-f694-41f0-9685-ff5bb260df2e"),
+            new DynamicOption("PowerPlan_HighPerformance_Name", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", ExistsOnSystem: false),
+        };
+        var old = new SettingStateResult { Success = true, CurrentValue = 0 };
+        var result = CatalogDetectionStateOverlay.Apply(
+            Selection("a", "b"), old,
+            new CatalogDetectionResult { StateLabel = "381b4222-f694-41f0-9685-ff5bb260df2e", Detected = true, Options = options });
+
+        Assert.Equal(options, result.DynamicOptions);
+        Assert.Equal("381b4222-f694-41f0-9685-ff5bb260df2e", result.DynamicSelection);
+        Assert.Equal(0, result.CurrentValue);   // additive: the GUID label matches no option DisplayName, old index stays
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void Non_dynamic_result_leaves_dynamic_fields_null()
+    {
+        var old = new SettingStateResult { IsEnabled = false, Success = true };
+        var result = CatalogDetectionStateOverlay.Apply(
+            Toggle(), old, new CatalogDetectionResult { StateLabel = "Enabled", Detected = true });
+        Assert.Null(result.DynamicOptions);
+        Assert.Null(result.DynamicSelection);
+    }
 }
