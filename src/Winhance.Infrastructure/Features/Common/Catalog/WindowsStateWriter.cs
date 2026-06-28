@@ -21,6 +21,7 @@ public sealed class WindowsStateWriter : IStateWriter
     private readonly IPowerCfgApplier _powerCfg;
     private readonly IPowerShellRunner _powerShell;
     private readonly IRegImportService _regImport;
+    private readonly IPowerSchemeOperations _schemes;
     private readonly ILogService _log;
 
     public WindowsStateWriter(
@@ -29,6 +30,7 @@ public sealed class WindowsStateWriter : IStateWriter
         IPowerCfgApplier powerCfg,
         IPowerShellRunner powerShell,
         IRegImportService regImport,
+        IPowerSchemeOperations schemes,
         ILogService log)
     {
         _reg = reg;
@@ -36,6 +38,7 @@ public sealed class WindowsStateWriter : IStateWriter
         _powerCfg = powerCfg;
         _powerShell = powerShell;
         _regImport = regImport;
+        _schemes = schemes;
         _log = log;
     }
 
@@ -186,5 +189,29 @@ public sealed class WindowsStateWriter : IStateWriter
                 // Unknown effect: no-op success (matches ApplyExecutor's permissive default for unknown ops).
                 return true;
         }
+    }
+
+    // --- Power plan (dynamic-option) activation ---
+
+    public bool ActivatePowerPlan(string guid)
+    {
+        // Slice 8a: activate an INSTALLED scheme by GUID (old PowerService.SetActivePowerPlanAsync ->
+        // IPowerSchemeOperations.SetActiveScheme). Importing a predefined-but-not-installed plan before activating
+        // (the old ApplyPowerPlanByGuidAsync import-if-missing branch) lands in Slice 8b's shared importer; here a
+        // not-installed GUID simply fails the native activate and returns false. NOT reached at runtime until 8b
+        // flips the resolver + removes the PowerService special handler.
+        if (string.IsNullOrWhiteSpace(guid) || !Guid.TryParse(guid, out var schemeGuid))
+        {
+            _log.Log(LogLevel.Error, $"[WindowsStateWriter] ActivatePowerPlan: invalid GUID '{guid}'");
+            return false;
+        }
+
+        var rc = _schemes.SetActiveScheme(schemeGuid);
+        if (rc != PowerProf.ERROR_SUCCESS)
+        {
+            _log.Log(LogLevel.Warning, $"[WindowsStateWriter] SetActiveScheme failed for {schemeGuid} (code {rc})");
+            return false;
+        }
+        return true;
     }
 }

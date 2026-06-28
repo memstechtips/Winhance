@@ -24,6 +24,7 @@ public class ApplyExecutorTests
         public bool DeleteRegistryPerSubkey(RegTarget t, string parentPath) { Calls.Add($"PD {parentPath}"); return !FailRegistryWrites; }
         public bool SetTask(TaskTarget t, bool enabled) { Calls.Add($"T {enabled}"); return true; }
         public bool WritePowerCfgValue(PowerCfgTarget t, PowerContext context, int value) { Calls.Add($"P {context}={value}"); return !FailRegistryWrites; }
+        public bool ActivatePowerPlan(string guid) { Calls.Add($"PP {guid}"); return true; }
         public bool RunEffect(Effect e) { Calls.Add("FX"); return true; }
     }
 
@@ -56,6 +57,16 @@ public class ApplyExecutorTests
         var result = ApplyExecutor.Execute(plan, w);
         Assert.True(result.AllSucceeded);
         Assert.Equal(new[] { @"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03" }, w.Calls);
+    }
+
+    [Fact]
+    public void Dispatches_power_plan_activate_op_to_the_writer()
+    {
+        var w = new RecordingWriter();
+        var plan = new ApplyOp[] { new PowerPlanActivateOp("11111111-1111-1111-1111-111111111111") };
+        var result = ApplyExecutor.Execute(plan, w);
+        Assert.True(result.AllSucceeded);
+        Assert.Equal(new[] { "PP 11111111-1111-1111-1111-111111111111" }, w.Calls);
     }
 
     [Fact]

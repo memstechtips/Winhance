@@ -25,5 +25,8 @@ public interface IStateWriter
     /// PowerWriteAC/DCValueIndex.</summary>
     bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value);
 
+    /// <summary>Activate a power scheme by GUID (old PowerService SetActiveScheme). Returns true on success.</summary>
+    bool ActivatePowerPlan(string guid);
+
     bool RunEffect(Effect effect);
 }

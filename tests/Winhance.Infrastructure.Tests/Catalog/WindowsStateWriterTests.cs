@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Xunit;
 
@@ -27,12 +28,13 @@ public class WindowsStateWriterTests
     private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
     private readonly Mock<IPowerShellRunner> _powerShell = new(MockBehavior.Strict);
     private readonly Mock<IRegImportService> _regImport = new(MockBehavior.Strict);
+    private readonly Mock<IPowerSchemeOperations> _schemes = new(MockBehavior.Strict);
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
-        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _powerShell.Object, _regImport.Object, _log.Object);
+        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _powerShell.Object, _regImport.Object, _schemes.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
@@ -50,6 +52,35 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.CreateKey(Path), Times.Once);
         _reg.Verify(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    // --- ActivatePowerPlan (Slice 8a): activate an installed scheme via IPowerSchemeOperations.SetActiveScheme ---
+
+    [Fact]
+    public void ActivatePowerPlan_SetsActiveScheme_AndReturnsTrueOnSuccess()
+    {
+        var guid = Guid.NewGuid();
+        _schemes.Setup(s => s.SetActiveScheme(guid)).Returns(PowerProf.ERROR_SUCCESS);
+
+        _sut.ActivatePowerPlan(guid.ToString()).Should().BeTrue();
+
+        _schemes.Verify(s => s.SetActiveScheme(guid), Times.Once);
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_ReturnsFalse_OnInvalidGuid()
+    {
+        // Strict _schemes mock asserts SetActiveScheme is NOT called for an unparseable GUID.
+        _sut.ActivatePowerPlan("not-a-guid").Should().BeFalse();
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_ReturnsFalse_WhenSetActiveSchemeFails()
+    {
+        var guid = Guid.NewGuid();
+        _schemes.Setup(s => s.SetActiveScheme(guid)).Returns(1u); // non-zero == native failure
+
+        _sut.ActivatePowerPlan(guid.ToString()).Should().BeFalse();
     }
 
     [Fact]

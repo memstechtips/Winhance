@@ -30,6 +30,7 @@ public static class ApplyExecutor
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
                     PowerCfgSetOp p => writer.WritePowerCfgValue(p.Target, p.Context, p.Value),
                     EffectOp fx => writer.RunEffect(fx.Effect),
+                    PowerPlanActivateOp pp => writer.ActivatePowerPlan(pp.Guid),
                     _ => true,
                 };
                 if (!ok)
