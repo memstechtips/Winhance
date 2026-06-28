@@ -19,6 +19,13 @@ public sealed record CatalogDetectionResult
     /// the AC reading for a numeric powercfg setting; these expose AC and DC distinctly for the AC/DC binding.</summary>
     public int? AcValue { get; init; }
     public int? DcValue { get; init; }
+
+    /// <summary>The runtime-enumerated options for a setting whose options come from an
+    /// <see cref="IDynamicOptionSource"/> (e.g. the installed power plans), in display order; null for a setting with
+    /// static States. The UI binds these directly, and <see cref="StateLabel"/> carries the current selection's
+    /// <see cref="DynamicOption.Value"/> (e.g. the active scheme GUID) so the chosen option resolves by value, with
+    /// no index round-trip.</summary>
+    public IReadOnlyList<DynamicOption>? Options { get; init; }
 }
 
 /// <summary>Drives the new catalog detection engine over a batch of settings against the live machine, returning

@@ -20,13 +20,19 @@ public class CatalogDetectionServiceTests
         public int PrefetchCount;
         private readonly Func<string, string?, object?> _get;
         private readonly Func<string, string, PowerContext, int?> _power;
+        private readonly IReadOnlyList<DynamicOption> _plans;
+        private readonly string? _activeGuid;
 
         public FakeContext(
             Func<string, string?, object?>? get = null,
-            Func<string, string, PowerContext, int?>? power = null)
+            Func<string, string, PowerContext, int?>? power = null,
+            IReadOnlyList<DynamicOption>? plans = null,
+            string? activeGuid = null)
         {
             _get = get ?? ((_, _) => null);
             _power = power ?? ((_, _, _) => null);
+            _plans = plans ?? Array.Empty<DynamicOption>();
+            _activeGuid = activeGuid;
         }
 
         public WinBuild CurrentBuild => new(int.MaxValue);
@@ -38,7 +44,8 @@ public class CatalogDetectionServiceTests
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context)
             => _power(subgroupGuid, settingGuid, context);
-        public string? ActivePowerPlanGuid() => null;
+        public string? ActivePowerPlanGuid() => _activeGuid;
+        public IReadOnlyList<DynamicOption> InstalledPowerPlans() => _plans;
 
         public Task PrefetchAsync(IReadOnlyCollection<Setting> settings)
         {
@@ -141,5 +148,44 @@ public class CatalogDetectionServiceTests
 
         Assert.False(results["toggle"].Detected);
         Assert.Null(results["toggle"].StateLabel);
+    }
+
+    private static Setting OptionSourceSetting() => new()
+    {
+        Id = "power-plan-selection",
+        Display = new() { Name = "p", Description = "p" },
+        OptionSource = new PowerPlanOptionSource(),
+    };
+
+    [Fact]
+    public async Task DetectAsync_surfaces_dynamic_options_and_the_current_selection_for_an_option_source_setting()
+    {
+        var plans = new[]
+        {
+            new DynamicOption("Balanced", "bbbbbbbb-0000-0000-0000-000000000000"),
+            new DynamicOption("High performance", "cccccccc-0000-0000-0000-000000000000"),
+        };
+        var service = ServiceWith(new FakeContext(plans: plans, activeGuid: "cccccccc-0000-0000-0000-000000000000"));
+
+        var results = await service.DetectAsync(new[] { OptionSourceSetting() });
+
+        var r = results["power-plan-selection"];
+        Assert.Equal(plans, r.Options);
+        Assert.Equal("cccccccc-0000-0000-0000-000000000000", r.StateLabel); // current selection's Value (GUID)
+        Assert.True(r.Detected);
+    }
+
+    [Fact]
+    public async Task DetectAsync_marks_an_option_source_setting_undetected_when_nothing_is_selected()
+    {
+        var plans = new[] { new DynamicOption("Balanced", "bbbbbbbb-0000-0000-0000-000000000000") };
+        var service = ServiceWith(new FakeContext(plans: plans, activeGuid: null));
+
+        var results = await service.DetectAsync(new[] { OptionSourceSetting() });
+
+        var r = results["power-plan-selection"];
+        Assert.Equal(plans, r.Options);
+        Assert.Null(r.StateLabel);
+        Assert.False(r.Detected);
     }
 }

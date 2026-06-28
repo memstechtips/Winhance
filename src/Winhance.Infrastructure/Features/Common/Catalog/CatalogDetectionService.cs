@@ -34,6 +34,23 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         {
             try
             {
+                if (setting.OptionSource is { } optionSource)
+                {
+                    // Runtime-sourced options (e.g. the installed power plans): the source enumerates the live
+                    // options and reports the current selection (a Value such as the active scheme GUID) directly
+                    // from the pre-fetched context - no static states, no separate current-selection detector. The
+                    // StateLabel carries that Value so the UI resolves the chosen option by value (no index round-trip).
+                    var options = optionSource.EnumerateOptions(context);
+                    string? current = optionSource.CurrentSelection(context);
+                    results[setting.Id] = new CatalogDetectionResult
+                    {
+                        StateLabel = current,
+                        Detected = current is not null,
+                        Options = options,
+                    };
+                    continue;
+                }
+
                 var (acValue, dcValue) = ReadPowerAcDc(setting, context);
                 if (setting.Numeric is not null)
                 {
