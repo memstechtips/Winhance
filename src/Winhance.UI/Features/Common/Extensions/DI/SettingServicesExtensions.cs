@@ -79,13 +79,11 @@ public static class SettingServicesExtensions
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
-            sp.GetRequiredService<IProcessExecutor>(),
-            sp.GetRequiredService<IFileSystemService>(),
             sp.GetRequiredService<IPowerSchemeOperations>(),
-            sp.GetRequiredService<IConfigImportState>()
+            sp.GetRequiredService<IConfigImportState>(),
+            sp.GetRequiredService<IPowerPlanActivationService>()
         ));
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 

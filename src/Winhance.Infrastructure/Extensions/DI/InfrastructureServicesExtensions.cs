@@ -3,10 +3,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Events;
 using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Extensions.DI;
 
@@ -62,6 +64,11 @@ public static class InfrastructureServicesExtensions
 
         // Power Scheme Operations (P/Invoke wrapper for plan-level power operations)
         services.AddSingleton<IPowerSchemeOperations, PowerSchemeOperations>();
+
+        // Power-plan activation orchestration (Phase 6.7 Slice 8b-1: extracted from PowerService; six leaf
+        // deps, no PowerService/IStateWriter reference so it is DI-cycle-safe). Consumed by PowerService's
+        // apply shells and by WindowsStateWriter.ActivatePowerPlan.
+        services.AddSingleton<IPowerPlanActivationService, PowerPlanActivationService>();
 
         // Explorer Window Manager (open/focus folders in Explorer)
         services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();

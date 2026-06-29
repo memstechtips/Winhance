@@ -39,16 +39,25 @@ public class PowerServiceTests
         _powerSchemeOperations = new Mock<IPowerSchemeOperations>();
         _configImportState = new ConfigImportState();
 
+        // Slice 8b-1: the activation orchestration was extracted into PowerPlanActivationService. Build a REAL
+        // instance from the SAME mocks so the existing PowerService behaviour (and its deep import/activate
+        // verifies on these mocks) is preserved exactly through the delegation.
+        var activation = new PowerPlanActivationService(
+            _logService.Object,
+            _powerSettingsQueryService.Object,
+            _powerSchemeOperations.Object,
+            _processExecutor.Object,
+            _fileSystemService.Object,
+            _compatibleSettingsRegistry.Object);
+
         _sut = new PowerService(
             _logService.Object,
             _powerSettingsQueryService.Object,
-            _compatibleSettingsRegistry.Object,
             _eventBus.Object,
             _powerPlanComboBoxService.Object,
-            _processExecutor.Object,
-            _fileSystemService.Object,
             _powerSchemeOperations.Object,
-            _configImportState);
+            _configImportState,
+            activation);
     }
 
     private static SettingDefinition MakeSetting(string id, string? name = null, string? description = null) =>
