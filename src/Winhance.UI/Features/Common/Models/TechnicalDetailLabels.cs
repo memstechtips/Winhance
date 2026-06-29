@@ -21,6 +21,11 @@ public record TechnicalDetailLabels
     public string SectionScripts        { get; init; } = "PowerShell Scripts";
     public string SectionRegContent     { get; init; } = "Registry Content";
     public string SectionDependencies   { get; init; } = "Depends On";
+    public string SectionOptions        { get; init; } = "Options";
+
+    // Option->value table suffixes: a choice that also accepts the key being absent, or that deletes the key.
+    public string OrNotSet              { get; init; } = "or not set";
+    public string DeletesKey           { get; init; } = "deletes key";
 
     // Script / RegContent labels
     public string ScriptOnEnable        { get; init; } = "On Enable";

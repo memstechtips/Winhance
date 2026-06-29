@@ -10,7 +10,10 @@ public enum DetailRowType
     PowerConfig,
     PowerShellScript,
     RegContent,
-    Dependency
+    Dependency,
+    // One option of a Selection/Toggle setting: which choice writes which value (the "docs inside the app"
+    // option->value table). Phase 6.7 Slice 9. Sourced from Setting.States, not the old SettingTooltipData.
+    Option
 }
 
 public class TechnicalDetailRow
@@ -64,6 +67,16 @@ public class TechnicalDetailRow
     public string DependencyLabel { get; set; } = string.Empty;
     public string DependencyRelation { get; set; } = string.Empty;
 
+    // Option (Selection/Toggle option->value table). OptionLabel = the localized choice name;
+    // OptionValue = the formatted value that choice writes (with "or not set" / "deletes key" suffixes);
+    // OptionRole = the localized role marker ("Recommended" / "Default" / both, or empty);
+    // IsCurrentOption highlights the choice currently active on the system.
+    public string OptionLabel { get; set; } = string.Empty;
+    public string OptionValue { get; set; } = string.Empty;
+    public string OptionRole { get; set; } = string.Empty;
+    public bool IsCurrentOption { get; set; }
+    public string CurrentLabelText { get; set; } = string.Empty;
+
     // Localized labels for XAML binding
     public string PathLabel { get; set; } = "Path";
     public string ValueLabel { get; set; } = "Value";
@@ -80,6 +93,7 @@ public class TechnicalDetailRow
     public bool IsPowerShellScript => RowType == DetailRowType.PowerShellScript;
     public bool IsRegContent       => RowType == DetailRowType.RegContent;
     public bool IsDependency       => RowType == DetailRowType.Dependency;
+    public bool IsOption           => RowType == DetailRowType.Option;
 
     // Command and icon set from parent ViewModel
     public IRelayCommand<string>? OpenRegeditCommand { get; set; }
@@ -106,6 +120,9 @@ public class TechnicalDetailRow
         DetailRowType.PowerShellScript => $"PowerShell script {ScriptLabel}: {ScriptBody}",
         DetailRowType.RegContent       => $"Registry content {ContentLabel}: {ContentBody}",
         DetailRowType.Dependency       => $"Depends on {DependencyLabel} {DependencyRelation}",
+        DetailRowType.Option           => string.IsNullOrEmpty(OptionRole)
+            ? $"{OptionLabel}: {OptionValue}{(IsCurrentOption ? $", {CurrentLabelText}" : string.Empty)}"
+            : $"{OptionLabel}: {OptionValue} ({OptionRole}){(IsCurrentOption ? $", {CurrentLabelText}" : string.Empty)}",
         _ => string.Empty
     };
 }
