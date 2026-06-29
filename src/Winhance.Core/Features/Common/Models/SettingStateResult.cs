@@ -11,6 +11,11 @@ public sealed record SettingStateResult
     public string? ErrorMessage { get; init; }
     public IReadOnlyDictionary<string, object?>? RawValues { get; init; }
 
+    /// <summary>Raw AC/DC powercfg values for a separate-mode power setting (the new engine's reading), so the UI
+    /// reads AC/DC from a typed field instead of RawValues["ACValue"/"DCValue"]. Null for non-powercfg settings.</summary>
+    public int? AcValue { get; init; }
+    public int? DcValue { get; init; }
+
     /// <summary>For a setting whose options are produced at runtime (an <see cref="IDynamicOptionSource"/>, e.g. the
     /// power plan): the live options to show, and the current selection's <see cref="DynamicOption.Value"/> (the
     /// scheme GUID). Null for a normal static-state setting. Threaded by the detection overlay from the new engine;

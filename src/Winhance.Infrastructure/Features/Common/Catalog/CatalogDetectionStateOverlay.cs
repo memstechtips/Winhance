@@ -34,7 +34,9 @@ public static class CatalogDetectionStateOverlay
                 : new Dictionary<string, object?>(old.RawValues);
             if (newResult.AcValue is int ac) raw["ACValue"] = ac;
             if (newResult.DcValue is int dc) raw["DCValue"] = dc;
-            old = old with { RawValues = raw };
+            // Slice 11-prep: also surface AC/DC on typed fields so the live UI (factory/VM) reads them without
+            // RawValues; the RawValues entries stay for the 6.8 builder/config-export readers.
+            old = old with { RawValues = raw, AcValue = newResult.AcValue, DcValue = newResult.DcValue };
         }
 
         // 7b-ui-2: thread the new engine's runtime-sourced options + current selection (the scheme GUID) for a
