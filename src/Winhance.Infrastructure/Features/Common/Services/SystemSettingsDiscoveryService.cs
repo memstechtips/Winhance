@@ -301,7 +301,7 @@ public class SystemSettingsDiscoveryService(
         var settingsList = settings.ToList();
         logService.Log(LogLevel.Info, $"[SystemSettingsDiscoveryService] Getting interpreted states for {settingsList.Count} settings");
 
-        var (allRawValues, batchRegistryValues) = await GetRawSettingsValuesWithBatchAsync(settingsList).ConfigureAwait(false);
+        var (allRawValues, _) = await GetRawSettingsValuesWithBatchAsync(settingsList).ConfigureAwait(false);
         var results = new Dictionary<string, SettingStateResult>();
 
         foreach (var setting in settingsList)
