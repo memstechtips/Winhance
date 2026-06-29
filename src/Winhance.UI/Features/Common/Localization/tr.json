@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Seçenekler",
+  "TechnicalDetails_OrNotSet": "veya ayarlanmamış",
+  "TechnicalDetails_DeletesKey": "anahtarı siler",
   "_Meta_LanguageDisplayName": "Türkçe (Turkish)",
   "Progress_LoadingExternalApps": "Harici Uygulamalar Yükleniyor...",
   "Progress_LoadingWindowsApps": "Windows Uygulamaları Yükleniyor...",

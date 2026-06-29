@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "الخيارات",
+  "TechnicalDetails_OrNotSet": "أو غير مضبوط",
+  "TechnicalDetails_DeletesKey": "يحذف المفتاح",
   "_Meta_LanguageDisplayName": "العربية (Arabic)",
   "Progress_LoadingExternalApps": "جارٍ تحميل التطبيقات الخارجية...",
   "Progress_LoadingWindowsApps": "جارٍ تحميل تطبيقات Windows...",

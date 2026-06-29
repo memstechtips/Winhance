@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Opcje",
+  "TechnicalDetails_OrNotSet": "lub nie ustawiono",
+  "TechnicalDetails_DeletesKey": "usuwa klucz",
   "_Meta_LanguageDisplayName": "Polski (Polish)",
   "Progress_LoadingExternalApps": "Ładowanie aplikacji zewnętrznych...",
   "Progress_LoadingWindowsApps": "Ładowanie aplikacji Windows...",

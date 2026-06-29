@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "विकल्प",
+  "TechnicalDetails_OrNotSet": "या सेट नहीं",
+  "TechnicalDetails_DeletesKey": "कुंजी हटाता है",
   "_Meta_LanguageDisplayName": "हिन्दी (Hindi)",
   "Progress_LoadingExternalApps": "बाहरी ऐप्स लोड हो रहा है...",
   "Progress_LoadingWindowsApps": "विंडोज ऐप्स लोड हो रहा है...",

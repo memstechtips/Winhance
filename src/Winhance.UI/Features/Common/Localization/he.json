@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "אפשרויות",
+  "TechnicalDetails_OrNotSet": "או לא מוגדר",
+  "TechnicalDetails_DeletesKey": "מוחק את המפתח",
   "_Meta_LanguageDisplayName": "עברית (Hebrew)",
   "Progress_LoadingExternalApps": "טוען אפליקציות חיצוניות...",
   "Progress_LoadingWindowsApps": "טוען אפליקציות של Windows...",

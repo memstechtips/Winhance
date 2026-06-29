@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Параметры",
+  "TechnicalDetails_OrNotSet": "или не задано",
+  "TechnicalDetails_DeletesKey": "удаляет ключ",
   "_Meta_LanguageDisplayName": "Русский (Russian)",
   "Progress_LoadingExternalApps": "Загрузка внешних приложений...",
   "Progress_LoadingWindowsApps": "Загрузка приложений Windows...",

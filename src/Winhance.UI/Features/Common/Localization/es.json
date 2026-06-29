@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Opciones",
+  "TechnicalDetails_OrNotSet": "o sin establecer",
+  "TechnicalDetails_DeletesKey": "elimina la clave",
   "_Meta_LanguageDisplayName": "Español (Spanish)",
   "Progress_LoadingExternalApps": "Cargando aplicaciones externas...",
   "Progress_LoadingWindowsApps": "Cargando aplicaciones de Windows...",

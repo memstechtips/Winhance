@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Opzioni",
+  "TechnicalDetails_OrNotSet": "o non impostato",
+  "TechnicalDetails_DeletesKey": "elimina la chiave",
   "_Meta_LanguageDisplayName": "Italiano (Italian)",
   "Progress_LoadingExternalApps": "Caricamento delle app esterne in corso...",
   "Progress_LoadingWindowsApps": "Caricamento delle app di Windows in corso...",

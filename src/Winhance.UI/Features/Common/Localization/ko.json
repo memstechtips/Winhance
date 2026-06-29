@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "옵션",
+  "TechnicalDetails_OrNotSet": "또는 설정 안 함",
+  "TechnicalDetails_DeletesKey": "키 삭제",
   "_Meta_LanguageDisplayName": "한국어 (Korean)",
   "Progress_LoadingExternalApps": "외부 앱 로드 중...",
   "Progress_LoadingWindowsApps": "Windows 앱 로드 중...",

@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "選項",
+  "TechnicalDetails_OrNotSet": "或未設定",
+  "TechnicalDetails_DeletesKey": "刪除機碼",
   "_Meta_LanguageDisplayName": "繁體中文 (Chinese Traditional)",
   "Progress_LoadingExternalApps": "正在載入外部應用程式...",
   "Progress_LoadingWindowsApps": "正在載入 Windows 應用程式...",

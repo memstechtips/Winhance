@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Opties",
+  "TechnicalDetails_OrNotSet": "of niet ingesteld",
+  "TechnicalDetails_DeletesKey": "verwijdert sleutel",
   "_Meta_LanguageDisplayName": "Nederlands (Dutch)",
   "Progress_LoadingExternalApps": "Externe apps laden...",
   "Progress_LoadingWindowsApps": "Windows Apps laden...",

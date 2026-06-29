@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "گزینه‌ها",
+  "TechnicalDetails_OrNotSet": "یا تنظیم‌نشده",
+  "TechnicalDetails_DeletesKey": "کلید را حذف می‌کند",
   "_Meta_LanguageDisplayName": "فارسی (Persian)",
   "Progress_LoadingExternalApps": "در حال بارگذاری برنامه‌های جانبی...",
   "Progress_LoadingWindowsApps": "در حال بارگذاری اپلیکیشن‌های ویندوز...",

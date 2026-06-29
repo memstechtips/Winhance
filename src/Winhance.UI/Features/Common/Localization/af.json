@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Opsies",
+  "TechnicalDetails_OrNotSet": "of nie gestel nie",
+  "TechnicalDetails_DeletesKey": "vee sleutel uit",
   "_Meta_LanguageDisplayName": "Afrikaans",
   "Progress_LoadingExternalApps": "Laai eksterne toepassings...",
   "Progress_LoadingWindowsApps": "Laai Windows Toepassings...",

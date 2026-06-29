@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Tùy chọn",
+  "TechnicalDetails_OrNotSet": "hoặc không đặt",
+  "TechnicalDetails_DeletesKey": "xóa khóa",
   "_Meta_LanguageDisplayName": "Tiếng Việt (Vietnamese)",
   "Progress_LoadingExternalApps": "Đang tải ứng dụng bên ngoài...",
   "Progress_LoadingWindowsApps": "Đang tải ứng dụng Windows...",

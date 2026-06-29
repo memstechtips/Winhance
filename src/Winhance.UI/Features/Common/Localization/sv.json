@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Alternativ",
+  "TechnicalDetails_OrNotSet": "eller inte angivet",
+  "TechnicalDetails_DeletesKey": "tar bort nyckel",
   "_Meta_LanguageDisplayName": "Svenska (Swedish)",
   "Progress_LoadingExternalApps": "Läser in externa appar...",
   "Progress_LoadingWindowsApps": "Läser in Windows-appar...",

@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Options",
+  "TechnicalDetails_OrNotSet": "ou non défini",
+  "TechnicalDetails_DeletesKey": "supprime la clé",
   "_Meta_LanguageDisplayName": "Français (French)",
   "Progress_LoadingExternalApps": "Chargement des applications externes...",
   "Progress_LoadingWindowsApps": "Chargement des applications Windows...",

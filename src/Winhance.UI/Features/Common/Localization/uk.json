@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Параметри",
+  "TechnicalDetails_OrNotSet": "або не задано",
+  "TechnicalDetails_DeletesKey": "видаляє ключ",
   "_Meta_LanguageDisplayName": "Українська (Ukrainian)",
   "Progress_LoadingExternalApps": "Завантаження зовнішніх програм...",
   "Progress_LoadingWindowsApps": "Завантаження додатків Windows...",

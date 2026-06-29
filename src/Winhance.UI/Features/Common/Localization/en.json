@@ -1,4 +1,7 @@
 ﻿{
+  "TechnicalDetails_Section_Options": "Options",
+  "TechnicalDetails_OrNotSet": "or not set",
+  "TechnicalDetails_DeletesKey": "deletes key",
   "_Meta_LanguageDisplayName": "English",
   "Progress_LoadingExternalApps": "Loading external apps...",
   "Progress_LoadingWindowsApps": "Loading Windows apps...",
