@@ -1,9 +1,11 @@
+using System.Collections.ObjectModel;
 using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -185,36 +187,43 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         {
             try
             {
-                var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
                 viewModel.ComboBoxOptions.Clear();
+                object? resolvedSelection;
 
-                // Check if this is a PowerPlan setting that needs localization
-                var isPowerPlanSetting = setting.Recommendation?.LoadDynamicOptions == true;
-
-                foreach (var option in comboBoxResult.Options)
+                if (catalogPeer is { States.Count: > 0 } pairedSelection)
                 {
-                    // Translate PowerPlan localization keys
-                    if (isPowerPlanSetting && option.DisplayText.StartsWith("PowerPlan_"))
+                    // Phase 6.7 P1 - new-model-native option build: the options come from Setting.States,
+                    // localized via the Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the
+                    // fallback). The current index is the detection-resolved CurrentValue (1:1 with States,
+                    // -1 == Custom). Retires the old IComboBoxSetupService for paired selections; the old
+                    // service stays only as the unpaired fallback below.
+                    int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
+                    BuildCatalogSelectionOptions(pairedSelection, currentIndex, viewModel.ComboBoxOptions);
+                    resolvedSelection = currentState.CurrentValue ?? currentIndex;
+                }
+                else
+                {
+                    // Unpaired (no catalog peer yet): fall back to the old combobox setup service.
+                    var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
+                    var isPowerPlanSetting = setting.Recommendation?.LoadDynamicOptions == true;
+                    foreach (var option in comboBoxResult.Options)
                     {
-                        option.DisplayText = _localizationService.GetString(option.DisplayText);
+                        // Translate PowerPlan localization keys
+                        if (isPowerPlanSetting && option.DisplayText.StartsWith("PowerPlan_"))
+                            option.DisplayText = _localizationService.GetString(option.DisplayText);
+                        viewModel.ComboBoxOptions.Add(option);
                     }
-
-                    viewModel.ComboBoxOptions.Add(option);
+                    resolvedSelection = comboBoxResult.SelectedValue ?? currentState.CurrentValue;
                 }
 
                 // Build cross-group info message if this setting has CrossGroupChildSettings
                 _enricher.SetCrossGroupInfoMessage(viewModel, setting);
 
-                // Set the selected value from the setup result or current state
-                if (comboBoxResult.SelectedValue != null)
+                // Set the selected value from the resolved option build or current state
+                if (resolvedSelection != null)
                 {
-                    viewModel.SelectedValue = comboBoxResult.SelectedValue;
-                    viewModel.UpdateStatusBanner(comboBoxResult.SelectedValue);
-                }
-                else if (currentState.CurrentValue != null)
-                {
-                    viewModel.SelectedValue = currentState.CurrentValue;
-                    viewModel.UpdateStatusBanner(currentState.CurrentValue);
+                    viewModel.SelectedValue = resolvedSelection;
+                    viewModel.UpdateStatusBanner(resolvedSelection);
                 }
 
                 // Builder/serialization support: when the live state resolves to "Custom"
@@ -273,5 +282,51 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     {
         var displayUnits = setting.NumericRange?.Units;
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
+    }
+
+    /// <summary>
+    /// Builds a selection's combobox options from the new <see cref="Setting"/> model (Phase 6.7 P1):
+    /// one option per <see cref="SettingState"/>, localized via the canonical Setting_{id}_Option_{i}
+    /// (and _OptionTooltip_{i}) keys with <c>state.Label</c> as the fallback, and the recommended/default
+    /// flags derived from the state's roles. Appends the synthetic "Custom" option (Setting_{id}_Option_Custom
+    /// or the generic Common_CustomState) when the current index is the Custom sentinel. This replaces the old
+    /// IComboBoxSetupService for catalog-paired selections.
+    /// </summary>
+    private void BuildCatalogSelectionOptions(Setting setting, int currentIndex, ObservableCollection<ComboBoxDisplayOption> options)
+    {
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
+        {
+            var state = states[i];
+            // Mirror the old localizer: when the state Label is itself a shared localization key
+            // (Template_* / ServiceOption_* / Setting_* / PowerPlan_*), look it up AS the key; otherwise
+            // build the per-setting Setting_{id}_Option_{i} key. state.Label is the final raw fallback.
+            var displayKey = SettingLocalizationKeys.IsLocalizationKey(state.Label)
+                ? state.Label
+                : $"Setting_{setting.Id}_Option_{i}";
+            var label = LocalizeOrFallback(displayKey, state.Label) ?? state.Label;
+            var tooltip = LocalizeOrFallback($"Setting_{setting.Id}_OptionTooltip_{i}", null);
+            options.Add(new ComboBoxDisplayOption(label, i, tooltip)
+            {
+                IsRecommended = state.HasRole(RoleKind.Recommended),
+                IsDefault = state.HasRole(RoleKind.WindowsDefault),
+                IsSubjectivePreference = setting.Display.IsSubjectivePreference,
+            });
+        }
+
+        if (currentIndex == ComboBoxConstants.CustomStateIndex)
+        {
+            var custom = LocalizeOrFallback($"Setting_{setting.Id}_Option_Custom",
+                LocalizeOrFallback("Common_CustomState", "Custom"));
+            options.Add(new ComboBoxDisplayOption(custom ?? "Custom", ComboBoxConstants.CustomStateIndex, null));
+        }
+    }
+
+    // Returns the localized string for the key, or the fallback when the key is missing
+    // (ILocalizationService.GetString returns the "[key]" marker on a miss).
+    private string? LocalizeOrFallback(string key, string? fallback)
+    {
+        var s = _localizationService.GetString(key);
+        return (s.Length >= 2 && s[0] == '[' && s[^1] == ']') ? fallback : s;
     }
 }
