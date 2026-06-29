@@ -47,7 +47,6 @@ public class AutounattendScriptBuilderRoutingTests
             powerQuery.Object,
             new Mock<IHardwareDetectionService>().Object,
             log.Object,
-            new Mock<IComboBoxResolver>().Object,
             runner.Object);
     }
 

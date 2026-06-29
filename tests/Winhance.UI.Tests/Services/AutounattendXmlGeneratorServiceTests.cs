@@ -19,7 +19,6 @@ public class AutounattendXmlGeneratorServiceTests
     private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
-    private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
 
     private AutounattendScriptBuilder CreateScriptBuilder()
     {
@@ -27,7 +26,6 @@ public class AutounattendXmlGeneratorServiceTests
             _mockPowerSettingsQueryService.Object,
             _mockHardwareDetectionService.Object,
             _mockLogService.Object,
-            _mockComboBoxResolver.Object,
             _mockPowerShellRunner.Object);
     }
 

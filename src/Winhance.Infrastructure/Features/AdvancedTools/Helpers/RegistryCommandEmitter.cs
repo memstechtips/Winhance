@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -18,14 +19,12 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 /// </summary>
 internal class RegistryCommandEmitter
 {
-    private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ILogService _logService;
 
     private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
 
-    public RegistryCommandEmitter(IComboBoxResolver comboBoxResolver, ILogService logService)
+    public RegistryCommandEmitter(ILogService logService)
     {
-        _comboBoxResolver = comboBoxResolver;
         _logService = logService;
     }
 
@@ -302,8 +301,7 @@ internal class RegistryCommandEmitter
         else if (configItem.SelectedIndex.HasValue &&
                  setting.ComboBox?.Options?.Any(o => o.ValueMappings != null) == true)
         {
-            var resolvedValues = _comboBoxResolver.ResolveIndexToRawValues(setting, configItem.SelectedIndex.Value);
-            valuesToApply = resolvedValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
+            valuesToApply = ResolveSelectionValuesFromCatalog(setting, configItem.SelectedIndex.Value);
         }
         else
         {
@@ -312,6 +310,45 @@ internal class RegistryCommandEmitter
         }
 
         ApplyResolvedValues(sb, setting, valuesToApply, isHkcu, indent);
+    }
+
+    /// <summary>Phase 6.8 F1: the new-catalog replacement for IComboBoxResolver.ResolveIndexToRawValues. Builds the
+    /// selected option's raw write-values dict from the catalog setting's States[index].Set - each Set entry keyed by
+    /// the matching Target's registry ValueName (or "KeyExists" when the RegTarget has no value name), or "PowerCfgValue"
+    /// for a PowerCfgTarget, valued by StateValue.WritePayload. Returns empty when the selected option carries no
+    /// value-mappings (matching the old resolver) or - UNLIKE the old resolver, which had no catalog concept - when the
+    /// setting is unpaired or the index is out of range. That unpaired divergence (old would still emit; this emits
+    /// nothing) is safe ONLY because every selection setting carrying value-mappings is catalog-paired;
+    /// ScriptGenSelectionResolveEquivalenceTests enforces that invariant and proves byte-equivalence with the old
+    /// resolver for all paired selections (103 settings, 0 mismatches).</summary>
+    private static Dictionary<string, object> ResolveSelectionValuesFromCatalog(SettingDefinition setting, int index)
+    {
+        var result = new Dictionary<string, object>();
+
+        // Faithful to ResolveIndexToRawValues: empty unless the SELECTED option carries value-mappings.
+        if (setting.ComboBox?.Options is not { } options
+            || index < 0 || index >= options.Count
+            || options[index].ValueMappings == null)
+            return result;
+
+        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id);
+        if (catalogSetting == null || index >= catalogSetting.States.Count)
+            return result;
+
+        foreach (var entry in catalogSetting.States[index].Set)
+        {
+            var target = catalogSetting.Targets.FirstOrDefault(t => t.Key == entry.Key);
+            string? key = target switch
+            {
+                RegTarget rt => rt.ValueName ?? "KeyExists",
+                PowerCfgTarget => "PowerCfgValue",
+                _ => null,
+            };
+            if (key != null)
+                result[key] = entry.Value.WritePayload!;
+        }
+
+        return result;
     }
 
     public void ApplyResolvedValues(StringBuilder sb, SettingDefinition setting, Dictionary<string, object> valuesToApply, bool isHkcu, string indent)

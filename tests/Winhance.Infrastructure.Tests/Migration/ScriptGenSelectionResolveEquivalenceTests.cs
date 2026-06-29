@@ -72,7 +72,9 @@ public class ScriptGenSelectionResolveEquivalenceTests
             var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == def.Id);
             if (newSetting == null)
             {
-                // Unpaired settings fall back to the old path in production - not a failure.
+                // The F1 production swap has NO fallback to the old resolver, so an unpaired selection-with-
+                // ValueMappings setting would silently emit nothing in the autounattend script - a regression,
+                // asserted against below (not a benign skip).
                 unpairedSkipped.Add(def.Id);
                 continue;
             }
@@ -163,13 +165,19 @@ public class ScriptGenSelectionResolveEquivalenceTests
 
         // A zero-coverage bug must not pass vacuously.
         Assert.NotEmpty(comparedSettingIds);
+
+        // The F1 production swap (RegistryCommandEmitter.ResolveSelectionValuesFromCatalog) has NO fallback to the old
+        // resolver: an unpaired selection-with-ValueMappings setting would silently emit NOTHING in the autounattend
+        // script. So every such setting MUST be catalog-paired - an unpaired one is a regression, not a skip.
+        Assert.True(
+            unpairedSkipped.Count == 0,
+            "selection settings with ValueMappings but NO catalog peer (would silently emit nothing post-F1): "
+                + string.Join(", ", unpairedSkipped));
+
         Assert.True(
             mismatches.Count == 0,
             $"{mismatches.Count} selection resolve mismatches (new catalog vs old ResolveIndexToRawValues):\n"
-                + string.Join("\n", mismatches)
-                + (unpairedSkipped.Count > 0
-                    ? "\nunpaired-skipped (fall back to old path, not failed): " + string.Join(", ", unpairedSkipped)
-                    : ""));
+                + string.Join("\n", mismatches));
     }
 
     private static string Fmt(IReadOnlyDictionary<string, object?> d) =>

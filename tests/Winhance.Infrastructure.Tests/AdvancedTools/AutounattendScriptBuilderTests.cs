@@ -18,7 +18,6 @@ public class AutounattendScriptBuilderTests
     private readonly Mock<IPowerSettingsQueryService> _powerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _hardwareDetectionService = new();
     private readonly Mock<ILogService> _logService = new();
-    private readonly Mock<IComboBoxResolver> _comboBoxResolver = new();
     private readonly Mock<IPowerShellRunner> _powerShellRunner = new();
     private readonly AutounattendScriptBuilder _sut;
 
@@ -39,7 +38,6 @@ public class AutounattendScriptBuilderTests
             _powerSettingsQueryService.Object,
             _hardwareDetectionService.Object,
             _logService.Object,
-            _comboBoxResolver.Object,
             _powerShellRunner.Object);
     }
 

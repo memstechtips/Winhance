@@ -12,13 +12,12 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class RegistryCommandEmitterTests
 {
-    private readonly Mock<IComboBoxResolver> _comboBoxResolver = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly RegistryCommandEmitter _sut;
 
     public RegistryCommandEmitterTests()
     {
-        _sut = new RegistryCommandEmitter(_comboBoxResolver.Object, _logService.Object);
+        _sut = new RegistryCommandEmitter(_logService.Object);
     }
 
     // ---------------------------------------------------------------

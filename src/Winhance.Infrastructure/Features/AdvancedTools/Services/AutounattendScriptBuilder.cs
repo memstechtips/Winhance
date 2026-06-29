@@ -20,13 +20,12 @@ public class AutounattendScriptBuilder
         IPowerSettingsQueryService powerSettingsQueryService,
         IHardwareDetectionService hardwareDetectionService,
         ILogService logService,
-        IComboBoxResolver comboBoxResolver,
         IPowerShellRunner powerShellRunner)
     {
         _logService = logService;
         _powerShellRunner = powerShellRunner;
 
-        var registryEmitter = new RegistryCommandEmitter(comboBoxResolver, logService);
+        var registryEmitter = new RegistryCommandEmitter(logService);
         _featureRegistrySection = new FeatureRegistryScriptSection(registryEmitter, logService);
         _powerSettingsSection = new PowerSettingsScriptSection(powerSettingsQueryService, hardwareDetectionService, logService);
         _appRemovalSection = new AppRemovalScriptSection();

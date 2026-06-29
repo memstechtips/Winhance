@@ -14,14 +14,13 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class FeatureRegistryScriptSectionTests
 {
-    private readonly Mock<IComboBoxResolver> _comboBoxResolver = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly RegistryCommandEmitter _registryEmitter;
     private readonly FeatureRegistryScriptSection _sut;
 
     public FeatureRegistryScriptSectionTests()
     {
-        _registryEmitter = new RegistryCommandEmitter(_comboBoxResolver.Object, _logService.Object);
+        _registryEmitter = new RegistryCommandEmitter(_logService.Object);
         _sut = new FeatureRegistryScriptSection(_registryEmitter, _logService.Object);
     }
 
