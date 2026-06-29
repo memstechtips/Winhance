@@ -10,7 +10,6 @@ public sealed record SettingStateResult
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }
     public IReadOnlyDictionary<string, object?>? RawValues { get; init; }
-    public SettingTooltipData? TooltipData { get; init; }
 
     /// <summary>For a setting whose options are produced at runtime (an <see cref="IDynamicOptionSource"/>, e.g. the
     /// power plan): the live options to show, and the current selection's <see cref="DynamicOption.Value"/> (the

@@ -150,12 +150,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ITaskProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
         services.AddSingleton<IMultiScriptProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
 
-        // Tooltip Services
-        // ITooltipDataService stays registered (still builds SettingStateResult.TooltipData) until the
-        // result-shape swap in Slice 10; the TooltipRefreshEventHandler that consumed it was retired in
-        // Slice 9c (the panel is VM-driven now, the TooltipUpdatedEvent had no subscriber).
-        services.AddSingleton<ITooltipDataService, TooltipDataService>();
-
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
 
