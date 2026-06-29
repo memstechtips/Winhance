@@ -133,12 +133,38 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Dynamic_option_source_setting_returns_null()
+    public void Dynamic_option_source_with_non_guid_value_returns_null()
     {
+        // A legacy int index needs an async index->GUID lookup the pure resolver can't do -> old apply.
         var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
         var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: 1,
             resetToDefault: false, new[] { setting });
         Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Dynamic_option_source_with_guid_string_builds_activate_op()
+    {
+        // Live UI selection (Slice 7b-ui-3a): the stored value is the scheme GUID string.
+        var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
+        const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: guid,
+            resetToDefault: false, new[] { setting });
+        var activate = Assert.IsType<PowerPlanActivateOp>(Assert.Single(plan!));
+        Assert.Equal(guid, activate.Guid);
+    }
+
+    [Fact]
+    public void Dynamic_option_source_with_guid_name_dictionary_builds_activate_op()
+    {
+        // Config-import shape (ConfigurationApplicationBridgeService): { "Guid": ..., "Name": ... }.
+        var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
+        const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+        var value = new Dictionary<string, object> { ["Guid"] = guid, ["Name"] = "Balanced" };
+        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        var activate = Assert.IsType<PowerPlanActivateOp>(Assert.Single(plan!));
+        Assert.Equal(guid, activate.Guid);
     }
 
     [Fact]

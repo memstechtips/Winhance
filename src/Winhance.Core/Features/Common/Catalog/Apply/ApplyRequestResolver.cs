@@ -36,10 +36,18 @@ public static class ApplyRequestResolver
         if (setting is null)
             return null; // unpaired -> old apply
 
-        // Dynamic-option settings (power-plan) carry machine-discovered options and apply via a path the plan
-        // builder does not reproduce -> old apply (deferred to 6.7).
+        // Dynamic-option settings (power-plan): the selected value is the scheme GUID - a plain string (the live UI
+        // selection, Slice 7b-ui-3a) or a {Guid,Name} dictionary (config import, ConfigurationApplicationBridgeService).
+        // Build the activate op directly from that GUID; the setting has no States, so ApplyPlanBuilder/BuildForLabel
+        // cannot be used. A non-GUID value (a legacy int index, which needs an async index->GUID lookup the pure
+        // resolver can't do, or null) is not representable here -> old apply. ADDITIVE until the Slice 8b-2 flip: while
+        // the PowerService special handler is still registered the funnel catches power-plan FIRST and never reaches
+        // this seam, so this branch is dead until that registration is removed.
         if (setting.OptionSource is not null)
-            return null;
+        {
+            var guid = ExtractPowerPlanGuid(value);
+            return guid is null ? null : new ApplyOp[] { new PowerPlanActivateOp(guid) };
+        }
 
         // A BARE-state custom detector (e.g. DNS, not yet migrated to the new apply) has no apply effects to run,
         // so the new engine has nothing to build -> old apply. A custom-detector setting WHOSE states carry apply
@@ -114,6 +122,20 @@ public static class ApplyRequestResolver
         if (value is null) return null;
         try { return Convert.ToInt32(value); }
         catch { return null; }
+    }
+
+    /// <summary>Extract the power scheme GUID from a dynamic-option apply value: a plain GUID string (the live UI
+    /// selection) or a {Guid,Name} dictionary (config import). Returns null when no usable GUID is present (a legacy
+    /// int index or null) so the caller falls back to the old apply rather than building a bogus op.</summary>
+    private static string? ExtractPowerPlanGuid(object? value)
+    {
+        if (value is string s && !string.IsNullOrWhiteSpace(s))
+            return s;
+        if (value is Dictionary<string, object> dict
+            && dict.TryGetValue("Guid", out var g)
+            && g?.ToString() is { Length: > 0 } guid)
+            return guid;
+        return null;
     }
 
     /// <summary>Build the plan for a named state, or null when the setting has no such state (e.g. a custom-detector
